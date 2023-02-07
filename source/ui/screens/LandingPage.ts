@@ -19,7 +19,7 @@ import i18n from "../state/translate";
 
         return html`
         <div class="landing-page">
-            <img scr="" alt="">
+            <img class="" style="width:100%" src="/images/sketch_ethesaurus.png" alt="sketch représentant l'application voyager et son utilisation dans une borne holographique">
         </div>`
     }
 
