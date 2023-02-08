@@ -108,12 +108,15 @@ $menu-color-background-darker: transparentize(#050708, 0.15);
 
             .home-button
             {
-                font-size: 1.7rem;
-                font-weight: 400;
-                padding: 1.5rem 2rem;
-                text-transform: uppercase;
-                color: white;
-                text-decoration: none;
+                padding: 1rem;
+                color:$color-light;
+                ff-button{
+                    font-size: 1.7rem;
+                    padding: 1rem
+                }
+                svg{
+                    fill: $color-light;
+                }
             }
 
             .object-info
