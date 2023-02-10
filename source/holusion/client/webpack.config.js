@@ -68,7 +68,7 @@ module.exports = function createAppConfig(env, argv)
     const config = {
         mode: devMode,
         entry: {
-            "holusion": "source/holusion/client/MainView.ts",
+            "holusion": "source/holusion/client/MV2.ts",
         },
 
         output: {
@@ -127,7 +127,7 @@ module.exports = function createAppConfig(env, argv)
                 filename: `voyager-split.html`,
                 template: path.join(dirs.source, "holusion/client", "split.hbs"),
                 title: "Voyager SplitScreen Viewer",
-                templateParameters: {...hbsParams, element: `<voyager-explorer-split></voyager-explorer-split>`},
+                templateParameters: {...hbsParams, element: `<voyager-explorer-leak></voyager-explorer-leak>`},
                 chunks : ['holusion'],
             }),
         ],

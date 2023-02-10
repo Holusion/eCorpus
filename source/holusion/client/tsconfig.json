@@ -21,5 +21,5 @@
           "@ff/scene/*": [ "../../../libs/ff-scene/source/*" ]
       }
   },
-  "files": ["global.d.ts", "MainView.ts"]
+  "files": ["global.d.ts", "MainView.ts", "MV2.ts"]
 }
