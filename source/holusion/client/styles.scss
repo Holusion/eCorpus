@@ -42,6 +42,7 @@ $menu-color-background-darker: transparentize(#050708, 0.15);
     justify-content: center;
     width: 100%;
     margin: auto;
+    font-family: sans-serif;
 
     .object-menu-card
     {
@@ -230,7 +231,7 @@ $menu-color-background-darker: transparentize(#050708, 0.15);
     position: relative;
 
     h1{
-        font-family: serif;
+        font-family:serif;
     }
 
     h1:before {
@@ -441,6 +442,61 @@ $menu-color-background-darker: transparentize(#050708, 0.15);
 }
 
 //overlay
+
+.split-overlay
+{
+    font-family: sans-serif;  
+    width: 100%;
+    height:100vh;
+    position: absolute;
+    top:0;
+    left:100%;
+    
+    .title{
+        padding: 2rem;
+        padding-bottom: 1rem;
+        margin-left: 0.5rem;
+        position: relative;
+
+        h2:after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 2rem;
+            width: 100px;
+            height: 5px;
+            background-color: $color-primary;
+        }        
+    }
+
+
+    &.animation{
+        .title{
+            animation: 0.5s ease-in slidein;
+            @keyframes slidein {
+                from {
+                    margin-left: -2rem;
+                    opacity: 0;
+                }
+                to {
+                    margin-left: 0.5rem;
+                    opacity: 1;
+                }
+            }            
+        }
+        h2:after{
+            animation: 0.5s ease-in underlineslidein;
+            @keyframes underlineslidein {
+                from {
+                    width: 0px;
+                }
+                to {
+                    width: 100px;
+                }
+            }
+        }
+    }
+}
 
 .sv-content-view
 {
