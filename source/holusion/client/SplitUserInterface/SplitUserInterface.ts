@@ -75,10 +75,7 @@ export default class SplitUserInterface extends DocumentView
         const tagCloudVisible = setup.viewer.outs.tagCloud.value;
 
         const language = setup.language;
-        const languages = language.activeLanguages;
         const activeLanguage = language.outs.language.value;
-        const languagesVisible = languages.length > 1 && setup.interface.isShowing(EUIElements.language);
-
 
         let tabs = [];
         console.log("render : ", document, selectedTour);
@@ -115,9 +112,8 @@ export default class SplitUserInterface extends DocumentView
     }
 
     protected onResetCamera = ()=>{
-        this.dispatchEvent(new CustomEvent("select", {
-            
-        }));
+        this.activeDocument.setup.navigation.ins.orbit.setValue([ -25, -25, 0 ]);
+        this.activeDocument.setup.navigation.ins.zoomExtents.set();
     }
 
     protected onCloseTour =()=>{
