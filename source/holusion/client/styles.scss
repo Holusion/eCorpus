@@ -472,26 +472,41 @@ $menu-color-background-darker: transparentize(#050708, 0.15);
 
     &.animation{
         .title{
-            animation: 0.5s ease-in slidein;
+            animation: 6s ease-in slidein;
+            opacity:0;
             @keyframes slidein {
-                from {
+                0% {
                     margin-left: -2rem;
                     opacity: 0;
                 }
-                to {
+                10% {
                     margin-left: 0.5rem;
                     opacity: 1;
                 }
-            }            
+                90% {
+                    margin-left: 0.5rem;
+                    opacity: 1;
+                }
+                100% {
+                    margin-left: -2rem;
+                    opacity: 0;
+                }
+            }
         }
         h2:after{
-            animation: 0.5s ease-in underlineslidein;
+            animation: 6s ease-in underlineslidein;
             @keyframes underlineslidein {
-                from {
+                0% {
                     width: 0px;
                 }
-                to {
+                10% {
                     width: 100px;
+                }
+                90% {
+                    width: 100px;
+                }
+                100% {
+                    width: 0;
                 }
             }
         }
