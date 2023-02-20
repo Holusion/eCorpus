@@ -274,6 +274,11 @@ export default class UserManager {
     if(!r) throw new NotFoundError(`Can't find user with uid : ${$uid}`);
     return UserManager.deserialize(r);
   }
+  
+  async setEmail(uid :number, email :string){
+    let r = await this.db.run(`UPDATE users SET email = $email WHERE user_id = $uid`, {$uid: uid, $email: email});
+    if(!r?.changes) throw new NotFoundError(`No user matching : ${uid}`);
+  }
 
   async removeUser(uid :number){
     let r = await this.db.run(`DELETE FROM users WHERE user_id = $uid`, {$uid:uid});

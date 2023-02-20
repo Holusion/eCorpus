@@ -1,15 +1,20 @@
+@import "./variables.scss";
+
 :root{
   --nav-height: 44px;
   --col-width: 1320px;
-  --color-primary: #0089bf;
-  --color-secondary: #ffcd00;
-  --color-tertiary: #1b2226;
+  --color-primary: #{$color-primary};
+  --color-secondary: #{$color-secondary};
+  --color-tertiary: #{$color-tertiary};
 
-  --color-dark: #272727;
-  --color-medium: #4e4e4e;
-  --color-hover: #676767;
-  --color-light: #c8c8c8;
+  --color-dark: #{$color-tertiary};
+  --color-medium: #{$color-primary};
+  --color-hover: #{$color-primary-dark};
+  --color-light: #{$color-text};
+
+  --color-danger: #{$color-danger};
 }
+
 
 
 
@@ -18,6 +23,9 @@
 }
 
 body{
+  background: radial-gradient(circle, #103040 0, #0b0b0b 60%, #0b0b0b 100%);
+  background-attachment: fixed;
+
   min-height: 100%;
   width: 100%;
   padding: var(--nav-height) 0 0 0;
@@ -27,5 +35,5 @@ body{
 }
 
 h1{
-  font-family: "Impact", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", "sans-serif";
+  font-family: "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", "sans-serif";
 }
