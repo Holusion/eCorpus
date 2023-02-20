@@ -37,6 +37,10 @@ export default {
       "fr": "Changer le mot de passe",
       "en": "Change password"
     },
+    saveChanges: {
+      "fr": "Enregistrer les modifications",
+      "en": "Save changes"
+    },
     submit: {
       "fr": "Envoyer",
       "en": "Submit",

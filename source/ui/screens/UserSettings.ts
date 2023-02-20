@@ -7,6 +7,8 @@ import i18n from "../state/translate";
 
 @customElement("user-settings")
 export default class UserSettings extends i18n(withUser(LitElement)) {
+
+  
   createRenderRoot() {
       return this;
   }
@@ -16,11 +18,12 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
       return html`<user-login></user-login>`;
     }
     return html`
-      <form id="userlogin" class="form-control" @submit=${this.onChangeUserSubmit}>
+      <h1>${this.t("ui.userSettings")}</h1>
 
-        <div class="form-group">
-          <h3>${this.t("ui.userSettings")}</h3>
-        </div>
+      <form id="userlogin" class="form-control" style="max-width:500px" @submit=${this.onChangeUserSubmit}>
+      <div class="form-group">
+        <h3>Modifier le profil</h3>
+      </div>
         <div class="form-group">
           <div class="form-item">
             <input type="text" name="username" id="username" placeholder="username" value="${this.user.username || ""}">
@@ -34,9 +37,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
           </div>
         </div>
         <div class="form-group">
-          <div class="form-item">
-            <input type="submit" value="${this.t("ui.submit")}" >
-          </div>
+            <input class="ff-button ff-control" style="padding:10px; width:100%" type="submit" value=${this.t("ui.saveChanges")}>
         </div>
       </form>
 
@@ -44,7 +45,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
         <div class="form-group">
           <h3>${this.t("ui.changePassword")}</h3>
         </div>
-        <div class="form-group inline">
+        <div class="form-group" style="max-width:500px">
           <div class="form-item">
             <input type="password" name="password" id="password" placeholder="${this.t("ui.password")}" required>
             <label for="password">${this.t("ui.password")}</label>
@@ -55,13 +56,14 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
             <label for="password-confirm">${this.t("ui.passwordConfirm")}</label>
           </div>
           <div class="divider"></div>
-          <div class="form-item">
-            <input type="submit" name="password-submit" value="${this.t("ui.changePassword")}">
+          <div>
+            <input class="ff-button ff-control" style="padding:10px; margin-top:10px; width:100%" type="submit" name="password-submit" value="${this.t("ui.changePassword")}">
           </div>
         </div>
       </form>
 
-      <div style="padding-top:15px;">
+      <div style="padding-top:15px; max-width:500px">
+        <h3>${this.t("ui.logout")}</h3>
         <ff-button text="${this.t("ui.logout")}" icon="cross" @click=${this.onLogout}></ff-button>
       </div>
     `;
