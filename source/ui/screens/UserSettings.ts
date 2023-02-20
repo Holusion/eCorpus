@@ -8,14 +8,16 @@ import i18n from "../state/translate";
 @customElement("user-settings")
 export default class UserSettings extends i18n(withUser(LitElement)) {
 
-  
   createRenderRoot() {
       return this;
   }
 
   protected render() {
+    console.log("Render userSettings : ", this.user);
     if(!this.user){
-      return html`<user-login></user-login>`;
+      return html`<div style="margin:auto; max-width:300px">
+        <user-login></user-login>
+      </div>`;
     }
     return html`
       <h1>${this.t("ui.userSettings")}</h1>
@@ -26,13 +28,13 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
       </div>
         <div class="form-group">
           <div class="form-item">
-            <input type="text" name="username" id="username" placeholder="username" value="${this.user.username || ""}">
+            <input type="text" autocomplete="username" name="username" id="username" placeholder="username" value="${this.user.username || ""}">
             <label for="username">${this.t("ui.username")}</label>
           </div>
         </div>
         <div class="form-group">
           <div class="form-item">
-            <input type="email" name="email" id="email" placeholder="email" value="${this.user.email || ""}">
+            <input type="email" autocomplete="email" name="email" id="email" placeholder="email" value="${this.user.email || ""}">
             <label for="email">${this.t("ui.email")}</label>
           </div>
         </div>
@@ -47,12 +49,12 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
         </div>
         <div class="form-group" style="max-width:500px">
           <div class="form-item">
-            <input type="password" name="password" id="password" placeholder="${this.t("ui.password")}" required>
+            <input type="password" autocomplete="new-password" name="password" id="password" placeholder="${this.t("ui.password")}" required>
             <label for="password">${this.t("ui.password")}</label>
           </div>
           <div class="divider"></div>
           <div class="form-item">
-            <input type="password" name="password-confirm" id="password-confirm" placeholder="${this.t("ui.passwordConfirm")}" required>
+            <input type="password" autocomplete="new-password" name="password-confirm" id="password-confirm" placeholder="${this.t("ui.passwordConfirm")}" required>
             <label for="password-confirm">${this.t("ui.passwordConfirm")}</label>
           </div>
           <div class="divider"></div>
