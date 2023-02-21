@@ -10,6 +10,7 @@ import HttpError from "../state/HttpError";
 import Icon from "@ff/ui/Icon";
 import { nothing } from "lit-html";
 import Notification from "@ff/ui/Notification";
+import i18n from "../state/translate";
 
 interface User {
     uid :string;
@@ -25,7 +26,7 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
  * Main UI view for the Voyager Explorer application.
  */
  @customElement("users-list")
- export default class AdminScreen extends LitElement
+ export default class AdminScreen extends i18n(LitElement)
  {
     @property({type: Array})
     list : User[];
@@ -64,21 +65,38 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
     onCreateUser = (ev :MouseEvent)=>{
         ev.preventDefault();
         const username = ev.target["username"].value;
+        const email = ev.target["email"].value;
         const password = ev.target["password"].value;
         const isAdministrator = ev.target["isAdministrator"].checked;
         (ev.target as HTMLFormElement).reset();
         Modal.close();
-        console.log("create user : ", username, password, isAdministrator);
+        console.log("create user : ", username, password, email, isAdministrator);
         fetch("/api/v1/users", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username, password, isAdministrator})
+            body: JSON.stringify({username, password, email, isAdministrator})
         }).then(HttpError.okOrThrow)
         .then(()=>this.fetchUsers())
         .catch(e=>{
             console.error(e);
             Modal.show({
                 header: "Error creating user",
+                body: "Message : "+e.message,
+            });
+        });
+    }
+
+    onDeleteUser = (ev :MouseEvent, u :User)=>{
+        ev.preventDefault();
+        fetch(`/api/v1/users/${u.uid}`, {
+            headers: {"Content-Type": "application/json"},
+            method: "DELETE"
+        }).then(()=>this.fetchUsers())
+        .then(()=>Notification.show(`User ${u.username} Deleted`, "info"))
+        .catch(e=>{
+            console.error(e);
+            Modal.show({
+                header: "Error deleting user",
                 body: "Message : "+e.message,
             });
         });
@@ -94,10 +112,15 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
                 </div>
                 <div class="form-group">
                     <div class="form-item">
-                        <input type="password" name="password" id="password" autocomplete="new-password" placeholder="Password" required>
-                        <label for="password">Password</label>
+                        <input type="email" name="email" id="email" placeholder="email" required>
+                        <label for="email">${this.t("ui.email")}</label>
                     </div>
                 </div>
+                <div class="form-item">
+                    <input type="password" name="password" id="password" autocomplete="new-password" placeholder="Password" required>
+                    <label for="password">Password</label>
+                </div>
+            </div>
                 <div class="form-group">
                     <div class="form-checkbox">
                         <input type="checkbox" name="isAdministrator" id="isAdministrator">
@@ -143,7 +166,7 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
                         <td><input type="checkbox" .checked=${u.isAdministrator} disabled></td>
                         <td>
                             <div style="display:flex; justify-content:end;gap:.6rem;">
-                            <ff-button class="secondary" style="color:var(--color-dark);opacity:0.8" inline icon="trash" disabled></ff-button>
+                            <ff-button class="secondary" style="color:var(--color-dark);opacity:0.8" inline icon="trash" @click=${(ev)=>this.onDeleteUser(ev,u)} ></ff-button>
                             <ff-button class="secondary" style="color:var(--color-dark);opacity:0.8" inline icon="email" @click=${()=>this.createLoginLink(u)}></ff-button>
                             </div>
                         </td>
