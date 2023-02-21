@@ -89,11 +89,11 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
   app.get("/", (req, res)=> res.redirect("/ui/"));
 
   /* istanbul ignore next */
-  app.get("/ui/:scene", (req, res)=>{
+  app.get("/ui/scene/:scene", (req, res)=>{
     let {scene} = req.params;
     let {lang} = req.query;
     let host = getHost(req);
-    let referrer = new URL(req.get("Referrer")||`/ui/`, host);
+    let referrer = new URL(req.get("Referrer")||`/ui/scene/`, host);
     let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
 
     res.render("explorer", {
@@ -105,11 +105,11 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
     });
   });
 
-  app.get("/ui/:scene/edit",(req, res)=>{
+  app.get("/ui/scene/:scene/edit",(req, res)=>{
     let {scene} = req.params;
     let {lang} = req.query;
     let host = getHost(req);
-    let referrer = new URL(req.get("Referrer")||`/ui/`, host);
+    let referrer = new URL(req.get("Referrer")||`/ui/scene/`, host);
     let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
     
     res.render("story", {
