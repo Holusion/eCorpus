@@ -114,6 +114,14 @@ export default {
     reportBug: {
       fr: "Signaler un bug",
       en: "Report a bug"
+    },
+    editScene: {
+      fr: "Éditer la scène",
+      en: "Edit scene"
+    },
+    viewScene: {
+      fr: "Afficher la scène",
+      en: "Edit scene"
     }
   },
   info:{
