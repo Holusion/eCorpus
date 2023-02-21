@@ -122,6 +122,10 @@ export default {
     viewScene: {
       fr: "Afficher la scène",
       en: "Edit scene"
+    },
+    recoverPassword:{
+      fr: "mot de passe oublié?",
+      en: "recover your password"
     }
   },
   info:{
@@ -143,6 +147,10 @@ export default {
       fr: "tester le mode standalone",
       en: "test standalone mode"
     },
+    recoverPasswordLead: {
+      fr: "veuillez fournir votre identifiant ou votre email et nous vous enverrons un lien de connexion",
+      en: "please provide your username or email and we will send you a recovery link"
+    }
   },
   errors:{
     '404':{
