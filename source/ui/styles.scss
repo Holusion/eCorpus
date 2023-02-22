@@ -75,6 +75,11 @@ nav-link{
 .ff-button.ff-control {
   background: $color-background-light;
   color: white;
+  margin-top: 5px;
+
+  svg {
+    fill: white;
+  }
 
   &:hover, &:focus{
     background-color: $color-background-lighter;
@@ -93,6 +98,14 @@ nav-link{
 
     &:hover:not(:disabled){
       background-color: $color-primary-light;
+    }
+  }
+
+  &.btn-secondary {
+    background-color: $color-primary-light;
+
+    &:hover:not(:disabled){
+      background-color: $color-secondary;
     }
   }
 
@@ -117,6 +130,7 @@ nav-link{
   @at-root a#{&} {
     text-decoration: none;
     padding: 8px;
+    white-space:nowrap;
   }
 }
 
@@ -305,6 +319,7 @@ table.list-table {
 
 .list-tasks{
   display: flex;
+  flex-wrap: wrap;
   .ff-button{
     max-width: 250px;
   }
