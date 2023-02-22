@@ -70,11 +70,11 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
         const isAdministrator = ev.target["isAdministrator"].checked;
         (ev.target as HTMLFormElement).reset();
         Modal.close();
-        console.log("create user : ", username, password, email, isAdministrator);
+        console.log("create user : ", username, password, isAdministrator, email);
         fetch("/api/v1/users", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username, password, email, isAdministrator})
+            body: JSON.stringify({username, password, isAdministrator, email})
         }).then(HttpError.okOrThrow)
         .then(()=>this.fetchUsers())
         .catch(e=>{
@@ -85,13 +85,13 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
             });
         });
     }
-
     onDeleteUser = (ev :MouseEvent, u :User)=>{
         ev.preventDefault();
         fetch(`/api/v1/users/${u.uid}`, {
             headers: {"Content-Type": "application/json"},
             method: "DELETE"
-        }).then(()=>this.fetchUsers())
+        }).then(HttpError.okOrThrow)
+        .then(()=>this.fetchUsers())
         .then(()=>Notification.show(`User ${u.username} Deleted`, "info"))
         .catch(e=>{
             console.error(e);
@@ -99,6 +99,18 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
                 header: "Error deleting user",
                 body: "Message : "+e.message,
             });
+        });
+        Modal.close();
+    }
+
+    deleteUserOpen(u :User){
+        Modal.show({
+            header: "Delete user",
+            body: html`<div>Are you sure you want to delete user "${u.username}" ?</div>`,
+            buttons: html`<div style="display:flex;padding-top:30px;">
+                <ff-button class="btn-primary" text="cancel" @click=${Modal.close}></ff-button>
+                <ff-button class="btn-danger" text="delete" @click=${(ev)=>this.onDeleteUser(ev, u)}><ff-button>
+            </div>`
         });
     }
 
@@ -112,7 +124,7 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
                 </div>
                 <div class="form-group">
                     <div class="form-item">
-                        <input type="email" name="email" id="email" placeholder="email" required>
+                        <input type="email" name="email" id="email" autocomplete="new-email" placeholder="email" required>
                         <label for="email">${this.t("ui.email")}</label>
                     </div>
                 </div>
@@ -166,7 +178,7 @@ Icon.add("email", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
                         <td><input type="checkbox" .checked=${u.isAdministrator} disabled></td>
                         <td>
                             <div style="display:flex; justify-content:end;gap:.6rem;">
-                            <ff-button class="secondary" style="color:var(--color-dark);opacity:0.8" inline icon="trash" @click=${(ev)=>this.onDeleteUser(ev,u)} ></ff-button>
+                            <ff-button class="secondary" style="color:var(--color-dark);opacity:0.8" inline icon="trash" @click=${()=>this.deleteUserOpen(u)} ></ff-button>
                             <ff-button class="secondary" style="color:var(--color-dark);opacity:0.8" inline icon="email" @click=${()=>this.createLoginLink(u)}></ff-button>
                             </div>
                         </td>
