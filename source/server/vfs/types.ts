@@ -6,11 +6,14 @@ import {Readable} from "stream";
 export const FileTypes = [
   "articles",
   "images",
-  "models"
+  "models",
+  "videos",
 ] as const;
+
 export function isFileType(type :any) :type is FileType{
   return FileTypes.indexOf(type) !== -1;
 }
+
 export type FileType = typeof FileTypes[number];
 
 

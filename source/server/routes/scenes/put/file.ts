@@ -2,70 +2,53 @@
 import { getFileParams, getUserId, getVfs } from "../../../utils/locals";
 import { Request, Response } from "express";
 import Vfs, { FileType } from "../../../vfs";
-import { HTTPError } from "../../../utils/errors";
+import { BadRequestError, HTTPError } from "../../../utils/errors";
 import { addDerivative, Asset } from "../../../utils/documents/edit";
 import path from "path";
 import { parse_glb } from "../../../utils/glTF";
 
+/**
+ * Guess FileType using content-type header
+ */
+function getContentType(req :Request) :FileType|"binary"|null{
+  if(req.is("video")) return "videos";
+  if(req.is("image")) return "images";
+  if(req.is("model/gltf-binary")) return "models";
+  if(req.is("text")) return "articles";
+  else return "binary";
+}
 
-function getAssetParams(req :Request){
-  const { type, name} = getFileParams(req);
-  let ext = path.extname(name).toLowerCase();
-  let usage :Asset["usage"] = "Web3D";
-  let quality :Asset["quality"] = "Highest";
-  let size = parseInt(req.get("Content-Length") as any);
-  switch(ext){
-    case ".usdz":
-      usage = "iOSApp3D";
-      quality = "AR";
-      break;
-  }
-
-  let asset :Asset = {
-    name,
-    uri: `${type}/${name}`,
-    usage,
-    quality,
-    byteSize: (Number.isSafeInteger(size)?size: undefined)
-  }
-  return asset;
+/**
+ * Guess FileType using the filename's extension
+ */
+function getExtension(file :string) :FileType|null{
+  let ext = path.extname(file);
+  if(!ext || /\.(txt|html?)$/i.test(ext)) return "articles";
+  if(/\.(jpg|png|webp|bmp)$/i.test(ext)) return "images";
+  if(/\.(mp4|mkv|flv|mov)$/i.test(ext)) return "videos";
+  if(/\.(glb|usdz)$/i.test(ext)) return "models";
+  return null;
 }
 
 export default async function handlePutFile(req :Request, res :Response){
   const vfs = getVfs(req);
   const user_id = getUserId(req);
-  const { scene, type, name} = getFileParams(req);
-  let r = await vfs.writeFile(req, {user_id, scene, type, name});
-  if(type =="models"){
-    let asset = getAssetParams(req);
-    if(name.toLowerCase().endsWith(".glb")){
-      try{
-        let meta = await parse_glb(vfs.filepath(r));
-        asset.name = meta.meshes[0].name ?? scene as string;
-        asset.bounds = meta.bounds;
-        asset.byteSize = meta.byteSize;
-        asset.numFaces = meta.meshes[0].numFaces
-      }catch(e){
-        console.warn("Failed to parse GLB file : ", e);
-      }
-    }
-    await registerModel(vfs, scene, asset);
+  let { scene, type, name} = getFileParams(req, false);
+
+  const contentType = getContentType(req);
+  const extType = getExtension(name);
+
+  if(!type) {
+    //Handle routes where type is not explicit
+    let t = ((contentType != "binary")? contentType : extType);
+    if(t == null) throw new BadRequestError(`Can't guess Content-Type for ${name}`);
+    type = t;
   }
+  
+  if(contentType != "binary" && type != contentType) throw new BadRequestError(`Bad Content-Type: "${req.get("Content-Type")}" for file type "${type}"`);
+  if(extType && type != extType) throw new BadRequestError(`Bad file extention "${path.extname(name)}" for file type ${type}`);
+
+  let r = await vfs.writeFile(req, {user_id, scene, type, name});
+
   res.status((r.generation === 1)?201:200).send();
 };
-
-async function registerModel(vfs :Vfs, sceneNameOrId: string|number, asset :Asset){
-  let scene = await vfs.getScene(sceneNameOrId);
-  let doc;
-  try{
-    let docProps = await vfs.getDoc(scene.id);
-    doc = JSON.parse(docProps.data);
-    /** @fixme use proper ajv validation */
-    if(!Array.isArray(doc.nodes)) throw new SyntaxError("Bad document structure");
-  }catch(e){
-    if((e as HTTPError).code === 404 || e instanceof SyntaxError){
-      doc = (await import("../../../utils/documents/default.svx.json")).default;
-    }else throw e;
-  }
-  await vfs.writeDoc(JSON.stringify(addDerivative(asset, doc)), scene.id);
-}

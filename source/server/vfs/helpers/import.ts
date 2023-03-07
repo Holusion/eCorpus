@@ -57,7 +57,7 @@ export async function importModel(modelDir :string, scene_id :number, vfs :Vfs):
   let modelName = path.basename(modelDir);
   let docFile = path.join(modelDir, modelName+".svx.json");
   let docData = await fs.readFile(docFile, {encoding: "utf8"});
-  let stats = {articles: 0, images: 0, models: 0};
+  let stats = {articles: 0, images: 0, models: 0, videos: 0};
   let doc;
   try{
     doc = JSON.parse(docData);

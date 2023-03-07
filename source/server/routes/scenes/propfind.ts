@@ -139,6 +139,11 @@ interface TextElement{
   text :string;
 }
 
+
+function isThumb(name :string){
+  return /^scene-image-(thumb|low|medium|high|highest|ar)\.(jpg|png)$/.test(name);
+}
+
 async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:number){
   let elements :ElementList = [];
   let scene = await vfs.getScene(scene_name);
@@ -155,8 +160,8 @@ async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:nu
         new URL(path.join("models", f.name), sceneUrl),
         f
       )),
-      ...files.images.map(f=> Element.fromFile(
-        new URL(f.name, sceneUrl),
+      ...files.images.map(f => Element.fromFile(
+        new URL(isThumb(f.name)?f.name:"images/"+f.name, sceneUrl),
         f
       )),
     )
@@ -165,6 +170,7 @@ async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:nu
     elements.push(
       Element.fromFile(new URL("articles/", sceneUrl), scene, true),
       Element.fromFile(new URL("videos/", sceneUrl), scene, true),
+      Element.fromFile(new URL("images/", sceneUrl), scene, true),
       Element.fromFile(new URL("models/", sceneUrl), scene, true),
     )
   }

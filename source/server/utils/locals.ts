@@ -90,11 +90,18 @@ export function getUserId(req :Request){
   return getUser(req).uid;
 }
 
-export function getFileParams(req :Request):GetFileParams{
+export type ImplicitGetFileParams = Omit<GetFileParams, "type"> & Partial<Pick<GetFileParams, "type">>;
+
+export function getFileParams(req :Request, typeRequired ?:true):GetFileParams;
+export function getFileParams(req :Request, typeRequired :false):GetFileParams|ImplicitGetFileParams;
+export function getFileParams(req :Request, typeRequired :boolean=true):GetFileParams|ImplicitGetFileParams{
   let {scene, type, file} = req.params;
   if(!scene) throw new BadRequestError(`Scene parameter not provided`);
-  if(!isFileType(type)) throw new BadRequestError(`Bad file type ${type}`);
   if(!file) throw new BadRequestError(`File parameter not provided`);
+  if(!isFileType(type)){
+    if(!typeRequired) return {scene, name:file};
+    else throw new BadRequestError(`Bad file type ${type}`);
+  }
   return {scene, type, name:file};
 }
 

@@ -58,6 +58,9 @@ router.all("/:scene/:file(*.jpg)", (req, res, next)=>{
 
 let types = FileTypes.join("|");
 
+// handle PUT of unknown files from drag&drop
+router.put(`/:scene/:file`, canWrite, wrap(handlePutFile));
+
 router.get(`/:scene/:type(${types})/:file`, wrap(handleGetFile));
 router.put(`/:scene/:type(${types})/:file`, canWrite, wrap(handlePutFile));
 router.move(`/:scene/:type(${types})/:file`, canWrite, wrap(handleMoveFile));
