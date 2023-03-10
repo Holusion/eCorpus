@@ -22,6 +22,8 @@ Icon.add("download", html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3
  export default class DocScreen extends router(LitElement)
  {
   @route()
+  static "/" = ()=> html`<doc-view path="/" ></doc-view>`;
+  @route()
   static "/:name" = ({parent, params})=> html`<doc-view path="/${params.name.toLowerCase()}" ></doc-view>`;
 
 
