@@ -15,7 +15,7 @@
 	url = https://github.com/Smithsonian/ff-graph
 [submodule "libs/ff-scene"]
 	path = libs/ff-scene
-	url = https://github.com/Smithsonian/ff-scene
+	url = https://github.com/Holusion/ff-scene
 [submodule "docs/public"]
 	path = docs/public
 	url = https://github.com/Smithsonian/dpo-voyager

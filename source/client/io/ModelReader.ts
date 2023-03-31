@@ -134,7 +134,7 @@ export default class ModelReader
                 mesh.material = uberMat;
             }
         });
-
+        scene.userData.animations = gltf.animations;
         return scene;
     }
 }

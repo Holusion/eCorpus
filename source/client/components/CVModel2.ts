@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Vector3, Quaternion, Box3, Mesh, Group, Matrix4, Box3Helper, Object3D, FrontSide, BackSide, DoubleSide } from "three";
+import { Vector3, Quaternion, Box3, Mesh, Group, Matrix4, Box3Helper, Object3D, FrontSide, BackSide, DoubleSide, AnimationMixer, LoopRepeat } from "three";
 
 import Notification from "@ff/ui/Notification";
 
@@ -629,6 +629,14 @@ export default class CVModel2 extends CObject3D
             .then(() => {
                 if (!derivative.model) {
                     return;
+                }
+                if(derivative.model.userData.animations?.length){
+                    const mixer = this.renderer.activeSceneComponent.scene.userData.mixer
+                        ?? (this.renderer.activeSceneComponent.scene.userData.mixer = new AnimationMixer(this.renderer.activeSceneComponent.scene));
+                    derivative.model.userData.animations.forEach(clip=>{
+                        console.log("Add animation to mixer : ", clip);
+                        mixer.clipAction(clip, derivative.model).play();
+                    });
                 }
 
                 // set asset manager flag for initial model load
