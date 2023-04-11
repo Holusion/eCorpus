@@ -23,7 +23,7 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
  export default class SceneCard extends i18n(LitElement)
  {
     static _assets = new WebDAVProvider();
-    @property({attribute: false})
+    @property()
     thumb :string;
 
     @property()
@@ -42,21 +42,6 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
     constructor()
     {
         super();
-    }
-
-    public connectedCallback(): void {
-        super.connectedCallback();
-        if(this.thumb ) return;
-        SceneCard._assets.get(this.path, false).then(p=>{
-          let thumbProps = p.find(f=> f.name.endsWith(`-image-thumb.jpg`));
-          if(!thumbProps) return console.log("No thumbnail for", this.name);
-          this.thumb = thumbProps.url;
-        }, (e)=>{
-          console.warn("Failed to PROPFIND %s :", this.path, e);
-        });
-    }
-
-    public disconnectedCallback(): void {
     }
 
     protected render() :TemplateResult {

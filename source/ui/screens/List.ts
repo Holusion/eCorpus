@@ -24,6 +24,7 @@ interface Scene{
     author :string;
     id :number;
     name :string;
+    thumb ?:string;
 }
 interface Upload{
     name :string;
@@ -143,7 +144,7 @@ interface Upload{
             </div>`:scene.name}
             </list-item>`;
         }
-        return html`<scene-card .mode=${mode} name="${scene.name}" />`
+        return html`<scene-card .mode=${mode} name="${scene.name}" .thumb=${(scene as Scene).thumb} />`
     }
 
     protected render() :TemplateResult {
