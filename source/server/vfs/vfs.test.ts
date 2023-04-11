@@ -19,7 +19,7 @@ async function empty(dir :string){
   return (await fs.readdir(dir)).length == 0;
 }
 
-function sceneProps(id:number):{[P in keyof Required<Scene>]: Function|any}{
+function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
   return {
     ctime: Date,
     mtime: Date,
@@ -27,6 +27,7 @@ function sceneProps(id:number):{[P in keyof Required<Scene>]: Function|any}{
     name: "foo",
     author: "default",
     author_id: 0,
+    thumb: null,
   };
 }
 
@@ -117,7 +118,9 @@ describe("Vfs", function(){
         let props = sceneProps(scene_id);
         let key:keyof Scene;
         for(key in props){
-          if(typeof props[key] === "function"){
+          if(typeof props[key] ==="undefined"){
+            expect(scene, `${(scene as any)[key]}`).not.to.have.property(key);
+          }else if(typeof props[key] === "function"){
             expect(scene).to.have.property(key).instanceof(props[key]);
           }else{
             expect(scene).to.have.property(key, props[key]);
@@ -151,6 +154,16 @@ describe("Vfs", function(){
         expect(names).to.deep.equal(["a1", "aa", "Ab"]);
       });
 
+      it("can return existing thumbnails", async function(){
+        let scene_id = await vfs.createScene("foo");
+        await vfs.writeDoc(JSON.stringify({
+          metas: [{}, {
+            images:[{uri: "scene-image-thumb.jpg", quality: "Thumb"}]
+          }]
+        }), scene_id, 0);
+        let s = await vfs.getScenes(0);
+        expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
+      })
       
       describe("with permissions", function(){
         let userManager :UserManager, user :User;
@@ -174,6 +187,65 @@ describe("Vfs", function(){
           expect(scenes[0]).to.have.property("author", user.username);
           expect(scenes[0]).to.have.property("author_id", user.uid);
         })
+      });
+
+      describe("search", async function(){
+        let userManager :UserManager, user :User, admin :User;
+        this.beforeEach(async function(){
+          userManager = new UserManager(vfs._db);
+          user = await userManager.addUser("bob", "xxxxxxxx", false);
+          admin = await userManager.addUser("alice", "xxxxxxxx", true);
+        });
+
+        it("filters by access-level", async function(){
+          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read"});
+          expect(await vfs.getScenes(user.uid, {})).to.have.property("length", 1);
+          expect(await vfs.getScenes(user.uid, {access:"admin"})).to.have.property("length", 0);
+        });
+
+        it("filters by name match", async function(){
+          await vfs.createScene("Hello World", user.uid);
+          await vfs.createScene("Goodbye World", user.uid);
+          let s = await vfs.getScenes(user.uid, {match: "Hello"})
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("Can have wildcards in name match", async function(){
+          await vfs.createScene("Hello World", user.uid);
+          await vfs.createScene("Goodbye World", user.uid);
+          let s = await vfs.getScenes(user.uid, {match: "He%o"})
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match a document's meta title", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{collection:{
+              titles:{EN: "Hello World", FR: "Bonjour, monde"}
+            }}]
+          }), scene_id, user.uid);
+          let s = await vfs.getScenes(user.uid, {match: "He%o"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match a document's article lead", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{
+              articles:[
+                {leads:{EN: "Hello"}}
+              ]
+            }]
+          }), scene_id, user.uid);
+          let s = await vfs.getScenes(user.uid, {match: "He%o"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("is case-insensitive", async function(){
+          await vfs.createScene("Hello World", user.uid);
+          let s = await vfs.getScenes(user.uid, {match: "hello"})
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
       });
     });
 
@@ -519,20 +591,24 @@ describe("Vfs", function(){
         });
         it("throw an error if not found", async function(){
           await expect(vfs.getScene("bar")).to.be.rejectedWith("scene_name");
-        })
+        });
+
         it("get a valid scene", async function(){
           let scene = await vfs.getScene("foo");
 
           let props = sceneProps(scene_id);
           let key:keyof Scene;
           for(key in props){
-            if(typeof props[key] === "function"){
+            if(typeof props[key] ==="undefined"){
+              expect(scene, `${(scene as any)[key]}`).not.to.have.property(key);
+            }else if(typeof props[key] === "function"){
               expect(scene).to.have.property(key).instanceof(props[key]);
             }else{
               expect(scene).to.have.property(key, props[key]);
             }
           }
         });
+
         it("get an empty scene", async function(){
           let id = await vfs.createScene("empty");
           let scene = await vfs.getScene("empty");
@@ -541,14 +617,18 @@ describe("Vfs", function(){
           expect(scene).to.have.property("id", id).a("number");
           expect(scene).to.have.property("name", "empty");
           expect(scene).to.have.property("author", "default");
-        })
-      });
+        });
 
-      describe("getPermissions()", function(){
-        it("get a scene permissions", function(){
-          
-        })
-      })
+        it("get a scene's thumbnail if it exist", async function(){
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{}, {
+              images:[{uri: "scene-image-thumb.jpg", quality: "Thumb"}]
+            }]
+          }), scene_id, 0);
+          let s = await vfs.getScenes(0);
+          expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
+        });
+      });
 
       describe("getSceneHistory()", function(){
         let default_folders = 2

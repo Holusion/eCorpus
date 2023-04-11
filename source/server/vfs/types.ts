@@ -53,7 +53,10 @@ export interface GetFileResult extends FileProps{
 }
 
 
-export interface Scene extends ItemProps{}
+export interface Scene extends ItemProps{
+  /** optional name of the scene's thumbnail. Will generally be null due to sql types */
+  thumb ?:string|null;
+}
 
 export interface DocProps extends ItemEntry{
   name :"scene.svx.json";
