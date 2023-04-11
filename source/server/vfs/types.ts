@@ -1,6 +1,7 @@
 import { Request } from "express";
 import {ReadStream} from "fs";
 import {Readable} from "stream";
+import { AccessType } from "../auth/UserManager";
 
 
 export type DataStream = ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;
@@ -62,4 +63,14 @@ export interface DocProps extends ItemEntry{
   name :"scene.svx.json";
   mime: "application/si-dpo-3d.document+json";
   data: string;
+}
+
+/**
+ * Query structure to filter scene results.
+ * Any unspecified value means "return everything"
+ */
+export interface SceneQuery {
+  /** desired scene access level */
+  access ?:AccessType;
+  match ?:string;
 }

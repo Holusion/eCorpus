@@ -6,14 +6,15 @@ import express from "express";
 import { engine } from 'express-handlebars';
 
 import UserManager from "./auth/UserManager";
-import { HTTPError } from "./utils/errors";
+import { BadRequestError, HTTPError } from "./utils/errors";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, getHost} from "./utils/locals";
+import {AppLocals, getHost, getUserManager} from "./utils/locals";
 
 import openDatabase from './vfs/helpers/db';
 import Vfs from "./vfs";
 import config from "./utils/config";
+import User from "./auth/User";
 
 
 export default async function createServer(rootDir :string, /*istanbul ignore next */{
@@ -43,6 +44,13 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
     vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
   }, 60000);
 
+
+  app.locals  = Object.assign(app.locals, {
+    userManager,
+    fileDir,
+    vfs,
+  }) as AppLocals;
+
   app.use(cookieSession({
     name: 'session',
     keys: await userManager.getKeys(),
@@ -51,12 +59,19 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
     sameSite: "strict"
   }));
 
+  app.use((req, res, next)=>{
+    if((req.session as any).uid) return next();
+    let auth = req.get("Authorization");
+    if(!auth) return next()
+    else if(!auth.startsWith("Basic ") ||  auth.length <= "Basic ".length ) return next(new BadRequestError("Bad Authorizatiopn header : not a Basic auth header"))
+    let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
+    if(!username || !password) throw new BadRequestError("Bad Authorizatiopn header : cannot parse.");
+    getUserManager(req).getUserByNamePassword(username, password).then((user)=>{
+      Object.assign(req.session as any, User.safe(user));
+      next();
+    }, next);
+  });
 
-  app.locals  = Object.assign(app.locals, {
-    userManager,
-    fileDir,
-    vfs,
-  }) as AppLocals;
   
   /* istanbul ignore next */
   if (verbose) {

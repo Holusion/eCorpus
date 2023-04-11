@@ -3,17 +3,8 @@ import config from "../utils/config";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors";
 import { Uid } from "../utils/uid";
 import BaseVfs from "./Base";
-import { ItemEntry, Scene } from "./types";
+import { ItemEntry, Scene, SceneQuery } from "./types";
 
-/**
- * Query structure to filter scene results.
- * Any unspecified value means "return everything"
- */
-export interface SceneQuery {
-  /** desired scene access level */
-  access ?:AccessType;
-  match ?:string;
-}
 
 
 export default abstract class ScenesVfs extends BaseVfs{
