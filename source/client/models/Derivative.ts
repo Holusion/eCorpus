@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Object3D, Mesh, Texture } from "three";
+import { Object3D, Mesh, Texture, PointsMaterial, Points } from "three";
 
 import { disposeObject } from "@ff/three/helpers";
 
@@ -89,7 +89,16 @@ export default class Derivative extends Document<IDerivative, IDerivativeJSON>
         if (geoAsset) {
             return assetReader.getGeometry(geoAsset.data.uri)
             .then(geometry => {
-                this.model = new Mesh(geometry, new UberPBRMaterial());
+                //A point cloud will never (?) have an index. Additionally nearly all meshes have stored or computed normals
+                if(!geometry.hasAttribute("normal") && ! geometry.index){
+                    //Best initial approximation for point size which is apparently not stored in the geometry. Maybe should be zoom-dependant
+                    let pointSize = (((4/3) * Math.PI * geometry.boundingSphere.radius^3)/geometry.getAttribute("position").count);
+                    let material = new PointsMaterial( { size: pointSize });
+                    if(geometry.getAttribute("color")?.count) material.vertexColors = true;
+                    this.model = new Points(geometry, material);
+                }else{
+                    this.model = new Mesh(geometry, new UberPBRMaterial());
+                }
 
                 return Promise.all(imageAssets.map(asset => assetReader.getTexture(asset.data.uri)))
                 .catch(error => {
