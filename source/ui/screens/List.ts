@@ -140,11 +140,11 @@ interface Upload{
                 ">
                     <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis;">${scene.name}</span>
                     <span style="flex: 0 5 auto">(${scene.author})</span>
-                    <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;">${scene.mtime}</span>
+                    <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;">${new Date(scene.ctime).toLocaleString()}</span>
             </div>`:scene.name}
             </list-item>`;
         }
-        return html`<scene-card .mode=${mode} name="${scene.name}" .thumb=${(scene as Scene).thumb} />`
+        return html`<scene-card styleCard="list" .mode=${mode} name=${scene.name} .thumb=${(scene as Scene).thumb} mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()} />`
     }
 
     protected render() :TemplateResult {
@@ -181,7 +181,7 @@ interface Upload{
                 </button>
                 
             </div>
-            <div class="${this.compact?"list":"list-grid"}" style="position:relative;">
+            <div class="${this.compact?"list":"list-grid"}" style="position:relative; margin-top:1rem">
             ${repeat([
                 ...this.list,
                 ...Object.keys(this.uploads).map(name=>({name})),

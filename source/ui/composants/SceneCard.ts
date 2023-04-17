@@ -1,4 +1,3 @@
-
 import { LitElement, customElement, property, html, TemplateResult, css } from "lit-element";
 import WebDAVProvider from "@ff/scene/assets/WebDAVProvider";
 import i18n from "../state/translate";
@@ -31,10 +30,16 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
     name :string;
 
     @property()
+    mtime :Date;
+
+    @property()
     url :string;
 
     @property({type :String})
-    mode :"read"|"write";    
+    mode :"read"|"write";
+
+    @property()
+    styleCard :string;
 
     get path (){
       return `/scenes/${this.name}/`
@@ -44,22 +49,46 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
     {
         super();
     }
+ 
+    public connectedCallback(): void {
+        super.connectedCallback();
+
+        if(this.styleCard == "list") this.classList.add("card-list");
+        if(this.styleCard == "grid") this.classList.add("card-grid");
+        
+        if(this.thumb ) return;
+        SceneCard._assets.get(this.path, false).then(p=>{
+          let thumbProps = p.find(f=> f.name.endsWith(`-image-thumb.jpg`));
+          if(!thumbProps) return console.log("No thumbnail for", this.name);
+          this.thumb = thumbProps.url;
+        }, (e)=>{
+          console.warn("Failed to PROPFIND %s :", this.path, e);
+        });
+    }
+
+    public disconnectedCallback(): void {
+    }
 
     protected render() :TemplateResult {
       let explorer = `/ui/scenes/${encodeURIComponent(this.name)}/view?lang=${this.language.toUpperCase()}`;
       let story = `/ui/scenes/${encodeURIComponent(this.name)}/edit?lang=${this.language.toUpperCase()}`;
-      return html`<div class="scene-card-inner">
-        <a href="${explorer}">
-          ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg"/>`}
-          <div class="tools">
-            <h4 class="card-title">${this.name}</h4>
-            ${this.mode === "write"? html`
-              <a class="btn tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet">${settingsIcon}</ff-icon></a>
-              <a class="btn tool-link" href="${story}"> story ➝</a>
-            `: null}
-          </div>        
-        </a>
-      </div>`;
+      return html`
+        <div class="scene-card-inner ${this.styleCard == "list" ? "scene-card-inner-list": ""}" }>
+            <div style="display:flex; flex:auto;">
+              ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg" />`}
+              <div class="infos">
+                <h4 class="card-title">${this.name}</h4>
+                <p class="card-ctime">${this.mtime}</p>
+              </div>          
+            </div>
+            <div class="tools">
+              <a href="${explorer}"><ff-icon name="eye"></ff-icon>${this.t("ui.view")}</a>
+              ${this.mode === "write"? html`
+                <a class="tool-link" href="${story}"><ff-icon name="edit"></ff-icon>${this.t("ui.edit")}</a>
+                <a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ff-icon name="admin"></ff-icon>${this.t("ui.admin")}</a>
+              `: null}
+            </div>
+        </div>`;
     }
 
     static styles = [css`
@@ -67,107 +96,77 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         display: block;
         width: 100%;
         flex: 0 0 auto;
-        padding: 1rem .5rem;
       }
-
-      @media (min-width: 576px){
-        :host{
-          width: calc(100% / 2);
-        }
-      }
-      @media (min-width: 992px){
-        :host{
-          width: calc(100% / 3);
-        }
-      }
-      @media (min-width: 1200px){
-        :host{
-          width: calc(100% / 4);
-        }
-      }
-
-      a, button{
-        color: var(--color-light);
-        text-decoration: none;
-      }
-
 
       .scene-card-inner{
-        position: relative;
+        background-color: black;
+        background-opacity: 0.5;
         box-sizing: border-box;
-        padding: 0;
+        padding: 1rem;
         width: 100%;
         height: 100%;
-        display: flex;
-        flex-direction: column;
-        text-align: center;
         border-radius: 4px;
       }
 
-      .scene-card-inner > a:hover{
-        filter: brightness(1.2);
+      .scene-card-inner-list{
+        padding: 0.5rem;
+        display: flex;
+        justify-content: space-between;
       }
 
       .scene-card-inner img {
-          object-fit: cover;
-          aspect-ratio: 1 / 1;
-          width: 100%;
-          height: 100%;
-          border-radius: 4px;
-          transition: filter 0.2s ease 0s;
+        aspect-ratio: 1 / 1;
+        width: 70px;
+        height: fit-content;
+        border-radius: 4px;
+        transition: filter 0.2s ease 0s;
       }
 
+      .scene-card-inner-list img{
+        width: 65px;
+      }
+      
+      .infos{
+        width: 70%;
+      }
+      .infos > *{
+        padding: 0 0.75rem;
+      }
 
       .tools{
-        position: absolute;
-        inset: 1rem;
+        margin-top: 0.5rem;
+        display:flex;
+        justify-content: space-around;
       }
-      .tools > *{
-        background: rgba(0, 0, 0, 0.4);
-        padding: .75rem;
-        margin: 0;
+      .tools a{
+        font-size: smaller;
+        padding: 8px;
+        width: 100%;
+        margin: 2px;
+        color: #eee;
+        text-decoration: none;
+        display: flex;
+        justify-content: center;
       }
-      .tools .card-title{
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        max-width: 80%;
-        border-radius: 4px;
+      .tools a:hover{
+        color: rgb(0, 165, 232);
+      }
+
+      .card-title{
+        margin:0;
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
       }
-
-      .tools .tool-properties {
-        position: absolute;
-        bottom: 0px;
-        left: 0px;
-        height:24px;
-        width:24px;
+      .card-ctime{
+        color: #6c757d;
+        font-size: smaller;
       }
-
-      .tools .tool-link {
-        position: absolute;
-        bottom: 0px;
-        right: 0px;
-      }
-
-      .tools .btn{
-        color: var(--color-light);
-        border-radius: 4px;
-      }
-
-      .tools .btn:hover{
-        color: white;
-      }
-      .tools a:hover{
-        text-decoration: underline;
-      }
-
       .tools svg{
         width: inherit;
-        height: inherit;
+        height: 1rem;
         fill: currentColor;
+        margin-right: 4px;
       }
       
   `]

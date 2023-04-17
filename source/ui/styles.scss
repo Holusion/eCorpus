@@ -51,6 +51,26 @@ corpus-list, home-page {
 }
 
 
+scene-card{
+  &.card-grid{
+    padding: 1rem 0.5rem;
+
+    @media (min-width: 576px){
+      width: calc(100% / 2);
+    }
+    @media (min-width: 992px){
+      width: calc(100% / 3);
+    }
+    @media (min-width: 1200px){
+      width: calc(100% / 4);
+    }
+  }
+
+  &.card-list{
+    padding:0.2rem;
+  }
+}
+
 .ff-button.ff-control {
   background: $color-background-light;
   color: white;

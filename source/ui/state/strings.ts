@@ -146,6 +146,14 @@ export default {
     stats: {
       fr: "Statistiques",
       en: "Statistics"
+    },
+    edit: {
+      fr: "éditer",
+      en: "edit"
+    },
+    view: {
+      fr: "aperçu",
+      en: "view"
     }
   },
   info:{

@@ -125,7 +125,7 @@ interface Upload{
     }
 
     private renderScene(mode :string, scene:Scene|Upload){
-        return html`<scene-card .mode=${mode} name=${scene.name} .thumb=${(scene as Scene).thumb} />`
+        return html`<scene-card styleCard="grid" .mode=${mode} name=${scene.name} .thumb=${(scene as Scene).thumb} mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()} />`
     }
 
     private renderSceneCompact(scene:Scene|Upload){
@@ -142,7 +142,7 @@ interface Upload{
             ">
                 <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis;">${scene.name}</span>
                 <span style="flex: 0 5 auto">(${scene.author})</span>
-                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;">${scene.mtime}</span>
+                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;">${new Date(scene.ctime).toLocaleString()}</span>
         </div>`:scene.name}
         `;
     }
