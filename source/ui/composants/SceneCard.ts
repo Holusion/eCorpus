@@ -10,6 +10,7 @@ export interface SceneProps{
   uid   :number;
   ctime :string;
   mtime :string;
+  author:string;
 }
 
 

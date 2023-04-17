@@ -90,7 +90,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
   app.set('views', config.templates_path);
 
 
-  app.get(["/", "/ui/"], (req, res)=> res.redirect("/ui/scenes"));
+  app.get(["/"], (req, res)=> res.redirect("/ui/"));
 
   /**
    * Set permissive cache-control for ui pages
