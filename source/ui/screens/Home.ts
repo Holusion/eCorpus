@@ -156,39 +156,46 @@ interface Upload{
 
         return html`
         <h2>Système de gestion de scènes 3D</h2>
-        <h3>Mes scènes</h3>
-        <div class="list-tasks">
-            <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
-                ${this.t("ui.upload")}
-            </upload-button>
-            <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a></task-button>
-        </div>        
-        <div class="list-grid" style="position:relative; margin-top:20px">
-            ${repeat([
-                ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
-                new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
-                .slice(0,4),
-                ...Object.keys(this.uploads).map(name=>({name})),
-            ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-        </div>
-        <h3>Derniers ajouts</h3>
-        <div class="list-grid" style="position:relative;">
-            ${repeat([
-                ...this.list.sort((a, b) =>
-                    new Date(b.ctime).getTime() - new Date(a.ctime).getTime())
-                    .slice(0,4),
-                ...Object.keys(this.uploads).map(name=>({name})),
-            ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-        </div>
-        <h3>Dernières modifications</h3>
-        
-        <div class="list" style="position:relative;">
-            ${repeat([
-                ...this.list.sort((a, b) =>
+        <div class="section">
+            <h3>Mes scènes</h3>
+            <div class="list-tasks">
+                <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
+                    ${this.t("ui.upload")}
+                </upload-button>
+                <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+            </div>        
+            <div class="list-grid" style="position:relative; margin-top:20px">
+                ${repeat([
+                    ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
                     new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
-                    .slice(0,8),
-                ...Object.keys(this.uploads).map(name=>({name})),
-            ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
+                    .slice(0,4),
+                    ...Object.keys(this.uploads).map(name=>({name})),
+                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+            </div>        
+        </div>
+
+        <div class="section">
+            <h3>Derniers ajouts</h3>
+            <div class="list-grid" style="position:relative;">
+                ${repeat([
+                    ...this.list.sort((a, b) =>
+                        new Date(b.ctime).getTime() - new Date(a.ctime).getTime())
+                        .slice(0,4),
+                    ...Object.keys(this.uploads).map(name=>({name})),
+                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+            </div>        
+        </div>
+
+        <div class="section">
+            <h3>Dernières modifications</h3>
+            <div class="list" style="position:relative;">
+                ${repeat([
+                    ...this.list.sort((a, b) =>
+                        new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
+                        .slice(0,8),
+                    ...Object.keys(this.uploads).map(name=>({name})),
+                ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
+            </div>        
         </div>
         `;
     }

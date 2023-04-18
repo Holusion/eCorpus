@@ -110,6 +110,10 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         border: 1px solid #103040;
       }
 
+      .scene-card-inner:hover{
+        background-color: #071922;
+      }
+
       @media (min-width: 664px){
         .scene-card-inner-list{
           display: flex;
@@ -145,7 +149,6 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
       }
       .tools a{
         font-size: smaller;
-        padding: 8px;
         width: 100%;
         margin: 2px;
         color: #eee;

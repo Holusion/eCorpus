@@ -46,6 +46,37 @@ corpus-list, home-page {
     border-radius: 4px;
     pointer-events: none;
   }
+  .section{
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    border: #103040 1px solid;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+home-page{
+  .list-tasks{
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 5px;
+    .ff-button{
+      flex: 0 0 auto;
+    }
+  }
+}
+
+corpus-list{
+  display:flex;
+
+  .list-tasks{
+    padding: 0.5rem;
+    width: 300px;
+  }
+  .list-items{
+    width: 100%;
+  }
 }
 
 
@@ -317,16 +348,6 @@ table.list-table {
   .ff-notification > .ff-icon {
     padding: 0;
     margin: 8px;
-  }
-}
-
-.list-tasks{
-  display: flex;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 5px;
-  .ff-button{
-    flex: 0 0 auto;
   }
 }
 
