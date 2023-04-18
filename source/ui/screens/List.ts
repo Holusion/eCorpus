@@ -129,20 +129,14 @@ interface Upload{
     private renderScene(mode :string, scene:Scene|Upload){
         const selected = this.selection.indexOf(scene.name) != -1;
         if(this.compact){
-            return html`<list-item name="${scene.name}" .onChange=${this.onSelectChange}>
-                ${"author" in scene? html`<div style="
-                    display:flex; 
-                    flex: 1 1 auto;
-                    gap: 1rem;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                    overflow: hidden;
-                ">
-                    <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis;">${scene.name}</span>
-                    <span style="flex: 0 5 auto">(${scene.author})</span>
-                    <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;">${new Date(scene.ctime).toLocaleString()}</span>
-            </div>`:scene.name}
-            </list-item>`;
+            return html`
+                <list-item name="${scene.name}" .onChange=${this.onSelectChange} href="/ui/scenes/${scene.name}/">
+                    ${"author" in scene? html`
+                        <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
+                        <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
+                        <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.ctime).toLocaleString()}</span>
+                `:scene.name}
+                </list-item>`;
         }
         return html`<scene-card styleCard="list" .mode=${mode} name=${scene.name} .thumb=${(scene as Scene).thumb} mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()} />`
     }

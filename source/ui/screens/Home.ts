@@ -130,20 +130,13 @@ interface Upload{
 
     private renderSceneCompact(scene:Scene|Upload){
         return html`
-            ${"author" in scene? html`<div style="
-                display:flex; 
-                flex: 1 1 auto;
-                gap: 1rem;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                overflow: hidden;
-                background: rgba(0, 0, 0, 0.3);
-                padding: 10px 4px;
-            ">
-                <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis;">${scene.name}</span>
-                <span style="flex: 0 5 auto">(${scene.author})</span>
-                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;">${new Date(scene.ctime).toLocaleString()}</span>
-        </div>`:scene.name}
+            <list-item name="${scene.name}" href="/ui/scenes/${scene.name}/" thumb=${(scene as Scene).thumb}}>
+                ${"author" in scene? html`
+                <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
+                <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
+                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.ctime).toLocaleString()}</span>
+            `:scene.name}
+            </list-item>
         `;
     }
 
@@ -170,7 +163,7 @@ interface Upload{
             </upload-button>
             <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a></task-button>
         </div>        
-        <div class="list-grid" style="position:relative;">
+        <div class="list-grid" style="position:relative; margin-top:20px">
             ${repeat([
                 ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
                 new Date(b.mtime).getTime() - new Date(a.mtime).getTime())

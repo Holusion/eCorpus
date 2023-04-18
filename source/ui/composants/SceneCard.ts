@@ -75,7 +75,9 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
       return html`
         <div class="scene-card-inner ${this.styleCard == "list" ? "scene-card-inner-list": ""}" }>
             <div style="display:flex; flex:auto;">
-              ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg" />`}
+              <a href="${explorer}">
+                ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg" />`}
+              </a>
               <div class="infos">
                 <h4 class="card-title">${this.name}</h4>
                 <p class="card-ctime">${this.mtime}</p>
@@ -99,19 +101,24 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
       }
 
       .scene-card-inner{
-        background-color: black;
-        background-opacity: 0.5;
+        background-color: #000a;
         box-sizing: border-box;
         padding: 1rem;
         width: 100%;
         height: 100%;
         border-radius: 4px;
+        border: 1px solid #103040;
+      }
+
+      @media (min-width: 664px){
+        .scene-card-inner-list{
+          display: flex;
+          justify-content: space-between;
+        }
       }
 
       .scene-card-inner-list{
         padding: 0.5rem;
-        display: flex;
-        justify-content: space-between;
       }
 
       .scene-card-inner img {
@@ -119,13 +126,11 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         width: 70px;
         height: fit-content;
         border-radius: 4px;
-        transition: filter 0.2s ease 0s;
+        border: #103040 solid 1px;
       }
-
       .scene-card-inner-list img{
-        width: 65px;
+        width: 60px;
       }
-      
       .infos{
         width: 70%;
       }

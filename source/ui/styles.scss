@@ -33,8 +33,6 @@ corpus-list, home-page {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    
-    padding-bottom: 50px;
   }
   .drag-overlay{
     position: absolute;
@@ -53,7 +51,7 @@ corpus-list, home-page {
 
 scene-card{
   &.card-grid{
-    padding: 1rem 0.5rem;
+    padding: 0.5rem;
 
     @media (min-width: 576px){
       width: calc(100% / 2);
@@ -67,7 +65,7 @@ scene-card{
   }
 
   &.card-list{
-    padding:0.2rem;
+    padding: 0.2rem;
   }
 }
 
