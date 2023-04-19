@@ -13,9 +13,6 @@ export interface SceneProps{
 }
 
 
-const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" width="24"><path d="M12 20q-.825 0-1.412-.587Q10 18.825 10 18q0-.825.588-1.413Q11.175 16 12 16t1.413.587Q14 17.175 14 18q0 .825-.587 1.413Q12.825 20 12 20Zm0-6q-.825 0-1.412-.588Q10 12.825 10 12t.588-1.413Q11.175 10 12 10t1.413.587Q14 11.175 14 12q0 .825-.587 1.412Q12.825 14 12 14Zm0-6q-.825 0-1.412-.588Q10 6.825 10 6t.588-1.412Q11.175 4 12 4t1.413.588Q14 5.175 14 6t-.587 1.412Q12.825 8 12 8Z"/></svg>`
-
-
 /**
  * Main UI view for the Voyager Explorer application.
  */
@@ -40,6 +37,9 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
 
     @property()
     styleCard :string;
+
+    @property({type: Function})
+    onChange :(ev :Event)=>any;
 
     get path (){
       return `/scenes/${this.name}/`
@@ -74,7 +74,7 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
       let story = `/ui/scenes/${encodeURIComponent(this.name)}/edit?lang=${this.language.toUpperCase()}`;
       return html`
         <div class="scene-card-inner ${this.styleCard == "list" ? "scene-card-inner-list": ""}" }>
-            <div style="display:flex; flex:auto;">
+            <div style="display:flex; flex:auto; align-items:center;">
               <a href="${explorer}">
                 ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg" />`}
               </a>
@@ -90,14 +90,17 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
                 <a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ff-icon name="admin"></ff-icon>${this.t("ui.admin")}</a>
               `: null}
             </div>
-        </div>`;
+        </div>
+        ${(this.onChange? html`<span class="pill">
+            <input type="checkbox" name="${this.name}" @change=${this.onChange} name="isAdministrator" id="isAdministrator">
+        </span>`:null)}`;
     }
 
     static styles = [css`
       :host {
-        display: block;
         width: 100%;
-        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
       }
 
       .scene-card-inner{
@@ -118,6 +121,7 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         .scene-card-inner-list{
           display: flex;
           justify-content: space-between;
+          align-items: center;
         }
       }
 
@@ -133,7 +137,7 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         border: #103040 solid 1px;
       }
       .scene-card-inner-list img{
-        width: 60px;
+        height: auto;
       }
       .infos{
         width: 70%;
@@ -147,6 +151,11 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         display:flex;
         justify-content: space-around;
       }
+
+      .scene-card-inner-list .tools{
+        margin: 0rem;
+      }
+
       .tools a{
         font-size: smaller;
         width: 100%;
@@ -155,6 +164,7 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         text-decoration: none;
         display: flex;
         justify-content: center;
+        padding: 0 0.5rem;
       }
       .tools a:hover{
         color: rgb(0, 165, 232);
@@ -176,7 +186,13 @@ const settingsIcon = html`<svg xmlns="http://www.w3.org/2000/svg" height="24" wi
         fill: currentColor;
         margin-right: 4px;
       }
-      
+      .pill{
+        padding: 6px;
+      }
+      .pill input{
+        width: 20px;
+        height: 20px;
+      }
   `]
  
  }

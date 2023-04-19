@@ -156,14 +156,16 @@ interface Upload{
 
         return html`
         <h2>Système de gestion de scènes 3D</h2>
+        <div class="list-tasks" style="margin-bottom:1rem">
+            <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
+                ${this.t("ui.upload")}
+            </upload-button>
+            <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+        </div>
+
+        ${(this.list.filter(m => this.user.username == m.author).length > 0) ? html`
         <div class="section">
             <h3>Mes scènes</h3>
-            <div class="list-tasks">
-                <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
-                    ${this.t("ui.upload")}
-                </upload-button>
-                <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
-            </div>        
             <div class="list-grid" style="position:relative; margin-top:20px">
                 ${repeat([
                     ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
@@ -172,7 +174,8 @@ interface Upload{
                     ...Object.keys(this.uploads).map(name=>({name})),
                 ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
             </div>        
-        </div>
+        </div>        
+        `: null}
 
         <div class="section">
             <h3>Derniers ajouts</h3>

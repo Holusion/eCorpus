@@ -52,6 +52,9 @@ corpus-list, home-page {
     border: #103040 1px solid;
     padding: 1rem;
     margin-bottom: 1rem;
+    h3{
+      margin-top: 0;
+    }
   }
 }
 
@@ -69,10 +72,13 @@ home-page{
 
 corpus-list{
   display:flex;
-
+  gap: 10px;
   .list-tasks{
     padding: 0.5rem;
     width: 300px;
+  }
+  .toolbar{
+    height: fit-content;
   }
   .list-items{
     width: 100%;

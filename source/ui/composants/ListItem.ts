@@ -41,8 +41,8 @@ export default class ListItem extends LitElement{
       padding: 6px;
     }
     .pill input{
-      width: 25px;
-      height: 25px;
+      width: 20px;
+      height: 20px;
     }
     .list-item{
       display:flex; 

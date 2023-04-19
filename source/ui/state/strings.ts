@@ -121,7 +121,7 @@ export default {
     },
     viewScene: {
       fr: "Afficher la scène",
-      en: "Edit scene"
+      en: "View scene"
     },
     recoverPassword: {
       fr: "mot de passe oublié?",
@@ -172,8 +172,8 @@ export default {
       en: "eCorpus is a database of 3D objects developped by holusion using and extending an open-source viewer made by the Smithsonian Institute"
     },
     useStandalone:{
-      fr: "tester le mode standalone",
-      en: "test standalone mode"
+      fr: "Tester le mode standalone",
+      en: "Test standalone mode"
     },
     recoverPasswordLead: {
       fr: "veuillez fournir votre identifiant ou votre email et nous vous enverrons un lien de connexion",

@@ -47,9 +47,6 @@ interface Upload{
     @property()
     dragover = false;
 
-    @property({type: Boolean})
-    compact :boolean = false;
-
     @property({type: Array, attribute: false})
     selection = [];
 
@@ -127,18 +124,13 @@ interface Upload{
     }
 
     private renderScene(mode :string, scene:Scene|Upload){
-        const selected = this.selection.indexOf(scene.name) != -1;
-        if(this.compact){
-            return html`
-                <list-item name="${scene.name}" .onChange=${this.onSelectChange} href="/ui/scenes/${scene.name}/">
-                    ${"author" in scene? html`
-                        <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
-                        <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
-                        <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.ctime).toLocaleString()}</span>
-                `:scene.name}
-                </list-item>`;
-        }
-        return html`<scene-card styleCard="list" .mode=${mode} name=${scene.name} .thumb=${(scene as Scene).thumb} mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()} />`
+        return html`<scene-card styleCard="list" 
+            .mode=${mode} 
+            name=${scene.name} 
+            .thumb=${(scene as Scene).thumb} 
+            mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()}
+            .onChange=${this.onSelectChange}
+        />`
     }
 
     protected render() :TemplateResult {
@@ -155,33 +147,37 @@ interface Upload{
             </div>`;
         }
 
-
         return html`
-            <div class="list-tasks">
-                <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
-                    ${this.t("ui.upload")}
-                </upload-button>
-                
-                <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a></task-button>
-                
-                ${(this.compact && this.selection.length)?html`<a class="ff-button ff-control btn-primary btn-icon" download href="/api/v1/scenes?${
-                    this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
-                    }&format=zip">
-                    Download Zip
-                </a>`: null}
-
-                <button class="ff-button ff-control btn-primary btn-icon" @click=${()=>navigate(this, null, {compact: !this.compact}) }>
-                    <ff-icon name="${this.compact?"list":"grid"}"></ff-icon>
-                </button>
-                
+            <div class="toolbar section">
+                <div class="list-tasks form-control">
+                    <div class="form-item" style="display:flex">
+                        <input type="search" id="model-search" placeholder="rechercher un modèle">
+                        <button class="ff-button ff-control btn-primary" style="margin-top:0" type="submit"><ff-icon name="search"></ff-icon></button>
+                    </div>
+                    <h4>Nouvelle scène</h4>
+                    <upload-button class="ff-button ff-control btn-primary" style="padding:8px" @change=${this.onUploadBtnChange}>
+                        ${this.t("ui.upload")}
+                    </upload-button>
+                    
+                    <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                    
+                    ${(this.selection.length)?html`
+                    <h4>Outils</h4>
+                    <a class="ff-button ff-control btn-primary btn-icon" download href="/api/v1/scenes?${
+                        this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
+                        }&format=zip">
+                        Download Zip
+                    </a>`: null}
+              
+                </div>
             </div>
-            <div class="${this.compact?"list":"list-grid"}" style="position:relative; margin-top:1rem">
-            ${repeat([
-                ...this.list,
-                ...Object.keys(this.uploads).map(name=>({name})),
-            ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-            ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
-        </div>`;
+            <div class="list-grid list-items section">
+                ${repeat([
+                    ...this.list,
+                    ...Object.keys(this.uploads).map(name=>({name})),
+                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+                ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
+            </div>`;
     }
 
     ondragenter = (ev)=>{
@@ -220,5 +216,5 @@ interface Upload{
             this.upload(file)
         }
     }
-      
+
  }
