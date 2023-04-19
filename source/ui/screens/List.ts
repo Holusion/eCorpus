@@ -1,6 +1,5 @@
 import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
 import Notification from "@ff/ui/Notification";
-import { SceneProps } from "../composants/SceneCard";
 
 import "client/ui/Spinner";
 import "../composants/UploadButton";
@@ -13,18 +12,8 @@ import { UserSession, withUser } from "../state/auth";
 import { repeat } from "lit-html/directives/repeat";
 
 import "../composants/TaskButton";
-import { withScenes } from "../state/withScenes";
+import { withScenes, Scene } from "../state/withScenes";
 
-
-interface Scene{
-    ctime :Date;
-    mtime :Date;
-    author_id :number;
-    author :string;
-    id :number;
-    name :string;
-    thumb ?:string;
-}
 interface Upload{
     name :string;
 }
@@ -124,11 +113,12 @@ interface Upload{
 
     private renderScene(mode :string, scene:Scene|Upload){
 
-        return html`<scene-card styleCard="list" 
+        return html`<scene-card cardStyle="list" 
             .mode=${mode} 
             name=${scene.name} 
             .thumb=${(scene as Scene).thumb} 
-            mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()}
+            .time=${(scene as Scene).mtime}
+            access=${(("access" in scene)?((this.user?.isAdministrator)?"admin":scene.access): "none")}
             .onChange=${this.onSelectChange}
         />`
     }
@@ -173,8 +163,8 @@ interface Upload{
                 ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?
                     html`<h4>No scenes available</h1>`:
                     repeat([
-                        ...this.list,
                         ...Object.keys(this.uploads).map(name=>({name})),
+                        ...this.list,
                     ],({name})=>name , (scene)=>this.renderScene(mode, scene))
                 }
                 ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}

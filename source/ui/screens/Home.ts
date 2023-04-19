@@ -12,18 +12,10 @@ import { UserSession, withUser } from "../state/auth";
 import { repeat } from "lit-html/directives/repeat";
 
 import "../composants/TaskButton";
-import { withScenes } from "../state/withScenes";
+import { withScenes, Scene, AccessType } from "../state/withScenes";
 
 
-interface Scene{
-    ctime :Date;
-    mtime :Date;
-    author_id :number;
-    author :string;
-    id :number;
-    name :string;
-    thumb ?:string;
-}
+
 interface Upload{
     name :string;
 }
@@ -55,6 +47,8 @@ interface Upload{
         return (this.user && !this.user.isDefaultUser);
     }
 
+    access = ["read", "write", "admin"] as AccessType[];
+
     constructor()
     {
         super();
@@ -66,7 +60,6 @@ interface Upload{
 
     public onLoginChange (u: UserSession|undefined){
         super.onLoginChange(u);
-        this.access = "write";
         this.fetchScenes();
     }
 
@@ -126,7 +119,14 @@ interface Upload{
     }
 
     private renderScene(mode :string, scene:Scene|Upload){
-        return html`<scene-card styleCard="grid" .mode=${mode} name=${scene.name} .thumb=${(scene as Scene).thumb} mtime=${"mtime" in scene && new Date(scene.ctime).toLocaleString()} />`
+        return html`<scene-card 
+            cardStyle="grid" 
+            .mode=${mode} 
+            name=${scene.name} 
+            .thumb=${(scene as Scene).thumb} 
+            .time=${(("mtime" in scene)?scene.mtime: false)}
+            access=${(("access" in scene)?((this.user?.isAdministrator)?"admin":scene.access): "none")}
+        />`;
     }
 
     private renderSceneCompact(scene:Scene|Upload){
@@ -149,7 +149,15 @@ interface Upload{
         if(!this.list){
             return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
         }
-
+        //All scenes where I am mentioned as a user, with read|write|admin sorted by last modified
+        let scenes = this.list.sort((a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf());
+        // Scenes where I am admin (max 4 last modified)
+        let myScenes = scenes.filter((s:Scene)=> s.access.user == "admin").slice(0, 4);
+        //Scenes where I can at least write (max 4 last created) - skipped if it has the same members as myScenes
+        let recentScenes = this.list.filter((s:Scene)=> (s.access.user == "admin" || s.access.user == "write")).sort((a, b) => new Date(b.ctime).valueOf() - new Date(a.ctime).valueOf()).slice(0, 4 - Math.min(Object.keys(this.uploads).length, 4));
+        
+        let uploads = Object.keys(this.uploads).map(name=>({name}));
+        
         return html`
         <h2>${this.t("info.homeHeader")}</h2>
         <div class="list-tasks" style="margin-bottom:1rem">
@@ -159,47 +167,35 @@ interface Upload{
             <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
         </div>
 
-        ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?
-            null:
-            html`
-            ${(this.list.filter(m => this.user.username == m.author).length > 0) ? 
+        ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?null: html`
+            ${(myScenes.length > 0) ? 
                 html`
                 <div class="section">
                     <h3>${this.t("ui.myScenes")}</h3>
                     <div class="list-grid" style="position:relative; margin-top:20px">
-                        ${repeat([
-                            ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
-                            new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
-                            .slice(0,4),
-                            ...Object.keys(this.uploads).map(name=>({name})),
-                        ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-                    </div>        
-                </div>        
+                        ${myScenes.map((scene)=>this.renderScene(mode, scene))}
+                    </div>
+                </div>
             `: null}
-            <div class="section">
+        ${(uploads.length === 0 && recentScenes.some(s=>myScenes.indexOf(s) == -1))? html`<div class="section">
                 <h3>${this.t("ui.ctimeSection")}</h3>
                 <div class="list-grid" style="position:relative;">
-                    ${repeat([
-                        ...this.list.sort((a, b) =>
-                            new Date(b.ctime).getTime() - new Date(a.ctime).getTime())
-                            .slice(0,4),
-                        ...Object.keys(this.uploads).map(name=>({name})),
-                    ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-                </div>        
-            </div>
+                ${repeat([
+                    ...uploads,
+                    ...recentScenes,
+                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+                </div>
+            </div>`: null}
 
-            <div class="section">
-                <h3>${this.t("ui.mtimeSection")}</h3>
-                <div class="list" style="position:relative;">
-                    ${repeat([
-                        ...this.list.sort((a, b) =>
-                            new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
-                            .slice(0,8),
-                        ...Object.keys(this.uploads).map(name=>({name})),
-                    ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
-                </div>        
-            </div>`
-        }
+        <div class="section">
+            <h3>${this.t("ui.mtimeSection")}</h3>
+            <div class="list" style="position:relative;">
+                ${repeat([
+                    ...scenes.slice(0, 8),
+                ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
+            </div>
+        </div>
+        `}
     `}
     
     onUploadBtnChange = (ev)=>{

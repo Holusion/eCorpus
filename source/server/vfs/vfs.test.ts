@@ -28,6 +28,7 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     author: "default",
     author_id: 0,
     thumb: null,
+    access:  { any: 'read', default: 'read' }
   };
 }
 
@@ -123,7 +124,7 @@ describe("Vfs", function(){
           }else if(typeof props[key] === "function"){
             expect(scene).to.have.property(key).instanceof(props[key]);
           }else{
-            expect(scene).to.have.property(key, props[key]);
+            expect(scene).to.have.property(key).to.deep.equal(props[key]);
           }
         }
       });
@@ -162,9 +163,10 @@ describe("Vfs", function(){
           }]
         }), scene_id, 0);
         let s = await vfs.getScenes(0);
+        expect(s).to.have.property("length", 1);
         expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
       })
-      
+
       describe("with permissions", function(){
         let userManager :UserManager, user :User;
         this.beforeEach(async function(){
@@ -186,7 +188,20 @@ describe("Vfs", function(){
           expect(scenes).to.have.property("length", 1);
           expect(scenes[0]).to.have.property("author", user.username);
           expect(scenes[0]).to.have.property("author_id", user.uid);
-        })
+        });
+        
+        it("get proper user own access", async function(){
+          let scene_id = await vfs.createScene("foo", {[user.uid.toString(10)]: "admin", "1": "write", "0": "none"});
+          let scenes = await vfs.getScenes(user.uid);
+          expect(scenes).to.have.property("length", 1);
+          expect(scenes[0]).to.have.property("access").to.deep.equal({user:"admin", any: "write", default: "none"});
+        });
+        it("get proper \"any\" access", async function(){
+          let scene_id = await vfs.createScene("foo", {"0":"read", "1": "write"});
+          let scenes = await vfs.getScenes(user.uid);
+          expect(scenes).to.have.property("length", 1);
+          expect(scenes[0]).to.have.property("access").to.deep.equal({user: "none", any: "write", default: "read"});
+        });
       });
 
       describe("search", async function(){
@@ -200,7 +215,17 @@ describe("Vfs", function(){
         it("filters by access-level", async function(){
           await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read"});
           expect(await vfs.getScenes(user.uid, {})).to.have.property("length", 1);
-          expect(await vfs.getScenes(user.uid, {access:"admin"})).to.have.property("length", 0);
+          expect(await vfs.getScenes(user.uid, {access:["admin"]})).to.have.property("length", 0);
+        });
+
+        it("won't return inaccessible content", async function(){
+          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "none", "0":"none", "1": "none"});
+          expect(await vfs.getScenes(user.uid, {access:["none"]})).to.have.property("length", 0);
+        });
+
+        it("can select by specific user access level", async function(){
+          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read", "0":"read", "1": "read"});
+          expect(await vfs.getScenes(user.uid, {access:["read"]})).to.have.property("length", 1);
         });
 
         it("filters by name match", async function(){
@@ -589,6 +614,7 @@ describe("Vfs", function(){
         this.beforeEach(async function(){
           await vfs.writeDoc("{}", scene_id, 0);
         });
+
         it("throw an error if not found", async function(){
           await expect(vfs.getScene("bar")).to.be.rejectedWith("scene_name");
         });
@@ -604,7 +630,7 @@ describe("Vfs", function(){
             }else if(typeof props[key] === "function"){
               expect(scene).to.have.property(key).instanceof(props[key]);
             }else{
-              expect(scene).to.have.property(key, props[key]);
+              expect(scene).to.have.property(key).to.deep.equal(props[key]);
             }
           }
         });
@@ -628,6 +654,10 @@ describe("Vfs", function(){
           let s = await vfs.getScenes(0);
           expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
         });
+
+        it("get requester's access right", async function(){
+
+        })
       });
 
       describe("getSceneHistory()", function(){

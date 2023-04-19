@@ -57,6 +57,12 @@ export interface GetFileResult extends FileProps{
 export interface Scene extends ItemProps{
   /** optional name of the scene's thumbnail. Will generally be null due to sql types */
   thumb ?:string|null;
+  /** Access level. Only makes sense when in reference to a user ID */
+  access :{
+    user ?:AccessType,
+    any :AccessType,
+    default :AccessType,
+  };
 }
 
 export interface DocProps extends ItemEntry{
@@ -71,6 +77,6 @@ export interface DocProps extends ItemEntry{
  */
 export interface SceneQuery {
   /** desired scene access level */
-  access ?:AccessType;
+  access ?:AccessType[];
   match ?:string;
 }

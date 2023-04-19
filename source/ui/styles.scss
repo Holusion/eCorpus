@@ -308,6 +308,9 @@ scene-card{
     border: none;
     color: inherit;
     cursor: pointer;
+    option{
+      background: $color-primary;
+    }
   }
 }
 

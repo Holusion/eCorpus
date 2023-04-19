@@ -13,6 +13,8 @@ export default async function getScenes(req :Request, res :Response){
   let u = getUser(req);
   let {id: ids, name: names, match, access } = req.query;
 
+  access = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+
   let scenesList = [];
   if(Array.isArray(ids)){
     for(let id of ids){
@@ -36,7 +38,8 @@ export default async function getScenes(req :Request, res :Response){
   if(0 < scenesList.length){
     scenes = await Promise.all(scenesList.map(name=>vfs.getScene(name)));
   }else{
-    scenes = await vfs.getScenes(u.isAdministrator?undefined: u.uid, {match: match as string, access: access as AccessType});
+    /**@fixme ugly hach to bypass permissions when not performing a search */
+    scenes = await vfs.getScenes((u.isAdministrator && !access && !match)?undefined: u.uid, {match: match as string, access: access as AccessType[]});
   }
 
   //canonicalize scenes' thumb names

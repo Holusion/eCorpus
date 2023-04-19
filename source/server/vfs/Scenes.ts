@@ -82,14 +82,15 @@ export default abstract class ScenesVfs extends BaseVfs{
     `, {$scene_id, $nextName});
     if(!r?.changes) throw new NotFoundError(`no scene found with id: ${$scene_id}`);
   }
+
   /**
    * get all scenes when called without params
    * Search scenes with structured queries when called with filters
    */
-  async getScenes(user_id ?:number, {access ="read", match} :SceneQuery = {}) :Promise<Scene[]>{
-    let accessIndex = AccessTypes.indexOf(access);
-    if(accessIndex < 0) throw new BadRequestError(`Invalid access type requested : ${access}`);
-
+  async getScenes(user_id ?:number, {access, match} :SceneQuery = {}) :Promise<Scene[]>{
+    if(Array.isArray(access) && access.find(a=>AccessTypes.indexOf(a) === -1)){
+      throw new BadRequestError(`Bad access type requested : ${access.join(", ")}`);
+    }
     let with_filter = typeof user_id === "number" || match;
 
     if(match){
@@ -122,7 +123,14 @@ export default abstract class ScenesVfs extends BaseVfs{
         scene_name AS name,
         IFNULL(user_id, 0) AS author_id,
         IFNULL(username, "default") AS author,
-        json_extract(thumb.value, '$.uri') AS thumb
+        json_extract(thumb.value, '$.uri') AS thumb,
+        json_object(
+          ${(typeof user_id === "number" && 0 < user_id)? `
+            "user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),
+          ` :""}
+          "any", json_extract(scenes.access, '$.1'),
+          "default", json_extract(scenes.access, '$.0')
+        ) AS access
       FROM scenes
         LEFT JOIN last_docs AS document ON fk_scene_id = scene_id
         LEFT JOIN json_tree(document.metas) AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
@@ -130,11 +138,12 @@ export default abstract class ScenesVfs extends BaseVfs{
       ${with_filter? "WHERE true": ""}
       ${typeof user_id === "number"? `AND 
         COALESCE(
-          json_extract(scenes.access, '$.' || $user_id),
-          ${0 < user_id ? `json_extract(scenes.access, '$.1'),`:""}
+          ${(typeof user_id === "number")? `json_extract(scenes.access, '$.' || $user_id),` :""}
+          ${(typeof user_id === "number" && 0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
           json_extract(scenes.access, '$.0')
-        ) IN (${ AccessTypes.slice(accessIndex).map(s=>`'${s}'`).join(", ") })
+        ) IN (${ AccessTypes.slice(2).map(s=>`'${s}'`).join(", ") })
       `:""}
+      ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
       ${match? `AND
           name LIKE $match
           OR document.metas LIKE $match
@@ -144,15 +153,15 @@ export default abstract class ScenesVfs extends BaseVfs{
     `, {
       $user_id: user_id?.toString(10),
       $match: match
-    })).map(({ctime, mtime, id, ...m})=>({
+    })).map(({ctime, mtime, id, access, ...m})=>({
       ...m,
       id,
+      access: JSON.parse(access),
       ctime: BaseVfs.toDate(ctime),
       mtime: BaseVfs.toDate(mtime),
     }));
   }
-
-  async getScene(nameOrId :string|number) :Promise<Scene>{
+  async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let r = await this.db.get(`
       SELECT
@@ -162,7 +171,12 @@ export default abstract class ScenesVfs extends BaseVfs{
         IFNULL(documents.ctime, scenes.ctime) AS mtime,
         IFNULL(user_id, 0) AS author_id,
         IFNULL(username, 'default') AS author,
-        json_extract(thumb.value, '$.uri') AS thumb
+        json_extract(thumb.value, '$.uri') AS thumb,
+        json_object(
+          ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),`: ``}
+          "any", json_extract(scenes.access, '$.1'),
+          "default", json_extract(scenes.access, '$.0')
+        ) AS access
       FROM scenes 
       LEFT JOIN documents ON fk_scene_id = scene_id
       LEFT JOIN json_tree(documents.data, "$.metas") AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
@@ -170,10 +184,11 @@ export default abstract class ScenesVfs extends BaseVfs{
       WHERE ${key} = $value
       ORDER BY generation DESC
       LIMIT 1
-    `, {$value: nameOrId});
+    `, {$value: nameOrId, $user_id: user_id?.toString(10)});
     if(!r|| !r.name) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     return {
       ...r,
+      access: JSON.parse(r.access),
       ctime: BaseVfs.toDate(r.ctime),
       mtime: BaseVfs.toDate(r.mtime),
     }

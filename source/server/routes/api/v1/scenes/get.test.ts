@@ -87,7 +87,7 @@ describe("GET /api/v1/scenes", function(){
     });
 
     it("search by access level", async function(){
-      let scene :any = await vfs.getScene("write");
+      let scene :any = await vfs.getScene("write", user.uid);
 
       delete scene.thumb;
 
@@ -106,10 +106,38 @@ describe("GET /api/v1/scenes", function(){
       ]);
     });
 
+    it("search by multiple access levels", async function(){
+      await vfs.createScene("admin", {[`${user.uid}`]:"admin"});
+      let s1 :any = await vfs.getScene("write", user.uid);
+      let s2 :any = await vfs.getScene("admin", user.uid);
+
+      delete s1.thumb;
+      delete s2.thumb;
+
+      let r = await request(this.server).get(`/api/v1/scenes?access=write&access=admin`)
+      .auth(user.username, "12345678")
+      .set("Accept", "application/json")
+      .send({scenes: scenes})
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(r.body).to.deep.equal([
+        {
+          ...s2,
+          mtime: s2.mtime.toISOString(),
+          ctime: s2.ctime.toISOString()
+        },{
+          ...s1,
+          mtime: s1.mtime.toISOString(),
+          ctime: s1.ctime.toISOString()
+        },
+      ]);
+
+    })
+
     it("search by name match", async function(){
       let scenes = (await Promise.all([
-        vfs.getScene("read"),
-        vfs.getScene("write"),
+        vfs.getScene("read", user.uid),
+        vfs.getScene("write", user.uid),
       ])).map(({thumb, mtime, ctime, ...s})=>({
         ...s,
         mtime: mtime.toISOString(),
