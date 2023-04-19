@@ -33,7 +33,7 @@ export interface SceneProps{
     url :string;
 
     @property({type :String})
-    mode :"read"|"write";
+    mode :"read"|"write"|"admin";
 
     @property()
     styleCard :string;
@@ -85,10 +85,8 @@ export interface SceneProps{
             </div>
             <div class="tools">
               <a href="${explorer}"><ff-icon name="eye"></ff-icon>${this.t("ui.view")}</a>
-              ${this.mode === "write"? html`
-                <a class="tool-link" href="${story}"><ff-icon name="edit"></ff-icon>${this.t("ui.edit")}</a>
-                <a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ff-icon name="admin"></ff-icon>${this.t("ui.admin")}</a>
-              `: null}
+              ${this.mode === "write"? html`<a class="tool-link" href="${story}"><ff-icon name="edit"></ff-icon>${this.t("ui.edit")}</a>`:null}
+              ${this.mode === "write" ? html`<a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ff-icon name="admin"></ff-icon>${this.t("ui.admin")}</a>`:null}
             </div>
         </div>
         ${(this.onChange? html`<span class="pill">

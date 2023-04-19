@@ -66,6 +66,7 @@ interface Upload{
 
     public onLoginChange (u: UserSession|undefined){
         super.onLoginChange(u);
+        this.access = "write";
         this.fetchScenes();
     }
 
@@ -147,11 +148,6 @@ interface Upload{
         let mode = (this.user?"write":"read")
         if(!this.list){
             return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
-        }else if (this.list.length == 0 && Object.keys(this.uploads).length == 0){
-            return html`<div style="padding-bottom:100px;padding-top:20px;position:relative;" class="list-grid" >
-                <h1>No scenes available</h1>
-                ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
-            </div>`;
         }
 
         return html`
@@ -163,46 +159,49 @@ interface Upload{
             <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
         </div>
 
-        ${(this.list.filter(m => this.user.username == m.author).length > 0) ? html`
-        <div class="section">
-            <h3>${this.t("ui.myScenes")}</h3>
-            <div class="list-grid" style="position:relative; margin-top:20px">
-                ${repeat([
-                    ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
-                    new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
-                    .slice(0,4),
-                    ...Object.keys(this.uploads).map(name=>({name})),
-                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-            </div>        
-        </div>        
-        `: null}
+        ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?
+            null:
+            html`
+            ${(this.list.filter(m => this.user.username == m.author).length > 0) ? 
+                html`
+                <div class="section">
+                    <h3>${this.t("ui.myScenes")}</h3>
+                    <div class="list-grid" style="position:relative; margin-top:20px">
+                        ${repeat([
+                            ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
+                            new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
+                            .slice(0,4),
+                            ...Object.keys(this.uploads).map(name=>({name})),
+                        ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+                    </div>        
+                </div>        
+            `: null}
+            <div class="section">
+                <h3>${this.t("ui.ctimeSection")}</h3>
+                <div class="list-grid" style="position:relative;">
+                    ${repeat([
+                        ...this.list.sort((a, b) =>
+                            new Date(b.ctime).getTime() - new Date(a.ctime).getTime())
+                            .slice(0,4),
+                        ...Object.keys(this.uploads).map(name=>({name})),
+                    ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+                </div>        
+            </div>
 
-        <div class="section">
-            <h3>${this.t("ui.ctimeSection")}</h3>
-            <div class="list-grid" style="position:relative;">
-                ${repeat([
-                    ...this.list.sort((a, b) =>
-                        new Date(b.ctime).getTime() - new Date(a.ctime).getTime())
-                        .slice(0,4),
-                    ...Object.keys(this.uploads).map(name=>({name})),
-                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-            </div>        
-        </div>
-
-        <div class="section">
-            <h3>${this.t("ui.mtimeSection")}</h3>
-            <div class="list" style="position:relative;">
-                ${repeat([
-                    ...this.list.sort((a, b) =>
-                        new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
-                        .slice(0,8),
-                    ...Object.keys(this.uploads).map(name=>({name})),
-                ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
-            </div>        
-        </div>
-        `;
-    }
-
+            <div class="section">
+                <h3>${this.t("ui.mtimeSection")}</h3>
+                <div class="list" style="position:relative;">
+                    ${repeat([
+                        ...this.list.sort((a, b) =>
+                            new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
+                            .slice(0,8),
+                        ...Object.keys(this.uploads).map(name=>({name})),
+                    ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
+                </div>        
+            </div>`
+        }
+    `}
+    
     onUploadBtnChange = (ev)=>{
         ev.preventDefault();
         for(let file of [...ev.detail.files]){

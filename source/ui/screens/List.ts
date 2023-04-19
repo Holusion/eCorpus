@@ -1,6 +1,6 @@
-
 import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
 import Notification from "@ff/ui/Notification";
+import { SceneProps } from "../composants/SceneCard";
 
 import "client/ui/Spinner";
 import "../composants/UploadButton";
@@ -14,7 +14,6 @@ import { repeat } from "lit-html/directives/repeat";
 
 import "../composants/TaskButton";
 import { withScenes } from "../state/withScenes";
-import { navigate } from "../state/router";
 
 
 interface Scene{
@@ -124,6 +123,7 @@ interface Upload{
     }
 
     private renderScene(mode :string, scene:Scene|Upload){
+
         return html`<scene-card styleCard="list" 
             .mode=${mode} 
             name=${scene.name} 
@@ -137,21 +137,19 @@ interface Upload{
         if(!this.isUser){
             return html`<landing-page></landing-page>`;
         }
+
         let mode = (this.user?"write":"read")
+
+
         if(!this.list){
             return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
-        }else if (this.list.length == 0 && Object.keys(this.uploads).length == 0){
-            return html`<div style="padding-bottom:100px;padding-top:20px;position:relative;" class="list-grid" >
-                <h1>No scenes available</h1>
-                ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
-            </div>`;
         }
 
         return html`
             <div class="toolbar section">
                 <div class="list-tasks form-control">
                     <div class="form-item" style="display:flex">
-                        <input type="search" id="model-search" placeholder=${this.t("ui.searchScene")}>
+                        <input type="search" id="model-search" placeholder=${this.t("ui.searchScene")} @change=${this.onSearchChange}>
                         <button class="ff-button ff-control btn-primary" style="margin-top:0" type="submit"><ff-icon name="search"></ff-icon></button>
                     </div>
                     <h4>${this.t("ui.newScene")}</h4>
@@ -172,10 +170,13 @@ interface Upload{
                 </div>
             </div>
             <div class="list-grid list-items section">
-                ${repeat([
-                    ...this.list,
-                    ...Object.keys(this.uploads).map(name=>({name})),
-                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+                ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?
+                    html`<h4>No scenes available</h1>`:
+                    repeat([
+                        ...this.list,
+                        ...Object.keys(this.uploads).map(name=>({name})),
+                    ],({name})=>name , (scene)=>this.renderScene(mode, scene))
+                }
                 ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
             </div>`;
     }
@@ -215,6 +216,13 @@ interface Upload{
             };
             this.upload(file)
         }
+    }
+
+    onSearchChange = (ev)=>{
+        ev.preventDefault();
+        this.match = ev.target.value;
+        this.fetchScenes()
+        console.log("list items find : ",this.list)
     }
 
  }

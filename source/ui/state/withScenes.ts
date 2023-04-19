@@ -5,6 +5,8 @@ import Notification from "@ff/ui/Notification";
 
 export declare class SceneView{
   list : SceneProps[];
+  access :"read"|"write"|"admin";
+  match :string;
   fetchScenes():Promise<void>;
 }
 
@@ -13,6 +15,10 @@ export function withScenes<T extends Constructor<LitElement>>(baseClass:T) : T &
     @property()
     list : SceneProps[];
     #loading = new AbortController();
+
+    access :"read"|"write"|"admin";
+
+    match :string;
  
     public connectedCallback(): void {
         super.connectedCallback();
@@ -22,7 +28,10 @@ export function withScenes<T extends Constructor<LitElement>>(baseClass:T) : T &
     async fetchScenes(){
       this.#loading.abort();
       this.#loading = new AbortController();
-      fetch("/api/v1/scenes", {signal: this.#loading.signal}).then(async (r)=>{
+      let url = new URL("/api/v1/scenes", window.location.href);
+      if(this.match) url.searchParams.set("match", this.match);
+      if(this.access) url.searchParams.set("access", this.access);
+      fetch(url, {signal: this.#loading.signal}).then(async (r)=>{
           if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
           this.list = (await r.json()) as SceneProps[];
       }).catch((e)=> {
