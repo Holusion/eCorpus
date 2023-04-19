@@ -151,10 +151,10 @@ interface Upload{
             <div class="toolbar section">
                 <div class="list-tasks form-control">
                     <div class="form-item" style="display:flex">
-                        <input type="search" id="model-search" placeholder="rechercher un modèle">
+                        <input type="search" id="model-search" placeholder=${this.t("ui.searchScene")}>
                         <button class="ff-button ff-control btn-primary" style="margin-top:0" type="submit"><ff-icon name="search"></ff-icon></button>
                     </div>
-                    <h4>Nouvelle scène</h4>
+                    <h4>${this.t("ui.newScene")}</h4>
                     <upload-button class="ff-button ff-control btn-primary" style="padding:8px" @change=${this.onUploadBtnChange}>
                         ${this.t("ui.upload")}
                     </upload-button>
@@ -162,7 +162,7 @@ interface Upload{
                     <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
                     
                     ${(this.selection.length)?html`
-                    <h4>Outils</h4>
+                    <h4>${this.t("ui.tools")}</h4>
                     <a class="ff-button ff-control btn-primary btn-icon" download href="/api/v1/scenes?${
                         this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
                         }&format=zip">

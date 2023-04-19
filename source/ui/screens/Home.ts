@@ -155,7 +155,7 @@ interface Upload{
         }
 
         return html`
-        <h2>Système de gestion de scènes 3D</h2>
+        <h2>${this.t("info.homeHeader")}</h2>
         <div class="list-tasks" style="margin-bottom:1rem">
             <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
                 ${this.t("ui.upload")}
@@ -165,7 +165,7 @@ interface Upload{
 
         ${(this.list.filter(m => this.user.username == m.author).length > 0) ? html`
         <div class="section">
-            <h3>Mes scènes</h3>
+            <h3>${this.t("ui.myScenes")}</h3>
             <div class="list-grid" style="position:relative; margin-top:20px">
                 ${repeat([
                     ...this.list.filter(m => this.user.username == m.author).sort((a, b) =>
@@ -178,7 +178,7 @@ interface Upload{
         `: null}
 
         <div class="section">
-            <h3>Derniers ajouts</h3>
+            <h3>${this.t("ui.ctimeSection")}</h3>
             <div class="list-grid" style="position:relative;">
                 ${repeat([
                     ...this.list.sort((a, b) =>
@@ -190,7 +190,7 @@ interface Upload{
         </div>
 
         <div class="section">
-            <h3>Dernières modifications</h3>
+            <h3>${this.t("ui.mtimeSection")}</h3>
             <div class="list" style="position:relative;">
                 ${repeat([
                     ...this.list.sort((a, b) =>

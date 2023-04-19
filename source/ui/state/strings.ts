@@ -154,6 +154,26 @@ export default {
     view: {
       fr: "aperçu",
       en: "view"
+    },
+    ctimeSection:{
+      fr: "Derniers ajouts",
+      en: "Recently added"
+    },
+    mtimeSection:{
+      fr: "Dernières modifications",
+      en: "Recently edited"
+    },
+    myScenes:{
+      fr: "Mes scènes",
+      en: "My Scenes"
+    },
+    newScene:{
+      fr: "Nouvelle scène",
+      en: "New scene"
+    },
+    searchScene:{
+      fr: "rechercher un modèle",
+      en: "search model"
     }
   },
   info:{
@@ -182,7 +202,11 @@ export default {
     userDeleteConfirm: {
       fr : "Êtes-vous sûr de vouloir supprimer l'utilisateur {username}",
       en : "Are you sure you want to delete user {username} ?"
-    }
+    },
+    homeHeader: {
+      fr: "Système de gestion de scènes 3D",
+      en: "3D Scene Management System"
+    },    
   },
   errors:{
     '404':{
