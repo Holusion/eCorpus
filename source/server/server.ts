@@ -84,7 +84,6 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
 
   app.engine('.hbs', engine({
     extname: '.hbs',
-
   }));
   app.set('view engine', '.hbs');
   app.set('views', config.templates_path);
@@ -209,6 +208,11 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
       return next(error);
     }
     let code = (error instanceof HTTPError )? error.code : 500;
+
+    if(code === 401){
+      res.set("WWW-Authenticate", "Basic realm=\"authenticated access\"");
+    }
+
     res.format({
       "application/json": ()=> {
         res.status(code).send({ code, message: `${error.name}: ${error.message}` })
