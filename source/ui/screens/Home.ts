@@ -125,7 +125,7 @@ interface Upload{
             name=${scene.name} 
             .thumb=${(scene as Scene).thumb} 
             .time=${(("mtime" in scene)?scene.mtime: false)}
-            access=${(("access" in scene)?((this.user?.isAdministrator)?"admin":scene.access): "none")}
+            access=${(("access" in scene)?((this.user?.isAdministrator)?"admin":scene.access.user): "none")}
         />`;
     }
 
