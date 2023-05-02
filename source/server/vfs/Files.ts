@@ -84,22 +84,17 @@ export default abstract class FilesVfs extends BaseVfs{
         SELECT 
           $name AS name,
           $mime AS mime,
-          IFNULL(last.generation, 0) + 1 AS generation,
+          IFNULL((
+            SELECT MAX(generation) FROM files WHERE fk_scene_id = scene_id AND name = $name
+          ), 0) + 1 AS generation,
           scene_id AS fk_scene_id,
           $user_id AS fk_author_id
-        FROM scene 
-          LEFT JOIN (
-            SELECT MAX(generation) AS generation, fk_scene_id 
-            FROM files 
-            WHERE name = $name
-            GROUP BY fk_scene_id
-          ) AS last
-          ON scene_id = last.fk_scene_id
+        FROM scene
         GROUP BY name
         RETURNING 
-        file_id,
-        generation, 
-        ctime
+          file_id,
+          generation, 
+          ctime
       `, {$scene: scene, $name: name, $mime: mime, $user_id: user_id});
       if(!r) throw new NotFoundError(`Can't find a scene named ${scene}`);
 
@@ -161,20 +156,17 @@ export default abstract class FilesVfs extends BaseVfs{
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $scene )
       SELECT
         file_id AS id,
+        files.name AS name,
         size,
         hash,
         generation,
-        first.ctime AS ctime,
+        (SELECT ctime FROM files WHERE fk_scene_id = scene.scene_id AND name = $name AND generation = 1) AS ctime,
         files.ctime AS mtime,
-        files.name AS name,
         mime,
         files.fk_author_id AS author_id,
-        username AS author
+        (SELECT username FROM users WHERE files.fk_author_id = user_id LIMIT 1) AS author
       FROM files 
         INNER JOIN scene ON files.fk_scene_id = scene.scene_id 
-        INNER JOIN (SELECT MIN(ctime) AS ctime, fk_scene_id, name FROM files GROUP BY fk_scene_id, name ) AS first
-          ON files.fk_scene_id = first.fk_scene_id AND files.name = first.name
-        INNER JOIN users ON files.fk_author_id = user_id
       WHERE files.name = $name
       ORDER BY generation DESC
       LIMIT 1
