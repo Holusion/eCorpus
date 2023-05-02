@@ -39,6 +39,10 @@ export default abstract class CleanVfs extends BaseVfs{
     }
   }
 
+  public async optimize(){
+    await this.db.exec(`PRAGMA optimize;`);
+  }
+
   /**
    * Utility function used mainly for debugging to check if some objects are referenced but not present on disk
    */
