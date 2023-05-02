@@ -18,15 +18,12 @@ export default abstract class DocsVfs extends BaseVfs{
         INSERT INTO documents (data, generation, fk_author_id, fk_scene_id) 
         SELECT 
           $data AS data,
-          IFNULL(MAX(generation), 0) + 1 AS generation,
+          IFNULL((
+            SELECT MAX(generation) FROM documents WHERE fk_scene_id = scene.scene_id
+          ), 0) + 1 AS generation,
           $author AS fk_author_id,
           scene.scene_id AS fk_scene_id
         FROM scene
-          LEFT JOIN (
-            SELECT MAX(generation) AS generation, fk_scene_id
-            FROM documents
-            GROUP BY fk_scene_id
-          ) ON scene_id = fk_scene_id
         RETURNING doc_id
       `,{$data, $scene: scene, $author: author ?? null}).catch(e=> {
         if(e.message == "SQLITE_CONSTRAINT: NOT NULL constraint failed: documents.fk_scene_id") return undefined;

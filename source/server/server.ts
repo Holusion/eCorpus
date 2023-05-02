@@ -31,6 +31,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
   await Promise.all([fileDir].map(d=>mkdir(d, {recursive: true})));
   let db = await openDatabase({filename: path.join(fileDir, "database.db"), migrate: migrate});
   const vfs = await Vfs.Open(fileDir, {db});
+
   const userManager = new UserManager(db);
 
 
@@ -38,11 +39,16 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
   app.disable('x-powered-by');
   app.set("trust proxy", config.trust_proxy);
 
+  if(clean){
+    setTimeout(()=>{
+      //Clean file system after a while to prevent delaying startup
+      vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
+    }, 60000).unref();
 
-  if(clean) setTimeout(()=>{
-    //Clean file system after a while to prevent delaying startup
-    vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
-  }, 60000);
+    setInterval(()=>{
+      vfs.optimize();
+    }, 2*3600*1000).unref();
+  } 
 
 
   app.locals  = Object.assign(app.locals, {

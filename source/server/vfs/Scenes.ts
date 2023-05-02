@@ -102,7 +102,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     }
 
     return (await this.db.all(`
-      WITH RECURSIVE last_docs AS (
+      WITH last_docs AS (
         SELECT 
           documents.ctime AS mtime, 
           documents.fk_author_id AS fk_author_id,
@@ -121,8 +121,10 @@ export default abstract class ScenesVfs extends BaseVfs{
         scenes.ctime AS ctime,
         scene_id AS id,
         scene_name AS name,
-        IFNULL(user_id, 0) AS author_id,
-        IFNULL(username, "default") AS author,
+        IFNULL(fk_author_id, 0) AS author_id,
+        IFNULL((
+          SELECT username FROM users WHERE fk_author_id = user_id
+        ), "default") AS author,
         json_extract(thumb.value, '$.uri') AS thumb,
         json_object(
           ${(typeof user_id === "number" && 0 < user_id)? `
@@ -134,7 +136,6 @@ export default abstract class ScenesVfs extends BaseVfs{
       FROM scenes
         LEFT JOIN last_docs AS document ON fk_scene_id = scene_id
         LEFT JOIN json_tree(document.metas) AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
-        LEFT JOIN users ON fk_author_id = user_id
       ${with_filter? "WHERE true": ""}
       ${typeof user_id === "number"? `AND 
         COALESCE(
@@ -161,6 +162,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       mtime: BaseVfs.toDate(mtime),
     }));
   }
+
   async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let r = await this.db.get(`
@@ -169,8 +171,10 @@ export default abstract class ScenesVfs extends BaseVfs{
         scene_id AS id,
         scenes.ctime AS ctime,
         IFNULL(documents.ctime, scenes.ctime) AS mtime,
-        IFNULL(user_id, 0) AS author_id,
-        IFNULL(username, 'default') AS author,
+        IFNULL(fk_author_id, 0) AS author_id,
+        IFNULL((
+          SELECT username FROM users WHERE user_id = fk_author_id
+        ), 'default') AS author,
         json_extract(thumb.value, '$.uri') AS thumb,
         json_object(
           ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),`: ``}
@@ -180,7 +184,6 @@ export default abstract class ScenesVfs extends BaseVfs{
       FROM scenes 
       LEFT JOIN documents ON fk_scene_id = scene_id
       LEFT JOIN json_tree(documents.data, "$.metas") AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
-      LEFT JOIN users ON fk_author_id = user_id
       WHERE ${key} = $value
       ORDER BY generation DESC
       LIMIT 1
