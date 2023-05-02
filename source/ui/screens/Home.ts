@@ -131,13 +131,13 @@ interface Upload{
 
     private renderSceneCompact(scene:Scene|Upload){
         return html`
-            <list-item name="${scene.name}" href="/ui/scenes/${scene.name}/" thumb=${(scene as Scene).thumb}}>
+            <a class="list-item" name="${scene.name}" href="/ui/scenes/${scene.name}/">
                 ${"author" in scene? html`
                 <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
                 <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
                 <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.ctime).toLocaleString()}</span>
             `:scene.name}
-            </list-item>
+            </a>
         `;
     }
 
@@ -189,7 +189,7 @@ interface Upload{
 
         <div class="section">
             <h3>${this.t("ui.mtimeSection")}</h3>
-            <div class="list" style="position:relative;">
+            <div class="list list-items" style="position:relative;">
                 ${repeat([
                     ...scenes.slice(0, 8),
                 ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}

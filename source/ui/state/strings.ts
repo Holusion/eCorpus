@@ -75,6 +75,10 @@ export default {
       fr: "dernière modification",
       en: "modification time"
     },
+    ctime: {
+      fr: "dernière création",
+      en: "creation time"
+    },
     author: {
       fr: "auteur{plural=s}",
       en: "author{plural=s}"
@@ -128,8 +132,8 @@ export default {
       en: "recover your password"
     },
     createUser: {
-      fr: "Créer un nouvel utilisateur",
-      en: "Create new user"
+      fr: "Nouvel utilisateur",
+      en: "Create User"
     },
     isAdministrator: {
       fr: "Est administrateur",
@@ -174,6 +178,18 @@ export default {
     searchScene:{
       fr: "rechercher un modèle",
       en: "search model"
+    },
+    delete:{
+      fr: "supprimer",
+      en: "delete"
+    },
+    alphabet:{
+      fr: "ordre alphabethique",
+      en: "alphabetical"
+    },
+    sortBy:{
+      fr: "Trier par",
+      en: "Sort by"
     }
   },
   info:{
@@ -182,10 +198,10 @@ export default {
       en:"No data available for {item}"
     },
     etAl:{
-      fr:"{item} et {count} autre",
-      fr_plural:"{item} et {count} autres",
-      en:"{item} and {count} other",
-      en_plural:"{item} and {count} others",
+      fr:" et {count} autre",
+      fr_plural:" et {count} autres",
+      en:" and {count} other",
+      en_plural:" and {count} others",
     },
     lead:{
       fr: "eCorpus est un modèle de base de données d'objets 3D développé par holusion et utilisant un éditeur et visualisateur enrichi issu du projet DPO-Voyager du smithsonian institute",
@@ -206,7 +222,11 @@ export default {
     homeHeader: {
       fr: "Système de gestion de scènes 3D",
       en: "3D Scene Management System"
-    },    
+    },
+    userManager: {
+      fr: "Gestion des utilisateurs",
+      en: "User Manager"
+    }
   },
   errors:{
     '404':{
