@@ -172,6 +172,10 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
     if(!stream && !isDirectory){
       throw new Error("Files require a Readable stream");
     }
+    if(isDirectory){
+      filename += (filename.endsWith("/")?"":"/");
+    }
+
     files_count++;
 
     if(mtime.getUTCFullYear() < 1980){
@@ -187,7 +191,7 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
     //End of file header
 
     let size = 0;
-    let sum = crc32(); 
+    let sum = crc32();
     if(stream){
       for await (let data of stream){ // TODO: best block length for network?
         size += data.length;
@@ -222,7 +226,7 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
 
 
   //End of central directory
-  let eocdr = Buffer.alloc(22 + Buffer.byteLength(comments));
+  let eocdr = Buffer.alloc(eocd_length + Buffer.byteLength(comments));
   eocdr.writeUInt32LE(0x06054b50, 0);
   eocdr.writeUInt16LE(0, 4); //Disk number
   eocdr.writeUInt16LE(0, 6); //start disk of CD
@@ -231,8 +235,9 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
   eocdr.writeUInt32LE(cd.length, 12); //Size of central directory
   eocdr.writeUInt32LE(archive_size, 16); //central directory offset
   eocdr.writeUInt16LE(Buffer.byteLength(comments), 20) //comments length
-  eocdr.write(comments, 22, "utf-8");
+  eocdr.write(comments, eocd_length, "utf-8");
 
+  //central directory is generally small enough to send in one chunk
   yield Buffer.concat([cd, eocdr]);
 }
 
@@ -247,10 +252,10 @@ async function get_eocd_buffer(handle :FileHandle) :Promise<Buffer>{
   let b = Buffer.alloc(65535);
   let {bytesRead} = await handle.read({buffer: b, position: Math.max(stats.size - 65535, 0)});
   let offset = 0;
-  for(offset; offset < bytesRead-eocd_length; offset++){
+  for(offset; offset < bytesRead - eocd_length; offset++){
     //Find a eocd signature matching a correct comments length
     if(b.readUInt32LE(bytesRead -offset - eocd_length) == 0x06054b50 && b.readUInt16LE(bytesRead - offset-2) == offset){
-      return b.slice(bytesRead -offset - eocd_length);
+      return b.slice(bytesRead - offset - eocd_length);
     }
   }
   throw new Error("Could not find end of central directory record");
@@ -265,7 +270,7 @@ export async function zip_read_eocd(handle :FileHandle){
     entries: slice.readUInt16LE(10),
     cd_size: cd_size,
     cd_start: data_size,
-    file_size: data_size+cd_size + eocd_length + comment_length,
+    file_size: data_size + cd_size + eocd_length + comment_length,
     comments: slice.slice(eocd_length, eocd_length + comment_length).toString("utf8"),
   };
 }
@@ -278,7 +283,8 @@ export async function zip_read_eocd(handle :FileHandle){
 export async function *read_cdh(handle : FileHandle) :AsyncGenerator<CDHeader, void, void >{
   let eocd = await zip_read_eocd(handle);
   let cd = Buffer.alloc(eocd.cd_size);
-  assert( (await handle.read({buffer:cd, position: eocd.cd_start})).bytesRead == cd.length, "Can't read Zip Central Directory Records");
+  let bytes = (await handle.read({buffer:cd, position: eocd.cd_start})).bytesRead;
+  assert( bytes == cd.length, `Can't read Zip Central Directory Records (missing ${cd.length - bytes} of ${cd.length} bytes)`);
   let offset = 0;
   while(offset < eocd.cd_size){
     let header = parse_cd_header(cd, offset);
