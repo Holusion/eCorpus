@@ -7,6 +7,7 @@ import BaseVfs from "./Base";
 import { DataStream, FileProps, GetFileParams, GetFileResult, WriteDirParams, WriteFileParams } from "./types";
 
 import { Transaction } from "./helpers/db";
+import { FileHandle } from "fs/promises";
 
 interface DiskFileParams{
   size :number;
@@ -189,12 +190,18 @@ export default abstract class FilesVfs extends BaseVfs{
     let r = await this.getFileProps(props);
     if(!r.hash) throw new NotFoundError(`Trying to open deleted file : ${ r.name }`);
     if(r.hash === "directory") throw new BadRequestError(`${props.name} in ${props.scene} appears to be a directory`);
-    let handle = await fs.open(path.join(this.objectsDir, r.hash), constants.O_RDONLY);
+    let handle = await this.openFile({hash: r.hash!});
     return {
       ...r,
       stream: handle.createReadStream(),
     };
   }
+
+
+  async openFile(file:{hash :string}) :Promise<FileHandle>{
+    return await fs.open(path.join(this.objectsDir, file.hash), constants.O_RDONLY);
+  }
+
   /**
    * Get an history of versions for a file
    * It is ordered as last-in-first-out

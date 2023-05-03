@@ -656,7 +656,17 @@ describe("Vfs", function(){
         });
 
         it("get requester's access right", async function(){
+          let userManager = new UserManager(vfs._db);
+          let alice = await userManager.addUser("alice", "xxxxxxxx", false);
 
+          let id = await vfs.createScene("alice's", alice.uid);
+          await vfs.writeDoc("{}", id, alice.uid);
+          let scene = await vfs.getScene("alice's", alice.uid);
+          expect(scene).to.have.property("access").to.have.property("user").to.equal("admin");
+        });
+        it("performs requests for default user", async function(){
+          let scene = await vfs.getScene("foo", 0);
+          expect(scene).to.be.ok;
         })
       });
 

@@ -8,6 +8,8 @@ import { expect } from "chai";
 import Vfs from "../../../../vfs";
 import UserManager from "../../../../auth/UserManager";
 import User from "../../../../auth/User";
+import { HandleMock } from "../../../../utils/zip/zip.test";
+import { read_cdh } from "../../../../utils/zip";
 
 
 
@@ -42,10 +44,24 @@ describe("GET /api/v1/scenes", function(){
   });
   
   it("can send a zip file", async function(){
-    let r = await request(this.server).get("/api/v1/scenes")
+    let res = await request(this.server).get("/api/v1/scenes")
     .set("Accept", "application/zip")
     .expect(200)
     .expect("Content-Type", "application/zip");
+
+    let b :any = Buffer.from(res.text, "binary");
+    expect(b).to.have.property("length").above(0);
+    let handle = HandleMock.Create(b);
+    let headers = [];
+    for await(let header of read_cdh(handle)){
+      headers.push(header);
+    }
+    expect(headers.map(h=>h.filename)).to.deep.equal([
+      "scenes/bar/articles",
+      "scenes/bar/models",
+      "scenes/foo/articles",
+      "scenes/foo/models",
+    ]);
   });
 
   describe("can get a list of scenes", function(){

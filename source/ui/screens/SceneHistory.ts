@@ -154,7 +154,7 @@ class SceneVersion{
           }
         }
         let size = this.versions.reduce((s, v)=>s+v.size, 0);
-        
+        let scene = encodeURIComponent(this.scene);
         return html`<div>
           <h1 style="color:white">${this.scene}</h1>
           <div style="display:flex;flex-wrap:wrap;">
@@ -162,8 +162,9 @@ class SceneVersion{
               <h3>Total size: <b-size b=${size}></b-size></h3>
               <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               <div style="max-width: 300px">
-                <a class="ff-button ff-control btn-primary" href=${`/ui/scenes/${encodeURIComponent(this.scene)}/edit?lang=${this.language.toUpperCase()}`}><ff-icon name="edit"></ff-icon>  ${this.t("ui.editScene")}</a>
-                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${encodeURIComponent(this.scene)}/view?lang=${this.language.toUpperCase()}`}><ff-icon name="eye"></ff-icon>  ${this.t("ui.viewScene")}</a>  
+                <a class="ff-button ff-control btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ff-icon name="edit"></ff-icon>  ${this.t("ui.editScene")}</a>
+                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ff-icon name="eye"></ff-icon>  ${this.t("ui.viewScene")}</a>  
+                <a class="ff-button ff-control btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ff-icon name="save"></ff-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
             <div style="min-width:300px;" class="section">

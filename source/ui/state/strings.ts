@@ -190,6 +190,18 @@ export default {
     sortBy:{
       fr: "Trier par",
       en: "Sort by"
+    },
+    adminSection:{
+      fr:"administration de l'instance eCorpus",
+      en:"eCorpus instance administration"
+    },
+    downloadZip:{
+      fr:"Télécharger toutes les scènes",
+      en:"Download all scenes"
+    },
+    downloadScene:{
+      fr:"Télécharger la scène",
+      en:"Download this scene"
     }
   },
   info:{

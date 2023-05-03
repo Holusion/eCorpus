@@ -1,7 +1,7 @@
 import fs, { FileHandle } from "fs/promises"
 import { expect } from "chai";
 import { GetFileResult } from "../../vfs";
-import { asyncMap, create_cd_header, flags, parse_cd_header, unzip, zip,  } from "."
+import { asyncMap, create_cd_header, flags, parse_cd_header, read_cdh, unzip, zip,  } from "."
 import { Readable } from "stream";
 import { createHash } from "crypto";
 import path from "path";
@@ -60,10 +60,17 @@ describe("zip records", function(){
 });
 
 
-class HandleMock{
+export class HandleMock{
   data = Buffer.alloc(0);
-  constructor(){
 
+  static Create(...buffers :Buffer[]){
+    return new HandleMock(...buffers) as any as FileHandle;
+  }
+
+  constructor(...buffers:Buffer[]){
+    for(let b of buffers){
+      this._write(b);
+    }
   }
   _write(d:Buffer){
     this.data = Buffer.concat([this.data, d]);
@@ -91,7 +98,7 @@ describe("read/write zip files", async function(){
   let files = [
     {filename:"articles/", isDirectory: true, mtime: new Date(1673450722892)},
     {filename:"articles/foo.html", mtime: new Date(1673450722892), stream:readStream()},
-  ]
+  ];
 
   it("read/write files", async function(){
     let handle = new HandleMock();
@@ -104,6 +111,22 @@ describe("read/write zip files", async function(){
       count++;
     }
     expect(count).to.equal(2);
+  });
+
+  it("appends a trailing slash to directory name", async function(){
+    //Some softwares (eg. KDE Ark - https://github.com/KDE/ark) use it to detect folders
+    let handle = new HandleMock();
+    for await (let b of zip([
+      {filename:"articles", isDirectory: true, mtime: new Date(1673450722892)}
+    ])){
+      handle._write(b);
+    }
+    let headers = [];
+    for await (let header of read_cdh(handle as any)){
+      headers.push(header);
+    }
+    expect(headers.length).to.equal(1);
+    expect(headers[0]).to.have.property("filename", "articles/");
   });
 });
 

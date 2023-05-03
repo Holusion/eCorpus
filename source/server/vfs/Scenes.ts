@@ -187,7 +187,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       WHERE ${key} = $value
       ORDER BY generation DESC
       LIMIT 1
-    `, {$value: nameOrId, $user_id: user_id?.toString(10)});
+    `, {$value: nameOrId, $user_id: user_id? user_id.toString(10): undefined});
     if(!r|| !r.name) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     return {
       ...r,

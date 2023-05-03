@@ -31,14 +31,17 @@ export default function wrap(handler :AsyncRequestHandler):RequestHandler {
 export async function wrapFormat(res :Response, handlers :Record<string,()=>Promise<any>|any>) :Promise<any>{
   let p :()=>Promise<void>;
   let {format} = res.req.query;
-  switch(format){
-    case "zip":
-      if(handlers["application/zip"]) return await handlers["application/zip"]();
-    case "json":
-      if(handlers["application/json"]) return await handlers["application/json"]();
-    case "text":
-      if(handlers["text/plain"]) return await handlers["text/plain"]();
+  if(format == "zip" && handlers["application/zip"]){
+    res.set("Content-Type", "application/zip");
+    return await handlers["application/zip"]();
+  }else if(format =="json" &&handlers["application/json"]){
+    res.set("Content-Type", "application/json; encoding=utf-8");
+    return await handlers["application/json"]();
+  }else if(format == "text" && handlers["text/plain"] ){
+    res.set("Content-Type", "text/plain; encoding=utf-8");
+    return await handlers["text/plain"]();
   }
+  
   res.format(Object.entries(handlers).reduce((h, [type, handler])=>{
     return {...h, [type]:()=>{
       p = handler;
