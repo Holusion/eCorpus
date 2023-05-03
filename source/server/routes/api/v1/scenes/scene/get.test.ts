@@ -62,56 +62,55 @@ describe("GET /api/v1/scenes/:scene", function(){
       }
       expect(headers).to.deep.equal([
         {
-          filename: 'foo',
+          filename: 'foo/',
           crc: 0,
           size: 0,
-          mtime: new Date("2023-07-29T13:34:26.000Z"),
           dosMode: 16,
           unixMode: 16893,
           offset: 0,
-          length: 49
+          length: 50
         },
         {
-          filename: 'foo/articles',
+          filename: 'foo/articles/',
           crc: 0,
           size: 0,
-          mtime: new Date("2023-07-29T13:34:26.000Z"),
           dosMode: 16,
           unixMode: 16893,
-          offset: 49,
-          length: 58
+          offset: 50,
+          length: 59
         },
         {
           filename: 'foo/articles/hello-world.html',
           crc: 2117232125,
           size: 4,
-          mtime: new Date("2023-07-29T13:34:26.000Z"),
           dosMode: 0,
           unixMode: 65021,
-          offset: 107,
+          offset: 109,
           length: 75
         },
         {
-          filename: 'foo/models',
+          filename: 'foo/models/',
           crc: 0,
           size: 0,
-          mtime: new Date("2023-07-29T13:34:26.000Z"),
           dosMode: 16,
           unixMode: 16893,
           offset: 253,
-          length: 56
+          length: 57
         },
         {
           filename: 'foo/scene.svx.json',
           crc: 4261281091,
           size: 2,
-          mtime: new Date("2023-07-29T13:34:26.000Z"),
           dosMode: 0,
           unixMode: 65021,
           offset: 253,
           length: 64
         }
-      ].map(h =>({...h, extra:'', flags: 2056 })));
+      ].map(h =>({
+        ...h, 
+        extra:'', flags: 2056, mtime: new Date("2023-07-29T13:34:26.000Z"),
+        
+      })));
     });
 
     it("can use query params to set request format", async function(){
