@@ -133,6 +133,9 @@ scene-card{
   }
   .list-item:nth-child(2n){
     background: #000;
+    &:hover{
+      background: #071922
+    }
   }
 }
 

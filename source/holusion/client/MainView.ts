@@ -32,13 +32,21 @@ import splitStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader
 
 import "./SplitContentView";
 import "./SplitUserInterface/SplitUserInterface";
-import "./SplitUserInterface/SettingsView.ts";
+import "./SplitUserInterface/SettingsView/index";
 import  "./SplitOverlay";
-import { IDocumentParams } from "./SplitModeObjectMenu";
 import CVViewer from "client/components/CVViewer";
+import {provideScenes, IDocumentParams} from "./SplitUserInterface/state/scenes";
 
+import Keyboard from  "./Keyboard";
 
-
+class HTTPError extends Error{
+    constructor(public code:number, message :string){
+        super(message);
+    }
+    static async fromResponse(res :Response){
+        return new HTTPError(res.status, `[${res.status}]: ${await res.text()}`);
+    }
+}
 
 export interface NavigationParams{
     document ?:string;
@@ -61,13 +69,10 @@ async function *animationLoop() :AsyncGenerator<DOMHighResTimeStamp>{
  * Main UI view for the Voyager Explorer application.
  */
 @customElement("voyager-explorer-split")
-export default class MainView extends LitElement
+export default class MainView extends provideScenes(LitElement)
 {
     application: ExplorerApplication = null;
     private _loop :AbortController;
-
-    @property({type:Object})
-    public docs :IDocumentParams[];
 
     @property()
     public document :string;
@@ -78,8 +83,9 @@ export default class MainView extends LitElement
     @property({type: Boolean})
     private auto :boolean;
 
-    @property({attribute: false, type: Object})
-    error :Error|null = null;
+
+    @property({attribute:false, type: Boolean})
+    settingsOpen :boolean = false;
 
 
     protected get viewer() {
@@ -94,28 +100,16 @@ export default class MainView extends LitElement
         this.auto ??= !!sp.get("auto");
     }
 
-    private fetch(){
-        fetch("/documents.json").then(async (res)=>{
-            if(!res.ok) throw new Error(`[${res.status}]: ${await res.text()}`);
-            let body = await res.json();
-            if(!Array.isArray(body.documents) || body.documents.length == 0)throw new Error(`Bad documents list : `+ body);
-            
-            this.docs = body.documents;
-            if(!this.document || this.document == "null" || !this.docs.find(({root})=>root == this.document)) this.document = this.docs[0].root;
-            console.log("Document :", this.document );
-            this.error = null;
-        }).catch(e=>{
-            this.error = e;
-            Notification.show("Failed to get documents : "+e.message, "error");
-        });
-    }
-
     public connectedCallback()
     {
         super.connectedCallback();
+
         this.classList.add("split-mode");
 
         Notification.shadowRootNode = this.shadowRoot;
+
+        let keyboard = Keyboard.register();
+        keyboard.style.width = "50%";
          
         this.error = null;
 
@@ -134,7 +128,6 @@ export default class MainView extends LitElement
          * https://github.com/Smithsonian/dpo-voyager/issues/185
          * and should be deleted once it's solved.
          */
-        console.log("register listener", this.application.system.getMainComponent(CVDocumentProvider));
         this.application.system.getMainComponent(CVDocumentProvider).on("active-component",(e)=>{
             if((e as any).next) return;
             let scene :SceneView = (this.shadowRoot.querySelector(".sv-content-view") as any)?.sceneView;
@@ -143,28 +136,62 @@ export default class MainView extends LitElement
             }
             (scene as any).view.renderer.dispose();
         });
-        this.fetch();
+        this.updateScenes();
+    }
+    
+    public disconnectedCallback()
+    {
+        this._loop?.abort();
+        this.application.dispose();
+        this.application = null;
+        this.viewer.rootElement = null;
     }
     
     protected update(changedProperties: Map<string | number | symbol, unknown>): void {
-        if(!this.error && this.docs && this.document && this.document !== this.application.props.root){
-            console.log("reloadDocument : ",this.application.props.root , this.document);
+
+        //Set this.document on the fly if scenes has changed and document is not valid
+        if(changedProperties.has("scenes") && this.scenes.length && (!this.document || this.document == "null" || !this.scenes.find(({root})=>root == this.document))){
+            this.document = this.scenes[0].root;
+            console.log("Set Document :", this.document );
+        }
+
+        //Open settings if an error happened and we have no scenes
+        if(changedProperties.has("error") && this.error && !this.scenes.length){
+            this.settingsOpen = true;
+            if("code" in this.error && this.error.code != 404) Notification.show("Failed to fetch scenes : "+this.error.message, "error", 3000);
+        }
+
+
+        //Notify if scenes has been refreshed
+        if(changedProperties.has("scenes") && ! this.error){
+            Notification.show("Scenes have been refreshed", "info", 1500);
+        }
+
+        //Hack to trigger application.reloadDocument when necessary
+        if(!this.error && this.scenes.length && this.document &&   this.document != "null" && this.document !== this.application.props.root){
+            console.log("reload document : ",this.application.props.root , this.document);
             this.application.props.root = this.document;
             this.application.reloadDocument();
             this.viewer.rootElement = this;
         }
         super.update(changedProperties);
     }
+
     protected render() {
-        console.log("render");
-        let ui :TemplateResult, view :TemplateResult;
+        let ui :TemplateResult, settings :TemplateResult, view :TemplateResult;
+        if(this.settingsOpen){
+            settings = html`<settings-view @close=${()=> this.settingsOpen = false}.system=${this.application.system}></settings-view>`;
+        }else{
+            settings = html`<ff-button class="open-btn" style="position:absolute; right:10px; top:10px" @click=${()=> this.settingsOpen =!this.settingsOpen} icon="${(this.settingsOpen?"close":"cog")}"></ff-button>`;
+        }
+
         if(this.error){
-            ui = html`<div class="et-screen et-container-1">
+            ui = html`<div class="et-screen et-container-1">${settings}
                 <h1 style="color:white">Error</h1>
                 <p>${this.error.message}</p>
                 <div id="${Notification.stackId}"></div>
             </div>`;
-        }else if(!this.docs || !this.document){
+        }else if(!this.scenes.length || !this.document){
             ui = html`
                 <h1 style="color:white">Loading...</h1>
                 <div id="${Notification.stackId}"></div>
@@ -173,7 +200,7 @@ export default class MainView extends LitElement
             let system = this.application.system;
             console.log("Render with path :", this.document, this.auto);
             if(!this.route){
-                ui = html`<split-object-menu .system=${system} .docs=${this.docs} @select=${this.onNavigate}></split-object-menu>`
+                ui = html`<split-object-menu .system=${system} .docs=${this.scenes} @select=${this.onNavigate}></split-object-menu> ${settings}`
             }else{
                 ui = html`<split-user-interface @select=${this.onNavigate} .system=${system}></split-user-interface>`
             }
@@ -184,11 +211,10 @@ export default class MainView extends LitElement
         }
 
         view ??= html`<div style="padding-top:30vh; margin:auto;height:100%;overflow:hidden"><sv-logo style="transform: scale(4)"></sv-logo></div>`;
-        console.log("vIEW", view);
+
         return html`
         <div class="split-screen-touch">
             ${ui}
-            <settings-view @change=${this.onChange} .system=${this.application.system}></settings-view>
         </div>
         <div class="split-screen-view">
             ${view}
@@ -196,9 +222,6 @@ export default class MainView extends LitElement
         <div id="${Notification.stackId}"></div>`
     }
 
-    onChange = ()=>{
-        this.fetch();
-    }
     onNavigate = (ev :NavigationEvent)=>{
         console.log("Navigate to :", ev.detail);
         ["route", "document", "auto"].forEach((key)=>{
@@ -219,12 +242,14 @@ export default class MainView extends LitElement
             this._loop?.abort(); 
         }
     }
+
     /**
      * simple ease-in ease-out function for [0..1] interval
      */
     easeInOut(t:number):number{
         return t > 0.5 ? 4*Math.pow((t-1),3)+1 : 4*Math.pow(t,3);
     }
+
     lookAt([x,y,z]:[number, number, number]){
         this._loop?.abort(); //Intentionally Share the same abort as loop();
         let control = this._loop = new AbortController();
@@ -249,6 +274,9 @@ export default class MainView extends LitElement
         })();
     }
 
+    /**
+     * Automatic camera orbit when on non-interactive pages
+     */
     loop ({ timeout=1000, speed=0.01, target=undefined }={}) :void{
         this._loop?.abort();
         let control = this._loop = new AbortController();
@@ -277,14 +305,6 @@ export default class MainView extends LitElement
                 }
             }
         })();
-    }
-
-    public disconnectedCallback()
-    {
-        this._loop?.abort();
-        this.application.dispose();
-        this.application = null;
-        this.viewer.rootElement = null;
     }
 
     static styles = [styles, splitStyles];

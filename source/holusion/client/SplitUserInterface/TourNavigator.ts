@@ -74,20 +74,19 @@ export default class TourNavigator extends DocumentView
 
 
         return html`
-            <button class="tour-return" title=${language.getLocalizedString("Exit Tour")} @click=${this.onClickExit}><img src="/back.png">${this.language.getLocalizedString("Return")}</button>
-            <div class="et-tour-info">    
-                <div class="et-title">${title}</div>
-                <div class="et-tour-article et-is-scrollable">${unsafeHTML(articleContent)}</div>
-                <div class="et-fade-scroll"></div>
+            <ff-button class="tour-return" title=${language.getLocalizedString("Exit Tour")} @click=${this.onClickExit} icon="close"></ff-button>
+            <div class="tour-info">    
+                <div class="tour-title">${title}</div>
+                <div class="tour-article">${unsafeHTML(articleContent)}</div>
             </div>
-            <div class="et-tour-stepper">
-                ${isNotFirst?html`<button class="nav-button" title=${language.getLocalizedString("Go Backward")} ?disabled=${!activeTour} @click=${this.onClickPrevious}>
-                   ${language.getLocalizedString("Previous")}
-                </button>`:null}
-                <div class="et-step-count">${info}</div>
-                ${hasNext?html`<button class="nav-button et-inverted-btn" title=${language.getLocalizedString("Go Forward")} ?disabled=${!activeTour} @click=${this.onClickNext}>
-                    ${language.getLocalizedString("Next")}
-                </button>`:null}
+            <div class="tour-stepper">
+                <button class="nav-button" title=${language.getLocalizedString("Go Backward")} ?disabled=${!isNotFirst} @click=${this.onClickPrevious}>
+                   <ff-icon name="triangle-left"></ff-icon>
+                </button>
+                <div>${info}</div>
+                <button class="nav-button" title=${language.getLocalizedString("Go Forward")} ?disabled=${!hasNext} @click=${this.onClickNext}>
+                    <ff-icon name="triangle-right"></ff-icon>
+                </button>
             </div>`;
     }
 

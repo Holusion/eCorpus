@@ -11,23 +11,50 @@ const {forward} = require("./forward");
 
 /** 
  * @typedef {object} InternalState
- * @property {string[]} [cookies]
+ * @property {string[]|string} [cookies]
  * @property {string|undefined} [etag]
 */
 
+/**
+ * patched ReadableStream with added properties from node-stream-zip
+ * Because it doesn't expose the EntryDataReaderStream class
+ * @see https://github.com/antelle/node-stream-zip/blob/7c5d50393418b261668b0dd4c8d9ccaa9ac913ce/node_stream_zip.js#L1069
+ * @typedef {NodeJS.ReadableStream} ZipStream
+ * @param {number} length - compressed size of entry
+ */
+
 
 module.exports = class DataCache{
-  #control;
+  #lock = Promise.resolve();
   #dir;
   /** @type {StreamZip.StreamZipAsync} */
   #zip;
+  /**Memoized list if scenes */
+  #scenes;
+
+  /**
+   * @template T
+   * @param {()=>Promise<T>} fn 
+   * @returns {Promise<T>}
+   */
+  locked(fn){
+    let callback;
+    let p = this.#lock.then(fn);
+    this.#lock = (()=>p.finally().then(()=>{}))();
+    return p;
+  }
 
   /**
    * @returns {Promise<InternalState>}
    */
   async getState(){
     try{
-      return  JSON.parse(await fs.readFile(path.join(this.#dir, "state.json"), {encoding: "utf-8"}));
+      return  Object.assign({
+          cookies: "",
+          etag: undefined
+        },
+        JSON.parse(await fs.readFile(path.join(this.#dir, "state.json"), {encoding: "utf-8"}))
+      );
     }catch(e){
       if(e.code !== "ENOENT") throw e;
       return {};
@@ -39,12 +66,16 @@ module.exports = class DataCache{
    * @param {Partial<InternalState>} value 
    */
   async setState(value){
-    let tmpfile = this.mktemp("state.json")
-    await fs.writeFile(tmpfile,JSON.stringify({...this.getState(), ...value}, null, 2)+"\n");
-    await fs.rename(tmpfile, path.join(this.#dir, "state.json"));
+    await this.locked(async ()=>{
+      let tmpfile = this.mktemp("state.json")
+      await fs.writeFile(tmpfile,JSON.stringify({...(await this.getState()), ...value}, null, 2)+"\n");
+      await fs.rename(tmpfile, path.join(this.#dir, "state.json"));
+    });
   }
 
-  /** generate a unique file name in the cache directory */
+  /**
+   * generate a unique(ish) file name in the cache directory 
+   */
   mktemp(name="scenes.zip"){
     return path.join(this.#dir, `~${crypto.randomBytes(3).toString("hex")}-${name}`);
   }
@@ -76,50 +107,10 @@ module.exports = class DataCache{
   async openFile(force = false){
     if(!force && this.#zip) return this.#zip;
     await this.close();
+    this.#scenes = null; //Trash cached scenes
     let zip = this.#zip = new StreamZip.async({file: this.file});
     await zip.entriesCount; //Ensure zip opened and parsed properly
     return zip;
-  }
-
-  abort(){
-    if(this.#control) this.#control.abort();
-    return this.#control = new AbortController();
-  }
-
-  async fetchZip(){
-    let c = this.abort();
-    let tmpfile = this.mktemp();
-    let {etag, cookies } = await this.getState();
-    console.log("Fetch scenes zip");
-    let res = await forward({
-      method: "GET",
-      path: "/api/v1/scenes",
-      headers: {
-        "Accept": "application/zip",
-        "ETag": etag,
-        "Cookie": cookies,
-      },
-      signal: c.signal,
-    });
-    if(res.statusCode == 304) {
-      console.log("Current zip is up to date");
-      return res.destroy();
-    }else if( res.statusCode != 200) throw new Error(`GET /api/v1/scenes [${res.statusCode}]: ${res.statusMessage}`);
-
-    console.log("New update :", new Date(res.headers["last-modified"]).toUTCString());
-    let handle = await fs.open(tmpfile, "w");
-    try{
-      for await (const data of addAbortSignal(c.signal,res)){
-        await handle.write(data);
-      }
-    }finally{
-      await handle.close().catch(e=>console.warn("Failed to close tmp file handle :", e));
-    }
-    if(c.signal.aborted) throw new Error("Aborted");
-    await fs.rename(tmpfile, this.file );
-    await this.openFile(true);
-    await this.setState({etag: res.headers['etag']});
-    console.log("scenes data zip saved to:", this.file)
   }
 
   /**
@@ -128,9 +119,8 @@ module.exports = class DataCache{
    * @return {Promise<void>}
    */
   async copy(sourceFile){
-    let c = this.abort();
     let tmpfile = this.mktemp();
-    let src = addAbortSignal(c.signal, createReadStream(sourceFile));
+    let src = createReadStream(sourceFile);
     let handle = await fs.open(tmpfile, "w");
     try{
       for await (let data of src){
@@ -139,17 +129,26 @@ module.exports = class DataCache{
     }finally{
       await handle.close().catch(e=>console.warn("Failed to close tmp file handle :", e));
     }
-    await fs.rename(tmpfile, this.file );
-    console.log("Renamed new file");
-    await this.openFile(true);
-    console.log("scenes data zip saved to:", this.file);
-    await this.setState({etag: undefined});
+    await this.rename(tmpfile);
   }
 
   /**
-   * 
+   * rename a file (requires to be on the same disk)
+   * @param {string} tmpfile path to a file to copy
+   * @param {string|undefined} [etag=undefined]
+   * @return {Promise<void>}
+   */
+  async rename(tmpfile, etag = undefined){
+    await fs.rename(tmpfile, this.file);
+    await this.openFile(true);
+    console.log(`scenes data zip saved to: ${this.file} ${(etag? `[${etag}]`:"")}`);
+    await this.setState({etag});
+  }
+
+  /**
+   * get a readable stream for the entry name
    * @param {string} filepath 
-   * @return {Promise<NodeJS.ReadableStream>}
+   * @return {Promise<ZipStream>}
    */
   async get(filepath){
     let zip = await this.openFile();
@@ -160,5 +159,47 @@ module.exports = class DataCache{
     let zip = await this.openFile();
     let entries = await zip.entries();
     return entries;
+  }
+
+  async getScenes(){
+    return this.#scenes ??= await (async ()=>{
+      let entries = await this.entries();
+      let scenes = {};
+      for(let filepath of Object.keys(entries)){
+        let m = /^scenes(?:\/([^\/]+))/.exec(filepath);
+        if(!m) continue;
+        let scene = scenes[m[1]] ??= {
+          root: `scenes/${m[1]}/`,
+          name: m[1],
+          title: m[1],
+          thumb: "/images/defaultSprite.svg",
+        };
+    
+        if(filepath.endsWith("-image-thumb.jpg")){
+          scene["thumb"] = filepath;
+        }else if(filepath.endsWith(".svx.json")){
+          let rs = await this.get(filepath);
+          rs.setEncoding("utf-8");
+          let data = "";
+          for await (let d of rs){
+            data += d;
+          }
+          try{
+            let document = JSON.parse(data);
+            let setupIndex = document.scenes[document.scene].setup;
+            let setup = document.setups[setupIndex];
+            let language = setup.language?.language ?? "FR";
+            for(let meta of document.metas){
+              if(!meta.collection?.titles) continue;
+              if( meta.collection.titles[language]) scene.title = meta.collection.titles[language];
+              else if (meta.collection.titles["EN"] && scene.title == scene.name) scene.title =  meta.collection.titles["EN"];
+            }
+          }catch(e){
+            console.error("Parse error for document \"%s\" :", filepath, e.message);
+          }
+        }
+      }
+      return scenes;
+    })();
   }
 }

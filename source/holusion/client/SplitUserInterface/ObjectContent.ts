@@ -50,7 +50,7 @@ export default class ObjectContent extends SystemView
         {
             const index=i;
             const selected=index==this._activeTabIndex;
-            const activeTabClass=selected?" et-active":"";
+            const activeTabClass=selected?" active":"";
             const idtab=`et-tab-${this._tabsId}-${index}`
             const idcontent=`object-content-${this._tabsId}-${index}`
 
@@ -58,17 +58,17 @@ export default class ObjectContent extends SystemView
                 ${title}
             </li>`);
             
-            content.push(html`<div class="object-content${activeTabClass}" id=${idcontent} etindex=${index} aria-labelledby=${idtab} tabindex="0">${tab}</div>`);
+            content.push(html`<div class="tab-content ${activeTabClass}" id=${idcontent} etindex=${index} aria-labelledby=${idtab} tabindex="0">${tab}</div>`);
             i++;
         }
         return html`
             <div class="object-nav-zone">
                 <div class="home-button">
-                    <ff-button icon="triangle-left" text="Retour vers la liste d'objets" title="${this.language.getLocalizedString("To home screen")}" @click=${this.onReturn}>
+                    <ff-button class="btn-primary" icon="triangle-left" text="Retour vers la liste d'objets" title="${this.language.getLocalizedString("To home screen")}" @click=${this.onReturn}>
                     </ff-button>                
                 </div>
-                <div class="object-info">
-                    <h1>${this.title}</h1>
+                <div class="object-info section">
+                    <h2>${this.title}</h2>
                 </div>
                 <ol class="object-navbar" role="tablist">${tabs}</ol>
             </div>
@@ -81,6 +81,10 @@ export default class ObjectContent extends SystemView
         super.updated(changedProperties);
     }
     
+
+
+
+
 
     onHeaderClick(event,index)
     {
@@ -105,11 +109,11 @@ export default class ObjectContent extends SystemView
             const id=panel.getAttribute("etindex");
             if(id==index)
             {
-                panel.classList.add("et-active");
+                panel.classList.add("active");
             }
             else
             {
-                panel.classList.remove("et-active")
+                panel.classList.remove("active")
             }
         }
 
