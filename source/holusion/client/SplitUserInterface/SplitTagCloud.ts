@@ -24,9 +24,9 @@ export default class SplitTagCloud extends TagCloud {
             @click=${() => this.onSelectTag(tag)}></ff-button>`);
 
       const annotationDescriptions = annotations.map(annotation=> 
-        html`<div class="tag-description" 
+        html`<div class="section tag-description" 
         ?selected=${annotation.tags.filter(tag => activeTags.includes(tag)).length > 0 }
-        @click=${() => this.onSelectAnnotation(annotation)}>
+        @click=${(ev) => {{this.hightlightAnnotation(ev); this.onSelectAnnotation(annotation) }}}>
           <h2>${annotation.title}</h2>
           <p>${annotation.lead}</p>
         </div>`)
@@ -39,5 +39,14 @@ export default class SplitTagCloud extends TagCloud {
 
   protected onSelectAnnotation(annotation: Annotation): void {
     this.dispatchEvent(new CustomEvent("select", {detail: annotation}));
+  }
+
+  protected hightlightAnnotation(ev){
+    const annotation = ev.currentTarget
+    annotation.classList.add('focus')
+    setTimeout(()=>{
+      console.log("time out !")
+      annotation.classList.remove('focus')
+    }, 4000);
   }
 }

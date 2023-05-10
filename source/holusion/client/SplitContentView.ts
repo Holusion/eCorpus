@@ -64,7 +64,7 @@ export default class SplitContentView extends ContentView
 
       if (readerVisible) {
           return html`<div class="ff-fullsize sv-content-split">
-              <div class="ff-splitter-section et-scene-section" style="flex-basis: 60%">
+              <div class="ff-splitter-section scene-section" style="flex-basis: 60%">
                   ${sceneView}
               </div>
               <ff-splitter direction="horizontal"></ff-splitter>

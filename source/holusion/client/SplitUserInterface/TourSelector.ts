@@ -18,18 +18,14 @@
 import CustomElement, { customElement, property, html } from "@ff/ui/CustomElement";
 import "@ff/ui/Button";
 
+import Icon from "@ff/ui/Icon";
 import { ITour } from "client/schema/setup";
 import "./TourNavigator"
 import { ELanguageType } from "client/schema/common";
 
 ////////////////////////////////////////////////////////////////////////////////
 
-export interface ITourMenuSelectEvent extends CustomEvent
-{
-    detail: {
-        index: number;
-    }
-}
+Icon.add("arrow-right", html`<svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48"><path d="m702-301-43-42 106-106H120v-60h646L660-615l42-42 178 178-178 178Z"/></svg>`)
 
 @customElement("tour-selector")
 export default class TourSelector extends CustomElement
@@ -49,10 +45,10 @@ export default class TourSelector extends CustomElement
     
     protected renderEntry(tour: ITour, index: number)
     {
-        return html`<div class="tour-entry" @click=${e => this.onClickTour(e, index)}>
-            <h1>${Object.keys(tour.titles).length > 0 ? tour.titles[ELanguageType[this.activeLanguage]] : tour.title}</h1>
+        return html`<div class="tour-entry section" @click=${e => this.onClickTour(e, index)}>
+            <h2>${Object.keys(tour.titles).length > 0 ? tour.titles[ELanguageType[this.activeLanguage]] : tour.title}</h2>
             <p>${Object.keys(tour.titles).length > 0 ? tour.titles[ELanguageType[this.activeLanguage]] : tour.title}</p>
-            <p style="text-align: right; font-weight:600;">Commencer la visite &#129046;</p>
+            <p style="text-align: right; font-weight:600;">Commencer la visite <ff-icon name="arrow-right"></ff-icon></p>
         </div>`;
     }
 
@@ -60,7 +56,7 @@ export default class TourSelector extends CustomElement
     {
         
         if (!this.tours||this.tours.length === 0) {
-            return html`<div class="lds-ripple">
+            return html`<div>
                 <div></div>
                 <div></div>
             </div>`;

@@ -1,11 +1,11 @@
 {
   "name": "holusion-voyager-explorer",
-  "version": "0.0.9",
+  "version": "0.0.11",
   "description": "Voyager explorer for holographic displays",
   "main": "main.js",
   "scripts": {
     "start": "NODE_ENV=development electron .",
-    "watch": "cd client && webpack --mode=development",
+    "watch": "cd client && webpack --mode=development --watch",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "electron-builder install-app-deps",
     "build": "cd client && webpack --mode=production",
@@ -54,8 +54,8 @@
   "author": "Holusion SAS <contact@holusion.com>",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^16.0.1",
-    "electron-builder": "^22.14.5",
+    "electron": "^24.2.0",
+    "electron-builder": "^23.6.0",
     "lit-css-loader": "^2.0.0"
   },
   "dependencies": {

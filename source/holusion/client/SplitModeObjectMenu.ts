@@ -18,17 +18,7 @@
 import DocumentView, { property, customElement, html } from "client/ui/explorer/DocumentView";
 import {  System } from "@ff/scene/ui/SystemView";
 import "@ff/ui/Button";
-
-
-export interface IDocumentParams
-{
-    id:string;
-    root:string;
-    document:string;
-    title:string;
-    caption:string;
-    thumbnail:string;
-}
+import { IDocumentParams } from "./SplitUserInterface/state/scenes";
 
  @customElement("split-object-menu")
  export default class SplitModeObjectMenu extends DocumentView
@@ -41,7 +31,6 @@ export interface IDocumentParams
     constructor(system :System)
     {
         super(system);
-        this.docs = JSON.parse(localStorage.getItem("playlist-documents") || "[]") as IDocumentParams[] ;
     }
     
     connectedCallback() {
@@ -52,31 +41,37 @@ export interface IDocumentParams
     {
         super.firstConnected();
         this.classList.add("split-object-menu");
-        let idx = Math.floor(Math.random()*this.docs.length);
-        this.dispatchEvent(new CustomEvent("select", {
-            detail: `/?root=${this.docs[idx].root}`
-        }));
-        let index = 0;
-        this.loop = setInterval(()=>{
-            index = ++index % this.docs.length;
-            this.dispatchEvent(new CustomEvent("select", {
-                detail: {document: this.docs[index].root, auto: true}
-            }));
-        }, 360/0.01) as any;
     }
      
     disconnected(): void {
         console.log("Disconnect menu")
         clearInterval(this.loop);
     }
+
+    protected update(changedProperties: Map<string | number | symbol, unknown>): void {
+        if(changedProperties.has("docs")) clearInterval(this.loop);
+        if(changedProperties.has("docs") && this.docs?.length){
+            let idx = Math.floor(Math.random()*this.docs.length);
+            this.dispatchEvent(new CustomEvent("select", {
+                detail: `/?root=${this.docs[idx].root}`
+            }));
+            let index = 0;
+            this.loop = setInterval(()=>{
+                index = ++index % this.docs.length;
+                this.dispatchEvent(new CustomEvent("select", {
+                    detail: {document: this.docs[index].root, auto: true}
+                }));
+            }, 360/0.01) as any;
+        }
+        super.update(changedProperties);
+    }
  
     protected renderEntry(object: IDocumentParams, index: number)
     {
         return html`<a class="object-menu-card" @click=${()=>this.onClickObject(object, index)}>
-            <img src=${object.thumbnail} />
+            <img src=${object.thumb} />
             <div class="object-menu-header">
                 <h1>${object.title}</h1>
-                <p>${object.caption}</p>
             </div>
         </a>`;
     }

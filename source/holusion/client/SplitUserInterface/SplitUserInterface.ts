@@ -16,6 +16,8 @@ import "./SplitTagCloud";
 import "../SplitModeObjectMenu";
 import "./ObjectContent";
 import "./TourSelector";
+import "./ArticleSelector";
+import "./ArticleNavigator"
 
 
 @customElement("split-user-interface")
@@ -63,6 +65,9 @@ export default class SplitUserInterface extends DocumentView
         const tours = setup.tours.tours;
         const selectedTour = setup.tours.ins.tourIndex.value;
 
+        const articles = setup.reader.articles
+        const selectedArticle = setup.reader.activeArticle;
+
         // tag cloud is visible if there is at least one tag in the cloud
         //We could also check if setup.viewer.ins.annotationsVisible.value is true to enable
         // on a per-object basis
@@ -75,18 +80,31 @@ export default class SplitUserInterface extends DocumentView
 
         if(document && tours.length !== 0){
             tabs.push([
-                (0 <= selectedTour)? html`<tour-navigator .system=${this.system} @close=${this.onCloseTour}></tour-navigator>`
+                (0 <= selectedTour)? html`<tour-navigator .system=${this.system} @close=${()=>this.autoRotation(true)}></tour-navigator>`
                     : html`<tour-selector .tours=${tours} .activeLanguage=${activeLanguage} @select=${this.onSelectTour}></tour-selector>`,
-                html`<ff-button transparent icon="article" text="Parcours"></ff-button>`,
-                ()=>{if(this.viewer) this.viewer.ins.annotationsVisible.setValue(false)},
+                html`<ff-button transparent icon="globe" text="Parcours"></ff-button>`,
+                ()=>{this.showAnnotations(false)},
             ]);
         }
+
         if(document && tagCloudVisible){
             tabs.push([
                 html`<split-tag-cloud .system=${this.system}  @select=${this.onSelectAnnotation}></split-tag-cloud>`,
                 html`<ff-button transparent icon="comment" text="Annotations"></ff-button>`,
-                ()=>{if(this.viewer) this.viewer.ins.annotationsVisible.setValue(true)}
+                ()=>{this.showAnnotations(true)}
             ]);
+        }
+        
+        if(document && articles.length !== 0){
+            tabs.push([
+                html`<article-navigator .system=${this.system}></article-navigator>`,
+                html`<ff-button transparent icon="article" text="Articles"></ff-button>`,
+                ()=>{
+                    this.showAnnotations(false);
+                    this.resetArticles();
+                    this.autoRotation(true);
+                }
+            ])
         }
         tabs.push([
             html`<div class="sv-tool-bar-container"><sv-tool-bar .system=${this.system}></sv-tool-bar></div>`,
@@ -104,12 +122,32 @@ export default class SplitUserInterface extends DocumentView
         `;
     }
 
+    showAnnotations =(show:boolean=false)=>{
+        if(this.viewer) this.viewer.ins.annotationsVisible.setValue(show);
+    }
+
+    resetArticles = ()=>{
+        this.activeDocument?.setup.reader.ins.articleId.setValue(null);
+    }
+
+    autoRotation = (auto:boolean = true)=>{
+        
+        this.dispatchEvent(new CustomEvent("select", {
+            detail: {auto}
+        }));
+    }
+
     protected onResetCamera = ()=>{
         this.activeDocument.setup.navigation.ins.orbit.setValue([ -25, -25, 0 ]);
         this.activeDocument.setup.navigation.ins.zoomExtents.set();
     }
 
-    protected onCloseTour =()=>{
+    protected onCloseArticle =()=>{
+
+        const reader = this.activeDocument.setup.reader
+        reader.ins.articleId.setValue(null)
+        this.requestUpdate()
+      
         this.dispatchEvent(new CustomEvent("select", {
             detail: {auto: true}
         }));
@@ -118,11 +156,9 @@ export default class SplitUserInterface extends DocumentView
     protected onSelectTour =(event: ITourMenuSelectEvent)=>{
         const tours = this.activeDocument.setup.tours;
         tours.ins.tourIndex.setValue(event.detail.index);
-        
-        this.dispatchEvent(new CustomEvent("select", {
-            detail: {auto: false}
-        }));
+        this.autoRotation(false);
     }
+
 
     protected onSelectAnnotation = (event :CustomEvent<Annotation>)=>{
       console.log("Select :", event.detail);

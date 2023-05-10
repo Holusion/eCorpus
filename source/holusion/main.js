@@ -1,6 +1,6 @@
 'use strict';
 const path = require("path");
-const { app, BrowserWindow } = require('electron');
+const { app, session, BrowserWindow } = require('electron');
 const { once } = require('events');
 
 const handle = require("./handler");
@@ -29,7 +29,7 @@ if(!isProduction){
   })
 }
 
-const zip = path.join(app.getPath("cache"), app.getName());
+const zip = path.join(app.getPath("userData"), app.getName());
 
 (async ()=>{
   if(!isProduction) console.log("Running in development mode using cache dir :"+zip);
