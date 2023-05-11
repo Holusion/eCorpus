@@ -16,6 +16,10 @@ export default async function getScenes(req :Request, res :Response){
   access = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
   let scenesList = [];
+  if(typeof ids === "string"){
+    ids = [ids];
+  }
+  
   if(Array.isArray(ids)){
     for(let id of ids){
       if(typeof id !== "string") continue;
