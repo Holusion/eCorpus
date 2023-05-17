@@ -25,7 +25,7 @@ export function getUserManager(req :Request) :UserManager {
 
 export function getFileDir(req :Request) :string{
   let fileDir = (req.app.locals as AppLocals).fileDir;
-  if(!fileDir) throw new InternalError("Badly ocnfigured app : fileDir is not a valid string");
+  if(!fileDir) throw new InternalError("Badly configured app : fileDir is not a valid string");
   return fileDir;
 }
 
