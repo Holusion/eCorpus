@@ -69,9 +69,9 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
     if((req.session as any).uid) return next();
     let auth = req.get("Authorization");
     if(!auth) return next()
-    else if(!auth.startsWith("Basic ") ||  auth.length <= "Basic ".length ) return next(new BadRequestError("Bad Authorizatiopn header : not a Basic auth header"))
+    else if(!auth.startsWith("Basic ") ||  auth.length <= "Basic ".length ) return next();
     let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
-    if(!username || !password) throw new BadRequestError("Bad Authorizatiopn header : cannot parse.");
+    if(!username || !password) return next();
     getUserManager(req).getUserByNamePassword(username, password).then((user)=>{
       Object.assign(req.session as any, User.safe(user));
       next();
