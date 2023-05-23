@@ -1,4 +1,4 @@
-name: Publish docker image
+name: Publish
 on:
   push:
     branches:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-and-push:
-    name: Build and Push
+    name: Docker Image
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -56,7 +56,7 @@ jobs:
           mkdir -p "$HOME/.ssh"
           echo "$PRIVATE_KEY" > "$HOME/.ssh/id_key"
           chmod 600 "$HOME/.ssh/id_key"
-          ssh-keyscan ${{ env.DEPLOY_HOST }} > "$HOME/.ssh/known_hosts"
+          ssh-keyscan -t rsa ${{ env.DEPLOY_HOST }} > "$HOME/.ssh/known_hosts"
       - name: update service
         run: >
           docker -H ssh://github@${{ env.DEPLOY_HOST }}:22 service update
