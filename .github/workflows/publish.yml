@@ -43,18 +43,26 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          
+  deploy:
+    name: Deploy (ecorpus.holusion.com)
+    runs-on: ubuntu-latest
+    environment: ecorpus.holusion.com
+    needs: [build-and-push]
+    steps:
       - name: set up ssh configuration
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p "$HOME/.ssh"
-          echo "$PRIVATE_KEY" > "$HOME/.ssh/id_rsa"
-          chmod 600 "$HOME/.ssh/id_rsa"
-          ssh-keyscan -t rsa $DEPLOY_HOST > "$HOME/.ssh/known_hosts"
+          echo "$PRIVATE_KEY" > "$HOME/.ssh/id_key"
+          chmod 600 "$HOME/.ssh/id_key"
+          ssh-keyscan ${{ env.DEPLOY_HOST }} > "$HOME/.ssh/known_hosts"
       - name: update service
         run: >
-          docker -H ssh://github@$DEPLOY_HOST:22 service update
+          docker -H ssh://github@${{ env.DEPLOY_HOST }}:22 service update
           --with-registry-auth
           --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
           ecorpus_main
+      - name: check service status
+        run: >
+          curl -sSL --fail -H "Accept: application/json" -I http://${{ env.DEPLOY_HOST }}/api/v1/scenes
