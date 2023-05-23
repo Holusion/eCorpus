@@ -54,10 +54,10 @@ jobs:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p "$HOME/.ssh"
-          echo "$PRIVATE_KEY" > "$HOME/.ssh/id_key"
-          chmod 600 "$HOME/.ssh/id_key"
+          echo "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
           ssh-keyscan -t rsa ${{ env.DEPLOY_HOST }} > "$HOME/.ssh/known_hosts"
-      - name: update service
+      - name: update docker service
         run: >
           docker -H ssh://github@${{ env.DEPLOY_HOST }}:22 service update
           --with-registry-auth
