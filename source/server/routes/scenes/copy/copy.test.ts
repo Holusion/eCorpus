@@ -50,16 +50,23 @@ describe("COPY /scenes/:name", function(){
 
   it("can COPY with a label to restore a file version", async function(){
     let props :WriteFileParams = {user_id: user.uid, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
-    let {ctime:t1, id:id1, generation:g1, ...f} = await vfs.writeFile(dataStream(), props);
-    await vfs.writeFile(dataStream(["goodbye world\n"]), props);
+    let {ctime:t1, mtime:_, id:id1, generation:g1, ...f1} = await vfs.writeFile(dataStream(), props);
+    let t2 = new Date(t1.valueOf()+10000);
+    let f2 = await vfs.writeFile(dataStream(["goodbye world\n"]), props);
+
+    await vfs._db.run(`UPDATE files SET ctime = datetime("${t2.toISOString()}") WHERE file_id = $id`, {$id: f2.id})
+
     await this.agent.copy("/scenes/foo/articles/hello-world.html")
     .set("Destination", "http://localhost:8000/scenes/foo/articles/hello-world.html")
-    .set("Label", f.hash)
+    .set("Label", f1.hash)
     .expect(201);
-    let {ctime:t2, id:id2, generation:g2, ...new_file} = await expect(vfs.getFileProps({...props, name: "articles/hello-world.html"}), "file should still be here").to.be.fulfilled;
+
+    let {ctime, mtime, id:id2, generation:g2, ...new_file} = await expect(vfs.getFileProps({...props, name: "articles/hello-world.html"}), "file should still be here").to.be.fulfilled;
     expect(id2).not.to.equal(id1);
     expect(g2).to.equal(3);
-    expect(new_file).to.deep.equal(f);
+    //Check times
+    expect(ctime.valueOf()).to.equal(t1.valueOf());
+    expect(new_file).to.deep.equal(f1);
   });
 
   it("can COPY a document", async function(){
