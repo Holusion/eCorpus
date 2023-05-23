@@ -59,6 +59,15 @@ jobs:
           echo "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
           chmod 600 "$HOME/.ssh/id_ed25519"
           ssh-keyscan -t rsa ${{ env.DEPLOY_HOST }} > "$HOME/.ssh/known_hosts"
+
+      - name: Log in to the Container registry
+        # seems required even if image is public for unclear reasons
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: update docker service
         run: >
           docker -H ssh://github@${{ env.DEPLOY_HOST }}:22 service update
