@@ -137,9 +137,11 @@ describe("/api/v1/login", function(){
   
     it("rejects bad header", async function(){
       // Missing the "Basic " part
-      await request(this.server).get("/api/v1/login")
+      let res = await request(this.server).get("/api/v1/login")
       .set("Authorization", `${Buffer.from(`${user.username}:12345678`).toString("base64")}`)
-      .expect(400);
+      .expect(200); //Still answers 200, but no login data
+
+      expect(res.body).to.deep.equal({ isAdministrator: false, isDefaultUser: true });
     });
     it("rejects bad user:password", async function(){
       // Missing the "Basic " part
