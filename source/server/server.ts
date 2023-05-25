@@ -66,7 +66,10 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     getUserManager(req).getUserByNamePassword(username, password).then((user)=>{
       Object.assign(req.session as any, User.safe(user));
       next();
-    }, next);
+    }, (e)=>{
+      if((e as HTTPError).code === 404) next();
+      else next(e);
+    });
   });
 
   
