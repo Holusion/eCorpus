@@ -36,7 +36,7 @@ const devMode: boolean = process.env["NODE_ENV"] !== "production";
 (async ()=>{
     let root = path.resolve(config.root_dir);
     console.info("Serve directory : "+root);
-    const app = await createServer(config.root_dir, {verbose:devMode});
+    const app = await createServer(config);
     
     app.listen(port, () => {
         console.info(`Server ready and listening on port ${port}\n`);

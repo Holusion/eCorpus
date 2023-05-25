@@ -65,46 +65,46 @@ describe("GET /api/v1/scenes/:scene", function(){
           filename: 'foo/',
           crc: 0,
           size: 0,
+          compressedSize: 0,
           dosMode: 16,
           unixMode: 16893,
           offset: 0,
-          length: 50
         },
         {
           filename: 'foo/articles/',
           crc: 0,
           size: 0,
+          compressedSize: 0,
           dosMode: 16,
           unixMode: 16893,
           offset: 50,
-          length: 59
         },
         {
           filename: 'foo/articles/hello-world.html',
           crc: 2117232125,
           size: 4,
+          compressedSize: 4,
           dosMode: 0,
           unixMode: 65021,
           offset: 109,
-          length: 75
         },
         {
           filename: 'foo/models/',
           crc: 0,
           size: 0,
+          compressedSize: 0,
           dosMode: 16,
           unixMode: 16893,
-          offset: 253,
-          length: 57
+          offset: 253
         },
         {
           filename: 'foo/scene.svx.json',
           crc: 4261281091,
           size: 2,
+          compressedSize: 2,
           dosMode: 0,
           unixMode: 65021,
-          offset: 253,
-          length: 64
+          offset: 253
         }
       ].map(h =>({
         ...h, 

@@ -26,6 +26,7 @@ describe("zip records", function(){
     filename: "foo.txt",
     extra: "",
     flags: flags.USE_DATA_DESCRIPTOR | flags.UTF_FILENAME,
+    compressedSize: 128,
     size: 128,
     mtime: new Date('2023-03-29T13:02:10.000Z'),
     dosMode: 0x0,
@@ -106,7 +107,7 @@ describe("read/write zip files", async function(){
       handle._write(b);
     }
     let count = 0;
-    for await (let file of unzip(handle as any)){
+    for await (let file of read_cdh(handle as any)){
       expect(file).to.have.property("filename", files[count]["filename"]);
       count++;
     }

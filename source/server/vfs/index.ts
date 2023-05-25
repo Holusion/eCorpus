@@ -26,7 +26,7 @@ class Vfs extends BaseVfs{
     return !!this.db;
   }
 
-  static async Open(rootDir :string, {db, createDirs=true, migrate = true} :{db ?:Database, createDirs?:boolean, migrate ?:"force"|boolean} = {} ){
+  static async Open(rootDir :string, {db, createDirs=true, forceMigration = true} :{db ?:Database, createDirs?:boolean, forceMigration ?:boolean} = {} ){
     if(createDirs){
       await fs.mkdir(path.join(rootDir, "objects"), {recursive: true});
       await fs.rm(path.join(rootDir, "uploads"), {recursive: true, force: true});
@@ -34,7 +34,7 @@ class Vfs extends BaseVfs{
     }
     db ??= await open({
       filename: path.join(rootDir,'database.db'),
-      migrate,
+      forceMigration,
     });
 
     let vfs = new Vfs(rootDir, db);

@@ -5,7 +5,7 @@ import config from "../../utils/config";
 
 export interface DbOptions {
   filename:string;
-  migrate ?:boolean|"force";
+  forceMigration ?:boolean;
 }
 
 interface TransactionWork<T>{
@@ -19,7 +19,7 @@ export interface Database extends IDatabase{
 }
 export interface Transaction extends Database{}
 
-async function openAndConfigure({filename, migrate=true} :DbOptions){
+async function openAndConfigure({filename, forceMigration=true} :DbOptions){
   let db = await openDatabase({
     filename,
     driver: sqlite.Database, 
@@ -32,17 +32,15 @@ async function openAndConfigure({filename, migrate=true} :DbOptions){
 }
 
 
-export default async function open({filename, migrate=true} :DbOptions) :Promise<Database> {
+export default async function open({filename, forceMigration=true} :DbOptions) :Promise<Database> {
   let db = await openAndConfigure({
     filename,
   });
   
-  if(migrate !== false){
-    await db.migrate({
-      force: config.force_migration,
-      migrationsPath: config.migrations_path,
-    });
-  }
+  await db.migrate({
+    force: forceMigration,
+    migrationsPath: config.migrations_dir,
+  });
   
   async function performTransaction<T>(this:Database|Transaction, work :TransactionWork<T>, commit :boolean=true):Promise<T>{
     // See : https://www.sqlite.org/lang_savepoint.html

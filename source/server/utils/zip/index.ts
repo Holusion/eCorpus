@@ -1,10 +1,11 @@
-import { FileHandle } from "fs/promises";
+import { FileHandle, open } from "fs/promises";
 import assert from "assert/strict";
-import { Readable } from "stream";
+import { Readable, Stream } from "stream";
 
 
 import { crc32 } from "./crc32";
 import {DateTime} from "./datetime";
+import { ReadStream } from "fs";
 
 
 
@@ -14,17 +15,21 @@ export async function *asyncMap<Tin,Tout>(it :IterableIterator<Tin>|Tin[]|AsyncI
   }
 }
 
-export interface ZipEntry{
+type StreamTypes = Readable|AsyncIterableIterator<Buffer>|IterableIterator<Buffer>|Buffer[]
+
+export interface Entry{
   filename :string;
-  isDirectory ?:boolean;
   mtime :Date;
-  stream ?:Readable|AsyncIterableIterator<Buffer>|IterableIterator<Buffer>|Buffer[];
+
 }
 
-export interface FileHeader{
-  filename :string;
+export interface ZipEntry<T extends StreamTypes = StreamTypes> extends Entry{
+  isDirectory ?:boolean;
+  stream ?:T;
+}
+
+export interface FileHeader extends Entry{
   extra ?:string;
-  mtime :Date;
   flags :number;
 }
 
@@ -32,9 +37,17 @@ export interface CDHeader extends FileHeader{
   dosMode :number;
   unixMode :number;
   size :number;
-  compressedSize ?:number;
+  compressedSize :number;
   crc :number;
   offset :number;
+}
+
+export interface ZipExtractEntry extends Entry{
+  /**start offset from start of file, inclusive */
+  start: number;
+  /**end offset from start of file, inclusive */
+  end :number;
+  isDirectory: boolean;
 }
 
 export const flags = {
@@ -55,6 +68,8 @@ export const flags = {
   RESERVED_BIT_15:  1 << 15,
 } as const;
 
+const file_header_length = 30 as const
+const data_descriptor_size = 16 as const;
 const cd_header_length = 46 as const;
 const eocd_length = 22 as const;
 
@@ -63,7 +78,7 @@ export function create_file_header({ filename, extra="", mtime, flags } :FileHea
   let name_length = Buffer.byteLength(filename);
   let extra_length = Buffer.byteLength(extra);
 
-  let header = Buffer.alloc(30 + Buffer.byteLength(filename) +extra.length);
+  let header = Buffer.alloc(file_header_length + Buffer.byteLength(filename) +extra.length);
   header.writeUint32LE(0x04034b50, 0);
   header.writeUInt16LE(20, 4); // Version 2.0 needed (deflate and folder support)
   header.writeUInt16LE(flags, 6);                     // General purpose flags
@@ -84,7 +99,7 @@ export function create_file_header({ filename, extra="", mtime, flags } :FileHea
 }
 
 export function create_data_descriptor({size, compressedSize=size, crc}:{size:number,compressedSize?:number, crc:number}):Buffer{
-  let dd = Buffer.alloc(16);
+  let dd = Buffer.alloc(data_descriptor_size);
   dd.writeUInt32LE(0x08074b50, 0);
   dd.writeUInt32LE(crc, 4);
   dd.writeUInt32LE(compressedSize, 8) //Compressed size
@@ -92,7 +107,7 @@ export function create_data_descriptor({size, compressedSize=size, crc}:{size:nu
   return dd;
 }
 
-export function create_cd_header({filename, mtime, extra="", dosMode, unixMode, size, compressedSize = size, crc, flags, offset}:CDHeader){
+export function create_cd_header({filename, mtime, extra="", dosMode, unixMode, size, compressedSize = size, crc, flags, offset}:Partial<CDHeader>&Omit<CDHeader,"compressedSize">){
   let name_length = Buffer.byteLength(filename);
   let extra_length = Buffer.byteLength(extra);
   //Construct central directory record
@@ -121,6 +136,9 @@ export function create_cd_header({filename, mtime, extra="", dosMode, unixMode, 
   return cdr;
 }
 
+export function isDirectory(h:CDHeader):boolean{
+  return (h.dosMode & 0x10)?true:false;
+}
 
 export function parse_cd_header(cd :Buffer, offset :number) :CDHeader & {length:number}{
   let cdh = cd.slice(offset, offset +cd_header_length);
@@ -139,7 +157,7 @@ export function parse_cd_header(cd :Buffer, offset :number) :CDHeader & {length:
     // 12 last mod time
     //14 last mod date
     crc: cdh.readUInt32LE(16),
-    // 20 compressed size
+    compressedSize: cdh.readUInt32LE(20), // 20 compressed size
     size: cdh.readUInt32LE(24),
     mtime,
     // 28 file name length
@@ -150,7 +168,7 @@ export function parse_cd_header(cd :Buffer, offset :number) :CDHeader & {length:
     dosMode: cdh.readUInt16LE(38),
     unixMode: cdh.readUInt16LE(40),
     offset: cdh.readUInt32LE(42),
-    length: cd_header_length + name_length + extra_length,
+    length: cd_header_length + name_length + extra_length
   }
 }
 
@@ -209,6 +227,7 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
     //Construct central directory record for later use
     let cdr = create_cd_header({
       filename,
+      compressedSize:size,
       size,
       crc,
       flags: flag_bits,
@@ -275,10 +294,12 @@ export async function zip_read_eocd(handle :FileHandle){
   };
 }
 
+
 /**
  * 
  * Iterate over a file's central directory headers
  * It only read the file once before the first loop so it's safe to just unwrap the iterator
+ * the entry's offset and size includes the file header.
  */
 export async function *read_cdh(handle : FileHandle) :AsyncGenerator<CDHeader, void, void >{
   let eocd = await zip_read_eocd(handle);
@@ -287,24 +308,43 @@ export async function *read_cdh(handle : FileHandle) :AsyncGenerator<CDHeader, v
   assert( bytes == cd.length, `Can't read Zip Central Directory Records (missing ${cd.length - bytes} of ${cd.length} bytes)`);
   let offset = 0;
   while(offset < eocd.cd_size){
-    let header = parse_cd_header(cd, offset);
+    let {length, ...header} = parse_cd_header(cd, offset);
     //FIXME verify file header
     yield header;
-    offset = offset + header.length;
-
+    offset = offset + length;
   }
 }
+
+
+
 
 /**
  * Unpacks a zip file to an iterator of ZipEntry
  * Can't work from a stream beacause it must read the end of the file (Central Directory) first.
+ * It modifies the entry returned from parse_cd_header to exclude the file header and data descriptor
  */
-export async function *unzip(handle :FileHandle) :AsyncGenerator<ZipEntry, void, void>{
-  for await (let record of read_cdh(handle)){
-    yield {
-      filename: record.filename,
-      mtime: record.mtime,
-      stream : handle.createReadStream({autoClose: false, start: record.offset, end: record.offset + record.size}),
+export async function unzip(filepath :string) :Promise<ZipExtractEntry[]>{
+  let handle = await open(filepath, "r");
+  let entries = [];
+
+  try{
+    for await (let entry of read_cdh(handle)){
+      //We don't parse the file's header because there is nothing we don't already know there. We only need the size
+      let header = Buffer.alloc(file_header_length);
+      await handle.read({buffer:header, position: entry.offset });
+      assert.equal(header.readUint32LE(0), 0x04034b50, `can't find magic byte at file header start`);
+      assert.equal(header.readUInt16LE(8), 0, `Only uncompressed data is supported at the moment`);
+      let header_length = file_header_length + header.readUInt16LE(26 /*name length*/) + header.readUInt16LE(28 /*extra length*/);
+      entries.push({
+        filename: entry.filename,
+        mtime: entry.mtime,
+        start:entry.offset+header_length,
+        end: entry.offset+header_length + entry.compressedSize,
+        isDirectory: isDirectory(entry),
+      });
     }
+  }finally{
+    await handle.close();
   }
+  return entries;
 }
