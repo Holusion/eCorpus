@@ -47,7 +47,7 @@ export default async function postScenes(req :Request, res :Response){
       if(!name){
         //Create the scene
         try{
-          let s = await vfs.createScene(scene);
+          let s = await vfs.createScene(scene, requester.uid);
         }catch(e){
           if((e as HTTPError).code != 409) throw e;
           //Scene already exist, it's OK.
