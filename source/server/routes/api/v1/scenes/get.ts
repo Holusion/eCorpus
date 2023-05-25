@@ -6,7 +6,7 @@ import { AccessType } from "../../../../auth/UserManager";
 import { HTTPError } from "../../../../utils/errors";
 import { getHost, getUser, getVfs } from "../../../../utils/locals";
 import { wrapFormat } from "../../../../utils/wrapAsync";
-import { zip } from "../../../../utils/zip";
+import { ZipEntry, zip } from "../../../../utils/zip";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
@@ -71,15 +71,22 @@ export default async function getScenes(req :Request, res :Response){
     "text": ()=> res.status(200).send(scenes.map(m=>m.name).join("\n")+"\n"),
 
     "application/zip": async ()=>{
-      async function *getFiles(){
+      async function *getFiles():AsyncGenerator<ZipEntry,any, unknown>{
         for(let scene of scenes){
-          let root = `scenes/${scene.name}`
+          let root = `scenes/${scene.name}`;
+
+          yield {
+            filename: root,
+            mtime: scene.mtime,
+            isDirectory: true,
+          }
+
           let files = await vfs.listFiles(scene.id, false, true);
 
 
           for(let file of files ){
             yield {
-              ...( file.mime === "text/directory"? file:await vfs.getFile({scene:scene.id, name: file.name})),
+              ...( file.mime === "text/directory"? file: await vfs.getFile({scene:scene.id, name: file.name})),
               filename: path.join("scenes", scene.name, file.name),
               isDirectory: file.mime == "text/directory",
             }

@@ -13,24 +13,15 @@ import {AppLocals, getHost, getUserManager} from "./utils/locals";
 
 import openDatabase from './vfs/helpers/db';
 import Vfs from "./vfs";
-import config from "./utils/config";
+import defaultConfig from "./utils/config";
 import User from "./auth/User";
 
 
-export default async function createServer(rootDir :string, /*istanbul ignore next */{
-  verbose = process.env["NODE_ENV"] !== "production",
-  hotReload = process.env["HOT"] !=="false" && process.env["NODE_ENV"] == "development",
-  clean = true,
-  migrate = true
-}={}) :Promise<express.Application>{
-  const staticDir = path.resolve(rootDir, "dist/");
-  const assetsDir = path.resolve(rootDir, "assets/");
-  const fileDir = path.resolve(rootDir, "files/");
-  const docDir = path.resolve(rootDir, "source/docs/");
+export default async function createServer(config = defaultConfig) :Promise<express.Application>{
 
-  await Promise.all([fileDir].map(d=>mkdir(d, {recursive: true})));
-  let db = await openDatabase({filename: path.join(fileDir, "database.db"), migrate: migrate});
-  const vfs = await Vfs.Open(fileDir, {db});
+  await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
+  let db = await openDatabase({filename: path.join(config.files_dir, "database.db"), forceMigration: config.force_migration});
+  const vfs = await Vfs.Open(config.files_dir, {db});
 
   const userManager = new UserManager(db);
 
@@ -39,7 +30,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
   app.disable('x-powered-by');
   app.set("trust proxy", config.trust_proxy);
 
-  if(clean){
+  if(config.clean_database){
     setTimeout(()=>{
       //Clean file system after a while to prevent delaying startup
       vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
@@ -53,7 +44,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
 
   app.locals  = Object.assign(app.locals, {
     userManager,
-    fileDir,
+    fileDir: config.files_dir,
     vfs,
   }) as AppLocals;
 
@@ -80,7 +71,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
 
   
   /* istanbul ignore next */
-  if (verbose) {
+  if (config.verbose) {
     let {default: morgan} = await import("morgan"); 
     //Requests logging is enabled only in dev mode as a proxy would handle it in production
     app.use(morgan(process.stdout.isTTY?"dev": "tiny", {
@@ -92,7 +83,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
     extname: '.hbs',
   }));
   app.set('view engine', '.hbs');
-  app.set('views', config.templates_path);
+  app.set('views', config.templates_dir);
 
 
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
@@ -167,7 +158,7 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
   });
 
   /* istanbul ignore next */
-  if(hotReload){
+  if(config.hot_reload){
     console.log("Hot reload enabled");
     const {default: webpack} = await import("webpack");
     const {default: middleware} = await import("webpack-dev-middleware");
@@ -179,13 +170,9 @@ export default async function createServer(rootDir :string, /*istanbul ignore ne
     await new Promise(resolve=> webpackInstance.waitUntilValid(resolve));
   }else{
     // static file server
-    app.use("/", express.static(staticDir));
+    app.use("/", express.static(config.dist_dir));
   }
-  app.use("/", express.static(assetsDir));
-  // documentation server
-  let docOpts =  {extensions:["md", "html"], index:["index.md", "index.html"]}
-  app.use("/doc", express.static(docDir, {...docOpts, fallthrough: true}));
-  app.use("/doc/:lang(fr)", express.static(path.join(docDir, "en"), docOpts));
+  app.use("/", express.static(config.assets_dir));
 
   app.use("/libs", (await import("./routes/libs")).default);
 

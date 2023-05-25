@@ -57,8 +57,10 @@ describe("GET /api/v1/scenes", function(){
       headers.push(header);
     }
     expect(headers.map(h=>h.filename)).to.deep.equal([
+      "scenes/bar/",
       "scenes/bar/articles/",
       "scenes/bar/models/",
+      "scenes/foo/",
       "scenes/foo/articles/",
       "scenes/foo/models/",
     ]);

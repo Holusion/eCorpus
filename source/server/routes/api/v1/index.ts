@@ -22,6 +22,7 @@ import handleDeleteUser from "./users/uid/delete";
 import { handlePatchUser } from "./users/uid/patch";
 import { postSceneHistory } from "./scenes/scene/history/post";
 import handleGetStats from "./stats";
+import postScenes from "./scenes/post";
 
 
 
@@ -62,6 +63,7 @@ router.delete("/users/:uid", isAdministrator, wrap(handleDeleteUser));
 router.patch("/users/:uid", bodyParser.json(), wrap(handlePatchUser));
 
 router.get("/scenes", wrap(getScenes));
+router.post("/scenes", isAdministrator, wrap(postScenes));
 router.post("/scenes/:scene", isUser, wrap(postScene));
 
 router.use("/scenes/:scene", canRead);

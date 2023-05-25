@@ -1,24 +1,35 @@
 import path from "path"
 
+
 const values = {
-  public: [true as boolean, toBool],
-  brand: ["eCorpus" as string, toString],
-  port: [8000 as number, toUInt ],
-  migrations_path: [ path.join(process.cwd(), "migrations"), toPath],
-  templates_path: [ path.join(process.cwd(), "templates"), toPath],
-  force_migration: [false as boolean, toBool],
+  public: [true, toBool],
+  brand: ["eCorpus", toString],
+  port: [8000, toUInt ],
+  force_migration: [false, toBool],
+  clean_database: [true, toBool],
   root_dir: [ process.cwd(), toPath],
-  trust_proxy: [true as boolean, toBool],
+  migrations_dir: [path.join(process.cwd(),"migrations"), toPath],
+  templates_dir: [path.join(process.cwd(),"templates"), toPath],
+  files_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), toPath],
+  dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
+  assets_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"assets"), toPath],
+  trust_proxy: [true, toBool],
   hostname: ["ecorpus.holusion.net", toString],
-  smart_host: ["localhost" as string, toString],
+  hot_reload:[false, toBool],
+  smart_host: ["localhost", toString],
+  verbose: [false, toBool],
 } as const;
 
 
 type Key = keyof typeof values;
-
+type ValueType<T extends Key> = ReturnType<typeof values[T][1]>;
 type Config = {
-  [T in Key]: typeof values[T][0];
+  [T in Key]: typeof values[T][0] extends BuildKey<T>? ReturnType<typeof values[T][0]> : ValueType<T>;
 }
+
+type BuildKey<T extends Key> = (c :Partial<{[U in Key]: ValueType<U>}>) => ValueType<T>;
+
+
 
 function toString(s:string):string{
   return s;
@@ -42,7 +53,11 @@ export function parse(env :NodeJS.ProcessEnv = process.env):Config{
   let c :Partial<Config>  = {};
   for(let [key, value] of Object.entries(values)){
     let env_value = env[`${key.toUpperCase()}`];
-    c[key as Key] = (typeof env_value === "undefined")? value[0] : value[1](env_value) as any;
+    if(typeof env_value !== "undefined"){
+      c[key as Key] = value[1](env_value) as any;
+    }else{
+      c[key as Key] = (typeof value[0] !=="function")? value[0]: value[0](c as any) as any;
+    }
   }
   return c as Config;
 }

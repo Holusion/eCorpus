@@ -84,12 +84,12 @@ describe("UserManager static methods", function(){
 describe("UserManager methods", function(){
   let userManager :UserManager;
   this.beforeEach(async function(){
-    this.db = await openDatabase({filename:":memory:", migrate:"force"});
+    this.db = await openDatabase({filename:":memory:", forceMigration:true});
     userManager = new UserManager(this.db);
   });
   describe("open()", function(){
     it("creates users.index if it doesn't exist", async function(){
-      await expect(UserManager.open({filename:":memory:", migrate:"force"})).to.be.fulfilled;
+      await expect(UserManager.open({filename:":memory:", forceMigration:true})).to.be.fulfilled;
     })
   });
 

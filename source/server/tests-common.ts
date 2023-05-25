@@ -7,6 +7,7 @@ import chaiAsPromised from "chai-as-promised";
 //@ts-ignore
 import sourceMaps from "source-map-support";
 import { AppLocals } from "./utils/locals";
+import { parse } from "./utils/config";
 sourceMaps.install();
 
 chai.use(chaiAsPromised);
@@ -33,7 +34,8 @@ global.createIntegrationContext = async function(c :Mocha.Context){
   let {default:createServer} = await import("./server");
   let titleSlug = c.currentTest?.title.replace(/[^\w]/g, "_") ?? `eThesaurus_integration_test`;
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
-  c.server = await createServer(c.dir, {verbose: false, migrate: true, clean:false});
+  c.config = parse({ROOT_DIR: c.dir, CLEAN_DATABASE: "false", VERBOSE: "false"});
+  c.server = await createServer( c.config );
   return c.server.locals;
 }
 
