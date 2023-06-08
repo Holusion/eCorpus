@@ -73,6 +73,10 @@ describe("COPY /scenes/:name", function(){
     let {id:scene_id} = await vfs.getScene("foo");
     await vfs.writeDoc('{"id":2}', "foo", user.uid);
     let {ctime:t1, id, generation, ...src} = await vfs.getDoc(scene_id);
+    //Round mtime down, otherwise sqlite's conversion might round to another second.
+    src.mtime.setMilliseconds(0);
+    await vfs._db.run(`UPDATE files SET ctime = datetime("${src.mtime.toISOString()}") WHERE file_id = $id`, {$id: id})
+
     await vfs.writeDoc('{"id":3}', "foo", user.uid);
 
     await this.agent.copy("/scenes/foo/scene.svx.json")
