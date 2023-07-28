@@ -402,7 +402,7 @@ Version: ${ENV_VERSION}
         }
 
         viewerIns.annotationsVisible.setValue(!viewerIns.annotationsVisible.value);
-        this.analytics.sendProperty("Annotations.Visible", viewerIns.annotationsVisible.value);
+        this.analytics.sendProperty("Annotations_Visible", viewerIns.annotationsVisible.value);
     }
 
     toggleReader()
@@ -417,7 +417,7 @@ Version: ${ENV_VERSION}
             readerIns.articleId.setValue(reader.articles.length === 1 ? reader.articles[0].article.id : "");
         }
 
-        this.analytics.sendProperty("Reader.Enabled", readerIns.enabled.value);
+        this.analytics.sendProperty("Reader_Enabled", readerIns.enabled.value);
     }
 
     toggleTours()
@@ -437,7 +437,7 @@ Version: ${ENV_VERSION}
             tourIns.tourIndex.setValue(-1); // show tour menu
         }
 
-        this.analytics.sendProperty("Tours.Enabled", tourIns.enabled.value);
+        this.analytics.sendProperty("Tours_Enabled", tourIns.enabled.value);
     }
 
     toggleTools()
@@ -450,7 +450,7 @@ Version: ${ENV_VERSION}
         }
 
         toolIns.visible.setValue(!toolIns.visible.value);
-        this.analytics.sendProperty("Tools.Visible", toolIns.visible.value);
+        this.analytics.sendProperty("Tools_Visible", toolIns.visible.value);
     }
 
     toggleMeasurement()
@@ -465,7 +465,7 @@ Version: ${ENV_VERSION}
         const ARIns = this.system.getMainComponent(CVARManager).ins;
 
         ARIns.enabled.setValue(true);
-        this.analytics.sendProperty("AR.enabled", true);
+        this.analytics.sendProperty("AR_enabled", true);
     }
 
     // Returns an array of objects with the article data for the current scene
