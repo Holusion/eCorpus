@@ -77,7 +77,7 @@ export default class CVModel2 extends CObject3D
         quality: types.Enum("Model.Quality", EDerivativeQuality, EDerivativeQuality.High),
         tags: types.String("Model.Tags"),
         renderOrder: types.Number("Model.RenderOrder", 0),
-        castShadow: types.Boolean("Model.CashShadow", true),
+        castShadow: types.Boolean("Model.CastShadow", true),
         receiveShadow: types.Boolean("Model.ReceiveShadow",false),
         shadowSide: types.Enum("Model.ShadowSide", ESideType, ESideType.Back),
         activeTags: types.String("Model.ActiveTags"),
@@ -235,6 +235,7 @@ export default class CVModel2 extends CObject3D
                 if (overrideActive) {
                     this.updateMaterial();
                 }
+                this.updateShadows();
             }
             else if (ins.visible.value && overrideActive && this.ins.hiddenOpacity.value > 0) {
                 this.object3D.visible = true;
