@@ -19,7 +19,7 @@ async function getDocument(scene:string, filepath:string){
   document.scenes[0].nodes.push(document.nodes.length -1);
 
   document.models = [{
-    "units": "mm",
+    "units": "m", //glTF specification says it's always meters. It's what blender do.
     "boundingBox": meta.bounds,
     "derivatives":[{
       "usage": "Web3D",
