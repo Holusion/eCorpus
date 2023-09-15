@@ -4,7 +4,7 @@ import {basename, dirname} from "path";
 import User, { SafeUser } from "../auth/User";
 import UserManager, { AccessType, AccessTypes } from "../auth/UserManager";
 import Vfs, { GetFileParams } from "../vfs";
-import { BadRequestError, ForbiddenError, HTTPError, InternalError, UnauthorizedError } from "./errors";
+import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors";
 
 export interface AppLocals extends Record<string, any>{
   port :number;
@@ -72,11 +72,20 @@ function _perms(check:number,req :Request, res :Response, next :NextFunction){
   if(isAdministrator) return next();
   
   let userManager = getUserManager(req);
-  (res.locals.access? Promise.resolve(res.locals.access):
-    userManager.getAccessRights(scene, uid).then(a=>{ res.locals.access = a; return a })
+  (res.locals.access? 
+    Promise.resolve(res.locals.access) :
+    userManager.getAccessRights(scene, uid)
   ).then( access => {
-    if(check <= AccessTypes.indexOf(access)) next();
-    else next(new UnauthorizedError(`user does not have ${AccessTypes[check]} rights on ${scene}`));
+    res.locals.access = access;
+    const lvl = AccessTypes.indexOf(access);
+    if(check <= lvl){
+      next();
+    } else if(req.method === "GET" || lvl <= AccessTypes.indexOf("none")){
+      next(new NotFoundError(`Can't find scene ${scene}. It may be private or not exist entirely.`))
+    } else {
+      //User has insuficient level but can read the scene
+      next(new UnauthorizedError(`user does not have ${AccessTypes[check]} rights on ${scene}`));
+    }
   }, next);
 }
 

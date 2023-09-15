@@ -1,8 +1,45 @@
+<corpus-navbar>
+  <nav-link href="/ui/scenes/" class="nav-link">Collection</nav-link>
+  <nav-link href="https://ethesaurus.holusion.com" class="nav-link">Documentation</nav-link>
+  
+  <div class="divider"></div>
+  <user-button class="nav-link">Connexion</user-button>
+</corpus-navbar>
+<main  class="error-main">
 {{#with error}}
-<h1>Error :{{code}}</h1>
+<h1 class="error-title">Error :{{code}}</h1>
 
-<p>{{message}}</p>
+<p class="message">{{message}}</p>
 
-<pre><code>{{stack}}</code></pre>
+<pre class="stack"><code>{{stack}}</code></pre>
 
 {{/with}}
+</main>
+<modal-dialog></modal-dialog>
+
+<style>
+  main.error-main{
+    color:var(--color-light);
+    margin: auto;
+    max-width:1200px;
+    min-height: 60vh;
+
+    display:flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+  }
+  main.error-main .error-title{
+    color:var(--color-secondary);
+  }
+  main.error-main .message{
+    font-weight: bold;
+  }
+  main.error-main .stack{
+    background:var(--color-medium);
+    max-width:82ch;
+    padding: 1ch;
+  }
+</style>
+
+<script src="/js/corpus.js"></script>

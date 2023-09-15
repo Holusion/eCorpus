@@ -86,6 +86,7 @@ export function router<T extends Constructor<LitElement>>(baseClass:T) : T & Con
 
       if(!this.inPath(url.pathname) && this.path != "/") return; //Return to bubble up the stack
       ev.stopPropagation(); //Handle the route change
+      ev.preventDefault();
 
       if(!url.pathname.endsWith("/")) url.pathname += "/";
       window.history.pushState({},"", url);
@@ -129,12 +130,17 @@ export function navigate(that :HTMLElement,href ?:string|URL, queries?:Record<st
       else url.searchParams.set(key, value.toString());
     }
   }
-  console.debug("Navigate to :", url.toString(), "with queries : ", queries);
-  (that ?? this).dispatchEvent(new CustomEvent("navigate", {
+  const unhandled = (that ?? this).dispatchEvent(new CustomEvent("navigate", {
     detail: {href: url},
     bubbles: true,
     composed: true
   }));
+
+  if(unhandled){
+    window.location.href = url.toString();
+  }else{
+    console.debug("Navigate to :", url.toString(), "with queries : ", queries);
+  }
 }
 
 export declare class Link{
