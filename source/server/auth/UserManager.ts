@@ -297,12 +297,12 @@ export default class UserManager {
     return (await this.db.get(`
       SELECT COALESCE(
         json_extract(access, '$.' || $uid),
-        ${0 < uid? `json_extract(access, '$.1'),`:""}
+        ${((0 < uid) ? `json_extract(access, '$.1'),`:"")}
         json_extract(access, '$.0')
       ) AS access
       FROM scenes
       WHERE scene_name = $scene
-    `, {$scene:scene, $uid:uid.toString(10)}))?.access;
+    `, {$scene:scene, $uid:uid.toString(10)}))?.access ?? null;
   }
 
   /**
