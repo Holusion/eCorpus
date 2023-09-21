@@ -52,7 +52,7 @@ describe("Web Server Integration", function(){
         await request(this.server).get("/scenes/foo/models/foo.glb").expect(200);
       });
       it("can't create a model", async function(){
-        await request(this.server).put("/scenes/bar/models/bar.glb").expect(401);
+        await request(this.server).put("/scenes/foo/models/bar.glb").expect(401);
       });
       it("can't fetch user list", async function(){
         await request(this.server).get("/api/v1/users")
@@ -191,8 +191,8 @@ describe("Web Server Integration", function(){
       .set("Accept", "")
       .expect(200);
     });
-    it("can't edit other people's models", async function(){
-      await this.agent.put("/scenes/foo/models/foo.glb").send("foo\n").expect(401);
+    it("can't edit other people's models (obfuscated as 404)", async function(){
+      await this.agent.put("/scenes/foo/models/foo.glb").send("foo\n").expect(404);
     });
     it.skip("can be granted permissions", async function(){
       

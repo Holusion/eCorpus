@@ -36,10 +36,10 @@ describe("GET /api/v1/scenes/:scene", function(){
       .expect("Content-Type", "application/json; charset=utf-8");
     });
 
-    it("is access-protected", async function(){
+    it("is access-protected (obfuscated as 404)", async function(){
       await userManager.grant("foo", "default", "none");
       await request(this.server).get("/api/v1/scenes/foo")
-      .expect(401);
+      .expect(404);
     });
   });
 
