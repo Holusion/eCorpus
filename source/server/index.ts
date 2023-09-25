@@ -30,7 +30,6 @@ import("source-map-support").then((s)=>{
 // CONFIGURATION
 
 const port: number = parseInt(process.env["VOYAGER_SERVER_PORT"]|| "8000") ;
-const devMode: boolean = process.env["NODE_ENV"] !== "production";
 
 
 (async ()=>{
