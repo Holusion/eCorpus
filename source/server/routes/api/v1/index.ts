@@ -23,6 +23,7 @@ import { handlePatchUser } from "./users/uid/patch";
 import { postSceneHistory } from "./scenes/scene/history/post";
 import handleGetStats from "./stats";
 import postScenes from "./scenes/post";
+import patchScene from "./scenes/scene/patch";
 
 
 
@@ -64,7 +65,9 @@ router.patch("/users/:uid", bodyParser.json(), wrap(handlePatchUser));
 
 router.get("/scenes", wrap(getScenes));
 router.post("/scenes", isAdministrator, wrap(postScenes));
+
 router.post("/scenes/:scene", isUser, wrap(postScene));
+router.patch("/scenes/:scene", canAdmin, bodyParser.json(), wrap(patchScene));
 
 router.use("/scenes/:scene", canRead);
 router.get("/scenes/:scene/history", wrap(getSceneHistory));
