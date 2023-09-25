@@ -12,6 +12,7 @@ import { nothing } from "lit-html";
 import i18n from "../state/translate";
 import {getLogin} from "../state/auth";
 import { navigate } from "../state/router";
+import Modal from "../composants/Modal";
 
 
 const AccessTypes = [
@@ -163,7 +164,7 @@ class SceneVersion{
               <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               <div style="max-width: 300px">
                 <a class="ff-button ff-control btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ff-icon name="edit"></ff-icon>  ${this.t("ui.editScene")}</a>
-                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ff-icon name="eye"></ff-icon>  ${this.t("ui.viewScene")}</a>  
+                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ff-icon name="eye"></ff-icon>  ${this.t("ui.viewScene")}</a>
                 <a class="ff-button ff-control btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ff-icon name="save"></ff-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
@@ -175,8 +176,9 @@ class SceneVersion{
         <div class="section">
           ${this.renderHistory()}
         </div>
-        ${getLogin()?.isAdministrator? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;">
-        <div><ff-button class="btn-danger" icon="trash" text="Delete" @click=${this.onDelete}></ff-button></div>
+        ${getLogin()?.isAdministrator? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;gap:10px">
+        <div><ff-button class="btn-primary" icon="edit" text=${this.t("ui.rename")} @click=${this.onRename}></ff-button></div>
+        <div><ff-button class="btn-danger" icon="trash" text=${this.t("ui.delete")} @click=${this.onDelete}></ff-button></div>
         </div>`:null}
       </div>`;
     }
@@ -321,5 +323,47 @@ class SceneVersion{
         console.error(e);
         Notification.show(`Failed to remove ${this.scene} : ${e.message}`);
       });
+    }
+
+    onRename = ()=>{
+      const onRenameSubmit = (ev)=>{
+        ev.preventDefault();
+        let name = (Modal.Instance.shadowRoot.getElementById("sceneRenameInput") as HTMLInputElement).value;
+        Modal.close();
+        Modal.show({
+          header: this.t("ui.renameScene"),
+          body: html`<div style="display:block;position:relative;padding-top:110px"><sv-spinner visible/></div>`,
+        });
+        fetch(`/api/v1/scenes/${encodeURIComponent(this.scene)}`, {
+          method:"PATCH",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({name})
+        }).then((r)=>{
+          if(r.ok){
+            Notification.show("Renamed "+this.scene+" to "+name, "info", 1600);
+            navigate(this, `/ui/scenes/${encodeURIComponent(name)}/`);
+          }else{
+            throw new Error(`[${r.status}] ${r.statusText}`);
+          }
+        }).catch((e)=>{
+          console.error(e);
+          Notification.show(`Failed to rename ${this.scene} : ${e.message}`);
+        }).finally(()=>{
+          setTimeout(()=>{
+            Modal.close();
+          }, 500);
+        });
+      }
+
+      Modal.show({
+        header: this.t("ui.renameScene"),
+        body: html`<form class="form-group" @submit=${onRenameSubmit}>
+          <div class="form-item">
+            <input type="text" required minlength=3 autocomplete="off" style="padding:.25rem;margin-bottom:.75rem;width:100%;" class="form-control" id="sceneRenameInput" placeholder="${this.scene}">
+          </div>
+        </form>`,
+        buttons: html`<ff-button class="btn-primary" @click=${onRenameSubmit} text=${this.t("ui.rename")}></ff-button>`,
+      });
+
     }
  }

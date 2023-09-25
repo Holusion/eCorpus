@@ -183,6 +183,10 @@ export default {
       fr: "supprimer",
       en: "delete"
     },
+    rename:{
+      fr: "renommer",
+      en: "rename"
+    },
     alphabet:{
       fr: "ordre alphabethique",
       en: "alphabetical"
@@ -202,6 +206,10 @@ export default {
     downloadScene:{
       fr:"Télécharger la scène",
       en:"Download this scene"
+    },
+    renameScene:{
+      fr: "Renommer la scène",
+      en: "Rename scene"
     }
   },
   info:{
