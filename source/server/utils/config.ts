@@ -16,7 +16,7 @@ const values = {
   assets_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"assets"), toPath],
   trust_proxy: [true, toBool],
   hostname: ["ecorpus.holusion.net", toString],
-  hot_reload:[({node_env}:{node_env:string})=>node_env=="development", toBool],
+  hot_reload:[false, toBool],
   smart_host: ["localhost", toString],
   verbose: [false, toBool],
 } as const;

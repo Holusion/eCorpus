@@ -35,11 +35,7 @@ describe("config", function(){
       expect(opts).to.have.property("root_dir", "/app");
       expect(opts).to.have.property("files_dir", "/app/files");
     });
-    it("hot_reload takes value from node_env", function(){
-      expect(parse({NODE_ENV:"development"})).to.have.property("hot_reload", true);
-      expect(parse({NODE_ENV:"production"})).to.have.property("hot_reload", false);
-      expect(parse({NODE_ENV:"production", HOT_RELOAD: "1"})).to.have.property("hot_reload", true);
-    });
+    
     it("override default functions if necessary", function(){
       let opts = parse({ROOT_DIR:"/app", FILES_DIR: "/tmp/files"})
       expect(opts).to.have.property("root_dir", "/app");
