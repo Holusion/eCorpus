@@ -16,7 +16,6 @@ export default async function getScene(req :Request, res :Response){
   await wrapFormat(res, {
     "application/json": async ()=>{
       let requester = getUserId(req);
-      console.log("Get scene : ", scene, requester);
       let data = await vfs.getScene(scene, requester);
       res.status(200).send(data);
     },

@@ -85,6 +85,7 @@ export function router<T extends Constructor<LitElement>>(baseClass:T) : T & Con
       if(url.hostname != window.location.hostname) return window.location.href = url.toString();
 
       if(!this.inPath(url.pathname) && this.path != "/") return; //Return to bubble up the stack
+      console.debug("Handle navigation event", url.toString());
       ev.stopPropagation(); //Handle the route change
       ev.preventDefault();
 
@@ -133,10 +134,12 @@ export function navigate(that :HTMLElement,href ?:string|URL, queries?:Record<st
   const unhandled = (that ?? this).dispatchEvent(new CustomEvent("navigate", {
     detail: {href: url},
     bubbles: true,
-    composed: true
+    composed: true,
+    cancelable: true,
   }));
 
   if(unhandled){
+    console.log("Unhandled navigation event, redirecting to ", url.toString());
     window.location.href = url.toString();
   }else{
     console.debug("Navigate to :", url.toString(), "with queries : ", queries);
