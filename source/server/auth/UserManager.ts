@@ -281,6 +281,14 @@ export default class UserManager {
     if(!r || !r.changes) throw new NotFoundError(`No user to delete with uid ${uid}`);
   }
 
+  /**
+   * patches permissions on a scene for a given user.
+   * Special cases for "any" and "default" users.
+   * Usernames are converted to IDs before being used.
+   * @param scene 
+   * @param username 
+   * @param role 
+   */
   async grant(scene :string, username :string, role :AccessType){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let r = await this.db.run(`

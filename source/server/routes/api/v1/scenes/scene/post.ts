@@ -4,7 +4,13 @@ import { Request, Response } from "express";
 import { parse_glb } from "../../../../../utils/glTF";
 
 
-
+/**
+ * Creates a new default document for a scene
+ * uses data embedded in the glb to fill the document where possible
+ * @param scene 
+ * @param filepath 
+ * @returns 
+ */
 async function getDocument(scene:string, filepath:string){
   let {default:orig} = await import("../../../../../utils/documents/default.svx.json");
   //dumb inefficient Deep copy because we want to mutate the doc in-place
