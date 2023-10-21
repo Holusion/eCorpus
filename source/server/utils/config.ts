@@ -1,4 +1,5 @@
 import path from "path"
+import {hostname} from "os";
 
 
 const values = {
@@ -15,9 +16,9 @@ const values = {
   dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
   assets_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"assets"), toPath],
   trust_proxy: [true, toBool],
-  hostname: ["ecorpus.holusion.net", toString],
+  hostname: [hostname(), toString],
   hot_reload:[false, toBool],
-  smart_host: ["localhost", toString],
+  smart_host: ["smtp://localhost", toString],
   verbose: [false, toBool],
 } as const;
 
