@@ -5,12 +5,14 @@ import User, { SafeUser } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes } from "../auth/UserManager.js";
 import Vfs, { GetFileParams } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
+import Templates from "./templates.js";
 
 export interface AppLocals extends Record<string, any>{
   port :number;
   fileDir :string;
   userManager :UserManager;
   vfs :Vfs;
+  templates :Templates;
 }
 
 /**
@@ -50,12 +52,31 @@ export function isAdministratorOrOpen(req: Request, res:Response, next :NextFunc
     }).then(()=>next(), next);
   });
 }
-
+/**
+ * Checks if user.isAdministrator is true
+ * Not the same thing as canAdmin() that checks if the user has admin rights over a scene
+ */
 export function isAdministrator(req: Request, res:Response, next :NextFunction){
   res.append("Cache-Control", "private");
   
   if((req.session as User).isAdministrator) next();
   else next(new UnauthorizedError());
+}
+/**
+ * Wraps middlewares to find if at least one passes
+ * Usefull for conditional rate-limiting
+ * @example either(isAdministrator, isUser, rateLimit({...}))
+ */
+export function either(...handlers:RequestHandler[]) :RequestHandler{
+  return (req, res, next)=>{
+    let mdw = handlers.shift();
+    if(!mdw) return next(new UnauthorizedError());
+    return mdw(req, res, (err)=>{
+      if(!err) return next();
+      else if (err instanceof UnauthorizedError) return either(...handlers)(req, res, next);
+      else return next(err);
+    });
+  }
 }
 
 /**

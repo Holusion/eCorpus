@@ -3,7 +3,6 @@ import path from "path";
 import util from "util";
 import cookieSession from "cookie-session";
 import express from "express";
-import { engine } from 'express-handlebars';
 
 import UserManager from "./auth/UserManager.js";
 import { BadRequestError, HTTPError } from "./utils/errors.js";
@@ -15,6 +14,7 @@ import openDatabase from "./vfs/helpers/db.js";
 import Vfs from "./vfs/index.js";
 import defaultConfig from "./utils/config.js";
 import User from "./auth/User.js";
+import Templates from "./utils/templates.js";
 
 
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
@@ -25,6 +25,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   const userManager = new UserManager(db);
 
+  const templates = new Templates({dir: config.templates_dir, cache: config.node_env == "production"});
 
   const app = express();
   app.disable('x-powered-by');
@@ -46,6 +47,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     userManager,
     fileDir: config.files_dir,
     vfs,
+    templates,
   }) as AppLocals;
 
   app.use(cookieSession({
@@ -81,12 +83,10 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     }));
   }
 
-
-  app.engine('.hbs', engine({
-    extname: '.hbs',
-  }));
+  
+  app.engine('.hbs', templates.middleware);
   app.set('view engine', '.hbs');
-  app.set('views', config.templates_dir);
+  app.set('views', templates.dir);
 
 
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
