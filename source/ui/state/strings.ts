@@ -210,7 +210,15 @@ export default {
     renameScene:{
       fr: "Renommer la scène",
       en: "Rename scene"
-    }
+    },
+    sendTestMail:{
+      fr: "Envoyer un mail de test",
+      en: "Send a test mail",
+    },
+    send: {
+      fr: "Envoyer",
+      en: "Send",
+    },
   },
   info:{
     noData:{

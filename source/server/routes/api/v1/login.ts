@@ -2,9 +2,8 @@ import { createHmac } from "crypto";
 import { Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../../auth/User.js";
 import { BadRequestError, ForbiddenError, HTTPError } from "../../../utils/errors.js";
-import { getHost, getUser, getUserManager } from "../../../utils/locals.js";
+import { AppLocals, getHost, getUser, getUserManager } from "../../../utils/locals.js";
 import sendmail from "../../../utils/mails/send.js";
-import { recoverAccount } from "../../../utils/mails/templates.js";
 /**
  * 
  * @type {RequestHandler}
@@ -102,7 +101,6 @@ export async function getLoginLink(req :Request, res :Response){
 
 export async function sendLoginLink(req :Request, res :Response){
   let {username} = req.params;
-  let requester = getUser(req);
   let userManager = getUserManager(req);
 
   let user = await userManager.getUserByName(username);
@@ -115,8 +113,19 @@ export async function sendLoginLink(req :Request, res :Response){
     payload, 
     getHost(req)
   );
-  let content = recoverAccount({link: link.toString(), expires:payload.expires});
-  await sendmail(user.email, content);
+
+  let lang = "fr";
+  const mail_content = await (res.app.locals as AppLocals).templates.render(`emails/connection_${lang}`, {
+    name: user.username,
+    lang: "fr",
+    url: link.toString()
+  });
+  await sendmail({
+    to: user.email,
+    subject: "Votre lien de connexion à eCorpus",
+    html: mail_content,
+  });
+  
   console.log("sent an account recovery mail to :", user.email);
   res.status(204).send();
 }
