@@ -12,7 +12,7 @@ import { parse_glb } from "../../../../../utils/glTF.js";
  * @returns 
  */
 async function getDocument(scene:string, filepath:string){
-  let {default:orig} = await import("../../../../../utils/schema/default.svx.json");
+  let {default:orig} = await import("../../../../../utils/schema/default.svx.json", {assert:{type:"json"}});
   //dumb inefficient Deep copy because we want to mutate the doc in-place
   let document = JSON.parse(JSON.stringify(orig));
   let meta = await parse_glb(filepath);
