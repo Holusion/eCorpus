@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "start": "ROOT_DIR=\"$(pwd)/../..\" node ./dist/server/index.js",
-        "test": "mocha",
+        "test": "NODE_NO_WARNINGS=1 mocha",
         "build": "tsc -b ."
     },
     "nodemonConfig": {

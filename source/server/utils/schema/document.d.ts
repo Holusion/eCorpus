@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import { Index } from "../../server/utils/schema/types";
+import { Index } from "./types.ts";
 
-import { EUnitType, TUnitType, Vector3, Quaternion, Matrix4, ColorRGB } from "./common";
-import { IMeta } from "./meta";
-import { IModel } from "./model";
-import { ISetup } from "./setup";
+import { EUnitType, TUnitType, Vector3, Quaternion, Matrix4, ColorRGB } from "./common.ts";
+import { IMeta } from "./meta.ts";
+import { IModel } from "./model.ts";
+import { ISetup } from "./setup.ts";
 
 ////////////////////////////////////////////////////////////////////////////////
 

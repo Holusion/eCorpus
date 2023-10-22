@@ -1,4 +1,4 @@
-import ref from "./default.svx.json";
+import ref from "./default.svx.json"  assert { type: "json" };
 
 import {IDocument, INode, IScene} from "./document.js";
 import { IAsset, IBoundingBox, IDerivative, IModel, TDerivativeQuality, TDerivativeUsage } from "./model.js";

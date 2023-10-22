@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from 'url';
 import {tmpdir} from "os";
 
 import request from "supertest";
@@ -9,7 +10,7 @@ import User from "./auth/User.js";
 import { Element, xml2js } from "xml-js";
 import UserManager from "./auth/UserManager.js";
 
-
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 describe("Web Server Integration", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
@@ -71,7 +72,7 @@ describe("Web Server Integration", function(){
       });
 
       it("can create a new scene", async function(){
-        let content = await fs.readFile(path.join(__dirname, "__test_fixtures/cube.glb"));
+        let content = await fs.readFile(path.join(thisDir, "__test_fixtures/cube.glb"));
         let r = await this.agent.post("/api/v1/scenes/bar")
         .set("Content-Type", "application/octet-stream")
         .send(content)
@@ -84,7 +85,7 @@ describe("Web Server Integration", function(){
       });
 
       it("can upload a glb model in an existing scene", async function(){
-        let content = await fs.readFile(path.join(__dirname, "__test_fixtures/cube.glb"));
+        let content = await fs.readFile(path.join(thisDir, "__test_fixtures/cube.glb"));
         await this.agent.put("/scenes/foo/models/baz.glb")
         .send(content)
         .expect(201);
