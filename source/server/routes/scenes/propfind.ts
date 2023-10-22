@@ -1,8 +1,8 @@
 import { Request, RequestHandler, Response } from "express";
 import xml from 'xml-js';
 import path from "path";
-import { AppLocals, getHost, getUser } from "../../utils/locals";
-import Vfs, { FileProps, ItemProps } from "../../vfs";
+import { AppLocals, getHost, getUser } from "../../utils/locals.js";
+import Vfs, { FileProps, ItemProps } from "../../vfs/index.js";
 
 interface ElementProps{
   ctime:Date;

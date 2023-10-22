@@ -2,9 +2,9 @@ import fs from "fs/promises";
 
 import request from "supertest";
 
-import Vfs from "../../../../vfs";
-import UserManager from "../../../../auth/UserManager";
-import { NotFoundError } from "../../../../utils/errors";
+import Vfs from "../../../../vfs/index.js";
+import UserManager from "../../../../auth/UserManager.js";
+import { NotFoundError } from "../../../../utils/errors.js";
 
 function binaryParser(res:request.Response, callback:(err:Error|null, data:Buffer)=>any) {
   res.setEncoding('binary');

@@ -1,13 +1,13 @@
-import UserManager, { AccessTypes } from "./UserManager";
+import UserManager, { AccessTypes } from "./UserManager.js";
 import {tmpdir} from "os";
 import fs from "fs/promises";
 import path from "path";
 
 import {expect} from "chai";
-import { BadRequestError, NotFoundError, UnauthorizedError } from "../utils/errors";
-import User from "./User";
-import openDatabase from "../vfs/helpers/db";
-import { Uid } from "../utils/uid";
+import { BadRequestError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import User from "./User.js";
+import openDatabase from "../vfs/helpers/db.js";
+import { Uid } from "../utils/uid.js";
 
 describe("UserManager static methods", function(){
   describe("parsePassword()", function(){

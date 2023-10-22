@@ -1,7 +1,7 @@
 
-import { getFileParams, getUserId, getVfs } from "../../../utils/locals";
+import { getFileParams, getUserId, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
-import { getContentType, getMimeType } from "../../../utils/filetypes";
+import { getContentType, getMimeType } from "../../../utils/filetypes.js";
 
 
 export default async function handlePutFile(req :Request, res :Response){

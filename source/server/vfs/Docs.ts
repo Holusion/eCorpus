@@ -1,7 +1,7 @@
-import { NotFoundError } from "../utils/errors";
-import { Uid } from "../utils/uid";
-import BaseVfs from "./Base";
-import { DocProps } from "./types";
+import { NotFoundError } from "../utils/errors.js";
+import { Uid } from "../utils/uid.js";
+import BaseVfs from "./Base.js";
+import { DocProps } from "./types.js";
 
 
 

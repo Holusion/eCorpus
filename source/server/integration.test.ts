@@ -3,11 +3,11 @@ import path from "path";
 import {tmpdir} from "os";
 
 import request from "supertest";
-import createServer from "./server";
-import Vfs, { DocProps, WriteFileParams } from "./vfs";
-import User from "./auth/User";
+import createServer from "./server.js";
+import Vfs, { DocProps, WriteFileParams } from "./vfs/index.js";
+import User from "./auth/User.js";
 import { Element, xml2js } from "xml-js";
-import UserManager from "./auth/UserManager";
+import UserManager from "./auth/UserManager.js";
 
 
 

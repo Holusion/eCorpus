@@ -1,9 +1,9 @@
-import { AccessType, AccessTypes } from "../auth/UserManager";
-import config from "../utils/config";
-import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors";
-import { Uid } from "../utils/uid";
-import BaseVfs from "./Base";
-import { ItemEntry, Scene, SceneQuery } from "./types";
+import { AccessType, AccessTypes } from "../auth/UserManager.js";
+import config from "../utils/config.js";
+import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
+import { Uid } from "../utils/uid.js";
+import BaseVfs from "./Base.js";
+import { ItemEntry, Scene, SceneQuery } from "./types.js";
 
 
 

@@ -2,9 +2,9 @@ import fs from "fs/promises";
 import os from "os";
 import timers from "timers/promises";
 import { expect } from "chai";
-import open, { Database } from "./db"
+import open, { Database } from "./db.js";
 import path from "path";
-import uid from "../../utils/uid";
+import uid from "../../utils/uid.js";
 
 
 describe("Database.beginTransaction()", function(){

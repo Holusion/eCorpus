@@ -16,8 +16,8 @@
  */
 
 import path from "path";
-import createServer from "./server";
-import config from "./utils/config";
+import createServer from "./server.js";
+import config from "./utils/config.js";
 
 //@ts-ignore
 import("source-map-support").then((s)=>{

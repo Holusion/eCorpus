@@ -1,10 +1,10 @@
 import fs from "fs/promises";
 import { constants } from "fs";
 import path from "path";
-import { AppLocals, getUserId, getVfs } from "../../../utils/locals";
-import uid from "../../../utils/uid";
+import { AppLocals, getUserId, getVfs } from "../../../utils/locals.js";
+import uid from "../../../utils/uid.js";
 import { Request, Response } from "express";
-import { BadRequestError } from "../../../utils/errors";
+import { BadRequestError } from "../../../utils/errors.js";
 
 /**
  * Special handler for svx files to disallow the upload of invalid JSON.

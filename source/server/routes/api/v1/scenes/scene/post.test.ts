@@ -6,10 +6,10 @@ import timers from 'timers/promises';
 import request from "supertest";
 import { expect } from "chai";
 import { once } from "events";
-import postScene from "./post";
+import postScene from "./post.js";
 import express, { Application } from "express";
-import wrap from "../../../../../utils/wrapAsync";
-import Vfs from "../../../../../vfs";
+import wrap from "../../../../../utils/wrapAsync.js";
+import Vfs from "../../../../../vfs/index.js";
 
 
 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import path from "path";
-import { BadRequestError, ForbiddenError } from "../../../utils/errors";
-import { getFileParams, getUserId, getVfs } from "../../../utils/locals";
+import { BadRequestError, ForbiddenError } from "../../../utils/errors.js";
+import { getFileParams, getUserId, getVfs } from "../../../utils/locals.js";
 
 
 /**

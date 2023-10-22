@@ -2,8 +2,8 @@
 
 import request from "supertest";
 
-import Vfs from "../../../../../vfs";
-import UserManager from "../../../../../auth/UserManager";
+import Vfs from "../../../../../vfs/index.js";
+import UserManager from "../../../../../auth/UserManager.js";
 
 describe("PATCH /api/v1/scenes/:scene", function(){
   let vfs:Vfs, userManager:UserManager, ids :number[];

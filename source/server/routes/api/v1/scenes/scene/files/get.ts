@@ -1,7 +1,7 @@
 
 import { Request, Response } from "express";
-import toCsv from "../../../../../../utils/csv";
-import { getVfs } from "../../../../../../utils/locals";
+import toCsv from "../../../../../../utils/csv.js";
+import { getVfs } from "../../../../../../utils/locals.js";
 
 
 

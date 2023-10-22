@@ -3,6 +3,7 @@
     "version": "0.0.1",
     "description": "eThesaurus application, based on Smithsonian DPO Voyager - 3D Explorer and Tool Suite",
     "public": false,
+    "type": "module",
     "scripts": {
         "start": "ROOT_DIR=\"$(pwd)/../..\" node ./dist/server/index.js",
         "test": "mocha",
@@ -65,7 +66,7 @@
         "supertest": "^6.3.3",
         "webpack-dev-middleware": "^6.1.1"
     },
-    "overrides":{
+    "overrides": {
         "webpack-dev-middleware": {
             "webpack": "^5.88.1"
         }

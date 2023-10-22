@@ -3,7 +3,7 @@ import timers from "timers/promises"
 import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 
-import wrap, { wrapFormat } from "./wrapAsync";
+import wrap, { wrapFormat } from "./wrapAsync.js";
 
 
 describe("wrapAsync", function(){

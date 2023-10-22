@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import fs from "fs/promises";
 import path from "path";
-import { parse_glb, parse_glTF } from "./glTF";
+import { parse_glb, parse_glTF } from "./glTF.js";
 
 describe("parse_glb()", function(){
 

@@ -1,13 +1,13 @@
-import fs from "fs/promises";
-import {tmpdir} from "os";
-import path from "path";
+import fs from "node:fs/promises";
+import {tmpdir} from "node:os";
+import path from "node:path";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 
 //@ts-ignore
 import sourceMaps from "source-map-support";
-import { AppLocals } from "./utils/locals";
-import { parse } from "./utils/config";
+import { AppLocals } from "./utils/locals.js";
+import { parse } from "./utils/config.js";
 sourceMaps.install();
 
 chai.use(chaiAsPromised);
@@ -31,7 +31,7 @@ global.dataStream = async function* (src :Array<Buffer|string> =["foo", "\n"]){
 }
 
 global.createIntegrationContext = async function(c :Mocha.Context){
-  let {default:createServer} = await import("./server");
+  let {default:createServer} = await import("./server.js");
   let titleSlug = c.currentTest?.title.replace(/[^\w]/g, "_") ?? `eThesaurus_integration_test`;
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
   c.config = parse({ROOT_DIR: c.dir, CLEAN_DATABASE: "false", VERBOSE: "false", HOT_RELOAD: "false"});

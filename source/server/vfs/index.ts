@@ -1,16 +1,16 @@
 import fs from "fs/promises";
 import path from "path";
-import open, {Database} from "./helpers/db";
+import open, {Database} from "./helpers/db.js";
 
 
-import BaseVfs from "./Base";
-import FilesVfs from "./Files";
-import DocsVfs from "./Docs";
-import ScenesVfs from "./Scenes";
-import CleanVfs from "./Clean";
-import StatsVfs from "./Stats";
+import BaseVfs from "./Base.js";
+import FilesVfs from "./Files.js";
+import DocsVfs from "./Docs.js";
+import ScenesVfs from "./Scenes.js";
+import CleanVfs from "./Clean.js";
+import StatsVfs from "./Stats.js";
 
-export * from "./types";
+export * from "./types.js";
 
 
 /**

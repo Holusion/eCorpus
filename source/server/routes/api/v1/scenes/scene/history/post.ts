@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import path from "path";
-import { BadRequestError } from "../../../../../../utils/errors";
-import { getUser, getVfs } from "../../../../../../utils/locals";
-import { ItemEntry } from "../../../../../../vfs";
+import { BadRequestError } from "../../../../../../utils/errors.js";
+import { getUser, getVfs } from "../../../../../../utils/locals.js";
+import { ItemEntry } from "../../../../../../vfs/index.js";
 
 
 /**

@@ -1,5 +1,5 @@
 
-import { getUserId, getVfs } from "../../../utils/locals";
+import { getUserId, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
 import { createHash } from "crypto";
 

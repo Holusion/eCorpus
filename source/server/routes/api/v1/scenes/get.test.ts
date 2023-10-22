@@ -5,11 +5,11 @@ import {tmpdir} from "os";
 import request from "supertest";
 import { expect } from "chai";
 
-import Vfs from "../../../../vfs";
-import UserManager from "../../../../auth/UserManager";
-import User from "../../../../auth/User";
-import { HandleMock } from "../../../../utils/zip/zip.test";
-import { read_cdh } from "../../../../utils/zip";
+import Vfs from "../../../../vfs/index.js";
+import UserManager from "../../../../auth/UserManager.js";
+import User from "../../../../auth/User.js";
+import { HandleMock } from "../../../../utils/zip/zip.test.js";
+import { read_cdh } from "../../../../utils/zip/index.js";
 
 
 

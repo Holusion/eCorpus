@@ -1,7 +1,7 @@
 import ref from "./default.svx.json";
 
-import {IDocument, INode, IScene} from "../../../client/schema/document"
-import { IAsset, IBoundingBox, IDerivative, IModel, TDerivativeQuality, TDerivativeUsage } from "../../../client/schema/model";
+import {IDocument, INode, IScene} from "./document.js";
+import { IAsset, IBoundingBox, IDerivative, IModel, TDerivativeQuality, TDerivativeUsage } from "./model.js";
 
 export interface Document extends IDocument{
   scenes:IScene[];

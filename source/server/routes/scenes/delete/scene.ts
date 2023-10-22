@@ -1,5 +1,5 @@
 
-import { getFileParams, getUser, getUserId, getUserManager, getVfs } from "../../../utils/locals";
+import { getFileParams, getUser, getUserId, getUserManager, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
 
 export default async function handleDeleteScene(req :Request, res :Response){

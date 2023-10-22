@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import config, {parse} from "./config";
+import config, {parse} from "./config.js";
 
 describe("config", function(){
   it("get a config option", function(){
