@@ -28,15 +28,19 @@ jobs:
   build-server:
     name: Server
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 18, 20]
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: ${{ matrix.node-version }}
       - uses: actions/cache@v3
         id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
+        # don't discriminate by ${{ matrix.node-version }}
         with:
           path: "~/.npm"
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
