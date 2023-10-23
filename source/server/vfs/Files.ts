@@ -1,12 +1,12 @@
 import { constants, promises as fs } from "fs";
 import { createHash } from "crypto";
 import path from "path";
-import { NotFoundError, InternalError, ConflictError, BadRequestError } from "../utils/errors";
-import { Uid } from "../utils/uid";
-import BaseVfs from "./Base";
-import { DataStream, FileProps, GetFileParams, GetFileResult, WriteDirParams, WriteFileParams } from "./types";
+import { NotFoundError, InternalError, ConflictError, BadRequestError } from "../utils/errors.js";
+import { Uid } from "../utils/uid.js";
+import BaseVfs from "./Base.js";
+import { DataStream, FileProps, GetFileParams, GetFileResult, WriteDirParams, WriteFileParams } from "./types.js";
 
-import { Transaction } from "./helpers/db";
+import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
 
 interface DiskFileParams{

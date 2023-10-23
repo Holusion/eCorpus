@@ -1,10 +1,10 @@
 
 import { Request, Response } from "express";
 import path from "path";
-import { getUserId, getVfs } from "../../../../../utils/locals";
-import { wrapFormat } from "../../../../../utils/wrapAsync";
-import { ZipEntry, zip } from "../../../../../utils/zip";
-import { HTTPError } from "../../../../../utils/errors";
+import { getUserId, getVfs } from "../../../../../utils/locals.js";
+import { wrapFormat } from "../../../../../utils/wrapAsync.js";
+import { ZipEntry, zip } from "../../../../../utils/zip/index.js";
+import { HTTPError } from "../../../../../utils/errors.js";
 
 
 

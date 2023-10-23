@@ -1,10 +1,10 @@
 
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import {basename, dirname} from "path";
-import User, { SafeUser } from "../auth/User";
-import UserManager, { AccessType, AccessTypes } from "../auth/UserManager";
-import Vfs, { GetFileParams } from "../vfs";
-import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors";
+import User, { SafeUser } from "../auth/User.js";
+import UserManager, { AccessType, AccessTypes } from "../auth/UserManager.js";
+import Vfs, { GetFileParams } from "../vfs/index.js";
+import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
 
 export interface AppLocals extends Record<string, any>{
   port :number;

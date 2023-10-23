@@ -1,7 +1,7 @@
 
 import { Request, Response } from "express";
-import { BadRequestError } from "../../../../../../utils/errors";
-import { getUserId, getUserManager } from "../../../../../../utils/locals";
+import { BadRequestError } from "../../../../../../utils/errors.js";
+import { getUserId, getUserManager } from "../../../../../../utils/locals.js";
 
 
 

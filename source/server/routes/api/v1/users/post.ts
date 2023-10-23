@@ -1,9 +1,9 @@
 
 import { Request, Response } from "express";
-import User from "../../../../auth/User";
-import UserManager from "../../../../auth/UserManager";
-import { BadRequestError } from "../../../../utils/errors";
-import { getUserManager } from "../../../../utils/locals";
+import User from "../../../../auth/User.js";
+import UserManager from "../../../../auth/UserManager.js";
+import { BadRequestError } from "../../../../utils/errors.js";
+import { getUserManager } from "../../../../utils/locals.js";
 
 
 

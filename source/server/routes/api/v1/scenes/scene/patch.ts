@@ -1,6 +1,6 @@
 
-import { ConflictError } from "../../../../../utils/errors";
-import { getUserId, getVfs } from "../../../../../utils/locals";
+import { ConflictError } from "../../../../../utils/errors.js";
+import { getUserId, getVfs } from "../../../../../utils/locals.js";
 import { Request, Response } from "express";
 
 

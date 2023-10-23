@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import timers from "timers/promises";
 import {constants} from "fs";
-import BaseVfs from "./Base";
-import FilesVfs from "./Files";
+import BaseVfs from "./Base.js";
+import FilesVfs from "./Files.js";
 
 
 

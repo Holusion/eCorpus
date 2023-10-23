@@ -1,22 +1,23 @@
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from 'url';
 import {tmpdir} from "os";
 import timers from 'timers/promises';
 
 import request from "supertest";
 import { expect } from "chai";
 import { once } from "events";
-import postScene from "./post";
+import postScene from "./post.js";
 import express, { Application } from "express";
-import wrap from "../../../../../utils/wrapAsync";
-import Vfs from "../../../../../vfs";
+import wrap from "../../../../../utils/wrapAsync.js";
+import Vfs from "../../../../../vfs/index.js";
 
-
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 describe("POST /api/v1/scenes/:scene", function(){
   let vfs:Vfs, app: Application, data:Buffer;
   this.beforeEach(async function(){
-    data = await fs.readFile(path.join(__dirname, "../../../../../__test_fixtures/cube.glb"));
+    data = await fs.readFile(path.join(thisDir, "../../../../../__test_fixtures/cube.glb"));
     this.dir = await fs.mkdtemp(path.join(tmpdir(), `scenes-integration`));
     vfs = await Vfs.Open(this.dir,{createDirs: true});
     app = express();

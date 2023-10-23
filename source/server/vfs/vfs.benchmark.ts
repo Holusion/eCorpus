@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
 import {tmpdir} from "os";
-import Vfs from ".";
-import UserManager from "../auth/UserManager";
+import Vfs from "./index.js";
+import UserManager from "../auth/UserManager.js";
 import { performance } from "perf_hooks";
 
 /* Test structures */

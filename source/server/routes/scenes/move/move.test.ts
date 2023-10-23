@@ -6,9 +6,9 @@ import request from "supertest";
 import { expect } from "chai";
 
 import express, { Application } from "express";
-import User from "../../../auth/User";
-import UserManager from "../../../auth/UserManager";
-import Vfs, { WriteFileParams } from "../../../vfs";
+import User from "../../../auth/User.js";
+import UserManager from "../../../auth/UserManager.js";
+import Vfs, { WriteFileParams } from "../../../vfs/index.js";
 import { Element, xml2js } from "xml-js";
 
 

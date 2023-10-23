@@ -1,29 +1,29 @@
 
 import path from "path";
 import { Router } from "express";
-import User from "../../../auth/User";
-import UserManager from "../../../auth/UserManager";
-import { BadRequestError } from "../../../utils/errors";
-import { canAdmin, canRead, getUserManager, isAdministrator, isAdministratorOrOpen, isUser } from "../../../utils/locals";
-import wrap from "../../../utils/wrapAsync";
+import User from "../../../auth/User.js";
+import UserManager from "../../../auth/UserManager.js";
+import { BadRequestError } from "../../../utils/errors.js";
+import { canAdmin, canRead, getUserManager, isAdministrator, isAdministratorOrOpen, isUser } from "../../../utils/locals.js";
+import wrap from "../../../utils/wrapAsync.js";
 import bodyParser from "body-parser";
-import { getLogin, getLoginLink, sendLoginLink, postLogin } from "./login";
-import { postLogout } from "./logout";
-import postScene from "./scenes/scene/post";
-import getScenes from "./scenes/get";
-import getSceneHistory from "./scenes/scene/history/get";
-import getFiles from "./scenes/scene/files/get";
+import { getLogin, getLoginLink, sendLoginLink, postLogin } from "./login.js";
+import { postLogout } from "./logout.js";
+import postScene from "./scenes/scene/post.js";
+import getScenes from "./scenes/get.js";
+import getSceneHistory from "./scenes/scene/history/get.js";
+import getFiles from "./scenes/scene/files/get.js";
 
-import getScene from "./scenes/scene/get";
-import getPermissions from "./scenes/scene/permissions/get";
-import patchPermissions from "./scenes/scene/permissions/patch";
-import postUser from "./users/post";
-import handleDeleteUser from "./users/uid/delete";
-import { handlePatchUser } from "./users/uid/patch";
-import { postSceneHistory } from "./scenes/scene/history/post";
-import handleGetStats from "./stats";
-import postScenes from "./scenes/post";
-import patchScene from "./scenes/scene/patch";
+import getScene from "./scenes/scene/get.js";
+import getPermissions from "./scenes/scene/permissions/get.js";
+import patchPermissions from "./scenes/scene/permissions/patch.js";
+import postUser from "./users/post.js";
+import handleDeleteUser from "./users/uid/delete.js";
+import { handlePatchUser } from "./users/uid/patch.js";
+import { postSceneHistory } from "./scenes/scene/history/post.js";
+import handleGetStats from "./stats/index.js";
+import postScenes from "./scenes/post.js";
+import patchScene from "./scenes/scene/patch.js";
 
 
 

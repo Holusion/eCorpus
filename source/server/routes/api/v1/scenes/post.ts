@@ -3,14 +3,12 @@ import path from "path";
 import {once} from "events";
 
 import { Request, Response } from "express";
-import { getHost, getUser, getVfs } from "../../../../utils/locals";
-import { wrapFormat } from "../../../../utils/wrapAsync";
-import { zip } from "../../../../utils/zip";
-import { Uid } from "../../../../utils/uid";
-import { unzip } from "../../../../utils/zip";
-import { HTTPError } from "../../../../utils/errors";
+import { getHost, getUser, getVfs } from "../../../../utils/locals.js";
+import { Uid } from "../../../../utils/uid.js";
+import { unzip } from "../../../../utils/zip/index.js";
+import { HTTPError } from "../../../../utils/errors.js";
 import { createReadStream } from "fs";
-import { getMimeType } from "../../../../utils/filetypes";
+import { getMimeType } from "../../../../utils/filetypes.js";
 
 
 interface ImportResults {

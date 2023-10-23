@@ -5,16 +5,16 @@ import cookieSession from "cookie-session";
 import express from "express";
 import { engine } from 'express-handlebars';
 
-import UserManager from "./auth/UserManager";
-import { BadRequestError, HTTPError } from "./utils/errors";
+import UserManager from "./auth/UserManager.js";
+import { BadRequestError, HTTPError } from "./utils/errors.js";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, getHost, getUserManager} from "./utils/locals";
+import {AppLocals, getHost, getUserManager} from "./utils/locals.js";
 
-import openDatabase from './vfs/helpers/db';
-import Vfs from "./vfs";
-import defaultConfig from "./utils/config";
-import User from "./auth/User";
+import openDatabase from "./vfs/helpers/db.js";
+import Vfs from "./vfs/index.js";
+import defaultConfig from "./utils/config.js";
+import User from "./auth/User.js";
 
 
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
@@ -177,14 +177,14 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   }
   app.use("/", express.static(config.assets_dir));
 
-  app.use("/libs", (await import("./routes/libs")).default);
+  app.use("/libs", (await import("./routes/libs/index.js")).default);
 
 
 
   //Privilege-protected routes
-  app.use("/scenes", (await import("./routes/scenes")).default);
+  app.use("/scenes", (await import("./routes/scenes/index.js")).default);
 
-  app.use("/api/v1", (await import("./routes/api/v1")).default);
+  app.use("/api/v1", (await import("./routes/api/v1/index.js")).default);
 
 
   const log_errors = process.env["TEST"] !== 'true';

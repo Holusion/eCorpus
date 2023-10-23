@@ -1,9 +1,9 @@
 
 import request from "supertest";
-import User from "../../../auth/User";
-import UserManager from "../../../auth/UserManager";
-import { NotFoundError } from "../../../utils/errors";
-import Vfs from "../../../vfs";
+import User from "../../../auth/User.js";
+import UserManager from "../../../auth/UserManager.js";
+import { NotFoundError } from "../../../utils/errors.js";
+import Vfs from "../../../vfs/index.js";
 
 
 

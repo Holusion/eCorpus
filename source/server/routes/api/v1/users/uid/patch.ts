@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import User, { SafeUser } from "../../../../../auth/User";
-import { UnauthorizedError } from "../../../../../utils/errors";
-import { getUser, getUserManager } from "../../../../../utils/locals";
+import User, { SafeUser } from "../../../../../auth/User.js";
+import { UnauthorizedError } from "../../../../../utils/errors.js";
+import { getUser, getUserManager } from "../../../../../utils/locals.js";
 
 
 
