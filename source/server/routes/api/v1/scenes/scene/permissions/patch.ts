@@ -1,6 +1,6 @@
 
 import { Request, Response } from "express";
-import { getUserManager } from "../../../../../../utils/locals";
+import { getUserManager } from "../../../../../../utils/locals.js";
 
 
 

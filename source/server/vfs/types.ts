@@ -1,7 +1,7 @@
 import { Request } from "express";
 import {ReadStream} from "fs";
 import {Readable} from "stream";
-import { AccessType } from "../auth/UserManager";
+import { AccessType } from "../auth/UserManager.js";
 
 
 export type DataStream = ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;

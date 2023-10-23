@@ -2,11 +2,11 @@ import fs from "fs/promises";
 import path from "path";
 import {tmpdir} from "os";
 import { expect } from "chai";
-import Vfs, { FileProps, GetFileParams, Scene, WriteFileParams } from ".";
-import { Uid } from "../utils/uid";
-import UserManager from "../auth/UserManager";
-import User from "../auth/User";
-import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
+import Vfs, { FileProps, GetFileParams, Scene, WriteFileParams } from "./index.js";
+import { Uid } from "../utils/uid.js";
+import UserManager from "../auth/UserManager.js";
+import User from "../auth/User.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
 
 async function *dataStream(src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){

@@ -1,8 +1,8 @@
 
 import request from "supertest";
-import Vfs from "../../../../../../vfs";
-import User from "../../../../../../auth/User";
-import UserManager from "../../../../../../auth/UserManager";
+import Vfs from "../../../../../../vfs/index.js";
+import User from "../../../../../../auth/User.js";
+import UserManager from "../../../../../../auth/UserManager.js";
 import { randomBytes } from "crypto";
 
 

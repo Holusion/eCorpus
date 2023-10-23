@@ -1,8 +1,8 @@
 import sendmail from "sendmail";
 import { once } from "events";
-import config from "../config";
+import config from "../config.js";
 
-import { BOUNDARY, MailBody } from "./templates";
+import { BOUNDARY, MailBody } from "./templates.js";
 import { promisify } from "util";
 
 const _send = promisify(sendmail({

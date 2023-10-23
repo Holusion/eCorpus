@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { addDerivative, addModel, Asset, Document } from "./edit"
+import { addDerivative, addModel, Asset, Document } from "./edit.js";
 
 
 

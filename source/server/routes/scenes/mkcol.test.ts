@@ -2,9 +2,9 @@
 import request from "supertest";
 import { expect } from "chai";
 
-import User from "../../auth/User";
-import UserManager from "../../auth/UserManager";
-import Vfs from "../../vfs";
+import User from "../../auth/User.js";
+import UserManager from "../../auth/UserManager.js";
+import Vfs from "../../vfs/index.js";
 import { Element, xml2js } from "xml-js";
 
 

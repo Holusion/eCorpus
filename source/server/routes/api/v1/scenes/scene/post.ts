@@ -1,7 +1,7 @@
 
-import { getUserId, getVfs } from "../../../../../utils/locals";
+import { getUserId, getVfs } from "../../../../../utils/locals.js";
 import { Request, Response } from "express";
-import { parse_glb } from "../../../../../utils/glTF";
+import { parse_glb } from "../../../../../utils/glTF.js";
 
 
 /**
@@ -12,7 +12,7 @@ import { parse_glb } from "../../../../../utils/glTF";
  * @returns 
  */
 async function getDocument(scene:string, filepath:string){
-  let {default:orig} = await import("../../../../../utils/documents/default.svx.json");
+  let {default:orig} = await import("../../../../../utils/schema/default.svx.json", {assert:{type:"json"}});
   //dumb inefficient Deep copy because we want to mutate the doc in-place
   let document = JSON.parse(JSON.stringify(orig));
   let meta = await parse_glb(filepath);

@@ -1,8 +1,8 @@
 
-import open, {Database} from "./helpers/db";
+import open, {Database} from "./helpers/db.js";
 import path from "path";
-import { InternalError, NotFoundError } from "../utils/errors";
-import { FileProps } from "./types";
+import { InternalError, NotFoundError } from "../utils/errors.js";
+import { FileProps } from "./types.js";
 
 
 export default abstract class BaseVfs{

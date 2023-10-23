@@ -1,7 +1,7 @@
 
 import {open as openDatabase, ISqlite, Database as IDatabase } from "sqlite";
 import sqlite from "sqlite3";
-import config from "../../utils/config";
+import config from "../../utils/config.js";
 
 export interface DbOptions {
   filename:string;

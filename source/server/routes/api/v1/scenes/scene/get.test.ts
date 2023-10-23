@@ -6,12 +6,12 @@ import {Readable} from "stream";
 import request from "supertest";
 import { expect } from "chai";
 
-import Vfs from "../../../../../vfs";
-import UserManager from "../../../../../auth/UserManager";
-import User from "../../../../../auth/User";
-import { read_cdh } from "../../../../../utils/zip";
+import Vfs from "../../../../../vfs/index.js";
+import UserManager from "../../../../../auth/UserManager.js";
+import User from "../../../../../auth/User.js";
+import { read_cdh } from "../../../../../utils/zip/index.js";
 
-import { HandleMock } from "../../../../../utils/zip/zip.test";
+import { HandleMock } from "../../../../../utils/zip/zip.test.js";
 
 describe("GET /api/v1/scenes/:scene", function(){
   let vfs:Vfs, userManager:UserManager, ids :number[];

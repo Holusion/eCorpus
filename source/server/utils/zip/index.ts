@@ -3,8 +3,8 @@ import assert from "assert/strict";
 import { Readable, Stream } from "stream";
 
 
-import { crc32 } from "./crc32";
-import {DateTime} from "./datetime";
+import { crc32 } from "./crc32.js";
+import {DateTime} from "./datetime.js";
 import { ReadStream } from "fs";
 
 

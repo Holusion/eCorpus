@@ -1,5 +1,5 @@
 
-import { getFileParams, getUserId, getVfs } from "../../../utils/locals";
+import { getFileParams, getUserId, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
 
 /**

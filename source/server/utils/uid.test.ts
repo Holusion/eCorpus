@@ -4,7 +4,7 @@ import path from "path";
 import {tmpdir} from "os";
 import {expect} from "chai";
 
-import uid, { Uid } from "./uid"
+import uid, { Uid } from "./uid.js";
 describe("uid()", function(){
   it("generates unique fixed-length names", function(){
     for(let i=0; i <100; i++){

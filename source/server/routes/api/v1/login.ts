@@ -1,10 +1,10 @@
 import { createHmac } from "crypto";
 import { Request, RequestHandler, Response } from "express";
-import User, { SafeUser } from "../../../auth/User";
-import { BadRequestError, ForbiddenError, HTTPError } from "../../../utils/errors";
-import { getHost, getUser, getUserManager } from "../../../utils/locals";
-import sendmail from "../../../utils/mails/send";
-import { recoverAccount } from "../../../utils/mails/templates";
+import User, { SafeUser } from "../../../auth/User.js";
+import { BadRequestError, ForbiddenError, HTTPError } from "../../../utils/errors.js";
+import { getHost, getUser, getUserManager } from "../../../utils/locals.js";
+import sendmail from "../../../utils/mails/send.js";
+import { recoverAccount } from "../../../utils/mails/templates.js";
 /**
  * 
  * @type {RequestHandler}

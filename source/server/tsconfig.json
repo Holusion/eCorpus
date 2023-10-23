@@ -1,21 +1,16 @@
 {
     "compilerOptions": {
-        "lib": ["es2022"],
-        "module": "node16",
-        "target": "es2022",
+        "lib": ["ES2021"],
+        "module": "NodeNext",
+        "target": "ES2021",
         "strict": true,
         "resolveJsonModule": true,
-        "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "moduleResolution": "node",
         "sourceMap": true,
         "types": ["mocha", "chai", "chai-as-promised"],
         "outDir": "./dist",
-        "rootDir": "..",
-        "paths": {
-            "@ff/core/types": [ "./utils/documents/types" ],
-        }
+        "rootDir": ".."
     },
     "files": [
         "index.ts",

@@ -2,11 +2,11 @@
 import { createHash } from "crypto";
 import { Request, Response } from "express";
 import path from "path";
-import { AccessType } from "../../../../auth/UserManager";
-import { HTTPError } from "../../../../utils/errors";
-import { getHost, getUser, getVfs } from "../../../../utils/locals";
-import { wrapFormat } from "../../../../utils/wrapAsync";
-import { ZipEntry, zip } from "../../../../utils/zip";
+import { AccessType } from "../../../../auth/UserManager.js";
+import { HTTPError } from "../../../../utils/errors.js";
+import { getHost, getUser, getVfs } from "../../../../utils/locals.js";
+import { wrapFormat } from "../../../../utils/wrapAsync.js";
+import { ZipEntry, zip } from "../../../../utils/zip/index.js";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);

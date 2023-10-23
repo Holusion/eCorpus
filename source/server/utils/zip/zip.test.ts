@@ -1,7 +1,7 @@
 import fs, { FileHandle } from "fs/promises"
 import { expect } from "chai";
-import { GetFileResult } from "../../vfs";
-import { asyncMap, create_cd_header, flags, parse_cd_header, read_cdh, unzip, zip,  } from "."
+import { GetFileResult } from "../../vfs/index.js";
+import { asyncMap, create_cd_header, flags, parse_cd_header, read_cdh, unzip, zip,  } from "./index.js";
 import { Readable } from "stream";
 import { createHash } from "crypto";
 import path from "path";

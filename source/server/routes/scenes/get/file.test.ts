@@ -4,9 +4,9 @@ import {Readable} from "stream";
 import timers from "node:timers/promises";
 
 import request from "supertest";
-import User from "../../../auth/User";
-import UserManager from "../../../auth/UserManager";
-import Vfs from "../../../vfs";
+import User from "../../../auth/User.js";
+import UserManager from "../../../auth/UserManager.js";
+import Vfs from "../../../vfs/index.js";
 
 
 

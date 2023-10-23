@@ -1,6 +1,6 @@
 
 import { expect } from "chai";
-import * as errorConstructors from "./errors";
+import * as errorConstructors from "./errors.js";
 describe("errors", function(){
   let {HTTPError, ...defaultConstructors} = errorConstructors;
   Object.entries(defaultConstructors).forEach(([name, Constructor])=>{

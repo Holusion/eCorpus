@@ -1,19 +1,19 @@
 import { NextFunction, Request, Response, Router } from "express";
 
-import {handlePropfind} from "./propfind";
-import {handlePutFile, handlePutDocument} from "./put";
-import { canRead, canWrite, isAdministrator, isUser } from "../../utils/locals";
-import wrap from "../../utils/wrapAsync";
+import {handlePropfind} from "./propfind.js";
+import {handlePutFile, handlePutDocument} from "./put/index.js";
+import { canRead, canWrite, isAdministrator, isUser } from "../../utils/locals.js";
+import wrap from "../../utils/wrapAsync.js";
 import bodyParser from "body-parser";
 
-import handleGetDocument from "./get/document";
-import handleGetFile from "./get/file";
-import handleMoveFile from "./move/file";
-import handleDeleteFile from "./delete/file";
-import handleCopyFile from "./copy/file";
-import handleCopyDocument from "./copy/document";
-import handleDeleteScene from "./delete/scene";
-import handleMkcol from "./mkcol";
+import handleGetDocument from "./get/document.js";
+import handleGetFile from "./get/file.js";
+import handleMoveFile from "./move/file.js";
+import handleDeleteFile from "./delete/file.js";
+import handleCopyFile from "./copy/file.js";
+import handleCopyDocument from "./copy/document.js";
+import handleDeleteScene from "./delete/scene.js";
+import handleMkcol from "./mkcol.js";
 
 const router = Router();
 /** Configure cache behaviour for everything under `/scenes/**`

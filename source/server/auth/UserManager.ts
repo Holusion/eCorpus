@@ -3,11 +3,11 @@ import crypto from "crypto";
 import path from "path";
 import {promisify, callbackify} from "util";
 
-import uid, { Uid } from "../utils/uid";
-import { BadRequestError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors";
-import User, {SafeUser, StoredUser} from "./User";
+import uid, { Uid } from "../utils/uid.js";
+import { BadRequestError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import User, {SafeUser, StoredUser} from "./User.js";
 
-import openDatabase, {Database, DbOptions} from "../vfs/helpers/db";
+import openDatabase, {Database, DbOptions} from "../vfs/helpers/db.js";
 
 
 const scrypt :(

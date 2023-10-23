@@ -1,6 +1,6 @@
 
 import os from "os";
-import BaseVfs from "./Base";
+import BaseVfs from "./Base.js";
 
 interface ServerStats{
   files: {
