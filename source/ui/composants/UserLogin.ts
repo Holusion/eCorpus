@@ -7,7 +7,6 @@ import i18n from "../state/translate";
 
 import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles.scss';
 import Notification from "@ff/ui/Notification";
-import Modal from "./Modal";
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -20,7 +19,8 @@ import Modal from "./Modal";
     @property()
     mode :"login"|"recover";
 
-    #active = false;
+    @property({type:Boolean})
+    active = false;
     
     constructor()
     {
@@ -31,7 +31,7 @@ import Modal from "./Modal";
       ev.preventDefault();
       const username = ev.target["username"].value;
       const password = ev.target["password"].value;
-      this.#active = true;
+      this.active = true;
       doLogin(username, password)
       .then(()=>{
         console.log("User logged-in succesfully");
@@ -39,13 +39,13 @@ import Modal from "./Modal";
       },(e)=>{
         console.log("Login failed :", e);
         Notification.show(`Failed to login : ${e}`, "warning")
-      }).finally(()=> this.#active = false)
+      }).finally(()=> this.active = false)
     }
 
     onRecoverSubmit = (ev :MouseEvent)=>{
       ev.preventDefault();
       const username = ev.target["username"].value;
-      this.#active = true;
+      this.active = true;
       fetch(`/api/v1/login/${username}/link`, {
         method: "POST",
       }).then(async (r)=>{
@@ -59,11 +59,11 @@ import Modal from "./Modal";
       }).catch(e=>{
         console.log("Failed to send recovery link :", e);
         Notification.show(`Failed : ${e.message}`, "warning")
-      }).finally(()=> this.#active = false)
+      }).finally(()=> this.active = false)
     }
 
     private renderLogin(){
-      return html`<form id="userlogin" class="form-control form-modal" ?disabled=${this.#active} @submit=${this.onLoginSubmit}>
+      return html`<form id="userlogin" class="form-control form-modal" ?disabled=${this.active} @submit=${this.onLoginSubmit}>
         <div class="form-group">
           <div class="form-item">
             <input type="text" autocomplete="username" name="username" id="username" placeholder="${this.t("ui.username")}" required>
@@ -78,7 +78,7 @@ import Modal from "./Modal";
         </div>
         <div class="form-group">
           <div class="form-item">
-            <input type="submit"  ?disabled=${this.#active} value="${this.t("ui.login")}" >
+            <input type="submit"  ?disabled=${this.active} value="${this.t("ui.login")}" >
           </div>
         </div>
         <div style="text-align:right;">
@@ -88,7 +88,7 @@ import Modal from "./Modal";
     }
 
     private renderRecover(){
-      return html`<form id="recoverPassword" class="form-control form-modal" ?disabled=${this.#active} @submit=${this.onRecoverSubmit}>
+      return html`<form id="recoverPassword" class="form-control form-modal" ?disabled=${this.active} @submit=${this.onRecoverSubmit}>
         <p>
           ${this.t("info.recoverPasswordLead")}
         </p>
@@ -100,7 +100,7 @@ import Modal from "./Modal";
         </div>
         <div class="form-group">
           <div class="form-item">
-            <input type="submit"  ?disabled=${this.#active} value="${this.t("ui.submit")}" >
+            <input type="submit"  ?disabled=${this.active} value="${this.t("ui.submit")}" >
           </div>
         </div>
       </form>`;
