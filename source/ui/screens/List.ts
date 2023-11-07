@@ -38,6 +38,9 @@ interface Upload{
     @property({type: Array, attribute: false})
     selection = [];
 
+    @property({type: Function, attribute: false})
+    sort: Parameters<typeof Array.prototype.sort>[0];
+
     get isUser(){
         return (this.user && !this.user.isDefaultUser);
     }
@@ -127,12 +130,14 @@ interface Upload{
         if(!this.isUser){
             return html`<landing-page></landing-page>`;
         }
-        let mode = (this.user?"write":"read")
+        let mode = (this.user?"write":"read");
 
         if(!this.list){
             return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
         }
-        let orderTypes = ["alphabet","ctime","mtime"]
+        let orderTypes = ["alphabet","ctime","mtime"];
+
+        let sortedList = this.list.sort(this.sort);
 
         return html`
             <div class="toolbar">
@@ -169,11 +174,11 @@ interface Upload{
                 </div>
 
                 <div class="section" style="width:100%">
-                    ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?
+                    ${(sortedList.length == 0 && Object.keys(this.uploads).length == 0)?
                         html`<h4>No scenes available</h1>`:
                         repeat([
                             ...Object.keys(this.uploads).map(name=>({name})),
-                            ...this.list,
+                            ...sortedList,
                         ],({name})=>name , (scene)=>this.renderScene(mode, scene))
                     }
                     ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}                
@@ -229,9 +234,9 @@ interface Upload{
     onSelectOrder = (ev)=>{
         let value = ev.target.value;
 
-        if(value == "alphabet") this.list.sort((a, b) => a.name.localeCompare(b.name));
-        if(value == "ctime") this.list.sort((a, b) => new Date(b.ctime).valueOf() - new Date(a.ctime).valueOf());
-        if(value == "mtime") this.list.sort((a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf());
+        if(value == "alphabet") this.sort = (a, b) => a.name.localeCompare(b.name);
+        if(value == "ctime") this.sort = (a, b) => new Date(b.ctime).valueOf() - new Date(a.ctime).valueOf();
+        if(value == "mtime") this.sort = (a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf();
         
         this.requestUpdate();
     }
