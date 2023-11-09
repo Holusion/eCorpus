@@ -1,3 +1,4 @@
+import path from "path";
 
 import { getUserId, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
@@ -15,6 +16,8 @@ export default async function handleGetDocument(req :Request, res :Response){
   
   let hash = createHash("sha256").update(f.data).digest("base64url");
   let data = Buffer.from(f.data);
+  //Use this to know the client's document generation if he submits a change
+  res.cookie("docID", `${f.id}`, {sameSite: "strict", path: path.dirname(req.originalUrl)});
 
   res.set("ETag", `W/${hash}`);
   res.set("Last-Modified", f.mtime.toUTCString());
