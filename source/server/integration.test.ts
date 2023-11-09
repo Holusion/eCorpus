@@ -118,8 +118,9 @@ describe("Web Server Integration", function(){
         .send(c)
         .expect(204);
         let {text} = await this.agent.get("/scenes/foo/foo.svx.json")
-        .expect("Content-Type", "application/si-dpo-3d.document+json")
-        .expect(200);
+        .expect(200)
+        .expect("Content-Type", "application/si-dpo-3d.document+json");
+        
         expect(()=>JSON.parse(text)).not.to.throw()
         expect(JSON.parse(text)).to.deep.equal(JSON.parse(c));
       });
