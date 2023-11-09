@@ -38,6 +38,12 @@ export default abstract class DocsVfs extends BaseVfs{
     });
   }
 
+  /**
+   * 
+   * @param $scene_id 
+   * @param generation Optional generation number. If not provided, the latest generation is returned
+   * @returns 
+   */
   async getDoc($scene_id :number, generation ?:number) :Promise<DocProps>{
     let r = await this.db.get(`
       SELECT

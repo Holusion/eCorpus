@@ -1,10 +1,12 @@
-import { NextFunction, Request, Response, Router } from "express";
+import { Router } from "express";
+
+import bodyParser from "body-parser";
 
 import {handlePropfind} from "./propfind.js";
 import {handlePutFile, handlePutDocument} from "./put/index.js";
 import { canRead, canWrite, isAdministrator, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
-import bodyParser from "body-parser";
+
 
 import handleGetDocument from "./get/document.js";
 import handleGetFile from "./get/file.js";
