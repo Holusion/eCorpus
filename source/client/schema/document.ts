@@ -54,6 +54,7 @@ export interface IDocumentAsset
     version: string;
     copyright?: string;
     generator?: string;
+    id?: number;
 }
 
 export interface IScene

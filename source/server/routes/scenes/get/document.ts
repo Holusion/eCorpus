@@ -1,6 +1,5 @@
-import path from "path";
 
-import { getUserId, getVfs } from "../../../utils/locals.js";
+import { getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
 import { createHash } from "crypto";
 
@@ -14,12 +13,16 @@ export default async function handleGetDocument(req :Request, res :Response){
   let scene = await vfs.getScene(scene_name);
   let f = await vfs.getDoc(scene.id);
   
-  let hash = createHash("sha256").update(f.data).digest("base64url");
-  let data = Buffer.from(f.data);
-  //Use this to know the client's document generation if he submits a change
-  res.cookie("docID", `${f.id}`, {sameSite: "strict", path: path.dirname(req.originalUrl)});
+  let doc = JSON.parse(f.data);
+  //Inject document id to know the client's reference document if he submits a change
+  doc.asset.id = f.id;
 
-  res.set("ETag", `W/${hash}`);
+  let data = Buffer.from(JSON.stringify(doc));
+
+  let hash = createHash("sha256").update(data).digest("base64url");
+
+
+  res.set("ETag", hash);
   res.set("Last-Modified", f.mtime.toUTCString());
   if(req.fresh){
     return res.status(304).send("Not Modified");

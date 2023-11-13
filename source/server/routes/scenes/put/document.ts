@@ -38,17 +38,16 @@ export default async function handlePutDocument(req :Request, res :Response){
   const uid = getUserId(req);
   const {scene} = req.params;
   const newDoc = req.body;
-
-  const refId = parseInt(req.cookies["docID"] ?? "0");
+  const refId = newDoc?.asset?.id;
   if(!refId) return await overwritePutDocument(req, res);
-
+  else delete newDoc.asset.id; //Don't write this to DB
 
   await getVfs(req).isolate(async (tr)=>{
     // perform a diff of the document with the reference one
     const {id: scene_id} = await tr.getScene(scene);
     const {data: currentDocString} = await tr.getDoc(scene_id);
     const currentDoc = JSON.parse(currentDocString);
-    const {data:refDocString} = await tr.getDocById(refId);
+    const {data: refDocString} = await tr.getDocById(refId);
     const refDoc = JSON.parse(refDocString);
 
     const docDiff = merge.diff(refDoc, newDoc);
@@ -59,10 +58,9 @@ export default async function handlePutDocument(req :Request, res :Response){
     }
     console.log("Merge changes : ", JSON.stringify(docDiff));
     const mergedDoc = merge.apply(currentDoc, docDiff);
-    let s = JSON.stringify(mergedDoc, null, 2);
+    let s = JSON.stringify(mergedDoc);
     if(s == "{}") throw new BadRequestError(`Invalid json document`);
     let id = await tr.writeDoc(s, scene, uid);
-    res.cookie("docID", `${id}`, {sameSite: "strict", path: path.dirname(req.originalUrl)});
     res.status(204).send();
   })
   

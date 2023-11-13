@@ -59,6 +59,10 @@ describe("merge.diff()", function(){
       expect(diff({a:["foo", "bar", "baz"]}, {a:["foo", "baz"]})).to.deep.equal({a:{1: "baz", 2: DELETE_KEY}});
     });
 
+    it("handle deep changes", function(){
+      expect(diff({a:[{v:"foo"}, {v:"bar"}]}, {a:[{v:"foo"}, {v:"baz"}]})).to.deep.equal({a:{1:{v:"baz"}}});
+    });
+
     it("throws when diffing an array with an object", function(){
       expect(()=>diff({a:[]}, {a:{}})).to.throw("Can't diff an array with an object");
     });
@@ -87,16 +91,86 @@ describe("merge.apply()", function(){
   it("merges updated arrays", function(){
     expect(apply({a:[1,2]}, {a:{0:1, 1:3}})).to.deep.equal({a:[1,3]});
   });
+
+
 });
 
 
 describe("three-way merge", function(){
-  // This is the real point of this module
+  /* This is the real point of this module
+   * For consistency, tests should follow the following naming scheme:
+   * a *ref* as the common source, 
+   * a *current* as the document that have been saved in-between
+   * a *next* as the document that is being saved now
+   */
+
   it("string update", function(){
     /** @TODO could try to do string splicing for finer results */
     const ref = {greet:"Hello", name:"World"};
     const current = {greet:"Hi", name:"World"};
     const next = {greet:"Hello", name:"Universe"};
     expect(apply(current, diff(ref, next))).to.deep.equal({greet:"Hi", name:"Universe"});
+  });
+
+  it.skip("ignores camera translation/rotation changes", function(){
+    //This is a potential optimization
+    //The camera node's position can safely be ignored as it will get reset on load, in favor of `scene.setups[].navigation`
+  });
+
+  describe.skip("conflict resolution", function(){
+    //Test only cases where "smart" conflict resolution is possible
+    describe("by ID", function(){
+      //Here it would be possible to differentiate annotations or articles by their id
+      //thus detecting a double-push and resolving it
+        const A1 = { "id": "mMzG2tLjmIst", "titles": { "EN": "A1"} }
+        const A2 = { "id": "FiIaONzRIbL4", "titles": { "EN": "A2"} }
+        const A3 = { "id": "rJpCltJjxyyL", "titles": { "EN": "A3"} }
+      it("handle double array push (annotations)", function(){
+        const ref = {annotations: [A1], title: "foo"};
+        const current = {annotations: [A1,A2]};
+        const next = {annotations: [A1,A3]};
+
+        const d = diff(ref, next);
+        expect(d).to.deep.equal({annotations: {1: A3}});
+        expect(apply(current, d)).to.deep.equal({annotations: [A1,A2,A3], title: "foo"});
+      });
+  
+      it.skip("handle double array push (articles)", function(){
+        const ref = {articles: [A1], title: "foo"};
+        const current = {articles: [A1,A2]};
+        const next = {articles: [A1,A3]};
+        expect(apply(current, diff(ref, next))).to.deep.equal({articles: [A1,A2,A3], title: "foo"});
+      });
+    })
+
+    describe.skip("by name", function(){
+
+      it("reassign scene nodes appropriately", function(){
+        //Differentiate nodes by their names
+        //However, we also need to handle possible conflict in `scenes[x].nodes` if we reorder nodes.
+        const N1 = { "name": "n1"};
+        const N2 = { "name": "n2"};
+        const N3 = { "name": "n3"};
+        const ref = {nodes: [N1], scenes:[{nodes:[0]}] };
+        const current = {nodes: [N1,N2], scenes:[{nodes:[0, 1]}]};
+        const next = {nodes: [N1,N3], scenes:[{nodes:[0, 1]}]};
+
+        expect(apply(current, diff(ref, next))).to.deep.equal({nodes: [N1,N2,N3], scenes:[{nodes:[0, 1, 2]}]});
+        //FIXME a node's children might also be affected.
+      });
+
+      it("reassign nodes children appropriately", function(){
+        
+      });
+
+      ["lights", "cameras", "models"].forEach(type=>{
+        it(`reassign ${type} appropriately`, function(){
+          //Lights have no property that could be used to differentiate them
+          //We can only suppose that if someone adds a node, the light attached to this node is unique to this one and should stay with it.
+        });
+      });
+    });
+
+
   });
 });
