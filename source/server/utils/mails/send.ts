@@ -2,12 +2,17 @@ import sendmail from "sendmail";
 import { once } from "events";
 import config from "../config.js";
 
-import { BOUNDARY, MailBody } from "./templates.js";
+import { MailBody } from "./templates.js";
 import { promisify } from "util";
+
+const [smtpHost, smtpPortString] = config.smart_host.split(':');
+let smtpPort = parseInt(smtpPortString, 10);
+if(Number.isNaN(smtpPort)) smtpPort = 25;
 
 const _send = promisify(sendmail({
   silent: true,
-  smtpHost:config.smart_host,
+  smtpHost,
+  smtpPort,
 }));
 
 export default async function send(to:string, content:MailBody){
