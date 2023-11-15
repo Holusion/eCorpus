@@ -117,29 +117,55 @@ describe("three-way merge", function(){
     //The camera node's position can safely be ignored as it will get reset on load, in favor of `scene.setups[].navigation`
   });
 
-  describe.skip("conflict resolution", function(){
+  describe("fields ignore optimization", function(){
+    //This is a potential optimization
+    //The camera node's position can safely be ignored as it will get reset on load, in favor of `scene.setups[].navigation`
+    it("ignores camera translation changes", function(){
+      const ref = {nodes:[{name:"camera", translation:[1,0,0]}]};
+      const next = {nodes:[{name:"camera", translation:[0,1,0]}]};
+      expect(apply(ref, diff(ref, next))).to.deep.equal({nodes:[{name:"camera", translation:[1,0,0]}]});
+    });
+  })
+
+  describe("conflict resolution", function(){
     //Test only cases where "smart" conflict resolution is possible
     describe("by ID", function(){
       //Here it would be possible to differentiate annotations or articles by their id
       //thus detecting a double-push and resolving it
-        const A1 = { "id": "mMzG2tLjmIst", "titles": { "EN": "A1"} }
-        const A2 = { "id": "FiIaONzRIbL4", "titles": { "EN": "A2"} }
-        const A3 = { "id": "rJpCltJjxyyL", "titles": { "EN": "A3"} }
+      let A1: any, A2: any, A3 : any;
+      beforeEach(function(){
+        A1 = { "id": "mMzG2tLjmIst", "titles": { "EN": "A1"} }
+        A2 = { "id": "FiIaONzRIbL4", "titles": { "EN": "A2"} }
+        A3 = { "id": "rJpCltJjxyyL", "titles": { "EN": "A3"} }
+      });
+
       it("handle double array push (annotations)", function(){
-        const ref = {annotations: [A1], title: "foo"};
-        const current = {annotations: [A1,A2]};
-        const next = {annotations: [A1,A3]};
+        const ref = {annotations: [A1]};
+        const current = {annotations: [A1, A2]};
+        const next = {annotations: [A1, A3]};
 
         const d = diff(ref, next);
         expect(d).to.deep.equal({annotations: {1: A3}});
-        expect(apply(current, d)).to.deep.equal({annotations: [A1,A2,A3], title: "foo"});
+        expect(apply(current, d)).to.deep.equal({annotations: [A1, A2, A3]});
       });
+
+      it("can still modify annotations in place", function(){
+        const A1b = {"id": "mMzG2tLjmIst",  "titles":  { "EN": "A1b", "FR": "A1b"} }
+        const ref = {annotations: [A1]};
+        const current = {annotations: [A1, A2]};
+        const next = {annotations: [A1b]};
+        expect(apply(current, diff(ref, next))).to.deep.equal({annotations: [A1b, A2]});
+
+      })
   
-      it.skip("handle double array push (articles)", function(){
-        const ref = {articles: [A1], title: "foo"};
-        const current = {articles: [A1,A2]};
-        const next = {articles: [A1,A3]};
-        expect(apply(current, diff(ref, next))).to.deep.equal({articles: [A1,A2,A3], title: "foo"});
+      it("handle double array push (articles)", function(){
+        const ref = {articles: [A1]};
+        const current = {articles: [A1, A2]};
+        const next = {articles: [A1, A3]};
+        const d = diff(ref, next);
+        expect(d).to.deep.equal({articles: {1: A3}});
+        const patch = apply(current, d)
+        expect(patch, JSON.stringify(patch)).to.deep.equal({articles: [A1, A2, A3]});
       });
     })
 
@@ -156,7 +182,6 @@ describe("three-way merge", function(){
         const next = {nodes: [N1,N3], scenes:[{nodes:[0, 1]}]};
 
         expect(apply(current, diff(ref, next))).to.deep.equal({nodes: [N1,N2,N3], scenes:[{nodes:[0, 1, 2]}]});
-        //FIXME a node's children might also be affected.
       });
 
       it("reassign nodes children appropriately", function(){
@@ -165,8 +190,36 @@ describe("three-way merge", function(){
 
       ["lights", "cameras", "models"].forEach(type=>{
         it(`reassign ${type} appropriately`, function(){
-          //Lights have no property that could be used to differentiate them
+          const stype = type.slice(0, -1);
+          function make(nodes: object[]=[], types: object[]=[]){
+            return {
+              nodes: [
+                {name: `${stype}.0`, [stype]: 0},
+                ...nodes,
+              ], [type]:[
+                {reference: "default item"},
+                [...types]
+              ]
+            };
+          }
+          //Lights, cameras and models have no property that could be used to differentiate them
           //We can only suppose that if someone adds a node, the light attached to this node is unique to this one and should stay with it.
+          const ref = make();
+          const current = make([{name: `${stype}.current`, [stype]: 1}], [{reference: "current_item"}]);
+          const next = make([{name: `${stype}.next`, [stype]: 1}], [{reference: "next_item"}]);
+
+          expect(apply(current, diff(ref, next))).to.deep.equal({
+            nodes: [
+              {name: `${stype}.0`, [stype]: 0},
+              {name: `${stype}.current`, [stype]: 1},
+              {name: `${stype}.next`, [stype]: 2},
+            ], [type]:[
+              {reference: "default item"},
+              {reference: "current_item"},
+              {reference: "next_item"},
+            ]
+          });
+
         });
       });
     });
