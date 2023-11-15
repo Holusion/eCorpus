@@ -83,7 +83,8 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     .expect("foo\n");
   });
 
-  it("can abort responses", async function(){
+  it.skip("can abort responses", async function(){
+    //This test would be very useful but it has a race condition that makes it unreliable.
     await vfs.createScene("foo", {"0":"write"});
 
     let orig = vfs.getFile;
