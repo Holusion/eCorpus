@@ -30,19 +30,34 @@ class TestmailModalBody extends i18n(LitElement){
 
     if(this.state =="initial"){
       return html`<div style="width:300px;display:flex;justify-content:center">
-      <button @click=${onsend}>${this.t("ui.send")}</button>
+      <button class="send" @click=${onsend}>${this.t("ui.send")}</button>
       </div>`
     }else if(this.state === "sending"){
       return html`<div style="flex-grow:1">
         <progress style="width:100%"></progress>
       </div>`
     }else{
-      return html`<div>
-        <button @click=${onsend}>${this.t("ui.send")}</button>
-        <p>${this.state}</p>
+      return html`<div style="max-width: max(450px, 60vw);">
+        <button class="send" @click=${onsend}>${this.t("ui.send")}</button>
+        <pre class="state-report">${this.state}</pre>
       </div>`;
     }
   }
+  static styles = css`
+    button.send{
+      box-sizing: border-box;
+      padding: 4px 10px;
+      border: none;
+      text-decoration: none;
+      color: white;
+      background-color: var(--color-primary);
+    }
+    .state-report{
+      text-wrap: wrap;
+      overflow: auto;
+      border: 1px solid var(--color-dark);
+    }
+  `;
 }
 
 /**
