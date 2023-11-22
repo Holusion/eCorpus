@@ -31,8 +31,8 @@ export default class RemoteSceneCard extends LitElement
   render() :TemplateResult {
       return html`<div name=${this.name} class=${`scene-card ${this.selected ? "selected" : ""}`} @click=${this.dispatchClick}>
         ${(this.thumb)? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg" />`}
-        <span>${this.name}</span>
-        <span style="opacity:0.5">${new Date(this.time).toLocaleString()}</span>
+        <span class="card-name">${this.name}</span>
+        <span class="card-date" style="opacity:0.5">${new Date(this.time).toLocaleString()}</span>
         ${this.selected ? html`<ff-icon name="check"></ff-icon>`:null}
       </div>`;
   }

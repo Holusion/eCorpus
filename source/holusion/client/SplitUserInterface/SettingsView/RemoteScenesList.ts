@@ -64,7 +64,6 @@ export default class RemoteScenesList extends withBusy(withScenes(LitElement))
     const allSelected = scenesList.every(s => s.selected);
 
     return html`
-        <h2>Scenes téléchargeables</h2>
       <div style="display:flex; gap:5px; justify-content: end; margin-bottom:.5rem">
         <span style="margin-right:auto; align-self:center">${scenesList.length} scènes trouvées</span>
         ${scenesList.length ?html`<ff-button class="btn-primary" style="flex:0 0 auto" text=${allSelected ? "Déselectionner tout" : "Selectionner tout"} @click=${this.onSelectAll}></ff-button>`: null}

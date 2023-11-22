@@ -3,13 +3,17 @@ const http = require('http');
 const {once} = require("events");
 
 
+const {debug} = require("./debug");
+
 const upstream = new URL("https://ecorpus.holusion.com");
-//const upstream = new URL("http://localhost:8000");
 
 /**
  * @typedef {object} ForwardTarget
- * @extends {https.RequestOptions}
- * @property {string} [hostname="ecorpus.holusion.com"]
+ * @property {string|URL} upstream
+ * @property {"GET"|"POST"|"PUT"|"DELETE"} method
+ * @property {string} path
+ * @property {number} [timeout=2000]
+ * @property {https.RequestOptions["headers"]} [headers]
  * @property {string} [body]
  */
 
@@ -20,11 +24,11 @@ const upstream = new URL("https://ecorpus.holusion.com");
  */
 
 async function forward(to){
+  const upstream = new URL(to.path, to.upstream || "https://ecorpus.holusion.com");
+  debug(`Forward [${to.method}] ${upstream.toString()}`)
   let headers = to.headers ?? {};
-  let req = (upstream.protocol === "http:"? http : https).request({
+  let req = (upstream.protocol === "http:"? http : https).request(upstream, {
     ...to,
-    port: upstream.port,
-    hostname: to.hostname || upstream.hostname,
     headers: {
       "Content-Length": to.body? Buffer.byteLength(to.body): 0,
       ...headers,
@@ -38,10 +42,10 @@ async function forward(to){
   let [res] = await once(req, "response", {signal: to.signal });
   if(res.statusCode == 301 || res.statusCode == 302){
     let dest = new URL(res.headers.location);
-    if(dest.hostname == to.hostname && dest.pathname == to.path){
+    if(dest.hostname == upstream.hostname && dest.pathname == to.path){
       throw new Error(`Bad redirect location : ${res.headers.location}`);
     }
-    return await forward({...to, hostname: dest.hostname, path: dest.pathname, port: dest.port})
+    return await forward({...to, upstream: dest, path: dest.pathname})
   }
   return res;
 }
@@ -95,7 +99,7 @@ async function drain(res, limit=0){
 }
 
 /**
- * Simplified request forwarding
+ * Simplified request forwarding : auto drain responses
  * @param {ForwardTarget} to 
  * @return {Promise<import("http").IncomingMessage & {text:string, json:any}>}
  */

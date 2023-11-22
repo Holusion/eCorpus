@@ -12,10 +12,10 @@ import Keyboard from "../../Keyboard";
 interface User {
   username :string;
   isDefaultUser:boolean;
+  upstream :string;
 }
 interface Scene{
   name :string;
-
 }
 
 
@@ -86,6 +86,12 @@ export default class SettingsView extends provideBusy(LitElement)
         <form id="userlogin" class="form-control form-modal" @submit=${this.onLoginSubmit}>
           <div class="form-group">
             <div class="form-item">
+              <input @focus=${Keyboard.focus} type="text" autocomplete="upstream" name="upstream" id="upstream" placeholder="https://ecorpus.holusion.com" value="${this.user?.upstream ?? ""}" required>
+              <label for="upstream">Serveur Distant</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-item">
               <input @focus=${Keyboard.focus} type="text" autocomplete="username" name="username" id="username" placeholder="username" required>
               <label for="username">Nom d'utilisateur</label>
             </div>
@@ -104,7 +110,14 @@ export default class SettingsView extends provideBusy(LitElement)
         </form>
       </div>`
     }else{
-      remoteScenes = html`<remote-scenes-list></remote-scenes-list>`;
+      const remote = new URL(this.user.upstream ?? "https://ecorpus.holusion.com")
+      remoteScenes = html`
+        <div style="display:flex;justify-content:space-between;">
+          <h2>Scenes téléchargeables</h2>
+          <span style="padding:.25rem">Connecté à ${remote.hostname}</span>
+        </div>
+        <remote-scenes-list></remote-scenes-list>
+      `;
     }
 
     let localFiles = html`<div class="files-list">
@@ -121,7 +134,9 @@ export default class SettingsView extends provideBusy(LitElement)
         <ff-button class=${`ff-button ff-control ${this.currentTab == 0 ? "active btn-primary" : ""}`} text="scènes téléchargeables" @click=${()=>{this.currentTab = 0; this.requestUpdate()}}></ff-button>
         <ff-button class=${`ff-button ff-control ${this.currentTab == 1 ? "active btn-primary" : ""}`} text="fichiers locaux" @click=${()=>{this.currentTab = 1; this.requestUpdate()}}></ff-button>
       </div>
-      ${tabs[this.currentTab]}
+      <div class="tab-content">
+        ${tabs[this.currentTab]}
+      </div>
       <div style="padding-top: 3rem; display: flex; gap: 5px;">
       ${(isConnected? html`<ff-button class="btn-danger" text="Me déconnecter" @click=${this.onLogout}></ff-button>`: null)}
         <a class="ff-button ff-control" href="/">Recharger la page</a>
@@ -139,11 +154,13 @@ export default class SettingsView extends provideBusy(LitElement)
     let target = ev.target as HTMLFormElement;
     let username = target.username.value;
     let password = target.password.value;
-    console.log("Log in", username, password);
+    let upstream = target.upstream.value;
+    console.log("Log in to %s with %s:%s", upstream, username, password);
     this.run(async ()=>{
       let u = new URL("/login", window.location.href);
       u.searchParams.set("username", username);
       u.searchParams.set("password", password);
+      u.searchParams.set("upstream", upstream);
       let r = await fetch(u, {
         method: "POST",
         headers:{
@@ -165,7 +182,7 @@ export default class SettingsView extends provideBusy(LitElement)
     this.run(async ()=>{
       let r = await fetch("/logout", {method:"POST"});
       if(!r.ok) throw await HTTPError.fromResponse(r);
-      this.user = null;
+      this.user = {isDefaultUser:true, username:"default", upstream:this.user.upstream};
     }).catch(e=>{
       console.error(e);
       Notification.show(`Failed to log out: ${e.message}`, "error");

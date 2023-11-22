@@ -13,6 +13,7 @@ const {forward} = require("./forward");
  * @typedef {object} InternalState
  * @property {string[]|string} [cookies]
  * @property {string|undefined} [etag]
+ * @property {string} [upstream="https://ecorpus.holusion.com"]
 */
 
 /**
@@ -50,6 +51,7 @@ module.exports = class DataCache{
   async getState(){
     try{
       return  Object.assign({
+          upstream: "https://ecorpus.holusion.com",
           cookies: "",
           etag: undefined
         },

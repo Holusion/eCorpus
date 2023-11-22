@@ -6,6 +6,7 @@ const {pipeline} = require('stream/promises');
 const express = require('express');
 const DataCache = require("./data");
 const {forward, request, drain, pipe} = require("./forward");
+const { debug } = require("./debug");
 
 const isProduction = process.env["NODE_ENV"] !== "development";
 
@@ -41,7 +42,7 @@ handler.use("/client", express.static(path.resolve(__dirname, "client")));
 
 handler.get("/scenes/*", wrap(async (req, res)=>{
   let dataCache = getDataCache(req);
-  console.log(`[${req.method}] ${req.path}`);
+  debug(`[${req.method}] ${req.path}`);
   let file = decodeURIComponent(req.path.slice(1));
   try{
     let stream = await dataCache.get(file);
@@ -92,12 +93,13 @@ handler.post("/files/copy/:filename", wrap(async (req, res)=>{
 
 handler.get("/remote/:path(*)", wrap(async (req, res)=>{
   let dataCache = getDataCache(req);
-  console.log("Proxy to :", encodeURI(req.params.path))
+  const {cookies, upstream} = await dataCache.getState();
   let proxyRes = await forward({
+    upstream: upstream,
     path: "/"+encodeURI(req.params.path),
     method: "GET",
     headers: {
-      "Cookie": (await dataCache.getState()).cookies,
+      "Cookie": cookies,
       "Connection": req.headers["connection"],
       "Accept": req.headers["accept"],
       "Accept-Language": req.headers["accept-language"],
@@ -113,12 +115,14 @@ handler.get("/remote/:path(*)", wrap(async (req, res)=>{
  */
 handler.get("/files/fetch", wrap(async (req, res)=>{
   let dataCache = getDataCache(req);
+  const {cookies, upstream} = await dataCache.getState();
   let proxyRes = await forward({
+    upstream,
     path: "/api/v1/scenes",
     method: "GET",
     headers: {
       "Accept": "application/json",
-      "Cookie": (await dataCache.getState()).cookies,
+      "Cookie": cookies,
     }
   });
   pipe(proxyRes, res);
@@ -131,9 +135,8 @@ handler.get("/files/fetch", wrap(async (req, res)=>{
 handler.get("/files/download", wrap(async(req, res) => {
   let dataCache = getDataCache(req);
   let query = req.originalUrl.split("?")[1] ?? "";
-  console.log("Path : ", req.originalUrl, `/api/v1/scenes?${query}`);
 
-  let {cookies, etag} = await dataCache.getState();
+  let {cookies, etag, upstream} = await dataCache.getState();
   let headers = {
     "Accept": "application/zip",
   };
@@ -141,6 +144,7 @@ handler.get("/files/download", wrap(async(req, res) => {
   if(etag) headers["If-None-Match"] = etag;
 
   let proxyRes = await forward({
+    upstream,
     path: `/api/v1/scenes?${query}`,
     method: "GET",
     headers
@@ -184,15 +188,16 @@ handler.get("/files/download", wrap(async(req, res) => {
 
 
 handler.get("/login", wrap(async (req, res)=>{
-  let dataCache = getDataCache(req);
-
+  const dataCache = getDataCache(req);
+  const state = await dataCache.getState();
   let r = await request({
+    upstream: state.upstream,
     path: "/api/v1/login",
     method: "GET",
     headers:{
       "Content-Type":"application/json",
       "Accept": "application/json",
-      "Cookie": (await dataCache.getState()).cookies,
+      "Cookie": state.cookies,
     },
   });
   let cookies = r.headers["set-cookie"]?.map(c=>c.split(";")[0]);
@@ -201,7 +206,7 @@ handler.get("/login", wrap(async (req, res)=>{
     await dataCache.setState({cookies});
   }
   res.set("Content-Type", r.headers["content-type"]);
-  res.status(r.statusCode).send(r.text);
+  res.status(r.statusCode).send((r.json? JSON.stringify({...r.json, upstream: state.upstream }): r.text));
 }));
 
 /**
@@ -209,7 +214,8 @@ handler.get("/login", wrap(async (req, res)=>{
  */
 handler.post("/login", wrap(async (req, res)=>{
   let dataCache = getDataCache(req);
-  let {username, password} = req.query;
+  let {username, password, upstream:upstreamQ} = req.query;
+  const upstream = new URL((typeof upstreamQ === "string" && upstreamQ)? upstreamQ: undefined);
 
   let data = JSON.stringify({
     username,
@@ -217,6 +223,7 @@ handler.post("/login", wrap(async (req, res)=>{
   });
   
   let r = await request({
+    upstream,
     path: "/api/v1/login",
     method: "POST",
     headers:{
@@ -230,7 +237,10 @@ handler.post("/login", wrap(async (req, res)=>{
   if(r.statusCode === 200){
     console.log("Save new login cookies");
     let cookies = r.headers["set-cookie"].map(c=>c.split(";")[0]);
-    await dataCache.setState({cookies});
+    await dataCache.setState({
+      cookies,
+      upstream: upstream.toString()
+    });
   }
   
   res.set("Content-Type", r.headers["content-type"]);
