@@ -1,6 +1,6 @@
 {
   "name": "holusion-voyager-explorer",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Voyager explorer for holographic displays",
   "main": "main.js",
   "scripts": {
