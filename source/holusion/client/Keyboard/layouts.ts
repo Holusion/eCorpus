@@ -21,14 +21,14 @@ const keyLayouts :KeyLayouts = {
     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", backspace, {width:"half", fixed}],
     [tab, "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", enter],
     [caps, "a", "s", "d", "f", "g", "h", "j", "k", "l"],
-    ["done", "z", "x", "c", "v", "b", "n", "m", ",", ".", "?"],
+    ["done", "z", "x", "c", "v", "b", "n", "m", ", <", ". >", "/ ?"],
     [space]
   ],
   [ELanguageType.FR]: [
     [{width:"half"}, "& 1", "é 2", "\" 3", "' 4", "( 5", "- 6", "è 7", "_ 8", "ç 9", "à 0", ") °", "= +", backspace, {width:"half", fixed}],
     ["", "a", "z", "e", "r", "t", "y", "u", "i", "o", "p", "^", "$", enter],
     [caps, "q", "s", "d", "f", "g", "h", "j", "k", "l", "m","ù %", "* µ"],
-    ["", "z", "x", "c", "v", "b", "n", ",", ";", ":", "!", ""],
+    ["", "z", "x", "c", "v", "b", "n", ", ?", "; .", ": /", "! §", ""],
     [{width:"half"},{width:"large", fixed}, space, {width:"half", fixed}, altGr, {width:"half"}]
   ],
 };
