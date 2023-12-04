@@ -14,8 +14,11 @@ export default async function handleGetDocument(req :Request, res :Response){
   let f = await vfs.getDoc(scene.id);
   
   let doc = JSON.parse(f.data);
-  //Inject document id to know the client's reference document if he submits a change
-  doc.asset.id = f.id;
+  if(typeof doc.asset == "object"){
+    //Filter our invalid documents
+    //Inject document id to know the client's reference document if he submits a change
+    doc.asset.id = f.id;
+  }
 
   let data = Buffer.from(JSON.stringify(doc));
 

@@ -19,8 +19,6 @@ async function overwritePutDocument(req: Request, res :Response){
   const {scene} = req.params;
   const newDoc = req.body;
 
-  console.log("Overwriting document");
-
   let s = JSON.stringify(newDoc, null, 2);
   if(s == "{}") throw new BadRequestError(`Invalid json document`);
   const id = await getVfs(req).writeDoc(s, scene, uid);
