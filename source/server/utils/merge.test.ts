@@ -169,7 +169,7 @@ describe("three-way merge", function(){
       });
     })
 
-    describe.skip("by name", function(){
+    describe("by name", function(){
 
       it("reassign scene nodes appropriately", function(){
         //Differentiate nodes by their names
@@ -185,7 +185,24 @@ describe("three-way merge", function(){
       });
 
       it("reassign nodes children appropriately", function(){
-        
+        const common = [
+          {name: "Parent", children: [1,2]},
+          {name: "Child 1"},
+          {name: "Child 2"},
+        ]
+        const parent2 = { "name": "Parent 2"};
+        const child3 = { "name": "Child 3"};
+        const ref = {nodes: common, scenes:[{nodes:[0]}] };
+        const current = {nodes: [...common, parent2], scenes:[{nodes:[0, 3]}]};
+        const next = {nodes: [{name:"Parent", children:[1,2,3] }, ...common.slice(1), child3], scenes:[{nodes:[0]}]};
+
+        expect(apply(current, diff(ref, next))).to.deep.equal({nodes: [
+          {name:"Parent", children:[1,2,4] },
+          common[1],
+          common[2],
+          parent2,
+          child3,
+        ], scenes:[{nodes:[0, 3]}]});
       });
 
       ["lights", "cameras", "models"].forEach(type=>{
