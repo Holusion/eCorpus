@@ -1,0 +1,6 @@
+/files/
+/source/voyager/docs/
+**/dist/
+**/node_modules/
+**/.git/
+*.tar.gz
