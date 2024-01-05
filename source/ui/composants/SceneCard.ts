@@ -1,5 +1,7 @@
 import { LitElement, customElement, property, html, TemplateResult, css } from "lit-element";
-import WebDAVProvider from "@ff/scene/assets/WebDAVProvider";
+
+import defaultSprite from "../assets/images/defaultSprite.svg";
+
 import i18n from "../state/translate";
 import { AccessType, AccessTypes, Scene } from "../state/withScenes";
 
@@ -13,7 +15,6 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
  @customElement("scene-card")
  export default class SceneCard extends i18n(LitElement)
  {
-    static _assets = new WebDAVProvider();
     @property()
     thumb :string;
 
@@ -52,13 +53,7 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
         if(this.cardStyle == "grid") this.classList.add("card-grid");
         
         if(!this.thumb ){
-          SceneCard._assets.get(this.path, false).then(p=>{
-            let thumbProps = p.find(f=> f.name.endsWith(`-image-thumb.jpg`));
-            if(!thumbProps) return console.log("No thumbnail for", this.name);
-            this.thumb = thumbProps.url;
-          }, (e)=>{
-            console.warn("Failed to PROPFIND %s :", this.path, e);
-          });
+          console.warn("Failed to PROPFIND %s :", this.path);
         }
     }
 
@@ -72,7 +67,7 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
         <div class="scene-card-inner ${this.cardStyle == "list" ? "scene-card-inner-list": ""}" }>
             <div style="display:flex; flex:auto; align-items:center;">
               <a href="${explorer}">
-                ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/images/defaultSprite.svg" />`}
+                ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="${defaultSprite}" />`}
               </a>
               <div class="infos">
                 <h4 class="card-title">${this.name}</h4>
@@ -80,9 +75,9 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
               </div>          
             </div>
             <div class="tools">
-              <a href="${explorer}"><ff-icon name="eye"></ff-icon>${this.t("ui.view")}</a>
-              ${this.can("write")? html`<a class="tool-link" href="${story}"><ff-icon name="edit"></ff-icon>${this.t("ui.edit")}</a>`:null}
-              ${this.can("admin")? html`<a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ff-icon name="admin"></ff-icon>${this.t("ui.admin")}</a>`:null}
+              <a href="${explorer}"><ui-icon name="eye"></ui-icon>${this.t("ui.view")}</a>
+              ${this.can("write")? html`<a class="tool-link" href="${story}"><ui-icon name="edit"></ui-icon>${this.t("ui.edit")}</a>`:null}
+              ${this.can("admin")? html`<a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ui-icon name="admin"></ui-icon>${this.t("ui.admin")}</a>`:null}
             </div>
         </div>
         ${(this.onChange? html`<span class="pill">

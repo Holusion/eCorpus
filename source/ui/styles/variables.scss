@@ -25,3 +25,8 @@ $color-dark: #103040;
 $color-danger: #dc3545;
 
 $color-background: #071922;
+$color-background-dark: darken($color-background, 5%);
+$color-background-darker: darken($color-background, 10%);
+$color-background-light: lighten($color-background, 10%);
+$color-background-lighter: lighten($color-background, 20%);
+$color-background-hover: $color-background-lighter;

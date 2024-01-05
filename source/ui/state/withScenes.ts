@@ -1,6 +1,6 @@
 
 import { Constructor, LitElement, property } from "lit-element";
-import Notification from "@ff/ui/Notification";
+import Notification from "../composants/Notification";
 
 export interface Scene {
   /**ISO date string */

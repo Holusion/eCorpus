@@ -3,6 +3,7 @@ import { css, customElement, html, LitElement, TemplateResult } from "lit-elemen
 
 import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./styles.scss';
 
+import favicon from "../../assets/favicon.png";
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -20,7 +21,7 @@ import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./st
   return html`<nav>
     <div class="brand">
       <a style="display:flex; align-items:center; color:#c8c8c8;text-decoration:none;font-weight:bold" href="/">
-        <img style="height:32px; padding: 0px 10px;" src="/images/logo-ecorpus.png" alt="logo eCorpus">
+        <img style="height:32px; padding: 0px 10px;" src="${favicon}" alt="logo eCorpus">
         <span>eCorpus</span>
       </a>
     </div>

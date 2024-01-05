@@ -1,0 +1,27 @@
+<svg viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <style>
+    .c1{
+      fill:none;
+      fill-opacity:1;
+      stroke:#00517d;
+      stroke-width:6;
+      stroke-miterlimit:4;
+      stroke-linecap:round;
+      stroke-dasharray:56.5;
+      stroke-dashoffset:0;
+      stroke-opacity:1;
+    }
+    .c2{
+      fill:none;
+      fill-opacity:1;
+      stroke:#ffffff;
+      stroke-width:6;
+      stroke-opacity:1;
+    }
+  </style>
+
+  <g >
+    <circle class="c1" cx="50" cy="50" r="36" />
+    <circle class="c2" cx="50" cy="50" r="44" />
+  </g>
+</svg>

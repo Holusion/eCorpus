@@ -1,13 +1,13 @@
 
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
-import "client/ui/Spinner";
+import "../../composants/Spinner";
 import Modal from "../../composants/Modal";
 import "../../composants/SceneCard";
 import HttpError from "../../state/HttpError";
 import "../../composants/Icon";
 import { nothing } from "lit-html";
-import Notification from "@ff/ui/Notification";
+import Notification from "../../composants/Notification";
 import i18n from "../../state/translate";
 
 interface User {
@@ -102,8 +102,8 @@ interface User {
             header: "Delete user",
             body: html`<div>${this.t("info.userDeleteConfirm", {username : u.username})}</div>`,
             buttons: html`<div style="display:flex;padding-top:30px;">
-                <ff-button class="btn-primary" text="cancel" @click=${Modal.close}></ff-button>
-                <ff-button class="btn-danger" text="delete" @click=${(ev)=>this.onDeleteUser(ev, u)}><ff-button>
+                <ui-button class="btn-primary" text="cancel" @click=${Modal.close}></ui-button>
+                <ui-button class="btn-danger" text="delete" @click=${(ev)=>this.onDeleteUser(ev, u)}><ui-button>
             </div>`
         });
     }
@@ -144,11 +144,11 @@ interface User {
         if(this.error){
             return html`<h1>Error</h1><div>${this.error.message}</div>`;
         }else if(this.loading){
-            return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`
+            return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`
         }
         return html`<div>
             <h2>${this.t("info.userManager")}</h2>
-            <ff-button style="max-width: 200px; margin-bottom: 15px" class="btn-primary" icon="plus" text=${this.t("ui.createUser")} @click=${this.createUserOpen}></ff-button>
+            <ui-button style="max-width: 200px; margin-bottom: 15px" class="btn-primary" icon="plus" text=${this.t("ui.createUser")} @click=${this.createUserOpen}></ui-button>
             <div class="users-list section" style="position:relative;">
                 <table class="list-table">
                     <thead><tr>
@@ -162,15 +162,15 @@ interface User {
                         </th>
                     </tr></thead>
                     <tbody>
-                    ${(!this.list?.length)?html`<tr><td colspan=4 style="text-align: center;">No user registered. Click the <ff-icon name="plus"></ff-icon> to add one</td</tr>`:nothing}
+                    ${(!this.list?.length)?html`<tr><td colspan=4 style="text-align: center;">No user registered. Click the <ui-icon name="plus"></ui-icon> to add one</td</tr>`:nothing}
                     ${this.list.map(u=>html`<tr>
                         <td style="font-family:monospace;">${u.uid}</td>
                         <td>${u.username}</td>
                         <td><input style="width:20px; height:20px" type="checkbox" .checked=${u.isAdministrator} disabled></td>
                         <td>
                             <div style="display:flex; justify-content:end;gap:.6rem;">
-                            <ff-button style=${u.isAdministrator ? "color:var(--color-light);opacity:0.2":"color:var(--color-danger)"} inline icon="trash" title=${this.t("ui.delete")} @click=${()=>this.deleteUserOpen(u)} ?disabled=${u.isAdministrator}></ff-button>
-                            <ff-button style="color:var(--color-text-dark)" inline icon="key" title="login link" @click=${()=>this.createLoginLink(u)}></ff-button>
+                            <ui-button style=${u.isAdministrator ? "color:var(--color-light);opacity:0.2":"color:var(--color-danger)"} inline icon="trash" title=${this.t("ui.delete")} @click=${()=>this.deleteUserOpen(u)} ?disabled=${u.isAdministrator}></ui-button>
+                            <ui-button style="color:var(--color-text-dark)" inline icon="key" title="login link" @click=${()=>this.createLoginLink(u)}></ui-button>
                             </div>
                         </td>
                     </tr>`)}

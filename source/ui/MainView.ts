@@ -1,10 +1,10 @@
 import { LitElement, html, customElement } from 'lit-element';
 
-import Notification from "@ff/ui/Notification";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./styles/main.scss';
 
-import "./globals.scss";
+import "./styles/globals.scss";
+
 
 import "./composants/UploadButton";
 import "./composants/navbar/NavLink";
@@ -19,27 +19,12 @@ import "./screens/UserSettings";
 import "./screens/Home"
 import "./composants/Modal";
 
+import Notification from "./composants/Notification";
+
 import { updateLogin, withUser } from './state/auth';
 import Modal from './composants/Modal';
 import i18n from './state/translate';
 import { route, router } from './state/router';
-
-/**
- * Simplified from path-to-regex for our simple use-case
- * @see https://github.com/pillarjs/path-to-regexp
- */
-function toRegex(path:string|RegExp){
-  if(path instanceof RegExp) return path;
-  const matcher = `[^\/#\?]+`
-  let parts = path.split("/")
-  .filter(p=>p)
-  .map( p =>{
-    let param = /:(\w+)/.exec(p);
-    if(!param) return p;
-    return `(?<${param[1]}>${matcher})`;
-  })
-  return new RegExp(`^/${parts.join("/")}\/?$`,"i")
-}
 
 
 @customElement("ecorpus-main")
@@ -57,7 +42,7 @@ export default class MainView extends router(i18n(withUser(LitElement))){
 
   connectedCallback(): void {
     super.connectedCallback();
-    Notification.shadowRootNode = this.shadowRoot;
+    // FIXME : configure notifications
     updateLogin().catch(e => {
       Modal.show({header: "Error", body: e.message});
     });

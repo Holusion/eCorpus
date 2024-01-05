@@ -1,0 +1,79 @@
+@import "./variables.scss";
+
+
+button, input {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background-color: inherit;
+  color: inherit;
+  font-size: inherit;
+  cursor: inherit;
+}
+
+
+a{
+  color:white;
+}
+
+
+.ui-button, .btn {
+  background: $color-background-light;
+  color: white;
+
+  svg {
+    fill: white;
+  }
+
+  &:hover, &:focus{
+    background-color: $color-background-lighter;
+  }
+
+  &[selected] {
+    background-color: $color-primary;
+
+    &:hover, &:focus {
+      background-color: $color-primary-light;
+    }
+  }
+
+  &.btn-primary {
+    background-color: $color-primary;
+
+    &:hover:not(:disabled){
+      background-color: $color-primary-light;
+    }
+  }
+
+  &.btn-secondary {
+    background-color: $color-primary-light;
+
+    &:hover:not(:disabled){
+      background-color: $color-secondary;
+    }
+  }
+
+  &.btn-danger {
+    background-color: $color-danger;
+    color: white;
+
+    &:hover{
+      background-color: lighten($color-danger, 7%);
+    }    
+  }
+
+  @at-root a#{&} {
+    text-decoration: none;
+    padding: 8px;
+    white-space:nowrap;
+  }
+
+  .ui-icon{
+    fill: currentColor;
+  }
+  .btn-inline.btn-disabled{
+    user-select: none;
+    pointer-events: none;
+  }
+}

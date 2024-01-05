@@ -3,7 +3,7 @@ import { css, LitElement,customElement, property, html, TemplateResult, query } 
 import "./Icon"
 
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
 
 interface ModalOptions{
   header :TemplateResult|string;
@@ -82,7 +82,7 @@ interface ModalOptions{
         <div>${this.body}</div>
         <div>${this.buttons}</div>
         <button id="exit" @click=${this.handleClose}>
-          <ff-icon name="close"></ff-icon>
+          <ui-icon name="close"></ui-icon>
         </button>
       </dialog>`;
     }

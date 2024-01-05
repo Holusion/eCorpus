@@ -1,11 +1,12 @@
 import { LitElement, html, customElement, property, css, TemplateResult } from 'lit-element';
-import Button from "@ff/ui/Button";
+
 import i18n, {Localization} from '../../state/translate';
 
 @customElement("change-locale")
-export default class ChangeLocale extends i18n(Button){
+export default class ChangeLocale extends i18n(LitElement){
   constructor(){
     super();
+    this.addEventListener("click", (e) => this.onClick());
   }
   onclick = (ev :MouseEvent)=>{
     ev.preventDefault();
@@ -15,12 +16,12 @@ export default class ChangeLocale extends i18n(Button){
   protected createRenderRoot(): Element | ShadowRoot {
     return this;
   }
+  
   onClick = ()=>{
     Localization.Instance.setLanguage(this.language == "fr"? "en": "fr");
   }
+
   protected render(): TemplateResult {
-    this.text = this.language;
-    console.log("lang render : ", Localization.Instance);
-    return super.render();
+    return  html`<div class="">${this.language}</div>`;
   }
 }

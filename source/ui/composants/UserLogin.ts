@@ -5,8 +5,8 @@ import { css, LitElement,customElement, property, html, TemplateResult } from "l
 import { doLogin } from "../state/auth";
 import i18n from "../state/translate";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles.scss';
-import Notification from "@ff/ui/Notification";
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
+import Notification from "./Notification";
 
 /**
  * Main UI view for the Voyager Explorer application.

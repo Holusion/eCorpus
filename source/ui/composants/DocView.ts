@@ -2,13 +2,12 @@
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 
-import "@ff/ui/Button";
 
-import "client/ui/Spinner";
+import "./Spinner";
 import i18n from "../state/translate";
 import { Language } from "../state/strings";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -91,7 +90,7 @@ import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../s
       if(this.error){
         return html`<h1>Error</h1><div>${this.error.message}</div>`;
       }else if(!this.content || this.content =="loading..."){
-        return html`<div style="margin-top:10vh">Loading...<sv-spinner visible/></div>`
+        return html`<div style="margin-top:10vh">Loading...<spin-loader visible></spin-loader></div>`
       }
       return html`${unsafeHTML(this.content)}`;
     }

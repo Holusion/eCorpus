@@ -9,16 +9,7 @@
         "moduleResolution": "node",
         //"noUnusedLocals": true,
         "experimentalDecorators": true,
-
         "baseUrl": ".",
-        "paths": {
-            "client/*": [ "../client/*" ],
-            "@ff/core/*": [ "../../libs/ff-core/source/*" ],
-            "@ff/graph/*": [ "../../libs/ff-graph/source/*" ],
-            "@ff/browser/*": [ "../../libs/ff-browser/source/*" ],
-            "@ff/ui/*": [ "../../libs/ff-ui/source/*" ],
-            "@ff/three/*": [ "../../libs/ff-three/source/*" ],
-            "@ff/scene/*": [ "../../libs/ff-scene/source/*" ]
-        }
+        "paths": {}
     }
 }

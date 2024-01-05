@@ -1,13 +1,13 @@
 
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
-import "@ff/ui/Button";
 
 import "./UsersList";
 import i18n from "../../state/translate";
 
-import Notification from "@ff/ui/Notification";
-import "client/ui/Spinner";
+import Notification from "../../composants/Notification";
+import "../../composants/Spinner";
+import "../../composants/Button";
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -67,7 +67,7 @@ export default class AdminStatsScreen extends i18n(LitElement) {
 
   protected render(): unknown {
     if(!this.stats){
-      return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`
+      return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`
     }
     return html`<div style="max-width:1200px; margin: auto;">
       <h2>Server Statistics</h2>

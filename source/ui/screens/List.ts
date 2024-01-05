@@ -1,7 +1,7 @@
 import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
-import Notification from "@ff/ui/Notification";
+import Notification from "../composants/Notification";
 
-import "client/ui/Spinner";
+import "../composants/Spinner";
 import "../composants/UploadButton";
 import "./LandingPage";
 import "../composants/SceneCard";
@@ -133,7 +133,7 @@ interface Upload{
         let mode = (this.user?"write":"read");
 
         if(!this.list){
-            return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
+            return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
         }
         let orderTypes = ["alphabet","ctime","mtime"];
 
@@ -144,7 +144,7 @@ interface Upload{
                 <div class="list-tasks form-control">
                     <div class="form-item" style="display:flex; margin-bottom:10px">
                         <input type="search" id="model-search" placeholder=${this.t("ui.searchScene")} @change=${this.onSearchChange}>
-                        <button class="ff-button ff-control btn-primary" style="margin-top:0" type="submit"><ff-icon name="search"></ff-icon></button>
+                        <button class="ff-button ff-control btn-primary" style="margin-top:0" type="submit"><ui-icon name="search"></ui-icon></button>
                     </div>
                     <div class="section">
                         <h4 style="margin-top:0">${this.t("ui.newScene")}</h4>

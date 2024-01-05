@@ -1,0 +1,37 @@
+@import "./variables.scss";
+table.list-table {
+  border-collapse: collapse;
+  width: 100%;
+  display: table;
+  background-color:#000a;
+  color: $color-light;
+  tr:last-child {
+    border-bottom: 0;
+  }
+  th, td {
+    text-align: left;
+    padding: 15px;
+    box-sizing: border-box;
+  }
+
+  th {
+    color: $color-light;
+    font-weight: bold;
+    background-color: $color-dark;
+    position: sticky;
+    top: 0;
+  }
+  td {
+    border-bottom: solid 1px $color-dark;
+    border-left: 0;
+    border-right: 0;
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(2n){
+    background: #000c;
+  }
+  tbody tr:hover{
+    background-color: #071922;
+    transition: background-color 150ms ease-out;
+  }  
+}

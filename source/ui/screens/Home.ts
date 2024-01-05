@@ -1,7 +1,7 @@
 import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
-import Notification from "@ff/ui/Notification";
+import Notification from "../composants/Notification";
 
-import "client/ui/Spinner";
+import "../composants/Spinner";
 import "../composants/UploadButton";
 import "./LandingPage";
 import "../composants/SceneCard";
@@ -147,7 +147,7 @@ interface Upload{
         }
         let mode = (this.user?"write":"read")
         if(!this.list){
-            return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
+            return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
         }
         //All scenes where I am mentioned as a user, with read|write|admin sorted by last modified
         let scenes = this.list.sort((a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf());

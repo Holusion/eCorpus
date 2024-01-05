@@ -1,5 +1,5 @@
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
-import Notification from "@ff/ui/Notification";
+import Notification from "../composants/Notification";
 import { doLogout, setSession, withUser, UserSession } from "../state/auth";
 import i18n from "../state/translate";
 import { navigate } from "../state/router";
@@ -76,7 +76,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
 
       <div class="section" style="padding-top:15px; max-width:500px">
         <h3>${this.t("ui.logout")}</h3>
-        <ff-button text="${this.t("ui.logout")}" icon="cross" @click=${this.onLogout}></ff-button>
+        <ui-button text="${this.t("ui.logout")}" icon="cross" @click=${this.onLogout}></ui-button>
       </div>
     </div>`;
   }

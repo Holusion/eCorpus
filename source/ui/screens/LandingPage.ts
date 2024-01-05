@@ -1,9 +1,10 @@
 
 import { css, customElement,  html, TemplateResult, LitElement} from "lit-element";
 
+import sketch from "../assets/images/sketch_ethesaurus.png";
 
 import i18n from "../state/translate";
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
 import "../composants/UserLogin"
 
  @customElement("landing-page")
@@ -20,7 +21,7 @@ import "../composants/UserLogin"
         return html`
             <div class="landing-page">
                 <div class="illustration">
-                    <img src="/images/sketch_ethesaurus.png" alt="sketch représentant l'application voyager et son utilisation dans une borne holographique">
+                    <img src="${sketch}" alt="sketch représentant l'application voyager et son utilisation dans une borne holographique">
                     <p>${this.t("info.lead")}</p>
                     <p style="text-align:right"> <a href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a></p>
                 </div>

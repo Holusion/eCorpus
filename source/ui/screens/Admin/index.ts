@@ -1,7 +1,6 @@
 
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
-import "@ff/ui/Button";
 
 import i18n from "../../state/translate";
 import { link, route, router } from "../../state/router";
@@ -11,8 +10,9 @@ import "./AdminHome";
 import "./AdminStats";
 import "./UsersList";
 import "../../composants/navbar/NavLink";
+import "../../composants/Button";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -36,9 +36,9 @@ export default class AdminScreen extends router( withUser( i18n(LitElement) ) ) 
     return html`
     <div class="admin-panel">
       <nav>
-          <nav-link .selected=${this.isActive("", true)} href="${this.path}"><ff-icon name="tools"></ff-icon> Home</nav-link>
-          <nav-link .selected=${this.isActive("users")} href="${this.path}users"><ff-icon name="users"></ff-icon> ${this.t("ui.users")}</nav-link>
-          <nav-link .selected=${this.isActive("stats")} href="${this.path}stats"><ff-icon name="stats"></ff-icon> ${this.t("ui.stats")}</nav-link>
+          <nav-link .selected=${this.isActive("", true)} href="${this.path}"><ui-icon name="tools"></ui-icon> Home</nav-link>
+          <nav-link .selected=${this.isActive("users")} href="${this.path}users"><ui-icon name="users"></ui-icon> ${this.t("ui.users")}</nav-link>
+          <nav-link .selected=${this.isActive("stats")} href="${this.path}stats"><ui-icon name="stats"></ui-icon> ${this.t("ui.stats")}</nav-link>
       </nav>
       <section>
         ${this.renderContent()}
@@ -70,10 +70,10 @@ export default class AdminScreen extends router( withUser( i18n(LitElement) ) ) 
       fill: white;
       margin-right: 5px;
     }
-    nav-link ff-icon{
+    nav-link ui-icon{
       height: 1.5rem !important;
     }
-    nav-link ff-icon[name="tools"] svg{
+    nav-link ui-icon[name="tools"] svg{
       padding:2px
     }
 

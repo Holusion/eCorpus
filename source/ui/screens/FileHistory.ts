@@ -1,8 +1,8 @@
 
 import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
-import Notification from "@ff/ui/Notification";
+import Notification from "../composants/Notification";
 
-import "client/ui/Spinner";
+import "../composants/Spinner";
 import "../composants/Size";
 import HttpError from "../state/HttpError";
 
@@ -87,7 +87,7 @@ interface FileProps extends Scene{
 
     protected render() :TemplateResult {
         if(!this.history){
-            return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
+            return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
         }
 
         return html`
@@ -118,10 +118,10 @@ interface FileProps extends Scene{
                 ${this.history.map(m=>html`<tr>
                     <td style="font-family:monospace;">${m.id}</td>
                     <td>${new Date(m.ctime).toLocaleString()}</td>
-                    <td>${((m.hash)? html`<b-size .b=${m.size}></b-size>` : html`<ff-icon name="trash"></ff-icon>`)}</td>
+                    <td>${((m.hash)? html`<b-size .b=${m.size}></b-size>` : html`<ui-icon name="trash"></ui-icon>`)}</td>
                     <td>${m.author}</td>
                     <td>
-                      <ff-button class="btn-restore" name="${m.generation}" text="Restore" @click=${this.onRestore}></ff-button>
+                      <ui-button class="btn-restore" name="${m.generation}" text="Restore" @click=${this.onRestore}></ui-button>
                     </td>
                 </tr>`)}
                 </tbody>

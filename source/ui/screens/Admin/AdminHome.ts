@@ -1,11 +1,11 @@
 
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
-import "@ff/ui/Button";
 
 import "./UsersList";
 import i18n from "../../state/translate";
 import Modal from "../../composants/Modal";
+import "../../composants/Button";
 
 @customElement("send-testmail")
 class TestmailModalBody extends i18n(LitElement){

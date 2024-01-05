@@ -1,13 +1,11 @@
 
 import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
 
-import Notification from "@ff/ui/Notification";
-import "@ff/ui/Dropdown";
-import "@ff/ui/Button";
-
-import "client/ui/Spinner";
-
+import Notification from "../composants/Notification";
+import "../composants/Button";
+import "../composants/Spinner";
 import "../composants/Size";
+
 import { nothing } from "lit-html";
 import i18n from "../state/translate";
 import {getLogin} from "../state/auth";
@@ -142,7 +140,7 @@ class SceneVersion{
 
     protected render() :TemplateResult {
         if(!this.versions){
-          return html`<div style="margin-top:10vh"><sv-spinner visible/></div>`;
+          return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
         }else if (this.versions.length == 0){
           return html`<div style="padding-bottom:100px;padding-top:20px;" >
               <h1></h1>
@@ -163,9 +161,9 @@ class SceneVersion{
               <h3>Total size: <b-size b=${size}></b-size></h3>
               <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               <div style="max-width: 300px">
-                <a class="ff-button ff-control btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ff-icon name="edit"></ff-icon>  ${this.t("ui.editScene")}</a>
-                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ff-icon name="eye"></ff-icon>  ${this.t("ui.viewScene")}</a>
-                <a class="ff-button ff-control btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ff-icon name="save"></ff-icon> ${this.t("ui.downloadScene")}</a>
+                <a class="ff-button ff-control btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}</a>
+                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
+                <a class="ff-button ff-control btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
             <div style="min-width:300px;" class="section">
@@ -177,8 +175,8 @@ class SceneVersion{
           ${this.renderHistory()}
         </div>
         ${getLogin()?.isAdministrator? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;gap:10px">
-        <div><ff-button class="btn-primary" icon="edit" text=${this.t("ui.rename")} @click=${this.onRename}></ff-button></div>
-        <div><ff-button class="btn-danger" icon="trash" text=${this.t("ui.delete")} @click=${this.onDelete}></ff-button></div>
+        <div><ui-button class="btn-primary" icon="edit" text=${this.t("ui.rename")} @click=${this.onRename}></ui-button></div>
+        <div><ui-button class="btn-danger" icon="trash" text=${this.t("ui.delete")} @click=${this.onDelete}></ui-button></div>
         </div>`:null}
       </div>`;
     }
@@ -243,7 +241,7 @@ class SceneVersion{
                   <div style=""><b>${authors}</b> <span style="opacity:0.6; font-size: smaller">${new Date(v.start).toLocaleString()}</span></div>
                 </div>
 
-                ${index==0?html`<ff-button disabled transparent text="active">active</ff-button>`:html`<ff-button class="btn-primary" style="flex:initial; height:fit-content;" title="restore" @click=${()=>this.onRestore(v.entries.slice(-1)[0])} text="restore" icon="restore"></ff-button>`}
+                ${index==0?html`<ui-button disabled transparent text="active">active</ui-button>`:html`<ui-button class="btn-primary" style="flex:initial; height:fit-content;" title="restore" @click=${()=>this.onRestore(v.entries.slice(-1)[0])} text="restore" icon="restore"></ui-button>`}
               </div>
             `
           })}
@@ -332,7 +330,7 @@ class SceneVersion{
         Modal.close();
         Modal.show({
           header: this.t("ui.renameScene"),
-          body: html`<div style="display:block;position:relative;padding-top:110px"><sv-spinner visible/></div>`,
+          body: html`<div style="display:block;position:relative;padding-top:110px"><spin-loader visible></spin-loader></div>`,
         });
         fetch(`/api/v1/scenes/${encodeURIComponent(this.scene)}`, {
           method:"PATCH",
@@ -362,7 +360,7 @@ class SceneVersion{
             <input type="text" required minlength=3 autocomplete="off" style="padding:.25rem;margin-bottom:.75rem;width:100%;" class="form-control" id="sceneRenameInput" placeholder="${this.scene}">
           </div>
         </form>`,
-        buttons: html`<ff-button class="btn-primary" @click=${onRenameSubmit} text=${this.t("ui.rename")}></ff-button>`,
+        buttons: html`<ui-button class="btn-primary" @click=${onRenameSubmit} text=${this.t("ui.rename")}></ui-button>`,
       });
 
     }
