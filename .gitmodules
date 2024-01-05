@@ -1,0 +1,3 @@
+[submodule "source/voyager"]
+	path = source/voyager
+	url = https://github.com/Holusion/dpo-voyager.git

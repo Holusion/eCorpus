@@ -1,0 +1,13 @@
+# FOLDERS
+node_modules/
+
+dist/
+test/
+/files/
+
+
+# FILES
+.env
+*.log
+.DS_Store
+secrets.env
