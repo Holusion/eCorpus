@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build-ui": "cd source/ui && webpack --mode=production",
     "build-server": "tsc -b source/server",
-    "build-voyager": "cd source/voyager/source/client; webpack --mode=production --env=app=all --output-path=\"../../../../dist\"",
+    "build-voyager": "cd source/voyager/source/client; webpack --mode=production --env=app=all",
     "watch": "cd source/server && HOT_RELOAD=1 NODE_ENV=development ROOT_DIR=\"../../\" nodemon -e ts,js -w . -w ../ui/webpack.config.js -x ts-node index.ts"
   },
   "author": "Holusion <contact@holusion.com>",
