@@ -11,19 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-      - uses: actions/cache@v3
-        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
-        with:
-          path: "~/.npm"
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-node-
-      - name: install
+          cache: 'npm'
+      - name: install voyager dependencies
+        run: (cd source/voyager && npm ci)
+      - name: install ui dependencies
         run: npm ci && (cd source/ui && npm ci)
-      - name: build
+      - name: build voyager
+        run: npm run build-voyager
+      - name: build UI
         run: npm run build-ui
   build-server:
     name: Server
@@ -34,17 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: actions/cache@v3
-        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
-        # don't discriminate by ${{ matrix.node-version }}
-        with:
-          path: "~/.npm"
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-node-
+          cache: 'npm'
       - name: install
         run: npm ci && (cd source/server && npm ci)
       - name: test
