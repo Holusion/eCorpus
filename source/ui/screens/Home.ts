@@ -161,10 +161,10 @@ interface Upload{
         return html`
         <h2>${this.t("info.homeHeader")}</h2>
         <div class="list-tasks" style="margin-bottom:1rem">
-            <upload-button class="ff-button ff-control btn-primary" @change=${this.onUploadBtnChange}>
+            <upload-button class="btn btn-primary" @change=${this.onUploadBtnChange}>
                 ${this.t("ui.upload")}
             </upload-button>
-            <a class="ff-button ff-control btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+            <a class="btn btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
         </div>
 
         ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?null: html`

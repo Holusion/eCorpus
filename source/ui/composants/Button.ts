@@ -9,6 +9,7 @@ import "./Icon";
 
 import { customElement, property, html, PropertyValues, LitElement } from "lit-element";
 
+
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -29,8 +30,6 @@ export interface IButtonKeyboardEvent extends KeyboardEvent
 
 /**
  * Custom element displaying a button with a text and/or an icon.
- * The button emits a [[IButtonClickEvent]] if clicked.
- * Classes assigned: "ff-button", "ff-control".
  */
 @customElement("ui-button")
 export default class Button extends LitElement
@@ -38,24 +37,6 @@ export default class Button extends LitElement
     /** Optional name to identify the button. */
     @property({ type: String })
     name = "";
-
-    /** Optional index to identify the button. */
-    @property({ type: Number })
-    index = 0;
-
-    @property({ type: Number })
-    selectedIndex = -1;
-
-    @property({ type: Number })
-    tabbingIndex = 0;
-
-    /** If true, adds "ui-selected" class to element. */
-    @property({ type: Boolean, reflect: true })
-    selected = false;
-
-    /** If true, toggles selected state every time the button is clicked. */
-    @property({ type: Boolean })
-    selectable = false;
 
     @property({ type: Boolean })
     disabled = false;
@@ -82,51 +63,16 @@ export default class Button extends LitElement
     @property({ type: Boolean })
     transparent = false;
 
-    constructor()
-    {
-        super();
-
-        this.addEventListener("click", (e) => this.onClick(e));
-        this.addEventListener("keydown", (e) => this.onKeyDown(e));
+    createRenderRoot() {
+        return this;
     }
 
-    protected firstConnected()
+
+    public connectedCallback()
     {
-        this.tabIndex = this.tabbingIndex;
+        super.connectedCallback();
         this.setAttribute("role", this.role);
-        this.classList.add("ff-button");
-    }
-
-    protected shouldUpdate(changedProperties: PropertyValues)
-    {
-        if (changedProperties.has("selectedIndex") || changedProperties.has("index")) {
-            if (this.selectedIndex >= 0) {
-                this.selected = this.index === this.selectedIndex;
-            }
-        }
-
-        if (changedProperties.has("disabled")) {
-          this.classList.toggle("ff-disabled");
-        }
-
-        return true;
-    }
-
-    protected update(changedProperties: PropertyValues)
-    {
-        this.classList.remove("ff-inline", "ff-transparent", "ff-control");
-
-        if (this.inline) {
-            this.classList.add("ff-inline");
-        }
-        else if (this.transparent) {
-            this.classList.add("ff-transparent");
-        }
-        else {
-            this.classList.add("ff-control");
-        }
-
-        super.update(changedProperties);
+        this.classList.add("btn");
     }
 
     protected render()
@@ -136,33 +82,16 @@ export default class Button extends LitElement
 
     protected renderIcon()
     {
-        return this.icon ? html`<ui-icon class="ff-off" name=${this.icon}></ui-icon>` : null;
+        return this.icon ? html`<ui-icon name=${this.icon}></ui-icon>` : null;
     }
 
     protected renderText()
     {
-        return this.text ? html`<div class="ff-text ff-off">${this.text}</div>` : null;
+        return this.text ? html`<div class="btn-text">${this.text}</div>` : null;
     }
 
     protected renderCaret()
     {
-        return this.caret ? html`<div class="ff-caret-down ff-off"></div>` : null;
-    }
-
-    protected onClick(event: MouseEvent)
-    {
-        if (this.selectable) {
-            this.selected = !this.selected;
-        }
-    }
-
-    protected onKeyDown(event: KeyboardEvent)
-    {
-        const activeElement = document.activeElement.shadowRoot ? document.activeElement.shadowRoot.activeElement : document.activeElement;
-        
-        if (activeElement === this && (event.code === "Space" || event.code === "Enter")) {
-            event.preventDefault();
-            this.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        }
+        return this.caret ? html`<div class="btn-caret-down"></div>` : null;
     }
 }

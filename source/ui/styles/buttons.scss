@@ -18,13 +18,20 @@ a{
 }
 
 
-.ui-button, .btn {
+.btn {
   background: $color-background-light;
   color: white;
 
-  svg {
-    fill: white;
-  }
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  padding: 5px;
+  transition: fill 0.2s;
+
+  cursor: pointer;
+
 
   &:hover, &:focus{
     background-color: $color-background-lighter;
@@ -41,7 +48,7 @@ a{
   &.btn-primary {
     background-color: $color-primary;
 
-    &:hover:not(:disabled){
+    &:hover:not([disabled]){
       background-color: $color-primary-light;
     }
   }
@@ -49,7 +56,7 @@ a{
   &.btn-secondary {
     background-color: $color-primary-light;
 
-    &:hover:not(:disabled){
+    &:hover:not([disabled]){
       background-color: $color-secondary;
     }
   }
@@ -69,11 +76,33 @@ a{
     white-space:nowrap;
   }
 
-  .ui-icon{
-    fill: currentColor;
+  & > .btn-text {
+    margin: 3px;
+    white-space: nowrap;
   }
-  .btn-inline.btn-disabled{
+
+  & > .ui-icon {
+    margin: 3px;
+    height: 1.3em;
+    fill: currentColor;
+    svg{
+      height: 1.2rem;
+    }
+  }
+
+  & > .btn-caret-down {
+    margin: 3px;
+  }
+
+  &[disabled]{
     user-select: none;
     pointer-events: none;
+  }
+  &[transparent]{
+    background: transparent;
+    color: $color-light;
+    &:hover{
+      color: $color-background-lighter;
+    }
   }
 }

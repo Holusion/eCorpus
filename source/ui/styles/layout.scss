@@ -60,7 +60,7 @@ home-page{
     justify-content: flex-start;
     flex-wrap: wrap;
     gap: 5px;
-    .ff-button{
+    .ui-button{
       flex: 0 0 auto;
     }
   }
@@ -135,7 +135,7 @@ scene-card{
 }
 
 .users-list{
-  .ff-button:hover{
+  .ui-button:hover{
     filter:brightness(1.5);
   }
   .ui-icon svg{

@@ -1,5 +1,5 @@
 
-import { css, LitElement,customElement, html, TemplateResult } from "lit-element";
+import { css, LitElement, customElement, html, TemplateResult } from "lit-element";
 
 
 @customElement("upload-button")

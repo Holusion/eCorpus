@@ -108,11 +108,11 @@ interface ModalOptions{
       box-shadow: 0 1px 3px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.24);
     }
 
-    .ff-button.ff-control{
+    .btn{
       color: white;
       background: var(--color-tertiary);
     }
-    .ff-button.ff-control:hover{
+    .btn:hover{
       background: var(--color-secondary);
     }
 

@@ -10,6 +10,9 @@ import { nothing } from "lit-html";
 import Notification from "../../composants/Notification";
 import i18n from "../../state/translate";
 
+import commonStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
+import tableStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/tables.scss';
+
 interface User {
     uid :string;
     username :string;
@@ -34,9 +37,6 @@ interface User {
     constructor()
     {
         super();
-    }
-    createRenderRoot() {
-        return this;
     }
       
     public connectedCallback(): void {
@@ -169,8 +169,8 @@ interface User {
                         <td><input style="width:20px; height:20px" type="checkbox" .checked=${u.isAdministrator} disabled></td>
                         <td>
                             <div style="display:flex; justify-content:end;gap:.6rem;">
-                            <ui-button style=${u.isAdministrator ? "color:var(--color-light);opacity:0.2":"color:var(--color-danger)"} inline icon="trash" title=${this.t("ui.delete")} @click=${()=>this.deleteUserOpen(u)} ?disabled=${u.isAdministrator}></ui-button>
-                            <ui-button style="color:var(--color-text-dark)" inline icon="key" title="login link" @click=${()=>this.createLoginLink(u)}></ui-button>
+                            <ui-button style=${u.isAdministrator ? "color:var(--color-light);opacity:0.2":"color:var(--color-danger)"} inline transparent icon="trash" title=${this.t("ui.delete")} @click=${()=>this.deleteUserOpen(u)} ?disabled=${u.isAdministrator}></ui-button>
+                            <ui-button style="color:var(--color-text-dark)" inline transparent icon="key" title="login link" @click=${()=>this.createLoginLink(u)}></ui-button>
                             </div>
                         </td>
                     </tr>`)}
@@ -194,4 +194,5 @@ interface User {
             return Notification.show(`Failed to create login link : ${e.message}`, "error");
         })
     }
+    static readonly styles = [commonStyles, tableStyles];
  }

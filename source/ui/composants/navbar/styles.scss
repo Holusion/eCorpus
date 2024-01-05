@@ -40,7 +40,7 @@ nav {
     align-items: stretch;
     flex-basis: auto;
     justify-content: end;
-    ::slotted(.ff-button.ff-control), ::slotted(.nav-link){
+    ::slotted(.btn), ::slotted(.nav-link){
       height:100%;
       flex: 0 0 auto;
       box-sizing: border-box;
@@ -48,7 +48,7 @@ nav {
       font-size: 13px;
       color: $color-light;
     }
-    ::slotted(.ff-button.ff-control){
+    ::slotted(.btn){
       padding: 4px 10px !important;
     }
   }

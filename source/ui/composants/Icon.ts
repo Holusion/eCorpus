@@ -41,13 +41,15 @@ export default class Icon extends LitElement
         this.name = name || "";
     }
 
-    protected firstConnected()
+    public connectedCallback()
     {
+        super.connectedCallback();
         this.classList.add("ui-icon");
     }
 
     protected render()
     {
+        console.log("Render icon :", this.name, this.template);
         if (this.name) {
             const template = (this.constructor as typeof Icon).templates[this.name];
             if (!template) {

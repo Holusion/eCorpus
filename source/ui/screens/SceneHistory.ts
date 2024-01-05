@@ -161,9 +161,9 @@ class SceneVersion{
               <h3>Total size: <b-size b=${size}></b-size></h3>
               <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               <div style="max-width: 300px">
-                <a class="ff-button ff-control btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}</a>
-                <a class="ff-button ff-control btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
-                <a class="ff-button ff-control btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
+                <a class="btn btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}</a>
+                <a class="btn btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
+                <a class="btn btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
             <div style="min-width:300px;" class="section">
@@ -209,7 +209,7 @@ class SceneVersion{
                         <input style="border:none;" type="text" name="username" id="username" placeholder="${this.t("ui.username")}" required>
                       </div>
                       <div class="form-item">
-                        <input class="ff-button ff-control btn-primary" style="border:none; margin:0" type="submit" value="${this.t("ui.add")}" >
+                        <input class="btn btn-primary" style="border:none; margin:0" type="submit" value="${this.t("ui.add")}" >
                       </div>
                     </div>
                   </form>
