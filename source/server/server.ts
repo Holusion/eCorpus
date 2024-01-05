@@ -166,16 +166,18 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     const {default: webpack} = await import("webpack");
     const {default: middleware} = await import("webpack-dev-middleware");
     //@ts-ignore
-    const {default: config} = await import("../ui/webpack.config.js");
-    const compiler = webpack(config());
+    const {default: configGenerator} = await import("../ui/webpack.config.js");
+
+    const compiler = webpack(configGenerator());
     const webpackInstance = middleware(compiler as any, {});
-    app.use(webpackInstance);
+    app.use("/dist", webpackInstance);
     await new Promise(resolve=> webpackInstance.waitUntilValid(resolve));
   }else{
     // static file server
-    app.use("/", express.static(config.dist_dir));
+    app.use("/dist", express.static(config.dist_dir));
+
   }
-  app.use("/", express.static(config.assets_dir));
+
 
   app.use("/libs", (await import("./routes/libs/index.js")).default);
 
