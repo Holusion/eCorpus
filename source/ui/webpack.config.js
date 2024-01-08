@@ -42,16 +42,16 @@ const dirs = {
     assets: path.resolve( project, "source/ui/assets"),
 };
 
+const createVoyagerConfig = require(path.join(project, "source/voyager/source/client/webpack.config.js"));
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-module.exports = function createAppConfig(env, argv)
+module.exports = function createAppConfig(env, argv={})
 {
     const isDevMode = (typeof argv?.mode !== "undefined") ? argv.mode !== "production" : process.env["NODE_ENV"] !== "production";
     const devMode = isDevMode ? "development" : "production";
     
-
     const config = {
         mode: devMode,
         cache: {type: "filesystem"},
@@ -64,7 +64,7 @@ module.exports = function createAppConfig(env, argv)
             filename: "js/[name].js",
             
             publicPath: '/',
-            clean: true,
+            clean: false,
         },
 
         resolve: {
@@ -98,7 +98,7 @@ module.exports = function createAppConfig(env, argv)
                     },
                     { 
                         from: "{js,js/draco,css,language,images}/*.{js,json,wasm,css,jpg,png,svg}",
-                        context: path.join(project, "source/voyager/dist/"),
+                        context: path.join(project, "source/voyager/assets/"),
                         force: false,
                         priority: 1,
                     },
@@ -161,5 +161,28 @@ module.exports = function createAppConfig(env, argv)
         config.devtool = "source-map";
     }
 
-    return config;
+    const voyagerConfig = createVoyagerConfig({app: "all"}, argv);
+    /********************************
+     * Override voyagerConfig's options
+     ********************************/
+
+    //Always use the same file name
+    Object.assign(voyagerConfig.output, {
+        clean: false,
+        filename: "js/[name].js",
+    });
+
+    //Remove HTML exports
+    voyagerConfig.plugins = voyagerConfig.plugins.filter(p=>p.constructor?.name !="HtmlWebpackPlugin");
+    //Remove Copy Plugin
+    voyagerConfig.plugins = voyagerConfig.plugins.filter(p=>p.constructor?.name !="CopyPlugin");
+
+    const cssPlugin = voyagerConfig.plugins.find(p=>p.constructor?.name =="MiniCssExtractPlugin");
+    if(!cssPlugin) throw new Error("MiniCssExtractPlugin not found in voyagerConfig.plugins");
+    Object.assign(cssPlugin.options, {
+        filename: "css/[name].css",
+        chunkFilename: "css/[name].css",
+    });
+
+    return [config, voyagerConfig];
 }
