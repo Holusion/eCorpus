@@ -17,11 +17,9 @@ jobs:
           node-version: 16
           cache: 'npm'
       - name: install voyager dependencies
-        run: (cd source/voyager && npm ci)
+        run: (cd source/voyager && npm ci --legacy-peer-deps)
       - name: install ui dependencies
         run: npm ci && (cd source/ui && npm ci)
-      - name: build voyager
-        run: npm run build-voyager
       - name: build UI
         run: npm run build-ui
   build-server:

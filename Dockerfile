@@ -7,7 +7,7 @@ COPY source/server/package*.json /app/source/server/
 RUN (cd /app/source/server && npm ci)
 
 COPY source/voyager/package*.json /app/source/voyager/
-RUN (cd /app/source/voyager && npm ci)
+RUN (cd /app/source/voyager && npm ci --legacy-peer-deps)
 
 COPY source/ui/package*.json /app/source/ui/
 RUN (cd /app/source/ui && npm ci)
@@ -21,9 +21,6 @@ RUN npm run build-server
 # outputs files in /app/source/server/dist
 
 COPY source/voyager /app/source/voyager
-RUN npm run build-voyager
-# files are automatically picked up by build-ui
-
 COPY source/ui /app/source/ui
 RUN npm run build-ui
 # outputs files in /app/dist
