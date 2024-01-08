@@ -8,9 +8,11 @@
     "scene": 0,
     "scenes": [{
         "nodes": [0, 1],
-        "setup": 0
+        "setup": 0,
+        "units": "m"
     }],
     "nodes": [{
+        "name": "Camera",
         "translation": [0, 0, 15],
         "camera": 0
     }, {

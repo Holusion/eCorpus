@@ -12,7 +12,6 @@ export default async function handleGetDocument(req :Request, res :Response){
   const {scene:scene_name} = req.params;
   let scene = await vfs.getScene(scene_name);
   let f = await vfs.getDoc(scene.id);
-  
   let doc = JSON.parse(f.data);
   if(typeof doc.asset == "object"){
     //Filter our invalid documents
@@ -20,8 +19,7 @@ export default async function handleGetDocument(req :Request, res :Response){
     doc.asset.id = f.id;
   }
 
-  let data = Buffer.from(JSON.stringify(doc));
-
+  let data = Buffer.from(JSON.stringify(doc), "utf-8");
   let hash = createHash("sha256").update(data).digest("base64url");
 
 

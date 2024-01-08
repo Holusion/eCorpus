@@ -1,5 +1,5 @@
 import { Dictionary } from "./types.ts";
-import { ELanguageType, TLanguageType } from "./common.ts";
+import { ELanguageType, TLanguageType } from "./common.js";
 
 /**
  * 3D Foundation Project
@@ -182,6 +182,7 @@ export interface ISnapshots
 
 export interface ITour
 {
+    id?: string; //ID is optional because it does not exist on old scenes
     title: string;
     titles?: Dictionary<string>;
     steps: ITourStep[];
