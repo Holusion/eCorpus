@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Dictionary } from "./types.js";
+import { Dictionary } from "./types.ts";
 import { ColorRGBA, EUnitType, TUnitType, Vector3, Vector4 } from "./common.js";
 
 ////////////////////////////////////////////////////////////////////////////////

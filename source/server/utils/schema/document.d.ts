@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import { Index } from "./types.ts";
+import { Index } from "./types.js";
 
-import { EUnitType, TUnitType, Vector3, Quaternion, Matrix4, ColorRGB } from "./common.ts";
-import { IMeta } from "./meta.ts";
-import { IModel } from "./model.ts";
-import { ISetup } from "./setup.ts";
+import { EUnitType, TUnitType, Vector3, Quaternion, Matrix4, ColorRGB } from "./common.js";
+import { IMeta } from "./meta.js";
+import { IModel } from "./model.js";
+import { ISetup } from "./setup.js";
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -70,6 +70,7 @@ export interface IScene
  */
 export interface INode
 {
+    id?: string; //ID has been added recently and might be absent in older documents
     name?: string;
     children?: Index[];
 

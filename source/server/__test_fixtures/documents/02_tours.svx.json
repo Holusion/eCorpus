@@ -1,0 +1,118 @@
+{
+  "asset": {
+      "type": "application/si-dpo-3d.document+json",
+      "version": "1.0",
+      "copyright": "(c) Holusion SAS, all rights reserved",
+      "generator": "Voyager"
+  },
+  "scene": 0,
+  "scenes": [{
+      "nodes": [0, 1, 3],
+      "setup": 0,
+      "units": "cm"
+  }],
+  "nodes": [{
+      "id": "zH0MAqrRO3pJ",
+      "name": "Camera",
+      "camera": 0
+  }, {
+      "id": "QE4H7dSQw9sY",
+      "name": "Lights",
+      "children": [2]
+  }, {
+      "id": "jaG05rLoNJjv",
+      "translation": [0, 0, 2],
+      "rotation": [0.1, 0.2, 0.2, 0.8],
+      "scale": [1, 1, 1],
+      "name": "Key",
+      "light": 0
+  }, {
+    "id": "ot9vj20DZ6Y5",
+    "name": "Model Name",
+    "model": 0,
+    "meta": 0
+  }],
+  "cameras": [{
+      "type": "perspective",
+      "perspective": {
+          "yfov": 52,
+          "znear": 0.1,
+          "zfar": 100000
+      }
+  }],
+  "lights": [{
+      "color": [1, 0.95, 0.9],
+      "intensity": 1,
+      "type": "directional",
+      "shadowEnabled": true
+  }],
+  "models": [{
+    "units": "mm",
+    "boundingBox": {
+      "min": [10, 10, 10],
+      "max": [10, 10, 10]
+    },
+    "derivatives": [
+      {
+        "usage": "Web3D",
+        "quality": "High",
+        "assets": [
+          {
+            "uri": "models/foo.glb",
+            "type": "Model",
+            "byteSize": 150,
+            "numFaces": 25,
+            "imageSize": 1
+          }
+        ]
+      }
+    ]
+  }],
+  "metas":[
+    {
+      "collection": {
+        "titles": {
+          "EN": "Meta Title"
+        }
+      }
+    }
+  ],
+  "setups": [{
+      "units": "cm",
+      "snapshots": {
+        "features": [
+          "models"
+        ],
+        "targets": [
+          "model/0/visible"
+        ],
+        "states": [
+          {
+            "id": "scene-default",
+            "values": [
+              true
+            ],
+            "curve": "EaseOutQuad",
+            "duration": 1,
+            "threshold": 0
+          },
+          {
+            "id": "MJ05xF",
+            "values": [
+              true
+            ],
+            "curve": "EaseOutQuad",
+            "duration": 1.5
+          },
+          {
+            "id": "xyhq5j",
+            "values": [
+              false
+            ],
+            "curve": "EaseOutQuad",
+            "duration": 1.5
+          }
+        ]
+      }
+   }]
+}

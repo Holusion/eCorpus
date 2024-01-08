@@ -12,13 +12,16 @@ for (let i = 0; i < alphabet.length; i++) {
 /**
  * Creates a, encoded globally unique identifier with a default length of 12 characters.
  * The identifier only uses letters and digits and can safely be used for file names.
- * this is NOT a proper base 56 encoding. 
- * While the result should be crypto-secure
+ * this is NOT a proper base 56 encoding.
+ * It can be used in place of [@ff-core.uniqueId()](https://github.com/Smithsonian/blob/master/ff-core/source/uniqueId.ts) where necessary,
+ * though it does not use the same aplphabet.
+ * [source inspiration](https://codegolf.stackexchange.com/questions/1620/arbitrary-base-conversion/21672#21672)
+ * 
  * @param length Number of characters in the identifier.
  * @returns Globally unique identifier
- * @see https://codegolf.stackexchange.com/questions/1620/arbitrary-base-conversion/21672#21672
+ * 
  */
- export default function uid(size :number = 12){
+ export default function uid(size :number = 12) :string{
 
   let data = Array.from(crypto.randomBytes(size));
 
