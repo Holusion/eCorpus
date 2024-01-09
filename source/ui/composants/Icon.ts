@@ -49,7 +49,6 @@ export default class Icon extends LitElement
 
     protected render()
     {
-        console.log("Render icon :", this.name, this.template);
         if (this.name) {
             const template = (this.constructor as typeof Icon).templates[this.name];
             if (!template) {

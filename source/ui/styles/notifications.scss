@@ -1,0 +1,13 @@
+@import "./variables.scss";
+:host{
+  position: fixed;
+  z-index: 100;
+  bottom: 0;
+  right: 0;
+  width: 30%;
+  min-width: 250px;
+  max-width: 500px;
+
+  display: flex;
+  flex-direction: column;
+}
