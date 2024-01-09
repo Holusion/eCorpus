@@ -42,13 +42,14 @@ export default class MainView extends router(i18n(withUser(LitElement))){
 
   connectedCallback(): void {
     super.connectedCallback();
-    // FIXME : configure notifications
+    
     updateLogin().catch(e => {
       Modal.show({header: "Error", body: e.message});
     });
   }
 
   render() {
+
     return html`
       <corpus-navbar>
         <nav-link .selected=${this.isActive("/ui/scenes/")} href="/ui/scenes/">Collection</nav-link>
@@ -65,7 +66,7 @@ export default class MainView extends router(i18n(withUser(LitElement))){
         <change-locale style="flex:none"></change-locale>
       </footer>
       <modal-dialog></modal-dialog>
-      <div id="ff-notification-stack"></div>
+      <notification-stack></notification-stack>
     `;
   }
   static styles = [styles];

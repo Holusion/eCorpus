@@ -150,12 +150,55 @@ footer{
   display:flex;
 }
 
-
-
-.notification-stack {
+.notification {
+  position: relative;
+  left: 0;
+  margin: 8px;
+  background: $color-background-light;
   color: $color-light;
-  .ff-notification > .ui-icon {
-    padding: 0;
-    margin: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: stretch;
+  align-items: center;
+
+  .ui-icon {
+    flex: 0 0 auto;
+    height: 2em;
+    width: 2em;
+    padding: 8px; 
+  }
+
+  &.notification-info > .ui-icon {
+    fill: $color-info;
+  }
+  &.notification-success > .ui-icon {
+    fill: $color-success; 
+  }
+  &.notification-warning > .ui-icon {
+    fill: $color-warning; 
+  }
+  &.notification-error > .ui-icon {
+    fill: $color-error; 
+  }
+  
+  .notification-message {
+    flex: 1 1 100%;
+    padding: 8px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .notification-close {
+    flex: 0;
+    padding: 4px 6px 6px 6px;
+    font-weight: bolder;
+    color: $color-text-dark;
+    line-height: 1;
+    font-size: 1.5em;
+    cursor: pointer;
+  }
+  &.fade{
+    transition: transform 0.5s ease-in;
+    transform: translateX(100%);
   }
 }

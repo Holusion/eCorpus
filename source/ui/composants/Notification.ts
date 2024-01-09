@@ -1,14 +1,13 @@
-import { LitElement, customElement, property } from "lit-element";
+import { LitElement, css, customElement, html, property } from "lit-element";
+
+import "./Icon";
+
+import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/notifications.scss';
 
 
 type NotificationLevel = "info" | "success" | "warning" | "error";
 
-const _levelClasses = {
-    "info": "notification-info",
-    "success": "notification-success",
-    "warning": "notification-warning",
-    "error": "notification-error"
-} as const;
+
 
 const _levelIcons = {
     "info": "info",
@@ -36,6 +35,9 @@ class Notification extends LitElement{
   @property({ type: Number })
   timeout: number;
 
+  @property({ type: Boolean })
+  fade :boolean = false;
+
 
   createRenderRoot() {
     return this;
@@ -49,9 +51,31 @@ class Notification extends LitElement{
       this.timeout = timeout !== undefined ? timeout : _levelTimeouts[this.level];
   }
 
+  render(){
+    return html`
+      <div class="notification notification-${this.level}${this.fade?" fade":""}">
+        <ui-icon name="${_levelIcons[this.level]}"></ui-icon>
+        <span class="notification-message">${this.message}</span>
+        <span class="notification-close" @click=${this.remove}>×</span>
+      </div>
+    `;
+  }
+
+  remove(){
+    this.fade = true;
+    setTimeout(()=>{
+      if (this.parentNode) {
+        this.parentNode.removeChild(this);
+      }
+    }, 500);
+  }
+
 }
 
-
+/**
+ * Notification stack implementation.
+ * This is a very rough implementation that won't support any sort of nested stacks.
+ */
 @customElement("notification-stack")
 export default class Notifications extends LitElement{
   static container: HTMLElement = null;
@@ -60,6 +84,30 @@ export default class Notifications extends LitElement{
     if(!Notifications.container){
       return console.error("Notification stack not configured. Please mount <notification-stack> in your DOM before calling Notification.show");
     }
+    Notifications.container.appendChild(line);
+    if(0 < timeout) setTimeout(()=>{
+      line.remove();
+    }, line.timeout);
   }
 
+  connectedCallback(){
+    super.connectedCallback();
+    if(Notifications.container){
+      console.error("Notification stack already configured. Please mount <notification-stack> only once in your DOM");
+    }else{
+      Notifications.container = this;
+    }
+  }
+  
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if(Notifications.container === this){
+      Notifications.container = null;
+    }
+  }
+  render(){
+    return html`<div class="notifications"><slot></slot></div>`;
+  }
+
+  static readonly styles = [styles];
 }
