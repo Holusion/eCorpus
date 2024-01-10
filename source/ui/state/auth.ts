@@ -20,7 +20,6 @@ export function setSession(s ?:UserSession){
 export async function doLogin(username :string, password :string) :Promise<void>{
   await fetch("/api/v1/login", {
     method: "POST",
-    credentials:'omit', //Prevent the browser from showing an authentification popup
     headers:{
       "Content-Type":"application/json",
       "Accept": "application/json",
