@@ -14,6 +14,11 @@ table.list-table {
     padding: 15px;
     box-sizing: border-box;
   }
+  &.compact{
+    th, td {
+      padding: 5px;
+    }
+  }
 
   th {
     color: $color-light;
@@ -34,5 +39,10 @@ table.list-table {
   tbody tr:hover{
     background-color: #071922;
     transition: background-color 150ms ease-out;
-  }  
+  }
+  &.disabled{
+    pointer-events: none;
+    cursor: default;
+    filter: brightness(0.5);
+  }
 }

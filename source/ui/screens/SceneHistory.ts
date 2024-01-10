@@ -11,6 +11,7 @@ import i18n from "../state/translate";
 import {getLogin} from "../state/auth";
 import { navigate } from "../state/router";
 import Modal from "../composants/Modal";
+import { AccessType, Scene } from "state/withScenes";
 
 
 const AccessTypes = [
@@ -80,12 +81,19 @@ class SceneVersion{
  export default class SceneHistory extends i18n(LitElement)
  {
     @property()
-    scene :string;
+    name :string;
+
+    
+
+    @property({attribute: false, type: Object})
+    scene: Scene = null;
     @property({attribute: false, type:Array})
     versions : SceneVersion[];
 
     @property({attribute: false, type:Array})
     permissions :AccessRights[] =[];
+
+    #c:AbortController = new AbortController();
 
     constructor()
     {
@@ -98,28 +106,59 @@ class SceneVersion{
     public connectedCallback(): void {
         super.connectedCallback();
         this.fetchScene();
+        this.fetchHistory();
         this.fetchPermissions();
     }
-    async fetchPermissions(){
-      await fetch(`/api/v1/scenes/${this.scene}/permissions`).then(async (r)=>{
+
+
+    public disconnectedCallback(): void {
+      this.#c.abort();
+    }
+    
+    async fetchScene(){
+      const signal = this.#c.signal;
+      await fetch(`/api/v1/scenes/${this.name}`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
+        if(signal.aborted) return;
+        this.scene = body as Scene;
+      }).catch((e)=> {
+        if(e.name == "AbortError") return;
+        console.error(e);
+        Notification.show(`Failed to fetch scene scene: ${e.message}`, "error");
+      });
+    }
+
+    async fetchPermissions(){
+      const signal = this.#c.signal;
+      await fetch(`/api/v1/scenes/${this.name}/permissions`, {signal}).then(async (r)=>{
+        if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
+        let body = await r.json();
+        if(signal.aborted) return;
         this.permissions = body as AccessRights[];
       }).catch((e)=> {
+        if(e.name == "AbortError") return;
         console.error(e);
         Notification.show(`Failed to fetch scene history: ${e.message}`, "error");
       });
     }
     
-    async fetchScene(){
-      await fetch(`/api/v1/scenes/${this.scene}/history`).then(async (r)=>{
+    async fetchHistory(){
+      const signal = this.#c.signal;
+      await fetch(`/api/v1/scenes/${this.name}/history`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
+        if(signal.aborted) return;
         this.versions = this.aggregate(body as ItemEntry[]);
       }).catch((e)=> {
+        if(e.name == "AbortError") return;
         console.error(e);
         Notification.show(`Failed to fetch scene history: ${e.message}`, "error");
       });
+    }
+
+    can(a :AccessType) :boolean{
+      return AccessTypes.indexOf(a ) <= AccessTypes.indexOf(this.scene.access.user);
     }
 
     aggregate(entries :ItemEntry[]) :SceneVersion[]{
@@ -139,7 +178,7 @@ class SceneVersion{
     }
 
     protected render() :TemplateResult {
-        if(!this.versions){
+        if(!this.versions || !this.scene){
           return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
         }else if (this.versions.length == 0){
           return html`<div style="padding-bottom:100px;padding-top:20px;" >
@@ -153,15 +192,17 @@ class SceneVersion{
           }
         }
         let size = this.versions.reduce((s, v)=>s+v.size, 0);
-        let scene = encodeURIComponent(this.scene);
+        let scene = encodeURIComponent(this.name);
         return html`<div>
-          <h1 style="color:white">${this.scene}</h1>
+          <h1 style="color:white">${this.name}</h1>
           <div style="display:flex;flex-wrap:wrap;">
             <div style="flex-grow: 1; min-width:300px;">
               <h3>Total size: <b-size b=${size}></b-size></h3>
               <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               <div style="max-width: 300px">
-                <a class="btn btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}><ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}</a>
+                ${this.can("write")?html`<a class="btn btn-primary" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}>
+                  <ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}
+                </a>`:null}
                 <a class="btn btn-primary" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
                 <a class="btn btn-primary" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
@@ -174,7 +215,7 @@ class SceneVersion{
         <div class="section">
           ${this.renderHistory()}
         </div>
-        ${getLogin()?.isAdministrator? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;gap:10px">
+        ${this.can("admin")? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;gap:10px">
         <div><ui-button class="btn-primary" icon="edit" text=${this.t("ui.rename")} @click=${this.onRename}></ui-button></div>
         <div><ui-button class="btn-danger" icon="trash" text=${this.t("ui.delete")} @click=${this.onDelete}></ui-button></div>
         </div>`:null}
@@ -182,9 +223,10 @@ class SceneVersion{
     }
 
     renderPermissions(){
+      console.log("Can : ", this.can("admin"), this.scene);
       return html`
         <h2>${this.t("ui.access")}</h2>
-          <table class="list-table">
+          <table  class="list-table compact${!this.can("admin")?" disabled":""}">
             <thead><tr>
               <th>${this.t("ui.username")}</th>
               <th>${this.t("ui.rights")}</th>
@@ -192,7 +234,7 @@ class SceneVersion{
             <tbody>
             ${((!this.permissions?.length)?html`<tr>
               <td colspan=4 style="text-align: center;">
-                ${this.t("info.noData",{item: this.scene})}
+                ${this.t("info.noData",{item: this.name})}
               </td>
             </tr>`:nothing)}
             ${this.permissions.map((p, index) => {
@@ -277,7 +319,7 @@ class SceneVersion{
       console.log("Restore : ", i);
       Notification.show(`Restoring to ${i.name}#${i.generation}...`, "info");
       this.versions = null;
-      fetch(`/api/v1/scenes/${this.scene}/history/`, {
+      fetch(`/api/v1/scenes/${this.name}/history/`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(i)
@@ -286,12 +328,12 @@ class SceneVersion{
         Notification.show("Restoration completed.", "info")
       }).catch(e=>{
         Notification.show(`Failed to restore : ${e.message}`, 'error');
-      }).finally(()=>this.fetchScene())
+      }).finally(()=>this.fetchHistory())
     }
 
     async grant(username :string, access :AccessRights["access"]){
       if(access == "none" && username != "default") access = null;
-      let p = fetch(`/api/v1/scenes/${this.scene}/permissions`, {
+      let p = fetch(`/api/v1/scenes/${this.name}/permissions`, {
         method: "PATCH",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({username:username, access:access})
@@ -305,21 +347,21 @@ class SceneVersion{
           }
         }
       })
-      p.then(()=>{this.fetchPermissions()}).catch(e=>{
+      p.then(()=>this.fetchPermissions()).catch(e=>{
         Notification.show(`Failed to fetch permissions : ${e.message}`);
       })
       return p;
     }
 
     onDelete = ()=>{
-      if(!confirm("Delete permanently "+this.scene+"?")) return;
-      Notification.show("Deleting scene "+this.scene, "warning");
-      fetch(`/scenes/${this.scene}?archive=false`, {method:"DELETE"})
+      if(!confirm("Delete permanently "+this.name+"?")) return;
+      Notification.show("Deleting scene "+this.name, "warning");
+      fetch(`/scenes/${this.name}?archive=false`, {method:"DELETE"})
       .then(()=>{
         navigate(this, "/ui/");
       }, (e)=>{
         console.error(e);
-        Notification.show(`Failed to remove ${this.scene} : ${e.message}`);
+        Notification.show(`Failed to remove ${this.name} : ${e.message}`);
       });
     }
 
@@ -332,20 +374,20 @@ class SceneVersion{
           header: this.t("ui.renameScene"),
           body: html`<div style="display:block;position:relative;padding-top:110px"><spin-loader visible></spin-loader></div>`,
         });
-        fetch(`/api/v1/scenes/${encodeURIComponent(this.scene)}`, {
+        fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}`, {
           method:"PATCH",
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({name})
         }).then((r)=>{
           if(r.ok){
-            Notification.show("Renamed "+this.scene+" to "+name, "info", 1600);
+            Notification.show("Renamed "+this.name+" to "+name, "info", 1600);
             navigate(this, `/ui/scenes/${encodeURIComponent(name)}/`);
           }else{
             throw new Error(`[${r.status}] ${r.statusText}`);
           }
         }).catch((e)=>{
           console.error(e);
-          Notification.show(`Failed to rename ${this.scene} : ${e.message}`);
+          Notification.show(`Failed to rename ${this.name} : ${e.message}`);
         }).finally(()=>{
           setTimeout(()=>{
             Modal.close();
@@ -357,7 +399,7 @@ class SceneVersion{
         header: this.t("ui.renameScene"),
         body: html`<form class="form-group" @submit=${onRenameSubmit}>
           <div class="form-item">
-            <input type="text" required minlength=3 autocomplete="off" style="padding:.25rem;margin-bottom:.75rem;width:100%;" class="form-control" id="sceneRenameInput" placeholder="${this.scene}">
+            <input type="text" required minlength=3 autocomplete="off" style="padding:.25rem;margin-bottom:.75rem;width:100%;" class="form-control" id="sceneRenameInput" placeholder="${this.name}">
           </div>
         </form>`,
         buttons: html`<ui-button class="btn-primary" @click=${onRenameSubmit} text=${this.t("ui.rename")}></ui-button>`,

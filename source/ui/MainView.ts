@@ -38,7 +38,7 @@ export default class MainView extends router(i18n(withUser(LitElement))){
   @route()
   static "/ui/admin/.*" = ()=> html`<admin-panel></admin-panel>`;
   @route()
-  static "/ui/scenes/:id/" = ({parent, params}) => html`<scene-history scene="${params.id}"></scene-history>`;
+  static "/ui/scenes/:id/" = ({parent, params}) => html`<scene-history name="${params.id}"></scene-history>`;
 
   connectedCallback(): void {
     super.connectedCallback();
