@@ -8,7 +8,7 @@ import UserManager from "./auth/UserManager.js";
 import { BadRequestError, HTTPError } from "./utils/errors.js";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, getHost, getUserManager} from "./utils/locals.js";
+import {AppLocals, canRead, canWrite, getHost, getUserManager, isUser} from "./utils/locals.js";
 
 import openDatabase from "./vfs/helpers/db.js";
 import Vfs from "./vfs/index.js";
@@ -105,6 +105,8 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     res.set("Cache-Control", `max-age=${60*60*24*30*12}, public`);
     next();
   });
+  
+  app.use("/ui/scenes/:scene/", canRead);
 
   app.get("/ui/scenes/:scene/view", (req, res)=>{
     let {scene} = req.params;
@@ -122,7 +124,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     });
   });
 
-  app.get("/ui/scenes/:scene/edit",(req, res)=>{
+  app.get("/ui/scenes/:scene/edit", canWrite, (req, res)=>{
     let {scene} = req.params;
     let {lang} = req.query;
     let host = getHost(req);
