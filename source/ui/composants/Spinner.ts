@@ -4,15 +4,16 @@ import { LitElement, property, customElement, html, css } from "lit-element";
 @customElement("spin-loader")
 export default class Spinner extends LitElement{
 
-  @property({type: Boolean})
+  @property({type: Boolean, reflect: true})
   overlay :boolean = false;
-  @property({type: Boolean})
+  @property({type: Boolean, reflect: true})
   visible :boolean = false;
 
-
+  @property({type: Boolean, reflect: true})
+  inline :boolean = false;
 
   render(){
-    return html`<div id="loader" class="spin-loader${this.overlay?" loading-overlay":""}">
+    return html`<div id="loader" class="spin-loader">
 			<span class="loader"></span>
 			<span class="load-text" id="load-text"><slot></slot></span>
     </div>`;
@@ -21,21 +22,6 @@ export default class Spinner extends LitElement{
     .spin-loader{
       position:relative;
     }
-    
-    .loading-overlay{
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      transition: opacity 0.5s ease-out;
-      pointer-events: auto;
-      z-index: 10;
-    }
-    
-    :host:not([visible]) .loading-overlay{
-      pointer-events: none;
-      opacity: 0;
-    }
-    
     
     .loader {
       top: calc(50% - 48px);
@@ -85,5 +71,39 @@ export default class Spinner extends LitElement{
         transform: rotate(360deg);
       }
     } 
+
+    :host([overlay]) .spin-loader{
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      transition: opacity 0.5s ease-out;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    :host([inline]) .spin-loader {
+      display: inline-block;
+      line-height: 1;
+      height: 1em;
+      width: 1em;
+    }
+
+    :host([inline]) .loader{
+      top: calc(50% - .5em + 0.5px);
+      left: calc(50% - .5em + 0.5px);
+      height: calc(1em - 1px);
+      width: calc(1em - 1px);
+      border-width: 1px;
+    }
+
+    :host([inline]) .loader::after{
+      width: 1em;
+      height: 1em;
+      border-width: 3px;
+    }
+    
+    :host(:not([visible])) .spin-loader{
+      pointer-events: none;
+      opacity: 0;
+    }
   `];
 }

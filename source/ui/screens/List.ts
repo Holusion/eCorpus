@@ -7,6 +7,8 @@ import "./LandingPage";
 import "../composants/SceneCard";
 import "../composants/ListItem";
 
+import spinnerImage from "../assets/images/spinner.svg";
+
 import i18n from "../state/translate";
 import { UserSession, withUser } from "../state/auth";
 import { repeat } from "lit-html/directives/repeat";
@@ -17,6 +19,14 @@ import { withScenes, Scene } from "../state/withScenes";
 interface Upload{
     name :string;
 }
+
+type SortOrder = "alphabet"|"ctime"|"mtime";
+const sorts:Record<SortOrder, Parameters<typeof Array.prototype.sort>[0]> = {
+    ctime: (a, b) => new Date(b.ctime).valueOf() - new Date(a.ctime).valueOf(),
+    alphabet: (a, b) => a.name.localeCompare(b.name),
+    mtime: (a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf(),
+};
+const sortNames = Object.keys(sorts) as SortOrder[];
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -38,8 +48,8 @@ interface Upload{
     @property({type: Array, attribute: false})
     selection = [];
 
-    @property({type: Function, attribute: false})
-    sort: Parameters<typeof Array.prototype.sort>[0];
+    @property({type: String, reflect: true})
+    sort:SortOrder = sortNames[0];
 
     get isUser(){
         return (this.user && !this.user.isDefaultUser);
@@ -79,6 +89,7 @@ interface Upload{
         }
 
         this.uploads = {...this.uploads, [sceneName]: {progress:0, done: false}};
+        this.sort = "ctime";
         (async ()=>{
             let xhr = new XMLHttpRequest();
             xhr.onload = function onUploadDone(){
@@ -135,9 +146,8 @@ interface Upload{
         if(!this.list){
             return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
         }
-        let orderTypes = ["alphabet","ctime","mtime"];
 
-        let sortedList = this.list.sort(this.sort);
+        let sortedList = this.list.sort(sorts[this.sort]);
 
         return html`
             <div class="toolbar">
@@ -169,7 +179,7 @@ interface Upload{
                 <div class="form-control" style="margin-left:auto; padding:10px">
                     <span>${this.t("ui.sortBy")}</span>
                     <span class="form-item"><select style="width:auto" @change=${this.onSelectOrder}>
-                        ${orderTypes.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
+                        ${sortNames.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
                     </select></span>                        
                 </div>
 
@@ -177,9 +187,13 @@ interface Upload{
                     ${(sortedList.length == 0 && Object.keys(this.uploads).length == 0)?
                         html`<h4>No scenes available</h1>`:
                         repeat([
-                            ...Object.keys(this.uploads).map(name=>({name})),
+                            ...Object.keys(this.uploads).map(name=>({
+                                key: name,
+                                name: `Uploading ${name}: ${this.uploads[name].progress}%`,
+                                thumb: spinnerImage,
+                            })),
                             ...sortedList,
-                        ],({name})=>name , (scene)=>this.renderScene(mode, scene))
+                        ],(i)=>(i as any).key ?? i.name , (scene)=>this.renderScene(mode, scene))
                     }
                     ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}                
                 </div>
@@ -233,11 +247,6 @@ interface Upload{
 
     onSelectOrder = (ev)=>{
         let value = ev.target.value;
-
-        if(value == "alphabet") this.sort = (a, b) => a.name.localeCompare(b.name);
-        if(value == "ctime") this.sort = (a, b) => new Date(b.ctime).valueOf() - new Date(a.ctime).valueOf();
-        if(value == "mtime") this.sort = (a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf();
-        
-        this.requestUpdate();
+        this.sort = value as SortOrder;
     }
  }

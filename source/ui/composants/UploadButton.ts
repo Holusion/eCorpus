@@ -5,7 +5,7 @@ import { css, LitElement, customElement, html, TemplateResult } from "lit-elemen
 @customElement("upload-button")
 export default class UploadButton extends LitElement
 {
-
+  
   dispatchChange = (ev :MouseEvent)=>{
     this.dispatchEvent(new CustomEvent("change", {
       detail: {
@@ -18,5 +18,16 @@ export default class UploadButton extends LitElement
       return html`<label class="upload-btn" for="fileUpload"><slot></slot></label>
       <input multiple hidden @change={${this.dispatchChange}} id="fileUpload" type="file"/>`;
   }
+
+  static readonly styles = css`
+    .upload-btn{
+      cursor: pointer;
+    }
+
+    :host([disabled]){
+      pointer-events: none;
+      filter: brightness(0.5);
+    }
+  `;
  
 }

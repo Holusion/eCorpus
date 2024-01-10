@@ -71,11 +71,11 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
               </a>
               <div class="infos">
                 <h4 class="card-title">${this.name}</h4>
-                <p class="card-ctime">${new Date(this.time).toLocaleString(this.language)}</p>
+                <p class="card-ctime">${this.time? new Date(this.time).toLocaleString(this.language) : ""}</p>
               </div>          
             </div>
             <div class="tools">
-              <a href="${explorer}"><ui-icon name="eye"></ui-icon>${this.t("ui.view")}</a>
+              ${this.can("read")? html`<a href="${explorer}"><ui-icon name="eye"></ui-icon>${this.t("ui.view")}</a>`:null}
               ${this.can("write")? html`<a class="tool-link" href="${story}"><ui-icon name="edit"></ui-icon>${this.t("ui.edit")}</a>`:null}
               ${this.can("admin")? html`<a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ui-icon name="admin"></ui-icon>${this.t("ui.admin")}</a>`:null}
             </div>

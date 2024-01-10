@@ -12,7 +12,11 @@ export interface Scene {
   id :number;
   name :string;
   thumb ?:string;
-  access :AccessType;
+  access: {
+    user ?:AccessType,
+    any :AccessType,
+    default :AccessType,
+  }
 }
 export const AccessTypes = [
   null,
@@ -22,7 +26,7 @@ export const AccessTypes = [
   "admin"
 ] as const;
 
-export type AccessType = typeof AccessTypes[number];
+export type AccessType = null|"none"|"read"|"write"|"admin";
 
 
 export declare class SceneView{
