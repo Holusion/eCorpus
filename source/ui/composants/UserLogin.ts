@@ -21,6 +21,9 @@ import Notification from "./Notification";
 
     @property({type:Boolean})
     active = false;
+
+    @property({attribute:false})
+    error :string = "";
     
     constructor()
     {
@@ -36,9 +39,11 @@ import Notification from "./Notification";
       .then(()=>{
         console.log("User logged-in succesfully");
         this.dispatchEvent(new CustomEvent("close"));
+        this.error = "";
       },(e)=>{
         console.log("Login failed :", e);
-        Notification.show(`Failed to login : ${e}`, "warning")
+        Notification.show(`Failed to login : ${e}`, "warning", 4000);
+        this.error = e.message.replace(/Error: \[\d+\]\s?/, "");
       }).finally(()=> this.active = false)
     }
 
@@ -75,6 +80,9 @@ import Notification from "./Notification";
             <input type="password" autocomplete="current-password" name="password" id="password" placeholder="${this.t("ui.password")}" required>
             <label for="password">${this.t("ui.password")}</label>
           </div>
+        </div>
+        <div>
+          <span class="text-error">${this.error}</span>
         </div>
         <div class="form-group">
           <div class="form-item">

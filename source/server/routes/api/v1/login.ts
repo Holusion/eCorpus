@@ -1,7 +1,7 @@
 import { createHmac } from "crypto";
 import { Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../../auth/User.js";
-import { BadRequestError, ForbiddenError, HTTPError } from "../../../utils/errors.js";
+import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../../utils/errors.js";
 import { AppLocals, getHost, getUser, getUserManager } from "../../../utils/locals.js";
 import sendmail from "../../../utils/mails/send.js";
 /**
@@ -17,7 +17,14 @@ export const postLogin :RequestHandler = (req, res, next)=>{
     let safeUser = User.safe(user);
     Object.assign(req.session as any, safeUser);
     res.status(200).send({...safeUser, code: 200, message: "OK"});
-  }, next);
+
+  }, (e)=>{
+    if(e instanceof NotFoundError){
+      next(new UnauthorizedError(`username ${username} not found`));
+    }else{
+      next(e);
+    }
+  });
 };
 
 export async function getLogin(req :Request, res:Response){
