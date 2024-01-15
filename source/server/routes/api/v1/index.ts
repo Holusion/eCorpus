@@ -81,7 +81,7 @@ router.patch("/scenes/:scene", canAdmin, bodyParser.json(), wrap(patchScene));
 
 router.use("/scenes/:scene", canRead);
 router.get("/scenes/:scene/history", wrap(getSceneHistory));
-router.post("/scenes/:scene/history", bodyParser.json(), wrap(postSceneHistory));
+router.post("/scenes/:scene/history", canAdmin, bodyParser.json(), wrap(postSceneHistory));
 router.get("/scenes/:scene", wrap(getScene));
 router.get("/scenes/:scene/files", wrap(getFiles));
 router.get("/scenes/:scene/permissions", wrap(getPermissions));

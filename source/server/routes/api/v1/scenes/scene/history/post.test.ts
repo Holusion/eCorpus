@@ -40,7 +40,7 @@ describe("POST /api/v1/scenes/:scene/history", function(){
   this.beforeEach(async function(){
     //Initialize a unique scene for each test
     titleSlug = this.currentTest?.title.replace(/[^\w]/g, "_").slice(0,15)+"_"+randomBytes(4).toString("base64url");
-    scene_id = await vfs.createScene(titleSlug);
+    scene_id = await vfs.createScene(titleSlug, user.uid);
   });
 
   it("restores a scene's document to a specific point in time", async function(){
@@ -53,6 +53,7 @@ describe("POST /api/v1/scenes/:scene/history", function(){
     await antidate();
 
     let res = await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+    .auth("bob", "12345678")
     .set("Content-Type", "application/json")
     .send({type: "document", id: point })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -75,6 +76,7 @@ describe("POST /api/v1/scenes/:scene/history", function(){
     await vfs.writeFile(dataStream(["world"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
     let res = await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+    .auth("bob", "12345678")
     .set("Content-Type", "application/json")
     .send({name: ref.name, generation: ref.generation })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -93,6 +95,7 @@ describe("POST /api/v1/scenes/:scene/history", function(){
     let ref = await vfs.getDocById(id);
     
     let res = await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+    .auth("bob", "12345678")
     .set("Content-Type", "application/json")
     .send({type: "document", id })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -122,6 +125,7 @@ describe("POST /api/v1/scenes/:scene/history", function(){
     expect(allFiles[0]).to.have.property("hash" ).ok;
 
     let res = await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+    .auth("bob", "12345678")
     .set("Content-Type", "application/json")
     .send({type: "file", id: ref })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -143,6 +147,7 @@ describe("POST /api/v1/scenes/:scene/history", function(){
     await vfs.writeDoc(`{"id": 1}`, scene_id);
 
     let res = await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+    .auth("bob", "12345678")
     .set("Content-Type", "application/json")
     .send({type: "file", id: ref.id })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -162,11 +167,57 @@ describe("POST /api/v1/scenes/:scene/history", function(){
 
     for(let body of bodies){
       let res = await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+      .auth("bob", "12345678")
       .set("Content-Type", "application/json")
       .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
       .expect(400);
       expect(res.text).to.match(/History restoration requires/);
     }
+  });
+  describe("permissions", function(){
+    let docId:number;
+    this.beforeEach(async function(){
+      docId = await vfs.writeDoc(`{"id": 1}`, scene_id);
+      await vfs.writeDoc(`{"id": 2}`, scene_id);
+    });
+    it("requires admin rights over the scene", async function(){
+      const oscar = await userManager.addUser("oscar", "12345678");
+      //Fails with read-only
+      await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+      .auth("oscar", "12345678")
+      .set("Content-Type", "application/json")
+      .send({id: docId, type: "document" })
+      .expect("Content-Type", "application/json; charset=utf-8")
+      .expect(401);
+      
+      await userManager.grant(titleSlug, "oscar", "write");
+      //Fails with write access
+      await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+      .auth("oscar", "12345678")
+      .set("Content-Type", "application/json")
+      .send({id: docId, type: "document" })
+      .expect("Content-Type", "application/json; charset=utf-8")
+      .expect(401);
+
+            
+      await userManager.grant(titleSlug, "oscar", "admin");
+      //Succeeds with admin access
+      await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+      .auth("oscar", "12345678")
+      .set("Content-Type", "application/json")
+      .send({id: docId, type: "document" })
+      .expect("Content-Type", "application/json; charset=utf-8")
+      .expect(200);
+    });
+
+    it("admins can always restore scenes", async function(){
+      await request(this.server).post(`/api/v1/scenes/${titleSlug}/history`)
+      .auth("alice", "12345678")
+      .set("Content-Type", "application/json")
+      .send({id: docId, type: "document" })
+      .expect("Content-Type", "application/json; charset=utf-8")
+      .expect(200);
+    });
   });
 });
