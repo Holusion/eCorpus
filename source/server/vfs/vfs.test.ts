@@ -292,6 +292,14 @@ describe("Vfs", function(){
         expect(folders.map(f=>f.name)).to.deep.equal(["articles", "articles/videos", "models"]);
       });
 
+      it("don't accept a trailing slash", async function(){
+        await expect(vfs.createFolder({scene:scene_id, name: "videos/", user_id: 0})).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("don't accept absolute paths", async function(){
+        await expect(vfs.createFolder({scene:scene_id, name: "/videos", user_id: 0})).to.be.rejectedWith(BadRequestError);
+      });
+
       it("throws an error if folder exists", async function(){
         await vfs.createFolder({scene: scene_id, name: "videos",  user_id: 0});
         await expect( vfs.createFolder({scene: scene_id, name: "videos",  user_id: 0}) ).to.be.rejectedWith(ConflictError);

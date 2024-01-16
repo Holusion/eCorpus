@@ -20,8 +20,7 @@ export default abstract class BaseVfs{
    * Runs a sequence of methods in isolation
    * Every calls to Vfs.db inside of the callback will be wrapped in a transaction
    * It _can_ be nested but be sure you understand how savepoints will be unwrapped and how SQLITE_BUSY works
-   * @param fn 
-   * @returns 
+   * @see Database.beginTransaction
    */
   public isolate = async <T>(fn :(this: typeof this, vfs :typeof this)=> Promise<T>)=>{
     return await this.db.beginTransaction(async (transaction)=>{

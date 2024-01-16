@@ -331,6 +331,8 @@ export default abstract class FilesVfs extends BaseVfs{
   }
 
   async createFolder({scene, name, user_id} :WriteDirParams){
+    if(name.startsWith("/")) throw new BadRequestError("Folders must be relative to the scene root");
+    if(name.endsWith("/")) throw new BadRequestError("Folder names must not end with a slash");
     return await this.isolate(async tr =>{
       try{
         await tr.getFileProps({scene, name});
