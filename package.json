@@ -4,7 +4,7 @@
   "description": "3D model database and content management system with integrated annotations and stories 3D editor",
   "scripts": {
     "start": "cd source/server/ && npm start",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cd source/server/ && npm test",
     "build-ui": "cd source/ui && webpack --mode=production",
     "build-server": "tsc -b source/server",
     "watch": "cd source/server && HOT_RELOAD=1 NODE_ENV=development ROOT_DIR=\"../../\" nodemon -e ts,js -w . -w ../ui/webpack.config.js -x ts-node index.ts"

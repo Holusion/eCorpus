@@ -15,9 +15,10 @@ describe("POST /api/v1/scenes/:scene/history", function(){
 
   /**
    * antidate everything currently in the database to force proper ordering
+   * Ensure rounding to the nearest second
    */
-  async function antidate(){
-    let ts = Math.round(Date.now()/1000)-10000;
+  async function antidate(t = Date.now()){
+    let ts = Math.round(t/1000)-10000;
     let d = new Date(ts*1000);
     await vfs._db.exec(`
       UPDATE scenes SET ctime = datetime("${d.toISOString()}");
