@@ -15,7 +15,7 @@ export default abstract class CleanVfs extends BaseVfs{
     let cleanups = [
       this.cleanLooseObjects,
       this.checkForMissingObjects,
-      this.fixMissingArticles,
+      //this.fixMissingArticles,
     ];
     for (let fn of cleanups){
       await fn.call(this);
