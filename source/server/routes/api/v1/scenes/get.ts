@@ -11,7 +11,15 @@ import { ZipEntry, zip } from "../../../../utils/zip/index.js";
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
   let u = getUser(req);
-  let {id: ids, name: names, match, access } = req.query;
+
+  let {
+    id: ids,
+    name: names,
+    match,
+    access,
+    limit,
+    offset
+  } = req.query;
 
   access = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
@@ -43,7 +51,12 @@ export default async function getScenes(req :Request, res :Response){
     scenes = await Promise.all(scenesList.map(name=>vfs.getScene(name)));
   }else{
     /**@fixme ugly hach to bypass permissions when not performing a search */
-    scenes = await vfs.getScenes((u.isAdministrator && !access && !match)?undefined: u.uid, {match: match as string, access: access as AccessType[]});
+    scenes = await vfs.getScenes((u.isAdministrator && !access && !match)?undefined: u.uid, {
+      match: match as string,
+      access: access as AccessType[],
+      limit: limit? parseInt(limit as string): undefined,
+      offset: offset? parseInt(offset as string): undefined,
+    });
   }
 
   //canonicalize scenes' thumb names
@@ -66,7 +79,7 @@ export default async function getScenes(req :Request, res :Response){
   }
   
   await wrapFormat(res, {
-    "application/json":()=>res.status(200).send(scenes),
+    "application/json":()=>res.status(200).send({scenes}),
 
     "text": ()=> res.status(200).send(scenes.map(m=>m.name).join("\n")+"\n"),
 

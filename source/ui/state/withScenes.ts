@@ -18,6 +18,11 @@ export interface Scene {
     default :AccessType,
   }
 }
+
+export interface ApiResult {
+  scenes :Scene[];
+}
+
 export const AccessTypes = [
   null,
   "none",
@@ -58,9 +63,10 @@ export function withScenes<T extends Constructor<LitElement>>(baseClass:T) : T &
       let url = new URL("/api/v1/scenes", window.location.href);
       if(this.match) url.searchParams.set("match", this.match);
       if(this.access?.length) this.access.forEach(a=>url.searchParams.append("access", a));
+      url.searchParams.set("limit", "100");
       fetch(url, {signal: this.#loading.signal}).then(async (r)=>{
           if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
-          this.list = (await r.json()) as Scene[];
+          this.list = ((await r.json()) as ApiResult).scenes;
       }).catch((e)=> {
           if(e.name == "AbortError") return;
           Notification.show(`Failed to fetch scenes list : ${e.message}`, "error");

@@ -272,6 +272,45 @@ describe("Vfs", function(){
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
       });
+
+      describe("pagination", function(){
+        it("rejects bad LIMIT", async function(){
+          let fixtures = [-1, "10", null];
+          for(let f of fixtures){
+            await expect(vfs.getScenes(0, {limit: f as any})).to.be.rejectedWith(BadRequestError);
+          }
+        });
+
+        it("rejects bad OFFSET", async function(){
+          let fixtures = [-1, "10", null];
+          for(let f of fixtures){
+            await expect(vfs.getScenes(0, {limit: f as any})).to.be.rejectedWith(BadRequestError);
+          }
+        });
+
+        it("respects pagination options", async function(){
+          for(let i = 0; i < 10; i++){
+            await vfs.createScene(`scene_${i}`);
+          }
+          let res = await vfs.getScenes(0, {limit: 1, offset: 0})
+          expect(res).to.have.property("length", 1);
+          expect(res[0]).to.have.property("name", "scene_0");
+
+          res = await vfs.getScenes(0, {limit: 2, offset: 2})
+          expect(res).to.have.property("length", 2);
+          expect(res[0]).to.have.property("name", "scene_2");
+          expect(res[1]).to.have.property("name", "scene_3");
+        });
+
+        it("limits LIMIT to 100", async function(){
+          for(let i = 0; i < 110; i++){
+            await vfs.createScene(`scene_${i}`);
+          }
+          let res = await vfs.getScenes(0, {limit: 110, offset: 0})
+          expect(res).to.have.property("length", 100);
+          expect(res[0]).to.have.property("name", "scene_0");
+        })
+      });
     });
 
     describe("createFolder(), removeFolder(), listFolders()", function(){

@@ -14,17 +14,23 @@ import { read_cdh } from "../../../../utils/zip/index.js";
 
 
 describe("GET /api/v1/scenes", function(){
-  let vfs:Vfs, userManager:UserManager, ids :number[];
-  this.beforeEach(async function(){
+
+  let vfs:Vfs, userManager:UserManager, ids :number[], user :User, admin :User;
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager  = locals.userManager;
+
+    
+    user = await userManager.addUser("bob", "12345678", false);
+    admin = await userManager.addUser("alice", "12345678", true);
+
     ids = await Promise.all([
         vfs.createScene("foo"),
         vfs.createScene("bar"),
     ]);
   });
-  this.afterEach(async function(){
+  this.afterAll(async function(){
     await vfs.close();
     await fs.rm(this.dir, {recursive: true});
   });
@@ -40,7 +46,7 @@ describe("GET /api/v1/scenes", function(){
     let r = await request(this.server).get("/api/v1/scenes")
     .expect(200)
     .expect("Content-Type", "application/json; charset=utf-8");
-    expect(r.body).to.have.property("length", 2);
+    expect(r.body).to.have.property("scenes").to.have.property("length", 2);
   });
   
   it("can send a zip file", async function(){
@@ -68,11 +74,14 @@ describe("GET /api/v1/scenes", function(){
 
   describe("can get a list of scenes", function(){
     let scenes:number[];
-    this.beforeEach(async ()=>{
+    this.beforeAll(async ()=>{
       scenes = await Promise.all([
         vfs.createScene("s1"),
         vfs.createScene("s2"),
       ]);
+    });
+    this.afterAll(async function(){
+      await Promise.all(scenes.map(id=>vfs.removeScene(id)));
     });
 
     it("by name", async function(){
@@ -80,7 +89,7 @@ describe("GET /api/v1/scenes", function(){
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(r.body).to.have.property("length", 2);
+      expect(r.body).to.have.property("scenes").to.have.property("length", 2);
     });
     
     it("by ids", async function(){
@@ -89,24 +98,27 @@ describe("GET /api/v1/scenes", function(){
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(r.body).to.have.property("length", 2);
+      expect(r.body).to.have.property("scenes").to.have.property("length", 2);
     });
   });
 
   describe("can search scenes", async function(){
-    let scenes:number[], user :User, admin :User;
-    this.beforeEach(async ()=>{
-      user = await userManager.addUser("bob", "12345678", false);
-      admin = await userManager.addUser("alice", "12345678", true);
+    let scenes:number[];
+    this.beforeAll(async ()=>{
       scenes = await Promise.all([
         vfs.createScene("read", {[`${user.uid}`]:"read"}),
         vfs.createScene("write", {[`${user.uid}`]:"write"}),
+        await vfs.createScene("admin", {[`${user.uid}`]:"admin"}),
       ]);
     });
 
+    this.afterAll(async function(){
+      await Promise.all(scenes.map(id=>vfs.removeScene(id)));
+    });
+
+
     it("search by access level", async function(){
       let scene :any = await vfs.getScene("write", user.uid);
-
       delete scene.thumb;
 
       let r = await request(this.server).get(`/api/v1/scenes?access=write`)
@@ -115,7 +127,7 @@ describe("GET /api/v1/scenes", function(){
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(r.body).to.deep.equal([
+      expect(r.body.scenes).to.deep.equal([
         {
           ...scene,
           mtime: scene.mtime.toISOString(),
@@ -125,7 +137,7 @@ describe("GET /api/v1/scenes", function(){
     });
 
     it("search by multiple access levels", async function(){
-      await vfs.createScene("admin", {[`${user.uid}`]:"admin"});
+
       let s1 :any = await vfs.getScene("write", user.uid);
       let s2 :any = await vfs.getScene("admin", user.uid);
 
@@ -138,7 +150,7 @@ describe("GET /api/v1/scenes", function(){
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(r.body).to.deep.equal([
+      expect(r.body.scenes).to.deep.equal([
         {
           ...s2,
           mtime: s2.mtime.toISOString(),
@@ -167,7 +179,38 @@ describe("GET /api/v1/scenes", function(){
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(r.body).to.deep.equal(scenes);
+      expect(r.body.scenes).to.deep.equal(scenes);
+    });
+  });
+
+  describe("supports pagination", function(){
+    let scenes:number[] = [];
+
+    this.beforeAll(async ()=>{
+      for(let i = 0; i < 110; i++){
+        scenes.push(await vfs.createScene(`scene_${i.toString(10).padStart(3, "0")}`));
+      }
+    });
+    
+    this.afterAll(async function(){
+      await Promise.all(scenes.map(id=>vfs.removeScene(id)));
+    });
+
+    it("use default limit", async function(){
+      let r = await request(this.server).get(`/api/v1/scenes`)
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(r.body).to.have.property("scenes").to.have.property("length", 10);
+    });
+
+    it("use custom limit and offset", async function(){
+      let r = await request(this.server).get(`/api/v1/scenes?limit=12&offset=12&match=scene_`)
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(r.body).to.have.property("scenes").to.have.property("length", 12);
+      expect(r.body.scenes[0]).to.have.property("name", "scene_012");
     });
   });
 

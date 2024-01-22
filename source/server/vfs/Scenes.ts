@@ -87,10 +87,12 @@ export default abstract class ScenesVfs extends BaseVfs{
    * get all scenes when called without params
    * Search scenes with structured queries when called with filters
    */
-  async getScenes(user_id ?:number, {access, match} :SceneQuery = {}) :Promise<Scene[]>{
+  async getScenes(user_id ?:number, {access, match, limit =10, offset = 0} :SceneQuery = {}) :Promise<Scene[]>{
     if(Array.isArray(access) && access.find(a=>AccessTypes.indexOf(a) === -1)){
       throw new BadRequestError(`Bad access type requested : ${access.join(", ")}`);
     }
+    if(typeof limit !="number" || Number.isNaN(limit) || limit < 0) throw new BadRequestError(`When provided, limit must be a number`);
+    if(typeof offset != "number" || Number.isNaN(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a number`);
     let with_filter = typeof user_id === "number" || match;
 
     if(match){
@@ -151,9 +153,12 @@ export default abstract class ScenesVfs extends BaseVfs{
       `: ""}
       GROUP BY scene_id
       ORDER BY LOWER(scene_name) ASC
+      LIMIT $offset, $limit
     `, {
       $user_id: user_id?.toString(10),
-      $match: match
+      $match: match,
+      $limit: Math.min(limit, 100),
+      $offset: offset,
     })).map(({ctime, mtime, id, access, ...m})=>({
       ...m,
       id,

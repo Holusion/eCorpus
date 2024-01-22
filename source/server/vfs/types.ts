@@ -79,4 +79,6 @@ export interface SceneQuery {
   /** desired scene access level */
   access ?:AccessType[];
   match ?:string;
+  offset ?:number;
+  limit ?:number;
 }
