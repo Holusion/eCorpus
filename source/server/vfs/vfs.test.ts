@@ -271,6 +271,52 @@ describe("Vfs", function(){
           let s = await vfs.getScenes(user.uid, {match: "hello"})
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
+
+        it("can match the author's name", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({}), scene_id, user.uid);
+          let s = await vfs.getScenes(user.uid, {match: user.username});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match an editor's name", async function(){
+          let scene_id = await vfs.createScene("foo", admin.uid);
+          await vfs.writeDoc(JSON.stringify({}), scene_id, admin.uid);
+
+          let s = await vfs.getScenes(user.uid, {match: user.username});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 0);
+          
+          await vfs.writeDoc(JSON.stringify({scene: 0}), scene_id, user.uid);
+          
+          s = await vfs.getScenes(user.uid, {match: user.username});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can search against multiple search terms", async function(){
+          let scene_id = await vfs.createScene("bar", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{
+              articles:[
+                {leads:{EN: "Hello World, this is User"}}
+              ]
+            }]
+          }), scene_id, user.uid);
+
+          scene_id = await vfs.createScene("foo1", admin.uid);
+          await vfs.writeDoc(JSON.stringify({}), scene_id, admin.uid);
+
+          scene_id = await vfs.createScene("foo2", user.uid);
+          await vfs.writeDoc(JSON.stringify({}), scene_id, user.uid);
+          
+          let s = await vfs.getScenes(user.uid, {match: `foo ${user.username}`});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+          expect(s[0]).to.have.property("name", "foo2");
+
+          s = await vfs.getScenes(user.uid, {match: `Hello User`});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+          expect(s[0]).to.have.property("name", "bar");
+        });
+
       });
 
       describe("pagination", function(){

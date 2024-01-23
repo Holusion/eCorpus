@@ -8,7 +8,11 @@ import { DocProps } from "./types.js";
 export default abstract class DocsVfs extends BaseVfs{
 
   /**
-   * 
+   * Write a document for a scene
+   * Unlike regular files, documents are stored as a string in the database
+   * @param $data the document data
+   * @param scene the scene id or name
+   * @param author the user submitting this document's version
    * @returns the created document id
    */
   async writeDoc($data :string, scene :number|string, author :null|number = 0) :Promise<number>{

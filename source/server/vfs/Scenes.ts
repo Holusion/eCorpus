@@ -95,13 +95,50 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(typeof offset != "number" || Number.isNaN(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a number`);
     let with_filter = typeof user_id === "number" || match;
 
-    if(match){
-      if(match.startsWith("^")) match = match.slice(1);
-      else if(!match.startsWith("%")) match = "%"+ match;
+    let likeness = "";
+    let mParams :Record<string, string> = {};
 
-      if(match.endsWith("$")) match = match.slice(0, -1);
-      else if(!match.endsWith("%")) match = match + "%";
+    function addMatch(ms :string, words :number){
+      let name = `$match${words}`;
+      let fname = `$fmatch${words}`; //fuzzy
+      let fm = ms;
+      if(ms.startsWith("^")) fm = fm.slice(1);
+      else if(!ms.startsWith("%")) fm = "%"+ fm;
+
+      if(ms.endsWith("$")) fm = fm.slice(0, -1);
+      else if(!ms.endsWith("%")) fm = fm + "%";
+
+      mParams[fname] = fm;
+      mParams[name] = ms;
+
+      likeness += `${words ==0 ? " ": " AND "}(
+        name LIKE ${fname}
+        OR document.metas LIKE ${fname}
+        OR author = ${name}
+        OR json_extract(access, '$.' || ${name}) IN (${AccessTypes.slice(2).map(a=>`'${a}'`).join(", ")})
+        OR access LIKE '%"' || ${name} || '":%'
+      )`;
     }
+
+
+    if(match){
+      let words = 0;
+      likeness = `AND (`;
+      let quoted = false;
+      let ms = "";
+      [...match].forEach(c=>{
+        if(c == '"')    quoted = !quoted;
+        else if(c != " " || quoted) ms += c;
+        else{
+          addMatch(ms, words++);
+          ms = "";
+        }
+      });
+      if(ms.length) addMatch(ms, words++);
+      likeness += `)`;
+    }
+
+
 
     return (await this.db.all(`
       WITH last_docs AS (
@@ -147,16 +184,13 @@ export default abstract class ScenesVfs extends BaseVfs{
         ) IN (${ AccessTypes.slice(2).map(s=>`'${s}'`).join(", ") })
       `:""}
       ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
-      ${match? `AND
-          name LIKE $match
-          OR document.metas LIKE $match
-      `: ""}
+      ${likeness}
       GROUP BY scene_id
       ORDER BY LOWER(scene_name) ASC
       LIMIT $offset, $limit
     `, {
+      ...mParams,
       $user_id: user_id?.toString(10),
-      $match: match,
       $limit: Math.min(limit, 100),
       $offset: offset,
     })).map(({ctime, mtime, id, access, ...m})=>({

@@ -181,10 +181,6 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   }
 
 
-  app.use("/libs", (await import("./routes/libs/index.js")).default);
-
-
-
   //Privilege-protected routes
   app.use("/scenes", (await import("./routes/scenes/index.js")).default);
 
