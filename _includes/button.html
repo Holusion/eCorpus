@@ -1,0 +1,7 @@
+{% if include.name %}
+    {% assign itemClass = {{include.class}} | prepend: " voyager-btn "%}
+{% else %}
+    {% assign itemClass = {{include.class}} | prepend: " voyager-btn icon-only " %}
+{% endif %}
+
+<span class="{{itemClass}}" style="{{include.style}}">{{site.data.icons[include.icon]}} {{include.name}}</span>

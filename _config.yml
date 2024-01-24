@@ -1,0 +1,34 @@
+url: "https://ethesaurus.holusion.com"
+baseurl: ""
+title: "eThesaurus"
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-last-modified-at
+
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: page
+  - scope:
+      path: "fr"
+    values:
+      lang: "fr"
+  - scope:
+      path: "en"
+    values:
+      lang: "en"
+  
+  - scope:
+      path: "*/items"
+    values:
+      layout: "item"
+
+  - scope:
+      path: "*/doc"
+    values:
+      layout: "doc"
+      type: doc
+  

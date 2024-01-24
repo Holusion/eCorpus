@@ -1,0 +1,179 @@
+---
+title: "L’orfèvrerie médiévale à l’épreuve de la modélisation numérique"
+description: >
+    Présentation du système de gestion de scènes 3D eCorpus.
+    Découvrez les détails des oeuvres numérisées par le projet eThesaurus
+    pour la valorisation du patrimoine d'orfèvrerie médiévale des 12 et 13e siècles.
+---
+
+<section class="section section-center">
+    <h2 class="text-white my-5" style="font-size: 3rem">eCorpus</h2>
+</section>
+
+<section class="section left">
+    <img class="cover img-fluid" style="object-position: 70% 0;" src="/assets/img/focus_stbertin_matthieu.webp" alt="Gros plan sur le pied de croix de l'abbaye de Saint-Bertin. l'évangéliste Matthieu devant son pupitre, tourné vers son symbole (l'ange). Réalisé en image de synthèse à partir d'une photogrammétrie">
+    <div class="content">
+        <h2>Outils  d’édition  pour  les  chercheurs  et  les  
+            conservateurs</h2>
+        <p>
+            eCorpus est une base de données liées au modèles 3D, utilisant <a href="https://smithsonian.github.io/dpo-voyager/">DPO-voyager</a> comme visualiseur 3D et éditeur de métadonnées, 
+            un gestionnaire d’historique de modifications, un gestionnaire de droits utilisateurs et des outils de gestion de l’application pour l’installer sur un serveur local.
+        </p>
+    </div>
+</section>
+
+<section class="section section-white left">
+    <div class="content">
+        <h2>Diffuser les résultats des modélisations eThesaurus</h2>
+        <p>
+            Le développement d'eCorpus a été initié dans le cadre du consortium <a href="/fr/about">eThesaurus</a>
+        </p>
+        <p>
+            Le projet porte sur la numérisation de six œuvres d'orfèvrerie médiévale, conservées au musée Sandelin à Saint-Omer et au Palais des Beaux-arts de Lille
+        </p>
+        <p align="center">
+            <img class="img-fluid" src="/assets/img/packshot.webp" alt="collection initiale d'objets de la campagne de numérisation eThesaurus">
+        </p>
+        <p align="right">
+            <a href="collection">Voir la liste des objets</a>
+        </p>
+    </div>
+</section>
+
+<section class="section left">
+    <h2>Numerisation</h2>
+    <img style="object-position: 70% 0;" src="/assets/img/photogrammetry.jpg" alt="Prise de photogramétrie d'un biface Acheuléen par l'Inrap">
+    <div class="content">
+        <p>
+            Les modèles numériques issus de la photogrammétrie comportent les informations liées à la géométrie de l’objet sous la forme d’un mesh maillé 
+            ainsi que les informations liées à son aspect visuels tels que décrit dans un modèle PBR (Physical Based Rendering) 
+            décrivant pour chaque point de l’objet ses propriétés optique : couleur, réflexion, spéculaires, rugosité etc…
+        </p>
+        <p>
+            Ces informations sont suffisantes pour créer des animations vidéos, notamment dans le cas d’<a href="https://holusion.com/fr/posts/2019-02-15-holomouseio">Holomouseio</a>, afin de montrer un double numérique de l’objet. 
+        </p>
+    </div>
+</section>
+
+<section class="section left section-white">
+    <h2>Visionner et éditer en 3D</h2>
+</section>
+
+<section class="section">
+    <div class="media mb-0">
+        {% include voyager.html embed="croix-reliquaire" class="h-100" %}
+    </div>
+    <div class="content">
+        <h4>Complet</h4>
+        <p>
+            eCorpus incorpore des outils pour <b>la valorisation d’un catalogue 3D</b>, des outils d’analyse et de recherche collaborative ainsi que des options d’export pour la valorisation dans un cadre de médiation muséale ou pédagogique.
+        </p>
+        <p>
+            Son premier rôle est de permettre de lier directement les données à l’objet et à sa géométrie par le biais d’annotations enrichies. 
+            Elles lient ensemble un titre, un abstract et un article pouvant comporter des contenus multimédias (vidéos, images, liens…) en texte enrichi (HTML).
+        </p>
+        <h4>Open source</h4>
+        <p>Les résultats du développement sont diﬀusés dans un format Open Source, pour que l’utilisateur soit pleinement propriétaire de ses données et de son environnement.</p>
+        <h4>Décentralisée</h4>
+        <p>L’architecture de l’application fonctionne grâce au déploiement d’instances indépendantes, les bases de données étant compatibles entre elles, mais entièrement séparées.</p>
+        <h4>Consultable par navigateur</h4>
+        <p>Les technologies web sont aujourd’hui les seules à oﬀrir un large panel d’opportunités de diﬀusion. L’obligation d’installation d’un applicatif par le client serait considéré comme un frein majeur à l’utilisation.</p>
+        <h4>Indexable dans des bases de données</h4>
+        <p> La majeure partie des cas d’usages concernent des entités qui possèdent déjà une solution de gestion de contenu, tel que OMEKA S. Les données de eCorpus sont intégrables au sein de celle-ci et recherchables.</p>
+        <h4>Documentée et dotée d’un environnement de développement collaboratif</h4>
+        <p>Le dynamisme d’un projet Open Source est capital dans la réussite d’un projet et sa diﬀusion. La présence de sa documentation sur une plateforme comme <a href="https://github.com/Holusion/eThesaurus">GitHub</a> et l’activité régulière du développement avec une équipe clairement identiﬁée.</p>
+    </div>
+</section>
+
+<section class="section section-white">
+    <img class="my-auto" style="object-position: 70% 0;" src="/assets/img/voyager-scene-tree.jpg" alt="Node tree contenant les meta data d'un document sur DPO-Voyager">
+    <div class="content">
+        <p>
+            Chaque entrée dans la base a une structure de données organisées dans <a href="https://smithsonian.github.io/dpo-voyager/document/overview/">un ﬁchier JSON de référence</a>, avec des ﬁchiers liés (objet 3d, textures, articles, images, vidéos, etc…)
+        </p>
+        <p>
+            Cette organisation permet une grande ﬂexibilité : Les données exportées peuvent être utilisées telles qu’elles indépendamment du serveur sur lequel elles sont stockées.
+        </p>
+        <p>
+            Le ﬁchier descriptif des scènes permet la gestion des modèles à multiples niveaux de détails (LOD) ainsi que la traduction des diﬀérentes métadonnées.
+        </p>
+        <p>
+            Chaque entrée dans la base peut donc être composée d’un assemblage de sous-éléments et chacun de ceux-ci peut comporter des modèles en multi-résolution oﬀrant un
+            chargement optimisé de la géométrie par leclient en limitant le chargement de données complexes en fonction de ses besoins.
+        </p>
+    </div>
+</section>
+
+<section class="section section-center">
+    <div class="content">
+        <p>
+            Les modèles alternatifs proposent des visualisations diﬀérentes du modèle à travers des captations distinctes. 
+            Par exemple, en lumière non visible ou en radioscopie.
+        </p>
+        <p>
+            Ces modèles 3D permettent également de stocker des données liées à leur animation.
+            Cette étape de stockage des informations de mouvement est importante pour les simulations de mécanisme comme des horloges, ou des démonstrations de montage/démontage complexes.
+        </p>
+        <p>
+            Toutes ces informations, ces modèles et leurs animations peuvent être animées à travers des “Tours” au sein de la plateforme. 
+            Un tour permet à l’utilisateur de ﬁxer simplement des étapes dans la visualisation tout en laissant le logiciel interpoler les déplacements d’un point à l’autre. 
+            Il pourra y déterminer des animations clé, le désassemblage d’un système ou encore la gestion des lumières.
+        </p>
+    </div>
+</section>
+
+<section class="section left section-white">
+     <h2> Médiation et diﬀusion des contenus</h2>
+    <div class="media">
+        {% include voyager.html embed="encensoir" class="h-100" %}
+    </div>
+    <div class="content">
+        <p>
+            eCorpus permet une diﬀusion des objets 3D et des métadonnées dans deux conﬁgurations diﬀérentes.
+        </p>
+        <p>
+            D’une part, <b>l'intégration du visualisateur Voyager dans une page web ou une application</b> permet d’aller directement requérir la dernière version de l'objet 3D auprès du serveur en fonction de ses droits de diﬀusion.
+        </p>
+        <p>
+            C’est la méthode la plus simple pour la présentation des résultats sur des sites institutionnels, par email ou via des applications mobiles.
+        </p>
+        <p>
+            Les derniers développements en termes de Réalité Augmentée permettent également de diﬀuser l’objet directement sous ce format à travers les AR Kit d’Apple 8 ou Androïd 
+            sans avoir besoin de passer par l’installation d’une application tierce.
+        </p>
+        <p>
+            Dans certains cas d’usages, notamment pour les installations dans les musées ou des expositions hors-les-murs, la présence d’une connexion à internet n’est pas nécessaire.
+        </p>
+        <p>
+            Dans ce sens, il est possible de créer des applications fonctionnant avec une base de données locale, exportée depuis la plateforme en ligne. 
+            Ce qui permet d’avoir un travail asynchrone et ajoutant des données au ﬁl de l’eau avant de prévoir un export pour une visualisation en médiation dans un lieu d’exposition.
+        </p>
+    </div>
+</section>
+
+<section class="section">
+    <img style="object-position: 70% 0;" src="/assets/img/sketch_ethesaurus.png" alt="Sketch représentant le démonstrateur eThesaurus de Holusion sur une borne holographique">
+    <div class="content m-auto">
+        <p>
+            Parmi les diﬀérents formats d’export pour la médiation, eCorpus supporte <b>la visualisation sur table tactile, tablettes mobiles, hologrammes et dispositifs de réalité virtuelle et réalité augmentée</b>.
+        </p>
+        <p>
+            Le démonstrateur eThesaurus, fabriqué par <a href="https://holusion.com/">Holusion</a>, permet la visualisation d’un export d’une base de données eCorpus.
+        </p>
+        <p>
+            L’aﬃchage est séparé sur deux écrans. L’écran transparent est dedié à la visualisation des objets 3D, des animations et des annotations concises.
+        </p>
+        <p>
+            La navigation est assurée par un écran secondaire, placé devant le dispositif. 
+            Le contrôle tactile a été retenu pour sa prévalence auprès des publics, habitués à la manipulation de smartphones et de tablettes au quotidien.
+        </p>
+        <p>
+            Sur celui-ci, l’usager consulte les informations textuelles et les médias photos et vidéos complémentaires inclus dans les articles.
+        </p>
+    </div>
+</section>
+
+<section class="section section-center">
+    <h2>Borne holographique interactive connectée à eCorpus</h2>
+    {% include youtube.html  embed="ajOZ_fe8kso" %}
+</section>

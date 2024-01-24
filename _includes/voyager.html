@@ -1,0 +1,13 @@
+{%comment %}
+iframe for e-corpus items
+Usage :
+include voyager.html embed=item-id
+{%endcomment%}
+
+{% assign lang = {{page.lang}} | upcase %}
+{% assign itemSrc = {{include.embed}} | prepend: "https://ecorpus.holusion.com/ui/scenes/" | append: "/view?lang=" | append: lang %}
+{% assign itemClass = {{include.class}} | prepend: " media ratio ratio-16x9 "%}
+
+<div class="{{itemClass}}">
+    <iframe name="Voyager on eCorpus" src="{{itemSrc}}" allow="xr; xr-spatial-tracking; fullscreen"></iframe>
+</div>

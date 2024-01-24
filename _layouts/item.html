@@ -1,0 +1,40 @@
+---
+layout: page
+---
+
+<section class="section section-center">
+    <h2 class="my-5" style="font-size: 3rem">{{page.abstract}}</h2>
+</section>
+
+<section class="section section-center">
+    <div class="content p-0">
+        <div class="row g-0">
+            <div class="col-sm-8 col-12">
+                {% include voyager.html embed=page.scene %}
+            </div>
+            <div class="col-sm-4 col-12 p-2">
+                {%- for prop in page.properties -%}
+                    <h4>{{ prop[0] }}</h4>
+                    <p>{{ prop[1] }}</p>
+                {%- endfor -%}
+            </div>            
+        </div>
+    </div>
+</section>
+
+{{ content }}
+    
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "3DModel",
+        "name": "{{page.scene}}",
+        "abstract": "{{page.abstract}}",
+        "image": "https://ecorpus.holusion.com/scenes/{{page.scene}}/scene-image-thumb.jpg",
+        "encoding":{
+            "@type": "MediaObject",
+            "contentUrl": "{{page.object}}",
+            "encodingFormat": "model/gltf-binary"
+        }
+    }
+</script>

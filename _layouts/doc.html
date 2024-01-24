@@ -1,0 +1,17 @@
+---
+layout: default
+---
+
+<div class="sidebar-layout">
+    <nav class="sidebar-layout__nav bg-faded navbar-dark navbar-expand-lg">
+        <button class="navbar-toggler dropdown-toggle my-3" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar" aria-controls="sidebar" aria-expanded="true" aria-label="Toggle navigation">
+            <span>Navigation</span>
+        </button>
+        <div class="navbar-collapse flex-column align-items-stretch collapse show" id="sidebar" aria-expanded="false">
+            {% docnav %}
+        </div>
+    </nav>
+    <main class="main-dark main-grid sidebar-layout__content">
+        {{ content }}
+    </main>
+</div>
