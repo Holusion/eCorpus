@@ -16,4 +16,5 @@ Having a working [rvm](https://rvm.io/) setup or any equivalent ruby version man
 ```bash
 gem install bundler
 bundle install
+bundle exec jekyll serve
 ```

@@ -5,20 +5,20 @@
 {%- endcomment -%}
 
 {% if  alt %}
-<li class="{{include.type}}" >
-  <a href="#" class="dropdown-toggle {{include.classes}}" data-bs-toggle="dropdown" aria-haspopup="true" role="button" aria-expanded="false">
+<div class="{{include.type}}" >
+  <a href="#" class="dropdown-toggle {{include.classes}} hidden" data-bs-toggle="dropdown" aria-haspopup="true" role="button" aria-expanded="false">
     {{page.lang}}
     <span class="caret"></span>
-    <span class="visually-hidden">(change language)</span>
+    <span class="hidden">(change language)</span>
   </a>
-  <div class="dropdown-menu dropdown-menu-right language-picker" role="menu">
-    <a class="dropdown-item" href="{{page.url}}" >
+  <div class="langues-navbar2" role="menu">
+    <a href="{{page.url}}" >
       {{page.lang}}
     </a>
-    <div class="dropdown-divider"></div>
-    <a class="dropdown-item" href="{{alt_url}}">
+    <div class="langues-navbar2"></div>
+    <a href="{{alt_url}}">
       {{alt_lang}}
     </a>
   </div>
-</li>
+</div>
 {% endif %}
