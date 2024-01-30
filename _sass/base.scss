@@ -217,6 +217,19 @@ padding-top: 0.5rem;
   display: none;
 }
 
+.collapse:not(.show){
+  display: none;
+}
+.collapsing{
+  height: 0;
+  overflow: hidden;
+  transition: height 0.35s ease;
+}
+
+.dropdown-toggle{
+  cursor: pointer;
+}
+
 .langues-navbar2{
   display: flex;
   flex-direction: row;
