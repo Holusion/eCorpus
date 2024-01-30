@@ -5,32 +5,60 @@ $serifFont: 'Noto Serif', serif;
 $sidebar_width: 250px;
 $darkgrey:#272727;
 $middlegrey:#444444;
+$middlegrey-shadow:rgba(68, 68, 68, 20%);
 $yellow:#E6B900;
+$yellow2:rgba(230, 185, 0, 70%);
 $orange:#EB5806;
 
 body {
   background: $backgroundColor;
   color: $bodyColor;
   font-family: $bodyFont;
-  height: 100vh;
+  // height: 100vh;
+  width: 100%;
   margin:0px;
+  padding: 0px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
 }
 
 nav{
-  position: fixed;
-  width: 100vw;
+  // position: absolute;
+  width: 100%;
   // width: 100%;
   // top: 0;
+}
+
+.navbar1{
+  background-color: $darkgrey;
+  margin: 0;
+  height: 110px;
+  padding: 20px 50px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.navbar2{
+  background-color: $middlegrey;
+  // margin: 0;
+  height: 30px;
+  padding: 10px 50px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0px;
+  // width: 100vw;
 }
 
 ul{
   padding-inline-start: 0;
 }
 
-li{
+nav li{
   margin : 0;
   padding : 0 30px 0 0;
   list-style : none;
@@ -41,11 +69,41 @@ a{
   text-decoration: none;
 }
 
+.larg100{
+  width: 100%;
+}
+.fer-gauche{
+  margin: 1.5rem 3rem;
+}
+
+.retrait{
+  margin-left: 40px;
+}
+.retrait li{
+  margin-bottom: 1rem;
+}
+
 footer {
-  height: 45px;
-  
-  // position: fixed;
-  // bottom:0;
+  height: 30px;
+  background-color: $darkgrey;
+  width: 100%;
+  padding: 10px 0px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: white;
+}
+footer a {
+  color: white;
+  font-weight: bold;
+}
+footer a:hover {
+  color: $yellow;
+}
+.alignement-footer{
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 // main {
@@ -65,8 +123,10 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 200px 0 0 0;
+  // margin: 200px 0 0 0;
+  box-shadow: 5px 0px 10px $middlegrey-shadow, -5px 0px 10px $middlegrey-shadow;
 }
+
 main img{
 max-width: 100%;
 }
@@ -85,34 +145,73 @@ h2{
   font-family: $bodyFont;
   font-weight: 600;
   font-size: 2rem;
+  display: inline;
+  margin: 20px 0;
+  // padding: 0 1.5rem 0 0.4rem;
+  padding: 0 0.2rem 0 1.5rem;
+}
+.ligne-jaune-h2{
+  margin-bottom: 1rem;
+  box-shadow: inset  0rem -0.6rem 0px $yellow;
+  display: flex;
+  justify-content: start;
+  display: inline-block;
+}
+
+h3{
+  font-family: $serifFont;
+  margin-block-start: 0;
+  margin-block-end: 0;
+  font-size: 1.3rem;
+  padding: 0.5rem 0 0 1.5rem;
+}
+.ligne-jaune-h3{
+  margin-bottom: 1rem;
+  box-shadow: inset 0.7rem 0px 0px $yellow;
+  display: flex;
+  justify-content: start;
+}
+
+h4{
+  font-size: 1.1rem;
+  margin: 1rem 0 0.5rem 0;
+  text-decoration: underline $yellow 2px;
+}
+
+p{
+  margin-block-start: 0;
+  margin-block-end: 0;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  margin-bottom: 0.3rem;
+}
+p a{
+  font-weight: bold;
+  color: $darkgrey;
+  text-decoration: underline;
+}
+p a:hover{
+  color: $bodyColor;
+  // color: $middlegrey;
+  // color: $yellow;
+  // background-color: $darkgrey;
+  background-color: $yellow2;
+}
+.align-right{
+text-align: end;
+padding-top: 0.5rem;
 }
 
 .navbar2 a{
   color: white;
 }
+.navbar2 a:hover{
+  color: $yellow;
+}
+
 .hidden{
   //faire un truc pr visualiseur d'ecran
   display: none;
-}
-.navbar1{
-  background-color: $darkgrey;
-  margin: 0;
-  height: 110px;
-  padding: 20px 50px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-.navbar2{
-  background-color: $middlegrey;
-  margin: 0;
-  padding: 0;
-  height: 30px;
-  padding: 10px 50px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .langues-navbar2{
@@ -121,6 +220,23 @@ h2{
   padding: 0 0 0 10px;
 }
 
+
+.mep-doc {
+  display: flex;
+  flex-direction: row;
+}
+.nav-doc-principale{
+width: 300px;
+background-color: $darkgrey;
+}
+.nav-doc-secondaire{
+  width: 300px;
+background-color: $darkgrey;
+}
+.list-group{
+  display: flex;
+  flex-direction: column;
+}
 
 
 

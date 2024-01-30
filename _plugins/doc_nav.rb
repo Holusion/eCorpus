@@ -83,7 +83,7 @@ module Jekyll
           )
 
           markup += %(
-            <ul class="collapse list-group list-group-flush content-bar-group--sub#{is_active ? " show" : ""}"
+            <ul class="collapse list-group content-bar-group--sub#{is_active ? " show" : ""}"
               id="collapseList#{uid}"
             >
           )
@@ -119,7 +119,7 @@ module Jekyll
           doc_tree(site.pages)
         end
 
-        html = %(<ul class="list-group list-group-flush content-bar-group--main">)
+        html = %(<ul class="list-group">)
 
         html += %(<li class="list-group-item content-bar--link#{ page["url"] == %(/dev/#{lang}/index) ? " current" : ""}">
           <a href="/#{lang}/doc/">Introduction</a>
