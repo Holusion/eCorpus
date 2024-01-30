@@ -12,6 +12,9 @@ $orange:#EB5806;
 
 body {
   background: $backgroundColor;
+  &:has(.mep-doc){
+    background-color: $darkgrey;
+  }
   color: $bodyColor;
   font-family: $bodyFont;
   // height: 100vh;
@@ -118,6 +121,7 @@ footer a:hover {
 // }
 main {
   width:700px;
+  min-width: 700px;
   background-color: white;
   display: flex;
   flex-direction: column;
@@ -147,7 +151,6 @@ h2{
   font-size: 2rem;
   display: inline;
   margin: 20px 0;
-  // padding: 0 1.5rem 0 0.4rem;
   padding: 0 0.2rem 0 1.5rem;
 }
 .ligne-jaune-h2{
@@ -221,21 +224,96 @@ padding-top: 0.5rem;
 }
 
 
+
 .mep-doc {
   display: flex;
   flex-direction: row;
+  width: 100%;
+  justify-content: center;
 }
-.nav-doc-principale{
-width: 300px;
-background-color: $darkgrey;
+
+.nav-doc {
+  // min-width: fit-content;
+  max-width: 300px;
+  background-color: $darkgrey;
+  // background-color: rgba(0, 110, 255, 0.3);
+  height: fit-content;
+  padding: 1rem 1rem 1rem 0;
 }
-.nav-doc-secondaire{
-  width: 300px;
-background-color: $darkgrey;
+
+.trait-vertical{
+  border-left: 1px white solid;
 }
-.list-group{
+
+// .nav-doc ul{
+//   margin-block-start: 0;
+//   margin-block-end: 0;
+// }
+.nav-doc ul li, .nav-doc ul li a{
+  // width: fit-content;
+  width: 100%;
+  // max-width: max-content;
+  // max-width: fit-content;
+  padding-right: 0;
+  color: white;
+  padding: 0.1rem 0.5rem 0.1rem 1rem;
+  margin-top: 0.3rem;
+}
+// .nav-doc > ul > a:hover{
+//   background-color: $yellow;
+// }
+.nav-doc > div > ul > li{
+  font-family: $serifFont;
+  padding: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+}
+.nav-doc > div > ul > li:last-child{
+  padding: 0 0 0 0;
+}
+
+.nav-doc > div > ul > li > ul{
+  font-family: $bodyFont;
+  font-size: 1rem;
+  // padding-top: 0.5rem;
+}
+// .nav-doc > div > ul > li > ul> li{
+//   margin-top: 0.5rem;
+//   width: 100%;
+//   // max-width: fit-content;
+// background-color: #f00;
+// }
+.nav-doc > div > ul > li > ul> li > a{
+  margin-top: 0.5rem;
+  width: 100%;
+  // max-width: fit-content;
+}
+.nav-doc > div > ul > li > ul> li:hover, .nav-doc > div > ul > li:hover:first-of-type{ 
+background-color: rgb(21, 255, 0);
+}
+.nav-doc > div > ul > li > ul> li > ul > li:hover{
+  // margin-top: 0.5rem;
+  width: 100%;
+  // max-width: fit-content;
+background-color: rgb(0, 132, 255);
+}
+
+.nav-doc > div > ul > li > ul> li:hover{
+  // background-color: $yellow;
+
+}
+
+.list-group {
   display: flex;
   flex-direction: column;
+}
+
+
+
+.big-intro-doc{
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.6rem;
+  margin: 0rem 3rem 0.3rem 3rem;
 }
 
 

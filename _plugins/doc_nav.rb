@@ -38,7 +38,7 @@ module Jekyll
 
           parts.each do |part|
             #print "current hash :#{current_hash}"
-            current_hash[part] = {:children =>{}, :title => part } if not current_hash.has_key? part
+            current_hash[part] = {:children =>{}, :title => part.capitalize() } if not current_hash.has_key? part
             current_hash = current_hash[part][:children]
           end
 
