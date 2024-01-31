@@ -64,7 +64,7 @@ module Jekyll
         markup = %(<li class="list-group-item content-bar--link#{is_active ? " current" : ""}">)
 
         if item[:children].empty?
-          markup += %(<a href="#{url}">#{title}</a>)
+          markup += %(<a class="list-group-leaf" href="#{url}">#{title}</a>)
         else
           sorted_children = item[:children].sort_by { |key, val| val.has_key?(:rank)? val[:rank] : 0 }
           child_nodes = sorted_children.map do |childKey, child|
@@ -72,12 +72,10 @@ module Jekyll
           end
 
           markup += %(
-            <a class="dropdown-toggle" role="button" data-proofer-ignore
-              data-bs-toggle="collapse"  aria-haspopup="true"
+            <a class="dropdown-toggle" role="button" 
+              data-toggle="collapse" aria-haspopup="true"
               aria-expanded="#{is_active ? "true" : "false"}"
-              data-bs-target="#collapseList#{uid}"
-              aria-expanded="#{ is_active ? "true" : "false"}"
-              aria-controls="collapseList#{uid}">
+              data-target="#collapseList#{uid}">
               #{title}
             </a>
           )

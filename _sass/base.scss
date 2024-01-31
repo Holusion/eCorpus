@@ -34,7 +34,7 @@ nav{
   // top: 0;
 }
 
-.navbar1{
+.navbar-header{
   background-color: $darkgrey;
   margin: 0;
   height: 110px;
@@ -43,7 +43,7 @@ nav{
   flex-direction: row;
   align-items: center;
 }
-.navbar2{
+.navbar{
   background-color: $middlegrey;
   // margin: 0;
   height: 30px;
@@ -52,9 +52,18 @@ nav{
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0px;
-  // width: 100vw;
+  &.navbar-sticky{
+    position: sticky;
+    top: 0px;
+  }
+
+  a{
+    color: white;
+  }
+
+  a:hover{
+    color: $yellow;
+  }
 }
 
 ul{
@@ -205,12 +214,6 @@ text-align: end;
 padding-top: 0.5rem;
 }
 
-.navbar2 a{
-  color: white;
-}
-.navbar2 a:hover{
-  color: $yellow;
-}
 
 .hidden{
   //faire un truc pr visualiseur d'ecran
@@ -220,14 +223,27 @@ padding-top: 0.5rem;
 .collapse:not(.show){
   display: none;
 }
-.collapsing{
-  height: 0;
-  overflow: hidden;
-  transition: height 0.35s ease;
-}
 
 .dropdown-toggle{
   cursor: pointer;
+
+  &::before{
+    display: inline-block;
+    margin-left: 0.255em;
+    vertical-align: 0.255em;
+    content: "";
+    border-top: 0.3em solid;
+    border-right: 0.3em solid rgba(0,0,0,0);
+    border-bottom: 0;
+    border-left: 0.3em solid rgba(0,0,0,0);
+    transition: border 0.35s ease;
+  }
+  &[aria-expanded="true"]::before{
+    border-top: 0;
+    border-right: 0.3em solid rgba(0,0,0,0);
+    border-bottom: 0.3em solid;
+    border-left: 0.3em solid rgba(0,0,0,0);
+  }
 }
 
 .langues-navbar2{
@@ -318,6 +334,22 @@ background-color: rgb(0, 132, 255);
 .list-group {
   display: flex;
   flex-direction: column;
+
+  &.collapse{
+    display: none;
+    &.show{
+      display: flex;
+    }
+  }
+
+  .list-group-item{
+    .dropdown-toggle{
+      width:100%;
+    }
+    &.current:not(:has(.list-group)){
+      background-color: $yellow;
+    }
+  }
 }
 
 

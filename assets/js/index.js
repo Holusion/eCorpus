@@ -7,7 +7,8 @@ function register_dropdowns(){
     console.log("Toggle dropdown", this)
     const target = document.querySelector(this.dataset.target);
     if(!target) return;
-    this["ariaExpanded"] = !this["ariaExpanded"];
+    const expand = this["ariaExpanded"] !== "true";
+    this["ariaExpanded"] = expand ? "true": "false";
     target.classList.toggle("show");
   }
   for(let dropdown of dropdowns){

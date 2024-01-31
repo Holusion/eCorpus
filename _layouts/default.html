@@ -51,8 +51,7 @@
   </head>
   <body>
     <!-- Header -->
-    <nav id="navbar-top" role="navigation">
-      <div class="navbar1">
+      <div class="navbar-header">
         <button type="button" class="hidden">
           <span>Toggle navigation</span>
         </button>
@@ -63,7 +62,8 @@
           </a>
         </div>
       </div>
-      <div class="navbar2">
+
+      <nav id="navbar-top" class="navbar navbar-sticky" role="navigation">
         <ul role="menu">
           {%- for item in site.data.nav -%}
           <li>
@@ -74,8 +74,7 @@
         <ul role="menu">
           {% include language_picker.html type="nav-item dropdown" classes="nav-link" %}
         </ul>
-      </div>
-    </nav>
+      </nav>
     <!-- Page Content -->
     {{ content }}
     <!-- Footer -->
