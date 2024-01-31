@@ -37,11 +37,13 @@ nav{
 .navbar-header{
   background-color: $darkgrey;
   margin: 0;
+  width: 100%;
   height: 110px;
   padding: 20px 50px;
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
 }
 .navbar{
   background-color: $middlegrey;
