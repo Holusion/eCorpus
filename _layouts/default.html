@@ -58,7 +58,7 @@
         <div>
           <a href="/{{page.lang | default: "fr" }}/" aria-label="ecorpus logo">
             <!-- <img src="/assets/img/logo-ecorpus.png" alt="logo e-corpus" height="32"> -->
-            <span style="font-family: Noto Serif, serif;"><h1>eCorpus</h1></span> 
+            <h1>eCorpus</h1>
           </a>
         </div>
       </div>
@@ -71,7 +71,7 @@
           </li>
           {%- endfor -%}
         </ul>
-        <ul role="menu">
+        <ul role="menu" class="langues-navbar2">
           {% include language_picker.html type="nav-item dropdown" classes="nav-link" %}
         </ul>
       </nav>
