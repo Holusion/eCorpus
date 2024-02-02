@@ -2,11 +2,9 @@
 title:  Installation rapide
 ---
 
-# Déploiement d'une instance eCorpus
+# Installation rapide
 
  > cette section requiers une certaine familiarité avec des outils de développement usuels : [git](https://git-scm.com/), [npm](https://docs.npmjs.com/).
-
-### Installation rapide
 
 Exemple de création d'une instance minimale à des fins de tests:
 

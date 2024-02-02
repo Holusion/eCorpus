@@ -1,8 +1,8 @@
 ---
-title: Importation et exportation de données
+title: Gestion de vos données
 ---
 
-# Gestion de vos données eCorpus
+# Gestion de vos données
 
 L'interopérabilité des données est l'une des fonctionnalités clés d'eCorpus.
 

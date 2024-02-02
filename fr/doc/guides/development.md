@@ -2,6 +2,8 @@
 title:  Développement
 ---
 
+# Développement
+
 ## Mise en route
 
 Voir le [guide d'installation rapide](/fr/doc/tutorials/deployment).

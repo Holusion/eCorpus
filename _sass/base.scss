@@ -37,16 +37,41 @@ nav{
   background-color: $darkgrey;
   margin: 0;
   width: 100%;
-  height: 110px;
-  padding: 20px 0;
+  // height: 110px;
+  // padding: 20px 0;
+  height: 150px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: start;
+  // &img{
+  //   background-color: #E6B900;
+  //   max-width: 100%;
+  //   height:fit-content;
+  // }
 }
 
-.navbar-header > div{
-  padding: 40px;
+// .navbar-header > div{
+//   padding: 40px;
+// }
+
+.img-header{
+  height: 100%;
+  min-height: 100%;
+  width: 70%;
+  overflow: hidden;
+display: flex;
+justify-content: center;
+align-items: center;
+margin-left: 3rem;
+}
+.navbar-header > div > img{
+  // max-height: 150px;
+  // width: 100%;
+  max-width: 100%;
+  // max-height: 150px;
+  height: max-content;
+  // background-color: rgba(230, 185, 0, 0.4);
 }
 
 .navbar{
@@ -63,6 +88,7 @@ nav{
     position: sticky;
     top: 0px;
     width: 100%;
+    z-index: 1;
   }
 
   a{
@@ -95,6 +121,32 @@ a{
 }
 .fer-gauche{
   margin: 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+}
+.center{
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+}
+.big-title-doc{
+  font-size: 2.5rem;
+}
+.ligne-jaune-big-title-doc{
+  margin-bottom: 1rem;
+  box-shadow: inset  0rem -0.9rem 0px $yellow;
+  padding: 0px;
+  // display: flex;
+  // justify-content: start;
+  // display: inline-block;
+}
+#serif{
+  font-family: $serifFont;
+  // color: $yellow;
+  // background-color: $darkgrey;
 }
 
 .retrait{
@@ -143,7 +195,8 @@ main {
   background-color: white;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  // align-items: center;
+  align-items: start;
   justify-content: center;
   // margin: 200px 0 0 0;
   box-shadow: 5px 0px 10px $middlegrey-shadow, -5px 0px 10px $middlegrey-shadow;
@@ -157,6 +210,7 @@ h1 {
   font-family: $serifFont;
   font-weight: 400;
   font-size: 3rem;
+  padding-left: 40px;
 }
 
 a h1{
@@ -221,6 +275,7 @@ p a:hover{
 .align-right{
 text-align: end;
 padding-top: 0.5rem;
+margin-right: 3rem;
 }
 
 
@@ -307,12 +362,14 @@ padding-top: 0.5rem;
 // }
 .nav-doc > div > ul > li{
   font-family: $serifFont;
-  padding: 0 0 1.5rem 0;
+  // padding: 0 0 1.5rem 0;
   font-size: 1.2rem;
+  margin: 0 0 1.5rem 0;
 }
-.nav-doc > div > ul > li:last-child{
-  padding: 0 0 0 0;
-}
+
+// .nav-doc > div > ul > li:last-child{
+//   padding: 0 0 0 0;
+// }
 
 .nav-doc > div > ul > li > ul{
   font-family: $bodyFont;
@@ -325,29 +382,29 @@ padding-top: 0.5rem;
 //   // max-width: fit-content;
 // background-color: #f00;
 // }
-.nav-doc > div > ul > li > ul> li > a{
+.nav-doc > div > ul > li > ul > li > a{
   margin-top: 0.5rem;
   width: 100%;
   // max-width: fit-content;
 }
-.nav-doc > div > ul > li > ul> li:hover, .nav-doc > div > ul > li:hover:first-of-type{ 
+.nav-doc > div > ul > li > ul > li:hover, .nav-doc > div > ul > li:hover:first-of-type{ 
 background-color: rgb(21, 255, 0);
 }
-.nav-doc > div > ul > li > ul> li > ul > li:hover{
+.nav-doc > div > ul > li > ul > li > ul > li:hover{
   // margin-top: 0.5rem;
   width: 100%;
   // max-width: fit-content;
 background-color: rgb(0, 132, 255);
 }
 
-.nav-doc > div > ul > li > ul> li:hover{
-  // background-color: $yellow;
-
+.nav-doc > div > ul > li > ul > li:focus{
+  background-color: $yellow;
 }
 
 .list-group {
   display: flex;
   flex-direction: column;
+  padding: 0;
 
   &.collapse{
     display: none;
@@ -366,8 +423,6 @@ background-color: rgb(0, 132, 255);
   }
 }
 
-
-
 .big-intro-doc{
   font-size: 1.2rem;
   font-weight: 500;
@@ -375,6 +430,25 @@ background-color: rgb(0, 132, 255);
   margin: 0rem 3rem 0.3rem 3rem;
 }
 
+button{
+  padding: 0.5rem 1rem;
+  background-color: $darkgrey;
+  border-width: 0;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+button:hover{
+  background-color: $yellow;
+  color: black;
+  font-weight: 500;
+}
+.center-button{
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
 
 
 
@@ -449,4 +523,9 @@ background-color: rgb(0, 132, 255);
     height: 100%;
     border: 0;
   }
+}
+
+
+.doc-page{
+  
 }

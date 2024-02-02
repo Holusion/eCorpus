@@ -1,7 +1,8 @@
 ---
-title: Mise en évidence d'une zone d'intérêt
+title: Mise en évidence d'une zone
 ---
 
+# Mise en évidence d'une zone
 
 La mise en surbrillance d'une zone d'interêt est une fonctionnalité expérimentale fournie par DPO-Voyager.
 

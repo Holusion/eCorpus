@@ -4,15 +4,14 @@ layout: default
 
 <div class="mep-doc">
     <nav class="nav-doc">
-        <button class="hidden" type="button" data-bs-toggle="collapse"
-            data-bs-target="#sidebar" aria-controls="sidebar" aria-expanded="true" aria-label="Toggle navigation">
+        <button class="hidden" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Toggle navigation">
             <span>Navigation</span>
         </button>
         <div class="trait-vertical" id="sidebar" aria-expanded="false">
             {% docnav %}
         </div>
     </nav>
-    <main>
+    <main class="doc-page">
         {{ content }}
     </main>
     <nav class="nav-doc">

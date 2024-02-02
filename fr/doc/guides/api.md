@@ -2,6 +2,8 @@
 title: Utiliser l'API
 ---
 
+# Utiliser l'API
+
 eCorpus fournit une API en deux parties:
 
  - webDAV sur `/scenes/**` pour accéder aux fichiers des scènes
