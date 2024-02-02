@@ -2,7 +2,7 @@
 title: Références
 ---
 
-# Ressources de Référence
+## Références
 
 Ensemble de ressources et pages référençant de façon exhaustive un groupe d'informations.
 

@@ -2,7 +2,7 @@
 title: Configurer une instance
 ---
 
-# Options et paramètres
+## Options et paramètres
 
 Toutes les options de configuration sont fournies par variables d'environnement.
 
@@ -11,9 +11,9 @@ Laisser la valeur par défaut est généralement un bon choix.
 Pour les variables booléennes, utiliser `1` ou `true` / `0` ou `false`.
 
 
-## Variables de base
+### Variables de base
 
-### NODE_ENV
+#### NODE_ENV
 
  > `development`
 
@@ -27,9 +27,7 @@ Devrait généralement être forcé à `production` dans les déploiements.
 
 ### HOSTNAME
 
-
-
-### PUBLIC
+#### PUBLIC
 
  > `true`
 
@@ -37,21 +35,21 @@ Accès par défaut des scènes nouvellement créées.
 
 Ne modifie pas les scènes existantes. Il est toujours possible de créer une scène publiquement accessible en changeant ses permissions même si `PUBLIC=0`.
 
-### BRAND
+#### BRAND
 
  > `eCorpus`
 
 Nom de l'instance. Remplace **eCorpus** dans l'interface.
 
 
-### PORT
+#### PORT
 
  > `3000`
 
 Port utilisé par le service. Changer en cas de conflit.
 
 
-### SMART_HOST
+#### SMART_HOST
 
  > `smtp://localhost`
 
@@ -59,25 +57,25 @@ Port utilisé par le service. Changer en cas de conflit.
 
 Utilisé pour créer le transport par [modemailer](https://nodemailer.com/).
 
-Les options de configuration peuvent être donénes sous forme de *query string* :
+Les options de configuration peuvent être données sous forme de *query string* :
 
 ```
-# autorise l'utilisation de certificats self-signed:
+# autorise l'utilisation de certificats self-signed : 
 smtp://localhost:465?tls.rejectUnauthorized=false
 ```
 D'autres options utiles peuvent être : `?logger=true&debug=true` pour activer le mode verbeux. Voir la [liste des options](https://nodemailer.com/smtp/).
 
 
-### TRUST_PROXY
+#### TRUST_PROXY
 
  > `true`
 
 Pilote l'option trust-proxy dans [express](http://expressjs.com/en/5x/api.html#trust.proxy.options.table).
 
 
-## Variables d'administration
+### Variables d'administration
 
-### FORCE_MIGRATION
+#### FORCE_MIGRATION
 
  > `false`
 
@@ -85,53 +83,53 @@ Force l'application de la dernière migration *sqlite* (voir [doc](https://www.n
 
 Parfois utile pour réparer des erreurs de migration, mais génère un risque de perte de données.
 
-### CLEAN_DATABASE
+#### CLEAN_DATABASE
 
  > `true`
 
 Mettre à `false` pour désactiver le nettoyage périodique de base de données.
 
-### ROOT_DIR
+#### ROOT_DIR
 
 > `.`
 
 Répertoire principal. Sert de base pour [FILES_DIR](#files_dir) [DIST_DIR](#dist_dir) et [ASSETS_DIR](#assets_dir).
 
-### MIGRATIONS_DIR
+#### MIGRATIONS_DIR
 
  > `./migrations`
 
-### TEMPLATES_DIR
+#### TEMPLATES_DIR
 
   > `./templates`
 
-### FILES_DIR
+#### FILES_DIR
 
  > `$ROOT_DIR/files`
 
-Répertoire de stockage des données de l'instance : Base de donnée, objets et stockage temporaire.
+Répertoire de stockage des données de l'instance : base de donnée, objets et stockage temporaire.
 
-### DIST_DIR
+#### DIST_DIR
 
  > `$ROOT_DIR/dist`
 
 artefacts de build de l'interface utilisateur.
 
-### ASSETS_DIR
+#### ASSETS_DIR
 
  > `$ROOT_DIR/assets`
 
 Assets statiques
 
-## Variables de développement
+### Variables de développement
 
-### HOT_RELOAD
+#### HOT_RELOAD
 
  > `$NODE_ENV == "development"`
 
 Active le [HMR](https://webpack.js.org/concepts/hot-module-replacement/) de webpack.
 
-### VERBOSE
+#### VERBOSE
 
  > `false`
 

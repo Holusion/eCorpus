@@ -2,11 +2,11 @@
 title:  Installation rapide
 ---
 
-# Installation rapide
+## Installation rapide
 
- > cette section requiers une certaine familiarité avec des outils de développement usuels : [git](https://git-scm.com/), [npm](https://docs.npmjs.com/).
+ > Cette section requiers une certaine familiarité avec des outils de développement usuels : [git](https://git-scm.com/){:target="_blank"}, [npm](https://docs.npmjs.com/){:target="_blank"}.
 
-Exemple de création d'une instance minimale à des fins de tests:
+Exemple de création d'une instance minimale à des fins de tests :
 
     git clone --filter=blob:none --recurse-submodules git@github.com:Holusion/eCorpus
     cd eCorpus
@@ -18,16 +18,16 @@ Exemple de création d'une instance minimale à des fins de tests:
     npm run build-server
     npm start
 
- > Voir aussi: installation via docker
+ > Voir aussi : installation via docker
 
-Dans un navigateur, chargez [localhost:8000](http://localhost:8000).
+Dans un navigateur, chargez [localhost:8000](http://localhost:8000){:target="_blank"}.
 
 
 ### Création du premier compte utilisateur
 
 L'application se lance initialement en "mode ouvert", vous permettant la création d'un premier compte utilisateur en ligne de commande.
 
-Après avoir démarré votre serveur local, ouvrez un autre terminal et exécutez la commande suivante:
+Après avoir démarré votre serveur local, ouvrez un autre terminal et exécutez la commande suivante :
 
     curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "isAdministrator": true}' "http://localhost:8000/api/v1/users"
 
@@ -35,7 +35,7 @@ Par la suite, d'autres comptes pourront être créés via l'interface web.
 
 ### Aller plus loin
 
-Rendez-vous à l'adresse [localhost:8000](http://localhost:8000) et connectez-vous à l'aide de votre nouveau compte.
+Rendez-vous à l'adresse [localhost:8000](http://localhost:8000){:target="_blank"} et connectez-vous à l'aide de votre nouveau compte.
 
 Vous pouvez maintenant [créer votre première scène](/fr/doc/tutorials/voyager/import).
 

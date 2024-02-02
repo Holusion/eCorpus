@@ -1,46 +1,46 @@
 ---
-title: Hardware requirements
+title: Exigences matérielles
 ---
 
-# eCorpus requirements
+## Exigences matérielles
 
-## Requirements
+### Besoins
 
-A small eCorpus instance can run on approximately any device.
+Une petite instance d'eCorpus peut fonctionner sur à peu près n'importe quel appareil.
 
-all storage and database operations happens on Disk (see [sqlite](https://www.sqlite.org/about.html)) so a fast reliable and durable local storage medium is **required**.
+Toutes les opérations de stockage et de base de données se déroulent sur disque (voir [sqlite](https://www.sqlite.org/about.html)) ; un support de stockage local rapide, fiable et durable est donc **nécessaire**.
 
-### Hardware requirements
+#### Exigences matérielles
 
- > depends heavily on expected traffic and corpus size.
+ > Dépend fortement du trafic attendu et de la taille du corpus.
 
-As a minimum, expect : 
+Au minimum, il faut s'attendre à :
 
- - CPU: any dual-core or better CPU
- - RAM: 2GB or more. Memory usage should scale linearly with dataset size
- - Storage: Dataset-dependant
+ - Processeur : tout processeur double cœur ou supérieur.
+ - RAM : 2 Go ou plus. L'utilisation de la mémoire doit être linéaire en fonction de la taille de l'ensemble des données.
+ - Stockage : En fonction du jeu de données.
 
-It has been verified to work on systems as small as 1GB RAM and 1 vCPU with a small dataset and low connection volume.
+Il a été vérifié qu'il fonctionnait sur des systèmes aussi petits que 1 Go de RAM et 1 vCPU avec un petit ensemble de données et un faible volume de connexions.
 
-### Software requirements:
+#### Exigences logicielles
 
- - [nodejs](https://nodejs.org/) v16 (LTS) or greater
- - the underlying system should have [shared memory](https://en.wikipedia.org/wiki/Shared_memory) support (for sqlite's [WAL Log](https://sqlite.org/wal.html)) - any modern OS should be OK.
+ - [Nodejs](https://nodejs.org/) v16 (LTS) ou supérieure.
+ - Le système sous-jacent doit supporter [shared memory](https://en.wikipedia.org/wiki/Shared_memory) (pour le [WAL Log](https://sqlite.org/wal.html) de sqlite) - n'importe quel système d'exploitation moderne devrait convenir.
 
-a toolchain to compile native nodejs addons might be required if [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases) doesn't provide a working prebuilt module for your platform.
+une chaîne d'outils pour compiler les addons nodejs natifs peut être nécessaire si [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases) ne fournit pas de module préconstruit fonctionnel pour votre plateforme.
 
-Alternatively, use [Docker](https://www.docker.com/).
+Vous pouvez également utiliser [Docker] (https://www.docker.com/).
 
-## Production optimization
+### Optimisation de la production
 
-Set the database to WAL mode with `PRAGMA journal_mode = WAL` can greatly speed up operations. Memory tuning using `PRAGMA soft_heap_limit` could help.
+Mettre la base de données en mode WAL avec `PRAGMA journal_mode = WAL` peut grandement accélérer les opérations. L'optimisation de la mémoire en utilisant `PRAGMA soft_heap_limit` peut aider.
 
-Ensuring the file system is able to handle a lot of files in a single directory may be important. Use `tune2fs` to enable **dir_index** for **ext[234]** file systems.
+S'assurer que le système de fichiers est capable de gérer un grand nombre de fichiers dans un seul répertoire peut être important. Utilisez `tune2fs` pour activer **dir_index** pour les systèmes de fichiers **ext[234]**.
 
-The `Cache-Control` header is very restrictive by default to allow fine-grained access-control. If all the objects are public, it could be replaced by `Cache-Control: public` in most places.
+L'en-tête `Cache-Control` est très restrictif par défaut pour permettre un contrôle d'accès fin. Si tous les objets sont publics, il peut être remplacé par `Cache-Control : public` dans la plupart des cas.
 
-## Limitations
+### Limites
 
-eCorpus over sqlite is well capable of handling a few thousands of objects with some level of concurrency, serving a medium sized public-facing website.
+eCorpus sur sqlite est tout à fait capable de gérer quelques milliers d'objets avec un certain niveau de concurrence, pour un site web public de taille moyenne.
 
-For anything substantially larger, switching to another database engine or using a system designed for scale like [dpo-pakrat](https://github.com/Smithsonian/dpo-packrat) would be recommended.
+Pour tout ce qui est beaucoup plus important, il est recommandé de passer à un autre moteur de base de données ou d'utiliser un système conçu pour l'échelle comme [dpo-pakrat] (https://github.com/Smithsonian/dpo-packrat).

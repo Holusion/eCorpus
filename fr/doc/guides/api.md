@@ -2,26 +2,26 @@
 title: Utiliser l'API
 ---
 
-# Utiliser l'API
+## Utiliser l'API
 
-eCorpus fournit une API en deux parties:
+eCorpus fournit une API en deux parties :
 
- - webDAV sur `/scenes/**` pour accéder aux fichiers des scènes
- - REST sur `/api/v1/**` pour la gestion administrative
+ - webDAV sur `/scenes/**` pour accéder aux fichiers des scènes.
+ - REST sur `/api/v1/**` pour la gestion administrative.
 
-## Authentification
+### Authentification
 
 Pour s'authentifier en ligne de commande, utiliser un header `Authorization` avec la valeur `Basic <base64(username:password)>`.
 
-L'encodage du header est géré automatiquement par la plupart des utilitaires. Exemple avec curl:
+L'encodage du header est géré automatiquement par la plupart des utilitaires. Exemple avec curl :
 
 ```bash
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com/[...]
 ```
 
-## API webDAV
+### API webDAV
 
-Organisation des fichiers:
+Organisation des fichiers :
 
 ```
 ├── foo/
@@ -40,16 +40,16 @@ Organisation des fichiers:
         └── bar-FR.html
 ```
 
-Ainsi pour récupérer un modèle:
+Ainsi pour récupérer un modèle :
 
 ```bash
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com//scenes/foo/models/foo.glb
 ```
 
-Les verbes `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` et `PROPFIND` sont supportés, avec un comportement se conformant généralement à la [spécification](http://www.webdav.org/specs/rfc4918.html).
+Les verbes `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` et `PROPFIND` sont supportés, avec un comportement se conformant généralement à la [spécification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}.
 
 
-## API REST
+### API REST
 
 L'API REST est accessible sur `/api/v1/`. Elle utilise les verbes standard HTTP.
 

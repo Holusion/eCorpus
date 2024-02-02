@@ -8,7 +8,9 @@ $middlegrey:#444444;
 $middlegrey-shadow:rgba(68, 68, 68, 20%);
 $yellow:#E6B900;
 $yellow2:rgba(230, 185, 0, 70%);
+$yellow3:rgba(230, 185, 0, 30%);
 $orange:#EB5806;
+$rose: #e4197e;
 
 body {
   background: $backgroundColor;
@@ -17,7 +19,6 @@ body {
   }
   color: $bodyColor;
   font-family: $bodyFont;
-  // height: 100vh;
   width: 100%;
   margin:0px;
   padding: 0px;
@@ -44,32 +45,24 @@ nav{
   flex-direction: row;
   align-items: center;
   justify-content: start;
-  // &img{
-  //   background-color: #E6B900;
-  //   max-width: 100%;
-  //   height:fit-content;
-  // }
 }
 
 // .navbar-header > div{
 //   padding: 40px;
 // }
 
-.img-header{
+.img-header {
   height: 100%;
   min-height: 100%;
   width: 70%;
   overflow: hidden;
-display: flex;
-justify-content: center;
-align-items: center;
-margin-left: 3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: 3rem;
 }
 .navbar-header > div > img{
-  // max-height: 150px;
-  // width: 100%;
   max-width: 100%;
-  // max-height: 150px;
   height: max-content;
   // background-color: rgba(230, 185, 0, 0.4);
 }
@@ -90,11 +83,9 @@ margin-left: 3rem;
     width: 100%;
     z-index: 1;
   }
-
   a{
     color: white;
   }
-
   a:hover{
     color: $yellow;
   }
@@ -145,8 +136,6 @@ a{
 }
 #serif{
   font-family: $serifFont;
-  // color: $yellow;
-  // background-color: $darkgrey;
 }
 
 .retrait{
@@ -212,7 +201,6 @@ h1 {
   font-size: 3rem;
   padding-left: 40px;
 }
-
 a h1{
   color: $yellow;
 }
@@ -247,6 +235,7 @@ h3{
   justify-content: start;
 }
 
+
 h4{
   font-size: 1.1rem;
   margin: 1rem 0 0.5rem 0;
@@ -267,9 +256,6 @@ p a{
 }
 p a:hover{
   color: $bodyColor;
-  // color: $middlegrey;
-  // color: $yellow;
-  // background-color: $darkgrey;
   background-color: $yellow2;
 }
 .align-right{
@@ -331,10 +317,8 @@ margin-right: 3rem;
 }
 
 .nav-doc {
-  // min-width: fit-content;
   max-width: 300px;
   background-color: $darkgrey;
-  // background-color: rgba(0, 110, 255, 0.3);
   height: fit-content;
   padding: 1rem 1rem 1rem 0;
 }
@@ -357,13 +341,11 @@ margin-right: 3rem;
   padding: 0.1rem 0.5rem 0.1rem 1rem;
   margin-top: 0.3rem;
 }
-// .nav-doc > ul > a:hover{
-//   background-color: $yellow;
-// }
+
 .nav-doc > div > ul > li{
   font-family: $serifFont;
-  // padding: 0 0 1.5rem 0;
   font-size: 1.2rem;
+  // padding: 0 0 1.5rem 0;
   margin: 0 0 1.5rem 0;
 }
 
@@ -376,12 +358,7 @@ margin-right: 3rem;
   font-size: 1rem;
   // padding-top: 0.5rem;
 }
-// .nav-doc > div > ul > li > ul> li{
-//   margin-top: 0.5rem;
-//   width: 100%;
-//   // max-width: fit-content;
-// background-color: #f00;
-// }
+
 .nav-doc > div > ul > li > ul > li > a{
   margin-top: 0.5rem;
   width: 100%;
@@ -527,5 +504,137 @@ button:hover{
 
 
 .doc-page{
-  
+  width: 700px;
+  max-width: 700px;
+  padding-bottom: 2rem;
+  // padding: 0 1rem;
+  h2, h4, h5, p{
+    font-family: $bodyFont;
+    padding: 0 3rem;
+  }
+  h2{
+    padding: 0 0.2rem 0 1.5rem;
+    margin: 1.5rem 3rem 1rem 3rem;
+    box-shadow: inset 0rem -0.6rem 0px #E6B900;
+  }
+  h3{
+    font-family: $bodyFont;
+    margin: 1.5rem 3rem 1rem 3rem;
+    box-shadow: inset 0.7rem 0px 0px $yellow;
+  }
+  h5{
+    font-size: 1rem;
+    text-decoration: underline #E6B900 1px;
+    margin: 0.5rem;
+  }
+  h5 + p{
+    margin: 0 0.5rem;
+  }
+  code{
+    color: $rose;
+    margin: 1rem;
+    font-size: 0.9rem;
+    overflow: scroll;
+  }
+  pre{
+    margin: 0.3rem 3rem;
+    padding: 0.5rem;
+    background-color: #000;
+    color: #fff;
+    border: $middlegrey 2px solid;
+  }
+  blockquote{
+    margin: 0.5rem;
+    padding: 0 5rem;
+    max-width: inherit;
+  }
+  p{
+    margin: 0.2rem 0;
+  }
+  blockquote > p {
+    font-weight: 600;
+    background-color: $yellow3;
+    box-shadow: inset  0.4rem 0rem 0px $yellow;
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+  }
+  p > code{
+    margin: 0 0.2rem;
+  }
+  span{
+    background-color: $yellow;
+    margin: 0 0.2rem;
+    padding: 0.2rem 0.4rem;
+  }
+  svg{
+    vertical-align: middle;
+  }
+  div > div > pre > code > span {
+    background-color: transparent;
+  }
+  div {
+    max-width: inherit;
+  }
+  div > div > pre {
+    // max-width: 580px;
+    overflow: auto;
+  }
+  ul{
+    padding: 0 3rem 0 5rem;
+    margin-block-start: 0;
+  }
+  ul > li > a{
+    color: $darkgrey;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  figcaption{
+    font-style: italic;
+  }
+  li > code {
+    margin: 0 0.2rem;
+  }
+  img{
+    padding: 0.5rem 0;
+  }
+  p > span > svg{
+    height: 24px;
+  }
+  div > ul{
+    padding: 0;
+  }
+  div > ul > li{
+    margin: 1rem 0;
+    list-style: none;
+  }
+  div > ul > li > span{
+    padding: 0.5rem;
+    min-width: 150px;
+    background-color: #c4c4c4;
+  }
+  div > ul > li > span > svg{
+    height: 24px;
+  }
+}
+#ligne-jaune-h2-doc{
+  padding: 0 0.2rem 0 1.5rem;
+  box-shadow: inset  0rem -0.6rem 0px $yellow;
+  margin: 1.5rem 3rem 1rem 0;
+}
+#paragraphe-doc{
+  padding: 0;
+}
+#ligne-jaune-h3-doc{
+  padding: 0.5rem 0.2rem 0 1.5rem;
+  margin: 0.5rem 0 1rem 0;
+  box-shadow: inset 0.7rem 0px 0px $yellow;
+}
+// .largeur150{
+//   width: 150px;
+//   display: inline-block;
+// }
+.voyager-btn {
+  display: inline-block;
+  background-color: #272727;
+  padding: 0.5rem 1rem;
+  text-align: center;
 }
