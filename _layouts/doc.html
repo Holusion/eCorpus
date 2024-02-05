@@ -3,18 +3,16 @@ layout: default
 ---
 
 <div class="mep-doc">
-    <nav class="nav-doc">
+    <nav class="navbar nav-doc">
         <button class="hidden" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Toggle navigation">
             <span>Navigation</span>
         </button>
-        <div class="trait-vertical" id="sidebar" aria-expanded="false">
-            {% docnav %}
-        </div>
+        {% docnav %}
     </nav>
     <main class="doc-page">
         {{ content }}
     </main>
-    <nav class="nav-doc">
-        <!-- 2eme partie du menu doc -->
+    <nav class="navbar nav-doc nav-doc-right">
+        {% include toc.html html=content %}
     </nav>
 </div>

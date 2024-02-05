@@ -85,9 +85,10 @@ nav{
     z-index: 1;
   }
 
-  > .nav-group{
+  .nav-group, ul{
     margin: 0;
-    > .nav-item{
+    padding: 0;
+    > .nav-item, >li{
       margin : 0;
       list-style : none;
       display : inline-block;
@@ -99,7 +100,7 @@ nav{
     line-height: 1em;
     padding : 1em 2em 1em 0;
     display: inline-block;
-    &:hover{
+    &:hover, &[aria-expanded="true"]{
       color: $yellow;
     }
   }
@@ -203,16 +204,6 @@ footer a:hover {
   justify-content: center;
 }
 
-// main {
-//   min-height: calc(100vh - 3rem);
-//   padding: 4rem 1rem 1rem 1rem;
-//   > section, > .section{
-//     margin: 0 -1rem 0 -1rem;
-//     &:first-child{
-//       margin-top: -1rem;
-//     }
-//   }
-// }
 main {
   width:700px;
   min-width: 700px;
@@ -224,6 +215,10 @@ main {
   justify-content: center;
   // margin: 200px 0 0 0;
   box-shadow: 5px 0px 10px $middlegrey-shadow, -5px 0px 10px $middlegrey-shadow;
+
+  h1, h2, h3, h4, h5, h6 {
+    scroll-margin-top: 60px;
+  }
 }
 
 main img{
@@ -237,6 +232,7 @@ h1 {
   font-size: 3rem;
   padding-left: 40px;
 }
+
 a h1{
   color: $yellow;
 }
@@ -249,6 +245,7 @@ h2{
   margin: 20px 0;
   padding: 0 0.2rem 0 1.5rem;
 }
+
 .ligne-jaune-h2{
   margin-bottom: 1rem;
   box-shadow: inset  0rem -0.6rem 0px $yellow;
@@ -285,6 +282,9 @@ p{
   line-height: 1.25rem;
   margin-bottom: 0.3rem;
 }
+
+
+
 p a{
   font-weight: bold;
   color: $darkgrey;

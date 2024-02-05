@@ -2,6 +2,8 @@ url: "https://ethesaurus.holusion.com"
 baseurl: ""
 title: "eThesaurus"
 
+toc: true
+
 plugins:
   - jekyll-sitemap
   - jekyll-last-modified-at
