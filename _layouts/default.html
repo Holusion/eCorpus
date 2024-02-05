@@ -55,7 +55,7 @@
         <button type="button" class="hidden">
           <span>Toggle navigation</span>
         </button>
-        <a href="/{{page.lang | default: " fr" }}/" aria-label="ecorpus logo">
+        <a href="/{{page.lang | default: "fr" }}/" aria-label="ecorpus logo">
           <h1>eCorpus</h1>
         </a>
         <div class="img-header">
@@ -67,7 +67,7 @@
         <ul role="menu" class="nav-group">
           {%- for item in site.data.nav -%}
           <li class="nav-item">
-            <a href="/{{ page.lang | default: " fr" }}/{{ item[0] }}">{{ item[1][page.lang] }}</a>
+            <a href="/{{ page.lang | default: "fr" }}/{{ item[0] }}">{{ item[1][page.lang] }}</a>
           </li>
           {%- endfor -%}
         </ul>
