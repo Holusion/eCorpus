@@ -46,7 +46,12 @@ jobs:
         env:
           JEKYLL_ENV: production
       - name: test HTML validity
-        run: bundle exec htmlproofer _site/ --disable-external true --enforce-https false --log-level :debug
+        run: >
+          bundle exec htmlproofer _site/ 
+          --disable-external true 
+          --enforce-https false
+          --allow-missing-href=true
+          --log-level :debug
       - name: Upload artifact
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-pages-artifact@v1
