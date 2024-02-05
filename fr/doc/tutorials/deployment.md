@@ -37,7 +37,7 @@ Par la suite, d'autres comptes pourront être créés via l'interface web.
 
 Rendez-vous à l'adresse [localhost:8000](http://localhost:8000){:target="_blank"} et connectez-vous à l'aide de votre nouveau compte.
 
-Vous pouvez maintenant [créer votre première scène](/fr/doc/tutorials/voyager/import).
+Vous pouvez maintenant [créer votre première scène](/fr/doc/tutorials/voyager/edit).
 
 Si vous souhaitez éditer le code source, réferez-vous au [guide de développement](/fr/doc/guides/development).
 

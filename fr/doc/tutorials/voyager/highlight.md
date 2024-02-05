@@ -2,22 +2,22 @@
 title: Mise en évidence d'une zone
 ---
 
-# Mise en évidence d'une zone
+## Mise en évidence d'une zone
 
 La mise en surbrillance d'une zone d'interêt est une fonctionnalité expérimentale fournie par DPO-Voyager.
 
- > Attention: Cette fonctionnalité est expérimentale et peut ne pas fonctionner correctement dans certaines situations. De plus, elle requiert des étapes manuelles via la ligne de commande.
+ > Attention : Cette fonctionnalité est expérimentale et peut ne pas fonctionner correctement dans certaines situations. De plus, elle requiert des étapes manuelles via la ligne de commande.
 
-## Prérequis
+### Prérequis
 
- - Une scène 3D avec un modèle, correctement configurée sur votre instance eCorpus
+ - Une scène 3D avec un modèle, correctement configurée sur votre instance eCorpus.
  - Une texture correspondant à l'*UV mapping* de votre modèle, au format PNG (canal alpha requis).
 
-Pour l'exemple, on utilisera ce modèle très simple de [cube](/assets/fixtures/cube.glb) et cette [texture](/assets/fixtures/highlight.png).
+Pour l'exemple, on utilisera ce modèle très simple de [cube](/assets/fixtures/cube.glb) et cette [texture](/assets/fixtures/highlight.png){:target="_blank"}.
 
 On utilisera `cube` comme nom de scène et `ecorpus.holusion.com` comme nom d'instance tout au long de ce tutoriel. Remplacez-le par le nom de votre scène.
 
-## Étapes
+### Étapes
 
 Dans votre terminal, tapez la commande suivante :
 ```bash
@@ -56,7 +56,7 @@ Envoyez la scène modifée avec :
 curl -L -XPUT -u "<username>:<password>" -H "Content-Type: application/json" --data-binary @scene.svx.json http://ecorpus.holusion.com/scenes/cube/scene.svx.json
 ```
 
-Pensez à envoyer aussi la texture `highlight.png` dans le dossier `images` de votre scène:
+Pensez à envoyer aussi la texture `highlight.png` dans le dossier `images` de votre scène :
 
 ```bash
 curl -L -XMKCOL -u "<username>:<password>" http://ecorpus.holusion.com/scenes/cube/images
@@ -64,7 +64,7 @@ curl -L -XPUT -u "<username>:<password>" -H "Content-Type: image/png" --data-bin
 ```
 
 
-## Utilisation dans une visite guidée
+### Utilisation dans une visite guidée
 
 Il faut à nouveau éditer à la main le fichier `scene.svx.json`.
 
