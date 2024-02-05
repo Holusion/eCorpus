@@ -78,6 +78,9 @@ nav{
   flex-direction: row;
   align-items: stretch;
   justify-content: space-between;
+  &#navbar-top{
+    padding-left: 2em;
+  }
   &.navbar-sticky{
     position: sticky;
     top: 0px;
