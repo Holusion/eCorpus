@@ -1,9 +1,9 @@
 index:
   fr: Accueil
-  en: Welcome
-collection:
-  fr: Collection
-  en: Collection
+  en: Home
+# collection:
+#   fr: Galerie
+#   en: Gallery
 doc/:
   fr: Documentation
   en: Documentation

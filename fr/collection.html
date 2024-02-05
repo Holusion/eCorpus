@@ -1,7 +1,33 @@
 ---
-title: "À propos"
+title: "Galerie"
 ---
 
-<section>
-    <h2>Collection</h2>
+<section class="fer-gauche">
+    <h2 class="ligne-jaune-h2">Galerie</h2>
 </section>
+
+
+
+<!-- <section class="section section-center">
+    <h2 class="text-white my-5" style="font-size: 3rem">Collection</h2>
+</section>
+<section class="section section-center">
+    <div class="content">
+        <h2>
+            Parcourez notre collection de pièces d’orfèvrerie médiévale.
+        </h2>
+        <div class="row g-0">
+            {% for item in site.pages %}
+                {%if item.layout == "item" and item.lang == page.lang %}
+                <a href="{{item.url}}" class="dark-card col-xl-4 col-lg-4 col-sm-6 col-12 py-3 px-sm-2">
+                        <img style="aspect-ratio:1" src="https://ecorpus.holusion.com/scenes/{{item.scene}}/scene-image-thumb.jpg" alt="{{page.title}}">
+                    <div>
+                    <h4>{{ item.title }}</h4>
+                    <p>{{ item.abstract }}</p> 
+                    </div>         
+                </a>
+                {% endif %}
+            {% endfor %}                
+        </div>
+    </div>
+</section> -->
