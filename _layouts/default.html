@@ -64,14 +64,14 @@
       </div>
 
       <nav id="navbar-top" class="navbar navbar-sticky" role="navigation">
-        <ul role="menu">
+        <ul role="menu" class="nav-group">
           {%- for item in site.data.nav -%}
-          <li>
+          <li class="nav-item">
             <a href="/{{ page.lang | default: " fr" }}/{{ item[0] }}">{{ item[1][page.lang] }}</a>
           </li>
           {%- endfor -%}
         </ul>
-        <ul role="menu" class="langues-navbar2">
+        <ul role="menu" class="nav-group langues-navbar2">
           {% include language_picker.html type="nav-item dropdown" classes="nav-link" %}
         </ul>
       </nav>

@@ -5,18 +5,18 @@
 {%- endcomment -%}
 
 {% if  alt %}
-<div class="{{include.type}}" >
-  <a href="#" class="dropdown-toggle {{include.classes}} hidden" data-bs-toggle="dropdown" aria-haspopup="true" role="button" aria-expanded="false">
+<div class="dropdown {{include.type}}" >
+  <a href="#" class="dropdown-toggle {{include.classes}}" data-target="#lang-dropdown" aria-haspopup="true" role="button" aria-expanded="false">
     {{page.lang}}
     <span class="caret"></span>
     <span class="hidden">(change language)</span>
   </a>
-  <div role="menu">
-    <a href="{{page.url}}" >
+  <div role="menu" class="collapse dropdown-popup dropdown-menu" id="lang-dropdown">
+    <a class="dropdown-item" href="{{page.url}}" >
       {{page.lang}}
     </a>
-    <!-- <div class="langues-navbar2"></div> -->
-    <a href="{{alt_url}}">
+
+    <a class="dropdown-item" href="{{alt_url}}">
       {{alt_lang}}
     </a>
   </div>
