@@ -246,7 +246,6 @@ h2{
   font-size: 2rem;
   display: inline-block;
   box-shadow: inset  0rem -0.6rem 0px $yellow;
-  // margin-bottom: 1rem;
   margin: 20px 0 1rem 0;
   padding: 0 0.2rem 0 1.5rem;
 }
@@ -261,9 +260,6 @@ h3{
   box-shadow: inset 0.7rem 0px 0px $yellow;
   display: flex;
   justify-content: start;
-}
-.ligne-jaune-h3{
-
 }
 
 h4{
@@ -672,15 +668,13 @@ button:hover{
 #paragraphe-doc{
   padding: 0;
 }
+
 #ligne-jaune-h3-doc{
   padding: 0.5rem 0.2rem 0 1.5rem;
   margin: 0.5rem 0 1rem 0;
-  box-shadow: inset 0.7rem 0px 0px $yellow;
+  // box-shadow: inset 0.7rem 0px 0px $yellow;
 }
-// .largeur150{
-//   width: 150px;
-//   display: inline-block;
-// }
+
 .voyager-btn {
   display: inline-block;
   background-color: #272727;
