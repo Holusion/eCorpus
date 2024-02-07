@@ -299,7 +299,7 @@ margin-right: 3rem;
     min-width: 60px;
   }
   .dropdown-menu {
-    background: #272727;
+    background: $middlegrey;
     border-radius: 6px;
     padding: 6px 0;
     
@@ -652,20 +652,6 @@ button:hover{
   div > ul > li > span > svg{
     height: 24px;
   }
-}
-#ligne-jaune-h2-doc{
-  padding: 0 0.2rem 0 1.5rem;
-  // box-shadow: inset  0rem -0.6rem 0px $yellow;
-  margin: 1.5rem 3rem 1rem 0;
-}
-#paragraphe-doc{
-  padding: 0;
-}
-
-#ligne-jaune-h3-doc{
-  padding: 0.5rem 0.2rem 0 1.5rem;
-  margin: 0.5rem 0 1rem 0;
-  // box-shadow: inset 0.7rem 0px 0px $yellow;
 }
 
 .voyager-btn {
