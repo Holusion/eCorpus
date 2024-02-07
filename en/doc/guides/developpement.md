@@ -6,7 +6,7 @@ title: Development
 
 ### Keeping in sync
 
-This repository is kept in sync with [upstream](https://github.com/Smithsonian/dpo-voyager).
+This repository is kept in sync with [upstream](https://github.com/Smithsonian/dpo-voyager){:target="_blank"}.
 
 ```
 git merge -m "merge branch 'master' on $(git rev-parse --short master)" master

@@ -4,7 +4,7 @@ title:  3D Models
 
 ## 3D models: basic principles
 
-Models should be in **GLTF-binary** format (`.glb` files), though other formats might work.
+Models should be in [GLTF-binary](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html){:target="_blank"} format (`.glb` files), though other formats might work.
 
 Compression (using [Draco](https://google.github.io/draco/){:target="_blank"}) is supported and will generally speed up loading : faster network transfer and faster object parsing.
 
@@ -31,7 +31,7 @@ The Blender [GLTF export](https://github.com/KhronosGroup/glTF-Blender-IO){:targ
       <img alt="screenshot of Blender's glTF export popup" src="/assets/img/doc/blender_export_gltf_options.webp"/>
       <figcaption>glTF export popup</figcaption>
     </figure>
-    <p>For advanced use cases, check out the official documentation at <a href="https://docs.blender.org/manual/en/4.0/addons/import_export/scene_gltf2.html">doc.blender.org</a>.</p>
+    <p>For advanced use cases, check out the official documentation at <a href="https://docs.blender.org/manual/en/4.0/addons/import_export/scene_gltf2.html" target="_blank">doc.blender.org</a>.</p>
       <p>The <b>Binary</b> format (<code>.glb</code>) is recommended.</p>
       <p>It is also possible to choose between <b>Z up</b> and <b>Y up</b> in the <b>Transform</b> menu for the scene's axis orientation.</p>
       <p>Draco compression is supported and will generally speed up loading : faster network transfer and faster object parsing.</p>

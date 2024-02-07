@@ -27,7 +27,7 @@ Il a été vérifié qu'il fonctionnait sur des systèmes aussi petits que 1 Go 
  - [Nodejs](https://nodejs.org/){:target="_blank"} v16 (LTS) ou supérieure.
  - Le système sous-jacent doit supporter [shared memory](https://en.wikipedia.org/wiki/Shared_memory){:target="_blank"} (pour le [WAL Log](https://sqlite.org/wal.html){:target="_blank"} de sqlite) - n'importe quel système d'exploitation moderne devrait convenir.
 
-une chaîne d'outils pour compiler les addons nodejs natifs peut être nécessaire si [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases) ne fournit pas de module préconstruit fonctionnel pour votre plateforme.
+une chaîne d'outils pour compiler les addons nodejs natifs peut être nécessaire si [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases){:target="_blank"} ne fournit pas de module préconstruit fonctionnel pour votre plateforme.
 
 Vous pouvez également utiliser [Docker](https://www.docker.com/){:target="_blank"}.
 

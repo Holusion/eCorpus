@@ -65,7 +65,7 @@ Other accounts can be created via the web interface.
 
 After creating your first user account, navigate to [localhost:8000](http://localhost:8000){:target="_blank"} and log in. 
 
-From there, you can create your first scene by following the instructions provided in the [Voyager import tutorial](/en/doc/tutorials/voyager/import).
+From there, you can [create your first scene](/en/doc/tutorials/voyager/edit) by following the instructions provided in the [Voyager import tutorial](/en/doc/tutorials/voyager/import).
 
 If you want to edit the source code, refer to the [development guide](/en/doc/guides/developpement).
 
