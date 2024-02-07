@@ -244,17 +244,11 @@ h2{
   font-family: $bodyFont;
   font-weight: 700;
   font-size: 2rem;
-  display: inline;
-  margin: 20px 0;
-  padding: 0 0.2rem 0 1.5rem;
-}
-
-.ligne-jaune-h2{
-  margin-bottom: 1rem;
-  box-shadow: inset  0rem -0.6rem 0px $yellow;
-  // display: flex;
-  // justify-content: start;
   display: inline-block;
+  box-shadow: inset  0rem -0.6rem 0px $yellow;
+  // margin-bottom: 1rem;
+  margin: 20px 0 1rem 0;
+  padding: 0 0.2rem 0 1.5rem;
 }
 
 h3{
@@ -285,8 +279,6 @@ p{
   margin-bottom: 0.5rem;
 }
 
-
-
 p a{
   font-weight: bold;
   color: $darkgrey;
@@ -301,7 +293,6 @@ text-align: end;
 padding-top: 0.5rem;
 margin-right: 3rem;
 }
-
 
 .hidden{
   //faire un truc pr visualiseur d'ecran
@@ -369,9 +360,6 @@ margin-right: 3rem;
   display: flex;
   flex-direction: row;
   padding: 0 40px 0 0;
-  // margin-block-end: 0;
-  // margin-inline-start: 0;
-  // margin-block-start: 0;
 }
 .langues-navbar2 > div > div >a{
   padding: 0 0 0 10px;
@@ -396,10 +384,6 @@ margin-right: 3rem;
   border-left: 1px white solid;
 }
 
-// .nav-doc ul{
-//   margin-block-start: 0;
-//   margin-block-end: 0;
-// }
 .nav-doc ul li, .nav-doc ul li a{
   width: 100%;
   padding-right: 0;
@@ -445,14 +429,12 @@ margin-right: 3rem;
   display: flex;
   flex-direction: column;
   padding: 0;
-
   &.collapse{
     display: none;
     &.show{
       display: flex;
     }
   }
-
   .list-group-item{
     .dropdown-toggle{
       width:100%;
@@ -546,14 +528,12 @@ button:hover{
     display: block;
     content: "";
   }
-
   &.ratio-16x9::before{
     padding-bottom: 56.25%;
   }
   &.ratio-9x16::before{
     padding-bottom: 177.8%;
   }
-  
   &.ratio-4x3::before{
     padding-bottom: 75%;
   }
@@ -577,13 +557,12 @@ button:hover{
   width: 700px;
   max-width: 700px;
   padding-bottom: 2rem;
-  // padding: 0 1rem;
   h2, h4, h5, p{
     font-family: $bodyFont;
     padding: 0 3rem;
   }
   h2{
-    padding: 0 0.2rem 0 1.5rem;
+    padding: 1.5rem 0.2rem 0 1.5rem;
     margin: 1.5rem 3rem 1rem 3rem;
     box-shadow: inset 0rem -0.6rem 0px #E6B900;
   }
@@ -645,7 +624,6 @@ button:hover{
     max-width: inherit;
   }
   div > div > pre {
-    // max-width: 580px;
     overflow: auto;
   }
   ul{
@@ -665,9 +643,6 @@ button:hover{
   }
   img{
     padding: 0.5rem 0;
-    // overflow-y: auto;
-    // overflow-x: auto;
-    // overflow-clip-margin:unset;
   }
   p > span > svg{
     height: 24px;
@@ -690,7 +665,7 @@ button:hover{
 }
 #ligne-jaune-h2-doc{
   padding: 0 0.2rem 0 1.5rem;
-  box-shadow: inset  0rem -0.6rem 0px $yellow;
+  // box-shadow: inset  0rem -0.6rem 0px $yellow;
   margin: 1.5rem 3rem 1rem 0;
 }
 #paragraphe-doc{

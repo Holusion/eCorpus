@@ -6,7 +6,7 @@ title:  Développement
 
 ### Mise en route
 
-Voir le [guide d'installation rapide](/fr/doc/tutorials/deployment){:target="_blank"}.
+Voir le [guide d'installation rapide](/fr/doc/tutorials/deployment).
 
 Utiliser la commande : `npm run watch` pour activer la recompilation automatique.
 
