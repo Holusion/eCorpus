@@ -33,4 +33,4 @@ Vous pouvez ajouter autant de paramètres `name="..."` que nécessaire, séparé
 curl -XPOST https://${HOSTNAME}/api/v1/scenes --data-binary "@${ZIP_FILE}" | jq .
 ```
 
-Cette requête retourne une liste des changement effectués qui peut être assez longue. Vous pouvez filtrer les échecs en utilisant `jq .fail` ou si vous n'avez pas `jq` installé, vous pouvez utiliser curl en mode silencieux et inspecter uniquement le status de la réponse: `curl -s --fail -o /dev/null -w "%{http_code}"`.
+Cette requête retourne une liste des changements effectués qui peut être assez longue. Vous pouvez filtrer les échecs en utilisant `jq .fail` ou si vous n'avez pas `jq` installé, vous pouvez utiliser curl en mode silencieux et inspecter uniquement le status de la réponse : `curl -s --fail -o /dev/null -w "%{http_code}"`.

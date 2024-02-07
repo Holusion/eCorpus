@@ -1,86 +1,91 @@
 ---
 layout: doc
-title: documentation
+title: Documentation
 ---
 
-
-<div class="section section-center">
-  <h2 class="text-white my-5" style="font-size: 3rem">eCorpus</h2>
-</div>
-
-<section class="section">
-  <div class="media">
-    <img class="cover img-fluid" style="object-position: 70% 0;" src="/assets/img/focus_stbertin_chapiteau.webp" 
-      alt="Gros plan sur le chapiteau en émail sur cuir champlevé du Pied de croix de l'abbaye de Saint-Bertin.">
+<section class="larg100">
+  <div class="fer-gauche center">
+    <h2 class="big-title-doc" id="ligne-jaune-big-title-doc">Documentation 
+      <!-- <span id="serif">eCorpus</span> -->
+    </h2>
   </div>
-  <div class="content">
+  <p class="big-intro-doc">
+    Save, edit, comment, enhance and publish digitized cultural artifacts.
+  </p>
+    <img style="object-position: 70% 0;" src="/assets/img/focus_stbertin_chapiteau.webp"
+      alt="Close-up of the champlevé enamel-on-leather capital of the Pied de croix from Saint-Bertin Abbey.">
+  <!-- <div>
     <img class="img-fluid" style="margin:auto; display:block;" src="/assets/img/logo-eCorpus.png" alt="logo eCorpus">
-    <h3 class="text-center">3D Scene Management System</h3>
-    <p style="text-align:center;">
-        Save, Edit, Comment, Enhance, and Publish Cultural Artifact Scans.
+    <h3>eCorpus</h3>
+  </div> -->
+</section>
+
+<section>
+  <div class="fer-gauche">
+    <h2 id="ligne-jaune-h2-doc">Introduction</h2>
+    <p id="paragraphe-doc">
+      eCorpus is a reference implementation of <a href="https://holusion.com/en/" target="_blank">Holusion's</a> <a
+        href="https://smithsonian.github.io/dpo-voyager/" target="_blank">dpo-voyager</a> editor for hosting, editing
+      and managing scènes 3D.
+    </p>
+    <p id="paragraphe-doc">
+      Designed for medium-sized collections (1 to 1,000 objects), an eCorpus deployment offers a complete interface for
+      managing user rights and publishing data, as well as guarantees of data preservation through advanced management
+      of
+      modification histories.
+    </p>
+    <p id="paragraphe-doc">
+      Development is open-source on <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a>. The entire
+      software is published under the <a href="https://github.com/Holusion/eCorpus/blob/main/LICENSE.md"
+        target="_blank">Apache</a> license.
     </p>
   </div>
 </section>
 
-<section class="section section-white">
-  <h2>Presentation</h2> 
-</section>
-
-<section class="section section-center">
-  <div class="content my-4">
-    <p>
-        eCorpus is a reference implementation of the <a href="https://smithsonian.github.io/dpo-voyager/">dpo-voyager</a> 
-        editor provided by <a href="https://holusion.com/en/">Holusion</a>, allowing for hosting, editing, and management of 3D scenes.
-    </p>
-    <p>
-        Designed for medium-sized collections (1 to 1000 objects), an eCorpus deployment offers a comprehensive interface for managing user rights, publishing data, as well as guarantees for data preservation using advanced modification history management.
-    </p>      
-  </div>
-</section>
-
-<section class="section section-white">
-  <h2>Content editing</h2>
+<section class="fer-gauche">
+  <h3 id="ligne-jaune-h3-doc">Content editing</h3>
   <div class="media">
-    <img class="cover img-fluid" src="/assets/img/story_interface.webp" alt="Voyager Story interface for editing a 3D scene with annotations and articles">
+    <img src="/assets/img/story_interface.webp"
+      alt="Voyager Story interface for editing a 3D scene with annotations and articles">
   </div>
-
-  <div class="content">
-    <p>
-        Content editing is based on the <a href="https://smithsonian.github.io/dpo-voyager/story/overview/">Voyager Story</a> editor developed by the Smithsonian Institute.
+  <div>
+    <p id="paragraphe-doc">
+      Content editing is based on the <a href="https://smithsonian.github.io/dpo-voyager/story/overview/"
+        target="_blank">Voyager Story</a> editor developed by the Smithsonian Institute.
     </p>
-
-    <p>Learn how to edit a 3D Scene :</p>
-
-    <p style="display:flex;justify-content:center;">
-      <a class="btn btn-info text-white" href="tutorials/voyager/edit">
-        Editing guide
+    <p id="paragraphe-doc">Find out how to edit a 3D Scene :</p>
+    <div class="center-button">
+      <a href="./tutorials/voyager/edit">
+        <button>Publishing guide</button>
       </a>
-    </p>
-  </div>    
+    </div>
+  </div>
 </section>
 
-<section class="section section-center">
-  <div class="content">
-    <h2 class="pt-4 text-center">Deployment</h2>
-    <p>
-        For more information on deploying an eCorpus instance, refer to the <a href="https://github.com/Holusion/eCorpus/wiki">technical documentation</a> or contact <a href="https://holusion.com/en/">Holusion</a>.
-    </p>
-    <p>
-        Learn how to create, edit, and delete users for eCorpus.
-    </p>
-    <p style="display:flex;justify-content:center;">
-      <a class="btn btn-info text-white" href="references/administration/">
-        Administration guide
-      </a>
+<section class="fer-gauche">
+  <div>
+    <h3 id="ligne-jaune-h3-doc">Deployment</h3>
+    <p id="paragraphe-doc">
+      A small eCorpus instance can run <a href="./references/administration/requirements">on just about any device</a>.
     </p>
     
-
-    <h2 class="text-center">Development</h2>
-    <p>
-        Development is done in open-source on <a href="https://github.com/Holusion/eCorpus">GitHub</a>. The entire software is published under the <a href="https://github.com/Holusion/eCorpus/blob/main/LICENSE.md">Apache</a> license.
-    </p>
-    <p>
-        The 3D scene editor and viewer are mainly maintained by the <a href="https://www.si.edu/">Smithsonian Institute</a> under the name <a href="https://smithsonian.github.io/dpo-voyager/">DPO-Voyager</a>. The file server and user management are fully developed and maintained by <a href="https://holusion.com/en/">Holusion</a>.
-    </p>
   </div>
+</section>
+
+<div class="center-button versionEN">
+  <a href="./tutorials/deployment">
+    <button>Deploying an eCorpus instance</button>
+  </a>
+</div>
+
+
+<section class="fer-gauche ">
+  <h3 id="ligne-jaune-h3-doc">Features</h3>
+  <p id="paragraphe-doc">
+    <b>eCorpus</b> offers a set of administrative functions for managing users, collections, 3D scenes and annotations. It's
+    a complete, ready-to-use server that can be deployed <a href="tutorials/deployment">in a matter of minutes</a>.
+  </p>
+  <p id="paragraphe-doc">
+    In addition, advanced <b>Voyager</b> features are developed and integrated by Smithsonian teams deployment by Smithsonian teams.
+  </p>
 </section>

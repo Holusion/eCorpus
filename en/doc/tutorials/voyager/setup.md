@@ -4,15 +4,11 @@ description: Learn to setup a scene in dpo-voyager
 ---
 
 
-## Introduction
+## Scene setup manual
 
 This tutorial will go through the main setup options of a scene in DPO-Voyager.
 
-Everything will happen under the <span class="d-inline-flex"> {% include button.html name="parameters" style="width:150px" icon="eye" %} </span> tab, with the <img clas="img-fluid" style="max-height:1.5rem" src="/assets/img/doc/scene_node.jpg" title="scene node" alt="scene node in voyager's hierarchy" class="img-fluid"> node selected.
-
-
-
-## Settings
+Everything will happen under the <span class="d-inline-flex"> {% include button.html name="parameters" style="width:150px" icon="eye" %} </span> tab, with the <img style="max-height:1.5rem" src="/assets/img/doc/scene_node.jpg" title="scene node" alt="scene node in voyager's hierarchy"> node selected.
 
 
 ### Navigation

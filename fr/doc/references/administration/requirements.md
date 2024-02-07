@@ -8,7 +8,7 @@ title: Exigences matérielles
 
 Une petite instance d'eCorpus peut fonctionner sur à peu près n'importe quel appareil.
 
-Toutes les opérations de stockage et de base de données se déroulent sur disque (voir [sqlite](https://www.sqlite.org/about.html)) ; un support de stockage local rapide, fiable et durable est donc **nécessaire**.
+Toutes les opérations de stockage et de base de données se déroulent sur disque (voir [sqlite](https://www.sqlite.org/about.html){:target="_blank"}) ; un support de stockage local rapide, fiable et durable est donc **nécessaire**.
 
 #### Exigences matérielles
 
@@ -24,12 +24,12 @@ Il a été vérifié qu'il fonctionnait sur des systèmes aussi petits que 1 Go 
 
 #### Exigences logicielles
 
- - [Nodejs](https://nodejs.org/) v16 (LTS) ou supérieure.
- - Le système sous-jacent doit supporter [shared memory](https://en.wikipedia.org/wiki/Shared_memory) (pour le [WAL Log](https://sqlite.org/wal.html) de sqlite) - n'importe quel système d'exploitation moderne devrait convenir.
+ - [Nodejs](https://nodejs.org/){:target="_blank"} v16 (LTS) ou supérieure.
+ - Le système sous-jacent doit supporter [shared memory](https://en.wikipedia.org/wiki/Shared_memory){:target="_blank"} (pour le [WAL Log](https://sqlite.org/wal.html){:target="_blank"} de sqlite) - n'importe quel système d'exploitation moderne devrait convenir.
 
 une chaîne d'outils pour compiler les addons nodejs natifs peut être nécessaire si [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases) ne fournit pas de module préconstruit fonctionnel pour votre plateforme.
 
-Vous pouvez également utiliser [Docker] (https://www.docker.com/).
+Vous pouvez également utiliser [Docker](https://www.docker.com/){:target="_blank"}.
 
 ### Optimisation de la production
 
@@ -43,4 +43,4 @@ L'en-tête `Cache-Control` est très restrictif par défaut pour permettre un co
 
 eCorpus sur sqlite est tout à fait capable de gérer quelques milliers d'objets avec un certain niveau de concurrence, pour un site web public de taille moyenne.
 
-Pour tout ce qui est beaucoup plus important, il est recommandé de passer à un autre moteur de base de données ou d'utiliser un système conçu pour l'échelle comme [dpo-pakrat] (https://github.com/Smithsonian/dpo-packrat).
+Pour tout ce qui est beaucoup plus important, il est recommandé de passer à un autre moteur de base de données ou d'utiliser un système conçu pour l'échelle comme [dpo-pakrat](https://github.com/Smithsonian/dpo-packrat){:target="_blank"}.

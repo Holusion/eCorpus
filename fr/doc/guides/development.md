@@ -37,14 +37,16 @@ Modifiez le fichier `.gitmodules` pour changer l'URL source, puis exécutez :
     git submodule sync --recursive
 
 Ensuite, dans le dossier du module de changement (c'est-à-dire `libs/ff-x`) :
-        
-        cd libs/ff-xx
-        git fetch
-        git checkout origin/<feature-branch>
+```
+cd libs/ff-xx
+git fetch
+git checkout origin/<feature-branch>
+```
 
 Enfin, dans le dossier racine :
-    
-        git add libs/ff-x
+```
+git add libs/ff-x
+```
 
 Validez les modifications de l'URL et de HEAD du sous-module.
 

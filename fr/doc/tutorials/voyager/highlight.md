@@ -50,7 +50,7 @@ Editez le fichier obtenu, pour ajouter dans la section `models[0]` les propriét
   }
 ]
 ```
-Envoyez la scène modifée avec :
+Envoyez la scène modifiée avec :
 
 ```bash
 curl -L -XPUT -u "<username>:<password>" -H "Content-Type: application/json" --data-binary @scene.svx.json http://ecorpus.holusion.com/scenes/cube/scene.svx.json

@@ -1,128 +1,120 @@
 ---
 layout: doc
-title: Tour editor manuel
+title: Create a guided tour
 description: Learn to create tours using Voyager Story.
 category: tutorial
 ---
 
-<div class="section section-center">
-    <h2 class="text-white my-5" style="font-size: 3rem">Voyager Story</h2>
-</div>
+<h2>Create a guided tour</h2>
+    <p>
+        Learn to create tours using <a href="https://smithsonian.github.io/dpo-voyager/story/overview/" target="_blank">Voyager Story</a>, developed by the Smithsonian Institute.
+    </p>
 
-<section class="section">
-    <img class="cover img-fluid" style="object-position: 70% 0;" src="/assets/img/doc/Voyager-tour.jpg" alt="Présentation du pied de croix de l'abbaye de Saint-Bertin au travers d'une visite guidée dans l'application Voyager.">
-    <div class="content">
-        <h2>Scene Editor for Voyager</h2>
+    <!--slide 0 - Create-->
+    <div>
+        <h3>Creating a tour</h3>
         <p>
-            Learn to create tours using <a href="https://smithsonian.github.io/dpo-voyager/story/overview/">Voyager Story</a>, developed by the Smithsonian Institute.
-        </p>   
+            In the {% include button.html name="Tours" icon="globe" %} tab, click on the button {% include button.html icon="plus" %} to create a new guided tour.
+        </p>
+        <div class="fer-gauche">
+            <img src="/assets/img/doc/Voyager-tour-create.jpg"
+                alt="screen de l'application Voyager, créer une visite guidée">
+        </div>
+        <p>
+            You can then give it a title and a summary, which will be displayed when selecting a tour in the main menu.
+        </p>
+        <blockquote>
+            <p>
+                Be sure to set the language of your application for the tour correctly.
+            </p>
+        </blockquote>
+        <div class="fer-gauche">
+            <img src="/assets/img/doc/Voyager-tour-lang.jpg"
+                alt="zoom sur les options de langue des visites guidées">
+        </div>
+        <p>
+            <!--TODO : tuto langues <a href="">En savoir plus sur la gestion des language </a>-->
+        </p>
     </div>
-</section>
-
-<section class="section section-white">
-    <h2>Create a guided tour</h2>
-</section>
-
-<section class="section left">
-    <div class="fixed-background mb-0 d-none d-xl-block">
-      <div class="sticky-content">
-        <div class="slides">
-          <img src="/assets/img/doc/Voyager-tour-create.jpg" data-slides="0" alt="screen de l'application Voyager, créer une visite guidée">
-          <img src="/assets/img/doc/Voyager-tour-options.jpg" data-slides="1" alt="screen de l'application Voyager, options de visite guidée">
-          <img src="/assets/img/doc/Voyager-tour-editor.jpg" data-slides="2" alt="screen de l'application Voyager, visite guidée">
-          <img src="/assets/img/doc/Voyager-tour-step1.jpg" data-slides="3" alt="screen de l'application Voyager, visite guidée">
-          <img src="/assets/img/doc/Voyager-tour-parameters.jpg" data-slides="4" alt="screen de l'application Voyager, visite guidée">
-          <img src="/assets/img/doc/Voyager-tour-parameters2.jpg" data-slides="5" alt="screen de l'application Voyager, visite guidée">
-          <img src="/assets/img/doc/Voyager-tour-editor2.jpg" data-slides="6" alt="screen de l'application Voyager, visite guidée">
-        </div>
-      </div>
+    <!--slide 1 Options de visite-->
+    <h3>Tour options</h3>
+    <p>
+        You can choose which settings can be changed from one slide to another in your tours.
+    </p>
+    <div class="fer-gauche">
+        <img src="/assets/img/doc/Voyager-tour-options.jpg"
+            alt="screen de l'application Voyager, créer une visite guidée">
     </div>
-    <div class="slide content">
-        <!--slide 0 - Create-->
-        <div id="create">
-            <h3>Creating a tour</h3>
-            <p>
-                In the {% include button.html name="Tours" icon="globe" %} tab, click on the button {% include button.html icon="plus" %} to create a new guided tour.
-            </p>
-            <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-tour-create.jpg" alt="screen de l'application Voyager, créer une visite guidée">
-            <p>
-                You can then give it a title and a summary, which will be displayed when selecting a tour in the main menu.
-            </p>
-            <div class="text-end">
-                <p class="text-secondary">
-                    Be sure to set the language of your application for the tour correctly.
-                </p>
-                <img class="img-fluid" src="/assets/img/doc/Voyager-tour-lang.jpg" alt="zoom sur les options de langue des visites guidées">
-                <p>
-                    <!--TODO : tuto langues <a href="">En savoir plus sur la gestion des language </a>-->
-                </p>
-            </div>
+    <p>
+        To do this, go to the options and check the desired ones.
+    </p>
+    <div class="fer-gauche">
+        <img src="/assets/img/doc/Voyager-tour-options_zoom.jpg" alt="zoom sur les options de visite guidées">
+    </div>
+    <!--slide 2 step-->
+    <div>
+        <h3>Add a new step</h3>
+        <p>
+            In the Tour Editor, click on {% include button.html name="Create" icon="plus" %} to create a new step for your guided tour, then give it a title.
+        </p>
+        <div class="fer-gauche">
+            <img src="/assets/img/doc/Voyager-tour-editor.jpg"
+                alt="screen de l'application Voyager, créer une visite guidée">
         </div>
-        <!--slide 1 Options de visite-->
-        <div id="options">
-            <h3>Tour options</h3>
-            <p>
-                You can choose which settings can be changed from one slide to another in your tours.
-            </p>
-            <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-tour-options.jpg" alt="screen de l'application Voyager, créer une visite guidée">
-            <p>
-                To do this, go to the options and check the desired ones.
-            </p>
-            <img src="/assets/img/doc/Voyager-tour-options_zoom.jpg" alt="zoom sur les options de visite guidées">
+    </div>
+    <!--slide 3-->
+    <div>
+        <h3>Anime the step</h3>
+        <p>
+            Depending on the options defined previously, you can directly animate the camera in the scene, as well as display articles and annotations.
+        </p>
+        <div class="fer-gauche">
+            <img src="/assets/img/doc/Voyager-tour-step1.jpg"
+                alt="screen de l'application Voyager, créer une visite guidée">
         </div>
-        <!--slide 2 step-->
-        <div>
-            <h3>Add a new step</h3>
-            <p>
-                In the Tour Editor, click on {% include button.html name="Create" icon="plus" %} to create a new step for your guided tour, then give it a title.
-            </p>
-            <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-tour-editor.jpg" alt="screen de l'application Voyager, créer une visite guidée">
+        <p>
+            When you are satisfied with the display, click on the {% include button.html name="Update" icon="camera" %} button to save your step.
+        </p>
+    </div>
+    <!--slide 4-->
+    <div>
+        <h3>Anime settings</h3>
+        <p>
+            Depending on the chosen options, you can also animate certain settings. To do this, while keeping the Tour Editor open for the desired tour, go to the {% include button.html name="Settings" icon="eye" %} tab.
+        </p>
+        <div class="fer-gauche">
+            <img src="/assets/img/doc/Voyager-tour-parameters.jpg"
+                alt="screen de l'application Voyager, créer une visite guidée">
         </div>
-        <!--slide 3-->
-        <div>
-            <h3>Anime the step</h3>
-            <p>
-                Depending on the options defined previously, you can directly animate the camera in the scene, as well as display articles and annotations.
-            </p>
-            <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-tour-step1.jpg" alt="screen de l'application Voyager, créer une visite guidée">
-            <p>
-                When you are satisfied with the display, click on the {% include button.html name="Update" icon="camera" %} button to save your step.
-            </p>
-        </div>
-        <!--slide 4-->
-        <div>
-            <h3>Anime settings</h3>
-            <p>
-                Depending on the chosen options, you can also animate certain settings. To do this, while keeping the Tour Editor open for the desired tour, go to the {% include button.html name="Settings" icon="eye" %} tab.
-            </p>
-            <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-tour-parameters.jpg" alt="screen de l'application Voyager, créer une visite guidée">
-        </div>
-        <!--slide 5-->
-        <div>
-            <p>
-                Navigate through your scene and modify all the desired settings. This includes the model(s), lights, scene, camera, etc. 
+    </div>
+    <!--slide 5-->
+    <div>
+        <p>
+            Navigate through your scene and modify all the desired settings. This includes the model(s), lights, scene, camera, etc. 
                 Don't forget to click on {% include button.html name="Update" icon="camera" %} to save the step once you have finished configuring it.
-            </p>
-        </div>
-        <!--slide 6-->
-        <div>
-            <h3>Organize steps</h3>
-            <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-tour-editor2.jpg" alt="screen de l'application Voyager, créer une visite guidée">
-            <p>
-                Once your steps are created, you can rearrange them in the Tour Editor by changing their order using the {% include button.html name="Up" %} and {% include button.html name="Down"%} buttons.
-            </p>
-            <p>
-                You can also define the duration and animation curve for the transition between two steps.
-            </p>
-        </div>
+        </p>
     </div>
-</section>
-
-<section class="section section-center">
-    <div class="content text-center">
+    <!--slide 6-->
+    <div>
+        <h3>Organize steps</h3>
+        <div class="fer-gauche">
+            <img src="/assets/img/doc/Voyager-tour-editor2.jpg"
+                alt="screen de l'application Voyager, créer une visite guidée">
+        </div>
+        <p>
+            Once your steps are created, you can rearrange them in the Tour Editor by changing their order using the {% include button.html name="Up" %} and {% include button.html name="Down"%} buttons.
+        </p>
+        <p>
+            You can also define the duration and animation curve for the transition between two steps.
+        </p>
         <p>
             Now you have all the tools to create and modify guided tours.
         </p>
-        <p><a class="btn btn-info text-white" href="edit">Return to the Scene Editor Guide.</a></p>
     </div>
-</section>
+
+
+<div class="center-button versionEN2">
+    <a href="edit">
+        <button>Return to the Scene Editor Guide</button>
+    </a>
+</div>

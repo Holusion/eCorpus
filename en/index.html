@@ -70,64 +70,61 @@ Presentation of the eCorpus 3D scene management system.
 
 <section>
     <div class="ligne-jaune-h3 fer-gauche">
-        <h3>Caractéristiques d'eCorpus</h3>
+        <h3>eCorpus features</h3>
     </div>
 
     <div class="larg100">
         {% include voyager.html embed="croix-reliquaire" class="h-100 larg100" %}
     </div>
     <div class="fer-gauche">
-        <h4>Complet</h4>
+        <h4>Complete</h4>
         <p>
-            eCorpus vous permet de <b>lier directement des données à chaque objet 3D</b> par le biais d’annotations
-            enrichies : titre, abstract et article pouvant comporter des contenus multimédias (vidéos, images, liens…).
+            eCorpus allows you <b>to link data directly to each 3D object</b> through enriched annotations annotations: title,
+            abstract and article that can include multimedia content (videos, images, links, etc.).
         </p>
         <p>
-            Vous pouvez ensuite orchestrer ces données, attenantes à vos objets 3D, pour <b>créer des scénettes animées
-                (appelées "Tours")</b>, idéales pour valoriser vos objets 3D dans un cadre de médiation muséale ou
-            pédagogique. Il facilite également la <b>recherche collaborative</b> grâce à des outils d'analyse et
-            d'export.
+            You can then orchestrate this data, alongside your 3D objects, <b>to create animated scenes (called "Towers")</b>, ideal for
+            showcasing your 3D objects in a museum or educational setting. pédagogique. It also facilitates <b>collaborative research</b>
+            thanks to analysis and d'export.
         </p>
-        <h4>Consultable par navigateur</h4>
+        <h4>Viewable via browser</h4>
         <p>
-            Le logiciel eCorpus est <b>entièrement accessible depuis un simple navigateur web</b>. Vous pouvez donc
-            aisément vous connecter sur n'importe quelle machine et montrer ou même partager votre catalogue d'objets 3D
-            en créant un nouveau compte pour un tiers.
+            eCorpus software is <b>fully accessible via a simple web browser</b>. So you can easily connect to any machine and show or even
+            share your catalog of 3D objects by creating a new account for a third party.
         </p>
-        <h4>Ouvert mais sécurisé</h4>
+        <h4>Open but secure</h4>
         <p>
-            L’architecture de l’application fonctionne grâce au déploiement d’instances indépendantes, <b>les bases de
-                données étant compatibles entre elles, mais entièrement séparées</b>.
-            La majeure partie des cas d’usages concernent des entités qui possèdent déjà une solution de gestion de
-            contenu, tel que Omeka S. Les données de eCorpus sont intégrables au sein de celle-ci et recherchables.
+            The application architecture works by deploying independent instances, <b>with the databases compatible with each other,
+            but entirely separate</b>.
+            The majority of use cases concern entities that already have a content management solution, such as Omeka S. eCorpus
+            data can be integrated and searched within these solutions.
         </p>
         <h4>Open source</h4>
         <p>
-            Les résultats du développement sont diffusés dans un format Open Source, pour que l’utilisateur soit
-            pleinement propriétaire de ses données et de son environnement. De plus, le dynamisme d’un projet Open
-            Source est capital dans la réussite d’un projet et sa diffusion. La présence de sa documentation sur une
-            plateforme comme <a href="https://github.com/Holusion/eThesaurus">GitHub</a> et l’activité régulière du
-            développement avec une équipe clairement identiﬁée.
+            The results of development are distributed in Open Source format, so that users have full ownership of their data and
+            environment. What's more, the dynamism of an Open Source project is crucial to its success and distribution. The
+            presence of its documentation on a platform like <a
+                href="https://github.com/Holusion/eThesaurus" target="_blank">GitHub</a> and regular
+            development activity with a clearly identiﬁed team.
         </p>
         <h4>Structure</h4>
         <p>
-            Chaque entrée dans la base a une structure de données organisées dans <a
-                href="https://smithsonian.github.io/dpo-voyager/document/overview/" target="_blank"><b>un ﬁchier JSON de
-                    référence</b></a>, avec des ﬁchiers liés (objet 3D, textures, articles, images, vidéos, etc…)
+            Each entry in the database has a data structure organized in <a
+                href="https://smithsonian.github.io/dpo-voyager/document/overview/" target="_blank"><b>a reference JSON
+                    ﬁchier</b></a>, with related ﬁchiers (3D objects, textures, articles, images, videos, etc.).
         </p>
         <p>
-            Cette organisation permet <b>une grande ﬂexibilité</b> : les données exportées peuvent être utilisées telles
-            qu’elles indépendamment du serveur sur lequel elles sont stockées.
+            This organization provides <b>a high degree of ﬂexibility</b>: exported data can be used as they are independently of
+            the server on which they are stored.
         </p>
         <p>
-            Le ﬁchier descriptif des scènes permet <b>la gestion des modèles à multiples niveaux de détails</b> (LOD)
-            ainsi que la traduction des différentes métadonnées.
+            The scene description ﬁchier enables <b>the management of models with multiple levels of detail (LOD)</b>, as well as
+            the translation of different metadata. as well as the translation of various metadata.
         </p>
         <p>
-            Chaque entrée dans la base peut donc être composée d’un assemblage de sous-éléments et chacun de ceux-ci
-            peut comporter des modèles en multi-résolution offrant <b>un chargement optimisé de la géométrie par le
-                client</b> en
-            limitant le chargement de données complexes en fonction de ses besoins.
+            Each entry in the database can therefore be made up of an assembly of sub-elements, and each of these can include
+            multi-resolution models, <b>offering optimized geometry loading by the customer</b>, limiting the loading of complex data
+            according to his needs.
         </p>
     </div>
 </section>
@@ -137,49 +134,40 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
 
 <section class="fer-gauche">
     <div class="ligne-jaune-h3">
-        <h3>Les modèles alternatifs</h3>
+        <h3>Alternative models</h3>
     </div>
     <p>
-        Ils peuvent être issus de captations autres que photographique par exemple : <b>en lumière non
-            visible ou en radioscopie</b> et proposent donc des visualisations différentes du modèle.
+        They can be derived from non-photographic recordings, <b>such as non-visible light or fluoroscopy</b>, and therefore
+        offer different visualizations of the model.
     </p>
     <p>
-        <b>Ces modèles 3D permettent également de stocker des données liées à leur animation.</b>
-        Cette étape de stockage des informations de mouvement est importante pour les simulations de mécanisme comme
-        des horloges, ou des démonstrations de montage/démontage complexes.
+        <b>These 3D models can also be used to store data relating to their animation.</b>
+        This step of storing movement information is important for mechanism simulations such as clocks, or complex assembly/disassembly demonstrations.
     </p>
 </section>
 
 <section>
     <div class="ligne-jaune-h3 fer-gauche">
-        <h3> Médiation et diffusion des contenus</h3>
+        <h3>Content mediation and distribution</h3>
     </div>
     {% include voyager.html embed="encensoir" class="h-100" %}
     <div class="fer-gauche">
         <p>
-            eCorpus permet une diffusion des objets 3D et des métadonnées dans deux conﬁgurations différentes.
+            eCorpus lets you distribute 3D objects and metadata in two different conﬁgurations.
         </p>
         <ul class="retrait">
             <li>
-                D’une part, <b>l'intégration du visualisateur Voyager dans une page web ou une application</b> permet
-                d’aller directement requérir la dernière version de l'objet 3D auprès du serveur en fonction de ses
-                droits de
-                diffusion. C’est la méthode la plus simple pour la <b>présentation des résultats sur des sites
-                    institutionnels, par email ou
-                    via des applications mobiles</b>. Les derniers développements en termes de <b>Réalité Augmentée</b>
-                permettent de diffuser
-                l’objet directement sous ce format à travers les AR Kit d’Apple 8 ou d'Androïd sans avoir besoin de
-                passer par
-                l’installation d’une application tierce.
+                On the one hand, <b>by integrating the Voyager viewer into a web page or application</b>, you can directly request the latest
+                version of the 3D object from the server, according to its distribution rights. This is the easiest way <b>to present
+                    results on institutional sites, by email or via mobile applications</b>. The latest developments in <b>Augmented Reality</b> mean
+                that objects can be displayed directly in this format using the AR Kit on Apple 8 or Android, without the need to
+                install a third-party application.
             </li>
             <li>
-                D'autre part, <b>lorsqu'une connexion à internet n’est pas possible</b> (installations hors-les-murs par
-                exemple),
-                eCorpus permet de <b>créer des applications fonctionnant avec une base de données locale</b>, exportée
-                au
-                préalable depuis la plateforme en ligne. Cela permet d’avoir un travail asynchrone et d'ajouter des
-                données sans
-                connexion internet. Il faut par la suite resynchroniser les données en les exportant.
+                On the other hand, <b>when an Internet connection is not possible</b> (off-site installations, for example), eCorpus lets you
+                <b>create applications running on a local database</b>, exported in advance from the online platform. This allows you to work
+                asynchronously and add data without an Internet connection. Data must then be resynchronized by export.
+
             </li>
         </ul>
     </div>
@@ -193,212 +181,19 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
 
 <section class="fer-gauche">
     <p>
-        Parmi les différents formats d’export pour la médiation, eCorpus supporte la visualisation sur table
-        tactile, tablettes mobiles, hologrammes et dispositifs de réalité virtuelle et réalité augmentée.
-        Le démonstrateur <a href="./about">eThesaurus</a>, fabriqué
-        par Holusion, permet la visualisation d’un export d’une base de données eCorpus.
-        L’affichage est séparé sur deux écrans :
+        Among the various export formats for mediation, eCorpus supports visualization on touch-screen tables, mobile tablets,
+        holograms and virtual and augmented reality devices.
+        The <a href="./about">eThesaurus</a> demonstrator, manufactured by Holusion, visualizes an export of an eCorpus database. The display is split
+        over two screens:
     <ul class="retrait">
         <li>
-            <b>L’écran transparent est dédié à la visualisation des objets 3D</b>, des animations et des annotations
-            concises.
+            <b>The transparent screen is dedicated to viewing 3D objects</b>, animations and concise annotations.
         </li>
         <li>
-            <b>La navigation est assurée par un écran secondaire, placé devant le dispositif.</b> Le contrôle
-            tactile a été retenu pour
-            sa prévalence auprès des publics, habitués à la manipulation de smartphones et de tablettes au
-            quotidien. Sur celui-ci,
-            l’usager consulte également les informations textuelles et les médias photos et vidéos complémentaires
-            inclus dans les articles.
+            <b>Navigation is provided by a secondary screen in front of the device.</b> Touch control was chosen for its prevalence with
+            audiences accustomed to handling smartphones and tablets on a daily basis. On this screen, users can also consult
+            textual information and complementary photo and video media included in the articles.
         </li>
     </ul>
     </p>
 </section>
-
-
-
-
-
-<!-- <section class="section section-center">
-    <h2 class="text-white my-5" style="font-size: 3rem">eThesaurus</h2>
-</section>
-
-<section class="section left">
-    <img class="cover img-fluid" style="object-position: 70% 0;" src="/assets/img/focus_stbertin_matthieu.webp" alt="Close-up of the foot of the cross of Saint-Bertin abbey, with the evangelist Matthew standing at his lectern facing his symbol (the angel). Created using computer-generated imagery based on photogrammetry.">
-    <div class="content">
-        <h2>Medieval goldsmithing put to the test of digital modeling.</h2>
-        <p>
-            eThesaurus is an art and technology history project led by a team of French and Belgian academics, museum curators, and <a href="https://holusion.com/">Holusion</a>, a specialist in innovative digital display.
-        </p>
-    </div>
-</section>
-
-<section class="section section-white left">
-    <div class="content">
-        <h2>Broadcast eThesaurus modeling results</h2>
-        <p>
-            The project involves the digitization of six medieval goldsmithing works: :
-        </p>
-        <p>
-            <b>Three works held at the <a href="https://www.musees-saint-omer.fr/">Sandelin Museum in Saint-Omer</a></b>:
-            <ul>
-                <li><a href="items/pied-de-croix.html">Foot of the cross of Saint-Bertin abbey</a> (v. 1170-1180)</li>
-                <li><a href="items/croix-clairmarais.html">The True Cross reliquary cross</a>, from the Abbey of Clairmarais (v. 1210-1220)</li>
-                <li><a href="https://ecorpus.holusion.com/ui/scenes/pyxide-pediculee/view?lang=EN">A pedestal pyx</a> or box for consecrated hosts mounted on a stand (v. 1220)</li>
-            </ul>
-        </p>
-        <p>
-            <b>In a second phase, three other pieces, held at the <a href="https://pba.lille.fr/">Palais des Beaux-arts in Lille</a>, were modeled in the spring of 2020:</b>
-            <ul>
-                <li><a href="https://ecorpus.holusion.com/ui/scenes/croix-reliquaire/view?lang=EN">The Wasnes-au-Bac reliquary cross</a> (v.1220-1230)</li>
-                <li><a href="https://ecorpus.holusion.com/ui/scenes/plaque/view?lang=EN">The Gideon Plate</a> (v. 1160)</li>
-                <li><a href="https://ecorpus.holusion.com/ui/scenes/encensoir/view?lang=EN">The Hebrews' Censer</a> (v. 1170)</li>
-            </ul>
-        </p>
-    </div>
-</section>
-
-<section class="section left">
-    <h2>Digitization</h2>
-    <img style="object-position: 70% 0;" src="/assets/img/photogrammetry.jpg" alt="Photogrammetry capture of an Acheulean biface by Inrap">
-    <div class="content">
-        <p>
-            The digital models resulting from photogrammetry capture include information related to the object's geometry in the form of a mesh, 
-            as well as information related to its visual appearance described in a PBR (Physical Based Rendering) model, 
-            which describes the optical properties of each point on the object, such as color, reflection, specular highlights, roughness, etc.
-        </p>
-        <p>
-            This information is sufficient to create video animations, particularly in the case of <a href="https://holusion.com/en/posts/2019-02-15-holomouseio">Holomouseio</a>, to display a digital replica of the object. 
-        </p>
-    </div>
-</section>
-
-<section class="section left section-white">
-    <h2>Viewing and Editing in 3D</h2>
-</section>
-
-<section class="section">
-    <div class="media mb-0">
-        {% include voyager.html embed="croix-reliquaire" class="h-100" %}
-    </div>
-    <div class="content bg-white text-dark">
-        <h4>Editing tools for researchers and conservators</h4>
-        <p>
-            eCorpus is a database of 3D models that uses <a href="https://smithsonian.github.io/dpo-voyager/">DPO-voyager</a> as a 3D viewer and metadata editor, a modification history manager, 
-            a user rights manager. It also provides application management tools to install it on a local server.
-        </p>
-        <h4>Open source</h4>
-        <p>The development results are distributed under an open source license, allowing the user to fully own their data and environment.</p>
-        <h4>Decentralized</h4>
-        <p>The application architecture works through the deployment of independent instances, with databases being compatible with each other but entirely separate.</p>
-        <h4>Browser-accessible</h4>
-        <p>Web technologies are currently the only ones offering a wide range of distribution opportunities. The requirement of developping an application for each possible consummer type would be considered a major obstacle.</p>
-        <h4>Indexable in databases</h4>
-        <p>Most use cases involve entities that already have a content management solution, such as OMEKA S. eCorpus data can be integrated and searched within it.</p>
-        <h4>Documented and equipped with a collaborative development environment</h4>
-        <p>The dynamism of an Open Source project is crucial to its success and distribution. Its documentation is available on a platform like <a href="https://github.com/Holusion/eThesaurus">GitHub</a> and there is regular development activity with a clearly identified team.</p>
-    </div>
-</section>
-
-<section class="section section-center">
-    <h2>eCorpus</h2>
-    <div class="content m-0">
-        <p>
-            eCorpus incorporates tools for the enhancement of a 3D catalog, collaborative analysis and research tools, as well as export options for use in museum or educational settings.
-        </p>
-        <p>
-            Its primary function is to allow data to be directly linked to an object and its geometry through enriched annotations.
-            These annotations combine a title, an abstract, and an article that may contain multimedia content (videos, images, links...) in enriched text (HTML).
-        </p>
-    </div>
-</section>
-
-<section class="section section-white">
-    <img class="my-auto" style="object-position: 70% 0;" src="/assets/img/voyager-scene-tree.jpg" alt="Node tree containing the meta data of a document on DPO-Voyager">
-    <div class="content">
-        <p>
-            The metadata for each entry in the database is organized into a <a href="https://smithsonian.github.io/dpo-voyager/document/overview/">reference JSON file</a>, with linked files (3D object, textures, articles, images, videos, etc.).
-        </p>
-        <p>
-            This organization allows for great flexibility: the exported data can be used independently of the server on which it is stored.
-        </p>
-        <p>
-            The file describing the scenes enables management of models with multiple levels of detail (LOD), as well as translation of the various metadata.
-        </p>
-        <p>
-            Each entry in the database can therefore be composed of an assembly of sub-elements, and each of these sub-elements may contain multi-resolution models that offer optimized loading of geometry by the client, limiting the loading of complex data according to its needs.
-        </p>
-    </div>
-</section>
-
-<section class="section section-center">
-    <div class="content">
-        <p>
-            Alternative models offer different visualizations of the model through distinct captures, for example, in non-visible light or through radiography.
-        </p>
-        <p>
-            These 3D models also allow for storing data related to their animation.
-            This step of storing movement information is important for mechanism simulations such as clocks or complex assembly/disassembly demonstrations.
-        </p>
-        <p>
-            All this information, these models, and their animations can be animated through "Tours" within the platform.
-            A tour allows the user to simply set steps in the visualization while letting the software interpolate movements from one point to another.
-            They can determine key animations, disassembly of a system, or light management.
-        </p>
-    </div>
-</section>
-
-<section class="section left section-white">
-     <h2>Mediation and distribution of content</h2>
-    <div class="media">
-        {% include voyager.html embed="encensoir" class="h-100" %}
-    </div>
-    <div class="content">
-        <p>
-            eCorpus allows for the distribution of 3D objects and metadata in two different configurations.
-        </p>
-        <p>
-            On one hand, <b>the integration of the Voyager viewer in a webpage or application</b> allows for direct access to the latest version of the 3D object from the server, depending on the user's distribution rights.
-        </p>
-        <p>
-            This is the simplest method for presenting results on institutional websites, via email or mobile applications.
-        </p>
-        <p>
-            The latest developments in terms of Augmented Reality also allow for direct distribution of the object in this format through Apple's AR Kit 8 or Android without the need for a third-party application.
-        </p>
-        <p>
-            In some use cases, particularly for installations in museums or exhibitions outside of traditional venues, an internet connection may not be available.
-        </p>
-        <p>
-            In this regard, it is possible to create applications that work with a local database exported from the online platform. 
-            This allows for asynchronous work and the addition of data over time, before exporting for use in a mediation context in an exhibition space.
-        </p>
-    </div>
-</section>
-
-<section class="section">
-    <img style="object-position: 70% 0;" src="/assets/img/sketch_ethesaurus.png" alt="Sketch représentant le démonstrateur eThesaurus de Holusion sur une borne holographique">
-    <div class="content m-auto">
-        <p>
-            Among the different export formats for mediation, eCorpus supports visualization on touch tables, mobile tablets, holograms, and virtual and augmented reality devices.
-        </p>
-        <p>
-            The eThesaurus demonstrator, manufactured by <a href="https://holusion.com/">Holusion</a>, allows for the visualization of an eCorpus database export.
-        </p>
-        <p>
-            The display is split across two screens. The transparent screen is dedicated to the visualization of 3D objects, animations, and concise annotations.
-        </p>
-        <p>
-            Navigation is provided by a secondary screen placed in front of the device. 
-            Touch control was chosen for its prevalence among audiences, accustomed to using smartphones and tablets on a daily basis.
-        </p>
-        <p>
-            On this screen, the user can consult textual information and complementary photo and video media included in the articles.
-        </p>
-    </div>
-</section>
-
-<section class="section section-center">
-    <h2>Interactive holographic display connected to eCorpus</h2>
-    {% include youtube.html  embed="ajOZ_fe8kso" %}
-</section> -->

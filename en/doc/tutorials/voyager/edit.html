@@ -1,198 +1,155 @@
 ---
 layout: doc
-title: Editing Manual
+title: Creating a scene step by step
 description: Learn how to edit a 3D scene using Voyager Story.
 category: tutorial
 ---
 
-<div class="section section-center">
-  <h2 class="text-white my-5" style="font-size: 3rem">Voyager Story</h2>
-</div>
 
-<section class="section">
-  <img class="cover img-fluid" style="object-position: 70% 0;" src="/assets/img/focus_stbertin_2.png" alt="Gros plan sur le Pied de croix de l'abbaye de Saint-Bertin.">
-  <div class="content">
-    <h2>Scene Editor for Voyager</h2>
-    <p>
-      Content editing is based on the <a href="https://smithsonian.github.io/dpo-voyager/story/overview/">Voyager Story</a> editor developed by the Smithsonian Institute.
-    </p>   
-  </div>
-</section>
-
-<section class="section section-white">
-  <h2>Edit the scene</h2>
-</section>
-
-<section class="section section-center">
-  <div class="content doc-summary mb-0 pb-0">
-    <ul>
-      <li>{% include button.html name="pose" style="width:150px" icon="move" %} Position and resize the model.</li>
-      <li>{% include button.html name="capture" style="width:150px" icon="camera" %} Take screenshots and save the state of the scene.</li>
-      <li>{% include button.html name="derivatives" style="width:150px" icon="hierarchy" %} Manage derivatives (different levels of detail).</li>
-      <li>{% include button.html name="annotations" style="width:150px" icon="comment" %} Create and edit annotations.</li>
-      <li>{% include button.html name="articles" style="width:150px" icon="file" %} Create and edit articles.</li>
-      <li>{% include button.html name="tours" style="width:150px" icon="globe" %}  Create and edit guided tours.</li>
-      <li>{% include button.html name="audio" style="width:150px" icon="audio" %}  Add and organize audio.</li>
-      <li>{% include button.html name="parameters" style="width:150px" icon="eye" %}  Edit scene settings.</li>
-    </ul>
-    <h3>Explore the scene</h3>
-    <ul>
-      <li>{% include button.html class="voyager-btn-rounded" icon="globe" %} Display tours.</li>
-      <li>{% include button.html class="voyager-btn-rounded" icon="file" %} Display articles.</li>
-      <li>{% include button.html class="voyager-btn-rounded" icon="comment" %} Display annotations.</li>
-      <li>{% include button.html class="voyager-btn-rounded" icon="share" %} Share the scene.</li>
-      <li>{% include button.html class="voyager-btn-rounded" icon="expand" %} Fullscreen mode.</li>
-      <li>{% include button.html class="voyager-btn-rounded" icon="tools" %} Tools and settings.</li>
-    </ul>
-  </div>
-</section>
-
-<section class="section section-center">
-  <h2>Creating a scene step by step</h2>
-</section>
-
-<div class="slide-navbar content">
-  <ul>
-    <li><a data-id="import" href="#import">Import</a></li>
-    <li><a data-id="rename" href="#rename">Rename</a></li>
-    <li><a data-id="pose" href="#pose">Pose</a></li>
-    <li><a data-id="capture" href="#capture">Capture</a></li>
-    <li><a data-id="comment" href="#comment">Annotations</a></li>
-    <li><a data-id="article" href="#article">Articles</a></li>
-    <li><a data-id="tours" href="#tours">Tours</a></li>
-    <li><a data-id="save" href="#save">Save</a></li>
-  </ul>
-</div>
-
-<section class="section left">
-  <div class="fixed-background mb-0 d-none d-xl-block">
-    <div class="sticky-content">
-      <div class="slides">
-        <img src="/assets/img/doc/eCorpus-import.jpg" data-slides="0" alt="screen of eCorpus, 3D scene manager">
-        <img src="/assets/img/doc/Voyager-edit-rename.jpg" data-slides="1" alt="screen of Voyager application, rename the scene">
-        <img src="/assets/img/doc/Voyager-edit-pose.jpg" data-slides="2" alt="screen of Voyager application, position the model">
-        <img src="/assets/img/doc/Voyager-edit-capture.jpg" data-slides="3" alt="screen of Voyager application, capture the scene">
-        <img src="/assets/img/doc/Voyager-edit-annotations.jpg" data-slides="4" alt="screen of Voyager application, add an annotation">
-        <img src="/assets/img/doc/Voyager-edit-article.jpg" data-slides="5" alt="screen of Voyager application, add an article">
-        <img src="/assets/img/doc/Voyager-edit-visite.jpg" data-slides="6" alt="screen of Voyager application, create a guided tour">
-        <img src="/assets/img/doc/Voyager-edit-save.jpg" data-slides="7" alt="screen of Voyager application, save the scene">
+<section class="fer-gauche">
+  <h2 id="ligne-jaune-h2-doc">Creating a scene step by step</h2>
+  <p id="paragraphe-doc">
+    Learn how to create a 3D scene using the <a href="https://smithsonian.github.io/dpo-voyager/story/overview/" target="_blank">Voyager Story</a> editor. This tutorial assumes that you have a 3D model in .glb
+    format ready to send. Options and recommendations for creating a 3D file for eCorpus are available on <a href="/en/doc/references/models/">this page</a>.
+  </p>
+  <!-- <div>
+    <div>
+      <div>
+        <img src="/assets/img/doc/eCorpus-import.jpg" data-slides="0"
+          alt="screen de eCorpus, Système de gestion de scènes 3D, avec surbrillance du bouton d'import">
+        <img src="/assets/img/doc/Voyager-edit-rename.jpg" data-slides="1"
+          alt="screen de l'application Voyager, renommer la scène">
+        <img src="/assets/img/doc/Voyager-edit-pose.jpg" data-slides="2"
+          alt="screen de l'application Voyager, positionner le modèle">
+        <img src="/assets/img/doc/Voyager-edit-capture.jpg" data-slides="3"
+          alt="screen de l'application Voyager, capturer la scène">
+        <img src="/assets/img/doc/Voyager-edit-annotations.jpg" data-slides="4"
+          alt="screen de l'application Voyager, ajouter une annotation">
+        <img src="/assets/img/doc/Voyager-edit-article.jpg" data-slides="5"
+          alt="screen de l'application Voyager, ajouter un article">
+        <img src="/assets/img/doc/Voyager-edit-visite.jpg" data-slides="6"
+          alt="screen de l'application Voyager, créer une visite guidée">
+        <img src="/assets/img/doc/Voyager-edit-save.jpg" data-slides="7"
+          alt="screen de l'application Voyager, créer une visite guidée">
       </div>
     </div>
-  </div>
-  <div class="slide content">
-    <!--slide 0 - Import-->
-    <div id="import">
-      <h3>Import a model</h3>
-      <p>
+  </div> -->
+  <div>
+    <!--slide 0 - Importer-->
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Import a model</h3>
+      <p id="paragraphe-doc">
         Import a .glb model by dragging it into the model list from your files or by clicking the "Upload a scene" button.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/eCorpus-import.jpg" alt="screen of eCorpus, 3D scene manager">
-      <p>
+      <img src="/assets/img/doc/eCorpus-import.jpg" alt="screen of eCorpus, 3D scene manager">
+      <p id="paragraphe-doc">
         Then click on "story ➝" to access the Voyager scene editor.
       </p>
-      <p>
+      <p id="paragraphe-doc">
         If you want to test the editor without creating a new scene in eCorpus, you can use the editor "standalone" mode.
       </p>
-      <p>
+      <p id="paragraphe-doc">
         In this case, import your model directly into the editor.
       </p>
-      <img class="img-fluid" src="/assets/img/doc/Voyager-edit-standalone_import.jpg" alt="screen of Voyager application in standalone mode">
+      <img src="/assets/img/doc/Voyager-edit-standalone_import.jpg"
+        alt="screen of Voyager application in standalone mode">
     </div>
-    <!--slide 1 - Reame-->
-    <div id="rename">
-      <h3>Rename the scene</h3>
-      <p>
+    <!--slide 1 - Renommer-->
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Rename the scene</h3>
+      <p id="paragraphe-doc">
         To rename your scene, go to the "Collection" tab and change the title.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-rename.jpg" alt="screen of Voyager application, rename the scene">
-      <p>
-        In standalone mode, the default name is "Missing Title".
+      <img src="/assets/img/doc/Voyager-edit-rename.jpg" alt="screen of Voyager application, rename the scene">
+      <p id="paragraphe-doc">
+      In standalone mode, the default name is "Missing Title".
       </p>
     </div>
-    <!--slide 2 - Pose-->
-    <div id="pose">
-      <h3>Position and resize the model</h3>
-      <p> 
+    <!--slide 2 - Positionner-->
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Position and resize the model</h3>
+      <p id="paragraphe-doc">
         Go to the {% include button.html name="pose" icon="move" %} tab and select your model to adjust its position.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-pose.jpg" alt="screen of Voyager application, position the model">
-      <p>
-        You can then recenter it in the scene and adjust its position and rotation using the<span class="bg-dark">Top</span>, <span class="bg-dark">Left</span> and <span class="bg-dark">Front</span> view windows.
-      </p>  
-      <p>
-        Be sure to check the unit of measurement for the scene and object. You can use the {% include button.html name="measure" icon="tape" %} tool in the {% include button.html icon="tools" class="voyager-btn-rounded" %} settings to check the size of the model :
+      <img src="/assets/img/doc/Voyager-edit-pose.jpg" alt="screen of Voyager application, position the model">
+      <p id="paragraphe-doc">
+        You can then recenter it in the scene and adjust its position and rotation using the<span>Top</span>, <span>Left</span> and <span>Front</span> view windows.
       </p>
-      <img class="img-fluid" src="/assets/img/doc/Voyager-edit-mesure.jpg" alt="screen of Voyager application, measure the model">
+      <p id="paragraphe-doc">
+        Be sure to check the unit of measurement for the scene and object. You can use the {% include button.html name="measure" icon="tape" %} tool in the {% include button.html icon="tools" class="voyager-btn-rounded" %} settings to check the size of the model:
+      </p>
+      <img src="/assets/img/doc/Voyager-edit-mesure.jpg" alt="screen of Voyager application, measure the model">
     </div>
-    <!--slide 3 - Capture-->
-    <div id="capture">
-      <h3>Take screenshots and save the state of the scene</h3>
-      <p>
+    <!--slide 3 - Capturer-->
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Take screenshots and save the state of the scene</h3>
+      <p id="paragraphe-doc">
         Once the model is positioned as desired, go to the {% include button.html name="capture" icon="camera" %} tab to save its position and generate a thumbnail image.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-capture.jpg" alt="screen of Voyager application, capture the scene">
-      <p>
+      <img src="/assets/img/doc/Voyager-edit-capture.jpg" alt="screen of Voyager application, capture the scene">
+      <p id="paragraphe-doc">
         It is necessary to capture the scene to save its state (object position, thumbnail, etc.).
-      </p>      
+      </p>
     </div>
     <!--slide 4 - Annotations-->
-    <div id="comment">
-      <h3>Create and edit annotations</h3>
-      <p>
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Create and edit annotations</h3>
+      <p id="paragraphe-doc">
         In the {% include button.html name="annotations" icon="comment" %} tab, select your model then click on the {% include button.html name="create" icon="plus" %} button to create your new annotation.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-annotations.jpg" alt="screen of Voyager application, add an annotation">
-      <p>
+      <img src="/assets/img/doc/Voyager-edit-annotations.jpg" alt="screen of Voyager application, add an annotation">
+      <p id="paragraphe-doc">
         Then click on the element to annotate on your model.
       </p>
-      <p>
-        Note that the annotation will be in English by default. Don't forget to change the language in the language settings to the language of your application.
-      </p>
-      <img class="img-fluid" src="/assets/img/doc/Voyager-edit-annotations-language.jpg" alt="screen de l'application Voyager, changer la langue de l'annotation">
+      <p id="paragraphe-doc">
+        Note that the annotation will be in English by default. Don't forget to change the language in the language settings to the language of your application :
+      </p id="paragraphe-doc">
+      <img src="/assets/img/doc/Voyager-edit-annotations-language.jpg"
+        alt="screen in Voyager application, change annotation language">
     </div>
     <!--slide 5 - Articles-->
-    <div id="article">
-      <h3>Create and edit articles</h3>
-      <p>
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Create and edit articles</h3>
+      <p id="paragraphe-doc">
         In the {% include button.html name="articles" icon="file" %} tab, select your model and click the {% include button.html name="create" icon="plus" %} button to create your new article.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-article.jpg" alt="screen of Voyager application, add an article">
-      <p>
+      <img src="/assets/img/doc/Voyager-edit-article.jpg" alt="screen of Voyager application, add an article">
+      <p id="paragraphe-doc">
         As with annotations, make sure the selected language is that of your application.
       </p>
-      <p>
+      <p id="paragraphe-doc">
         You can then define a title, excerpt, and use the editor to write your article.
       </p>
-      <p>
+      <p id="paragraphe-doc">
         You can edit your article at any time by clicking on its name in the list.
-      </p>      
+      </p>
     </div>
-    <!--slide 6 - Tours-->
-    <div id="tours">
-      <h3>Create and edit guided tours</h3>
-      <p>
+    <!--slide 6 - Visites guidées-->
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Create and edit guided tours</h3>
+      <p id="paragraphe-doc">
         In the {% include button.html name="tours" icon="globe" %} tab, click the {% include button.html icon="plus" %} button to create a new guided tour.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-visite.jpg" alt="screen of Voyager application, create a guided tour">
-      <p>
+      <img src="/assets/img/doc/Voyager-edit-visite.jpg" alt="screen of Voyager application, create a guided tour">
+      <p id="paragraphe-doc">
         In the tour editor, you can then create each step of your tour. 
         Make sure the selected language is that of your application.
       </p>
-      <p>
+      <p id="paragraphe-doc">
         Add a title, then adjust the position of your model, zoom in on key elements, display or hide an article... then click {% include button.html name="update" icon="camera" %} to save it and move on to the next step.
       </p>
-      <p class="text-center mt-4"><a class="btn btn-primary text-white" href="tour">Tour editor complete guide</a></p>
+      <div class="center-button">
+        <a href="tour">
+          <button>Tour editor complete guide</button>
+        </a>
+      </div>
     </div>
-    <!--slide 7 - Save-->
-    <div id="save">
-      <h3>Save your work</h3>
-      <p>
-        All that's left is to save your work using the {% include button.html name="Save" icon="save" %} button.
-      </p>
-      <p>
+    <!--slide 7 - Sauvegarder-->
+    <div>
+      <h3 id="ligne-jaune-h3-doc">Save your work</h3>
+      <p id="paragraphe-doc">
         You can also save your scene locally by downloading it with the {% include button.html name="Download" icon="download" %} button.
       </p>
-      <img class="mb-4 img-fluid d-block d-xl-none" src="/assets/img/doc/Voyager-edit-save.jpg" alt="screen of Voyager application, save the scene">   
     </div>
   </div>
 </section>

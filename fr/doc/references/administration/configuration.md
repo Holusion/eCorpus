@@ -2,7 +2,7 @@
 title: Configurer une instance
 ---
 
-## Options et paramètres
+## Configurer une instance
 
 Toutes les options de configuration sont fournies par variables d'environnement.
 
@@ -21,7 +21,7 @@ Pour les variables booléennes, utiliser `1` ou `true` / `0` ou `false`.
 
 Pilote la valeur par défaut d'autres variables de configuration.
 
-Change le comportement de certains modules. Voir aussi [express](https://expressjs.com/en/advanced/best-practice-performance.html#set-node_env-to-production).
+Change le comportement de certains modules. Voir aussi [express](https://expressjs.com/en/advanced/best-practice-performance.html#set-node_env-to-production){:target="_blank"}.
 
 Devrait généralement être forcé à `production` dans les déploiements.
 
@@ -53,9 +53,9 @@ Port utilisé par le service. Changer en cas de conflit.
 
  > `smtp://localhost`
 
-[Smart Host](https://en.wikipedia.org/wiki/Smart_host) à utiliser pour l'envoi d'emails.
+[Smart Host](https://en.wikipedia.org/wiki/Smart_host){:target="_blank"} à utiliser pour l'envoi d'emails.
 
-Utilisé pour créer le transport par [modemailer](https://nodemailer.com/).
+Utilisé pour créer le transport par [nodemailer](https://nodemailer.com/){:target="_blank"}.
 
 Les options de configuration peuvent être données sous forme de *query string* :
 
@@ -63,14 +63,14 @@ Les options de configuration peuvent être données sous forme de *query string*
 # autorise l'utilisation de certificats self-signed : 
 smtp://localhost:465?tls.rejectUnauthorized=false
 ```
-D'autres options utiles peuvent être : `?logger=true&debug=true` pour activer le mode verbeux. Voir la [liste des options](https://nodemailer.com/smtp/).
+D'autres options utiles peuvent être : `?logger=true&debug=true` pour activer le mode verbeux. Voir la [liste des options](https://nodemailer.com/smtp/){:target="_blank"}.
 
 
 #### TRUST_PROXY
 
  > `true`
 
-Pilote l'option trust-proxy dans [express](http://expressjs.com/en/5x/api.html#trust.proxy.options.table).
+Pilote l'option trust-proxy dans [express](http://expressjs.com/en/5x/api.html#trust.proxy.options.table){:target="_blank"}.
 
 
 ### Variables d'administration
@@ -79,7 +79,7 @@ Pilote l'option trust-proxy dans [express](http://expressjs.com/en/5x/api.html#t
 
  > `false`
 
-Force l'application de la dernière migration *sqlite* (voir [doc](https://www.npmjs.com/package/sqlite#migrations)).
+Force l'application de la dernière migration *sqlite* (voir [doc](https://www.npmjs.com/package/sqlite#migrations){:target="_blank"}).
 
 Parfois utile pour réparer des erreurs de migration, mais génère un risque de perte de données.
 
@@ -127,7 +127,7 @@ Assets statiques
 
  > `$NODE_ENV == "development"`
 
-Active le [HMR](https://webpack.js.org/concepts/hot-module-replacement/) de webpack.
+Active le [HMR](https://webpack.js.org/concepts/hot-module-replacement/){:target="_blank"} de webpack.
 
 #### VERBOSE
 
