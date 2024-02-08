@@ -1,0 +1,12 @@
+---
+title: Posts
+---
+
+<ul>
+  {% for post in site.posts %}
+    <li>
+      {{post}}
+      <a href="{{ post.url }}">{{ post.title }}</a>
+    </li>
+  {% endfor %}
+</ul>

@@ -7,6 +7,9 @@ index:
 doc/:
   fr: Documentation
   en: Documentation
+posts:
+  fr: Articles
+  en: Posts
 about:
   fr: eThesaurus
   en: eThesaurus

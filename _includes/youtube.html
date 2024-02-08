@@ -3,57 +3,55 @@ async loader for youtube videos (copy from holusion.com)
 Usage :
 include youtube.html embed=##########
 {%endcomment%}
-<div style="width:100%; overflow:hidden;" class="media">
-  <div align="center" class="youtube-video ratio ratio-16x9" data-embed="{{include.embed}}" >
-    <div class="play-button">
-    </div>
-    <script defer>
-      (function(){ //Use an anonymous function to prevent poluting the global space
-        var embed = '{{include.embed}}';
-        var video = document.querySelector("[data-embed='"+embed+"']");
-
-        // Load the image asynchronously
-        youtube_thumbnails = [];
-        youtube_thumbnails.push(
-        new Promise ( (resolve, reject) => {
-          var image = new Image();
-          image.src =  "https://img.youtube.com/vi/"+ embed +"/maxresdefault.jpg";
-          image.addEventListener( "load", function() {resolve(image);});
-          image.addEventListener("error", function(e){console.warn(e)});
-        })
-      );
-        //load fallback image
-        youtube_thumbnails.push(
-        new Promise ( (resolve, reject) => {
-          var image_fallback = new Image();
-          image_fallback.src =  "https://img.youtube.com/vi/"+ embed +"/hqdefault.jpg";
-          image_fallback.addEventListener( "load", function() {resolve(image_fallback);})
-        }))
-
-        //If maxresdefault quality is good enough go for it. else go to fallback
-        Promise.all(youtube_thumbnails).then( result => {
-          image = result[0]
-          image_fallback = result[1]
-          if (image.width>600) {
-            video.appendChild(image)
-          } else {
-            video.appendChild(image_fallback)
-          }
-        }
-      );
-
-
-        video.addEventListener("click", function(){
-          var iframe = document.createElement( "iframe" );
-          iframe.className = "ratio";
-          iframe.setAttribute( "frameborder", "0" );
-          iframe.setAttribute( "allowfullscreen", "" );
-          iframe.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
-          iframe.setAttribute( "src", "https://www.youtube.com/embed/"+ embed +"?rel=0&showinfo=0&autoplay=1");
-          video.innerHTML = "";
-          video.appendChild(iframe);
-        })
-      })()
-    </script>
+<div class="media ratio ratio-16x9 youtube-video" data-embed="{{include.embed}}" >
+  <div class="play-button">
   </div>
+  <script defer>
+    (function(){ //Use an anonymous function to prevent poluting the global space
+      var embed = '{{include.embed}}';
+      var video = document.querySelector("[data-embed='"+embed+"']");
+
+      // Load the image asynchronously
+      youtube_thumbnails = [];
+      youtube_thumbnails.push(
+      new Promise ( (resolve, reject) => {
+        var image = new Image();
+        image.src =  "https://img.youtube.com/vi/"+ embed +"/maxresdefault.jpg";
+        image.addEventListener( "load", function() {resolve(image);});
+        image.addEventListener("error", function(e){console.warn(e)});
+      })
+    );
+      //load fallback image
+      youtube_thumbnails.push(
+      new Promise ( (resolve, reject) => {
+        var image_fallback = new Image();
+        image_fallback.src =  "https://img.youtube.com/vi/"+ embed +"/hqdefault.jpg";
+        image_fallback.addEventListener( "load", function() {resolve(image_fallback);})
+      }))
+
+      //If maxresdefault quality is good enough go for it. else go to fallback
+      Promise.all(youtube_thumbnails).then( result => {
+        image = result[0]
+        image_fallback = result[1]
+        if (image.width>600) {
+          video.appendChild(image)
+        } else {
+          video.appendChild(image_fallback)
+        }
+      }
+    );
+
+
+      video.addEventListener("click", function(){
+        var iframe = document.createElement( "iframe" );
+        iframe.className = "ratio";
+        iframe.setAttribute( "frameborder", "0" );
+        iframe.setAttribute( "allowfullscreen", "" );
+        iframe.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
+        iframe.setAttribute( "src", "https://www.youtube.com/embed/"+ embed +"?rel=0&showinfo=0&autoplay=1");
+        video.innerHTML = "";
+        video.appendChild(iframe);
+      })
+    })()
+  </script>
 </div>

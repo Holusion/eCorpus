@@ -1,11 +1,27 @@
 ---
 title: Posts
 ---
-
-<ul>
+<h1>Blog Posts</h1>
+<div class="post-list">
   {% for post in site.posts %}
-    <li>
-      <a href="{{ post.url }}">{{ post.title }}</a>
-    </li>
+    <div class="post-card text-dark">
+      <div class="post-header">
+        <h3 class="post-title">{{ post.title }}</h3>
+        {% if post.image -%}
+          <div class="post-image">
+            <img src="{{ post.image }}" alt="{{ post.title }}">
+          </div>
+        {%- endif %}
+      </div>
+      <div class="post-meta">
+        <span class="post-date">{{post.date | date: "%B %d, %Y" }}</span>
+      </div>
+      <div class="post-excerpt">
+        {{ post.excerpt | strip_html }}
+      </div>
+      <div class="post-action">
+        <a class="button" href="{{ post.url }}">read more</a>
+      </div>
+    </div>
   {% endfor %}
-</ul>
+</div>

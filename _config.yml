@@ -1,6 +1,6 @@
 url: "https://ecorpus.eu"
 baseurl: ""
-title: "eThesaurus"
+title: "eCorpus"
 
 toc: true
 
@@ -15,6 +15,11 @@ defaults:
     values:
       layout: page
   - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: post
+  - scope:
       path: "fr"
     values:
       lang: "fr"
@@ -22,11 +27,6 @@ defaults:
       path: "en"
     values:
       lang: "en"
-  
-  - scope:
-      path: "*/items"
-    values:
-      layout: "item"
 
   - scope:
       path: "*/doc"
