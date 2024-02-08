@@ -73,7 +73,7 @@ If Alice adds a new node —let's say, a *Light*— to this scene, he would then
 }
 ```
 
-But meanwhile, Bob added a new light of type "point" to the scene, and PUT this file:
+Meanwhile, Bob added a new light of type "point" to the scene, and PUT this file:
 
 ```json
 {
@@ -161,9 +161,10 @@ The ideal merge result of the above operations would be:
 
 How can we achieve this?
 
-With a **structured merge** (or [Abstract Syntax Tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree) merge). like this one are a common problem found in IT. 
+With a **structured merge** (or [Abstract Syntax Tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree) merge). Merging a set of *things* is after all a very common problem in IT: compilers, version control systems and databases all have produced ample literature on optimizing this process. 
 
-In our case, most of the values are primitives (strings, numbers, booleans) or should be considered as such (arrays of coordinates, colors, etc). So only a fraction of the document needs to be parsed and translated to an abstract representation.
+In our case, most of the values are primitives (strings, numbers, booleans) or should be considered as such (arrays of coordinates, colors, etc). So only a fraction of the document needs to be parsed and translated to an abstract representation. To make things simpler, the "syntax" we have to parse is way simpler than that of a programming language or even a query language.
+
 
 ## Indices dereferencing
 
@@ -203,3 +204,30 @@ After the previous step, we still can't handle the above example: Both users add
 We need to remap the indices of the `nodes` array (as well as most other arrays in the document) to be able to uniquely identify their contents.
 
 It is done by reducing the array to a map of unique keys. Fortunately the JSON-schema already defines a `id` property for most relevant array items. This key is unique within the array and can be used as a unique identifier. In places where an `id` is not available, we can use the node's name as a fallback.
+
+## Keys remapping
+
+The `snapshots` system in a Voyager document has a structure that is quite different from the rest of the document. It has an array of `snapshot.targets`, then each of the elements in `snapshots.states` contains an array (`snapshots.states[].values`, to be precise) of values to be applied for this tour-step.
+
+tour steps are identified by their `id` property, so their mapping to the snapshot states shouldn't be problematic. However the targets are. Let look a a typical (abbreviated) list of targets :
+
+```json
+[
+    "scenes/0/setup/reader/enabled",
+    "node/0/position",
+]
+```
+
+If you have been following though the previous sections, the problem is evident: the `node/0/position` target is index-dependant. Since we remapped our nodes, their post-merge index is not guaranteed to be the same as the pre-merge index.
+
+Once again we have to deconstruct our `targets` to something that we will be able to remap to the new indices after the merge.
+
+The structure we choose was to deconstruct targets into a root "type" (the first component) taht tells us of to handle the target. The index (the second component) which will get mapped to a node, and a "path" (the remaining parts) that will be kept as-is.
+
+The assumption is that every `node`, `model` or `light` is tied to a unique, stable `node` object, which has a unique, stable `id`, as per the previous section.
+
+Attentive readers may have noted that `scenes` targets have been omitted. This is because the scene is not subject to be reindexed through merge operations so its index is considered stable.
+
+## Conclusion
+
+With the scene file parsing taken care of, diffing and merging is just a matter of applying simple(ish) deep-compare and deep-merge functions.
