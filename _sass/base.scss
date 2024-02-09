@@ -75,6 +75,17 @@ nav{
   flex-direction: row;
   align-items: center;
   justify-content: start;
+  
+  .img-header {
+    height: 100%;
+    object-fit: cover;
+    object-position: 0% 30%;
+    overflow: hidden;
+    width: 70%;
+    display: block;
+    flex-grow: 1;
+    max-width: 1200px;
+  }
 
   .header-brand{
     color: $yellow;
@@ -87,20 +98,6 @@ nav{
 }
 
 
-.img-header {
-  height: 100%;
-  min-height: 100%;
-  width: 70%;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-left: 3rem;
-}
-.navbar-header > div > img{
-  max-width: 100%;
-  height: max-content;
-}
 
 .navbar{
   background-color: $middlegrey;
@@ -160,26 +157,7 @@ ul{
   align-items: center;
 }
 
-.espace-des-logos {
-  padding: 0.5rem;
-}
 
-.ligne-logo {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 3.5rem;
-}
-
-.largeur-img-30prct {
-  max-width: 30%;
-  padding: 0.5rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 .big-title-doc{
   font-size: 2.5rem;
 }
@@ -624,6 +602,15 @@ div > ul > li:has(> .voyager-btn:first-child){
   list-style: none;
 }
 
+
+.logo-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 128px);
+  align-content: space-around;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
 
 
 //////////////////////////////
