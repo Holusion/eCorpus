@@ -4,6 +4,7 @@ title: Posts
 <h1>Blog Posts</h1>
 <div class="post-list">
   {% for post in site.posts %}
+    {%- if post.lang != page.lang -%}{% continue %}{%- endif -%}
     <div class="post-card text-dark">
       <div class="post-header">
         <h3 class="post-title">{{ post.title }}</h3>

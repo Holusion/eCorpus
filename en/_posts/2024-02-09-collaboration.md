@@ -89,7 +89,7 @@ The first option is clearly better for discoverability and practicity but requir
 
 ### Actually merging changes
 
-[Merging]((https://en.wikipedia.org/wiki/Merge_(version_control))) is a complex problem, there will always be hypothetical cases where merging all changes is impossible, especially with a file format that wasn't primarily designed with collaboration in mind.
+[Merging](https://en.wikipedia.org/wiki/Merge_(version_control)) is a complex problem, there will always be hypothetical cases where merging all changes is impossible, especially with a file format that wasn't primarily designed with collaboration in mind.
 
 To simplify the problem down to manageable complexity, we decided to handle only the most common conflicts, while degrading to a simple overwrite when the merge is impossible. The main goal of this approach is to avoid scene corruption as much as possible, even if it means losing some changes. This loss wouldn't be irecoverable, as the lost version of the scene would still be available in the history.
 
@@ -130,7 +130,7 @@ With a way to detect concurrent changes and a way to merge them, most collaborat
 
 Real-world data is obviously going to surface more edge cases. However the application needs to be put to a point where collaboration is *good enough* to allow the gathering of data to improve the merge algorithm and handle those cases. The journalized nature of eCorpus allows us to be somewhat lax on data consistency, knowing we could always retrieve any saved file to manually put back the lost data.
 
-The following articles will describe in more details how we managed to translate scene files into an abstract tree and the techniques we used to merge them. The final part in this series will describe how we implemented the Object-cache to speed up the scene reload.
+The following article will describe in more details how we managed to translate scene files into an abstract tree and the techniques we used to merge them. The final part in this series will describe how we implemented the Object-cache to speed up the scene reload.
 
 [^1]: Smith, R.: GNU diff3
 [^2]: rfc4918 section-12.2
