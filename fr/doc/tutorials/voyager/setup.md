@@ -8,7 +8,7 @@ description: Apprendre à configurer une scène dans dpo-voyager
 
 Ce tutoriel passe en revue les principales options de configuration d'une scène dans DPO-Voyager.
 
-Tout se passera sous l'onglet {% include button.html name="parameters" style="width:150px" icon="eye" %}, avec le <img style="max-height:1.5rem" src="/assets/img/doc/scene_node.jpg" title="scene node" alt="scene node in voyager's hierarchy">nœud sélectionné.
+Tout se passera sous l'onglet {% include sv_button.html name="parameters" style="width:150px" icon="eye" %}, avec le <img style="max-height:1.5rem" src="/assets/img/doc/scene_node.jpg" title="scene node" alt="scene node in voyager's hierarchy">nœud sélectionné.
 
 ### Navigation
 
