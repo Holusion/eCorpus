@@ -2,7 +2,7 @@ import { createHmac } from "crypto";
 import { Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../../auth/User.js";
 import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../../utils/errors.js";
-import { AppLocals, getHost, getUser, getUserManager } from "../../../utils/locals.js";
+import { AppLocals, getHost, getLocals, getUser, getUserManager } from "../../../utils/locals.js";
 import sendmail from "../../../utils/mails/send.js";
 /**
  * 
@@ -122,7 +122,7 @@ export async function sendLoginLink(req :Request, res :Response){
   );
 
   let lang = "fr";
-  const mail_content = await (res.app.locals as AppLocals).templates.render(`emails/connection_${lang}`, {
+  const mail_content = await getLocals(req).templates.render(`emails/connection_${lang}`, {
     name: user.username,
     lang: "fr",
     url: link.toString()

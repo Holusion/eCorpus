@@ -1,7 +1,7 @@
 import { Request, RequestHandler, Response } from "express";
 import xml from 'xml-js';
 import path from "path";
-import { AppLocals, getHost, getUser } from "../../utils/locals.js";
+import { AppLocals, getHost, getLocals, getUser } from "../../utils/locals.js";
 import Vfs, { FileProps, ItemProps } from "../../vfs/index.js";
 
 interface ElementProps{
@@ -198,7 +198,7 @@ async function getScenes(vfs :Vfs, rootUrl:URL, recurse :number, user_id ?:numbe
 export async function handlePropfind(req :Request, res:Response){
   let u = getUser(req);
   const {scene:scene_name} = req.params;
-  const {vfs} = req.app.locals as AppLocals;
+  const {vfs} = getLocals(req);
   let recurse = parseInt(req.get("Depth")??"-1");
   if(!Number.isSafeInteger(recurse)) throw new Error("Invalid Depth header : "+req.get("Depth"));
   

@@ -7,7 +7,7 @@ import chaiAsPromised from "chai-as-promised";
 //@ts-ignore
 import sourceMaps from "source-map-support";
 import { AppLocals } from "./utils/locals.js";
-import { parse } from "./utils/config.js";
+import { Config, parse } from "./utils/config.js";
 sourceMaps.install();
 
 chai.use(chaiAsPromised);
@@ -17,7 +17,7 @@ process.env["TEST"] ??= "true";
 declare global{
   var dataStream:(src ?:Array<Buffer|string>)=>AsyncGenerator<Buffer, void, unknown>;
   var expect :typeof chai["expect"];
-  var createIntegrationContext :(c:Mocha.Context)=>Promise<AppLocals>;
+  var createIntegrationContext :(c:Mocha.Context, config_override ?:Partial<Config>)=>Promise<AppLocals>;
   var cleanIntegrationContext :(c:Mocha.Context)=>Promise<void>;
 }
 
@@ -30,11 +30,17 @@ global.dataStream = async function* (src :Array<Buffer|string> =["foo", "\n"]){
   }
 }
 
-global.createIntegrationContext = async function(c :Mocha.Context){
+global.createIntegrationContext = async function(c :Mocha.Context, config_override :Partial<Config>={}){
   let {default:createServer} = await import("./server.js");
   let titleSlug = c.currentTest?.title.replace(/[^\w]/g, "_") ?? `eThesaurus_integration_test`;
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
-  c.config = parse({ROOT_DIR: c.dir, CLEAN_DATABASE: "false", VERBOSE: "false", HOT_RELOAD: "false"});
+  c.config = Object.assign(
+    parse({ //Common options
+    ROOT_DIR: c.dir, CLEAN_DATABASE: "false", VERBOSE: "false", HOT_RELOAD: "false",
+    }),
+    //Options we might want to customize
+    config_override
+  );
   c.server = await createServer( c.config );
   return c.server.locals;
 }

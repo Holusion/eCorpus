@@ -48,6 +48,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     fileDir: config.files_dir,
     vfs,
     templates,
+    config,
   }) as AppLocals;
 
   app.use(cookieSession({
