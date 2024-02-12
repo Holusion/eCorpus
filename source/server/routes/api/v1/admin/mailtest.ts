@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import sendmail from "../../../../utils/mails/send.js";
-import { getUser } from "../../../../utils/locals.js";
-import config from "../../../../utils/config.js";
+import { getLocals, getUser } from "../../../../utils/locals.js";
 import { BadRequestError } from "../../../../utils/errors.js";
 
 /**
@@ -10,6 +9,7 @@ import { BadRequestError } from "../../../../utils/errors.js";
  * This is a protected route and requires admin privileges
  */
 export default async function handleMailtest(req :Request, res :Response){
+  const {config} = getLocals(req);
   const {username :requester, email:to} = getUser(req);
   if(!to){
     throw new BadRequestError("No email address found for user "+ requester);

@@ -25,7 +25,7 @@ const values = {
 
 type Key = keyof typeof values;
 type ValueType<T extends Key> = ReturnType<typeof values[T][1]>;
-type Config = {
+export type Config = {
   [T in Key]: typeof values[T][0] extends BuildKey<T>? ReturnType<typeof values[T][0]> : ValueType<T>;
 }
 
@@ -51,6 +51,9 @@ function toBool(s:string):boolean{
   return !(!s || s.toLowerCase() === "false" || s == "0");
 }
 
+/**
+ * Parses a set of environment variables into a configuration object
+ */
 export function parse(env :NodeJS.ProcessEnv = process.env):Config{
   let c :Partial<Config>  = {};
   for(let [key, value] of Object.entries(values)){

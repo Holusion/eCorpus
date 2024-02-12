@@ -6,6 +6,7 @@ import UserManager, { AccessType, AccessTypes } from "../auth/UserManager.js";
 import Vfs, { GetFileParams } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
 import Templates from "./templates.js";
+import { Config } from "./config.js";
 
 export interface AppLocals extends Record<string, any>{
   port :number;
@@ -13,20 +14,25 @@ export interface AppLocals extends Record<string, any>{
   userManager :UserManager;
   vfs :Vfs;
   templates :Templates;
+  config: Config;
+}
+
+export function getLocals(req :Request){
+  return req.app.locals as AppLocals;
 }
 
 /**
  * @throws {InternalError} if app.locals.userManager is not defined for this request
  */
 export function getUserManager(req :Request) :UserManager {
-  let userManager :UserManager = (req.app.locals as AppLocals).userManager;
+  let userManager :UserManager = getLocals(req).userManager;
   //istanbul ignore if
   if(!userManager) throw new InternalError("Badly configured app : userManager is not defined in app.locals");
   return userManager
 }
 
 export function getFileDir(req :Request) :string{
-  let fileDir = (req.app.locals as AppLocals).fileDir;
+  let fileDir = getLocals(req).fileDir;
   if(!fileDir) throw new InternalError("Badly configured app : fileDir is not a valid string");
   return fileDir;
 }
@@ -145,7 +151,7 @@ export function getFileParams(req :Request):GetFileParams{
 }
 
 export function getVfs(req :Request){
-  let vfs :Vfs = (req.app.locals as AppLocals).vfs;
+  let vfs :Vfs = getLocals(req).vfs;
   //istanbul ignore if
   if(!vfs) throw new InternalError("Badly configured app : vfs is not defined in app.locals");
   return vfs;
