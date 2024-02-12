@@ -21,8 +21,9 @@ const values = {
   smart_host: ["smtp://localhost", toString],
   verbose: [false, toBool],
 
+  experimental: [false, toBool],
   /// FEATURE FLAGS ///
-  enable_document_merge: [false, toBool],
+  enable_document_merge: [isExperimental, toBool],
   
 } as const;
 
@@ -53,6 +54,13 @@ function toUInt(s:string):number{
 
 function toBool(s:string):boolean{
   return !(!s || s.toLowerCase() === "false" || s == "0");
+}
+
+/**
+ * used to default a value to "false", unless EXPERIMENTAL flag is set
+ */
+function isExperimental({experimental}: {experimental: boolean}) :boolean{
+  return experimental;
 }
 
 /**
