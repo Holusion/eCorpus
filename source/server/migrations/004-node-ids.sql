@@ -14,7 +14,7 @@ WITH src AS (
       json_group_array(
         json_set(
           json_extract(data,'$.nodes[' || key || ']'), 
-          '$.id', hex(randomBlob(6))
+          '$.id', lower(hex(randomBlob(6)))
         )
       ) as data
     FROM src, json_each(src.nodes)

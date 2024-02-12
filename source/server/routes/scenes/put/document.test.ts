@@ -20,7 +20,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
   let titleSlug :string, scene_id :number, sampleDoc :any;
 
   this.beforeAll(async function(){
-    let locals = await createIntegrationContext(this);
+    let locals = await createIntegrationContext(this, {enable_document_merge: true});
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");

@@ -2,11 +2,10 @@ import {inspect} from "util";
 import path from "path";
 import { Request, Response } from "express";
 
-import { getUserId, getVfs } from "../../../utils/locals.js";
+import { getLocals, getUserId, getVfs } from "../../../utils/locals.js";
 import { BadRequestError } from "../../../utils/errors.js";
 
 import * as merge from "../../../utils/merge/index.js";
-
 
 /**
  * Special handler for svx files to disallow the upload of invalid JSON.
@@ -14,19 +13,19 @@ import * as merge from "../../../utils/merge/index.js";
  * If the user provides a reference document ID and the document has been updated since, a diff is performed to try to merge the changes.
  */
 export default async function handlePutDocument(req :Request, res :Response){
+  const {config} = getLocals(req);
   const uid = getUserId(req);
   const {scene} = req.params;
   const newDoc = req.body;
   const refId = newDoc?.asset?.id;
+  if(typeof refId !== "undefined") delete newDoc.asset.id; //Don't write this to DB
 
   if(typeof newDoc !== "object"|| !Object.keys(newDoc).length) throw new BadRequestError(`Invalid json document`);
 
-  if(!refId){
+  if(!refId || !config.enable_document_merge){
     await getVfs(req).writeDoc(JSON.stringify(newDoc), scene, uid);
     return res.status(204).send();
   }
-
-  delete newDoc.asset.id; //Don't write this to DB
 
   await getVfs(req).isolate(async (tr)=>{
     // perform a diff of the document with the reference one

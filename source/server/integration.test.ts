@@ -117,6 +117,7 @@ describe("Web Server Integration", function(){
         .set("Content-Type", "application/si-dpo-3d.document+json")
         .send(c)
         .expect(204);
+        
         let {text} = await this.agent.get("/scenes/foo/foo.svx.json")
         .expect(200)
         .expect("Content-Type", "application/si-dpo-3d.document+json");
