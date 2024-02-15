@@ -187,7 +187,7 @@ export default {
       fr: "renommer",
       en: "rename"
     },
-    alphabet:{
+    name:{
       fr: "ordre alphabethique",
       en: "alphabetical"
     },
