@@ -111,14 +111,15 @@ scene-card{
 }
 
 .list-items{
-  .list-item{
-      display:flex; 
+  
+  .list-item, .list-header{
+      display: flex; 
       flex: 1 1 auto;
       gap: 1rem;
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-      background: #000a;
+      background: #000;
       padding: 1rem;
       border-bottom: 1px solid $color-dark;
       text-decoration: none;
@@ -126,6 +127,14 @@ scene-card{
         background: #071922
       }
   }
+
+  .list-header{
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 1.2rem 1rem 0.8rem 1rem;
+    border-bottom: 2px solid $color-dark;
+  }
+
   .list-item:nth-child(2n){
     background: #000;
     &:hover{
