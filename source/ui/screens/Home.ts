@@ -52,6 +52,8 @@ interface Upload{
     constructor()
     {
         super();
+        this.orderBy = "mtime";
+        this.orderDirection = "desc";
     }
 
     createRenderRoot() {
@@ -135,7 +137,7 @@ interface Upload{
                 ${"author" in scene? html`
                 <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
                 <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
-                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.ctime).toLocaleString()}</span>
+                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.mtime).toLocaleString()}</span>
             `:scene.name}
             </a>
         `;
@@ -190,6 +192,11 @@ interface Upload{
         <div class="section">
             <h3>${this.t("ui.mtimeSection")}</h3>
             <div class="list list-items" style="position:relative;">
+                <span class="list-header">
+                    <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${this.t("ui.name")}</span>
+                    <span style="flex: 0 5 auto; font-size:smaller">${this.t("ui.author")}</span>
+                    <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${this.t("ui.mtime")}</span>
+                </span>
                 ${repeat([
                     ...scenes.slice(0, 8),
                 ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}

@@ -188,8 +188,8 @@ export default {
       en: "rename"
     },
     name:{
-      fr: "ordre alphabethique",
-      en: "alphabetical"
+      fr: "nom",
+      en: "name"
     },
     sortBy:{
       fr: "Trier par",
