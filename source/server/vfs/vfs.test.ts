@@ -367,8 +367,10 @@ describe("Vfs", function(){
 
       it("create a folder in a scene", async function(){
         await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
-        let folders = await vfs.listFolders(scene_id)
-        expect(folders.map(f=>f.name)).to.deep.equal(["articles", "models", "videos"]);
+        let folders = await vfs.listFolders(scene_id);
+        //order is by mtime descending, name ascending so we can't rely on it
+        expect(folders.map(f=>f.name)).to.have.members(["articles", "models", "videos"]);
+        expect(folders).to.have.length(3);
       });
 
       it("create a tree of folders", async function(){

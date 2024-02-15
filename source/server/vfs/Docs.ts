@@ -18,7 +18,7 @@ export default abstract class DocsVfs extends BaseVfs{
   async writeDoc($data :string, scene :number|string, author :null|number = 0) :Promise<number>{
     return await this.db.beginTransaction(async tr=>{
       let r = await tr.get<{doc_id:number}>(`
-        WITH scene AS (SELECT scene_id FROM scenes WHERE ${typeof scene =="number"?"scene_id":"scene_name"} = $scene)
+        WITH scene AS (SELECT scene_id FROM scenes WHERE ${((typeof scene =="number")?"scene_id":"scene_name")} = $scene)
         INSERT INTO documents (data, generation, fk_author_id, fk_scene_id) 
         SELECT 
           $data AS data,
