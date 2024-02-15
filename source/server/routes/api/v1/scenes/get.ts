@@ -18,7 +18,9 @@ export default async function getScenes(req :Request, res :Response){
     match,
     access,
     limit,
-    offset
+    offset,
+    orderBy,
+    orderDirection,
   } = req.query;
 
   access = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
@@ -51,14 +53,17 @@ export default async function getScenes(req :Request, res :Response){
     scenes = await Promise.all(scenesList.map(name=>vfs.getScene(name)));
   }else{
     /**@fixme ugly hach to bypass permissions when not performing a search */
-    scenes = await vfs.getScenes((u.isAdministrator && !access && !match)?undefined: u.uid, {
+    const requester_id = (u.isAdministrator && !access && !match)?undefined: u.uid;
+    scenes = await vfs.getScenes(requester_id, {
       match: match as string,
+      orderBy: orderBy as any,
+      orderDirection: orderDirection as any,
       access: access as AccessType[],
       limit: limit? parseInt(limit as string): undefined,
       offset: offset? parseInt(offset as string): undefined,
     });
   }
-
+  await (await import("node:timers/promises")).setTimeout(1000);
   //canonicalize scenes' thumb names
   scenes = scenes.map(s=>({...s, thumb: (s.thumb? new URL(encodeURI(path.join("/scenes/", s.name, s.thumb)), getHost(req)).toString() : undefined)}))
 

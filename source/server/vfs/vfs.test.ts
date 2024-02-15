@@ -319,6 +319,22 @@ describe("Vfs", function(){
 
       });
 
+      describe("ordering", function(){
+        it("rejects bad orderBy key", async function(){
+          await expect(vfs.getScenes(0, {orderBy: "bad" as any})).to.be.rejectedWith("Invalid orderBy: bad");
+        })
+        it("rejects bad orderDirection key", async function(){
+          await expect(vfs.getScenes(0, {orderDirection: "bad" as any})).to.be.rejectedWith("Invalid orderDirection: bad");
+        });
+        it("can order by name descending", async function(){
+          for(let i = 0; i < 10; i++){
+            await vfs.createScene(`${i}_scene`);
+          }
+          const scenes = await vfs.getScenes(0, {orderBy: "name", orderDirection: "desc"});
+          expect(scenes.map(s=>s.name)).to.deep.equal([9,8,7,6,5,4,3,2,1,0].map(n=>n+"_scene"));
+        });
+      });
+
       describe("pagination", function(){
         it("rejects bad LIMIT", async function(){
           let fixtures = [-1, "10", null];

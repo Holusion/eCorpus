@@ -6,7 +6,6 @@ import BaseVfs from "./Base.js";
 import { ItemEntry, Scene, SceneQuery } from "./types.js";
 
 
-
 export default abstract class ScenesVfs extends BaseVfs{
 
   async createScene(name :string):Promise<number>
@@ -87,13 +86,22 @@ export default abstract class ScenesVfs extends BaseVfs{
    * get all scenes when called without params
    * Search scenes with structured queries when called with filters
    */
-  async getScenes(user_id ?:number, {access, match, limit =10, offset = 0} :SceneQuery = {}) :Promise<Scene[]>{
+  async getScenes(user_id ?:number, {access, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"} :SceneQuery = {}) :Promise<Scene[]>{
+
+    //Check various parameters compliance
     if(Array.isArray(access) && access.find(a=>AccessTypes.indexOf(a) === -1)){
       throw new BadRequestError(`Bad access type requested : ${access.join(", ")}`);
     }
+
     if(typeof limit !="number" || Number.isNaN(limit) || limit < 0) throw new BadRequestError(`When provided, limit must be a number`);
     if(typeof offset != "number" || Number.isNaN(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a number`);
+
+    if(["asc", "desc"].indexOf(orderDirection.toLowerCase()) === -1) throw new BadRequestError(`Invalid orderDirection: ${orderDirection}`);
+    if(["ctime", "mtime", "name"].indexOf(orderBy.toLowerCase()) === -1) throw new BadRequestError(`Invalid orderBy: ${orderBy}`);
+
     let with_filter = typeof user_id === "number" || match;
+
+    const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
 
     let likeness = "";
     let mParams :Record<string, string> = {};
@@ -155,6 +163,7 @@ export default abstract class ScenesVfs extends BaseVfs{
             last_docs.fk_scene_id = documents.fk_scene_id 
             AND last_docs.generation = documents.generation
       )
+
       SELECT 
         IFNULL(mtime, scenes.ctime) as mtime,
         scenes.ctime AS ctime,
@@ -172,9 +181,11 @@ export default abstract class ScenesVfs extends BaseVfs{
           "any", json_extract(scenes.access, '$.1'),
           "default", json_extract(scenes.access, '$.0')
         ) AS access
+      
       FROM scenes
         LEFT JOIN last_docs AS document ON fk_scene_id = scene_id
         LEFT JOIN json_tree(document.metas) AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
+      
       ${with_filter? "WHERE true": ""}
       ${typeof user_id === "number"? `AND 
         COALESCE(
@@ -185,8 +196,9 @@ export default abstract class ScenesVfs extends BaseVfs{
       `:""}
       ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
       ${likeness}
+
       GROUP BY scene_id
-      ORDER BY LOWER(scene_name) ASC
+      ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       LIMIT $offset, $limit
     `, {
       ...mParams,
