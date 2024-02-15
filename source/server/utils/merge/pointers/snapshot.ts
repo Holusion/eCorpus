@@ -2,7 +2,7 @@ import { INode } from "../../schema/document.js";
 import { DerefNode, SOURCE_INDEX } from "./types.js";
 
 
-export function mapTarget(target :string, nodes :DerefNode[] =[]){
+export function mapTarget(target :string, nodes :DerefNode[]){
   const [root, indexString, ...propPath] = target.split("/");
   const index = parseInt(indexString);
   if(Number.isNaN(index)) return target;
@@ -21,7 +21,7 @@ export function mapTarget(target :string, nodes :DerefNode[] =[]){
     node = nodes.find(n=>n.light?.[SOURCE_INDEX] === index);
   }
 
-  if(!node) throw new Error(`Invalid pathMap: ${target} does not point to a valid node`);
+  if(!node) throw new Error(`Invalid pathMap: ${target} does not point to a valid ${root} index`);
   return `${root}/${node.id}/${propPath.join("/")}`;
 }
 
@@ -42,9 +42,9 @@ export function unmapTarget(target :string, nodes :INode[]){
   }else if(root == "model"){
     index = nodes[nodeIndex].model;
   } if(root == "light"){
-    index = nodes[nodeIndex].model;
+    index = nodes[nodeIndex].light;
   }
 
-  if(typeof index !== "number") throw new Error(`Invalid pathMap: ${target} does not point to a valid node`);
+  if(typeof index !== "number") throw new Error(`Invalid pathMap: ${target} does not point to a valid ${root} reference`);
   return `${root}/${index}/${propPath.join("/")}`;
 }
