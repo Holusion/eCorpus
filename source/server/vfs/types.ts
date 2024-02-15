@@ -81,4 +81,6 @@ export interface SceneQuery {
   match ?:string;
   offset ?:number;
   limit ?:number;
+  orderBy ?:"ctime"|"mtime"|"name";
+  orderDirection ?:"asc"|"desc";
 }
