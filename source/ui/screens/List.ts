@@ -14,19 +14,12 @@ import { UserSession, withUser } from "../state/auth";
 import { repeat } from "lit-html/directives/repeat";
 
 import "../composants/TaskButton";
-import { withScenes, Scene } from "../state/withScenes";
+import { withScenes, Scene, sorts, OrderBy } from "../state/withScenes";
 
 interface Upload{
     name :string;
 }
 
-type SortOrder = "alphabet"|"ctime"|"mtime";
-const sorts:Record<SortOrder, Parameters<typeof Array.prototype.sort>[0]> = {
-    ctime: (a, b) => new Date(b.ctime).valueOf() - new Date(a.ctime).valueOf(),
-    alphabet: (a, b) => a.name.localeCompare(b.name),
-    mtime: (a, b) => new Date(b.mtime).valueOf() - new Date(a.mtime).valueOf(),
-};
-const sortNames = Object.keys(sorts) as SortOrder[];
 
 /**
  * Main UI view for the Voyager Explorer application.
@@ -48,8 +41,6 @@ const sortNames = Object.keys(sorts) as SortOrder[];
     @property({type: Array, attribute: false})
     selection = [];
 
-    @property({type: String, reflect: true})
-    sort:SortOrder = sortNames[0];
 
     get isUser(){
         return (this.user && !this.user.isDefaultUser);
@@ -89,7 +80,7 @@ const sortNames = Object.keys(sorts) as SortOrder[];
         }
 
         this.uploads = {...this.uploads, [sceneName]: {progress:0, done: false}};
-        this.sort = "ctime";
+        this.orderBy = "mtime";
         (async ()=>{
             let xhr = new XMLHttpRequest();
             xhr.onload = function onUploadDone(){
@@ -143,11 +134,23 @@ const sortNames = Object.keys(sorts) as SortOrder[];
         }
         let mode = (this.user?"write":"read");
 
-        if(!this.list){
-            return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;
-        }
+        let listContent = html`
+            ${(this.list?.length == 0 && Object.keys(this.uploads).length == 0)?
+                html`<h4>No scenes available</h1>`:
+                repeat([
+                    ...Object.keys(this.uploads).map(name=>({
+                        key: name,
+                        name: `Uploading ${name}: ${this.uploads[name].progress}%`,
+                        thumb: spinnerImage,
+                    })),
+                    ...(this.list ??[]),
+                ],(i)=>(i as any).key ?? i.name , (scene)=>this.renderScene(mode, scene))
+            }
+            ${this.list? null: html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`}
+        `;
 
-        let sortedList = this.list.sort(sorts[this.sort]);
+
+
 
         return html`
             <div class="toolbar">
@@ -179,22 +182,12 @@ const sortNames = Object.keys(sorts) as SortOrder[];
                 <div class="form-control" style="margin-left:auto; padding:10px">
                     <span>${this.t("ui.sortBy")}</span>
                     <span class="form-item"><select style="width:auto" @change=${this.onSelectOrder}>
-                        ${sortNames.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
+                        ${sorts.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
                     </select></span>                        
                 </div>
 
                 <div class="section" style="width:100%">
-                    ${(sortedList.length == 0 && Object.keys(this.uploads).length == 0)?
-                        html`<h4>No scenes available</h1>`:
-                        repeat([
-                            ...Object.keys(this.uploads).map(name=>({
-                                key: name,
-                                name: `Uploading ${name}: ${this.uploads[name].progress}%`,
-                                thumb: spinnerImage,
-                            })),
-                            ...sortedList,
-                        ],(i)=>(i as any).key ?? i.name , (scene)=>this.renderScene(mode, scene))
-                    }
+                    ${listContent}
                     ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}                
                 </div>
 
@@ -246,7 +239,8 @@ const sortNames = Object.keys(sorts) as SortOrder[];
     }
 
     onSelectOrder = (ev)=>{
+        console.log("Select order : ", ev.target.value);
         let value = ev.target.value;
-        this.sort = value as SortOrder;
+        this.orderBy = value as OrderBy;
     }
  }
