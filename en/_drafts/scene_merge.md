@@ -203,7 +203,7 @@ After the previous step, we still can't handle the above example: Both users add
 
 We need to remap the indices of the `nodes` array (as well as most other arrays in the document) to be able to uniquely identify their contents.
 
-It is done by reducing the array to a map of unique keys. Fortunately the JSON-schema already defines a `id` property for most relevant array items. This key is unique within the array and can be used as a unique identifier. In places where an `id` is not available, we can use the node's name as a fallback.
+It is done by reducing the array to a map of unique keys. Fortunately the JSON-schema already defines a `id` property for most relevant array items. This key is unique within the array and can be used as a unique identifier. In places where an `id` is not available, we tried to use another stable and unique property (like the url for assets). When all else fails, we updated the JSON-schema to add an `id` property.
 
 ## Keys remapping
 
@@ -231,3 +231,5 @@ Attentive readers may have noted that `scenes` targets have been omitted. This i
 ## Conclusion
 
 With the scene file parsing taken care of, diffing and merging is just a matter of applying simple(ish) deep-compare and deep-merge functions.
+
+We have now published the prototype behind a feature flag to begin in-situ testing. We will be able to gather feedback and improve the system as we go. The next big milestone will be to contribute the required change to the JSON-schema of voyager scenes to ensure compatibility with the ecosystem.
