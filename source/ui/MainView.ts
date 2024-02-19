@@ -53,7 +53,6 @@ export default class MainView extends router(i18n(withUser(LitElement))){
     return html`
       <corpus-navbar>
         <nav-link .selected=${this.isActive("/ui/scenes/")} href="/ui/scenes/">Collection</nav-link>
-        <nav-link href="https://ethesaurus.holusion.com" >Documentation</nav-link>
         ${(this.user?.isAdministrator)?html`<nav-link .selected=${this.isActive("/ui/admin/")} href="/ui/admin/">${this.t("ui.administration")}</nav-link>`:""}
         <div class="divider"></div>
         <user-button .selected=${this.isActive("/ui/user/")} .user=${this.user}></user-button>
@@ -62,8 +61,14 @@ export default class MainView extends router(i18n(withUser(LitElement))){
         ${this.renderContent()}
       </main>
       <footer>
-        <div style="margin:auto">Holusion © <a href="https://github.com/Holusion/e-thesaurus/blob/main/LICENSE.md">Apache License</a> | <a href="mailto:contact@holusion.com">${this.t("ui.reportBug")}</a></div>
-        <change-locale style="flex:none"></change-locale>
+        <div style="margin:auto">
+          <a href="https://ecorpus.eu">Project Documentation</a>
+          |
+          Holusion © <a href="https://github.com/Holusion/e-thesaurus/blob/main/LICENSE.md">Apache License</a>
+          |
+          <a href="mailto:contact@holusion.com">${this.t("ui.reportBug")}</a>
+        </div>
+        <change-locale style="margin:auto 4px"></change-locale>
       </footer>
       <modal-dialog></modal-dialog>
       <notification-stack></notification-stack>
