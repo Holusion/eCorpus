@@ -8,7 +8,7 @@ import "../composants/Size";
 
 import { nothing } from "lit-html";
 import i18n from "../state/translate";
-import {getLogin} from "../state/auth";
+import { withUser } from "../state/auth";
 import { navigate } from "../state/router";
 import Modal from "../composants/Modal";
 import { AccessType, Scene } from "state/withScenes";
@@ -78,7 +78,7 @@ class SceneVersion{
  * Main UI view for the Voyager Explorer application.
  */
  @customElement("scene-history")
- export default class SceneHistory extends i18n(LitElement)
+ export default class SceneHistory extends withUser(i18n(LitElement))
  {
     @property()
     name :string;
@@ -158,7 +158,7 @@ class SceneVersion{
     }
 
     can(a :AccessType) :boolean{
-      return AccessTypes.indexOf(a ) <= AccessTypes.indexOf(this.scene.access.user);
+      return AccessTypes.indexOf(a ) <= AccessTypes.indexOf(this.scene.access.user) || this.user?.isAdministrator;
     }
 
     aggregate(entries :ItemEntry[]) :SceneVersion[]{
