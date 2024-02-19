@@ -71,23 +71,23 @@ nav{
   margin: 0;
   width: 100%;
   height: $header_height;
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: [brand] minmax(230px, 1fr) [header] auto 1fr;
   align-items: center;
-  justify-content: start;
   
   .img-header {
+    grid-column: header / span 1;
     height: 100%;
     object-fit: cover;
     object-position: 0% 30%;
     overflow: hidden;
-    width: 70%;
     display: block;
     flex-grow: 1;
     max-width: 1200px;
   }
 
   .header-brand{
+    grid-column: brand / span 1;
     color: $yellow;
     text-decoration: none;
     font-family: $serifFont;
