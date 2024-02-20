@@ -1,4 +1,4 @@
-@import "./variables.scss";
+
 
 
 button, input {
@@ -19,7 +19,7 @@ a{
 
 
 .btn {
-  background: $color-background-light;
+  background: var(--color-highlight);
   color: white;
 
   display: flex;
@@ -27,52 +27,65 @@ a{
   align-items: center;
   flex: 0 1 auto;
   flex-wrap: wrap;
-  padding: 5px;
+  padding: 8px;
+  min-width: 100px;
+
   transition: fill 0.2s;
 
   cursor: pointer;
 
 
   &:hover, &:focus{
-    background-color: $color-background-lighter;
+    background-color: var(--color-highlight2);
   }
 
   &[selected] {
-    background-color: $color-primary;
+    background-color: var(--color-primary);
 
     &:hover, &:focus {
-      background-color: $color-primary-light;
+      background-color: var(--color-primary-light);
     }
   }
 
-  &.btn-primary {
-    background-color: $color-primary;
+  &.btn-main {
+    background-color: var(--color-secondary);
 
     &:hover:not([disabled]){
-      background-color: $color-primary-light;
+      background-color: var(--color-secondary-light);
+      box-shadow: 2px 2px rgba(20, 20, 20, 0.3);
+    }
+  }
+  
+  &.btn-outline{
+    background: transparent;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+
+    &:hover:not([disabled]){
+      background: var(--color-primary);
+      color: white;
     }
   }
 
   &.btn-secondary {
-    background-color: $color-primary-light;
+    background-color: var(--color-secondary);
 
     &:hover:not([disabled]){
-      background-color: $color-secondary;
+      background-color: var(--color-secondary);
     }
   }
 
   &.btn-danger {
-    background-color: $color-danger;
+    background-color: var(--color-error);
     color: white;
 
     &:hover{
-      background-color: lighten($color-danger, 7%);
+      filter: brightness(110%);
     }    
   }
 
   @at-root a#{&} {
     text-decoration: none;
-    padding: 8px;
     white-space:nowrap;
   }
 
@@ -100,9 +113,9 @@ a{
   }
   &[transparent]{
     background: transparent;
-    color: $color-light;
+    color: var(--color-text);
     &:hover{
-      color: $color-background-lighter;
+      color: var(--color-highlight2);
     }
   }
 }

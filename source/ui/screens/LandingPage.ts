@@ -21,9 +21,11 @@ import "../composants/UserLogin"
         return html`
             <div class="landing-page">
                 <div class="illustration">
-                    <img src="${sketch}" alt="sketch représentant l'application voyager et son utilisation dans une borne holographique">
-                    <p>${this.t("info.lead")}</p>
-                    <p style="text-align:right"> <a href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a></p>
+                    <img src="${sketch}" alt="dessin représentant l'application voyager et son utilisation dans une borne holographique">
+                    <p>${this.t("info.lead")}.</p>
+                    <p style="text-align:right">
+                        <a href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                    </p>
                 </div>
                 
                 <div class="user-login">
@@ -48,12 +50,15 @@ import "../composants/UserLogin"
         flex: 1 1 auto;
     }
     .user-login {
-        background-color: var(--color-dark);
+        border: 1px solid var(--color-element);
+        box-shadow: 0 0 5px 0 #00000088;
+        border-radius: 5px;
         width: 33%;
         padding: 1rem;
         min-width:300px;
         flex: 1 1 auto;
     }
+    
     img{
         display: block;
         max-width: 100%;

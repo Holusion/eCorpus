@@ -1,11 +1,20 @@
-@import "./variables.scss";
+
 
 table.list-table {
   border-collapse: collapse;
   width: 100%;
   display: table;
-  background-color:#000a;
-  color: $color-light;
+
+  background: var(--color-element);
+  color: var(--color-text);
+
+  tbody tr:nth-child(2n+1){
+    background: var(--color-section);
+  }
+  tbody {
+    border-bottom: 1px solid var(--color-element);
+  }
+
   tr:last-child {
     border-bottom: 0;
   }
@@ -21,23 +30,22 @@ table.list-table {
   }
 
   th {
-    color: $color-light;
-    font-weight: bold;
-    background-color: $color-dark;
     position: sticky;
     top: 0;
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 1.2rem 1rem 0.8rem;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
   }
+
   td {
-    border-bottom: solid 1px $color-dark;
     border-left: 0;
     border-right: 0;
     white-space: nowrap;
   }
-  tbody tr:nth-child(2n){
-    background: #000c;
-  }
   tbody tr:hover{
-    background-color: #071922;
+    background: var(--color-dark);
     transition: background-color 150ms ease-out;
   }
   &.disabled{

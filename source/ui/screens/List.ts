@@ -156,20 +156,20 @@ interface Upload{
                 <div class="list-tasks form-control">
                     <div class="form-item" style="display:flex; margin-bottom:10px">
                         <input type="search" id="model-search" placeholder=${this.t("ui.searchScene")} @change=${this.onSearchChange}>
-                        <button class="btn btn-primary" style="margin-top:0" type="submit"><ui-icon name="search"></ui-icon></button>
+                        <button class="btn btn-addon btn-main" style="margin-top:0" type="submit"><ui-icon name="search"></ui-icon></button>
                     </div>
                     <div class="section">
-                        <h4 style="margin-top:0">${this.t("ui.newScene")}</h4>
-                        <upload-button class="btn btn-primary" style="padding:8px" @change=${this.onUploadBtnChange}>
+                        <h3 style="margin-top:0">${this.t("ui.newScene")}</h3>
+                        <upload-button class="btn btn-main" style="padding:8px" @change=${this.onUploadBtnChange}>
                             ${this.t("ui.upload")}
                         </upload-button>
                         
-                        <a class="btn btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                        <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
                     </div>
                     ${(this.selection.length)?html`
                     <div class="section">
                         <h4 style="margin-top:0">${this.t("ui.tools")}</h4>
-                        <a class="btn btn-primary btn-icon" download href="/api/v1/scenes?${
+                        <a class="btn btn-main btn-icon" download href="/api/v1/scenes?${
                             this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
                             }&format=zip">
                             Download Zip

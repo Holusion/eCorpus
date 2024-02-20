@@ -1,4 +1,4 @@
-@import "../../styles/variables.scss";
+
 
 :host(corpus-navbar) {
   position: fixed;
@@ -10,8 +10,8 @@
   align-items: baseline;
   justify-content: center;
 
-  background-color: $color-background-dark;
-  border-bottom: 3px solid $color-background-darker;
+  background-color: var(--color-section);
+  border-bottom: 3px solid var(--color-element);
 }
 
 nav {
@@ -29,11 +29,23 @@ nav {
     background-color: var(--color-dark);
   }
   .brand {
-    display:flex;
+    display: flex;
+    height: 100%;
     align-items: center;
+    font-size: 1.1em;
+    color: var(--color-secondary);
+    font-family: var(--font-heading);
+    font-weight: 400;
+    text-decoration: none;
+    img{
+      height: 100%;
+      width: auto;
+      display: block;
+    
+    }
   }
   .brand:hover {
-    filter: brightness(1.2)
+    filter: opacity(80%);
   }
   .navbar{
     display: flex;
@@ -46,7 +58,7 @@ nav {
       box-sizing: border-box;
       background-color: transparent;
       font-size: 13px;
-      color: $color-light;
+      color: var(--color-text);
     }
     ::slotted(.btn){
       padding: 4px 10px !important;
@@ -69,19 +81,19 @@ nav {
   > a {
     color: inherit;
     font-size: inherit;
-    background-color: transparent;
-    transition: background-color 0.2s ease 0s;
+    border-bottom: 3px solid transparent;
+    transition: border 0.2s ease 0s;
     svg { fill: currentColor; }
 
     &:hover, &:focus{
       color: white;
-      background-color: $color-background-lighter;
+      background-color: var(--color-highlight2);
     }
   
     &.selected {
-      background-color: $color-primary;
+      border-bottom: 3px solid var(--color-primary);
       &:hover, &:focus {
-        background-color: $color-primary-light;
+        border-bottom: 3px solid var(--color-primary-lighter);
       }
     }
 

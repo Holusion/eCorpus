@@ -47,7 +47,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
           </div>
         </div>
         <div class="form-group">
-            <input class="btn btn-primary" style="padding:8px; width:100%" type="submit" value=${this.t("ui.saveChanges")}>
+            <input class="btn btn-main" style="padding:8px; width:100%" type="submit" value=${this.t("ui.saveChanges")}>
         </div>
       </form>
 
@@ -69,7 +69,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
         <div class="form-group">
         </div>
           <div>
-            <input class="btn btn-primary" style="padding:8px; width:100%" type="submit" name="password-submit" value="${this.t("ui.changePassword")}">
+            <input class="btn btn-main" style="padding:8px; width:100%" type="submit" name="password-submit" value="${this.t("ui.changePassword")}">
           </div>
         </div>
       </form>

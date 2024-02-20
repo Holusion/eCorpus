@@ -1,34 +1,37 @@
-@import "./variables.scss";
-
-
-html {
-  color: $color-text;
-}
-
-
-main{
-  position: relative;
-  max-width: var(--col-width);
-  margin: auto;
-
-  color: $color-light;
-  min-height: calc(100vh - var(--nav-height) * 2);
-  padding-top: .67em;
-  
-  h1{
-    color: $color-primary-light;
-  }
-}
 
 
 .section{
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
-  border: $color-dark 1px solid;
+  --caret-width: 2px;
+  position: relative;
+  background: var(--color-section);
+  &::before, &::after{
+    content: "";
+    position: absolute;
+    height: 41px;
+    width: 41px;
+
+    pointer-events: none;
+    border-color: var(--color-primary);
+    border-style: solid;
+  }
+  &::before{
+    top: 0;
+    left: 0;
+    border-width: var(--caret-width) 0 0 var(--caret-width);
+  }
+  &::after{
+    bottom: 0;
+    right: 0;
+    border-width: 0 var(--caret-width) var(--caret-width) 0;
+  }
+
+
   padding: 1rem;
   margin-bottom: 1rem;
-  h3{
-    margin-top: 0;
+  h1, h2, h3, h4, h5, h6{
+    &:first-child{
+      margin-top: 0;
+    }
   }
 }
 
@@ -48,7 +51,7 @@ corpus-list, home-page {
     right: 0;
     z-index: 2;
     background: rgba(0, 0, 0, 0.3);
-    border: 2px dotted $color-secondary;
+    border: 2px dotted var(--color-secondary);
     border-radius: 4px;
     pointer-events: none;
   }
@@ -72,6 +75,11 @@ corpus-list{
   .list-tasks{
     padding: 0.5rem;
     width: 300px;
+    .section{
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
   }
   .toolbar, .list-items{
     height: fit-content;
@@ -119,26 +127,28 @@ scene-card{
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-      background: #000;
+      background: var(--color-element);
       padding: 1rem;
-      border-bottom: 1px solid $color-dark;
-      text-decoration: none;
-      &:hover{
-        background: #071922
-      }
+      border-color: transparent;
+      border-width: 1px 0 1px 0;
   }
 
   .list-header{
     font-size: 1.2rem;
     font-weight: bold;
     padding: 1.2rem 1rem 0.8rem 1rem;
-    border-bottom: 2px solid $color-dark;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
   }
 
-  .list-item:nth-child(2n){
-    background: #000;
+  .list-item{
+    &:nth-child(2n){
+      background: var(--color-section);
+    }
     &:hover{
-      background: #071922
+      background: var(--color-dark);
+      filter: opacity(80%);
+      border-color: var(--color-dark);
     }
   }
 }
@@ -153,61 +163,8 @@ scene-card{
 }
 
 footer{
-  color: $color-light;
+  color: var(--color-text);
   height: 44px;
-  background-color: $color-dark;
+  background-color: var(--color-section);
   display:flex;
-}
-
-.notification {
-  position: relative;
-  left: 0;
-  margin: 8px;
-  background: $color-background-light;
-  color: $color-light;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.35);
-  display: flex;
-  justify-content: stretch;
-  align-items: center;
-
-  .ui-icon {
-    flex: 0 0 auto;
-    height: 2em;
-    width: 2em;
-    padding: 8px; 
-  }
-
-  &.notification-info > .ui-icon {
-    fill: $color-info;
-  }
-  &.notification-success > .ui-icon {
-    fill: $color-success; 
-  }
-  &.notification-warning > .ui-icon {
-    fill: $color-warning; 
-  }
-  &.notification-error > .ui-icon {
-    fill: $color-error; 
-  }
-  
-  .notification-message {
-    flex: 1 1 100%;
-    padding: 8px;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-
-  .notification-close {
-    flex: 0;
-    padding: 4px 6px 6px 6px;
-    font-weight: bolder;
-    color: $color-text-dark;
-    line-height: 1;
-    font-size: 1.5em;
-    cursor: pointer;
-  }
-  &.fade{
-    transition: transform 0.5s ease-in;
-    transform: translateX(100%);
-  }
 }

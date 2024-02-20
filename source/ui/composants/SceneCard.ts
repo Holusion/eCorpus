@@ -89,17 +89,19 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
       }
 
       .scene-card-inner{
-        background-color: #000a;
+        background-color: var(--color-element);
         box-sizing: border-box;
         padding: 1rem;
         width: 100%;
         height: 100%;
         border-radius: 4px;
-        border: 1px solid #103040;
+        border: 2px solid var(--color-highlight);
+        transition: background 0.2s;
       }
 
       .scene-card-inner:hover{
-        background-color: #071922;
+        background-color: var(--color-highlight);
+        box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
       }
 
       @media (min-width: 664px){
@@ -119,7 +121,7 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
         width: 70px;
         height: fit-content;
         border-radius: 4px;
-        border: #103040 solid 1px;
+        border: 1px solid var(--color-highlight);
       }
       .scene-card-inner-list img{
         height: auto;
@@ -142,7 +144,6 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
       }
 
       .tools a{
-        font-size: smaller;
         width: 100%;
         margin: 2px;
         color: #eee;
@@ -152,7 +153,7 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
         padding: 0 0.5rem;
       }
       .tools a:hover{
-        color: rgb(0, 165, 232);
+        color: var(--color-secondary-light);
       }
 
       .card-title{

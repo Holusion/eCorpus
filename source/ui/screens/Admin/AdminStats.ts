@@ -43,7 +43,7 @@ export default class AdminStatsScreen extends i18n(LitElement) {
       let now = new Date();
       now.setHours(0,0,0,0);
 
-      this.scenes = b.filter(scene=>{
+      this.scenes = b.scenes.filter(scene=>{
         return now.valueOf() < new Date(scene.mtime).valueOf();
       });
     }).catch(e=>{
@@ -70,7 +70,7 @@ export default class AdminStatsScreen extends i18n(LitElement) {
       return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`
     }
     return html`<div style="max-width:1200px; margin: auto;">
-      <h2>Server Statistics</h2>
+      <h1>Server Statistics</h1>
       <div class="section">
         <h3>Files statistics</h3>
         <ul>

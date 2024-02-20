@@ -102,7 +102,7 @@ interface User {
             header: "Delete user",
             body: html`<div>${this.t("info.userDeleteConfirm", {username : u.username})}</div>`,
             buttons: html`<div style="display:flex;padding-top:30px;">
-                <ui-button class="btn-primary" text="cancel" @click=${Modal.close}></ui-button>
+                <ui-button class="btn-main" text="cancel" @click=${Modal.close}></ui-button>
                 <ui-button class="btn-danger" text="delete" @click=${(ev)=>this.onDeleteUser(ev, u)}><ui-button>
             </div>`
         });
@@ -142,13 +142,13 @@ interface User {
 
     protected render() :TemplateResult {
         if(this.error){
-            return html`<h1>Error</h1><div>${this.error.message}</div>`;
+            return html`<h2>Error</h2><div>${this.error.message}</div>`;
         }else if(this.loading){
             return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`
         }
         return html`<div>
-            <h2>${this.t("info.userManager")}</h2>
-            <ui-button style="max-width: 200px; margin-bottom: 15px" class="btn-primary" icon="plus" text=${this.t("ui.createUser")} @click=${this.createUserOpen}></ui-button>
+            <h1>${this.t("info.userManager")}</h2>
+            <ui-button style="max-width: 200px; margin-bottom: 15px" class="btn-main" icon="plus" text=${this.t("ui.createUser")} @click=${this.createUserOpen}></ui-button>
             <div class="users-list section" style="position:relative;">
                 <table class="list-table">
                     <thead><tr>
@@ -169,8 +169,8 @@ interface User {
                         <td><input style="width:20px; height:20px" type="checkbox" .checked=${u.isAdministrator} disabled></td>
                         <td>
                             <div style="display:flex; justify-content:end;gap:.6rem;">
-                            <ui-button style=${u.isAdministrator ? "color:var(--color-light);opacity:0.2":"color:var(--color-danger)"} inline transparent icon="trash" title=${this.t("ui.delete")} @click=${()=>this.deleteUserOpen(u)} ?disabled=${u.isAdministrator}></ui-button>
-                            <ui-button style="color:var(--color-text-dark)" inline transparent icon="key" title="login link" @click=${()=>this.createLoginLink(u)}></ui-button>
+                            <ui-button style=${u.isAdministrator ? "color:var(--color-text);opacity:0.2":"color:var(--color-danger)"} inline transparent icon="trash" title=${this.t("ui.delete")} @click=${()=>this.deleteUserOpen(u)} ?disabled=${u.isAdministrator}></ui-button>
+                            <ui-button style="color:var(--color-dark)" inline transparent icon="key" title="login link" @click=${()=>this.createLoginLink(u)}></ui-button>
                             </div>
                         </td>
                     </tr>`)}

@@ -1,0 +1,27 @@
+
+.text-main{
+  color: var(--color-text);
+}
+
+.text-dark{
+  color: var(--color-dark);
+}
+
+.text-info {
+  color: var(--color-info);
+}
+.text-success {
+  color: var(--color-success); 
+}
+.text-warning{
+  color: var(--color-warning); 
+}
+.text-error {
+  color: var(--color-error); 
+}
+
+@mixin text-colors{
+  &.text-info, &.text-success, &.text-warning, &.text-error{
+    @content;
+  }
+}

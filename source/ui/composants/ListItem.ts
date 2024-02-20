@@ -51,9 +51,9 @@ export default class ListItem extends LitElement{
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-      background: #000a;
+      background: var(--color-element);
       padding: 1rem;
-      border-bottom: 1px solid #103040;
+      border-bottom: 1px solid var(--color-dark);
     }
     .list-item:hover{
       background: #071922

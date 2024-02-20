@@ -102,15 +102,17 @@ interface ModalOptions{
       top: max(100px, 15vh);
       min-width: 30vw;
       max-width: calc(100vw - 20px);
-      border: none;
-      background-color: var(--color-dark);
-      color: var(--color-light);
+      border: 1px solid var(--color-element);
+      border-radius: 5px;
+      background-color: var(--color-background);
+      color: var(--color-text);
       box-shadow: 0 1px 3px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.24);
     }
 
     .btn{
       color: white;
-      background: var(--color-tertiary);
+      background: var(--color-element);
+      transition: background 0.2s;
     }
     .btn:hover{
       background: var(--color-secondary);

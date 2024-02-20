@@ -163,10 +163,10 @@ interface Upload{
         return html`
         <h2>${this.t("info.homeHeader")}</h2>
         <div class="list-tasks" style="margin-bottom:1rem">
-            <upload-button class="btn btn-primary" .disabled=${uploads.length != 0} @change=${this.onUploadBtnChange}>
+            <upload-button class="btn btn-main" .disabled=${uploads.length != 0} @change=${this.onUploadBtnChange}>
                 ${this.t("ui.upload")}<spin-loader style="padding-left: 5px" .visible=${uploads.length != 0} inline></spin-loader>
             </upload-button>
-            <a class="btn btn-primary" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+            <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
         </div>
 
         ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?null: html`

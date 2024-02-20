@@ -1,39 +1,44 @@
-@import "./variables.scss";
 
 :root{
   --nav-height: 44px;
   --col-width: 1320px;
-  --color-primary: #{$color-primary};
-  --color-secondary: #{$color-secondary};
-  --color-tertiary: #{$color-tertiary};
+  --color-primary: #E6B900;
+  --color-primary-light: #edce4c;
+  --color-primary-lighter: #ffda41;
+  --color-primary-dark: #e08f1e;
 
-  --color-dark: #{$color-tertiary};
-  --color-medium: #{$color-primary};
-  --color-hover: #{$color-primary-dark};
-  --color-light: #{$color-text};
+  --color-secondary: #4735df;
+  --color-secondary-light: #7a70db;
 
-  --color-danger: #{$color-danger};
-  --color-text-dark: #{$color-text-dark};
-}
+  --color-text: #eee;
+  --color-dark: #2b2938;
 
+  --color-medium: var(--color-primary);
+  --color-hover: var(--color-primary-dark);
 
+  --color-info: #73adff;
+  --color-success: #8ae65c;
+  --color-warning: #e6a345;
+  --color-error: #e64545;
+  
+  --font-body: 'sans-serif';
+  --font-heading: 'serif';
 
+  /* Main (body) background color */
+  --color-background: #343434;
 
-*, ::before, ::after {
-  box-sizing: border-box;
-}
+  /* Background color for "section" elements.
+    (large page chunks that may contain some number of items).
+    designed to stand out over --color-background 
+  */
+  --color-section: #272727;
 
-body{
-  background: #071922;
-  position: relative;
-  min-height: 100vh;
-  width: 100%;
-  padding: var(--nav-height) 0 0 0;
-  margin: 0;
-  display: block;
-  font-family: "Roboto", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Oxygen-Sans", "Ubuntu", "Cantarell", "Helvetica Neue", "sans-serif";
-}
+  /* Background color for "block elements", like  cards, navbars, modals... */
+  --color-element: #1b1b1b;
 
-h1{
-  font-family: "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", "sans-serif";
+  /* Main Color for elements designed to stand out in a section, like action buttons */
+  --color-highlight: #1f1d29;
+  
+  /* Additional highlight color, primarily for hover effects */
+  --color-highlight2: #5e5e5e;
 }

@@ -2,13 +2,16 @@
 import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
 
+
 import "./UsersList";
 import i18n from "../../state/translate";
 import Modal from "../../composants/Modal";
 import "../../composants/Button";
 
+import commonStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
+
 @customElement("send-testmail")
-class TestmailModalBody extends i18n(LitElement){
+export class TestmailModalBody extends i18n(LitElement){
   @property({type: String})
   state = "initial";
 
@@ -30,7 +33,7 @@ class TestmailModalBody extends i18n(LitElement){
 
     if(this.state =="initial"){
       return html`<div style="width:300px;display:flex;justify-content:center">
-      <button class="send" @click=${onsend}>${this.t("ui.send")}</button>
+      <button class="btn btn-main btn-send" @click=${onsend}>${this.t("ui.send")}</button>
       </div>`
     }else if(this.state === "sending"){
       return html`<div style="flex-grow:1">
@@ -38,26 +41,18 @@ class TestmailModalBody extends i18n(LitElement){
       </div>`
     }else{
       return html`<div style="max-width: max(450px, 60vw);">
-        <button class="send" @click=${onsend}>${this.t("ui.send")}</button>
+        <button class="btn btn-main btn-send" @click=${onsend}>${this.t("ui.send")}</button>
         <pre class="state-report">${this.state}</pre>
       </div>`;
     }
   }
-  static styles = css`
-    button.send{
-      box-sizing: border-box;
-      padding: 4px 10px;
-      border: none;
-      text-decoration: none;
-      color: white;
-      background-color: var(--color-primary);
-    }
+  static styles = [commonStyles, css`
     .state-report{
       text-wrap: wrap;
       overflow: auto;
       border: 1px solid var(--color-dark);
     }
-  `;
+  `];
 }
 
 /**
@@ -72,7 +67,7 @@ export default class AdminHomeScreen extends i18n(LitElement) {
   
   protected render(): unknown {
     return html`
-      <h2>${this.t("ui.adminSection")}</h2>
+      <h1>${this.t("ui.adminSection")}</h1>
 
       <div class="section">
         <h3>${this.t("ui.tools")}</h3>

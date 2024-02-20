@@ -1,0 +1,23 @@
+@import "./text.scss";
+
+h1, h2, h3{
+  font-family: var(--font-heading);
+}
+
+h1{
+  display: inline-block;
+  color: var(--color-text);
+  padding: 1.5rem 0.2rem 0 1.5rem;
+  border-bottom: 0.6rem solid var(--color-primary);
+  @include text-colors {
+    border-bottom-color: currentColor;
+  }
+}
+
+h2{
+  border-left: 0.7rem solid var(--color-primary);
+  @include text-colors {
+    border-left-color: currentColor;
+  }
+  padding: 0.5rem 0 0 0.8rem;
+}

@@ -1,9 +1,12 @@
-@import "./variables.scss";
 
 @import "./normalize.scss";
-
+@import "./layout.scss";
+@import "./tables.scss";
 @import "./buttons.scss";
 @import "./forms.scss";
+
+@import "./text.scss";
+@import "./titles.scss";
 
 .tooltip{
   div{
@@ -14,17 +17,4 @@
       display: block;
     }
   }
-}
-
-.text-info {
-  color: $color-info;
-}
-.text-success {
-  color: $color-success; 
-}
-.text-warning{
-  color: $color-warning; 
-}
-.text-error {
-  color: $color-error; 
 }

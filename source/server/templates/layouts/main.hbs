@@ -12,15 +12,28 @@
     <link rel="apple-touch-icon" href="{{thumb}}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+    
 
     <title>{{title}}</title>
 
-    <link rel="shortcut icon" type="image/png" href="/dist/favicon.png"/>
+    <link rel="icon" type="image/png" href="/dist/favicon.png" sizes="32x32"/>
+    <link rel="shortcut icon" type="image/svg+xml" href="/dist/favicon.svg"/>
 
     <style>
-      body { background: #303030; }
+      body{
+        background: var(--color-background, #343434);
+        font-family: var(--font-body, sans-serif);
+        position: relative;
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 100vh;
+        padding: var(--nav-height, 44px) 0 0 0;
+        margin: 0;
+        display: block;
+      }
     </style>
+
+    <link rel="stylesheet" href="/dist/css/theme.css">
     <link rel="stylesheet" href="/dist/css/corpus.css">
 
   </head>

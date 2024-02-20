@@ -57,6 +57,7 @@ module.exports = function createAppConfig(env, argv={})
         cache: {type: "filesystem"},
         entry: {
             "corpus": "source/MainView.ts",
+            "theme": "source/styles/theme.scss",
         },
 
         output: {
@@ -92,7 +93,7 @@ module.exports = function createAppConfig(env, argv={})
             new CopyPlugin({
                 patterns: [
                     {
-                        from: "images/**/*.{svg,png}",
+                        from: "**/*",
                         context: path.join(project, "source/ui/assets/"),
                         priority: 0,
                     },
