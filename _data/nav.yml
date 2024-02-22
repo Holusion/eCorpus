@@ -5,8 +5,8 @@ index:
 #   fr: Galerie
 #   en: Gallery
 doc/:
-  fr: Documentation
-  en: Documentation
+  fr: <span class="hidden-small">Documentation</span><span class="hidden-large">Docs</span>
+  en: <span class="hidden-small">Documentation</span><span class="hidden-large">Docs</span>
 posts:
   fr: Articles
   en: Posts

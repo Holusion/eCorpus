@@ -9,7 +9,7 @@
 
 body {
   background: $backgroundColor;
-  &:has(.mep-doc){
+  &:has(.doc-page){
     background-color: $darkgrey;
   }
   color: $bodyColor;
@@ -17,17 +17,22 @@ body {
   width: 100%;
   margin:0px;
   padding: 0px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: $header_height $navbar_height auto $footer_height;
+  grid-template-columns: 1fr minmax(auto, 300px) min($main_width, 100vw - 20px) minmax(auto, 300px) 1fr;
+  grid-template-areas:
+    'header header header header header'
+    'navbar navbar navbar navbar navbar'
+    '. nav-left main nav-right .'
+    'footer footer footer footer footer';
+  ;
+
+
 }
 
 
 main {
-  width:700px;
-  min-width: 700px;
-  min-height: calc(100vh - $header_height - $navbar_height - $footer_height);
+  grid-area: main;
   background-color: white;
   padding: 0 3rem 3rem 3rem;
   box-shadow: 5px 0px 10px $middlegrey-shadow, -5px 0px 10px $middlegrey-shadow;
@@ -61,12 +66,15 @@ img.fluid{
 //////////////////////////////
 
 nav{
+  grid-area: navbar;
   width: 100%;
   margin: 0;
   padding: 0;
 }
 
 .navbar-header{
+  grid-area: header;
+  overflow: hidden;
   background-color: $darkgrey;
   margin: 0;
   width: 100%;
@@ -110,6 +118,13 @@ nav{
   justify-content: space-between;
   &#navbar-top{
     padding-left: 2em;
+    overflow: hidden;
+    @media screen and (max-width: #{$main_width} ){
+      padding-left: 10px;
+      a{
+        padding-right: 1em;
+      }
+    }
   }
   &.navbar-sticky{
     position: sticky;
@@ -134,6 +149,7 @@ nav{
     padding : 1em 2em 1em 0;
     display: inline-block;
     text-decoration: none;
+    white-space: nowrap;
     &:hover, &[aria-expanded="true"]{
       color: $yellow;
     }
@@ -158,18 +174,6 @@ ul{
 }
 
 
-.big-title-doc{
-  font-size: 2.5rem;
-}
-#ligne-jaune-big-title-doc{
-  margin-bottom: 1rem;
-  box-shadow: inset  0rem -0.9rem 0px $yellow;
-  padding: 0px;
-}
-#serif{
-  font-family: $serifFont;
-}
-
 .retrait{
   margin-left: 40px;
 }
@@ -178,6 +182,7 @@ ul{
 }
 
 footer {
+  grid-area: footer;
   height: $footer_height;
   background-color: $darkgrey;
   width: 100%;
@@ -213,30 +218,84 @@ footer a:hover {
 }
 
 
-.mep-doc {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  justify-content: center;
-}
+
 
 .nav-doc {
-  max-width: 300px;
+  max-width: $sidebar_width;
   background-color: $darkgrey;
   height: fit-content;
-  padding: 1rem 1rem 1rem 0;
+
+  &.nav-left{
+    grid-area: nav-left;
+    position: relative;
+
+    .navbar-toggle{
+      display: none;
+      background: $yellow;
+      border-radius: 4px;
+      color: white;
+      fill: currentColor;
+      padding: 4px;
+    }
+
+    @media screen and (max-width: #{$sidebar_width + $main_width} ){
+      grid-area: main;
+      width: 0;
+      margin: .5rem;
+      transition: width 0.35s linear;
+      &.show{
+        width: 300px;
+        padding-right: 24px;
+      }
+      .navbar-toggle{
+        display: block;
+        position: absolute;
+        top: 0;
+        right: calc(-24px - .5rem);
+        transition: position 0.35s linear;
+        &[aria-expanded="true"]{
+          top: .5rem;
+          right: .5rem;
+          left: auto;
+        }
+      }
+      ul{
+        width:100%;
+        overflow: hidden;
+      }
+    }
+
+  }
+  &.nav-right{
+    grid-area: nav-right;
+
+    @media screen and (max-width: #{$sidebar_width * 2 + $main_width} ){
+      display: none;
+    }
+  }
+
+
+  ul{
+    padding: 1rem 1rem 1rem 0;
+
+    li, li a{
+      min-width: 200px;
+      width: 100%;
+      padding-right: 0;
+      color: white;
+      padding: 0.1rem 0.5rem 0.1rem 1rem;
+      margin-top: 0.3rem;
+      @media screen and (max-width: #{$sidebar_width * 2 + $main_width} ){
+        padding-left: 0.5rem;
+      }
+    }
+  }
 }
 // .trait-vertical{
 //   border-left: 1px white solid;
 // }
  
-.nav-doc ul li, .nav-doc ul li a{
-  width: 100%;
-  padding-right: 0;
-  color: white;
-  padding: 0.1rem 0.5rem 0.1rem 1rem;
-  margin-top: 0.3rem;
-}
+.nav-doc ul 
 
 
 //////////////////////////////
@@ -350,11 +409,21 @@ main{
 /// COLLAPSE / DROPDOWNS
 //////////////////////////////
 
-.hidden{
+.hidden, .show-small{
   //faire un truc pr visualiseur d'ecran
   display: none;
 }
 
+@media screen and (min-width: #{$main_width} ){
+  .hidden-large{
+    display: none;
+  }
+}
+@media screen and (max-width: #{$main_width + 1} ){
+  .hidden-small{
+    display: none;
+  }
+}
 .collapse:not(.show){
   display: none;
 }
