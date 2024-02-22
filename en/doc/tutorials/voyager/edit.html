@@ -14,132 +14,118 @@ category: tutorial
     href="/en/doc/references/models/">this page</a>.
 </p>
 
+
+<h3 id="Import-a-model">Import a model</h3>
+<p>
+  Import a .glb model by dragging it into the model list from your files or by clicking the "Upload a scene" button.
+</p>
+<img src="/assets/img/doc/eCorpus-import.jpg" alt="screen of eCorpus, 3D scene manager">
+<p>
+  Then click on "story ➝" to access the Voyager scene editor.
+</p>
+<p>
+  If you want to test the editor without creating a new scene in eCorpus, you can use the editor "standalone" mode.
+</p>
+<p>
+  In this case, import your model directly into the editor.
+</p>
+<img src="/assets/img/doc/Voyager-edit-standalone_import.jpg"
+  alt="screen of Voyager application in standalone mode">
+
+<h3 id="Rename-the-scene">Rename the scene</h3>
+<p>
+  To rename your scene, go to the "Collection" tab and change the title.
+</p>
+<img src="/assets/img/doc/Voyager-edit-rename.jpg" alt="screen of Voyager application, rename the scene">
+<p>
+  In standalone mode, the default name is "Missing Title".
+</p>
+
+<h3 id="Position-and-resize">Position and resize the model</h3>
+<p>
+  Go to the {% include sv_button.html name="pose" icon="move" %} tab and select your model to adjust its position.
+</p>
+<img src="/assets/img/doc/Voyager-edit-pose.jpg" alt="screen of Voyager application, position the model">
+<p>
+  You can then recenter it in the scene and adjust its position and rotation using the<span>Top</span>,
+  <span>Left</span> and <span>Front</span> view windows.
+</p>
+<p>
+  Be sure to check the unit of measurement for the scene and object. You can use the {% include sv_button.html
+  name="measure" icon="tape" %} tool in the {% include sv_button.html icon="tools" class="voyager-btn-rounded" %}
+  settings to check the size of the model:
+</p>
+<img src="/assets/img/doc/Voyager-edit-mesure.jpg" alt="screen of Voyager application, measure the model">
+
+
+
+<h3 id="Take-screenshots">Take screenshots and save the state of the scene</h3>
+<p>
+  Once the model is positioned as desired, go to the {% include sv_button.html name="capture" icon="camera" %} tab to
+  save its position and generate a thumbnail image.
+</p>
+<img src="/assets/img/doc/Voyager-edit-capture.jpg" alt="screen of Voyager application, capture the scene">
+<p>
+  It is necessary to capture the scene to save its state (object position, thumbnail, etc.).
+</p>
+
+<h3 id="Create-and-edit-annotations">Create and edit annotations</h3>
+<p>
+  In the {% include sv_button.html name="annotations" icon="comment" %} tab, select your model then click on the {%
+  include sv_button.html name="create" icon="plus" %} button to create your new annotation.
+</p>
+<img src="/assets/img/doc/Voyager-edit-annotations.jpg" alt="screen of Voyager application, add an annotation">
+<p>
+  Then click on the element to annotate on your model.
+</p>
+<p>
+  Note that the annotation will be in English by default. Don't forget to change the language in the language
+  settings to the language of your application :
+</p>
+
+<div class="section">
+  <img src="/assets/img/doc/Voyager-edit-annotations-language.jpg"
+    alt="screen in Voyager application, change annotation language">
+</div>
+
+<h3 id="Create-and-edit-articles">Create and edit articles</h3>
+<p>
+  In the {% include sv_button.html name="articles" icon="file" %} tab, select your model and click the {% include sv_button.html name="create" icon="plus" %} button to create your new article.
+</p>
+<img src="/assets/img/doc/Voyager-edit-article.jpg" alt="screen of Voyager application, add an article">
+<p>
+  As with annotations, make sure the selected language is that of your application.
+</p>
+<p>
+  You can then define a title, excerpt, and use the editor to write your article.
+</p>
+<p>
+  You can edit your article at any time by clicking on its name in the list.
+</p>
+
+<h3 id="Create-and-edit-guided-tours">Create and edit guided tours</h3>
+<p>
+  In the {% include sv_button.html name="tours" icon="globe" %} tab, click the {% include sv_button.html icon="plus" %}
+  button to create a new guided tour.
+</p>
+<img src="/assets/img/doc/Voyager-edit-visite.jpg" alt="screen of Voyager application, create a guided tour">
+<p>
+  In the tour editor, you can then create each step of your tour.
+  Make sure the selected language is that of your application.
+</p>
+<p>
+  Add a title, then adjust the position of your model, zoom in on key elements, display or hide an article... then
+  click {% include sv_button.html name="update" icon="camera" %} to save it and move on to the next step.
+</p>
+<div class="center-button">
+  <a href="tour">
+    <button>Tour editor complete guide</button>
+  </a>
+</div>
 <div>
-  <!--slide 0 - Importer-->
-  <div>
-    <h3 id="Import-a-model">Import a model</h3>
-    <p>
-      Import a .glb model by dragging it into the model list from your files or by clicking the "Upload a scene" button.
-    </p>
-    <img src="/assets/img/doc/eCorpus-import.jpg" alt="screen of eCorpus, 3D scene manager">
-    <p>
-      Then click on "story ➝" to access the Voyager scene editor.
-    </p>
-    <p>
-      If you want to test the editor without creating a new scene in eCorpus, you can use the editor "standalone" mode.
-    </p>
-    <p>
-      In this case, import your model directly into the editor.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-standalone_import.jpg"
-      alt="screen of Voyager application in standalone mode">
-  </div>
-  <!--slide 1 - Renommer-->
-  <div>
-    <h3 id="Rename-the-scene">Rename the scene</h3>
-    <p>
-      To rename your scene, go to the "Collection" tab and change the title.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-rename.jpg" alt="screen of Voyager application, rename the scene">
-    <p>
-      In standalone mode, the default name is "Missing Title".
-    </p>
-  </div>
-  <!--slide 2 - Positionner-->
-  <div>
-    <h3 id="Position-and-resize">Position and resize the model</h3>
-    <p>
-      Go to the {% include sv_button.html name="pose" icon="move" %} tab and select your model to adjust its position.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-pose.jpg" alt="screen of Voyager application, position the model">
-    <p>
-      You can then recenter it in the scene and adjust its position and rotation using the<span>Top</span>,
-      <span>Left</span> and <span>Front</span> view windows.
-    </p>
-    <p>
-      Be sure to check the unit of measurement for the scene and object. You can use the {% include sv_button.html
-      name="measure" icon="tape" %} tool in the {% include sv_button.html icon="tools" class="voyager-btn-rounded" %}
-      settings to check the size of the model:
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-mesure.jpg" alt="screen of Voyager application, measure the model">
-  </div>
-  <!--slide 3 - Capturer-->
-  <div>
-    <h3 id="Take-screenshots">Take screenshots and save the state of the scene</h3>
-    <p>
-      Once the model is positioned as desired, go to the {% include sv_button.html name="capture" icon="camera" %} tab to
-      save its position and generate a thumbnail image.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-capture.jpg" alt="screen of Voyager application, capture the scene">
-    <p>
-      It is necessary to capture the scene to save its state (object position, thumbnail, etc.).
-    </p>
-  </div>
-  <!--slide 4 - Annotations-->
-  <div>
-    <h3 id="Create-and-edit-annotations">Create and edit annotations</h3>
-    <p>
-      In the {% include sv_button.html name="annotations" icon="comment" %} tab, select your model then click on the {%
-      include sv_button.html name="create" icon="plus" %} button to create your new annotation.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-annotations.jpg" alt="screen of Voyager application, add an annotation">
-    <p>
-      Then click on the element to annotate on your model.
-    </p>
-    <p>
-      Note that the annotation will be in English by default. Don't forget to change the language in the language
-      settings to the language of your application :
-    </p>
-    <div class="section">
-      <img src="/assets/img/doc/Voyager-edit-annotations-language.jpg"
-        alt="screen in Voyager application, change annotation language">
-    </div>
-  </div>
-  <!--slide 5 - Articles-->
-  <div>
-    <h3 id="Create-and-edit-articles">Create and edit articles</h3>
-    <p>
-      In the {% include sv_button.html name="articles" icon="file" %} tab, select your model and click the {% include sv_button.html name="create" icon="plus" %} button to create your new article.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-article.jpg" alt="screen of Voyager application, add an article">
-    <p>
-      As with annotations, make sure the selected language is that of your application.
-    </p>
-    <p>
-      You can then define a title, excerpt, and use the editor to write your article.
-    </p>
-    <p>
-      You can edit your article at any time by clicking on its name in the list.
-    </p>
-  </div>
-  <!--slide 6 - Visites guidées-->
-  <div>
-    <h3 id="Create-and-edit-guided-tours">Create and edit guided tours</h3>
-    <p>
-      In the {% include sv_button.html name="tours" icon="globe" %} tab, click the {% include sv_button.html icon="plus" %}
-      button to create a new guided tour.
-    </p>
-    <img src="/assets/img/doc/Voyager-edit-visite.jpg" alt="screen of Voyager application, create a guided tour">
-    <p>
-      In the tour editor, you can then create each step of your tour.
-      Make sure the selected language is that of your application.
-    </p>
-    <p>
-      Add a title, then adjust the position of your model, zoom in on key elements, display or hide an article... then
-      click {% include sv_button.html name="update" icon="camera" %} to save it and move on to the next step.
-    </p>
-    <div class="center-button">
-      <a href="tour">
-        <button>Tour editor complete guide</button>
-      </a>
-    </div>
-  </div>
-  <!--slide 7 - Sauvegarder-->
-  <div>
-    <h3 id="Save-your-work">Save your work</h3>
-    <p>
-      You can also save your scene locally by downloading it with the {% include sv_button.html name="Download"
-      icon="download" %} button.
-    </p>
-  </div>
+  <h3 id="Save-your-work">Save your work</h3>
+  <p>
+    You can also save your scene locally by downloading it with the {% include sv_button.html name="Download"
+    icon="download" %} button.
+  </p>
 </div>

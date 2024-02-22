@@ -42,7 +42,7 @@ main {
   }
   
   &, section, .section{
-    >img, >.media, .flush {
+    >img:not(.fluid), >.media:not(.fluid), .flush {
       margin: 0 -3rem;
       width: calc(100% + 6rem);
       overflow-clip-margin:inherit;
@@ -118,7 +118,6 @@ nav{
   justify-content: space-between;
   &#navbar-top{
     padding-left: 2em;
-    overflow: hidden;
     @media screen and (max-width: #{$main_width} ){
       padding-left: 10px;
       a{
@@ -224,6 +223,7 @@ footer a:hover {
   max-width: $sidebar_width;
   background-color: $darkgrey;
   height: fit-content;
+  overflow: hidden;
 
   &.nav-left{
     grid-area: nav-left;
@@ -294,8 +294,7 @@ footer a:hover {
 // .trait-vertical{
 //   border-left: 1px white solid;
 // }
- 
-.nav-doc ul 
+
 
 
 //////////////////////////////
@@ -310,18 +309,34 @@ h1 {
   font-family: $serifFont;
   font-weight: 400;
   font-size: 3rem;
-  box-shadow: inset 0rem -0.6rem 0px #E6B900;
+  border-bottom: 0.6rem solid $yellow;
   text-align: center;
 }
 
 
 h2{
+  font-weight: 700;
+  font-size: 2rem;
+  display: inline-block;
   padding: 1.5rem 0.2rem 0 1.5rem;
-  box-shadow: inset 0rem -0.6rem 0px #E6B900;
+  margin: 20px 0 0.4rem 0;
+  border-bottom: 0.6rem solid $yellow;
 }
+
 h3{
   font-family: $serifFont;
-  box-shadow: inset 0.7rem 0px 0px $yellow;
+  font-size: 1.3rem;
+  border-left: 0.7rem solid $yellow;
+  padding: 0.5rem 0 0 0.8rem;
+  display: flex;
+  justify-content: start;
+}
+
+
+h4{
+  font-size: 1.1rem;
+  margin: 1rem 0 0.5rem 0;
+  text-decoration: underline $yellow 2px;
 }
 
 h5{
@@ -333,32 +348,7 @@ h5{
   }
 }
 
-h2{
-  font-weight: 700;
-  font-size: 2rem;
-  display: inline-block;
-  box-shadow: inset  0rem -0.6rem 0px $yellow;
-  margin: 20px 0 1rem 0;
-  padding: 0 0.2rem 0 1.5rem;
-}
 
-h3{
-  font-family: $serifFont;
-  margin-block-start: 0;
-  margin-block-end: 0;
-  font-size: 1.3rem;
-  padding: 0.5rem 0 0 1.5rem;
-  margin-bottom: 1rem;
-  box-shadow: inset 0.7rem 0px 0px $yellow;
-  display: flex;
-  justify-content: start;
-}
-
-h4{
-  font-size: 1.1rem;
-  margin: 1rem 0 0.5rem 0;
-  text-decoration: underline $yellow 2px;
-}
 
 //////////////////////////////
 /// TEXT
