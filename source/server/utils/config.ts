@@ -14,7 +14,7 @@ const values = {
   templates_dir: [path.join(process.cwd(),"templates"), toPath],
   files_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), toPath],
   dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
-  assets_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"assets"), toPath],
+  assets_dir: [undefined, toPath],
   trust_proxy: [true, toBool],
   hostname: [hostname(), toString],
   hot_reload:[false, toBool],

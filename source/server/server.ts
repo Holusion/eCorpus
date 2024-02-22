@@ -163,6 +163,11 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     });
   });
 
+
+  if(config.assets_dir){
+    app.use("/dist", express.static(config.assets_dir));
+  }
+
   /* istanbul ignore next */
   if(config.hot_reload){
     console.log("Hot reload enabled");
