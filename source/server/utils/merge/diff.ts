@@ -38,6 +38,12 @@ export default function diff<T extends Record<string,any>>(from :T, to :T) :Diff
       continue;
     }
 
+    if(from[key] == null){
+      //We already verified that to[key] is not null
+      r[key] = to[key];
+      continue;
+    }
+
     const d = diff(from[key] as any, to[key] as any);
     if(Object.keys(d).length){
       //console.log("Diffing", key, from[key], to[key]);

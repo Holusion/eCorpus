@@ -83,11 +83,19 @@ describe("merge.diff()", function(){
     it("throws when diffing an array with an object", function(){
       expect(()=>diff({a:[]}, {a:{}})).to.throw("Can't diff an array with an object");
     });
+
+    it("handles null in arrays", function(){
+      expect(diff({a:[0, null, 0]}, {a:[0,0, null]})).to.deep.equal({a:{1:0, 2:null}});
+    });
   });
 
   describe("objects", function(){
     it("deep merge objects", function(){
       expect(diff<any>({v: {a: 1 }}, {v: {a:1, b:2}})).to.deep.equal({v:{b:2}});
     });
+    
+    it("handles object creation", function(){
+      expect(diff({name:"A", articles: null}, {name:"A", articles: {id:"1"}})).to.deep.equal({articles: {id:"1"}});
+    })
   });
 });
