@@ -11,10 +11,7 @@ export function appendSetup(document :Required<IDocument>, {tours: toursMap, sna
   if(tours.length){
     iSetup.tours = tours.map(({steps, ...t})=>{
       const tour = t as ITour;
-      const stepsValues = Object.values(steps);
-      if(stepsValues.length){
-        tour.steps = stepsValues;
-      }
+      tour.steps =  Object.values(steps);
       return tour;
     });
   }
