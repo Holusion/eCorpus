@@ -37,6 +37,10 @@ main {
   padding: 0 3rem 3rem 3rem;
   box-shadow: 5px 0px 10px $middlegrey-shadow, -5px 0px 10px $middlegrey-shadow;
 
+  @media screen and (max-width: #{$main_width} ){
+    padding: 0 1rem 3rem 1rem;
+  }
+
   h1, h2, h3, h4, h5, h6, [role="doc-noteref"] {
     scroll-margin-top: calc($navbar_height + 0.8rem);
   }
@@ -46,6 +50,10 @@ main {
       margin: 0 -3rem;
       width: calc(100% + 6rem);
       overflow-clip-margin:inherit;
+      @media screen and (max-width: #{$main_width} ){
+        margin: 0 -1rem;
+        width: calc(100% + 2rem);
+      }
     }
   }
   
@@ -152,6 +160,9 @@ nav{
     &:hover, &[aria-expanded="true"]{
       color: $yellow;
     }
+    // &:first-of-type{
+    //   font-weight: 600;
+    // }
   }
 }
 
@@ -174,7 +185,7 @@ ul{
 
 
 .retrait{
-  margin-left: 40px;
+  margin-left: 0px;
 }
 .retrait li{
   margin-bottom: 1rem;
@@ -205,6 +216,7 @@ footer a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
 }
 
 .langues-navbar2{
@@ -223,17 +235,19 @@ footer a:hover {
   max-width: $sidebar_width;
   background-color: $darkgrey;
   height: fit-content;
-  overflow: hidden;
+  // overflow: hidden;
 
   &.nav-left{
     grid-area: nav-left;
     position: relative;
+    padding: 0;
+
 
     .navbar-toggle{
       display: none;
       background: $yellow;
       border-radius: 4px;
-      color: white;
+      color: $darkgrey;
       fill: currentColor;
       padding: 4px;
     }
@@ -243,9 +257,11 @@ footer a:hover {
       width: 0;
       margin: .5rem;
       transition: width 0.35s linear;
+      padding: 0.7rem 0 1rem 0;
+
       &.show{
         width: 300px;
-        padding-right: 24px;
+        // padding-right: 24px;
       }
       .navbar-toggle{
         display: block;
@@ -276,17 +292,27 @@ footer a:hover {
 
 
   ul{
-    padding: 1rem 1rem 1rem 0;
+    // padding: 1rem 1rem 1rem 0;
+    padding: 0;
+
+    @media screen and (max-width: #{$main_width} ){
+      // padding: 1rem 0 0.7rem 0;
+    }
 
     li, li a{
-      min-width: 200px;
+      // min-width: 240px;
       width: 100%;
-      padding-right: 0;
+      // max-width: calc(300px - 1.1rem);
       color: white;
-      padding: 0.1rem 0.5rem 0.1rem 1rem;
+      padding: 0.1rem 0rem 0.1rem 1rem;
       margin-top: 0.3rem;
-      @media screen and (max-width: #{$sidebar_width * 2 + $main_width} ){
-        padding-left: 0.5rem;
+      overflow: hidden;
+      @media screen and (max-width: #{$main_width} ){
+        padding: 0.1rem 0rem 0.1rem 1rem;
+        max-width: 100%;
+      }
+      ul > li {
+        // padding-bottom: 2rem;
       }
     }
   }
@@ -295,7 +321,11 @@ footer a:hover {
 //   border-left: 1px white solid;
 // }
 
-
+// #doc-nav-left{
+//   @media screen and (max-width: #{$main_width} ){
+//     padding: 0.7rem 0 1rem 0;
+//   }
+// }
 
 //////////////////////////////
 /// TITLES
@@ -390,7 +420,11 @@ main{
   text-align: end;
   padding-top: 0.5rem;
   margin-right: 3rem;
-  }  
+  } 
+  li{
+    line-height: 1.4rem;
+
+  } 
 }
 
 
@@ -565,9 +599,16 @@ main{
 
 blockquote{
   margin: 0.5rem;
-  padding: 0 5rem;
+  padding: 0 3rem;
   max-width: inherit;
+  @media screen and (max-width: #{$main_width} ){
+    padding: 0 2rem;
+  }
+  @media screen and (max-width: 500px){
+    padding: 0;
+  }
 }
+
 
 blockquote > p {
   font-weight: 600;
@@ -664,11 +705,22 @@ div > ul > li:has(> .voyager-btn:first-child){
 
 .logo-grid{
   display: grid;
-  grid-template-columns: repeat(3, 128px);
+  grid-template-columns: repeat(3, 145px);
   align-content: space-around;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  @media screen and (max-width: #{$main_width} ){
+    grid-template-columns: repeat(3, 90px);
+  }
+
+}
+.logo-grid > img{
+  min-width: 90px;
+  margin: auto;
+  @media screen and (max-width: #{$main_width} ){
+    max-width: 90px;
+  }
 }
 
 
@@ -678,14 +730,17 @@ div > ul > li:has(> .voyager-btn:first-child){
 .list-group {
   display: flex;
   flex-direction: column;
-  padding: 0;
   border-left: 1px white solid;
+  width: 300px;
   &.collapse {
     display: none;
-    border-left: 0px white solid;
+    border-left: none;
     &.show {
       display: flex;
     }
+  }
+  @media screen and (max-width: #{$sidebar_width * 2 + $main_width}){
+    border-left: none;
   }
 
   .list-group-item {
@@ -701,6 +756,11 @@ div > ul > li:has(> .voyager-btn:first-child){
     }
   }
 }
+// .list-group2{
+//   display: flex;
+//   flex-direction: column;
+//   padding: 0;
+// }
 
 //////////////////////////////
 /// POSTS
