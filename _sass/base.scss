@@ -334,7 +334,6 @@ h1, h2, h3, h4, h5, h6 {
   color: $bodyColor;
 }
 
-
 h1 {
   font-family: $serifFont;
   font-weight: 400;
@@ -342,7 +341,6 @@ h1 {
   border-bottom: 0.6rem solid $yellow;
   text-align: center;
 }
-
 
 h2{
   font-weight: 700;
@@ -361,7 +359,6 @@ h3{
   display: flex;
   justify-content: start;
 }
-
 
 h4{
   font-size: 1.1rem;
@@ -423,7 +420,6 @@ main{
   } 
   li{
     line-height: 1.4rem;
-
   } 
 }
 
@@ -609,7 +605,6 @@ blockquote{
   }
 }
 
-
 blockquote > p {
   font-weight: 600;
   background-color: $yellow3;
@@ -656,7 +651,14 @@ li > code {
   font-weight: 500;
   line-height: 1.6rem;
   margin: 0rem 3rem 0.3rem 3rem;
+  @media screen and (max-width: #{$main_width} ){
+    margin: 0rem 0 0.3rem 0;
+  }
 }
+.big-title-doc{
+  padding: 1.5rem 0.2rem 0 0.2rem;
+}
+
 button, .button{
   padding: 0.5rem 1rem;
   background-color: $darkgrey;
@@ -701,7 +703,6 @@ div > ul > li:has(> .voyager-btn:first-child){
   margin: 0.7rem 0;
   list-style: none;
 }
-
 
 .logo-grid{
   display: grid;
