@@ -18,25 +18,12 @@ description: Presentation of the eCorpus 3D scene management system.
             eCorpus: the 3D editing tool for researchers and curators
         </h3>
         <p>
-            ECorpus lets you <b>store, annotate and share your 3D models</b>. It uses <a
-                href="https://smithsonian.github.io/dpo-voyager/" target="_blank"><b>DPO-Voyager</b></a> as a 3D viewer and
-            metadata editor, and features a user rights and modification history manager.
+            ECorpus lets you <b>store, annotate and share your 3D models</b>. It uses <a href="https://smithsonian.github.io/dpo-voyager/" target="_blank"><b>DPO-Voyager</b></a> as a 3D viewer and metadata editor, and features a user rights and modification history manager.
         </p>
         <p>
-            The development of eCorpus was initiated as part of the <a href="about"><b>eThesaurus</b></a> consortium. The
-            project involved the digitization of six works of medieval goldsmith's art, held by the Musée Sandelin in Saint-Omer
-            and the Palais des Beaux-arts in Lille.
+            The development of eCorpus was initiated as part of the <a href="about"><b>eThesaurus</b></a> consortium. The project involved the digitization of six works of medieval goldsmith's art, held by the Musée Sandelin in Saint-Omer and the Palais des Beaux-arts in Lille.
         </p>
     </div>
-    <!-- <div class="section">
-        <img src="/assets/img/packshot.webp" alt="collection initiale d'objets de la campagne de numérisation eThesaurus">
-    </div> -->
-
-    <!-- attention pas de lien -->
-
-    <!-- <div class="align-right">
-        <p><a href="collection">View objects</a></p>
-    </div> -->
 </section>
 
 
@@ -48,17 +35,13 @@ description: Presentation of the eCorpus 3D scene management system.
         alt="Photogrammetry capture of an Acheulean biface by Inrap">
     <div class="section">
         <p>
-            <b>You can digitize your objects yourself</b> or have them digitized by <a
-            href="https://holusion.com/" target="_blank">Holusion</a>, for example.
-        </p>
-        <p>Digital models derived from <b>photogrammetry</b> include information relating to the object's geometry in the form
-            of a mesh, as well as information relating to its visual appearance as described in a PBR (Physical Based Rendering)
-            model, which describes the optical properties of each point on the object: color, reflection, specularity, roughness
-            etc...
+            <b>You can digitize your objects yourself</b> or have them digitized by any third party contractor.
         </p>
         <p>
-            This information can be used <b>to create a digital duplicate of the original object</b>, particularly in the case of <a
-                href="https://holusion.com/fr/posts/2019-02-15-holomouseio" target="_blank">Holomouseio</a>.
+            Digital models derived from <b>photogrammetry</b> include information relating to the object's geometry in the form of a mesh, as well as information relating to its visual appearance as described in a PBR (Physical Based Rendering) model, which describes the optical properties of each point on the object: color, reflection, specularity, roughness, etc.
+        </p>
+        <p>
+            This information can be used <b>to create a digital duplicate of the original object</b>, as done in <a href="https://holusion.com/fr/posts/2019-02-15-holomouseio" target="_blank">Holomouseio</a>.
         </p>
     </div>
 </section>
@@ -79,9 +62,7 @@ description: Presentation of the eCorpus 3D scene management system.
             abstract and article that can include multimedia content (videos, images, links, etc.).
         </p>
         <p>
-            You can then orchestrate this data, alongside your 3D objects, <b>to create animated scenes (called "Towers")</b>, ideal for
-            showcasing your 3D objects in a museum or educational setting. pédagogique. It also facilitates <b>collaborative research</b>
-            thanks to analysis and d'export.
+            You can then orchestrate this data, alongside your 3D objects, <b>to create animated scenes (called "Towers")</b>, ideal for showcasing your 3D objects in a museum or educational setting. It also facilitates <b>collaborative research</b> thanks to collaborative features and export capabilities.
         </p>
         <h4>Viewable via browser</h4>
         <p>
@@ -97,30 +78,21 @@ description: Presentation of the eCorpus 3D scene management system.
         </p>
         <h4>Open source</h4>
         <p>
-            The results of development are distributed in Open Source format, so that users have full ownership of their data and
-            environment. What's more, the dynamism of an Open Source project is crucial to its success and distribution. The
-            presence of its documentation on a platform like <a
-                href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> and regular
-            development activity with a clearly identiﬁed team.
+            eCorpus is distrubuted under the <b>Apache-2.0</b> Open Source license, so that users have full ownership of their data and environment. Development happens on <a
+                href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> with regular development activity and a clearly identiﬁed team.
         </p>
         <h4>Structure</h4>
         <p>
-            Each entry in the database has a data structure organized in <a
-                href="https://smithsonian.github.io/dpo-voyager/document/overview/" target="_blank"><b>a reference JSON
-                    ﬁchier</b></a>, with related ﬁchiers (3D objects, textures, articles, images, videos, etc.).
+            Each entry in the database has a data structure organized in <a href="https://smithsonian.github.io/dpo-voyager/document/overview/" target="_blank"><b>a reference JSON file</b></a>, with related data files (3D objects, textures, articles, images, videos, etc.).
         </p>
         <p>
-            This organization provides <b>a high degree of ﬂexibility</b>: exported data can be used as they are independently of
-            the server on which they are stored.
+            This organization provides <b>a high degree of ﬂexibility</b>: exported data can be used as they are independently of the server on which they are stored and its underlying features.
         </p>
         <p>
-            The scene description ﬁchier enables <b>the management of models with multiple levels of detail (LOD)</b>, as well as
-            the translation of different metadata. as well as the translation of various metadata.
+            The scene description file enables <b>the management of models with multiple levels of detail (LOD)</b>, as well as the translation of different metadata.
         </p>
         <p>
-            Each entry in the database can therefore be made up of an assembly of sub-elements, and each of these can include
-            multi-resolution models, <b>offering optimized geometry loading by the customer</b>, limiting the loading of complex data
-            according to his needs.
+            Each entry in the database is therefore an assembly of sub-elements, and each of these can include  multi-resolution models, <b>offering optimized geometry loading by the customer</b>, limiting data loading to required chunks.
         </p>
     </div>
 </section>
@@ -131,12 +103,10 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
 <section class="section">
     <h3>Alternative models</h3>
     <p>
-        They can be derived from non-photographic recordings, <b>such as non-visible light or fluoroscopy</b>, and therefore
-        offer different visualizations of the model.
+        They can be derived from non-photographic recordings, <b>such as non-visible light or fluoroscopy</b>, and therefore offer different visualizations of the model.
     </p>
     <p>
-        <b>These 3D models can also be used to store data relating to their animation.</b>
-        This step of storing movement information is important for mechanism simulations such as clocks, or complex assembly/disassembly demonstrations.
+        <b>These 3D models can also be used to store data relating to their animation.</b> This step of storing movement information is important for mechanism simulations such as clocks, or complex assembly/disassembly demonstrations.
     </p>
 </section>
 
@@ -151,17 +121,10 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
         </p>
         <ul class="retrait">
             <li>
-                On the one hand, <b>by integrating the Voyager viewer into a web page or application</b>, you can directly request the latest
-                version of the 3D object from the server, according to its distribution rights. This is the easiest way <b>to present
-                    results on institutional sites, by email or via mobile applications</b>. The latest developments in <b>Augmented Reality</b> mean
-                that objects can be displayed directly in this format using the AR Kit on Apple 8 or Android, without the need to
-                install a third-party application.
+                On the one hand, <b>by integrating the Voyager viewer into a web page or application</b>, you can directly request the latest version of the 3D object from the server, according to its distribution rights. This is the easiest way <b>to present results on institutional sites, by email or via mobile applications</b>. The latest developments in <b>Augmented Reality</b> mean that objects can be displayed directly in this format using the AR Kit on Apple 8 or Android, without the need to install a third-party application.
             </li>
             <li>
-                On the other hand, <b>when an Internet connection is not possible</b> (off-site installations, for example), eCorpus lets you
-                <b>create applications running on a local database</b>, exported in advance from the online platform. This allows you to work
-                asynchronously and add data without an Internet connection. Data must then be resynchronized by export.
-
+                On the other hand, <b>when an Internet connection is not possible</b> (off-site installations, for example), eCorpus lets you <b>create applications running on a local database</b>, exported in advance from the online platform. This allows you to work asynchronously and add data without an Internet connection.
             </li>
         </ul>
     </div>
@@ -175,18 +138,14 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
 
 <section class="section">
     <p>
-        Among the various export formats for mediation, eCorpus supports visualization on touch-screen tables, mobile tablets,
-        holograms and virtual and augmented reality devices.
-        The <a href="./about">eThesaurus</a> demonstrator, manufactured by Holusion, visualizes an export of an eCorpus database. The display is split
+        Among the various export formats for mediation, eCorpus supports visualization on touch-screen tables, mobile tablets, holograms and virtual and augmented reality devices. The <a href="./about">eThesaurus</a> demonstrator, manufactured by Holusion, visualizes an export of an eCorpus database. The display is split
         over two screens:
     <ul class="retrait">
         <li>
             <b>The transparent screen is dedicated to viewing 3D objects</b>, animations and concise annotations.
         </li>
         <li>
-            <b>Navigation is provided by a secondary screen in front of the device.</b> Touch control was chosen for its prevalence with
-            audiences accustomed to handling smartphones and tablets on a daily basis. On this screen, users can also consult
-            textual information and complementary photo and video media included in the articles.
+            <b>Navigation is provided by a secondary screen in front of the device.</b> Touch control was chosen for its prevalence with audiences accustomed to handling smartphones and tablets on a daily basis. On this screen, users can also consult textual information and complementary photo and video media included in the articles.
         </li>
     </ul>
     </p>
