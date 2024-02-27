@@ -146,7 +146,6 @@ interface Upload{
                     ...(this.list ??[]),
                 ],(i)=>(i as any).key ?? i.name , (scene)=>this.renderScene(mode, scene))
             }
-            ${this.list? null: html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`}
         `;
 
 
@@ -183,12 +182,23 @@ interface Upload{
                     <span>${this.t("ui.sortBy")}</span>
                     <span class="form-item"><select style="width:auto" @change=${this.onSelectOrder}>
                         ${sorts.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
-                    </select></span>                        
+                    </select></span>
                 </div>
 
                 <div class="section" style="width:100%">
+                    ${this.error? html`<div class="error">
+                        <h2 class="text-error">Error</h2>
+                        <span class="text-center">${this.error}</span>
+                        <div style="display:flex;justify-content:center">
+                            <button class="btn btn-main" @click=${()=>this.fetchScenes()}>Retry</button>
+                        </div>
+                    </div>`:null}
                     ${listContent}
-                    ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}                
+                    ${this.loading?html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`:null}
+                    ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
+                    ${this.loading?null: html`<div style="display:flex;justify-content:center;padding-top:1rem;">
+                        <button class="btn btn-main" @click=${()=>this.fetchScenes(true)}>Load more</button>
+                    </div>`}
                 </div>
 
             </div>`;

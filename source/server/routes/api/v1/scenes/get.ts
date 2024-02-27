@@ -63,7 +63,7 @@ export default async function getScenes(req :Request, res :Response){
       offset: offset? parseInt(offset as string): undefined,
     });
   }
-  await (await import("node:timers/promises")).setTimeout(1000);
+  
   //canonicalize scenes' thumb names
   scenes = scenes.map(s=>({...s, thumb: (s.thumb? new URL(encodeURI(path.join("/scenes/", s.name, s.thumb)), getHost(req)).toString() : undefined)}))
 
