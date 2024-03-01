@@ -51,10 +51,6 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
 
         if(this.cardStyle == "list") this.classList.add("card-list");
         if(this.cardStyle == "grid") this.classList.add("card-grid");
-        
-        if(!this.thumb ){
-          console.warn("Failed to PROPFIND %s :", this.path);
-        }
     }
 
     public disconnectedCallback(): void {

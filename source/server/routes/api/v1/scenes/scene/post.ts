@@ -2,6 +2,7 @@
 import { getUserId, getVfs } from "../../../../../utils/locals.js";
 import { Request, Response } from "express";
 import { parse_glb } from "../../../../../utils/glTF.js";
+import uid from "../../../../../utils/uid.js";
 
 
 /**
@@ -18,6 +19,7 @@ async function getDocument(scene:string, filepath:string){
   let meta = await parse_glb(filepath);
   let mesh = meta.meshes[0]; //Take the first mesh for its name
   document.nodes.push({
+    "id": uid(),
     "name": mesh?.name ?? scene,
     "model": 0,
     "meta": 0

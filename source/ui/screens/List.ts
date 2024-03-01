@@ -196,7 +196,7 @@ interface Upload{
                     ${listContent}
                     ${this.loading?html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`:null}
                     ${this.dragover ?html`<div class="drag-overlay">Drop item here</div>`:""}
-                    ${this.loading?null: html`<div style="display:flex;justify-content:center;padding-top:1rem;">
+                    ${(this.loading || this.error)?null: html`<div style="display:flex;justify-content:center;padding-top:1rem;">
                         <button class="btn btn-main" @click=${()=>this.fetchScenes(true)}>Load more</button>
                     </div>`}
                 </div>
