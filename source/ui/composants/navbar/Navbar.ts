@@ -11,10 +11,10 @@ import logo from "../../assets/images/logo-full.svg";
  @customElement("corpus-navbar")
  export default class Navbar extends LitElement
  {
- 
   constructor()
   {
     super();
+    this.part.add("navbar");
   }
 
   protected render() :TemplateResult {
