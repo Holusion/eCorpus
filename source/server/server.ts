@@ -111,10 +111,22 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   app.get("/ui/scenes/:scene/view", (req, res)=>{
     let {scene} = req.params;
-    let {lang} = req.query;
+    let {lang, tour} = req.query;
     let host = getHost(req);
     let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
     let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
+    
+    let script = undefined;
+    if(tour && !Number.isNaN(parseInt(tour as any))){
+      script = `
+        const v = document.querySelector("voyager-explorer");
+        v?.on("model-load",()=>{
+          v?.toggleTours();
+          v?.setTourStep(${parseInt(tour as any)}, 0, true);
+        })
+      `;
+    }
+
 
     res.render("explorer", {
       title: `${scene}: Explorer`,
@@ -122,8 +134,10 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       thumb: thumb.toString(),
       referrer: referrer.toString(),
       lang: ((typeof lang === "string")?lang.toUpperCase():"FR"),
+      script
     });
   });
+
 
   app.get("/ui/scenes/:scene/edit", canWrite, (req, res)=>{
     let {scene} = req.params;
