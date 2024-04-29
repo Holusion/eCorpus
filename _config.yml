@@ -29,8 +29,21 @@ defaults:
       lang: "en"
 
   - scope:
-      path: "*/doc"
+      path: "fr/doc"
     values:
       layout: "doc"
       type: doc
   
+  - scope:
+      path: "en/doc"
+    values:
+      layout: "doc"
+      type: doc
+  - scope:
+      path: "fr/collection"
+    values:
+      layout: "item"
+  - scope:
+      path: "en/collection"
+    values:
+      layout: "item"

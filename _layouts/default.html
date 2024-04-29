@@ -67,13 +67,18 @@
       </div>
 
       <nav id="navbar-top" class="navbar navbar-sticky" role="navigation">
-        <ul role="menu" class="nav-group">
-          {%- for item in site.data.nav -%}
-          <li class="nav-item">
-            <a href="/{{ lang }}/{{ item[0] }}">{{ item[1][page.lang] }}</a>
-          </li>
-          {%- endfor -%}
-        </ul>
+
+        <div  class="navbar-nav">
+          <button type="button" class="navbar-toggle menu-btn hidden-large" data-target="#top-nav-content"></button>
+          <ul role="menu" id="top-nav-content" class="nav-group">
+            {%- for item in site.data.nav -%}
+            <li class="nav-item">
+              <a href="/{{ lang }}/{{ item[0] }}">{{ item[1][page.lang] }}</a>
+            </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+
         <ul role="menu" class="nav-group langues-navbar2">
           {% include language_picker.html type="nav-item dropdown" classes="nav-link" %}
         </ul>

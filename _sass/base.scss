@@ -18,8 +18,9 @@ body {
   margin:0px;
   padding: 0px;
   display: grid;
-  grid-template-rows: $header_height $navbar_height auto $footer_height;
+  grid-template-rows: $header_height auto auto $footer_height;
   grid-template-columns: 1fr minmax(auto, 300px) min($main_width, 100vw - 20px) minmax(auto, 300px) 1fr;
+
   grid-template-areas:
     'header header header header header'
     'navbar navbar navbar navbar navbar'
@@ -73,12 +74,7 @@ img.fluid{
 /// NAVIGATION
 //////////////////////////////
 
-nav{
-  grid-area: navbar;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
+
 
 .navbar-header{
   grid-area: header;
@@ -114,25 +110,28 @@ nav{
 }
 
 
-
-.navbar{
-  background-color: $middlegrey;
-  box-sizing: border-box;
-  height: $navbar_height;
+nav.navbar{
+  grid-area: navbar;
+  width: 100%;
+  margin: 0;
   padding: 1px 0;
+  box-sizing: border-box;
+
+  background-color: $middlegrey;
+
   display: flex;
   flex-direction: row;
   align-items: stretch;
   justify-content: space-between;
+
   &#navbar-top{
     padding-left: 2em;
-    @media screen and (max-width: #{$main_width} ){
-      padding-left: 10px;
-      a{
-        padding-right: 1em;
-      }
+    box-shadow: 0 2px 2px 0px $middlegrey;
+    @media screen and  (max-width: calc($main_width - 1px) ){
+      padding-left:5px;
     }
   }
+
   &.navbar-sticky{
     position: sticky;
     top: 0px;
@@ -147,6 +146,18 @@ nav{
       margin : 0;
       list-style : none;
       display : inline-block;
+      
+    }
+    
+    @media screen and  (max-width: calc($main_width - 1px) ){
+      > .nav-item, >li{
+        display: none;
+      }
+      &.show{
+        > .nav-item, > li{
+          display: list-item;
+        }
+      }
     }
   }
 
@@ -164,6 +175,26 @@ nav{
     //   font-weight: 600;
     // }
   }
+
+  .menu-btn{
+    height: calc($navbar_height - 2px);
+    box-sizing: border-box;
+    background-color: transparent;
+    &::after{
+      content: "☰";
+    }
+    &[aria-expanded="true"]::after{
+      content: "✖";
+    }
+    &:hover{
+      color: $yellow;
+    }
+  }
+}
+
+.navbar-nav{
+  display: flex;
+  flex-direction: row;
 }
 
 ul{

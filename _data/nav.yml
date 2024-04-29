@@ -5,8 +5,11 @@ index:
 #   fr: Galerie
 #   en: Gallery
 doc/:
-  fr: <span class="hidden-small">Documentation</span><span class="hidden-large">Docs</span>
-  en: <span class="hidden-small">Documentation</span><span class="hidden-large">Docs</span>
+  fr: Documentation
+  en: Documentation
+collections:
+  fr: Collections
+  en: Collections
 posts:
   fr: Articles
   en: Posts
