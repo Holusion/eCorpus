@@ -41,9 +41,11 @@ const dirs = {
     modules: path.resolve( project, "source/ui/node_modules"),
     assets: path.resolve( project, "source/ui/assets"),
 };
-
+const wd = process.cwd();
+//voyager's webpack.config.js calls git which requires being inside the project tree
+process.chdir(path.join(project, "source/voyager/"));
 const createVoyagerConfig = require(path.join(project, "source/voyager/source/client/webpack.config.js"));
-
+process.chdir(wd);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -98,7 +100,7 @@ module.exports = function createAppConfig(env, argv={})
                         priority: 0,
                     },
                     { 
-                        from: "{js,js/draco,css,language,images}/*.{js,json,wasm,css,jpg,png,svg}",
+                        from: "{js,js/draco,js/basis,css,language,images}/*.{js,json,wasm,css,jpg,png,svg}",
                         context: path.join(project, "source/voyager/assets/"),
                         force: false,
                         priority: 1,
