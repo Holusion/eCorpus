@@ -34,9 +34,12 @@ export default async function postScenes(req :Request, res :Response){
       await handle.close();
     }
 
-
+    /** @fixme make atomic */
     for (let record of await unzip(tmpfile)){
-      let {groups:{scene, name}={} as any} = /^scenes\/(?<scene>[^/]+)(?:\/(?<name>.+))?\/?$/.exec(record.filename) ?? {};
+      let m  = /^(?<contained>scenes\/)?(?<scene>[^/]+)(?:\/(?<name>.+))?\/?$/.exec(record.filename);
+      const scene :string|undefined = m?.groups?.scene;
+      const name :string|undefined = m?.groups?.name;
+
       if(!scene){
         results.fail.push(`${record.filename}: not matching pattern`);
         continue;
@@ -45,15 +48,22 @@ export default async function postScenes(req :Request, res :Response){
       if(!name){
         //Create the scene
         try{
-          let s = await vfs.createScene(scene, requester.uid);
+          await vfs.createScene(scene, requester.uid);
         }catch(e){
           if((e as HTTPError).code != 409) throw e;
-          //Scene already exist, it's OK.
+          //409 == Scene already exist, it's OK.
         }
         results.ok.push(scene);
-      }else if(record.isDirectory){
-        /** @fixme handle folders creation */
         continue;
+      }
+
+      if(record.isDirectory){
+        try{
+          await vfs.createFolder({scene, name: name.endsWith("/")? name.slice(0, -1): name, user_id: requester.uid});
+        }catch(e){
+          if((e as HTTPError).code != 409) throw e;
+          //409 == Folder already exist, it's OK.
+        }
       }else if(name.endsWith(".svx.json")){
         let data = Buffer.alloc(record.end-record.start);
         let handle = await fs.open(tmpfile, "r");
@@ -63,13 +73,13 @@ export default async function postScenes(req :Request, res :Response){
           await handle.close();
         }
         await vfs.writeDoc(data.toString("utf8"), scene, requester.uid);
-        results.ok.push(`${scene}/${name}`);
       }else{
         //Add the file
         let rs = createReadStream(tmpfile, {start: record.start, end: record.end});
         let f = await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime: getMimeType(name)});
-        results.ok.push(`${scene}/${name}`);
       }
+      
+      results.ok.push(`${scene}/${name}`);
     }
   }finally{
     await fs.rm(tmpfile, {force: true});
