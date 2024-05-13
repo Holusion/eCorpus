@@ -150,3 +150,11 @@ dist/
 ├─ favicon.png
 ```
 
+#### Modifying the logos 
+
+There is 2 logos, used depending on the size of the screen : 
+
+Small: This logo image should be square and look legible at 40px by 40px.
+
+Full: This logo image should follow a 2:9 aspect ration (height:width) and look legible at 40px by 180px. If your logo is not long enough to fill that space, add padding to the left-hand side of the image.
+

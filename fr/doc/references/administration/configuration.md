@@ -152,3 +152,11 @@ dist/
 ├─ favicon.png
 ```
 
+
+#### Modifier les logos 
+
+Il y a deux images de logo, utilisées de façon interchangeable selon l'espace disponible.
+
+**Small**: Image carrée, qui doit être lisible  en 40x40px.
+
+**Full**: Logo d'aspect ratio 2:9 qui doit être lisible en 40x180px. Si le logo utilisé est trop court, rajouter du pâdding transparent à gauche de l'image.
