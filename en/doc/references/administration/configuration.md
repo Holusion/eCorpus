@@ -9,10 +9,11 @@ All configuration options are provided by environment variables.
 Leaving the default value is generally a good choice.
 
 For boolean variables, use `1` or `true` / `0` or `false`.
+### Environment variables
 
-### Basic variables
+#### Basic variables
 
-#### NODE_ENV
+##### NODE_ENV
 
  > `development`
 
@@ -24,9 +25,9 @@ Changes the behavior of some modules. See also [express](https://expressjs.com/e
 
 Should generally be forced to `production` in deployments.
 
-### HOSTNAME
+#### HOSTNAME
 
-#### PUBLIC
+##### PUBLIC
 
  > `true`
 
@@ -34,19 +35,19 @@ Default access of newly created scenes.
 
 Does not modify existing scenes. It is still possible to create a publicly accessible scene by changing its permissions even if `PUBLIC=0`.
 
-#### BRAND
+##### BRAND
 
  > `eCorpus`
 
 Name of the instance. Replaces **eCorpus** in the interface.
 
-#### PORT
+##### PORT
 
  > `3000`
 
 Port used by the service. Change in case of conflict.
 
-#### SMART_HOST
+##### SMART_HOST
 
  > `smtp://localhost`
 
@@ -63,16 +64,16 @@ smtp://localhost:465?tls.rejectUnauthorized=false
 See the full [list](https://nodemailer.com/smtp/){:target="_blank"}.
 
 
-#### TRUST_PROXY
+##### TRUST_PROXY
 
  > `true`
 
 Changes express's trust-proxy option. See [express](http://expressjs.com/en/5x/api.html#trust.proxy.options.table){:target="_blank"}.
 
 
-### administration variables
+#### administration variables
 
-#### FORCE_MIGRATION
+##### FORCE_MIGRATION
 
  > `false`
 
@@ -80,56 +81,72 @@ Force reapply of the last *sqlite* migration (see [doc](https://www.npmjs.com/pa
 
 Sometimes useful to repair migration errors, but generates a risk of data loss.
 
-#### CLEAN_DATABASE
+##### CLEAN_DATABASE
 
  > `true`
 
 Set to `false` to disable periodic database cleanup.
 
-#### ROOT_DIR
+##### ROOT_DIR
 
 > `.`
 
 Main directory. Serves as a base for [FILES_DIR](#files_dir) [DIST_DIR](#dist_dir) and [ASSETS_DIR](#assets_dir).
 
-#### MIGRATIONS_DIR
+##### MIGRATIONS_DIR
 
  > `./migrations`
 
-#### TEMPLATES_DIR
+##### TEMPLATES_DIR
 
   > `./templates`
 
-#### FILES_DIR
+##### FILES_DIR
 
  > `$ROOT_DIR/files`
 
 Data storage directory of the instance: Database, objects and temporary storage.
 
-#### DIST_DIR
+##### DIST_DIR
 
  > `$ROOT_DIR/dist`
 
 build artifacts of the user interface.
 
-#### ASSETS_DIR
+##### ASSETS_DIR
 
  > `$ROOT_DIR/assets`
 
 Static assets
 
-### Variables de développement
+#### development variables
 
-#### HOT_RELOAD
+##### HOT_RELOAD
 
  > `$NODE_ENV == "development"`
 
 Activates webpack's [HMR](https://webpack.js.org/concepts/hot-module-replacement/){:target="_blank"}.
 
-#### VERBOSE
+##### VERBOSE
 
  > `false`
 
 Verbose mode
 
+
+### Editable files
+
+Using the [ASSETS_DIR](#assets_dir) variable, it is possible to modify the files normally included in the `/dist` folder. In particular:
+
+```
+dist/
+├─ css/
+│  ├─ theme.css
+├─ images/
+│  ├─ logo-full.svg
+│  ├─ logo-sm.svg
+│  ├─ spinner.svg
+├─ favicon.svg
+├─ favicon.png
+```
 
