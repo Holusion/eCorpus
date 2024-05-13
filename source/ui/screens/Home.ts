@@ -65,33 +65,36 @@ interface Upload{
         this.fetchScenes();
     }
 
-    upload(file :File){
-        console.log("Upload File : ", file);
-        let sceneName = file.name.split(".").slice(0,-1).join(".");
+    upload(file :File, as_scenes = false){
+        let name = file.name.split(".").slice(0,-1).join(".");
+        if(name in this.uploads){
+            Notification.show(`Can't create ${name}: already uploading`, "error", 4000);
+            return;
+        }
 
         const setError = ({code, message})=>{
-            Notification.show(`Can't  create ${sceneName}: ${message}`, "error", 4000);
-            delete this.uploads[sceneName];
+            Notification.show(`Can't  create ${name}: ${message}`, "error", 8000);
+            delete this.uploads[name];
             this.uploads = {...this.uploads};
         }
         const setProgress = (n)=>{
-            this.uploads = {...this.uploads, [sceneName]: {...this.uploads[sceneName], progress: n}};
+            this.uploads = {...this.uploads, [name]: {...this.uploads[name], progress: n}};
         }
         const setDone = ()=>{
             this.fetchScenes().then(()=>{
-                delete this.uploads[sceneName];
+                delete this.uploads[name];
                 this.uploads = {...this.uploads};                
             });
         }
 
-        this.uploads = {...this.uploads, [sceneName]: {progress:0, done: false}};
+        this.uploads = {...this.uploads, [name]: {progress:0, done: false}};
         (async ()=>{
             let xhr = new XMLHttpRequest();
             xhr.onload = function onUploadDone(){
-                if(xhr.status != 201 /*created*/){
+                if(299 < xhr.status){
                     setError({code: xhr.status, message: xhr.statusText});
                 }else{
-                    Notification.show(sceneName+" uploaded", "info");
+                    Notification.show(name+" uploaded", "info");
                     setTimeout(setDone, 0);
                 }
             }
@@ -108,7 +111,7 @@ interface Upload{
                 setError({code: xhr.status, message: xhr.statusText});
             }
 
-            xhr.open('POST', `/api/v1/scenes/${sceneName}`);
+            xhr.open('POST', as_scenes? `/api/v1/scenes`:`/api/v1/scenes/${name}`);
             xhr.send(file);
         })();
     }
@@ -163,27 +166,24 @@ interface Upload{
         return html`
         <h2>${this.t("info.homeHeader")}</h2>
         <div class="list-tasks" style="margin-bottom:1rem">
-            <upload-button class="btn btn-main" .disabled=${uploads.length != 0} @change=${this.onUploadBtnChange}>
+            <upload-button class="btn btn-main" @change=${this.onUploadBtnChange}>
                 ${this.t("ui.upload")}<spin-loader style="padding-left: 5px" .visible=${uploads.length != 0} inline></spin-loader>
             </upload-button>
             <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
         </div>
-
-        ${(this.list.length == 0 && Object.keys(this.uploads).length == 0)?null: html`
-            ${(myScenes.length > 0) ? 
+        <div class="section">
+            <h3>${this.t("ui.myScenes")}</h3>
+            ${uploads.length !== 0? html`<spin-loader visible></spin-loader>`: (myScenes.length > 0) ? 
                 html`
-                <div class="section">
-                    <h3>${this.t("ui.myScenes")}</h3>
                     <div class="list-grid" style="position:relative; margin-top:20px">
                         ${myScenes.map((scene)=>this.renderScene(mode, scene))}
                     </div>
-                </div>
             `: null}
-        ${(uploads.length === 0 && recentScenes.some(s=>myScenes.indexOf(s) == -1))? html`<div class="section">
+        </div>            
+        ${(recentScenes.some(s=>myScenes.indexOf(s) == -1))? html`<div class="section">
                 <h3>${this.t("ui.ctimeSection")}</h3>
                 <div class="list-grid" style="position:relative;">
                 ${repeat([
-                    ...uploads,
                     ...recentScenes,
                 ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
                 </div>
@@ -202,17 +202,20 @@ interface Upload{
                 ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
             </div>
         </div>
-        `}
     `}
     
-    onUploadBtnChange = (ev)=>{
+    onUploadBtnChange = (ev:CustomEvent<{files: FileList}>)=>{
         ev.preventDefault();
         for(let file of [...ev.detail.files]){
-            if( !/\.glb$/i.test(file.name)){
+            let ext = file.name.split(".").pop().toLowerCase();
+            if(ext == "zip"){
+                this.upload(file, true);
+            }else if(ext == "glb"){
+                this.upload(file, false);
+            }else{
                 Notification.show(`${file.name} is not valid. This method only accepts .glb files` , "error", 4000);
                 continue;
             };
-            this.upload(file)
         }
     }
 

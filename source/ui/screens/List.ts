@@ -60,34 +60,38 @@ interface Upload{
         this.fetchScenes();
     }
 
-    upload(file :File){
+    upload(file :File, as_scenes = false){
         console.log("Upload File : ", file);
-        let sceneName = file.name.split(".").slice(0,-1).join(".");
+        let name = file.name.split(".").slice(0,-1).join(".");
+        if(name in this.uploads){
+            Notification.show(`Can't create ${name}: already uploading`, "error", 4000);
+            return;
+        }
     
         const setError = ({code, message})=>{
-            Notification.show(`Can't  create ${sceneName}: ${message}`, "error", 4000);
-            delete this.uploads[sceneName];
+            Notification.show(`Can't  create ${name}: ${message}`, "error", 8000);
+            delete this.uploads[name];
             this.uploads = {...this.uploads};
         }
         const setProgress = (n)=>{
-            this.uploads = {...this.uploads, [sceneName]: {...this.uploads[sceneName], progress: n}};
+            this.uploads = {...this.uploads, [name]: {...this.uploads[name], progress: n}};
         }
         const setDone = ()=>{
             this.fetchScenes().then(()=>{
-                delete this.uploads[sceneName];
+                delete this.uploads[name];
                 this.uploads = {...this.uploads};                
             });
         }
 
-        this.uploads = {...this.uploads, [sceneName]: {progress:0, done: false}};
+        this.uploads = {...this.uploads, [name]: {progress:0, done: false}};
         this.orderBy = "mtime";
         (async ()=>{
             let xhr = new XMLHttpRequest();
             xhr.onload = function onUploadDone(){
-                if(xhr.status != 201 /*created*/){
+                if(299 < xhr.status){
                     setError({code: xhr.status, message: xhr.statusText});
                 }else{
-                    Notification.show(sceneName+" uploaded", "info");
+                    Notification.show(name+" uploaded", "info");
                     setTimeout(setDone, 0);
                 }
             }
@@ -104,7 +108,7 @@ interface Upload{
                 setError({code: xhr.status, message: xhr.statusText});
             }
     
-            xhr.open('POST', `/api/v1/scenes/${sceneName}`);
+            xhr.open('POST', as_scenes? `/api/v1/scenes`:`/api/v1/scenes/${name}`);
             xhr.send(file);
         })();
     }
@@ -230,14 +234,18 @@ interface Upload{
         }
     }
 
-    onUploadBtnChange = (ev)=>{
+    onUploadBtnChange = (ev:CustomEvent<{files: FileList}>)=>{
         ev.preventDefault();
         for(let file of [...ev.detail.files]){
-            if( !/\.glb$/i.test(file.name)){
+            let ext = file.name.split(".").pop().toLowerCase();
+            if(ext == "zip"){
+                this.upload(file, true);
+            }else if(ext == "glb"){
+                this.upload(file, false);
+            }else{
                 Notification.show(`${file.name} is not valid. This method only accepts .glb files` , "error", 4000);
                 continue;
             };
-            this.upload(file)
         }
     }
 
