@@ -107,6 +107,12 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     next();
   });
   
+  //Allow CORS for assets that might get embedded
+  app.use(["/dist", "/scenes"], (req, res, next)=>{
+    res.set("Access-Control-Allow-Origin", "*");
+    next();
+  });
+
   app.use("/ui/scenes/:scene/", canRead);
 
   app.get("/ui/scenes/:scene/view", (req, res)=>{
