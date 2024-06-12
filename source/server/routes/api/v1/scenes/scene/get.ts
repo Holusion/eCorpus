@@ -5,6 +5,7 @@ import { getUserId, getVfs } from "../../../../../utils/locals.js";
 import { wrapFormat } from "../../../../../utils/wrapAsync.js";
 import { ZipEntry, zip } from "../../../../../utils/zip/index.js";
 import { HTTPError } from "../../../../../utils/errors.js";
+import { once } from "events";
 
 
 
@@ -56,11 +57,8 @@ export default async function getScene(req :Request, res :Response){
 
       res.status(200);
       for await (let data of zip(getFiles())){
-        await new Promise<void>(resolve=>{
-          let again = res.write(data);
-          if(again) resolve();
-          else res.once("drain", resolve);
-        });
+        let again = res.write(data);
+        if(!again) once(res, "drain");
       }
       res.end();
     }

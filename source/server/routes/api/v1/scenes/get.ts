@@ -7,6 +7,7 @@ import { HTTPError } from "../../../../utils/errors.js";
 import { getHost, getUser, getVfs } from "../../../../utils/locals.js";
 import { wrapFormat } from "../../../../utils/wrapAsync.js";
 import { ZipEntry, zip } from "../../../../utils/zip/index.js";
+import { once } from "events";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
@@ -130,11 +131,8 @@ export default async function getScenes(req :Request, res :Response){
       // It would also allow for strong ETag generation, which would be desirable
       res.status(200);
       for await (let data of zip(getFiles())){
-        await new Promise<void>(resolve=>{
-          let again = res.write(data);
-          if(again) resolve();
-          else res.once("drain", resolve);
-        });
+        let again = res.write(data);
+        if(!again) await once(res, "drain");
       }
       res.end();
     }
