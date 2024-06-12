@@ -22,7 +22,8 @@ const router = Router();
  * Settings can be changed individually further down the line
  */
 router.use((req, res, next)=>{
-  res.set("Cache-Control", "max-age=0, must-revalidate");
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Cache-Control", "no-cache, private");
   next();
 });
 

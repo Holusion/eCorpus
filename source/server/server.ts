@@ -95,20 +95,15 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   /**
    * Set permissive cache-control for ui pages
    */
-  app.use(["/ui", "/js", "/css", "/doc", "/language"], (req, res, next)=>{
+  app.use("/ui", (req :express.Request, res:express.Response, next)=>{
     res.set("Cache-Control", `max-age=${30*60}, public`);
     next();
   });
-  /**
-   * Set even more permissive cache-control for static assets
-   */
-  app.use(["/images", "/fonts", "/favicon.png"], (req, res, next)=>{
-    res.set("Cache-Control", `max-age=${60*60*24*30*12}, public`);
-    next();
-  });
-  
+
+  //Ideally we would like a really long cache time for /dist but it requires unique filenames for each build
   //Allow CORS for assets that might get embedded
-  app.use(["/dist", "/scenes"], (req, res, next)=>{
+  app.use("/dist", (req, res, next)=>{
+    res.set("Cache-Control", `max-age=${30*60}, public`);
     res.set("Access-Control-Allow-Origin", "*");
     next();
   });

@@ -36,7 +36,7 @@ const router = Router();
  */
 router.use((req, res, next)=>{
   //Browser should always make the request
-  res.set("Cache-Control", "max-age=0, must-revalidate");
+  res.set("Cache-Control", "no-cache");
   next();
 });
 
