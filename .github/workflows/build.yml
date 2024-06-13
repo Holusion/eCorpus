@@ -8,13 +8,16 @@ jobs:
   build-ui:
     name: UI
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 22]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - name: install voyager dependencies
         run: (cd source/voyager && npm ci --legacy-peer-deps)
@@ -27,12 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [16, 18, 20, 22]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -40,7 +43,11 @@ jobs:
         run: npm ci && (cd source/server && npm ci)
       - name: test
         run: (cd source/server && npm test)
-      - name: build
+      - name: build server
         run:  npm run build-server
-
-          
+      - name: check if watch mode works
+        timeout-minutes: 1
+        # this will crash if some some reason watch mode is terrybly broken
+        #It won't wait for client code to compile though.
+        run:
+          npm run watch --  --exitcrash -- --version
