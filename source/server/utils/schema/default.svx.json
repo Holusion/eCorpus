@@ -3,7 +3,7 @@
         "type": "application/si-dpo-3d.document+json",
         "version": "1.0",
         "copyright": "(c) Holusion SAS, all rights reserved",
-        "generator": "Voyager"
+        "generator": "eCorpus"
     },
     "scene": 0,
     "scenes": [{

@@ -24,7 +24,7 @@ import "../composants/UserLogin"
                     <img src="${sketch}" alt="dessin représentant l'application voyager et son utilisation dans une borne holographique">
                     <p>${this.t("info.lead")}.</p>
                     <p style="text-align:right">
-                        <a href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                        <a href="/ui/standalone/}">${this.t("info.useStandalone")}</a>
                     </p>
                 </div>
                 

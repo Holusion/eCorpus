@@ -200,10 +200,10 @@ class SceneVersion{
               <h3>Total size: <b-size b=${size}></b-size></h3>
               <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               <div style="max-width: 300px">
-                ${this.can("write")?html`<a class="btn btn-main" href=${`/ui/scenes/${scene}/edit?lang=${this.language.toUpperCase()}`}>
+                ${this.can("write")?html`<a class="btn btn-main" href=${`/ui/scenes/${scene}/edit`}>
                   <ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}
                 </a>`:null}
-                <a class="btn btn-main" style="margin-top:10px" href=${`/ui/scenes/${scene}/view?lang=${this.language.toUpperCase()}`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
+                <a class="btn btn-main" style="margin-top:10px" href=${`/ui/scenes/${scene}/view`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
                 <a class="btn btn-main" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>

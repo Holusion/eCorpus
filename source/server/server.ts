@@ -134,7 +134,6 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       scene,
       thumb: thumb.toString(),
       referrer: referrer.toString(),
-      lang: ((typeof lang === "string")?lang.toUpperCase():"FR"),
       script
     });
   });
@@ -153,7 +152,6 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       thumb: thumb.toString(),
       referrer: referrer.toString(),
       mode: "Edit",
-      lang: ((typeof lang === "string")?lang.toUpperCase():"FR"),
     });
   });
   
@@ -167,7 +165,6 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       mode: "Standalone",
       thumb: "/images/sketch_ethesaurus.png",
       referrer: referrer.toString(),
-      lang: ((typeof lang === "string")?lang.toUpperCase():"FR"),
     });
   });
 
