@@ -102,6 +102,22 @@ describe("Vfs", function(){
           Uid.make = old;
         }
       });
+
+      it("sets scene author", async function(){
+        const userManager = new UserManager(vfs._db);
+        const user = await userManager.addUser("alice", "xxxxxxxx", false);
+        let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
+        let s = await vfs.getScene(id, user.uid);
+        expect(s).to.have.property("access").to.have.property("user", "admin");
+      });
+
+      it("sets custom scene permissions", async function(){
+        const userManager = new UserManager(vfs._db);
+        const user = await userManager.addUser("alice", "xxxxxxxx", false);
+        let id = await expect(vfs.createScene("foo", {"0": "none",[user.uid.toString()]:"write"})).to.be.fulfilled;
+        let s = await vfs.getScene(id, user.uid);
+        expect(s.access).to.deep.equal({"default": "none", "any": "read", "user": "write"});
+      })
     });
 
     describe("getScenes()", function(){

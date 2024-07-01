@@ -214,6 +214,10 @@ export default abstract class ScenesVfs extends BaseVfs{
     }));
   }
 
+  /**
+   * Gets the scene, with access property truncated to show only user-visible data.
+   * Use userManager.getPermissions to get the full access map
+   */
   async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let r = await this.db.get(`

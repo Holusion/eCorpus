@@ -29,6 +29,18 @@ describe("MKCOL /scenes/.*", function(){
     scene_id = await vfs.createScene(titleSlug, user.uid);
   });
 
+  it("can create a scene", async function(){
+    const r = await request(this.server).mkcol(`/scenes/2${titleSlug}`)
+    .auth(user.username, "12345678")
+    .expect(201);
+  });
+
+  it("won't overwrite existing scene", async function(){
+    await request(this.server).mkcol(`/scenes/${titleSlug}`)
+    .auth(admin.username, "12345678")
+    .expect(409);
+  });
+
   it("can create a folder", async function(){
     await request(this.server).mkcol(`/scenes/${titleSlug}/new_folder`)
     .auth(user.username, "12345678")

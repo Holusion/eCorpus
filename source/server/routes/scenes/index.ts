@@ -15,7 +15,7 @@ import handleDeleteFile from "./delete/file.js";
 import handleCopyFile from "./copy/file.js";
 import handleCopyDocument from "./copy/document.js";
 import handleDeleteScene from "./delete/scene.js";
-import handleMkcol from "./mkcol.js";
+import {handleCreateScene, handleMkcol} from "./mkcol.js";
 
 const router = Router();
 /** Configure cache behaviour for everything under `/scenes/**`
@@ -29,10 +29,18 @@ router.use((req, res, next)=>{
 
 router.propfind("/", wrap(handlePropfind));
 
+//Allow mkcol outside of canRead check
+router.mkcol(`/:scene`, wrap(handleCreateScene));
+
+/**
+ * Protect everything after this with canRead handler
+ */
 router.use("/:scene", canRead);
 router.propfind("/:scene", wrap(handlePropfind));
-router.propfind("/:scene/*", wrap(handlePropfind));
 router.delete("/:scene", isAdministrator, wrap(handleDeleteScene));
+
+
+router.propfind("/:scene/*", wrap(handlePropfind));
 
 router.get("/:scene/:file(*.svx.json)", wrap(handleGetDocument));
 router.put("/:scene/:file(*.svx.json)", 

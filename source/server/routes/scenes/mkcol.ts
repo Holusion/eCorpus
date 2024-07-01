@@ -4,9 +4,20 @@ import { normalize } from "path";
 import { BadRequestError } from "../../utils/errors.js";
 
 
+export async function handleCreateScene(req :Request, res :Response){
+  let vfs = getVfs(req);
+  let requester = getUser(req);
+  let {scene} = req.params;
+  if(!requester.uid){
+    throw new BadRequestError(`Requires an authenticated user`);
+  }
+  await vfs.createScene(scene, requester.uid);
+  return res.status(201).send("Created");
+}
 
 
-export default async function handleMkcol(req :Request, res :Response){
+
+export async function handleMkcol(req :Request, res :Response){
   let vfs = getVfs(req);
   let requester = getUser(req);
   let {scene, name} = getFileParams(req);
