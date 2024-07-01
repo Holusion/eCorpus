@@ -21,8 +21,8 @@ describe("PATCH /api/v1/scenes/:scene", function(){
     await cleanIntegrationContext(this);
   });
 
-  describe("rename a scene", function(){
-    it("get scene info", async function(){
+  describe("name", function(){
+    it("can rename", async function(){
       await request(this.server).patch("/api/v1/scenes/foo")
       .send({name: "foofoo"})
       .expect(200);
@@ -49,5 +49,24 @@ describe("PATCH /api/v1/scenes/:scene", function(){
       .expect(404);
     });
   });
+
+  describe("tags", async function(){
+    it("add", async function(){
+      let r = await request(this.server).patch("/api/v1/scenes/foo")
+      .send({tags: ["foo", "bar"]})
+      .expect(200);
+
+      expect(r.body).to.have.property("tags").to.deep.equal(["foo", "bar"]);
+    })    
+    
+    it("trims tag names", async function(){
+      let r = await request(this.server).patch("/api/v1/scenes/foo")
+      .send({tags: [" foo"]})
+      .expect(200);
+
+      expect(r.body).to.have.property("tags").to.deep.equal(["foo"])
+    });
+    
+  })
 
 });

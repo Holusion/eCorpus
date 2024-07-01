@@ -1,4 +1,4 @@
-import { AccessType, AccessTypes } from "../auth/UserManager.js";
+import { AccessMap, AccessType, AccessTypes } from "../auth/UserManager.js";
 import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
@@ -10,9 +10,9 @@ export default abstract class ScenesVfs extends BaseVfs{
 
   async createScene(name :string):Promise<number>
   async createScene(name :string, author_id :number):Promise<number>
-  async createScene(name :string, permissions:Record<string,AccessType>):Promise<number>
-  async createScene(name :string, perms ?:Record<string,AccessType>|number) :Promise<number>{
-    let permissions :Record<string,AccessType> = (typeof perms === "object")? perms : {};
+  async createScene(name :string, permissions:AccessMap):Promise<number>
+  async createScene(name :string, perms ?:AccessMap|number) :Promise<number>{
+    let permissions :AccessMap = (typeof perms === "object")? perms : {};
     //Always provide permissions for default user
     permissions['0'] ??= (config.public?"read":"none");
     permissions['1'] ??= "read";
@@ -88,6 +88,23 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(!r?.changes) throw new NotFoundError(`no scene found with id: ${$scene_id}`);
   }
 
+  /**
+   * Reusable fragment to check if a user has the required access level for an operation on a scene.
+   * Most permission checks are done outside of this module in route middlewares,
+   * but we sometimes need to check for permissions to filter list results
+   * @param user_id User_id, to detect "default" special case
+   * @param accessMin Minimum expected acccess level, defaults to read
+   * @returns 
+   */
+  static _fragUserCanAccessScene(user_id :number, accessMin:AccessType = "read"){
+    return `COALESCE(
+        json_extract(scenes.access, '$.' || $user_id),
+        ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
+        json_extract(scenes.access, '$.0')
+      ) IN (${ AccessTypes.slice(AccessTypes.indexOf(accessMin)).map(s=>`'${s}'`).join(", ") })
+    `;
+  }
+  
   /**
    * get all scenes, including archvied scenes Generally not used outside of tests and internal routines
    */
@@ -188,6 +205,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           SELECT username FROM users WHERE fk_author_id = user_id
         ), "default") AS author,
         json_extract(thumb.value, '$.uri') AS thumb,
+        tags.names AS tags,
         json_object(
           ${(typeof user_id === "number" && 0 < user_id)? `
             "user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),
@@ -197,17 +215,17 @@ export default abstract class ScenesVfs extends BaseVfs{
         ) AS access
       
       FROM scenes
-        LEFT JOIN last_docs AS document ON fk_scene_id = scene_id
+        LEFT JOIN last_docs AS document ON document.fk_scene_id = scene_id
         LEFT JOIN json_tree(document.metas) AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
-      
+        LEFT JOIN (
+          SELECT 
+            json_group_array(tag_name) AS names,
+            fk_scene_id
+          FROM tags
+          GROUP BY fk_scene_id
+        ) AS tags ON tags.fk_scene_id = scene_id
       ${with_filter? "WHERE true": ""}
-      ${(typeof user_id === "number")? `AND 
-        COALESCE(
-          json_extract(scenes.access, '$.' || $user_id),
-          ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
-          json_extract(scenes.access, '$.0')
-        ) IN (${ AccessTypes.slice(2).map(s=>`'${s}'`).join(", ") })
-      `:""}
+      ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
       ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
       ${likeness}
 
@@ -222,6 +240,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     })).map(({ctime, mtime, id, access, ...m})=>({
       ...m,
       id,
+      tags: m.tags ? JSON.parse(m.tags): [],
       access: JSON.parse(access),
       ctime: BaseVfs.toDate(ctime),
       mtime: BaseVfs.toDate(mtime),
@@ -245,14 +264,22 @@ export default abstract class ScenesVfs extends BaseVfs{
           SELECT username FROM users WHERE user_id = fk_author_id
         ), 'default') AS author,
         json_extract(thumb.value, '$.uri') AS thumb,
+        tags.names AS tags,
         json_object(
           ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),`: ``}
           "any", json_extract(scenes.access, '$.1'),
           "default", json_extract(scenes.access, '$.0')
         ) AS access
       FROM scenes 
-      LEFT JOIN documents ON fk_scene_id = scene_id
-      LEFT JOIN json_tree(documents.data, "$.metas") AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
+        LEFT JOIN documents ON documents.fk_scene_id = scene_id
+        LEFT JOIN json_tree(documents.data, "$.metas") AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
+        LEFT JOIN (
+          SELECT 
+            json_group_array(tag_name) AS names,
+            fk_scene_id
+          FROM tags
+          GROUP BY fk_scene_id
+        ) AS tags ON tags.fk_scene_id = scene_id
       WHERE ${key} = $value
       ORDER BY generation DESC
       LIMIT 1
@@ -260,6 +287,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(!r|| !r.name) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     return {
       ...r,
+      tags: r.tags ? JSON.parse(r.tags): [],
       access: JSON.parse(r.access),
       ctime: BaseVfs.toDate(r.ctime),
       mtime: BaseVfs.toDate(r.mtime),

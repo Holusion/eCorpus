@@ -38,7 +38,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can't get a private scene's file (obfuscated as 404)", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"none", [user.uid]: "admin"});
+    let scene_id = await vfs.createScene("foo", {"0":"none", "1": "none", [user.uid]: "admin"});
     await vfs.writeDoc("{}", scene_id, user.uid);
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 

@@ -42,6 +42,7 @@ export function isAccessType(type :any) :type is AccessType{
 
 export type AccessType = typeof AccessTypes[number];
 
+export type AccessMap = {[id: `${number}`|string]:AccessType};
 
 export const any_id = 1 as const;
 export const default_id = 0 as const;

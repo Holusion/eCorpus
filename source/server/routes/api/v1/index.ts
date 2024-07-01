@@ -27,6 +27,8 @@ import handleGetStats from "./admin/stats/index.js";
 import postScenes from "./scenes/post.js";
 import patchScene from "./scenes/scene/patch.js";
 import handleMailtest from "./admin/mailtest.js";
+import getTags from "./tags/get.js";
+import getTag from "./tags/tag/get.js";
 
 
 const router = Router();
@@ -87,4 +89,7 @@ router.get("/scenes/:scene/files", wrap(getFiles));
 router.get("/scenes/:scene/permissions", wrap(getPermissions));
 router.patch("/scenes/:scene/permissions", canAdmin, bodyParser.json(), wrap(patchPermissions));
 
+
+router.get("/tags", isUser, wrap(getTags));
+router.get("/tags/:tag", isUser, wrap(getTag));
 export default router;

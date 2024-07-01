@@ -9,6 +9,7 @@ import DocsVfs from "./Docs.js";
 import ScenesVfs from "./Scenes.js";
 import CleanVfs from "./Clean.js";
 import StatsVfs from "./Stats.js";
+import TagsVfs from "./Tags.js";
 
 export * from "./types.js";
 
@@ -46,8 +47,8 @@ class Vfs extends BaseVfs{
   }
 }
 
-interface Vfs extends FilesVfs, DocsVfs, ScenesVfs, StatsVfs, CleanVfs {};
-applyMixins(Vfs, [FilesVfs, DocsVfs, ScenesVfs, StatsVfs, CleanVfs]);
+interface Vfs extends FilesVfs, DocsVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs {};
+applyMixins(Vfs, [FilesVfs, DocsVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs]);
 
 export default Vfs;
 

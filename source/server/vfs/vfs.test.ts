@@ -28,6 +28,7 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     author: "default",
     author_id: 0,
     thumb: null,
+    tags: [],
     access:  { any: 'read', default: 'read' }
   };
 }
@@ -496,6 +497,155 @@ describe("Vfs", function(){
 
         let files = await vfs.listFiles(scene_id);
         expect(files).to.deep.equal([]);
+      });
+    });
+
+    describe("tags", function(){
+      let scene_id :number;
+      //Create a dummy scene for future tests
+      this.beforeEach(async function(){
+        scene_id = await vfs.createScene("foo");
+      });
+
+      describe("addSceneTag() / removeSceneTag()", function(){
+        it("adds a tag to a scene", async function(){
+          await vfs.addTag(scene_id, "foo");
+          let s = await vfs.getScene(scene_id);
+          expect(s).to.have.property("tags").to.deep.equal(["foo"]);
+          await vfs.addTag(scene_id, "bar");
+          s = await vfs.getScene(scene_id);
+          //Ordering is loosely expected to hold: we do not enforce AUTOINCREMENT on rowids but it's generally true
+          expect(s).to.have.property("tags").to.deep.equal(["foo", "bar"]);
+        });
+
+        it("can remove tag", async function(){
+          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(true);
+          await expect(vfs.addTag(scene_id, "bar")).to.eventually.equal(true);
+          await expect(vfs.removeTag(scene_id, "foo")).to.eventually.equal(true);
+
+          let s = await vfs.getScene(scene_id);
+          expect(s).to.have.property("tags").to.deep.equal(["bar"]);
+        });
+
+        it("can be called with scene name", async function(){
+          await expect(vfs.addTag("foo", "foo")).to.eventually.equal(true);
+          let s = await vfs.getScene(scene_id);
+          expect(s).to.have.property("tags").to.deep.equal(["foo"]);
+
+          await expect(vfs.removeTag("foo", "foo")).to.eventually.equal(true);
+        });
+
+        it("throws a 404 errors if scene doesn't exist", async function(){
+          // by id
+          await expect(vfs.addTag(scene_id+1, "foo")).to.be.rejectedWith(NotFoundError);
+          // by name
+          await expect(vfs.addTag("baz", "foo")).to.be.rejectedWith(NotFoundError);
+
+        });
+
+
+        it("returns false if nothing was changed", async function(){
+          await vfs.addTag(scene_id, "foo");
+          //When tag is added twice, by scene_id
+          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(false);
+          //When tag is added twice, by name
+          await expect(vfs.addTag("foo", "foo")).to.eventually.equal(false);
+
+          //When tag doesn't exist
+          await expect(vfs.removeTag(scene_id, "bar")).to.be.eventually.equal(false);
+          //When scene doesn't exist
+          await expect(vfs.removeTag(scene_id+1, "foo")).to.eventually.equal(false);
+        });
+
+        it("force lower case ascii characters", async function(){
+          await expect(vfs.addTag(scene_id, "Foo")).to.eventually.equal(true);
+          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(false);
+          expect(await vfs.getTags()).to.deep.equal([{name: "foo", size: 1}]);
+        });
+
+        it("force lower case for non-ascii characters", async function(){
+          await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
+          await expect(vfs.addTag(scene_id, "électricité")).to.eventually.equal(false);
+          expect(await vfs.getTags()).to.deep.equal([{name: "électricité", size: 1}]);
+        });
+
+        it("force lower case for non-latin characters", async function(){
+          await expect(vfs.addTag(scene_id, "ΑΒΓΔΕ")).to.eventually.equal(true);
+          await expect(vfs.addTag(scene_id, "αβγδε")).to.eventually.equal(false);
+          expect(await vfs.getTags()).to.deep.equal([{name: "αβγδε", size: 1}]);
+        });
+      });
+
+
+      describe("getTags()", function(){
+        it("get all tags", async function(){
+          //Create a bunch of additional test scenes
+          for(let i=0; i < 3; i++){
+            let id = await vfs.createScene(`test_${i}`);
+            for(let j=0; j <= i; j++ ){
+              await vfs.addTag(id, `tag_${j}`);
+            }
+          }
+          expect(await vfs.getTags()).to.deep.equal([
+            {name: "tag_0", size: 3},
+            {name: "tag_1", size: 2},
+            {name: "tag_2", size: 1},
+          ]);
+        });
+
+        it("get tags matching a string", async function(){
+          await vfs.addTag(scene_id, `tag_foo`);
+          await vfs.addTag(scene_id, `foo_tag`);
+          await vfs.addTag(scene_id, `tag_bar`);
+          expect(await vfs.getTags("foo")).to.deep.equal([
+            {name:"foo_tag", size: 1},
+            {name: "tag_foo", size: 1},
+          ]);
+        });
+      });
+
+      describe("getTag()", function(){
+        it("Get all scenes attached to a tag", async function(){
+          let ids = [];
+          for(let i=0; i < 3; i++){
+            let id = await vfs.createScene(`test_${i}`);
+            ids.push(id);
+            await vfs.addTag(id, `tag_foo`);
+          }
+          for(let i=3; i < 6; i++){
+            let id = await vfs.createScene(`test_${i}`);
+            await vfs.addTag(id, `tag_bar`);
+          }
+          let scenes = await vfs.getTag("tag_foo");
+          expect(scenes).to.deep.equal(ids);
+        });
+
+
+        describe("respects permissions", function(){
+          let userManager :UserManager, alice :User, bob :User;
+          this.beforeEach(async function(){
+            let userManager = new UserManager(vfs._db);
+            alice = await userManager.addUser("alice", "12345678", true);
+            bob = await userManager.addUser("bob", "12345678", false);
+          });
+
+          it("return scenes with read access", async function(){
+            await vfs.addTag("foo", "foo");
+            expect(await vfs.getTag("foo", alice.uid), "with admin user_id").to.deep.equal([scene_id]);
+
+            expect(await vfs.getTag("foo", bob.uid), "with normal user id").to.deep.equal([scene_id]);
+          });
+
+          it("won't return non-readable scene", async function(){
+            const id = await vfs.createScene("admin-only", {"0": "none", "1": "none", [alice.uid.toString(10)]: "admin"});
+            await vfs.addTag("admin-only", "foo");
+            expect(await vfs.getTag("foo"), "without user_id").to.deep.equal([id]);
+
+            expect(await vfs.getTag("foo", alice.uid), "with admin user_id").to.deep.equal([id]);
+
+            expect(await vfs.getTag("foo", bob.uid)).to.deep.equal([]);
+          });
+        })
       });
     });
 
