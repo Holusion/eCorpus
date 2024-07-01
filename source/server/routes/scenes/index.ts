@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 
 import {handlePropfind} from "./propfind.js";
 import {handlePutFile, handlePutDocument} from "./put/index.js";
-import { canRead, canWrite, isAdministrator, isUser } from "../../utils/locals.js";
+import { canAdmin, canRead, canWrite, isAdministrator, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 
@@ -15,7 +15,8 @@ import handleDeleteFile from "./delete/file.js";
 import handleCopyFile from "./copy/file.js";
 import handleCopyDocument from "./copy/document.js";
 import handleDeleteScene from "./delete/scene.js";
-import {handleCreateScene, handleMkcol} from "./mkcol.js";
+import handleCreateFolder from "./mkcol/folder.js";
+import handleCreateScene from "./mkcol/scene.js";
 
 const router = Router();
 /** Configure cache behaviour for everything under `/scenes/**`
@@ -37,7 +38,7 @@ router.mkcol(`/:scene`, wrap(handleCreateScene));
  */
 router.use("/:scene", canRead);
 router.propfind("/:scene", wrap(handlePropfind));
-router.delete("/:scene", isAdministrator, wrap(handleDeleteScene));
+router.delete("/:scene", canAdmin, wrap(handleDeleteScene));
 
 
 router.propfind("/:scene/*", wrap(handlePropfind));
@@ -56,6 +57,6 @@ router.put(`/:scene/:name(*)`, canWrite, wrap(handlePutFile));
 router.move(`/:scene/:name(*)`, canWrite, wrap(handleMoveFile));
 router.copy(`/:scene/:name(*)`, canWrite, wrap(handleCopyFile));
 router.delete(`/:scene/:name(*)`, canWrite, wrap(handleDeleteFile));
-router.mkcol(`/:scene/:name(*)`, canWrite, wrap(handleMkcol));
+router.mkcol(`/:scene/:name(*)`, canWrite, wrap(handleCreateFolder));
 
 export default router;
