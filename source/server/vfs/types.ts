@@ -57,6 +57,8 @@ export interface GetFileResult extends FileProps{
 export interface Scene extends ItemProps{
   /** optional name of the scene's thumbnail. Will generally be null due to sql types */
   thumb ?:string|null;
+  /** Freeform list of attached tags for this collection */
+  tags :string[];
   /** Access level. Only makes sense when in reference to a user ID */
   access :{
     user ?:AccessType,
@@ -83,4 +85,9 @@ export interface SceneQuery {
   limit ?:number;
   orderBy ?:"ctime"|"mtime"|"name";
   orderDirection ?:"asc"|"desc";
+}
+
+export interface Tag{
+  name :string;
+  size :number;
 }
