@@ -92,16 +92,41 @@ describe("Vfs", function(){
         await expect(vfs.createScene("foo")).to.be.fulfilled;
         await expect(vfs.createScene("foo")).to.be.rejectedWith("exist");
       });
-      it("retries for unused scene_id", async function(){
-        let old = Uid.make;
-        try{
-          Uid.make = ()=> 1;
-          await expect(vfs.createScene("bar")).to.be.fulfilled;
-          await expect(vfs.createScene("bar")).to.be.rejectedWith("Unable to find a free id");
-        }finally{
+
+      describe("uid handling", function(){
+        let old :typeof Uid.make;
+        let returns :number[] = [];
+        this.beforeEach(function(){
+          old = Uid.make;
+          returns = [];
+          Uid.make = ()=> {
+            let r = returns.pop();
+            if (typeof r === "undefined") throw new Error("No mock result provided");
+            return r;
+          };
+        });
+        this.afterEach(function(){
           Uid.make = old;
-        }
-      });
+        });
+
+        it("fails if no free uid can be found", async function(){
+          returns = [1, 1, 1, 1];
+          await expect(vfs.createScene("bar")).to.be.fulfilled;
+          await expect(vfs.createScene("baz")).to.be.rejectedWith("Unable to find a free id");
+        });
+
+        it("retry", async function(){
+          returns = [1, 1, 2];
+          await expect(vfs.createScene("bar")).to.be.fulfilled;
+          await expect(vfs.createScene("baz")).to.be.fulfilled;
+        });
+
+        it("prevents scene name containing uid", async function(){
+          returns = [1, 2];
+          let scene_id = await expect(vfs.createScene("bar#1")).to.be.fulfilled;
+          expect(scene_id).to.equal(2);
+        });
+      })
 
       it("sets scene author", async function(){
         const userManager = new UserManager(vfs._db);
@@ -181,7 +206,30 @@ describe("Vfs", function(){
         let s = await vfs.getScenes(0);
         expect(s).to.have.property("length", 1);
         expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
-      })
+      });
+
+      it("can get archived scenes", async function(){
+        let scene_id = await vfs.createScene("foo");
+        await vfs.writeDoc(JSON.stringify({foo: "bar"}), scene_id, 0);
+        await vfs.archiveScene(scene_id);
+        let scenes = await vfs.getScenes();
+        expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
+      });
+      
+
+      it("can get only archived scenes", async function(){
+        await vfs.createScene("bar");
+        let scene_id = await vfs.createScene("foo");
+        await vfs.writeDoc(JSON.stringify({foo: "bar"}), scene_id, 0);
+        await vfs.archiveScene(scene_id);
+
+        //Two scenes total
+        expect(await vfs.getScenes()).to.have.length(2);
+        //Filter only scenes with access: none
+        let scenes = await vfs.getScenes(null, {access: ["none"]});
+        console.log(JSON.stringify(scenes));
+        expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
+      });
 
       describe("with permissions", function(){
         let userManager :UserManager, user :User;
@@ -468,9 +516,32 @@ describe("Vfs", function(){
       })
 
       describe("archiveScene()", function(){
-        it("set access rights to none", async function(){
+        it("makes scene hidden", async function(){
           await vfs.archiveScene("foo");
           expect(await vfs.getScenes(0)).to.have.property("length", 0);
+        });
+
+        it("changes scene name and access", async function(){
+          await vfs.archiveScene(scene_id);
+          const scenes = await vfs._db.all("SELECT * FROM scenes");
+          expect(scenes).to.have.length(1);
+          expect(scenes[0]).to.have.property("scene_name", `foo#${scene_id.toString(10)}`);
+          expect(scenes[0]).to.have.property("access", '{"0":"none"}');
+        });
+
+        it("can't archive twice", async function(){
+          await vfs.archiveScene(scene_id);
+          await expect(vfs.archiveScene(scene_id), (await vfs._db.all("SELECT * FROM scenes"))[0].scene_name).to.be.rejectedWith(NotFoundError);
+        });
+
+        it("can remove archived scene (by id)", async function(){
+          await vfs.archiveScene(scene_id);
+          await expect(vfs.removeScene(scene_id)).to.be.fulfilled;
+        });
+        
+        it("can remove archived scene (by archived name)", async function(){
+          await vfs.archiveScene(scene_id);
+          await expect(vfs.removeScene(`foo#${scene_id.toString(10)}`)).to.be.fulfilled;
         });
       });
 

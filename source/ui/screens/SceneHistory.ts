@@ -80,6 +80,7 @@ class SceneVersion{
  @customElement("scene-history")
  export default class SceneHistory extends withUser(i18n(LitElement))
  {
+    /** urlencoded scene name */
     @property()
     name :string;
 
@@ -117,7 +118,7 @@ class SceneVersion{
     
     async fetchScene(){
       const signal = this.#c.signal;
-      await fetch(`/api/v1/scenes/${this.name}`, {signal}).then(async (r)=>{
+      await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
@@ -131,7 +132,7 @@ class SceneVersion{
 
     async fetchPermissions(){
       const signal = this.#c.signal;
-      await fetch(`/api/v1/scenes/${this.name}/permissions`, {signal}).then(async (r)=>{
+      await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/permissions`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
@@ -145,7 +146,7 @@ class SceneVersion{
     
     async fetchHistory(){
       const signal = this.#c.signal;
-      await fetch(`/api/v1/scenes/${this.name}/history`, {signal}).then(async (r)=>{
+      await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/history`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
@@ -319,7 +320,7 @@ class SceneVersion{
       console.log("Restore : ", i);
       Notification.show(`Restoring to ${i.name}#${i.generation}...`, "info");
       this.versions = null;
-      fetch(`/api/v1/scenes/${this.name}/history/`, {
+      fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/history/`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(i)
@@ -333,7 +334,7 @@ class SceneVersion{
 
     async grant(username :string, access :AccessRights["access"]){
       if(access == "none" && username != "default") access = null;
-      let p = fetch(`/api/v1/scenes/${this.name}/permissions`, {
+      let p = fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/permissions`, {
         method: "PATCH",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({username:username, access:access})
@@ -354,15 +355,29 @@ class SceneVersion{
     }
 
     onDelete = ()=>{
-      if(!confirm("Delete permanently "+this.name+"?")) return;
-      Notification.show("Deleting scene "+this.name, "warning");
-      fetch(`/scenes/${this.name}?archive=false`, {method:"DELETE"})
-      .then(()=>{
-        navigate(this, "/ui/");
-      }, (e)=>{
-        console.error(e);
-        Notification.show(`Failed to remove ${this.name} : ${e.message}`);
-      });
+      const isArchived = this.scene.name.endsWith("#"+this.scene.id.toString(10));
+      console.log("Scene: ", this.scene.name, this.scene.id);
+      const doDelete = (archive:boolean)=>{
+        Notification.show(`${archive?"Archiving":"Deleting"} scene ${this.name}`, "warning");
+        fetch(`/scenes/${encodeURIComponent(this.name)}?archive=${archive?"true":"false"}`, {method:"DELETE"})
+        .then(()=>{
+          Modal.close();
+          navigate(this, "/ui/");
+        }, (e)=>{
+          console.error(e);
+          Notification.show(`Failed to remove ${this.name} : ${e.message}`);
+        });
+      }
+
+      Modal.show({
+        header: this.t("ui.delete", {capitalize: "string"}),
+        body: html`<p>${ this.t("info.sceneDeleteConfirm", {name: this.name})}</p>`,
+        buttons: html`<div style="display: flex;gap: 5px;justify-content: end;">
+          ${isArchived? null: html`<ui-button class="btn-main" @click=${()=>doDelete(true)} text=${this.t("ui.archive")}></ui-button>`}
+          ${this.user.isAdministrator?html`<ui-button class="btn-main btn-danger" @click=${()=>doDelete(false)} text=${this.t("ui.delete")}></ui-button>`:null}
+        </div>`
+      })
+      
     }
 
     onRename = ()=>{

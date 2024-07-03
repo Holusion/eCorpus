@@ -24,7 +24,7 @@ export default async function getScenes(req :Request, res :Response){
     orderDirection,
   } = req.query;
 
-  access = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
   let scenesList = [];
   if(typeof ids === "string"){
@@ -54,12 +54,13 @@ export default async function getScenes(req :Request, res :Response){
     scenes = await Promise.all(scenesList.map(name=>vfs.getScene(name)));
   }else{
     /**@fixme ugly hach to bypass permissions when not performing a search */
-    const requester_id = (u.isAdministrator && !access && !match)?undefined: u.uid;
+    const requester_id = (u.isAdministrator && (!accessTypes || (accessTypes.length == 1 && accessTypes[0] == "none")) && !match)?undefined: u.uid;
+    
     scenes = await vfs.getScenes(requester_id, {
       match: match as string,
       orderBy: orderBy as any,
       orderDirection: orderDirection as any,
-      access: access as AccessType[],
+      access: accessTypes,
       limit: limit? parseInt(limit as string): undefined,
       offset: offset? parseInt(offset as string): undefined,
     });

@@ -8,6 +8,7 @@ import { withUser } from "../../state/auth";
 
 import "./AdminHome";
 import "./AdminStats";
+import "./AdminArchives";
 import "./UsersList";
 import "../../composants/navbar/NavLink";
 import "../../composants/Button";
@@ -27,6 +28,8 @@ export default class AdminScreen extends router( withUser( i18n(LitElement) ) ) 
   static "/users" =()=> html`<users-list></users-list>`;
   @route()
   static "/stats" =()=> html`<admin-stats></admin-stats>`;
+  @route()
+  static "/archives"= ()=> html`<admin-archives></admin-archives>`;
 
 
   render(){
@@ -39,6 +42,7 @@ export default class AdminScreen extends router( withUser( i18n(LitElement) ) ) 
           <nav-link .selected=${this.isActive("", true)} href="${this.path}"><ui-icon name="tools"></ui-icon> Home</nav-link>
           <nav-link .selected=${this.isActive("users")} href="${this.path}users"><ui-icon name="users"></ui-icon> ${this.t("ui.users")}</nav-link>
           <nav-link .selected=${this.isActive("stats")} href="${this.path}stats"><ui-icon name="stats"></ui-icon> ${this.t("ui.stats")}</nav-link>
+          <nav-link .selected=${this.isActive("archives")} href="${this.path}archives"><ui-icon name="folder"></ui-icon> ${this.t("ui.archive", {plural: true})}</nav-link>
       </nav>
       <section>
         ${this.renderContent()}
@@ -68,13 +72,11 @@ export default class AdminScreen extends router( withUser( i18n(LitElement) ) ) 
     }
     nav-link svg{
       fill: white;
-      margin-right: 5px;
+      padding-right: 2px;
     }
     nav-link ui-icon{
+      width: 1.5rem !important;
       height: 1.5rem !important;
-    }
-    nav-link ui-icon[name="tools"] svg{
-      padding:2px
     }
 
     @media (max-width: 1024px){

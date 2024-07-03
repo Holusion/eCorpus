@@ -214,4 +214,44 @@ describe("GET /api/v1/scenes", function(){
     });
   });
 
+  describe("archives", async function(){
+    let scenes:number[];
+    this.beforeAll(async ()=>{
+      scenes = [];
+      scenes.push(await vfs.createScene(`scene_archived`));
+      await vfs.archiveScene("scene_archived");
+      scenes.push(await vfs.createScene(`scene_live`));
+    });
+    
+    this.afterAll(async function(){
+      await Promise.all(scenes.map(id=>vfs.removeScene(id)));
+    });
+
+    it("can get only archived scenes", async function(){
+      let r = await request(this.server).get("/api/v1/scenes?access=none")
+      .auth(admin.username, "12345678")
+      .expect(200);
+      let names = r.body.scenes.map((s:any)=>s.name)
+      expect(names).to.include(`scene_archived#${scenes[0].toString(10)}`);
+    });
+
+    it
+
+    it("requires global admin rights", async function(){
+      let r = await request(this.server).get("/api/v1/scenes?access=none")
+      .auth(user.username, "12345678")
+      .expect(200);
+      expect(r.body).to.have.property("scenes").to.have.length(0);
+    });
+
+    it("won't return archived scenes in a default query", async function(){
+      let r = await request(this.server).get("/api/v1/scenes")
+      .auth(user.username, "12345678")
+      .expect(200);
+      let names = r.body.scenes.map((s:any)=>s.name)
+      expect(names).not.to.include(`scene_archived#${scenes[0].toString(10)}`);
+    });
+
+  })
+
 });

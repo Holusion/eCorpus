@@ -5,6 +5,7 @@ import { expect } from "chai";
 import User from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
+import { NotFoundError } from "../../../utils/errors.js";
 
 
 
@@ -35,6 +36,9 @@ describe("DELETE /scenes/:scene", function(){
     await request(this.server).delete(`/scenes/${titleSlug}`)
     .auth(user.username, "12345678")
     .expect(204);
+
+    await request(this.server).get(`/scenes/${titleSlug}`)
+    .expect(404);
   });
 
   it("can delete as administrator", async function(){
@@ -59,7 +63,7 @@ describe("DELETE /scenes/:scene", function(){
     .auth(user.username, "12345678")
     .expect(204);
 
-    await request(this.server).mkcol(`/scenes/foo`)
+    await request(this.server).mkcol(`/scenes/${titleSlug}`)
     .auth(user.username, "12345678")
     .expect(201);
   });
@@ -72,5 +76,37 @@ describe("DELETE /scenes/:scene", function(){
     await request(this.server).delete(`/scenes/${titleSlug}`)
     .auth(user.username, "12345678")
     .expect(404);
+  });
+
+  it.skip("can restore an archived scene", async function(){
+    
+
+  });
+
+  it("requires superadmin to force delete", async function(){
+
+    await request(this.server).delete(`/scenes/${titleSlug}?archive=false`)
+    .auth(user.username, "12345678")
+    .expect(401);
+    await expect(vfs.getScene(scene_id)).to.be.fulfilled;
+  });
+
+  it("can force delete a scene", async function(){
+    await request(this.server).delete(`/scenes/${titleSlug}?archive=false`)
+    .auth(admin.username, "12345678")
+    .expect(204);
+    await expect(vfs.getScene(scene_id)).to.be.rejectedWith(NotFoundError);
+  });
+
+  it("can force delete after archival", async function(){
+    await request(this.server).delete(`/scenes/${titleSlug}`)
+    .auth(admin.username, "12345678")
+    .expect(204);
+
+    await request(this.server).delete(`/scenes/${titleSlug}${encodeURIComponent("#")+scene_id.toString(10)}?archive=false`)
+    .auth(admin.username, "12345678")
+    .expect(204);
+
   })
+
 });

@@ -21,6 +21,10 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     for(let i=0; i<3; i++){
       try{
+        let uid = Uid.make();
+        //Unlikely, but still: skip uid that would prevent scene archiving
+        if(name.endsWith("#"+uid.toString(10))) continue;
+
         let r = await this.db.get(`
           INSERT INTO scenes (scene_name, scene_id, access) 
           VALUES (
@@ -31,7 +35,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           RETURNING scene_id AS scene_id;
         `, {
           $scene_name:name, 
-          $scene_id: Uid.make(),
+          $scene_id: uid,
           $access: JSON.stringify(permissions)
         });
         return r.scene_id;
@@ -61,14 +65,16 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
   /**
-   * set a scene access to "none" for everyone
+   * set a scene access to "none" for everyone, effectively making it hidden
    * @see UserManager.grant for a more granular setup
    */
   async archiveScene(scene :number|string){
     let r = await this.db.run(`
       UPDATE scenes 
-      SET access = json_object('0', 'none')
-      WHERE ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene
+      SET access = json_object('0', 'none'), scene_name = scene_name || '#' || scene_id
+      WHERE 
+        ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene 
+        ${typeof scene ==="number"? `AND INSTR(scene_name, '#' || scene_id) = 0`:""}
     `, {$scene: scene});
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
@@ -83,10 +89,18 @@ export default abstract class ScenesVfs extends BaseVfs{
   }
 
   /**
-   * get all scenes when called without params
-   * Search scenes with structured queries when called with filters
+   * get all scenes, including archvied scenes Generally not used outside of tests and internal routines
    */
-  async getScenes(user_id ?:number, {access, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"} :SceneQuery = {}) :Promise<Scene[]>{
+  async getScenes():Promise<Scene[]>;
+  /**
+   * Get all scenes for <user_id>, filtering results with structured queries when called with filters
+   */
+  async getScenes(user_id :number|undefined, q?:SceneQuery):Promise<Scene[]>;
+  /**
+   * Get only archived scenes.
+   */
+  async getScenes(user_id:null, q :{access:["none"]}) :Promise<Scene[]>;
+  async getScenes(user_id ?:number|null, {access, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"} :SceneQuery = {}) :Promise<Scene[]>{
 
     //Check various parameters compliance
     if(Array.isArray(access) && access.find(a=>AccessTypes.indexOf(a) === -1)){
@@ -99,7 +113,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(["asc", "desc"].indexOf(orderDirection.toLowerCase()) === -1) throw new BadRequestError(`Invalid orderDirection: ${orderDirection}`);
     if(["ctime", "mtime", "name"].indexOf(orderBy.toLowerCase()) === -1) throw new BadRequestError(`Invalid orderBy: ${orderBy}`);
 
-    let with_filter = typeof user_id === "number" || match;
+    let with_filter = typeof user_id === "number" || match || access?.length;
 
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
 
@@ -187,10 +201,10 @@ export default abstract class ScenesVfs extends BaseVfs{
         LEFT JOIN json_tree(document.metas) AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
       
       ${with_filter? "WHERE true": ""}
-      ${typeof user_id === "number"? `AND 
+      ${(typeof user_id === "number")? `AND 
         COALESCE(
-          ${(typeof user_id === "number")? `json_extract(scenes.access, '$.' || $user_id),` :""}
-          ${(typeof user_id === "number" && 0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
+          json_extract(scenes.access, '$.' || $user_id),
+          ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
           json_extract(scenes.access, '$.0')
         ) IN (${ AccessTypes.slice(2).map(s=>`'${s}'`).join(", ") })
       `:""}
@@ -202,7 +216,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       LIMIT $offset, $limit
     `, {
       ...mParams,
-      $user_id: user_id?.toString(10),
+      $user_id: (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
       $limit: Math.min(limit, 100),
       $offset: offset,
     })).map(({ctime, mtime, id, access, ...m})=>({
