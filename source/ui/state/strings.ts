@@ -62,10 +62,8 @@ export default {
       "en": "Logout"
     },
     filename: {
-      fr:"fichier",
-      fr_plural: "fichiers",
-      en:"filename",
-      en_plural: "filenames,"
+      fr:"fichier{plural=s}",
+      en:"filename{plural=s}",
     },
     rights: {
       "fr": "droits",
@@ -134,6 +132,10 @@ export default {
     createUser: {
       fr: "Nouvel utilisateur",
       en: "Create User"
+    },
+    archive: {
+      fr: "archive{plural=s}",
+      en: "archive{plural=s}",
     },
     isAdministrator: {
       fr: "Est administrateur",
@@ -226,10 +228,8 @@ export default {
       en:"No data available for {item}"
     },
     etAl:{
-      fr:" et {count} autre",
-      fr_plural:" et {count} autres",
-      en:" and {count} other",
-      en_plural:" and {count} others",
+      fr:" et {count} autre{plural=s}",
+      en:" and {count} other{plural=s}",
     },
     lead:{
       fr: "eCorpus est un modèle de base de données d'objets 3D développé par holusion et utilisant un éditeur et visualisateur enrichi issu du projet DPO-Voyager du smithsonian institute",
@@ -244,8 +244,12 @@ export default {
       en: "please provide your username or email and we will send you a recovery link"
     },
     userDeleteConfirm: {
-      fr : "Êtes-vous sûr de vouloir supprimer l'utilisateur {username}",
+      fr : "Êtes-vous sûr de vouloir supprimer l'utilisateur {username}?",
       en : "Are you sure you want to delete user {username} ?"
+    },
+    sceneDeleteConfirm: {
+      fr : "Êtes-vous sûr de vouloir supprimer la scène {name}?",
+      en : "Are you sure you want to delete scene {name}?"
     },
     homeHeader: {
       fr: "Système de gestion de scènes 3D",

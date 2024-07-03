@@ -3,6 +3,12 @@ import { LitElement, Constructor } from "lit-element";
 import strings, { I18nDict, Language, LocalizedString } from "./strings";
 
 
+type TranslateParams = {
+  plural?:boolean;
+  capitalize?:"string"|"word";
+  [k: string]:any;
+}
+
 let languages :Language[] = ["en", "fr"];
 
 function getDefaultLanguage() :Language{
@@ -65,7 +71,12 @@ export class Localization extends EventEmitter<{language :Language, loaded :bool
     });
   }
 
-  getString(key :string, params:Record<string, any>={}){
+
+  private isString(s?:string | LocalizedString | I18nDict) :s is string{
+    return typeof s=== "string";
+  }
+
+  getString(key :string, {plural, capitalize, ...params}:TranslateParams={}){
     let parts = key.split(".");
     let currentRef :string|I18nDict = this.strings;
     for(let part of parts){
@@ -77,11 +88,23 @@ export class Localization extends EventEmitter<{language :Language, loaded :bool
       return key;
     }
     let str :string = currentRef[this.language] as any;
-    if(typeof params.count === "number" && 1 < params.count){
-      str = currentRef[`${this.language}_plural`] as any 
-        ?? this.interpolate(str, {plural: null});
+    if(plural || (typeof params.count === "number" && 1 < params.count)){
+      let pluralized = currentRef[`${this.language}_plural`];
+      if(this.isString(pluralized)){
+        str = this.interpolate(pluralized, params);
+      }else{
+        str = this.interpolate(str, {plural: null, ...params});
+      }
+    }else{
+      str = this.interpolate(str, {plural: "", ...params});
     }
-    str = this.interpolate(str, params);
+
+    if(capitalize == "string"){
+      str = str.charAt(0).toUpperCase() +str.slice(1);
+    }else if (capitalize === "word"){
+      str = str.split(" ").map(s=>s.charAt(0).toUpperCase() +s.slice(1)).join(" ");
+    }
+
     return str
   }
 }
@@ -96,7 +119,7 @@ export declare class I18n{
    * @param key path to the requested string. Nested paths joined by a "."
    * @param params parameters given to the string interpolation
    */
-  public t(key :string, params ?:Record<string, any>) :string;
+  public t(key :string, params ?:TranslateParams) :string;
 
   public get language():Language;
 }
@@ -118,7 +141,7 @@ export default function i18n<T extends Constructor<LitElement>>(baseClass:T) : T
     onTranslationChange = ()=>{
       this.requestUpdate("language");
     }
-    t(key:string, params ?:Record<string, any>){
+    t(key:string, params ?:TranslateParams){
       return this.#T.getString(key, params);
     }
     get language(){

@@ -140,7 +140,7 @@ interface Upload{
                 ${"author" in scene? html`
                 <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
                 <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
-                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.mtime).toLocaleString()}</span>
+                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.mtime).toLocaleString(this.language)}</span>
             `:scene.name}
             </a>
         `;

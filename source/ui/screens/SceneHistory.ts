@@ -280,7 +280,7 @@ class SceneVersion{
                     <div><ul style="opacity:0.7">${[...v.names.values()].map((n, index)=>html`<li>${n}</li>`)}</ul></div>
                   </div>
                   
-                  <div style=""><b>${authors}</b> <span style="opacity:0.6; font-size: smaller">${new Date(v.start).toLocaleString()}</span></div>
+                  <div style=""><b>${authors}</b> <span style="opacity:0.6; font-size: smaller">${new Date(v.start).toLocaleString(this.language)}</span></div>
                 </div>
 
                 ${index==0?html`<ui-button disabled transparent text="active">active</ui-button>`:html`<ui-button class="btn-main" style="flex:initial; height:fit-content;" title="restore" @click=${()=>this.onRestore(v.entries.slice(-1)[0])} text="restore" icon="restore"></ui-button>`}
