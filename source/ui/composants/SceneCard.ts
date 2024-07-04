@@ -60,7 +60,7 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
       let explorer = `/ui/scenes/${encodeURIComponent(this.name)}/view`;
       let story = `/ui/scenes/${encodeURIComponent(this.name)}/edit`;
       return html`
-        <div class="scene-card-inner ${this.cardStyle == "list" ? "scene-card-inner-list": ""}" }>
+        <div class="scene-card-inner ${this.cardStyle == "list" ? "scene-card-inner-list": ""}">
             <div style="display:flex; flex:auto; align-items:center;">
               <a href="${explorer}">
                 ${this.thumb? html`<img src="${this.thumb}"/>`: html`<img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="${defaultSprite}" />`}
@@ -71,9 +71,18 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
               </div>          
             </div>
             <div class="tools">
-              ${this.can("read")? html`<a href="${explorer}"><ui-icon name="eye"></ui-icon>${this.t("ui.view")}</a>`:null}
-              ${this.can("write")? html`<a class="tool-link" href="${story}"><ui-icon name="edit"></ui-icon>${this.t("ui.edit")}</a>`:null}
-              ${this.can("admin")? html`<a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet"><ui-icon name="admin"></ui-icon>${this.t("ui.admin")}</a>`:null}
+              ${this.can("read")? html`<a href="${explorer}">
+                <ui-icon name="eye"></ui-icon>
+                <span class="tool-text">${this.t("ui.view")}</span>
+              </a>`:null}
+              ${this.can("write")? html`<a class="tool-link" href="${story}">
+                <ui-icon name="edit"></ui-icon>
+                <span class="tool-text">${this.t("ui.edit")}</span>
+              </a>`:null}
+              ${this.can("admin")? html`<a class="tool-properties" href="/ui/scenes/${this.name}/" title="propriétés de l'objet">
+                <ui-icon name="admin"></ui-icon>
+                <span class="tool-text">${this.t("ui.admin")}</span>
+              </a>`:null}
             </div>
         </div>
         ${(this.onChange? html`<span class="pill">
@@ -91,12 +100,13 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
       .scene-card-inner{
         background-color: var(--color-element);
         box-sizing: border-box;
-        padding: 1rem;
+        padding: .5rem;
         width: 100%;
         height: 100%;
         border-radius: 4px;
         border: 2px solid var(--color-highlight);
         transition: background 0.2s;
+        overflow: hidden;
       }
 
       .scene-card-inner:hover{
@@ -134,9 +144,11 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
       }
 
       .tools{
+        max-width: 100%;
         margin-top: 0.5rem;
         display:flex;
         justify-content: space-around;
+        overflow: hidden;
       }
 
       .scene-card-inner-list .tools{
@@ -144,13 +156,14 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
       }
 
       .tools a{
-        width: 100%;
         margin: 2px;
         color: #eee;
         text-decoration: none;
+        padding: 0 0.5rem;
+        min-width: 24px;
         display: flex;
         justify-content: center;
-        padding: 0 0.5rem;
+        flex-wrap: wrap;
       }
       .tools a:hover{
         color: var(--color-secondary-light);

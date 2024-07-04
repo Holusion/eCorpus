@@ -134,14 +134,11 @@ interface Upload{
         />`;
     }
 
-    private renderSceneCompact(scene:Scene|Upload){
+    private renderSceneCompact(scene:Scene){
         return html`
             <a class="list-item" name="${scene.name}" href="/ui/scenes/${scene.name}/">
-                ${"author" in scene? html`
-                <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
-                <span style="flex: 0 5 auto; font-size:smaller">${scene.author}</span>
-                <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${new Date(scene.mtime).toLocaleString(this.language)}</span>
-            `:scene.name}
+                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">${scene.name}</span>
+                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis"; font-size:smaller">${new Date(scene.mtime).toLocaleString(this.language)}</span>
             </a>
         `;
     }
@@ -165,41 +162,53 @@ interface Upload{
         
         return html`
         <h2>${this.t("info.homeHeader")}</h2>
-        <div class="list-tasks" style="margin-bottom:1rem">
-            <upload-button class="btn btn-main" @change=${this.onUploadBtnChange}>
-                ${this.t("ui.upload")}<spin-loader style="padding-left: 5px" .visible=${uploads.length != 0} inline></spin-loader>
-            </upload-button>
-            <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
-        </div>
-        <div class="section">
-            <h3>${this.t("ui.myScenes")}</h3>
-            ${uploads.length !== 0? html`<spin-loader visible></spin-loader>`: (myScenes.length > 0) ? 
-                html`
-                    <div class="list-grid" style="position:relative; margin-top:20px">
-                        ${myScenes.map((scene)=>this.renderScene(mode, scene))}
-                    </div>
-            `: null}
-        </div>            
-        ${(recentScenes.some(s=>myScenes.indexOf(s) == -1))? html`<div class="section">
-                <h3>${this.t("ui.ctimeSection")}</h3>
-                <div class="list-grid" style="position:relative;">
-                ${repeat([
-                    ...recentScenes,
-                ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
-                </div>
-            </div>`: null}
+        <div class="main-grid">
+            <div class="grid-header">
 
-        <div class="section">
-            <h3>${this.t("ui.mtimeSection")}</h3>
-            <div class="list list-items" style="position:relative;">
-                <span class="list-header">
-                    <span style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">${this.t("ui.name")}</span>
-                    <span style="flex: 0 5 auto; font-size:smaller">${this.t("ui.author")}</span>
-                    <span style="flex: 1 0 5rem;overflow: hidden;text-align: right;; font-size:smaller">${this.t("ui.mtime")}</span>
-                </span>
-                ${repeat([
-                    ...scenes.slice(0, 8),
-                ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
+            </div>
+
+            <div class="grid-toolbar">
+                <div class="section">
+                    <h4>Tools</h4>
+                    <a class="btn btn-main" href="/ui/scenes/">${this.t("ui.searchScene")}</a>
+                    <upload-button class="btn btn-main" @change=${this.onUploadBtnChange}>
+                        ${this.t("ui.upload")}<spin-loader style="padding-left: 5px" .visible=${uploads.length != 0} inline></spin-loader>
+                    </upload-button>
+                    <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                </div>
+                <div class="section">
+                    <h3>${this.t("ui.mtimeSection")}</h3>
+                    <div class="list list-items flush" style="position:relative;">
+                        <span class="list-header">
+                            <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">${this.t("ui.name")}</span>
+                            <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">${this.t("ui.mtime")}</span>
+                        </span>
+                        ${repeat([
+                            ...scenes.slice(0, 8),
+                        ],({name})=>name , (scene)=>this.renderSceneCompact(scene))}
+                    </div>
+                </div>
+
+            </div>
+            <div class="grid-content">
+                <div class="section">
+                    <h3>${this.t("ui.myScenes")}</h3>
+                    ${uploads.length !== 0? html`<spin-loader visible></spin-loader>`: (myScenes.length > 0) ? 
+                        html`
+                            <div class="list-grid" style="position:relative; margin-top:20px">
+                                ${myScenes.map((scene)=>this.renderScene(mode, scene))}
+                            </div>
+                    `: null}
+                </div>
+                ${(recentScenes.some(s=>myScenes.indexOf(s) == -1))? html`<div class="section">
+                        <h3>${this.t("ui.ctimeSection")}</h3>
+                        <div class="list-grid" style="position:relative;">
+                        ${repeat([
+                            ...recentScenes,
+                        ],({name})=>name , (scene)=>this.renderScene(mode, scene))}
+                        </div>
+                    </div>`: null}
+
             </div>
         </div>
     `}
