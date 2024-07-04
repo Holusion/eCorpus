@@ -5,6 +5,7 @@ import Notification from "../composants/Notification";
 import "../composants/Button";
 import "../composants/Spinner";
 import "../composants/Size";
+import "../composants/TagList";
 
 import { nothing } from "lit-html";
 import i18n from "../state/translate";
@@ -12,6 +13,7 @@ import { withUser } from "../state/auth";
 import { navigate } from "../state/router";
 import Modal from "../composants/Modal";
 import { AccessType, Scene } from "state/withScenes";
+import HttpError from "../state/HttpError";
 
 
 const AccessTypes = [
@@ -196,10 +198,19 @@ class SceneVersion{
         let scene = encodeURIComponent(this.name);
         return html`<div>
           <h1 style="color:white">${this.name}</h1>
-          <div style="display:flex;flex-wrap:wrap;">
-            <div style="flex-grow: 1; min-width:300px;">
-              <h3>Total size: <b-size b=${size}></b-size></h3>
-              <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
+
+          <div id="scene-info" style="display:flex;flex-wrap:wrap;padding: 0 15px">
+
+            <div id="scene-data-container" style="flex-grow: 1; min-width:300px;">
+              <div id="scene-tags">
+                ${this.renderTags()}
+              </div>
+
+              <div id="scene-data-size-report">
+                <h3>Total size: <b-size b=${size}></b-size></h3>
+                <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
+              </div>
+
               <div style="max-width: 300px">
                 ${this.can("write")?html`<a class="btn btn-main" href=${`/ui/scenes/${scene}/edit`}>
                   <ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}
@@ -208,9 +219,11 @@ class SceneVersion{
                 <a class="btn btn-main" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
-            <div style="min-width:300px;" class="section">
+
+            <div id="scene-permissions-container" style="min-width:300px;" class="section">
               ${this.renderPermissions()}
             </div>
+            
           </div>
         </div>
         <div class="section">
@@ -223,8 +236,55 @@ class SceneVersion{
       </div>`;
     }
 
+
+    async setTags(tags :string[]){
+      return await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({tags})
+      }).then(async r =>{
+        await HttpError.okOrThrow(r);
+        this.scene = await r.json();
+      });
+    }
+
+
+    renderTags(){
+
+      const addTag = (e:CustomEvent<string>)=>{
+        const tag = e.detail.toLowerCase(); //Will get sanitized server-side but it won't hurt to fix it here
+        const currentTags = new Set([...this.scene.tags]);
+        console.log("Tags : ", tag, currentTags.has(tag), currentTags);
+        if(currentTags.has(tag)){
+          return Notification.show(`The scene already has a tag named ${tag}`, "warning", 4000);
+        }
+        currentTags.add(tag);
+        this.scene = {...this.scene, tags: Array.from(currentTags)};
+        this.setTags(this.scene.tags).catch(e=>{
+          console.error(e);
+          Notification.show(`Failed to add scene tag ${tag}: ${e.message}`, "error", 6000);
+          const tags = new Set(this.scene.tags);
+          tags.delete(tag);
+          this.scene = {...this.scene, tags: Array.from(tags) };
+        });
+      }
+      const rmTag = (e:CustomEvent<string>)=>{
+        const tag = e.detail;
+        const currentTags = new Set([...this.scene.tags]);
+        currentTags.delete(tag);
+        this.scene = {...this.scene, tags: Array.from(currentTags)};
+        this.setTags(this.scene.tags).catch(e=>{
+          console.error(e);
+          Notification.show(`Failed to remove scene tag ${tag}: ${e.message}`, "error", 6000);
+          const tags = new Set(this.scene.tags);
+          tags.add(tag);
+          this.scene = {...this.scene, tags: Array.from(tags) };
+        });
+      }
+      return html`<tag-list .tags=${this.scene.tags} ?editable=${this.can("admin")} @add=${addTag} @remove=${rmTag}></tag-list>`
+    }
+
     renderPermissions(){
-      console.log("Can : ", this.can("admin"), this.scene);
       return html`
         <h2>${this.t("ui.access")}</h2>
           <table  class="list-table compact${!this.can("admin")?" disabled":""}">

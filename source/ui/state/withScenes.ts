@@ -12,6 +12,7 @@ export interface Scene {
   id :number;
   name :string;
   thumb ?:string;
+  tags :string[];
   access: {
     user ?:AccessType,
     any :AccessType,

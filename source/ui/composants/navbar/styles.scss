@@ -52,7 +52,7 @@ nav {
     align-items: stretch;
     flex-basis: auto;
     justify-content: end;
-    ::slotted(.btn), ::slotted(.nav-link){
+    ::slotted(.btn), ::slotted(.nav-link), ::slotted(.form-item){
       height:100%;
       flex: 0 0 auto;
       box-sizing: border-box;

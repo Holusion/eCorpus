@@ -6,6 +6,7 @@ import "../composants/UploadButton";
 import "./LandingPage";
 import "../composants/SceneCard";
 import "../composants/ListItem";
+import "../composants/TagList";
 
 import spinnerImage from "../assets/images/spinner.svg";
 
@@ -15,6 +16,7 @@ import { repeat } from "lit-html/directives/repeat";
 
 import "../composants/TaskButton";
 import { withScenes, Scene, sorts, OrderBy } from "../state/withScenes";
+import { navigate } from "../state/router";
 
 interface Upload{
     name :string;
@@ -27,6 +29,9 @@ interface Upload{
  @customElement("corpus-list")
  export default class List extends withScenes( withUser( i18n( LitElement )))
  {
+
+    @property({attribute:true, type: String})
+    search ?:string;
 
     @property({type: Object})
     uploads :{[name :string]:{
@@ -133,6 +138,7 @@ interface Upload{
     }
 
     protected render() :TemplateResult {
+        console.log("Render :", window.location.href);
         if(!this.isUser){
             return html`<landing-page></landing-page>`;
         }
@@ -156,40 +162,44 @@ interface Upload{
 
 
         return html`
-            <div class="toolbar">
-                <div class="list-tasks form-control">
-                    <div class="form-item" style="display:flex; margin-bottom:10px">
-                        <input type="search" id="model-search" placeholder=${this.t("ui.searchScene")} @change=${this.onSearchChange}>
+            <div class="main-grid">
+                <div class="grid-header">
+                    <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
+                        <input class="search-box-input" type="search" id="model-search" placeholder=${this.t("ui.searchScene")} value=${this.match??""} @change=${this.onSearchChange}>
                         <button class="btn btn-addon btn-main" style="margin-top:0" type="submit"><ui-icon name="search"></ui-icon></button>
                     </div>
-                    <div class="section">
-                        <h3 style="margin-top:0">${this.t("ui.newScene")}</h3>
-                        <upload-button class="btn btn-main" style="padding:8px" @change=${this.onUploadBtnChange}>
-                            ${this.t("ui.upload")}
-                        </upload-button>
-                        
-                        <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                    <div class="form-control" style="margin-left:auto; padding:10px">
+                        <span>${this.t("ui.sortBy")}</span>
+                        <span class="form-item"><select style="width:auto" @change=${this.onSelectOrder}>
+                            ${sorts.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
+                        </select></span>
                     </div>
-                    ${(this.selection.length)?html`
-                    <div class="section">
-                        <h4 style="margin-top:0">${this.t("ui.tools")}</h4>
-                        <a class="btn btn-main btn-icon" download href="/api/v1/scenes?${
-                            this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
-                            }&format=zip">
-                            Download Zip
-                        </a>
-                    </div>`: null}
                 </div>
-            </div>
-            <div class="list-grid list-items">
-                <div class="form-control" style="margin-left:auto; padding:10px">
-                    <span>${this.t("ui.sortBy")}</span>
-                    <span class="form-item"><select style="width:auto" @change=${this.onSelectOrder}>
-                        ${sorts.map(a=>html`<option value="${a}">${this.t(`ui.${a}`)}</option>`)}
-                    </select></span>
-                </div>
+                
+                <div class="grid-toolbar">
+                    <div class="list-tasks form-control">
+                        <div class="section">
+                            <h3 style="margin-top:0">${this.t("ui.newScene")}</h3>
+                            <upload-button class="btn btn-main" style="padding:8px" @change=${this.onUploadBtnChange}>
+                                ${this.t("ui.upload")}
+                            </upload-button>
+                            
+                            <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
+                        </div>
 
-                <div class="section" style="width:100%">
+                        ${(this.selection.length)?html`
+                        <div class="section">
+                            <h4 style="margin-top:0">${this.t("ui.tools")}</h4>
+                            <a class="btn btn-main btn-icon" download href="/api/v1/scenes?${
+                                this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
+                                }&format=zip">
+                                Download Zip
+                            </a>
+                        </div>`: null}
+                    </div>
+                </div>
+                
+                <div class="grid-content list-items section" style="width:100%">
                     ${this.error? html`<div class="error">
                         <h2 class="text-error">Error</h2>
                         <span class="text-center">${this.error}</span>
@@ -204,6 +214,7 @@ interface Upload{
                         <button class="btn btn-main" @click=${()=>this.fetchScenes(true)}>Load more</button>
                     </div>`}
                 </div>
+
 
             </div>`;
     }
@@ -251,8 +262,7 @@ interface Upload{
 
     onSearchChange = (ev)=>{
         ev.preventDefault();
-        this.match = ev.target.value;
-        this.fetchScenes()
+        navigate(this, null, {search: ev.target.value});
         console.log("list items find : ",this.list)
     }
 

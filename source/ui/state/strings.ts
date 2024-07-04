@@ -221,6 +221,10 @@ export default {
       fr: "Envoyer",
       en: "Send",
     },
+    tag: {
+      fr: "tag{plural=s}",
+      en: "tag{plural=s}"
+    }
   },
   info:{
     noData:{
