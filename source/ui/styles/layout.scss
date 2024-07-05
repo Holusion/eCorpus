@@ -80,6 +80,9 @@ corpus-list, home-page {
     'header'
     'content';
   }
+  > *{
+    min-width: 0;
+  }
   .grid-header{
     grid-area: header;
   }
