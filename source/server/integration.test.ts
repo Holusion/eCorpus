@@ -1,16 +1,14 @@
 import fs from "fs/promises";
 import path from "path";
-import { fileURLToPath } from 'url';
-import {tmpdir} from "os";
 
 import request from "supertest";
-import createServer from "./server.js";
-import Vfs, { DocProps, WriteFileParams } from "./vfs/index.js";
+import Vfs from "./vfs/index.js";
 import User from "./auth/User.js";
-import { Element, xml2js } from "xml-js";
 import UserManager from "./auth/UserManager.js";
 
-const thisDir = path.dirname(fileURLToPath(import.meta.url));
+import { fixturesDir } from "./__test_fixtures/fixtures.js";
+
+
 
 describe("Web Server Integration", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
@@ -56,7 +54,7 @@ describe("Web Server Integration", function(){
         await request(this.server).put("/scenes/foo/models/bar.glb").expect(401);
       });
       it("can't fetch user list", async function(){
-        await request(this.server).get("/api/v1/users")
+        await request(this.server).get("/users")
         .expect(401);
       });
     });
@@ -64,7 +62,7 @@ describe("Web Server Integration", function(){
     describe("(author)", function(){
       this.beforeEach(async function(){
         this.agent = request.agent(this.server);
-        await this.agent.post("/api/v1/login")
+        await this.agent.post("/auth/login")
         .send({username: user.username, password: "12345678"})
         .set("Content-Type", "application/json")
         .set("Accept", "")
@@ -72,8 +70,8 @@ describe("Web Server Integration", function(){
       });
 
       it("can create a new scene", async function(){
-        let content = await fs.readFile(path.join(thisDir, "__test_fixtures/cube.glb"));
-        let r = await this.agent.post("/api/v1/scenes/bar")
+        let content = await fs.readFile(path.join(fixturesDir, "cube.glb"));
+        let r = await this.agent.post("/scenes/bar")
         .set("Content-Type", "application/octet-stream")
         .send(content)
         .expect(201);
@@ -86,7 +84,7 @@ describe("Web Server Integration", function(){
       });
 
       it("can upload a glb model in an existing scene", async function(){
-        let content = await fs.readFile(path.join(thisDir, "__test_fixtures/cube.glb"));
+        let content = await fs.readFile(path.join(fixturesDir, "cube.glb"));
         await this.agent.put("/scenes/foo/models/baz.glb")
         .send(content)
         .expect(201);
@@ -137,11 +135,11 @@ describe("Web Server Integration", function(){
 
       it("can grant permissions", async function(){
         let dave = await userManager.addUser("dave", "12345678");
-        await this.agent.patch("/api/v1/scenes/foo/permissions")
+        await this.agent.patch("/auth/access/foo")
         .send({username: "dave", access: "write"})
         .expect(204);
 
-        let r = await this.agent.get("/api/v1/scenes/foo/permissions")
+        let r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r, JSON.stringify(r.body)).to.have.property("body").to.deep.equal([
@@ -153,11 +151,11 @@ describe("Web Server Integration", function(){
       });
 
       it("can make a model private", async function(){
-        await this.agent.patch("/api/v1/scenes/foo/permissions")
+        await this.agent.patch("/auth/access/foo")
         .send({username: "default", access: "none"})
         .expect(204);
 
-        let r = await this.agent.get("/api/v1/scenes/foo/permissions")
+        let r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r).to.have.property("body").to.deep.equal([
@@ -168,11 +166,11 @@ describe("Web Server Integration", function(){
       });
 
       it("can remove a user's special permissions", async function(){
-        await this.agent.patch("/api/v1/scenes/foo/permissions")
+        await this.agent.patch("/auth/access/foo")
         .send({username: user.username, access: null})
         .expect(204);
 
-        let r = await this.agent.get("/api/v1/scenes/foo/permissions")
+        let r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r).to.have.property("body").to.deep.equal([
@@ -189,7 +187,7 @@ describe("Web Server Integration", function(){
       eve = await userManager.addUser("eve", "12345678");
 
       this.agent = request.agent(this.server);
-      await this.agent.post("/api/v1/login")
+      await this.agent.post("/auth/login")
       .send({username: eve.username, password: "12345678"})
       .set("Content-Type", "application/json")
       .set("Accept", "")
