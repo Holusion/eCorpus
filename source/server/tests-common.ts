@@ -31,7 +31,7 @@ global.dataStream = async function* (src :Array<Buffer|string> =["foo", "\n"]){
 }
 
 global.createIntegrationContext = async function(c :Mocha.Context, config_override :Partial<Config>={}){
-  let {default:createServer} = await import("./server.js");
+  let {default:createServer} = await import("./routes/index.js");
   let titleSlug = c.currentTest?.title.replace(/[^\w]/g, "_") ?? `eThesaurus_integration_test`;
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
   c.config = Object.assign(

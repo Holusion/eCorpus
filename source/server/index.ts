@@ -16,7 +16,7 @@
  */
 
 import path from "path";
-import createServer from "./server.js";
+import createServer from "./routes/index.js";
 import config from "./utils/config.js";
 
 //@ts-ignore

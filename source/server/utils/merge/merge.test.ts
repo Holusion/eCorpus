@@ -1,8 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
-import { fileURLToPath } from 'url';
 
-const thisDir = path.dirname(fileURLToPath(import.meta.url));
+import { fixturesDir } from "../../__test_fixtures/fixtures.js";
 
 
 
@@ -52,7 +51,7 @@ describe("three-way merge", function(){
 describe("merge documents", function(){
   let docString :string, doc :IDocument;
   this.beforeAll(async function(){
-    docString = await fs.readFile(path.resolve(thisDir, "../../__test_fixtures/documents/01_simple.svx.json"), "utf8");
+    docString = await fs.readFile(path.resolve(fixturesDir, "documents/01_simple.svx.json"), "utf8");
   });
   this.beforeEach(function(){
     doc = JSON.parse(docString);
@@ -115,7 +114,7 @@ describe("merge documents", function(){
       "03_tours.svx.json",
       "04_tours.svx.json",
     ].map( async (file) => {
-      const str = await fs.readFile(path.resolve(thisDir, "../../__test_fixtures/documents/", file), {encoding:"utf8"});
+      const str = await fs.readFile(path.resolve(fixturesDir, "documents/", file), {encoding:"utf8"});
       return JSON.parse(str);
     }));
 

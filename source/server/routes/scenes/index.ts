@@ -2,21 +2,31 @@ import { Router } from "express";
 
 import bodyParser from "body-parser";
 
-import {handlePropfind} from "./propfind.js";
-import {handlePutFile, handlePutDocument} from "./put/index.js";
 import { canAdmin, canRead, canWrite, isAdministrator, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 
-import handleGetDocument from "./get/document.js";
-import handleGetFile from "./get/file.js";
-import handleMoveFile from "./move/file.js";
-import handleDeleteFile from "./delete/file.js";
-import handleCopyFile from "./copy/file.js";
-import handleCopyDocument from "./copy/document.js";
-import handleDeleteScene from "./delete/scene.js";
-import handleCreateFolder from "./mkcol/folder.js";
-import handleCreateScene from "./mkcol/scene.js";
+import getScenes from "./get.js";
+import {handlePropfind} from "./propfind.js";
+import handlePostScene from "./post.js";
+
+import handleDeleteScene from "./scene/delete.js";
+import handleCreateScene from "./scene/mkcol.js";
+import getScene from "./scene/get.js";
+import patchScene from "./scene/patch.js";
+
+import handleCopyDocument from "./scene/files/copy/document.js";
+import handleCopyFile from "./scene/files/copy/file.js";
+import handleDeleteFile from "./scene/files/delete/file.js";
+import handleGetDocument from "./scene/files/get/document.js";
+import handleGetFile from "./scene/files/get/file.js";
+import handleMoveFile from "./scene/files/move/file.js";
+import handlePutDocument from "./scene/files/put/document.js";
+import handlePutFile from "./scene/files/put/file.js";
+import handleCreateFolder from "./scene/files/mkcol/folder.js";
+import postScene from "./scene/post.js";
+
+
 
 const router = Router();
 /** Configure cache behaviour for everything under `/scenes/**`
@@ -28,7 +38,12 @@ router.use((req, res, next)=>{
   next();
 });
 
+router.get("/", wrap(getScenes));
 router.propfind("/", wrap(handlePropfind));
+router.post("/", isAdministrator, wrap(handlePostScene));
+
+//allow POST outside of canRead : overwrite permissions are otherwise checked
+router.post("/:scene", wrap(postScene));
 
 //Allow mkcol outside of canRead check
 router.mkcol(`/:scene`, wrap(handleCreateScene));
@@ -37,7 +52,10 @@ router.mkcol(`/:scene`, wrap(handleCreateScene));
  * Protect everything after this with canRead handler
  */
 router.use("/:scene", canRead);
+
+router.get("/:scene", wrap(getScene));
 router.propfind("/:scene", wrap(handlePropfind));
+router.patch("/:scene", canAdmin,  bodyParser.json(), wrap(patchScene));
 router.delete("/:scene", canAdmin, wrap(handleDeleteScene));
 
 
