@@ -1,9 +1,10 @@
 
 import path from "path";
 import util from "util";
+
 import cookieSession from "cookie-session";
-import express from "express";
-import bodyParser from "body-parser";
+import express, { Request, Response } from "express";
+
 
 import UserManager from "../auth/UserManager.js";
 import { BadRequestError, HTTPError } from "../utils/errors.js";
@@ -208,6 +209,32 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   app.use("/users", (await import("./users/index.js")).default);
   app.use("/tags", (await import("./tags/index.js")).default);
   
+
+  /**
+   * Redirects for previous routes under /api/v1 prefix
+   * @fixme remove on next major release
+   */
+  app.use("/api/v1/:pathname(*)", util.deprecate((req :Request, res :Response, next)=>{
+    const host = getHost(req);
+    // Signal deprecation using the non-standard Deprecation header
+    // https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-deprecation-header
+    res.set("Deprecation", "@"+Math.round(new Date("2024-07-08T00:00:00.000Z").getTime()/1000).toString());
+    //Expected sunset date, approximately
+    res.set("Sunset", 'Wed, 01 Jan 2025 00:00:00 GMT');
+    let pathname = req.params.pathname;
+    if(/^\/log(?:in|out)/.test(pathname)){
+      pathname = "/auth"+pathname;
+    }else if(pathname.endsWith("history")){
+      pathname = "/history"+pathname.replace("/scenes", "").replace("/history", "");
+    }else if(pathname.endsWith("/permissions")){
+      pathname = "/auth/access"+pathname.replace("/scenes", "").replace("/permissions", "");
+    }
+    const dest = new URL(pathname, host.origin);
+    if(dest.origin != host.origin){
+      throw new BadRequestError();
+    }
+    res.redirect(301, dest.pathname);
+  }, `/api/v1 routes are deprecated. Use the new shorter naming scheme`));
 
   const log_errors = process.env["TEST"] !== 'true';
   const isTTY = process.stderr.isTTY;
