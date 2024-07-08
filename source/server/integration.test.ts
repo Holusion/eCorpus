@@ -199,5 +199,17 @@ describe("Web Server Integration", function(){
     it.skip("can be granted permissions", async function(){
       
     })
-  })
+  });
+
+  describe("/api/v1/* redirection", function(){
+    it("can get through deprecated route", async function(){
+      await request(this.server).get("/api/v1/scenes")
+      .expect(301)
+      .expect("Location", `/scenes`);
+    });
+    it("won't allow phishing attacks", async function(){
+      await request(this.server).get(`/api/v1/${encodeURI("https://holusion.com/fr/")}`)
+      .expect(400);
+    });
+  });
 })
