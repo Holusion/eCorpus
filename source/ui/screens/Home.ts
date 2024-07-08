@@ -111,7 +111,7 @@ interface Upload{
                 setError({code: xhr.status, message: xhr.statusText});
             }
 
-            xhr.open('POST', as_scenes? `/api/v1/scenes`:`/api/v1/scenes/${name}`);
+            xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}`);
             xhr.send(file);
         })();
     }

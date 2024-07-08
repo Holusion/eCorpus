@@ -46,7 +46,7 @@ interface User {
     
     fetchUsers() : void{
         this.loading = true;
-        fetch("/api/v1/users")
+        fetch("/users")
         .then(HttpError.okOrThrow)
         .then(async (r)=>{
             this.list = await r.json();
@@ -65,7 +65,7 @@ interface User {
         (ev.target as HTMLFormElement).reset();
         Modal.close();
         console.log("create user : ", username, password, isAdministrator, email);
-        fetch("/api/v1/users", {
+        fetch("/users", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({username, password, isAdministrator, email})
@@ -81,7 +81,7 @@ interface User {
     }
     onDeleteUser = (ev :MouseEvent, u :User)=>{
         ev.preventDefault();
-        fetch(`/api/v1/users/${u.uid}`, {
+        fetch(`/users/${u.uid}`, {
             headers: {"Content-Type": "application/json"},
             method: "DELETE"
         }).then(HttpError.okOrThrow)
@@ -180,7 +180,7 @@ interface User {
         </div>`;
     }
     createLoginLink(u :User){
-        fetch(`/api/v1/login/${u.username}/link`, {
+        fetch(`/auth/login/${u.username}/link`, {
             method: "GET",
             headers: {
                 "Content-Type": "text/plain"

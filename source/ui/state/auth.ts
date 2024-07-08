@@ -18,7 +18,7 @@ export function setSession(s ?:UserSession){
 }
 
 export async function doLogin(username :string, password :string) :Promise<void>{
-  await fetch("/api/v1/login", {
+  await fetch("/auth/login", {
     method: "POST",
     headers:{
       "Content-Type":"application/json",
@@ -35,7 +35,7 @@ export async function doLogin(username :string, password :string) :Promise<void>
 }
 
 export async function updateLogin(){
-  let r = await fetch("/api/v1/login", {
+  let r = await fetch("/auth/login", {
     method : "GET",
     headers:{"Accept": "application/json"}
   });
@@ -46,7 +46,7 @@ export async function updateLogin(){
 }
 
 export async function doLogout(){
-  let r = await fetch("/api/v1/logout", {
+  let r = await fetch("/auth/logout", {
     method : "POST",
     headers:{"Accept": "application/json"}
   });

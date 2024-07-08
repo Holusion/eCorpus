@@ -106,7 +106,7 @@ export function withScenes<T extends Constructor<LitElement>>(baseClass:T) : T &
       this.#loading.abort();
       this.#loading = new AbortController();
 
-      let url = new URL("/api/v1/scenes", window.location.href);
+      let url = new URL("/scenes", window.location.href);
       url.searchParams.set("orderBy", this.orderBy);
       url.searchParams.set("orderDirection", this.orderDirection);
 

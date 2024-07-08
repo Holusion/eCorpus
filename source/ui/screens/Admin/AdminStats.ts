@@ -22,7 +22,7 @@ export default class AdminStatsScreen extends i18n(LitElement) {
   scenes :{mtime:string, name:string}[] =[];
 
   fetchStats(){
-    fetch("/api/v1/admin/stats", {
+    fetch("/admin/stats", {
       headers:{"Accept":"application/json"}
     }).then(async r=>{
       let b = await r.json();
@@ -35,7 +35,7 @@ export default class AdminStatsScreen extends i18n(LitElement) {
   }
 
   fetchScenes(){
-    fetch("/api/v1/scenes", {
+    fetch("/scenes", {
       headers:{"Accept":"application/json"}
     }).then(async r=>{
       let b = await r.json();

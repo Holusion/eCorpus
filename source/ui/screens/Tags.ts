@@ -57,7 +57,7 @@ export default class TagsScreen extends withUser(LitElement){
 
   async fetchTags(){
     const signal = this.#c.signal;
-    await fetch(`/api/v1/tags`, {signal}).then(async (r)=>{
+    await fetch(`/tags`, {signal}).then(async (r)=>{
       if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
       let body = await r.json();
       if(signal.aborted) return;
@@ -73,7 +73,7 @@ export default class TagsScreen extends withUser(LitElement){
     this.scenes = [];
     if(this.selected === -1 ) return;
     const signal = this.#c.signal;
-    await fetch(`/api/v1/tags/${encodeURIComponent(this.tags[this.selected].name)}`, {signal}).then(async (r)=>{
+    await fetch(`/tags/${encodeURIComponent(this.tags[this.selected].name)}`, {signal}).then(async (r)=>{
       if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
       let body = await r.json();
       if(signal.aborted) return;

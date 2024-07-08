@@ -113,7 +113,7 @@ interface Upload{
                 setError({code: xhr.status, message: xhr.statusText});
             }
     
-            xhr.open('POST', as_scenes? `/api/v1/scenes`:`/api/v1/scenes/${name}`);
+            xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}`);
             xhr.send(file);
         })();
     }
@@ -190,7 +190,7 @@ interface Upload{
                         ${(this.selection.length)?html`
                         <div class="section">
                             <h4 style="margin-top:0">${this.t("ui.tools")}</h4>
-                            <a class="btn btn-main btn-icon" download href="/api/v1/scenes?${
+                            <a class="btn btn-main btn-icon" download href="/scenes?${
                                 this.selection.map(name=>`name=${encodeURIComponent(name)}`).join("&")
                                 }&format=zip">
                                 Download Zip
