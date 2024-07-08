@@ -18,7 +18,7 @@ export class TestmailModalBody extends i18n(LitElement){
   protected render(): unknown {
     let onsend  = ()=>{
       this.state = "sending";
-      fetch("/api/v1/admin/mailtest", {method: "POST"}).then(async (r)=>{
+      fetch("/admin/mailtest", {method: "POST"}).then(async (r)=>{
         let msg = await r.text();
         if(r.ok){
           this.state = "OK: "+msg;
@@ -73,7 +73,7 @@ export default class AdminHomeScreen extends i18n(LitElement) {
         <h3>${this.t("ui.tools")}</h3>
           <ul>
               <li>
-                  <a  download href="/api/v1/scenes?format=zip">${this.t("ui.downloadZip")}</a>
+                  <a  download href="/scenes?format=zip">${this.t("ui.downloadZip")}</a>
               </li>
               <li>
                 <a href="" @click=${(e)=>{

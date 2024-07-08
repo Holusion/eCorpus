@@ -47,7 +47,7 @@ interface User {
     
     fetchScenes() : void{
         this.loading = true;
-        fetch("/api/v1/scenes?access=none")
+        fetch("/scenes?access=none")
         .then(HttpError.okOrThrow)
         .then(async (r)=>{
             this.list = (await r.json()).scenes;
@@ -61,7 +61,7 @@ interface User {
 
     onDeleteScene = (ev :MouseEvent, s :Scene)=>{
         ev.preventDefault();
-        fetch(`/api/v1/scenes/${s.name}?archive=false`, {
+        fetch(`/scenes/${s.name}?archive=false`, {
             headers: {"Content-Type": "application/json"},
             method: "DELETE"
         }).then(HttpError.okOrThrow)

@@ -99,7 +99,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
     if(!Object.keys(patch).length){
       return Notification.show("Nothing to change", "info");
     }
-    fetch(`/api/v1/users/${this.user.uid}`, {
+    fetch(`/users/${this.user.uid}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

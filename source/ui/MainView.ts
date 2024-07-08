@@ -16,7 +16,6 @@ import "./composants/Modal";
 import "./screens/List";
 import "./screens/Admin";
 import "./screens/SceneHistory";
-import "./screens/FileHistory";
 import "./screens/UserSettings";
 import "./screens/Home";
 import "./screens/Tags";

@@ -120,7 +120,7 @@ class SceneVersion{
     
     async fetchScene(){
       const signal = this.#c.signal;
-      await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}`, {signal}).then(async (r)=>{
+      await fetch(`/scenes/${encodeURIComponent(this.name)}`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
@@ -134,7 +134,7 @@ class SceneVersion{
 
     async fetchPermissions(){
       const signal = this.#c.signal;
-      await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/permissions`, {signal}).then(async (r)=>{
+      await fetch(`/auth/access/${encodeURIComponent(this.name)}`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
@@ -148,7 +148,7 @@ class SceneVersion{
     
     async fetchHistory(){
       const signal = this.#c.signal;
-      await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/history`, {signal}).then(async (r)=>{
+      await fetch(`/history/${encodeURIComponent(this.name)}`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
@@ -216,7 +216,7 @@ class SceneVersion{
                   <ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}
                 </a>`:null}
                 <a class="btn btn-main" style="margin-top:10px" href=${`/ui/scenes/${scene}/view`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
-                <a class="btn btn-main" style="margin-top:10px" download href="/api/v1/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
+                <a class="btn btn-main" style="margin-top:10px" download href="/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
 
@@ -238,7 +238,7 @@ class SceneVersion{
 
 
     async setTags(tags :string[]){
-      return await fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}`, {
+      return await fetch(`/scenes/${encodeURIComponent(this.name)}`, {
         method: "PATCH",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({tags})
@@ -380,7 +380,7 @@ class SceneVersion{
       console.log("Restore : ", i);
       Notification.show(`Restoring to ${i.name}#${i.generation}...`, "info");
       this.versions = null;
-      fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/history/`, {
+      fetch(`/history/${encodeURIComponent(this.name)}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(i)
@@ -394,7 +394,7 @@ class SceneVersion{
 
     async grant(username :string, access :AccessRights["access"]){
       if(access == "none" && username != "default") access = null;
-      let p = fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}/permissions`, {
+      let p = fetch(`/auth/access/${encodeURIComponent(this.name)}`, {
         method: "PATCH",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({username:username, access:access})
@@ -449,7 +449,7 @@ class SceneVersion{
           header: this.t("ui.renameScene"),
           body: html`<div style="display:block;position:relative;padding-top:110px"><spin-loader visible></spin-loader></div>`,
         });
-        fetch(`/api/v1/scenes/${encodeURIComponent(this.name)}`, {
+        fetch(`/scenes/${encodeURIComponent(this.name)}`, {
           method:"PATCH",
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({name})
