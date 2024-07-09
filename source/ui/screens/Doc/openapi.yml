@@ -1,0 +1,380 @@
+openapi: '3.1.0'
+info:
+  title: eCorpus
+  version: '1.0.0'
+  summary: HTTP API for eCorpus
+  description: |
+    This HTTP API provides all necessary routes to access and edit scenes stored on an eCorpus instance under the `/scenes` path.
+    Additionally it provides a number of namespaced utilities
+    for **users** management (`/users`),
+    **authentication** and ACL edition (`/auth`),
+    changes **history** management (`/history`)
+    or gathering scenes under **collections** (`/tags`).
+
+    It provides some webDAV utility routes for the `/scenes` resources 
+    but is far from [Class 1](http://www.webdav.org/specs/rfc4918.html#rfc.section.18.1) Compliance:
+    Only routes that are necessary for proper [Voyager](https://smithsonian.github.io/dpo-voyager/) support are implemented.
+    WebDAV-specific methods are defined as an extension with a `x-` prefix to prevent breaking openAPI tooling 
+
+    Other namespaces tends to adhere to a stricter REST philosophy where possible.
+  contact:
+    name: eCorpus Support
+    url: https://github.com/Holusion/eCorpus
+    email: contact@holusion.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+    
+servers:
+  - url: https://ecorpus.holusion.com
+
+tags:
+  - name: admin
+    description: Administrative tasks routes
+  - name: auth
+    description: Authentication, access control querying and edition routes. 
+  - name: history
+    description: |
+      history management utilities for the `/scenes` namespace.
+      Scene names in `/history` directly and uniquely maps to scenes in `/scenes`.
+  - name: scenes
+    description: |
+      Where all the actual data is stored
+      API design for the `/scenes/*` makes use of the liberal definition of
+      [GET for collections](https://datatracker.ietf.org/doc/html/rfc2518#section-8.4) in the webDAV specification
+      to return well-defined JSON documents for those queries, allowing most use cases to bypass cumbersome PROPFIND queries
+  - name: tags
+    description: |
+      collections (tags) management routes.
+  - name: users
+    description: Users management
+
+paths:
+  /scenes:
+    summary: Collection of the scenes stored on this service
+    get:
+      tags: [scenes]
+      operationId: getScenes
+      description: |
+        get a list of scenes with optional search parameters. Similar to PROPFIND but will return JSON.
+        Provides advanced search and pagination semantics
+      responses: 
+        '200':
+          description: a list of scenes matching this query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Scene"
+    post:
+      tags: [scenes]
+      operationId: postScenes
+      description: import an archive of scenes to be extracted into the `scenes/` folder
+    x-propfind:
+      tags: [scenes]
+      operationId: propfindScenes
+      description: fetch all readable content in `scenes/`
+  /scenes/{scene}:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+    get:
+      tags: [scenes]
+      operationId: getScene
+      description: get a scene's metadata.
+    x-mkcol:
+      tags: [scenes]
+      operationId: mkScene
+      description: creates a new empty scene. This scene will essentially be invisible until populated
+    x-propfind:
+      tags: [scenes]
+      operationId: propfindScene
+      description: fetch the scene's content
+    delete:
+      tags: [scenes]
+      operationId: deleteScene
+      description: Archives a scene
+    post:
+      tags: [scenes]
+      operationId: postScene
+      description: creates a new scene using attached data
+      requestBody:
+        description: "scene initialization data"
+        required: true
+        content:
+          model/gltf-binary:
+            schema: 
+              type: string
+              format: binary
+              description: A `.glb` model file
+          
+    patch:
+      tags: [scenes]
+      operationId: patchScene
+      description: Edit scene's metadata
+      requestBody:
+        description: Scene patch data
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /scenes/{scene}/{file}:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+      - $ref: '#/components/parameters/file'
+    get:
+      tags: [scenes]
+      operationId: getFile
+      description: get a file in scene
+    put:
+      tags: [scenes]
+      operationId: putFile
+      description: overwrite the file with new content
+    x-copy:
+      tags: [scenes]
+      operationId: copyFile
+      description: copy a file to another location in the same scene
+    x-move:
+      tags: [scenes]
+      operationId: moveFile
+      description: move a file to another location in the same scene
+    delete:
+      tags: [scenes]
+      operationId: deleteFile
+      description: archives a file. It is still accessible through the history API
+    x-mkcol:
+      tags: [scenes]
+      operationId: mkFolder
+      description: creates a folder in a scene
+    x-propfind:
+      tags: [scenes]
+      operationId: propfindFile
+      description: get a file's properties
+  /history/{scene}:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+    get:
+      tags: [history]
+      operationId: getHistory
+      description: get a full history of a scene's modifications
+    post:
+      tags: [history]
+      operationId: postHistory
+      description: edit a scene's history
+  /history/{scene}/files:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+    get:
+      tags: [history]
+      operationId: getFileHistory
+      description: list all files in the scenes in their current state
+  /tags:
+    get:
+      tags: [tags]
+      operationId: getTags
+      description: get a list of tags on this server
+  /tags/{tag}:
+    parameters:
+      - name: tag
+        in: path
+        required: true
+        schema: {type: "string"}
+        description: name of a tag
+    get:
+      tags: [tags]
+      operationId: getTag
+      description: get all scenes associated with this tag
+  /users:
+    get:
+      tags: [users]
+      operationId: getUsers
+      description: get a list of registered users
+      responses:
+        '200':
+          description: An array of all users registered on this server
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User"}
+        '401':
+          $ref: "#/components/responses/HTTPError"
+    post:
+      tags: [users]
+      operationId: postUser
+      description: create a new user
+  /users/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+        schema: {type: "string", pattern: '^\d+$'}
+        description: unique ID of an user (stays stable through user renames)
+    delete:
+      tags: [users]
+      operationId: deleteUser
+      description: delete a user
+    patch:
+      tags: [users]
+      operationId: patchUser
+      description: change a user's data
+  /auth:
+    get:
+      tags: [auth]
+      operationId: getAuth
+      description: get login data
+    post:
+      tags: [auth]
+      operationId: postAuth
+      description: log-in to the server
+  /auth/login/{username}/link:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema: {type: "string"}
+        description: human-readable unique name of an user
+    get:
+      tags: [auth]
+      operationId: getAuthLink
+      description: get a login link for this user
+    post:
+      tags: [auth]
+      operationId: postAuthLink
+      description: generate and send a login link for this user
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: postLogout
+      description: delete this request's credentials
+  /auth/access/{scene}:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+    get:
+      tags: [auth]
+      operationId: getAccess
+      description: get a scene's access rights
+      responses:
+        '200':
+          description: Access map  defined for this scene
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: ["uid", "username", "access"]
+                  properties:
+                    uid: { $ref: "#/components/schemas/Uid"}
+                    username: {type: string}
+                    access: { $ref: "#/components/schemas/AccessType" }
+        '401':
+          $ref: "#/components/responses/HTTPError"
+    patch:
+      tags: [auth]
+      operationId: patchAccess
+      description: edit a scene's access rights
+# Administrative data. Might contain server configuration routes in the future
+  /admin/stats:
+    get:
+      tags: [admin]
+      operationId: getAdminStats
+      description: get server stats
+  /admin/mailtest:
+    post:
+      tags: [admin]
+      operationId: postAdminMailtest
+      description: sends a test email
+
+components:
+  parameters:
+    scene:
+      name: scene
+      in: path
+      required: true
+      schema: {type: string }
+      description: unique name of a scene
+      example: foo
+    file:
+      name: file
+      in: path
+      required: true
+      schema: {type: "string"}
+      description: |
+        relative path to a scene's file.
+        Might contain slashs, though openAPI spec won't allow them in test queries
+      examples:
+        folder:
+          summary: a file in a nested folder
+          value: models/foo.glb
+        thumbnail:
+          summary: a thumbnail for this scene
+          value: "scene-image-thumb.jpg"
+        document:
+          summary: a voyager scene document file
+          value: scene.svx.json
+  responses:
+    'HTTPError':
+      description: Generic HTTP error response whose content depends on the request's "Accept" header
+      content:
+        application/json:
+          schema:
+            type: object
+            required: ["code", "message"]
+            properties:
+              code:
+                description: |
+                  [HTTP Status](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) code
+                type: number
+                format: int32
+                minimum: 100
+                maximum: 599
+              message:
+                type: string
+        text/plain: 
+          schema: 
+            type: "string"
+            example: "Bad Request"
+        text/html:
+          schema:
+            type: "string"
+
+  schemas:
+    Scene: 
+      type: object
+      required: ["ctime", "mtime", "author_id", "author", "id", "access"]
+      properties:
+        ctime: {type: "string", format: "date-time"}
+        mtime: {type: "string", format: "date-time"}
+        author_id: {$ref:"#/components/schemas/Uid"}
+        author:  {type: "string"}
+        id:  {$ref:"#/components/schemas/Uid"}
+        name: {type: "string"}
+        thumb: {type: "string", desciption: "URI to the scene's thumbnail representation if it exists"}
+        access: {
+          type: object,
+          required: ["any", "default"],
+          properties: {
+            default: {$ref:"#/components/schemas/AccessType"},
+            any: {$ref:"#/components/schemas/AccessType"},
+            user: {$ref:"#/components/schemas/AccessType"},
+          }
+        }
+    User:
+      type: object
+      required: ["uid", "username", "isAdministrator"]
+      properties:
+        uid: {$ref: "#/components/schemas/Uid"}
+        username: {type: "string", example: "alice" }
+        isAdministrator: {type: "boolean"}
+    Uid: 
+      type: "string"
+      pattern: '^\d+$'
+      description:
+        string representation of unique IDs.
+        Applicable for users or scenes, but uids are not expected to be unique across namespaces
+        UIDs are often stringified to prevent rounding errors on large intergers in the javascript engine
+    AccessType:
+      type: string
+      enum: ["none", "read", "write", "admin"]

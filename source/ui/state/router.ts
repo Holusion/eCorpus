@@ -8,14 +8,14 @@ export interface RouteParams<T extends Router = any>{
 
 export type RouteHandler<T extends Router = any> =  (props :RouteParams<T>)=> TemplateResult;
 
-export interface Route{
+export interface RouteDeclaration{
   pattern :RegExp;
   content :RouteHandler<Router>;
 }
 
 export declare class Router{
   path :string;
-  static routes :Route[];
+  static routes :RouteDeclaration[];
   get route() :URL;
   isActive(pathname :string, strict?:boolean) :boolean;
   renderContent() :TemplateResult;

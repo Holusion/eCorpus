@@ -44,6 +44,12 @@ declare module "*.webp" {
     export default path;
 }
 
+declare module "*.yml"{
+    import type { Openapi2 } from 'screens/Doc/oas';
+    const definition :Openapi2;
+    export default definition;
+}
+
 // Webpack constant: build version
 declare const ENV_VERSION: string;
 // Webpack constant: true during development build

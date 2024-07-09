@@ -154,6 +154,10 @@ module.exports = function createAppConfig(env, argv={})
                         publicPath: "/dist/",
                     }
                 },
+                {
+                    test: /openapi\.ya?ml$/i,
+                    use: path.resolve(dirs.source,"oas-loader.mjs")
+                }
             ]
         },
 

@@ -21,6 +21,7 @@ import "./screens/UserSettings";
 import "./screens/Home";
 import "./screens/Tags";
 
+import "./screens/Doc";
 
 import Notification from "./composants/Notification";
 
@@ -44,6 +45,8 @@ export default class MainView extends router(i18n(withUser(LitElement))){
   static "/ui/admin/.*" = ()=> html`<admin-panel></admin-panel>`;
   @route()
   static "/ui/scenes/:id/" = ({params}) => html`<scene-history name="${params.id}"></scene-history>`;
+  @route()
+  static "/ui/doc/.*" = () => html`<user-doc></user-doc>`
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -72,6 +75,7 @@ export default class MainView extends router(i18n(withUser(LitElement))){
 
         </form>
         <nav-link .selected=${this.isActive("/ui/tags/")} href="/ui/tags/">Collections</nav-link>
+        <nav-link .selected=${this.isActive("/ui/doc/")} href="/ui/doc/">Documentation</nav-link>
         ${(this.user?.isAdministrator)?html`<nav-link .selected=${this.isActive("/ui/admin/")} href="/ui/admin/">${this.t("ui.administration")}</nav-link>`:""}
         <div class="divider"></div>
         <user-button .selected=${this.isActive("/ui/user/")} .user=${this.user}></user-button>
