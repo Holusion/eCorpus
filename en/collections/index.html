@@ -17,7 +17,7 @@ layout: page
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="https://ecorpus.holusion.com/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
                 <div style="padding-left: 5px;">
                     <h4>{{ p.title }}</h4>
                     <p>{{ p.abstract }}</p> 
