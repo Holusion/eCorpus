@@ -4,10 +4,7 @@ title: Using the API
 
 ## Using the API
 
-eCorpus provides a two-part API:
-
- - webDAV on `/scenes/**` to access scene files.
- - REST on `/api/v1/**` for administrative management.
+eCorpus provides a comprehensive API that build on DPO-Voyager's requirements.
 
 ### Authentication
 
@@ -19,7 +16,9 @@ Header encoding is handled automatically by most utilities. Example with curl:
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com/[...]
 ```
 
-### API webDAV
+Get the full [API reference](/en/doc/references/api.md)
+
+### /scenes API
 
 File organization:
 
@@ -46,11 +45,4 @@ So to retrieve a:
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com//scenes/foo/models/foo.glb
 ```
 
-Les verbes `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` et `PROPFIND` sont supportés, avec un comportement se conformant généralement à la [spécification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}.
-
-
-### API REST
-
-The REST API can be accessed at `/api/v1/`. It uses standard HTTP verbs.
-
-See the [route reference](/en/doc/references/api) for details.
+`GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` and `PROPFIND` methods are supported, with a behaviour that should conform to [RFC4918](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}, but don't expect Class 2 or even Class 1 compliance.

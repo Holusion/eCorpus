@@ -4,10 +4,8 @@ title: Utiliser l'API
 
 ## Utiliser l'API
 
-eCorpus fournit une API en deux parties :
+eCorpus fournit une API complète qui couvre les besoins de DPO Voyager en y ajoutant des interfaces de gestion des utilisateurs, contrôle des droits d'accès, organisation des scènes en collections, etc...
 
- - webDAV sur `/scenes/**` pour accéder aux fichiers des scènes.
- - REST sur `/api/v1/**` pour la gestion administrative.
 
 ### Authentification
 
@@ -19,7 +17,7 @@ L'encodage du header est géré automatiquement par la plupart des utilitaires. 
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com/[...]
 ```
 
-### API webDAV
+### Organisation des scenes
 
 Organisation des fichiers :
 
@@ -46,11 +44,9 @@ Ainsi pour récupérer un modèle :
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com//scenes/foo/models/foo.glb
 ```
 
-Les verbes `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` et `PROPFIND` sont supportés, avec un comportement se conformant généralement à la [spécification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}.
+Les verbes `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` et `PROPFIND` sont supportés, avec un comportement se conformant généralement à la [spécification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}. Attention tout de même : Il s'agit d'une implémentation partielle de la spécification.
 
 
 ### API REST
 
-L'API REST est accessible sur `/api/v1/`. Elle utilise les verbes standard HTTP.
-
-Voir la [référence des routes](/fr/doc/references/api) pour plus de détails.
+L'API REST est documentée via un schéma [OpenAPI v3.1.0](https://spec.openapis.org/oas/v3.1.0), téléchargeable ici : [openapi.yml](https://raw.githubusercontent.com/Holusion/eCorpus/gh_pages//_data/openapi.yml). L'API est présentée sous forme lisible en anglais uniquement sur ce site à cette page : [https://ecorpus.eu/en/doc/references/api](/en/doc/references/api).

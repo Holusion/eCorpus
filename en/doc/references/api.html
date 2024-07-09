@@ -1,0 +1,106 @@
+---
+title: API eCorpus
+---
+
+<h1>eCorpus HTTP API</h1>
+
+{% assign api = site.data.openapi %}
+
+
+{{ api.info.description  | markdownify }}
+
+
+{% for tag in api.tags %}
+  <h2>{{tag.name}}</h2>
+
+  {{tag.description  | markdownify }}
+  {% for path in api.paths %}
+    {% for operation in path[1] %}
+      {% if operation[0] == "summary" or operation[0] == "parameters" %}
+        {% continue %}
+      {%endif %}
+      {% assign method =  operation[0] | replace_first: "x-", "" %}
+      <h3 class="operation-title">
+        <span class="method {{ method }}">
+          {{ method }}
+        </span>
+        {{ path[0] }}
+      </h3>
+      {% if path[1].parameters %}
+        <blockquote>
+          {% for param in path[1].parameters %}
+            {% if param["$ref"] %}
+              {% assign parts = param["$ref"]|replace_first: "#", ""| split: "/" %}
+              {% assign p = api %}
+              {% for part in  parts %}
+                {% if part == empty %} {% continue %} {% endif %}
+                {% assign p = p[part] %}
+              {% endfor %}
+            {% else %}
+              {% assign p = param %}
+            {% endif %}
+            <p>
+              {% if part == empty %} {% continue %} {% endif %}
+              {{p.name}} ({{p.in}}): {{p.description}}
+            </p>
+          {% endfor %}
+        </blockquote>
+      {% endif %}
+      <p>
+        {{operation[1].description | markdownify }}
+      </p>
+    {% endfor %}
+
+  {% endfor %}
+
+{% endfor %}
+
+
+<style>
+  .doc-page .operation-title{
+    border: none;
+    padding-left: 0;
+  }
+  .doc-page .method{
+    font-weight: bold;
+    box-sizing: border-box;
+    width: 10ch;
+    background-color: #888;
+    color: white;
+    text-transform: uppercase;
+    text-align: center;
+    border-radius: 4px;
+    margin-right: 6px;
+
+    &.get{
+      background-color: #2f8132;
+    }
+    &.post{
+      background-color: #186faf;
+    }
+    &.put{
+      background-color: #FD7E14;
+    }
+    &.delete{
+      background-color: #dc3545;
+    }
+    &.patch{
+      background-color: #ffc107;
+    }
+    &.mkcol{
+      background-color: #38b3f9;
+    }
+    &.propfind{
+      background-color: #28a745;
+    }
+    &.copy, &.move{
+      background-color: #6f42c1;
+    }
+  }
+  .nav-right{
+    .method{
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+  }
+</style>
