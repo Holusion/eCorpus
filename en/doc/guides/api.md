@@ -16,7 +16,7 @@ Header encoding is handled automatically by most utilities. Example with curl:
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com/[...]
 ```
 
-Get the full [API reference](/en/doc/references/api.md)
+Get the full [API reference](/en/doc/references/api)
 
 ### /scenes API
 
