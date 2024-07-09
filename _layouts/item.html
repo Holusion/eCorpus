@@ -8,7 +8,7 @@ layout: page
 
 <section class="section">
     
-    {% include voyager.html embed=page.scene class="h-100 larg100" %}
+    {% include voyager.html server=page.server embed=page.scene class="h-100 larg100" %}
     
     {%- for prop in page.properties -%}
         <h4>{{ prop[0] }}</h4>
@@ -24,7 +24,7 @@ layout: page
         "@type": "3DModel",
         "name": "{{page.scene}}",
         "abstract": "{{page.abstract}}",
-        "image": "https://ecorpus.holusion.com/scenes/{{page.scene}}/scene-image-thumb.jpg",
+        "image": "{{page.server}}/scenes/{{page.scene}}/scene-image-thumb.jpg",
         "encoding":{
             "@type": "MediaObject",
             "contentUrl": "{{page.object}}",

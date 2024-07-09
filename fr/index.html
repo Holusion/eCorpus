@@ -17,10 +17,10 @@ description: >
         alt="Gros plan sur le pied de croix de l'abbaye de Saint-Bertin. l'évangéliste Matthieu devant son pupitre, tourné vers son symbole (l'ange). Réalisé en image de synthèse à partir d'une photogrammétrie">
     <div class="section">
         <h3>
-            eCorpus : l'outil d’édition 3D pour les chercheurs et les conservateurs
+            eCorpus : Outil d’édition 3D libre pour les chercheurs et les conservateurs
         </h3>
         <p>
-            ECorpus permet de <b>stocker, annoter et partager vos modèles 3D</b>. Il utilise <a
+            eCorpus permet de <b>stocker, annoter et partager une collection de modèles 3D</b>. Il utilise <a
                 href="https://smithsonian.github.io/dpo-voyager/" target="_blank"><b>DPO-Voyager</a> comme
             visualiseur 3D</b> et éditeur de métadonnées, et est doté entre autres d'un gestionnaire de droits
             utilisateurs
@@ -31,6 +31,7 @@ description: >
             numérisation de
             six œuvres d'orfèvrerie médiévale, conservées au musée
             Sandelin à Saint-Omer et au Palais des Beaux-arts de Lille.</p>
+        <p>Le développement est assuré conjointement par l'Université de Lille, l'Université de Liège et la société Holusion</p>
     </div>
     <!-- <div class="section">
         <img src="/assets/img/packshot.webp"
@@ -53,18 +54,16 @@ description: >
         alt="Prise de photogramétrie d'un biface Acheuléen par l'Inrap">
     <div class="section">
         <p>
-            <b>Il est possible de numériser vous même vos objets</b> ou les faire numériser par la société <a
-                href="https://holusion.com/" target="_blank">Holusion</a> par exemple.
-        </p>
-        <p>
             Les modèles numériques issus de la <b>photogrammétrie</b> comportent les informations liées à la géométrie
             de l’objet sous la forme d’un maillage ainsi que les informations liées à son aspect visuels tels que décrit
             dans un modèle PBR (Physical Based Rendering) décrivant pour chaque point de l’objet ses propriétés optique
             : couleur, réflexion, spéculaires, rugosité etc…
         </p>
         <p>
-            Ces informations permettent donc la <b>création d'un double numérique de l’objet initial</b>, notamment dans
-            le cas d’<a href="https://holusion.com/fr/posts/2019-02-15-holomouseio" target="_blank">Holomouseio</a>.
+            eCorpus est développé au sein d'un ecosystème public-privé de spécialistes de la numérisation du patrimoine, formant un centre de compétence sur ces activités. Vous pouvez nous joindre pour acceder à des ressources ou des prestations au près de l'Université de Lille, de Liège, d'entreprises privées ou bien de partenaires en fonction de vos besoins.
+        </p>
+        <p>
+            eCorpus et les techniques de numérisation sont également enseignées dans le cadre de modules <b>Numérique et Patrimoine</b> au sein de plusieurs universités.
         </p>
     </div>
 </section>
@@ -74,7 +73,7 @@ description: >
     <div class="section">
         <h3>Caractéristiques d'eCorpus</h3>
     </div>
-    {% include voyager.html embed="croix-reliquaire" class="h-100 larg100" %}
+    {% include voyager.html server="https://ecorpus.holusion.com" embed="croix-reliquaire" class="h-100 larg100" %}
 
     <div class="section">
         <h4>Complet</h4>
@@ -99,14 +98,14 @@ description: >
             L’architecture de l’application fonctionne grâce au déploiement d’instances indépendantes, <b>les bases de
                 données étant compatibles entre elles, mais entièrement séparées</b>.
             La majeure partie des cas d’usages concernent des entités qui possèdent déjà une solution de gestion de
-            contenu, tel que Omeka S. Les données de eCorpus sont intégrables au sein de celle-ci et recherchables.
+            contenu, les données de eCorpus sont intégrables au sein de celle-ci et recherchables.
         </p>
         <h4>Open source</h4>
         <p>
             Les résultats du développement sont diffusés dans un format Open Source, pour que l’utilisateur soit
             pleinement propriétaire de ses données et de son environnement. De plus, le dynamisme d’un projet Open
             Source est capital dans la réussite d’un projet et sa diffusion. La présence de sa documentation sur une
-            plateforme comme <a href="https://github.com/Holusion/eThesaurus" target="_blank">GitHub</a> et l’activité régulière du
+            plateforme comme <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> et l’activité régulière du
             développement avec une équipe clairement identiﬁée.
         </p>
         <h4>Structure</h4>
@@ -152,7 +151,7 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
     <div class="section">
         <h3> Médiation et diffusion des contenus</h3>
     </div>
-    {% include voyager.html embed="encensoir" class="h-100" %}
+    {% include voyager.html embed="encensoir" server="https://ecorpus.holusion.com" class="h-100" %}
     <div class="section">
         <p>
             eCorpus permet une diffusion des objets 3D et des métadonnées dans deux conﬁgurations différentes.

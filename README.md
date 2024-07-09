@@ -18,3 +18,11 @@ gem install bundler
 bundle install
 bundle exec jekyll serve
 ```
+
+### Auto regeneration on WSL
+
+Having trouble on auto regeneration on WSL2, try
+
+```bash
+bundle exec jekyll serve --force-polling
+```

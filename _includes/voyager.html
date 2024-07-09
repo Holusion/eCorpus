@@ -5,9 +5,15 @@ include voyager.html embed=item-id
 {%endcomment%}
 
 {% assign lang = {{page.lang}} | upcase %}
-{% assign itemSrc = {{include.embed}} | prepend: "https://ecorpus.holusion.com/ui/scenes/" | append: "/view?lang=" | append: lang %}
+{% assign itemSrc = {{include.embed}} | prepend: "/ui/scenes/"  | prepend: {{include.server}} | append: "/view?lang=" | append: lang %}
+{% assign root = {{include.embed}} | prepend: "/scenes/"  | prepend: {{include.server}}}
+{% assign server = {{include.server}} %}
 {% assign itemClass = {{include.class}} | prepend: " media ratio ratio-16x9 "%}
 
+
 <div class="{{itemClass}}">
-    <iframe name="Voyager on eCorpus" src="{{itemSrc}}" allow="xr; xr-spatial-tracking; fullscreen"></iframe>
-</div>
+    <div class="ecorpus_container">
+      <voyager-explorer id="{{include.embed}}" root='{{root}}/' lang="{{page.lang}}" document='scene.svx.json'></voyager-explorer>
+      <script src="{{include.server}}/dist/js/voyager-explorer.js"></script>
+      </div>
+  </div>
