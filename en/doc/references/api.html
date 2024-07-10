@@ -2,16 +2,32 @@
 title: API eCorpus
 ---
 
+{% assign api = site.data.openapi | OAPI_dereference %}
+
 <h1>eCorpus HTTP API</h1>
 
-{% assign api = site.data.openapi %}
 
 
+
+<div class="tag-cloud">
+  <p>If you're just getting started with the API, you are probably interested in the <a href="#scenes">Scenes</a> section.</p>
+  <p>
+    For more advanced uses, this API is organized in sections (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.1.0">OpenAPI language</a>), each under a namespace prefix :
+  </p>
+  <ul>
+    {% for tag in api.tags %}
+      <li>
+        <a href="#{{tag.name | slugify}}">{{tag.name}}</a>: 
+        <div>{{tag.description | markdownify}}</div>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+<h2 id="introduction">Introduction</h2>
 {{ api.info.description  | markdownify }}
 
-
 {% for tag in api.tags %}
-  <h2>{{tag.name}}</h2>
+  <h2 id="{{tag.name | slugify}}"><span class="tag-name">{{tag.name}}</span></h2>
 
   {{tag.description  | markdownify }}
   {% for path in api.paths %}
@@ -19,36 +35,78 @@ title: API eCorpus
       {% if operation[0] == "summary" or operation[0] == "parameters" %}
         {% continue %}
       {%endif %}
+      {% unless operation[1].tags contains tag.name %}{% continue %} {% endunless %}
       {% assign method =  operation[0] | replace_first: "x-", "" %}
-      <h3 class="operation-title">
+      <h3 id="{{operation[1].operationId |slugify}}" class="operation-title">
         <span class="method {{ method }}">
           {{ method }}
         </span>
         {{ path[0] }}
       </h3>
-      {% if path[1].parameters %}
-        <blockquote>
-          {% for param in path[1].parameters %}
-            {% if param["$ref"] %}
-              {% assign parts = param["$ref"]|replace_first: "#", ""| split: "/" %}
-              {% assign p = api %}
-              {% for part in  parts %}
-                {% if part == empty %} {% continue %} {% endif %}
-                {% assign p = p[part] %}
-              {% endfor %}
-            {% else %}
-              {% assign p = param %}
-            {% endif %}
-            <p>
-              {% if part == empty %} {% continue %} {% endif %}
-              {{p.name}} ({{p.in}}): {{p.description}}
-            </p>
-          {% endfor %}
-        </blockquote>
-      {% endif %}
-      <p>
+
+      <div class="operation-description">
         {{operation[1].description | markdownify }}
-      </p>
+      </div>
+      {% assign params = ""| split: "" %}
+
+      {% if path[1].parameters %}
+        {% assign params = params | concat: path[1].parameters %}
+      {% endif %}
+      {% if operation[1].parameters %}
+        {% assign params = params | concat: operation[1].parameters %}
+      {% endif %}
+
+      {% assign params = params | OAPI_parameters %}
+
+      {% unless params["path"] == empty %}
+        <h4>Path parameters</h4>
+        <table class="group-table path-params">
+          {% for param in params["path"] %}
+            <tr class="param">
+              <td class="param-name"><code >:{{param.name}}</code></td>
+              <td>{{param.description |markdownify}}</td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% endunless %}
+
+      {% unless params["query"] == empty %}
+      <h4>Query parameters</h4>
+      <table class="group-table query-params">
+        {% for param in params["query"] %}
+          <tr class="param">
+            <td class="param-name">
+              <code >:{{param.name}}</code>
+              {%if param.required %}<span class="required">required</span>{% endif %}
+            </td>
+            <td>
+              {{param.description | markdownify}}
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% endunless %}
+    
+    {% if operation[1].responses %}
+      <h4>Responses</h4>
+      {% for response in operation[1].responses %}
+        <div class="response">
+          <div class="response-header">
+            <code class="response-code" data-code="{{response[0]}}">{{response[0]}}</code>
+          </div>
+          <div class="response-contents">
+            <div>{{ response[1].description | markdownify }}</div>
+            {% for content in response[1].content %}
+              <div class="response-content">
+                <h5 class="content-type">{{content[0]}}</h5>
+                <pre class="highlight"><code>{{content[1].schema | OAPI_schema }}</code></pre>
+              </div>
+            {% endfor %}
+            </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+      
     {% endfor %}
 
   {% endfor %}
@@ -97,10 +155,39 @@ title: API eCorpus
       background-color: #6f42c1;
     }
   }
+  .group-table{
+    width: 100%;
+    border-collapse: collapse;
+    display: table;
+  }
+
+  .response{
+    display:flex;
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    
+    .response-code{
+      display:block;
+      width: 4ch;
+      font-weight: bold;
+      &[data-code="200"]{
+        color:  #28a745;
+      }
+    }
+
+  }
+
   .nav-right{
+    
     .method{
       text-transform: uppercase;
       font-weight: bold;
+    }
+    .tag-name{
+      font-weight: bold;
+      font-size: 120%;
+      color: #E6B900;
     }
   }
 </style>

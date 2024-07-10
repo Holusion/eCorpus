@@ -51,22 +51,111 @@ tags:
 
 paths:
   /scenes:
-    summary: Collection of the scenes stored on this service
     get:
       tags: [scenes]
       operationId: getScenes
       description: |
         get a list of scenes with optional search parameters. Similar to PROPFIND but will return JSON.
         Provides advanced search and pagination semantics
+      parameters:
+      - name: id
+        in: query
+        style: form
+        explode: true
+        schema: {type: array, items: {$ref: "#/components/schemas/Uid"}}
+        description: |
+          Scenes IDs to get. If provided, will return only those scenes.
+          Mainly useful for zip download
+      - name: name
+        in: query
+        style: form
+        explode: true
+        schema: {type: array, items: {type: string}}
+        description: |
+          Scene names to get. If provided, will return only those scenes, ignoring the `match` parameter
+      - name: match
+        in: query
+        description: |
+          Matches a string against a scene's name, author, authorized users  and document meta.
+
+          See examples for the accepted syntax
+        schema: 
+          type: string
+          examples:
+            simple:
+              value: foo
+              description: |
+                Match scenes that contains the string "foo"
+            words:
+              value: foo bar
+              description: |
+                Match scenes that contains both words in unrelated places.
+            quoted:
+              value: '"foo bar"'
+              description: |
+                Match scenes that contains those words next to each other
+      - name: access
+        in: query
+        style: form
+        explode: true
+        description: |
+          Match only scenes for which the current user have the requested access rights
+        schema:
+          type: array
+          items: { $ref: "#/components/schemas/AccessType"}
+      - name: limit
+        in: query
+        description: |
+          Limit the number of returned results. A hard maximum of 100 is enforced
+          Ordering is guaranteed to stay stable when `orderBy:ctime`is used`
+        schema: {type: number, format: int32, minimum: 1, maximum: 100}
+      - name: offset
+        in: query
+        description: Skip the first *n* results. Use with `limit` to paginate results.
+        schema:  {type: number, format: int32, minimum: 0}
+      - name: orderBy
+        in: query
+        description: Field to use for results sorting
+        schema:
+          type: string
+          enum: ["name", "ctime", "mtime"]
+      - name: orderDirection
+        in: query
+        description: Switch between ascending and descending order
+        schema:
+          type: string
+          enum: ["asc", "desc"]
       responses: 
         '200':
-          description: a list of scenes matching this query
+          description: |
+            A list of scenes matching this query.
+
+            By default, returns a JSON object containing basic metadata for all scenes.
+
+            Can be used to return a ZIP archive of the matched scenes content.
+          headers:
+            Etag: {$ref: "#/components/schemas/Etag"}
+            Last-Modified: {$ref: "#/components/schemas/LastModified"}
+
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Scene"
+                type: object
+                required: ["scenes"]
+                properties:
+                  scenes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Scene"
+            text/plain:
+              schema:
+                type: string
+                example: "foo\nbar\nbaz"
+            application/zip:
+              schema:
+                type: string
+                format: binary
+              
     post:
       tags: [scenes]
       operationId: postScenes
@@ -347,18 +436,18 @@ components:
       properties:
         ctime: {type: "string", format: "date-time"}
         mtime: {type: "string", format: "date-time"}
-        author_id: {$ref:"#/components/schemas/Uid"}
+        author_id: { $ref: "#/components/schemas/Uid" }
         author:  {type: "string"}
-        id:  {$ref:"#/components/schemas/Uid"}
+        id:  { $ref: "#/components/schemas/Uid"}
         name: {type: "string"}
         thumb: {type: "string", desciption: "URI to the scene's thumbnail representation if it exists"}
         access: {
           type: object,
           required: ["any", "default"],
           properties: {
-            default: {$ref:"#/components/schemas/AccessType"},
-            any: {$ref:"#/components/schemas/AccessType"},
-            user: {$ref:"#/components/schemas/AccessType"},
+            default: { $ref: "#/components/schemas/AccessType" },
+            any: { $ref: "#/components/schemas/AccessType" },
+            user: { $ref: "#/components/schemas/AccessType" },
           }
         }
     User:
@@ -378,3 +467,18 @@ components:
     AccessType:
       type: string
       enum: ["none", "read", "write", "admin"]
+    Etag:
+      description: |
+        unique string describing the resource state, generally used for caching. A base64url sha256 hash sum is generally used but the exact format's stability shouldn't be relied-upon.
+      type: string
+      examples:
+        weak: 
+          value: "W/oFpbfs6awWPgScobk7dDvUnjEWYnDvqCekDfVnMKAWI"
+          summary: "Weak Etag, calculated upon the resource's identifying data, which could lead to an Etag change while the content hasn't changed"
+        strong: 
+          value: "hohW3ydF34xbzWteINtEmJ69ftqMXcyX3HO5S4hp4lo"
+          summary: Calculated on a resource's content, which is expected to stay stable.
+    LastModified:
+      description: a date's UTC representation
+      type: string
+      format: date-time
