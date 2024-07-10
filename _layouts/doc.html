@@ -14,5 +14,5 @@ layout: default
     {{ content }}
 </main>
 <nav class="navbar nav-doc nav-right">
-    {% include toc.html html=content %}
+    {% include toc.html html=content h_max=4 skip_no_ids=true %}
 </nav>
