@@ -240,6 +240,25 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   const isTTY = process.stderr.isTTY;
 
   // error handling
+  //This should be last as it will match everything
+  app.use((req, res)=>{
+    //We don't just throw an error to be able to differentiate between
+    //internally-thrown 404 and routes that doesn't exist in logs
+    const err = { code:404, message: `Not Found`, reason: `No route was defined that could match ${req.originalUrl}`}
+    res.format({
+      "application/json": ()=> {
+        res.status(404).send(err)
+      },
+      "text/html": ()=>{
+        res.status(404).render("error", { err });
+      },
+      "text/plain": ()=>{
+        res.status(404).send(err.message);
+      },
+      default: ()=> res.status(404).send(err.message),
+    });
+  });
+
   // istanbul ignore next
   //@ts-ignore
   app.use((error, req, res, next) => {
