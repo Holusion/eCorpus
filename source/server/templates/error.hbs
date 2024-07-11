@@ -11,7 +11,7 @@
 
 <p class="message">{{message}}</p>
 
-<pre class="stack"><code>{{stack}}</code></pre>
+<pre class="stack"><code>{{#if reason}}{{reason}}{{else}}{{stack}}{{/if}}</code></pre>
 
 {{/with}}
 </main>
