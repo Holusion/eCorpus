@@ -8,8 +8,8 @@ import getTag from "./tag/get.js";
 
 const router = Router();
 
-router.get("/tags", isUser, wrap(getTags));
-router.get("/tags/:tag", isUser, wrap(getTag));
+router.get("/", isUser, wrap(getTags));
+router.get("/:tag", isUser, wrap(getTag));
 
 
 export default router;
