@@ -20,7 +20,7 @@ Accédez à la page **collection** de votre instance eCorpus. Sélectionnez les 
 #### Utilisation de l'API
 
 ```bash
-curl -XGET https://${HOSTNAME}/api/v1/scenes?name=${NAME}&format=zip
+curl -XGET https://${HOSTNAME}/scenes?name=${NAME}&format=zip
 ```
 Vous pouvez ajouter autant de paramètres `name="..."` que nécessaire, séparés par des caractères `&`.
 
@@ -29,8 +29,12 @@ Vous pouvez ajouter autant de paramètres `name="..."` que nécessaire, séparé
 
 #### Utilisation de l'API
 
+Importer une scène ou une collection de scènes exportées d'une instance eCorpus.
+
 ```bash
-curl -XPOST https://${HOSTNAME}/api/v1/scenes --data-binary "@${ZIP_FILE}" | jq .
+curl -XPOST https://${HOSTNAME}/scenes --data-binary "@${ZIP_FILE}" -u "${USERNAME}:${PASSWORD}" | jq .
 ```
+
+Seul les comptes avec des droits d'**administrateur** peuvent effectuer cette requête.
 
 Cette requête retourne une liste des changements effectués qui peut être assez longue. Vous pouvez filtrer les échecs en utilisant `jq .fail` ou si vous n'avez pas `jq` installé, vous pouvez utiliser curl en mode silencieux et inspecter uniquement le status de la réponse : `curl -s --fail -o /dev/null -w "%{http_code}"`.
