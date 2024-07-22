@@ -155,7 +155,7 @@ paths:
               schema:
                 type: string
                 format: binary
-              
+
     post:
       tags: [scenes]
       operationId: postScenes
@@ -164,6 +164,7 @@ paths:
       tags: [scenes]
       operationId: propfindScenes
       description: fetch all readable content in `scenes/`
+
   /scenes/{scene}:
     parameters:
       - $ref: '#/components/parameters/scene'
@@ -171,6 +172,17 @@ paths:
       tags: [scenes]
       operationId: getScene
       description: get a scene's metadata.
+      responses:
+        '200':
+          description: The requested scene's data
+          headers:
+            Etag: {$ref: "#/components/schemas/Etag"}
+            Last-Modified: {$ref: "#/components/schemas/LastModified"}
+          content:
+            application/json: { $ref: "#/components/schemas/Scene" }
+        '404':
+          description: scene not found. It doesn't exist or isn't readable with the current authentication
+
     x-mkcol:
       tags: [scenes]
       operationId: mkScene
@@ -183,10 +195,29 @@ paths:
       tags: [scenes]
       operationId: deleteScene
       description: Archives a scene
+      parameters:
+        - name: archive
+          in: query
+          schema: {type: "boolean"}
+          description:
+            Set to false to force-delete scenes (instance administrators only).
+            Otherwise archive it in a way that could be undone by administrators.
+            
+            Defaults to true
+      responses:
+        '204':
+          description: "success"
+        '401':
+          description: |
+            Unauthorized, either due to improper authentication or insufficient access rights.
+            Archiving a scene requires "admin" rights over it, while force-delete requires instance-level administrative rights.
     post:
       tags: [scenes]
       operationId: postScene
-      description: creates a new scene using attached data
+      description: |
+        creates a new scene using attached data.
+
+        When a GLB model is provided as request body, creates a default scene, initialized with this model positionned at (0,0,0).
       requestBody:
         description: "scene initialization data"
         required: true
@@ -196,19 +227,48 @@ paths:
               type: string
               format: binary
               description: A `.glb` model file
-          
+      responses:
+        '201':
+          description: a new scene was created and initialized with a default `scene.svx.json` file
+        '409':
+          description: a scene with this name already exists
     patch:
       tags: [scenes]
       operationId: patchScene
       description: Edit scene's metadata
       requestBody:
-        description: Scene patch data
+        description: |
+          Scene patch data using a partial object. Check schema for a list of editable fields.
+          
+          Permissions are additive, to reset a user to default permissions, explicitely set his permission to `null`.
+
+          Tags are copied: if a `tags` field is provided, any tag not included will be removed.
         required: true
         content:
           application/json:
             schema:
               type: object
-  /scenes/{scene}/{file}:
+              required: []
+              properties:
+                name: 
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/AccessType" 
+
+                tags:
+                  type: array
+                  items:
+                    type: string
+        responses:
+          '200':
+            description: "The updated scene data"
+            content:
+              application/json:
+                schema: { $ref: "#/components/schemas/Scene" }
+
+  /scenes/{scene}/{file:.*}:
     parameters:
       - $ref: '#/components/parameters/scene'
       - $ref: '#/components/parameters/file'
@@ -216,10 +276,23 @@ paths:
       tags: [scenes]
       operationId: getFile
       description: get a file in scene
+      content:
+        default:
+          description: |
+            The file.
+            
+            It's `Content-Type` header should match the expected [MIME](https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types) type.
+          schema: { type: string, format: binary }
+
     put:
       tags: [scenes]
       operationId: putFile
       description: overwrite the file with new content
+      requestBody:
+        description: The file's data
+        content:
+          '*/*':
+            schema: {type: string, format: binary }
     x-copy:
       tags: [scenes]
       operationId: copyFile

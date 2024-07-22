@@ -99,7 +99,9 @@ title: API eCorpus
             {% for content in response[1].content %}
               <div class="response-content">
                 <h5 class="content-type">{{content[0]}}</h5>
-                <pre class="highlight"><code>{{content[1].schema | OAPI_schema }}</code></pre>
+                {% if content[1].schema %}
+                  <pre class="highlight"><code>{{content[1].schema | OAPI_schema }}</code></pre>
+                {% endif %}
               </div>
             {% endfor %}
             </div>

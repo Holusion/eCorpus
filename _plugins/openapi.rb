@@ -9,17 +9,14 @@ module Jekyll
         input.each do |key, value|
           if key == "$ref"
             if not value.is_a?(String) or not value.start_with?("#/")
-              raise SyntaxError, <<~END
-              Syntax Error in tag 'OAPI_dereference' : Bad reference pointer : #{value}
-              END
+              Jekyll.logger.warn("Syntax Error in tag 'OAPI_dereference' : Bad reference pointer : #{value}")
+              return
             end
             ptr = context
             value.split("/")[1, 10]. each do |part|
               ptr = ptr[part]
               if not ptr
-                raise SyntaxError, <<~END
-                Syntax Error in tag 'OAPI_dereference' : Bad reference pointer : #{value} ("#{part}" not found)
-                END
+                Jekyll.logger.warn("Syntax Error in tag 'OAPI_dereference' : Bad reference pointer : #{value} (\"#{part}\" not found)")
               end
             end
             return OAPI_dereference(ptr, context)
@@ -49,10 +46,9 @@ module Jekyll
     end
 
     def OAPI_schema(input, prefix="")
-      if not input["type"]
-        raise SyntaxError, <<~END
-        Syntax Error in tag 'OAPI_schema' : Not a valid schema object : #{input}
-        END
+      if not input or not input["type"]
+        Jekyll.logger.warn("Syntax Error in tag 'OAPI_schema' : Not a valid schema object : #{input}")
+        return ""
       end
       case input["type"]
       when "object"
