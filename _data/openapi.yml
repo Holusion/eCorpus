@@ -160,11 +160,30 @@ paths:
       tags: [scenes]
       operationId: postScenes
       description: import an archive of scenes to be extracted into the `scenes/` folder
+      requestBody:
+        required: true
+        description: |
+          A zip file that contains an archived scene hierarchy.
+
+          eCorpus uses a simplified internal zip decoder that is guaranteed to handle only data exported from another eCorpus instance.
+          If you wish to create an archive yourself, you have to ensure your archiver stores only uncompressed data using only supported ZIP features
+        content:
+          application/zip:
+            schema: {type: string, format: binary}
+
     x-propfind:
       tags: [scenes]
       operationId: propfindScenes
-      description: fetch all readable content in `scenes/`
-
+      description: |
+        list all readable content in `scenes/`. See [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND) to learn more about PROPFIND
+        This is a minimal implementation that just lists contained elements, respecting the [Depth](http://www.webdav.org/specs/rfc4918.html#HEADER_Depth) header.
+        While this is not paginated, expect future changes to implement limits on the results' size.
+      responses:
+        '200':
+          description: a PROPFIND multistatus response
+          content:
+            application/xml: 
+              schema: { $ref: "#/components/schemas/WebDAVMultistatus"}
   /scenes/{scene}:
     parameters:
       - $ref: '#/components/parameters/scene'
@@ -555,3 +574,41 @@ components:
       description: a date's UTC representation
       type: string
       format: date-time
+    WebDAVMultistatus:
+      description: |
+        XML document returned for a PROPFIND request as defined in [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND)
+        See [rfc4918#xml.element.definitions](http://www.webdav.org/specs/rfc4918.html#xml.element.definitions) for reference XML schema.
+      type: object
+      xml:
+        namespace: "DAV:"
+        prefix: "D:"
+      required: ["multistatus"]
+      properties:
+        responseDescription:
+          type: string
+        response:
+          type: array
+          items: { $ref: "#/components/schemas/WebDAVResponse" }
+
+    WebDAVResponse:
+      description: |
+        Part of a webDAV multistatus XML response object
+      type: object
+      required: ["href"]
+      properties:
+        href:
+          type: array
+          items: {type: string}
+        status:
+          type: string
+          examples:
+            ok:
+              value: HTTP/1.1 200 OK
+              description: successful response
+            forbidden:
+              value: HTTP/1.1 403 Forbidden
+              description: 403 HTTP error
+
+    WebDAVPropstat:
+      description: Propstat Object
+      type: object

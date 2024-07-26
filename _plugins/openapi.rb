@@ -45,27 +45,49 @@ module Jekyll
       return output
     end
 
+
+    def XML_schema(input)
+      return "XML string"
+
+    end
+
     def OAPI_schema(input, prefix="")
-      if not input or not input["type"]
-        Jekyll.logger.warn("Syntax Error in tag 'OAPI_schema' : Not a valid schema object : #{input}")
+      if not input or not input.is_a?(Hash) or not input["type"]
+        Jekyll.logger.warn("Syntax Error in tag 'OAPI_schema' : Not a valid schema object : #{input.inspect()}")
         return ""
       end
       case input["type"]
       when "object"
         str = "{"
         input["properties"].each do | key, schema|
-          str = str + "\n#{prefix}  #{key}: #{OAPI_schema(schema, ( prefix || "")+"  ")}"
-        end
+          required = (input["required"] and input["required"].index(key) != nil)
+          if required
+            print("Required "+key+" "+input["required"].inspect()+" "+(input["required"].index(key) != nil).to_s()+"\n")
+          end
+          str = str + "\n#{prefix}  #{key}#{if required then "" else "?" end}: #{OAPI_schema(schema, ( prefix || "")+"  ")}"
+        end if not input["properties"].nil?
         return str +"\n"+prefix+"}"
       when "array"
         return "[ #{OAPI_schema(input["items"], ( prefix || ""))} ]"
-
+      when "string"
+        if input["format"] == "binary"
+          return "Buffer"
+        end
+        str = "\"string\""
+        if input["summary"]
+          str = str + "  //#{input["summary"]}"
+        elsif input["pattern"]
+          str = str + "  // /#{input["pattern"]}/"
+        end
+        return str
       else
         str = input["type"]
         if input["format"]
-          str = str+" (#{input["format"]})"
+          str = str + " (#{input["format"]})"
         end
-
+        if input["summary"]
+          str = str + "  //#{input["summary"]}"
+        end
         return str
       end
     end
