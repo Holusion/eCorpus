@@ -108,11 +108,11 @@ title: API eCorpus
           {{ body.description | markdownify }}
           <div class="body-contents">
             {% for content in body.content %}
-              <h5>{{content[0]}}</h5>
+              {% assign content_schema = content[1].schema %}
+              {% assign content_type = content[0] %}
+              <h5>{{content_type}}</h5>
               <div>
-                {% if content[1].schema %}
-                  <pre class="highlight"><code>{{content[1].schema | OAPI_schema }}</code></pre>
-                {% endif %}
+                {% include oapi/schema.html schema=content_schema type=content_type %}
               </div>
             {% endfor %}
           </div>
@@ -131,10 +131,12 @@ title: API eCorpus
               <div>{{ response[1].description | markdownify }}</div>
               {% for content in response[1].content %}
                 <div class="response-content">
-                  <h5 class="content-type">{{content[0]}}</h5>
-                  {% if content[1].schema %}
-                    <pre class="highlight"><code>{{content[1].schema | OAPI_schema }}</code></pre>
-                  {% endif %}
+                  {% assign content_schema = content[1].schema %}
+                  {% assign content_type = content[0] %}
+                  <h5 class="content-type">{{content_type}}</h5>
+                  <div>
+                    {% include oapi/schema.html schema=content_schema type=content_type %}
+                  </div>
                 </div>
               {% endfor %}
               </div>
@@ -217,6 +219,7 @@ title: API eCorpus
     border-bottom: 1px solid #444444;
     .response-contents{
       flex-grow: 1;
+      max-width: 100%;
     }
     .response-code{
       display:block;

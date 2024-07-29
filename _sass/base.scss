@@ -255,7 +255,7 @@ footer a:hover {
   flex-direction: row;
   padding: 0 40px 0 0;
 }
-.langues-navbar2 > div > div >a{
+.langues-navbar2 a{
   padding: 0 0 0 10px;
 }
 
@@ -652,15 +652,15 @@ p > code{
 svg{
   vertical-align: middle;
 }
-div > div > pre > code > span {
-  background-color: transparent;
-}
-div {
-  max-width: inherit;
-}
-div > div > pre {
+
+
+pre{
   overflow: auto;
+  > code > span {
+    background-color: transparent;
+  }
 }
+
 
 
 figcaption{

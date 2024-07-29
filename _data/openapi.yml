@@ -580,14 +580,17 @@ components:
         See [rfc4918#xml.element.definitions](http://www.webdav.org/specs/rfc4918.html#xml.element.definitions) for reference XML schema.
       type: object
       xml:
+        name: "multistatus"
         namespace: "DAV:"
-        prefix: "D:"
-      required: ["multistatus"]
+        prefix: "D"
+      required: ["response"]
       properties:
         responseDescription:
           type: string
+          xml: {prefix: "D"}
         response:
           type: array
+          xml: {prefix: "D"}
           items: { $ref: "#/components/schemas/WebDAVResponse" }
 
     WebDAVResponse:
@@ -598,9 +601,21 @@ components:
       properties:
         href:
           type: array
-          items: {type: string}
+          items:
+            type: string
+            example: https://example.com/foo
+          xml: { prefix: "D"}
+        propstat: { $ref: "#/components/schemas/WebDAVPropstat"}
+
+    WebDAVPropstat:
+      description: Propstat Object
+      type: object
+      required: ["status"]
+      xml: { prefix: "D"}
+      properties:
         status:
           type: string
+          xml: { prefix: "D"}
           examples:
             ok:
               value: HTTP/1.1 200 OK
@@ -608,7 +623,23 @@ components:
             forbidden:
               value: HTTP/1.1 403 Forbidden
               description: 403 HTTP error
+        prop:
+          type: object
+          xml: { prefix: "D" }
+          properties:
+            getlastmodified: { $ref: "#/components/schemas/WebDAVDate" }
+            creationdate: { $ref: "#/components/schemas/WebDAVDate" }
+            resourcetype:
+              xml: { prefix: "D" }
+              type: object
+    WebDAVDate:
+      description: a date, formated as GMT iso string
+      type: string
+      format: date-time
+      xml: { prefix: "D" }
+      example: Tue, 28 May 2024 11:59:56 GMT
 
-    WebDAVPropstat:
-      description: Propstat Object
-      type: object
+
+            
+
+

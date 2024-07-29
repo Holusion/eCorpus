@@ -1,0 +1,16 @@
+
+
+
+{% if include.schema and include.type == "application/xml" %}
+<div class="language-xml highlighter-rouge">
+  <pre class="highlight"><code>{{include.schema | OAPI_XML_schema }}</code></pre>
+</div>
+{% elsif content[1].schema %}
+<div class="language-json highlighter-rouge">
+  <pre class="highlight"><code>{{include.schema | OAPI_schema }}</code></pre>
+</div>
+{% else %}
+<div class="language-plaintext highlighter-rouge">
+  <pre class="highlight"><code>No schema provided</code></pre>
+</div>
+{% endif %}
