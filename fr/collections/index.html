@@ -50,3 +50,25 @@ layout: page
     </div>
 </div>
 </section>
+
+<section class="section" id="IRHiS au Palais des Beaux-Arts">
+    <h2>
+        Pièces présentés dans le Palais des Beaux-Arts de Lille.
+    </h2>
+    <p>Collection assemblée dans le cadre de la formation à la photogrammétrie pour les étudiants en license à l'IRHiS.</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p> 
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
