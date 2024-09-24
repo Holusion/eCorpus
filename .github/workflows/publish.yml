@@ -13,6 +13,90 @@ concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  build-ui:
+    name: Build UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - name: install voyager dependencies
+        run: (cd source/voyager && npm ci --legacy-peer-deps)
+      - name: install ui dependencies
+        run: npm ci && (cd source/ui && npm ci)
+      - name: build UI
+        run: npm run build-ui
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "client"
+          path: "dist"
+          if-no-files-found: error
+          retention-days: 1
+
+  build-server:
+    name: Build Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - name: install
+        run: npm ci && (cd source/server && npm ci)
+      - name: test
+        run: (cd source/server && npm test)
+      - name: build
+        run:  npm run build-server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "server"
+          path: "source/server/dist"
+          if-no-files-found: error
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "server-files"
+          path: |
+            source/server/package.json
+            source/server/package-lock.json
+            source/server/migrations/
+            source/server/templates/
+            source/server/LICENSE.md
+          retention-days: 1
+
+  pack:
+    name: Pack tarball
+    runs-on: ubuntu-latest
+    needs: [build-ui, build-server]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: eCorpus
+      - name: edit run scripts
+        working-directory: eCorpus
+        run: |
+          jq '.scripts.start ="node server/index.js"' ./server-files/package.json > "package.json"
+          rm server-files/package.json
+          mv server-files/* ./
+          rm -r server-files
+      - name: make tarball
+        run: |
+          tar -zcf eCorpus-${{github.ref_name}}.tgz eCorpus
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "dist"
+          path: "eCorpus-*.tgz"
+          if-no-files-found: error
+          retention-days: 10
+
   docker-publish:
     name: Docker Image
     runs-on: ubuntu-latest
