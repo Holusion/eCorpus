@@ -32,7 +32,7 @@ Start your local server.
 
 Open another terminal and run the following command:
     
-    curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "isAdministrator": true}' "http://localhost:8000/api/v1/users"
+    curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "isAdministrator": true}' "http://localhost:8000/users"
     
 Replace `<...>` with your desired username, password, and email address.
 Other accounts can be created via the web interface.
