@@ -5,7 +5,7 @@
     "public": false,
     "type": "module",
     "scripts": {
-        "start": "ROOT_DIR=\"$(pwd)/../..\" node ./dist/server/index.js",
+        "start": "ROOT_DIR=\"$(pwd)/../..\" node ./dist/index.js",
         "test": "NODE_NO_WARNINGS=1 mocha",
         "test-watch": "NODE_NO_WARNINGS=1 mocha --parallel --watch --reporter min",
         "build": "tsc -b ."

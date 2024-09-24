@@ -10,7 +10,7 @@
         "sourceMap": true,
         "types": ["mocha", "chai", "chai-as-promised"],
         "outDir": "./dist",
-        "rootDir": ".."
+        "rootDir": "."
     },
     "files": [
         "index.ts",
