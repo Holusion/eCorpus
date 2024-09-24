@@ -9,32 +9,8 @@ title: Quick Installation
 
 This section provides an example of creating a minimal instance of eCorpus for testing purposes. To do so, follow these steps:
 
-<!-- 1. Clone the eCorpus repository using the following command:
-    ```
-    git clone --filter=blob:none --recurse-submodules git@github.com:Holusion/eCorpus
-    ```
-2. Navigate to the eCorpus directory:
-    ```
-    cd eCorpus
-    ```
-3. Install the required dependencies:
-    ```
-    npm i
-    (cd source/voyager && npm i --legacy-peer-deps)
-    (cd source/server && npm i)
-    (cd source/ui && npm i)
-    ```
-4. Build the user interface and server:
-    ```
-    npm run build-ui
-    npm run build-server
-    ```
-5. Start the server:
-    ```
-    npm start
-    ``` -->
 
-    git clone --filter=blob:none --recurse-submodules git@github.com:Holusion/eCorpus
+    git clone --filter=blob:none --recurse-submodules https://github.com/Holusion/eCorpus
     cd eCorpus
     npm i
     (cd source/voyager && npm i --legacy-peer-deps)
