@@ -385,6 +385,23 @@ paths:
       tags: [users]
       operationId: postUser
       description: create a new user
+      requestBody:
+        description: the user to create
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["username", "email", "password"]
+              properties:
+                username: {type: "string", example: "jdupont" }
+                email: {type: "string", example: "jdupont@example.com" }
+                password: {type: "string", example: "p@ssw0rd" }
+                isAdministrator: {type: "boolean"}
+      responses:
+        '201':
+          description: user created successfully
+        '400':
+          $ref: "#/components/responses/HTTPError"
   /users/{uid}:
     parameters:
       - name: uid
