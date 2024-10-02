@@ -31,7 +31,7 @@ async function getDocument(scene:string, filepath:string){
     "boundingBox": meta.bounds,
     "derivatives":[{
       "usage": "Web3D",
-      "quality": "Highest",
+      "quality": "High",
       "assets": [
         {
           "uri": `models/${scene}.glb`,
