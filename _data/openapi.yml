@@ -417,7 +417,7 @@ paths:
       tags: [users]
       operationId: patchUser
       description: change a user's data
-  /auth:
+  /auth/login:
     get:
       tags: [auth]
       operationId: getAuth
