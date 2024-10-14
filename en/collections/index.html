@@ -6,14 +6,36 @@ layout: page
 <section class="section">
     <h2 class="text-white my-5" style="font-size: 3rem">Gallery</h2>
 </section>
-<section class="section">
+<section class="section" id="eThesaurus">
     <h2>
-        Medieval goldsmithing pieces.
+        Medieval goldsmithing pieces
     </h2>
     <p>Collection gathered from the <a href="/en/about">eThesaurus</a> consortium's works</p>.
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p> 
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
+
+<section class="section" id="NotreDamedeParis"></section>
+    <h2>
+        Digitized elements of Notre-Dame de Paris
+    </h2>
+    <p>Collection assembled as part of the restoration work and the exhibition <a href="/fr/2024/05/06/suad.html">Notre-Dame de Paris</a> at Sorbonne Abu Dhabi University.</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredamedeparis" %}
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="list-group-item" style="display: flex;">
@@ -27,3 +49,5 @@ layout: page
     </div>
 </div>
 </section>
+
+
