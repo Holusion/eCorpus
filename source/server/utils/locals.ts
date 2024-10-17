@@ -9,7 +9,6 @@ import Templates from "./templates.js";
 import { Config } from "./config.js";
 
 export interface AppLocals extends Record<string, any>{
-  port :number;
   fileDir :string;
   userManager :UserManager;
   vfs :Vfs;

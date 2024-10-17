@@ -25,20 +25,11 @@ import("source-map-support").then((s)=>{
 }, (e)=>console.log("Source maps not supported"));
 
 
-
-////////////////////////////////////////////////////////////////////////////////
-// CONFIGURATION
-
-const port: number = parseInt(process.env["VOYAGER_SERVER_PORT"]|| "8000") ;
-
-
 (async ()=>{
     let root = path.resolve(config.root_dir);
-    console.info("Serve directory : "+root);
+    console.info("Serve directory : "+root+" on "+config.port);
     const app = await createServer(config);
-    
-    app.listen(port, () => {
-        console.info(`Server ready and listening on port ${port}\n`);
-        app.locals.port = port;
+    app.listen(config.port, () => {
+        console.info(`Server ready and listening on port ${config.port}\n`);
     });
 })();

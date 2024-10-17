@@ -6,7 +6,7 @@ const values = {
   node_env:["development", toString],
   public: [true, toBool],
   brand: ["eCorpus", toString],
-  port: [8000, toUInt ],
+  port: [8000, toListenTarget ],
   force_migration: [false, toBool],
   clean_database: [true, toBool],
   root_dir: [ process.cwd(), toPath],
@@ -50,6 +50,14 @@ function toUInt(s:string):number{
   let n = parseInt(s, 10);
   if(Number.isNaN(n) || !Number.isSafeInteger(n) || n < 0) throw new Error("PORT expect a valid positive integer");
   return n;
+}
+
+function toListenTarget(s:string):number|string{
+  try{
+    return toUInt(s);
+  }catch(e){
+    return s;
+  }
 }
 
 function toBool(s:string):boolean{
