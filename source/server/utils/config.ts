@@ -48,7 +48,7 @@ function toPath(s:string):string{
 
 function toUInt(s:string):number{
   let n = parseInt(s, 10);
-  if(Number.isNaN(n) || !Number.isSafeInteger(n) || n < 0) throw new Error("PORT expect a valid positive integer");
+  if(Number.isNaN(n) || !Number.isSafeInteger(n) || n < 0) throw new Error("expected a valid positive integer");
   return n;
 }
 

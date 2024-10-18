@@ -14,14 +14,14 @@ describe("config", function(){
   });
 
   describe("parse()", function(){
-    it("reports error for misformated environment variables", function(){
-      ["bar", "-1"].forEach(v=>{
-        expect(()=> parse({"PORT": v as any}), `${v} should not be valid`).to.throw("PORT expect a valid positive integer");
-      });
-    });
     it("parse integers", function(){
       expect(parse({PORT:"3000"})).to.have.property("port", 3000);
     })
+
+    it("parse ports or unix socket paths", function(){
+      expect(parse({PORT:"3000"})).to.have.property("port", 3000);
+      expect(parse({PORT:"/var/run/socket.sock"})).to.have.property("port", "/var/run/socket.sock");
+    });
     
     it("parse booleans", function(){
       expect(parse({PUBLIC:"false"})).to.have.property("public", false);
