@@ -5,6 +5,7 @@ import { isAdministrator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import handleGetStats from "./stats/index.js";
 import handleMailtest from "./mailtest.js";
+import handleGetConfig from "./config/get.js";
 
 
 const router = Router();
@@ -21,6 +22,7 @@ router.use((req, res, next)=>{
 
 
 router.get("/stats", isAdministrator, wrap(handleGetStats));
+router.get("/config", isAdministrator, wrap(handleGetConfig));
 router.post("/mailtest", isAdministrator, wrap(handleMailtest));
 
 export default router;

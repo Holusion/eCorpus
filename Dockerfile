@@ -1,4 +1,11 @@
 
+ARG PORT
+ARG PUBLIC
+ARG BUILD_REF
+
+################### 
+# Build source
+###################
 FROM node:16-alpine as build
 RUN mkdir -p /app/dist /app/source
 WORKDIR /app
@@ -31,14 +38,15 @@ RUN npm run build-ui
 # The actual container to be published
 ###################
 FROM node:16-alpine
-LABEL org.opencontainers.image.source=https://github.com/Holusion/e-thesaurus
+LABEL org.opencontainers.image.source=https://github.com/Holusion/eCorpus
 LABEL org.opencontainers.image.description="eCorpus base image"
 LABEL org.opencontainers.image.licenses=Apache
 
-ARG PORT=8000
 
-ENV PUBLIC=false
-ENV PORT=${PORT}
+ENV PUBLIC=${PUBLIC:-false}
+ENV PORT=${PORT:-8000}
+ENV BUILD_REF=${BUILD_REF:-unknown}
+
 ENV NODE_ENV=production
 
 WORKDIR /app

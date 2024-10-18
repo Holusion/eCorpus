@@ -20,6 +20,7 @@ const values = {
   hot_reload:[false, toBool],
   smart_host: ["smtp://localhost", toString],
   verbose: [false, toBool],
+  build_ref: ["unknown", toString],
 
   experimental: [false, toBool],
   /// FEATURE FLAGS ///
