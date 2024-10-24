@@ -156,13 +156,10 @@ module.exports = function createAppConfig(env, argv={})
                 },
             ]
         },
-
+        devtool: isDevMode? "eval-source-map":"source-map",
         stats: {chunkModules: true, excludeModules: false }
     };
 
-    if (isDevMode) {
-        config.devtool = "source-map";
-    }
 
     const voyagerConfig = createVoyagerConfig({app: "all"}, argv);
     /********************************
@@ -189,7 +186,10 @@ module.exports = function createAppConfig(env, argv={})
     });
 
     //Use filesystem cache for faster initial builds
-    Object.assign(voyagerConfig, {cache: {type: "filesystem"}});
+    Object.assign(voyagerConfig, {
+        cache: {type: "filesystem"},
+        devtool: isDevMode? "eval-source-map":"source-map",
+    });
 
     return [config, voyagerConfig];
 }
