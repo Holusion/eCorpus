@@ -67,13 +67,3 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: update docker service
-        run: >
-          docker -H ssh://github@${{ env.DEPLOY_HOST }}:22 service update
-          --with-registry-auth
-          --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.docker-publish.outputs.digest }}
-          ecorpus_main
-      - name: check service status
-        run: >
-          curl -sSL --fail -H "Accept: application/json" -I http://${{ env.DEPLOY_HOST }}/api/v1/scenes
