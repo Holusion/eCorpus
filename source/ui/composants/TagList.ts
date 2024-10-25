@@ -33,7 +33,7 @@ export default class TagList extends LitElement{
   private onClick = (index :number, ev :Event)=>{
     ev.preventDefault();
     ev.stopPropagation();
-    this.dispatchEvent(new CustomEvent("click", {detail: this.tags[index]}));
+    this.dispatchEvent(new CustomEvent("click", {detail: {name: this.tags[index], index}}));
   }
 
   render(){

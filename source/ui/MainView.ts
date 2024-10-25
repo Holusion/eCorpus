@@ -34,7 +34,7 @@ export default class MainView extends router(i18n(withUser(LitElement))){
   @route()
   static "/ui/" =({search})=> html`<home-page .compact=${(search as URLSearchParams).has("compact")}></home-page>`;
   @route()
-  static "/ui/tags/" = ()=>html`<tags-screen></tags-screen>`;
+  static "/ui/tags/.*" = ()=>html`<tags-screen></tags-screen>`;
   @route()
   static "/ui/scenes/" =({search: qs})=> html`<corpus-list .match=${(qs as URLSearchParams).get("search")} .compact=${(qs as URLSearchParams).has("compact")}></corpus-list>`;
   @route()
