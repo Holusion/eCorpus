@@ -32,6 +32,7 @@ interface ItemEntry{
   author_id :number;
   author :string;
   size :number;
+  mime :string;
 }
 
 interface AccessRights{
@@ -338,7 +339,9 @@ class SceneVersion{
               <div class="list-item" name="${name}">
                 <div style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">
                   <div class="tooltip" style="margin-bottom:5px" >${name}
-                    <div><ul style="opacity:0.7">${[...v.names.values()].map((n, index)=>html`<li>${n}</li>`)}</ul></div>
+                    <div><ul style="opacity:0.7">${[...v.entries].map((n, index)=>{
+                      return html`<li>${n.name} ${n.mime != "text/directory"? html`(${n.size?html`<b-size b=${n.size}></b-size>`:"DELETED"})`:null}</li>`
+                    })}</ul></div>
                   </div>
                   
                   <div style=""><b>${authors}</b> <span style="opacity:0.6; font-size: smaller">${new Date(v.start).toLocaleString(this.language)}</span></div>
