@@ -7,40 +7,33 @@ include youtube.html embed=##########
   <div class="play-button">
   </div>
   <script defer>
-    (function(){ //Use an anonymous function to prevent poluting the global space
-      var embed = '{{include.embed}}';
-      var video = document.querySelector("[data-embed='"+embed+"']");
+    (async function(){ //Use an anonymous function to prevent poluting the global space
+      const embed = '{{include.embed}}';
+      const video = document.querySelector("[data-embed='"+embed+"']");
 
       // Load the image asynchronously
-      youtube_thumbnails = [];
-      youtube_thumbnails.push(
-      new Promise ( (resolve, reject) => {
-        var image = new Image();
-        image.src =  "https://img.youtube.com/vi/"+ embed +"/maxresdefault.jpg";
-        image.addEventListener( "load", function() {resolve(image);});
-        image.addEventListener("error", function(e){console.warn(e)});
-      })
-    );
-      //load fallback image
-      youtube_thumbnails.push(
-      new Promise ( (resolve, reject) => {
-        var image_fallback = new Image();
-        image_fallback.src =  "https://img.youtube.com/vi/"+ embed +"/hqdefault.jpg";
-        image_fallback.addEventListener( "load", function() {resolve(image_fallback);})
-      }))
-
-      //If maxresdefault quality is good enough go for it. else go to fallback
-      Promise.all(youtube_thumbnails).then( result => {
-        image = result[0]
-        image_fallback = result[1]
-        if (image.width>600) {
-          video.appendChild(image)
-        } else {
-          video.appendChild(image_fallback)
+      youtube_thumbnails = [
+         "https://img.youtube.com/vi/"+ embed +"/maxresdefault.jpg",
+          "https://img.youtube.com/vi/"+ embed +"/hqdefault.jpg"
+      ];
+      for(let [index, thumb] of youtube_thumbnails.entries()){
+        try{
+          let image = await new Promise ( (resolve, reject) => {
+            let image = new Image();
+            image.src = thumb;
+            image.addEventListener( "load", function() {resolve(image);});
+            image.addEventListener("error", function(e){reject(e)});
+          });
+          if(image.width > 600 || index === youtube_thumbnails.length){
+            console.log("Loaded youtube thumbnail");
+            //If maxresdefault quality is good enough go for it. else load fallback
+            video.insertBefore(image, video.firstChild);
+            break;
+          }
+        }catch(e){
+          console.log("Failed to load youtube thumbnail from %s :", thumb, e.message);
         }
       }
-    );
-
 
       video.addEventListener("click", function(){
         var iframe = document.createElement( "iframe" );
