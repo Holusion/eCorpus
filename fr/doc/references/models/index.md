@@ -42,22 +42,14 @@ Des modèles au format [USD](https://openusd.org/release/intro.html){:target="_b
 
 L'application peut enregistrer plusieurs niveaux de détail pour un objet et tenter d'en afficher le plus pertinent. Les niveaux supportés sont :
 
-    Thumb
-    Low
-    Medium
-    High
-    Highest
+    Thumb (textures 512x512)
+    Low (textures 1024x2024)
+    Medium (textures 2048x2048)
+    High (textures 4096x4096)
+    Highest 
 
-La selection se fait en fonction de la capacité `maxTextureSize` du moteur de rendu 
 
- > Voir la doc : [WebGLRenderer.capabilities.maxTextureSize](https://threejs.org/docs/?q=webGLRenderer#api/en/renderers/WebGLRenderer.capabilities){:target="_blank"}
-
-En fonction de cette valeur, la qualité idéale sera :
-
- - si inférieur à 2048 : **Low**.
- - si inférieur à 4096 : **Medium**.
- - sinon               : **High**.
-
+Voir <a href="/fr/doc/guides/optimizing_models">le guide d'optimisatio</a> pour plus de détails.
 Il est conseillé de fournir des textures de taille correspondante ou inférieure avec les modèles. 
 
 ### Shaders
