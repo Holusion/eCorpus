@@ -5,18 +5,19 @@ info:
   summary: HTTP API for eCorpus
   description: |
     This HTTP API provides all necessary routes to access and edit scenes stored on an eCorpus instance under the `/scenes` path.
+    
     Additionally it provides a number of namespaced utilities
     for **users** management (`/users`),
     **authentication** and ACL edition (`/auth`),
     changes **history** management (`/history`)
     or gathering scenes under **collections** (`/tags`).
 
-    It provides some webDAV utility routes for the `/scenes` resources 
+    It provides some **webDAV** utility routes for the `/scenes` resources 
     but is far from [Class 1](http://www.webdav.org/specs/rfc4918.html#rfc.section.18.1) Compliance:
     Only routes that are necessary for proper [Voyager](https://smithsonian.github.io/dpo-voyager/) support are implemented.
     WebDAV-specific methods are defined as an extension with a `x-` prefix to prevent breaking openAPI tooling 
 
-    Other namespaces tends to adhere to a stricter REST philosophy where possible.
+    Other namespaces tends to adhere to a stricter **REST** philosophy where possible.
   contact:
     name: eCorpus Support
     url: https://github.com/Holusion/eCorpus
@@ -421,11 +422,32 @@ paths:
     get:
       tags: [auth]
       operationId: getAuth
-      description: get login data
+      description: |
+        get login data using the current authentication 
+
+        Also used for login links with a `payload` query string
+      responses:
+        '200':
+          description: The user's data. If called without authentication, will return a default user.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
     post:
       tags: [auth]
       operationId: postAuth
       description: log-in to the server
+      requestBody:
+        description: The authentication data
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["username", "password"]
+              properties:
+                username: {type: "string" }
+                password: {type: "string" }
+
+
   /auth/login/{username}/link:
     parameters:
       - name: username
@@ -478,12 +500,37 @@ paths:
     get:
       tags: [admin]
       operationId: getAdminStats
-      description: get server stats
+      description: |
+        get server usage statistics like CPU or memory usage and Database stats like N° of files, date of last modification, etc...
+      responses:
+        '200':
+          description: Server statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                required: ["files", "process"]
+                properties:
+                  files:
+                    type: object
+                    required: ["mtime", "files", "size"]
+                    properties:
+                      mtime: {type: "string", format: "date-time"}
+                      files: {type: "number", format: "int" }
+                      size: {type: "number", format: "int" }
+                  process:
+                    type: object
+                    required: ["cores", "freemem", "load"]
+                    properties:
+                      cores: {type: "number", format: "int"}
+                      freemem: {type: "number", format: "int"}
+                      load: {type: "array", items: { type: "number"} }
+
   /admin/mailtest:
     post:
       tags: [admin]
       operationId: postAdminMailtest
-      description: sends a test email
+      description: sends a test email to the currently authenticated user's address.
 
 components:
   parameters:
@@ -561,11 +608,13 @@ components:
         }
     User:
       type: object
-      required: ["uid", "username", "isAdministrator"]
+      required: ["uid", "username", "isAdministrator", "idDefaultUser"]
       properties:
         uid: {$ref: "#/components/schemas/Uid"}
         username: {type: "string", example: "alice" }
+        email: {type: string, example: "alice@example.com" }
         isAdministrator: {type: "boolean"}
+        isDefaultUser: {type: "boolean"}
     Uid: 
       type: "string"
       pattern: '^\d+$'

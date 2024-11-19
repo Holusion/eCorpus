@@ -6,6 +6,9 @@ title: Utiliser l'API
 
 eCorpus fournit une API complète qui couvre les besoins de DPO Voyager en y ajoutant des interfaces de gestion des utilisateurs, contrôle des droits d'accès, organisation des scènes en collections, etc...
 
+<div style="display:flex;justify-content:center">
+    <a class="button" href="/en/doc/references/api">Documentation de l'API</a>
+</div>
 
 ### Authentification
 
