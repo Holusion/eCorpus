@@ -17,13 +17,13 @@ describe("POST /history/:scene", function(){
    * antidate everything currently in the database to force proper ordering
    * Ensure rounding to the nearest second
    */
-  async function antidate(t = Date.now()){
-    let ts = Math.round(t/1000)-10000;
+  async function antidate(t = Date.now()-10000){
+    let ts = Math.round(t/1000);
     let d = new Date(ts*1000);
     await vfs._db.exec(`
-      UPDATE scenes SET ctime = datetime("${d.toISOString()}");
-      UPDATE documents SET ctime = datetime("${d.toISOString()}");
-      UPDATE files SET ctime = datetime("${d.toISOString()}");
+      UPDATE scenes SET ctime = datetime("${d.toISOString()}") WHERE datetime("${d.toISOString()}") < ctime;
+      UPDATE documents SET ctime = datetime("${d.toISOString()}")  WHERE datetime("${d.toISOString()}") < ctime;
+      UPDATE files SET ctime = datetime("${d.toISOString()}")  WHERE datetime("${d.toISOString()}") < ctime;
     `);
   }
 
@@ -50,13 +50,13 @@ describe("POST /history/:scene", function(){
       ids.push(await vfs.writeDoc(`{"id": ${i}}`, scene_id));
     }
     let point = ids[2];
-    let {data} = await vfs.getDocById(point);
+    let expectedDoc = await vfs.getDocById(point);
     await antidate();
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
     .set("Content-Type", "application/json")
-    .send({type: "document", id: point })
+    .send(expectedDoc)
     .expect("Content-Type", "application/json; charset=utf-8")
     .expect(200);
     expect(res.body).to.have.property("changes");
@@ -66,7 +66,7 @@ describe("POST /history/:scene", function(){
     expect(docs).to.have.property("length", 6);
     let doc = docs[0];
     expect(doc).to.have.property("generation", 6);
-    expect(doc).to.have.property("data", data);
+    expect(doc).to.have.property("data", expectedDoc.data);
   });
 
   it("restores other files in the scene", async function(){
@@ -83,7 +83,7 @@ describe("POST /history/:scene", function(){
     .expect("Content-Type", "application/json; charset=utf-8")
     .expect(200);
     expect(res.body).to.have.property("changes");
-    expect(Object.keys(res.body.changes)).to.deep.equal(["scene.svx.json", "articles/hello.txt"]);
+    expect(res.body.changes).to.deep.equal(["scene.svx.json", "articles/hello.txt"]);
     let doc = await vfs.getDoc(scene_id);
     expect(doc).to.have.property("data", `{"id": 1}`);
     expect(await vfs.getFileProps({name: "articles/hello.txt", scene: scene_id})).to.have.property("hash", ref.hash);
@@ -98,12 +98,12 @@ describe("POST /history/:scene", function(){
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
     .set("Content-Type", "application/json")
-    .send({type: "document", id })
+    .send({...ref })
     .expect("Content-Type", "application/json; charset=utf-8")
     .expect(200);
     
     expect(res.body).to.have.property("changes");
-    expect(Object.keys(res.body.changes)).to.deep.equal(["articles/hello.txt"]);
+    expect(res.body.changes).to.deep.equal(["articles/hello.txt"]);
 
     let doc = await vfs.getDoc(scene_id);
     expect(doc).to.deep.equal(ref);
@@ -115,10 +115,12 @@ describe("POST /history/:scene", function(){
   });
 
   it("restore a file to deleted state", async function(){
+    //This is not exactly the same as "delete a file if needed" because here the file has some previous history
     await vfs.writeDoc(`{"id": 1}`, scene_id);
     await antidate();
     await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
-    let ref = await  vfs.removeFile({mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
+    let refId = await  vfs.removeFile({mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
+    let ref = await vfs.getFileById(refId);
     await vfs.writeFile(dataStream(["world"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
     let allFiles = await vfs.listFiles(scene_id, true);
@@ -128,11 +130,11 @@ describe("POST /history/:scene", function(){
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
     .set("Content-Type", "application/json")
-    .send({type: "file", id: ref })
+    .send({...ref })
     .expect("Content-Type", "application/json; charset=utf-8")
     .expect(200);
     expect(res.body).to.have.property("changes");
-    expect(Object.keys(res.body.changes)).to.deep.equal(['articles/hello.txt']);
+    expect(res.body.changes).to.deep.equal(['articles/hello.txt']);
 
     allFiles = await vfs.listFiles(scene_id, true);
     expect(allFiles).to.have.property("length", 1);
@@ -142,7 +144,41 @@ describe("POST /history/:scene", function(){
 
   });
 
-  it("refuses to delete a document", async function(){
+  it("undelete a file if needed", async function(){
+    let now = Date.now();
+    await vfs.writeDoc(`{"id": 1}`, scene_id);
+    await antidate(now -10000);
+    await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
+    await antidate(now -8000);
+    let ref = await vfs.writeDoc(`{"id": 2}`, scene_id);
+    await antidate(now -4000);
+    await  vfs.removeFile({ name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
+
+    let doc = await vfs.getDocById(ref);
+
+    let allFiles = await vfs.listFiles(scene_id, true);
+    expect(allFiles).to.have.property("length", 1);
+    expect(allFiles[0]).to.have.property("hash" ).not.ok;
+
+    let res = await request(this.server).post(`/history/${titleSlug}`)
+    .auth("bob", "12345678")
+    .set("Content-Type", "application/json")
+    .send({...doc })
+    .expect("Content-Type", "application/json; charset=utf-8")
+    .expect(200);
+    expect(res.body).to.have.property("changes");
+    
+    expect(res.body.changes).to.deep.equal(['articles/hello.txt']);
+
+    allFiles = await vfs.listFiles(scene_id, true);
+    expect(allFiles).to.have.property("length", 1);
+    expect(allFiles[0]).to.have.property("hash").to.equal("LPJNul-wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ");
+    //console.log(allFiles[0]);
+    expect(allFiles[0]).to.have.property("size").above(0);
+    expect(allFiles[0]).to.have.property("generation", 3);
+  });
+
+  it("refuses to completely delete a document", async function(){
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
     await antidate();
     await vfs.writeDoc(`{"id": 1}`, scene_id);
@@ -150,7 +186,7 @@ describe("POST /history/:scene", function(){
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
     .set("Content-Type", "application/json")
-    .send({type: "file", id: ref.id })
+    .send({name: "articles/hello.txt", generation: 1})
     .expect("Content-Type", "application/json; charset=utf-8")
     .expect(400);
     expect(res.text).to.match(/Trying to remove scene document for /);
@@ -161,23 +197,37 @@ describe("POST /history/:scene", function(){
     let docId = await vfs.writeDoc(`{"id": 1}`, scene_id);
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
-    let bodies = [
-      {name: ref.name}, //no generation
-      {id: docId } //no type leads to collision with doc ids and file ids.
-    ];
+    //no generation
+    let res = await request(this.server).post(`/history/${titleSlug}`)
+    .auth("bob", "12345678")
+    .set("Content-Type", "application/json")
+    .send({name: ref.name})
+    .expect("Content-Type", "application/json; charset=utf-8")
+    .expect(400);
+    expect(res.text).to.match(/History restoration requires/);
 
-    for(let body of bodies){
-      let res = await request(this.server).post(`/history/${titleSlug}`)
-      .auth("bob", "12345678")
-      .set("Content-Type", "application/json")
-      .send(body)
-      .expect("Content-Type", "application/json; charset=utf-8")
-      .expect(400);
-      expect(res.text).to.match(/History restoration requires/);
-    }
+    //no name
+    res = await request(this.server).post(`/history/${titleSlug}`)
+    .auth("bob", "12345678")
+    .set("Content-Type", "application/json")
+    .send({generation: 1})
+    .expect("Content-Type", "application/json; charset=utf-8")
+    .expect(400);
+    expect(res.text).to.match(/History restoration requires/);
+
+    //invalid generation name
+    res = await request(this.server).post(`/history/${titleSlug}`)
+    .auth("bob", "12345678")
+    .set("Content-Type", "application/json")
+    .send({name: ref.name, generation: ref.generation + 1})
+    .expect("Content-Type", "application/json; charset=utf-8")
+    .expect(400);
+    expect(res.text).to.match(/No file found/);
   });
+
+
   describe("permissions", function(){
-    let docId:number;
+    let docId:number, body = {name: "scene.svx.json", generation: 1};
     this.beforeEach(async function(){
       docId = await vfs.writeDoc(`{"id": 1}`, scene_id);
       await vfs.writeDoc(`{"id": 2}`, scene_id);
@@ -188,7 +238,7 @@ describe("POST /history/:scene", function(){
       await request(this.server).post(`/history/${titleSlug}`)
       .auth("oscar", "12345678")
       .set("Content-Type", "application/json")
-      .send({id: docId, type: "document" })
+      .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
       .expect(401);
       
@@ -197,7 +247,7 @@ describe("POST /history/:scene", function(){
       await request(this.server).post(`/history/${titleSlug}`)
       .auth("oscar", "12345678")
       .set("Content-Type", "application/json")
-      .send({id: docId, type: "document" })
+      .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
       .expect(401);
 
@@ -207,7 +257,7 @@ describe("POST /history/:scene", function(){
       await request(this.server).post(`/history/${titleSlug}`)
       .auth("oscar", "12345678")
       .set("Content-Type", "application/json")
-      .send({id: docId, type: "document" })
+      .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
       .expect(200);
     });
@@ -216,7 +266,7 @@ describe("POST /history/:scene", function(){
       await request(this.server).post(`/history/${titleSlug}`)
       .auth("alice", "12345678")
       .set("Content-Type", "application/json")
-      .send({id: docId, type: "document" })
+      .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
       .expect(200);
     });

@@ -17,27 +17,32 @@ import { ItemEntry } from "../../vfs/index.js";
 export async function postSceneHistory(req :Request, res :Response){
   let requester = getUser(req);
   let {scene:sceneName} = req.params;
-  let {name, generation, type, id } = req.body;
+  let {name, generation } = req.body;
   let files :Map<string, ItemEntry> = new Map();
-  if(name && !type ) type = ((name == "scene.svx.json")? "document":"file");
-  if(!( (typeof id === "number" && ["document", "file"].indexOf(type) != -1 ) 
-    ||  (typeof name === "string" && typeof generation === "number")
-  )) throw new BadRequestError(`History restoration requires either of "name" and "generation" or "id" and "type" or "name" to be set`);
+  if(!(typeof name === "string" && typeof generation === "number")){
+    throw new BadRequestError(`History restoration requires either of "name" and "generation" or "id" and "type" or "name" to be set`);
+  }
+
   await getVfs(req).isolate(async (tr)=>{
+
     let scene = await tr.getScene(sceneName);
     let history = await tr.getSceneHistory(scene.id);
     
+    /* Find index of the history entry we are restoring to */
     let index = history.findIndex((item)=> {
-      return ((type === "document")?item.mime == "application/si-dpo-3d.document+json" : item.mime !== "application/si-dpo-3d.document+json")
-        &&   ((id)? item.id == id : item.name == name && item.generation == generation)
+      return (item.name == name && item.generation == generation)
     });
+    if(index === -1) throw new BadRequestError(`No file found in ${sceneName} matching ${(name+"#"+generation)}`);
 
-    if(index === -1) throw new BadRequestError(`No file found in ${sceneName} matching ${(id? type+"#"+id : name+"#"+generation)}`);
+    // Keep in mind history is in reverse-natural order, with newest files coming first.
+    //Slice history to everything *after* index. That's every refs that was registered *before* cutoff.
     let refs = history.slice(index);
+    //Keep a reference of files that will be modified: Every ref that is *before* index.
     files = new Map(history.slice(0, index).map(item=>([`${item.name}`, item])));
+
     for(let file of files.values()){
       //Find which version of the file needs to be restored :
-      let prev = refs.find((ref)=> ref.name === file.name && ref.mime === file.mime);
+      let prev = refs.find((ref)=> ref.name === file.name);
       if(file.mime !== "application/si-dpo-3d.document+json"){
         let theFile = (prev? await tr.getFileById(prev.id): {hash: null, size: 0});
         await tr.createFile({scene: scene.id, name: file.name, user_id: (prev? prev.author_id : requester.uid) }, theFile )
@@ -53,6 +58,6 @@ export async function postSceneHistory(req :Request, res :Response){
   res.status(200).send({
     code: 200,
     message: `${files.size} files changed`,
-    changes: Object.fromEntries(files),
+    changes: [...files.keys()],
   });
 }

@@ -297,7 +297,10 @@ export default abstract class ScenesVfs extends BaseVfs{
   /**
    * Get every version of anything contained in this scene.
    * This could get quite large...
-   * It doesn't have any of the filters `listFiles` has.
+   * 
+   * Return order is **DESCENDING** over ctime, name, generation (so, new files first).
+   * 
+   * @warning It doesn't have any of the filters `listFiles` has.
    * @todo handle size limit and pagination
    * @see listFiles for a list of current files.
    */
