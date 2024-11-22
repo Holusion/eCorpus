@@ -50,5 +50,19 @@ describe("parse_gltf()", function(){
       bounds: {min: [-0.5,0,-0.5], max: [0.5,0.20000000298023224,0.5]},
     });
   })
+
+  it("handles empties", async function(){
+    let gltf = {
+      "asset":{"generator":"Khronos glTF Blender I/O v4.2.69","version":"2.0"},
+      "scene":0,
+      "scenes":[{"name":"Scene","nodes":[0]}],
+      "nodes":[{"name":"Empty"}]
+    };
+    let res = parse_glTF(gltf);
+    expect(res).to.deep.equal({
+      meshes:[],
+      bounds: {min: [0,0,0], max: [0,0,0]},
+    });
+  })
   // @todo add more edge-cases from https://github.com/KhronosGroup/glTF-Sample-Models
 })

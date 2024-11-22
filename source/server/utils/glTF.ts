@@ -49,8 +49,8 @@ interface GlbDescription extends SceneDescription{
 }
 
 export interface JSONglTF extends Record<string,any>{
-  meshes: Mesh[];
-  accessors :Accessor[];
+  meshes?: Mesh[];
+  accessors ?:Accessor[];
 }
 
 function asBounds(a :Accessor) :Bounds{
@@ -70,12 +70,12 @@ function mergeBounds(a:Bounds, b:Bounds) :Bounds{
  * Float values are rounded to single precision.
  * @see https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc#3625-accessors-bounds
  */
-export function parse_glTF(gltf :JSONglTF) :SceneDescription {
+export function parse_glTF({meshes = [], accessors = []}:JSONglTF) :SceneDescription {
   let scene :SceneDescription = {
     meshes:[],
     bounds: {min:[0,0,0], max:[0,0,0]},
   };
-  for(let mesh of gltf.meshes){
+  for(let mesh of meshes){
     let out :MeshDescription = {
       position: [0, 0, 0],
       bounds: {min:[0,0,0], max:[0,0,0]},
@@ -85,9 +85,9 @@ export function parse_glTF(gltf :JSONglTF) :SceneDescription {
     for(let primitive of mesh.primitives){
       let positions = [primitive.attributes.POSITION, ...(primitive.targets ?? []).map(t=>t.POSITION)]
       for (let positionIndex of positions){
-        let position :Bounds|Accessor = gltf.accessors[positionIndex];
+        let position :Bounds|Accessor = accessors[positionIndex];
         out.bounds = mergeBounds(out.bounds, asBounds(position));
-        out.numFaces+= gltf.accessors[primitive.indices].count /3; //every 3 indices form a triangle
+        out.numFaces+= accessors[primitive.indices].count /3; //every 3 indices form a triangle
       }
     }
     scene.meshes.push(out);
