@@ -4,7 +4,7 @@ import path from "path";
 import { NotFoundError, InternalError, ConflictError, BadRequestError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { DataStream, FileProps, GetFileParams, GetFileResult, WriteDirParams, WriteFileParams } from "./types.js";
+import { DataStream, FileProps, GetFileParams, GetFileResult, Stored, WriteDirParams, WriteFileParams } from "./types.js";
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
@@ -125,7 +125,7 @@ export default abstract class FilesVfs extends BaseVfs{
   }
 
   async getFileById(id :number) :Promise<FileProps>{
-    let r = await this.db.get(`
+    let r = await this.db.get<Stored<FileProps>>(`
       SELECT
         file_id AS id,
         size,
@@ -153,7 +153,7 @@ export default abstract class FilesVfs extends BaseVfs{
 
   async getFileProps({scene, name, archive = false} :GetFileParams) :Promise<FileProps>{
     let is_string = typeof scene === "string";
-    let r = await this.db.get(`
+    let r = await this.db.get<Stored<FileProps>>(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $scene )
       SELECT
         file_id AS id,
@@ -209,7 +209,7 @@ export default abstract class FilesVfs extends BaseVfs{
    */
   async getFileHistory({scene, name} :GetFileParams):Promise<GetFileResult[]>{
     let is_string = typeof scene === "string";
-    let rows = await this.db.all(`
+    let rows = await this.db.all<Stored<GetFileResult>[]>(`
       ${(is_string?`WITH scene AS (SELECT scene_id FROM scenes WHERE scene_name = $scene)`:"")}
       SELECT
         file_id as id,
@@ -285,18 +285,7 @@ export default abstract class FilesVfs extends BaseVfs{
    */
   async listFiles(scene_id :number, archive :boolean =false, withFolders = false) :Promise<FileProps[]>{
 
-    return (await this.db.all<{
-      ctime:string,
-      mtime:string, 
-      id:number,
-      size:number,
-      hash:string,
-      generation :number,
-      mime :string,
-      name:string,
-      author_id :number,
-      author :string
-    }[]>(`
+    return (await this.db.all<Stored<FileProps>[]>(`
       WITH ag AS ( 
         SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS last
         FROM files

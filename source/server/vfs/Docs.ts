@@ -1,7 +1,7 @@
 import { NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { DocProps } from "./types.js";
+import { DocProps, Stored } from "./types.js";
 
 
 
@@ -45,7 +45,7 @@ export default abstract class DocsVfs extends BaseVfs{
    * @returns 
    */
   async getDoc($scene_id :number, generation ?:number) :Promise<DocProps>{
-    let r = await this.db.get(`
+    let r = await this.db.get<Stored<DocProps>>(`
       SELECT
         "scene.svx.json" AS name,
         doc_id AS id,
@@ -75,7 +75,7 @@ export default abstract class DocsVfs extends BaseVfs{
   }
 
   async getDocById(id :number) :Promise<DocProps>{
-    let r = await this.db.get(`
+    let r = await this.db.get<Stored<DocProps>>(`
       SELECT
         "scene.svx.json" AS name,
         doc_id AS id,
@@ -102,7 +102,7 @@ export default abstract class DocsVfs extends BaseVfs{
   }
 
   async getDocHistory($scene_id :number) :Promise<DocProps[]>{
-    let r = await this.db.all(`
+    let r = await this.db.all<Stored<DocProps>[]>(`
       SELECT
       "scene.svx.json" AS name,
         doc_id AS id,

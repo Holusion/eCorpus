@@ -36,6 +36,7 @@ export interface ItemProps{
   id :number;
   name :string;
 }
+export type Stored<T extends ItemProps> = Omit<T, "mtime"|"ctime"> & {mtime:string, ctime: string};
 
 /** any item stored in a scene, with a name that identifies it */
 export interface ItemEntry extends ItemProps{
