@@ -37,6 +37,7 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
 	limit: 1, // Limit each IP to 1 request per `window`.
 	standardHeaders: 'draft-7',
 	legacyHeaders: false,
+  validate: {trustProxy: false}
 })), wrap(sendLoginLink));
 
 router.post("/logout", postLogout);
