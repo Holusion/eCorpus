@@ -59,7 +59,7 @@ export default async function getScene(req :Request, res :Response){
       res.status(200);
       for await (let data of zip(getFiles())){
         let again = res.write(data);
-        if(!again) once(res, "drain");
+        if(!again) await once(res, "drain");
       }
       res.end();
     }
