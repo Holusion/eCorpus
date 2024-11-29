@@ -224,7 +224,23 @@ export default {
     tag: {
       fr: "tag{plural=s}",
       en: "tag{plural=s}"
-    }
+    },
+    by: {
+      fr: "par",
+      en: "by",
+    },
+    created: {
+      fr: "Créé",
+      en: "Created",
+    },
+    modified:{
+      fr: "Modifié",
+      en: "Modified",
+    },
+    deleted:{
+      fr: "Supprimé",
+      en: "Deleted",
+    },
   },
   info:{
     noData:{
@@ -234,6 +250,14 @@ export default {
     etAl:{
       fr:" et {count} autre{plural=s}",
       en:" and {count} other{plural=s}",
+    },
+    showDetails:{
+      fr: "voir le détail",
+      en: "show more details",
+    },
+    hideDetails:{
+      fr: "cacher le détail",
+      en: "hide details"
     },
     lead:{
       fr: "eCorpus est un modèle de base de données d'objets 3D développé par holusion et utilisant un éditeur et visualisateur enrichi issu du projet DPO-Voyager du smithsonian institute",
@@ -262,6 +286,14 @@ export default {
     userManager: {
       fr: "Gestion des utilisateurs",
       en: "User Manager"
+    },
+    changeDay: {
+      fr: "Changements du {date}",
+      en: "Changes on {date}"
+    },
+    restoreTo: {
+      fr: "restaurer à {point}",
+      en: "restore to {point}"
     }
   },
   errors:{

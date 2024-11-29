@@ -41,6 +41,7 @@ export interface ItemProps{
   id :number;
   name :string;
 }
+
 export type Stored<T extends ItemProps> = Omit<T, "mtime"|"ctime"> & {mtime:string, ctime: string};
 
 /** any item stored in a scene, with a name that identifies it */
@@ -49,6 +50,11 @@ export interface ItemEntry extends ItemProps{
   size :number;
   mime :string;
 }
+
+/**
+ * Like `ItemEntry` but `mtime` is omitted because it doesn't make any sense in history context
+ */
+export type HistoryEntry = Pick<ItemEntry, "name"|"mime"|"id"|"generation"|"ctime"|"author_id"|"author"|"size">;
 
 export interface FileProps extends ItemEntry{
   /**sha254 base64 encoded string or null for deleted files */

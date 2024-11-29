@@ -6,73 +6,24 @@ import "../composants/Button";
 import "../composants/Spinner";
 import "../composants/Size";
 import "../composants/TagList";
+import "../composants/HistoryAggregation";
 
 import { nothing } from "lit-html";
 import i18n from "../state/translate";
 import { withUser } from "../state/auth";
 import { navigate } from "../state/router";
 import Modal from "../composants/Modal";
-import { AccessType, Scene } from "state/withScenes";
+import { AccessType, AccessTypes, Scene } from "../state/withScenes";
 import HttpError from "../state/HttpError";
+import { HistoryEntry, HistoryEntryJSON } from "../composants/HistoryAggregation";
 
 
-const AccessTypes = [
-  "none",
-  "read",
-  "write",
-  "admin"
-] as const;
 
-
-interface ItemEntry{
-  name :string;
-  id :number;
-  generation :number;
-  ctime :string;
-  author_id :number;
-  author :string;
-  size :number;
-  mime :string;
-}
 
 interface AccessRights{
   uid :number;
   username :string;
-  access :typeof AccessTypes[number];
-}
-
-/**
- * Specialized container to arrange scene entries into groups
- * 
-*/
-class SceneVersion{
-  start :Date;
-  end :Date;
-  names :Set<string> = new Set();
-  authors :Set<string> = new Set();
-  entries :Array<ItemEntry> = [];
-  size :number = 0;
-  constructor(first :ItemEntry){
-    this.start = new Date(first.ctime);
-    this.add(first);
-  }
-  /**Time diff between two entries in milliseconds */
-  diff(i:ItemEntry){
-    return (new Date(i.ctime).valueOf() - this.start.valueOf());
-  }
-  accepts(i:ItemEntry){
-    if(this.names.has(i.name)) return false;
-    if( 1000*60*60*24 /*24 hours */ < (this.diff(i))) return false;
-    if(!this.authors.has(i.author) && 3 <=this.authors.size) return false;
-    return true;
-  }
-  add(i:ItemEntry){
-    this.names.add(i.name);
-    this.authors.add(i.author);
-    this.end = new Date(i.ctime);
-    this.size += i.size
-    this.entries.push(i);
-  }
+  access :AccessType;
 }
 
 
@@ -92,7 +43,7 @@ class SceneVersion{
     @property({attribute: false, type: Object})
     scene: Scene = null;
     @property({attribute: false, type:Array})
-    versions : SceneVersion[];
+    versions : HistoryEntry[];
 
     @property({attribute: false, type:Array})
     permissions :AccessRights[] =[];
@@ -149,11 +100,11 @@ class SceneVersion{
     
     async fetchHistory(){
       const signal = this.#c.signal;
-      await fetch(`/history/${encodeURIComponent(this.name)}`, {signal}).then(async (r)=>{
+      await fetch(`/history/${encodeURIComponent(this.name)}?limit=100`, {signal}).then(async (r)=>{
         if(!r.ok) throw new Error(`[${r.status}]: ${r.statusText}`);
         let body = await r.json();
         if(signal.aborted) return;
-        this.versions = this.aggregate(body as ItemEntry[]);
+        this.versions = (body as HistoryEntryJSON[]).map(e=>({...e, ctime:new Date(e.ctime)}));
       }).catch((e)=> {
         if(e.name == "AbortError") return;
         console.error(e);
@@ -165,21 +116,6 @@ class SceneVersion{
       return AccessTypes.indexOf(a ) <= AccessTypes.indexOf(this.scene.access.user) || this.user?.isAdministrator;
     }
 
-    aggregate(entries :ItemEntry[]) :SceneVersion[]{
-      if(!entries || entries.length == 0) return [];
-      let versions = [new SceneVersion(entries.pop())];
-      let last_ref = versions[0];
-      while(entries.length){
-        let entry = entries.pop();
-        if(!last_ref.accepts(entry) ){
-          last_ref = new SceneVersion(entry);
-          versions.push(last_ref);
-        }else{
-          last_ref.add(entry);
-        }
-      }
-      return versions.reverse();
-    }
 
     protected render() :TemplateResult {
         if(!this.versions || !this.scene){
@@ -189,13 +125,7 @@ class SceneVersion{
               <h1></h1>
           </div>`;
         }
-        let articles = new Set();
-        for(let version of this.versions){
-          for(let name of version.names){
-            if(name.startsWith("articles/")) articles.add(name);
-          }
-        }
-        let size = this.versions.reduce((s, v)=>s+v.size, 0);
+
         let scene = encodeURIComponent(this.name);
         return html`<div>
           <h1 style="color:white">${this.name}</h1>
@@ -205,11 +135,6 @@ class SceneVersion{
             <div id="scene-data-container" style="flex-grow: 1; min-width:300px;">
               <div id="scene-tags">
                 ${this.renderTags()}
-              </div>
-
-              <div id="scene-data-size-report">
-                <h3>Total size: <b-size b=${size}></b-size></h3>
-                <h3>${articles.size} article${(1 < articles.size?"s":"")}</h3>
               </div>
 
               <div style="max-width: 300px">
@@ -228,7 +153,8 @@ class SceneVersion{
           </div>
         </div>
         <div class="section">
-          ${this.renderHistory()}
+          <h2>${this.t("ui.history")}</h2>
+          <history-aggregation .entries=${this.versions} .scene=${scene} @restore=${this.onRestore}></history-aggregation>
         </div>
         ${this.can("admin")? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;gap:10px">
         <div><ui-button class="btn-main" icon="edit" text=${this.t("ui.rename")} @click=${this.onRename}></ui-button></div>
@@ -324,36 +250,6 @@ class SceneVersion{
       `;
     }
 
-    renderHistory(){
-      return html`
-        <h2>Historique</h2>
-        <div class="list-items">
-          ${this.versions.map((v, index)=>{
-
-            let name = (3 < v.names.size)? html`${v.names.values().next().value} <span style="text-decoration:underline; cursor:pointer" @click=${(e)=>e.target.parentNode.classList.toggle("visible")}>${this.t("info.etAl", {count:v.names.size})}</span>`
-              : [...v.names.values()].join(", ");
-
-            let authors = [...v.authors.values()].join(", ")
-
-            return html`
-              <div class="list-item" name="${name}">
-                <div style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">
-                  <div class="tooltip" style="margin-bottom:5px" >${name}
-                    <div><ul style="opacity:0.7">${[...v.entries].map((n, index)=>{
-                      return html`<li>${n.name} ${n.mime != "text/directory"? html`(${n.size?html`<b-size b=${n.size}></b-size>`:"DELETED"})`:null}</li>`
-                    })}</ul></div>
-                  </div>
-                  
-                  <div style=""><b>${authors}</b> <span style="opacity:0.6; font-size: smaller">${new Date(v.start).toLocaleString(this.language)}</span></div>
-                </div>
-
-                ${index==0?html`<ui-button disabled transparent text="active">active</ui-button>`:html`<ui-button class="btn-main" style="flex:initial; height:fit-content;" title="restore" @click=${()=>this.onRestore(v.entries.slice(-1)[0])} text="restore" icon="restore"></ui-button>`}
-              </div>
-            `
-          })}
-        </div>
-        `
-    }
 
     renderPermissionSelection(username:string, selected :AccessRights["access"], disabled :boolean = false){
       const onSelectPermission = (e:Event)=>{
@@ -366,7 +262,7 @@ class SceneVersion{
         })
       }
       return html`<span class="form-item"><select .disabled=${disabled} @change=${onSelectPermission}>
-        ${AccessTypes.map(a=>html`<option .selected=${a === selected} value="${a}">${this.t(`ui.${a}`)}</option>`)}
+        ${AccessTypes.map(a=>(a?html`<option .selected=${a === selected} value="${a}">${this.t(`ui.${a}`)}</option>`:null))}
       </select></span>`
     }
 
@@ -379,17 +275,20 @@ class SceneVersion{
       })
     }
 
-    onRestore = (i :ItemEntry)=>{
-      console.log("Restore : ", i);
-      Notification.show(`Restoring to ${i.name}#${i.generation}...`, "info");
+    onRestore = (e :CustomEvent<number>)=>{
+      e.stopPropagation();
+      const id = e.detail;
+      let entry = this.versions.find(e=>e.id === id);
+      if(!Number.isInteger(id) || !entry) return Notification.show(`Can't restore to ${id}: Invalid id`, "error");
+      Notification.show(this.t("info.restoreTo", {point: `${entry.name}#${entry.generation}`}), "info", 1500);
       this.versions = null;
       fetch(`/history/${encodeURIComponent(this.name)}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(i)
+        body: JSON.stringify({id})
       }).then(async (r)=>{
         if(!r.ok) throw new Error(`Failed to restore [${r.status}]: ${await r.json()}`);
-        Notification.show("Restoration completed.", "info")
+        Notification.show("Restoration completed.", "info", 3000)
       }).catch(e=>{
         Notification.show(`Failed to restore : ${e.message}`, 'error');
       }).finally(()=>this.fetchHistory())
