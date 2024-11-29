@@ -3,7 +3,7 @@ import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { ItemEntry, Scene, SceneQuery } from "./types.js";
+import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery, Stored } from "./types.js";
 
 
 export default abstract class ScenesVfs extends BaseVfs{
@@ -113,6 +113,34 @@ export default abstract class ScenesVfs extends BaseVfs{
       ) IN (${ AccessTypes.slice(AccessTypes.indexOf(accessMin)).map(s=>`'${s}'`).join(", ") })
     `;
   }
+
+  /**
+   * Performs a type and limit check on a SceneQuery object and throws if anything is unacceptable
+   * @param q 
+   */
+  static _parseSceneQuery(q :SceneQuery):SceneQuery{
+    //Check various parameters compliance
+    if(Array.isArray(q.access) && q.access.find(a=>AccessTypes.indexOf(a) === -1)){
+      throw new BadRequestError(`Bad access type requested : ${q.access.join(", ")}`);
+    }
+    if(typeof q.limit !== "undefined"){
+      if(typeof q.limit !="number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(`When provided, limit must be an integer`);
+      if(q.limit <= 0) throw new BadRequestError(`When provided, limit must be >0`);
+      if(100 < q.limit) throw new BadRequestError(`When provided, limit must be <= 100`);
+    }
+    if(typeof q.offset !== "undefined"){
+      if(typeof q.offset !="number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(`When provided, offset must be an integer`);
+      if(q.offset < 0) throw new BadRequestError(`When provided, limit must be >= 0`);
+    }
+    
+    if(typeof q.orderDirection !== "undefined" && (typeof q.orderDirection !== "string" || ["asc", "desc"].indexOf(q.orderDirection.toLowerCase()) === -1)){
+      throw new BadRequestError(`Invalid orderDirection: ${q.orderDirection}`);
+    }
+    if(typeof q.orderBy !== "undefined" && (typeof q.orderBy !== "string" || ["ctime", "mtime", "name"].indexOf(q.orderBy.toLowerCase()) === -1)){
+      throw new BadRequestError(`Invalid orderBy: ${q.orderBy}`);
+    }
+    return q;
+  }
   
   /**
    * get all scenes, including archvied scenes Generally not used outside of tests and internal routines
@@ -126,19 +154,8 @@ export default abstract class ScenesVfs extends BaseVfs{
    * Get only archived scenes.
    */
   async getScenes(user_id:null, q :{access:["none"]}) :Promise<Scene[]>;
-  async getScenes(user_id ?:number|null, {access, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"} :SceneQuery = {}) :Promise<Scene[]>{
-
-    //Check various parameters compliance
-    if(Array.isArray(access) && access.find(a=>AccessTypes.indexOf(a) === -1)){
-      throw new BadRequestError(`Bad access type requested : ${access.join(", ")}`);
-    }
-
-    if(typeof limit !="number" || Number.isNaN(limit) || limit < 0) throw new BadRequestError(`When provided, limit must be a number`);
-    if(typeof offset != "number" || Number.isNaN(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a number`);
-
-    if(["asc", "desc"].indexOf(orderDirection.toLowerCase()) === -1) throw new BadRequestError(`Invalid orderDirection: ${orderDirection}`);
-    if(["ctime", "mtime", "name"].indexOf(orderBy.toLowerCase()) === -1) throw new BadRequestError(`Invalid orderBy: ${orderBy}`);
-
+  async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
+    const {access, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"}  = ScenesVfs._parseSceneQuery(q);
     let with_filter = typeof user_id === "number" || match || access?.length;
 
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
@@ -247,7 +264,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     `, {
       ...mParams,
       $user_id: (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
-      $limit: Math.min(limit, 100),
+      $limit: limit,
       $offset: offset,
     })).map(({ctime, mtime, id, access, ...m})=>({
       ...m,
@@ -322,13 +339,15 @@ export default abstract class ScenesVfs extends BaseVfs{
    * This could get quite large...
    * 
    * Return order is **DESCENDING** over ctime, name, generation (so, new files first).
+   * Result is **NOT** access-dependant so it should only be returned for someone that has the required access level 
    * 
-   * @warning It doesn't have any of the filters `listFiles` has.
-   * @todo handle size limit and pagination
    * @see listFiles for a list of current files.
    */
-  async getSceneHistory(id :number) :Promise<Array<ItemEntry>>{
-    let entries = await this.db.all(`
+  async getSceneHistory(id :number, query:Pick<SceneQuery,"limit"|"offset"|"orderDirection"> ={}) :Promise<Array<HistoryEntry>>{
+    const {limit = 10, offset = 0, orderDirection = "desc"} = ScenesVfs._parseSceneQuery(query);
+
+    const dir = orderDirection.toUpperCase() as Uppercase<typeof orderDirection>;
+    let entries = await this.db.all<Omit<Stored<ItemEntry>,"mtime">[]>(`
       SELECT 
         file_id AS id,
         name,
@@ -341,8 +360,13 @@ export default abstract class ScenesVfs extends BaseVfs{
       FROM files
       INNER JOIN users ON author_id = user_id
       WHERE fk_scene_id = $scene
-      ORDER BY ctime DESC, name DESC, generation DESC
-    `, {$scene: id});
+      ORDER BY ctime ${dir}, name ${dir}, generation ${dir}
+      LIMIT $offset, $limit
+    `, {
+      $scene: id,
+      $offset: offset,
+      $limit: limit,
+    });
 
     return entries.map(m=>({
       ...m,

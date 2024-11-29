@@ -7,6 +7,7 @@ import { Uid } from "../utils/uid.js";
 import UserManager from "../auth/UserManager.js";
 import User from "../auth/User.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
+import ScenesVfs from "./Scenes.js";
 
 async function *dataStream(src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){
@@ -45,6 +46,7 @@ describe("Vfs", function(){
     await Vfs.Open(this.dir);
     await expect(fs.access(path.join(this.dir, "uploads"))).to.be.fulfilled;
   });
+
   describe("isolate", function(){
     it("can rollback on error", async function(){
       let vfs = await Vfs.Open(this.dir);
@@ -120,6 +122,50 @@ describe("Vfs", function(){
       })).to.be.rejectedWith("dummy");
       expect(_transaction).to.have.property("isOpen", false);
     })
+  });
+
+  describe("validate search params", function(){
+    it("accepts no parameters", function(){
+      expect(()=>ScenesVfs._parseSceneQuery({})).not.to.throw();
+    });
+    it("requires limit to be a positive integer", function(){
+      [null, "foo", 0.5, "0", 0, -1, 101].forEach((limit)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({limit} as any), `{limit: ${limit}}`).to.throw();
+      });
+
+      [1, 10, 100].forEach((limit)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({limit} as any)).not.to.throw();
+      });
+    });
+
+    it("requires offset to be a positive integer", function(){
+      [null, "foo", 0.5, "0", -1].forEach((offset)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({offset} as any), `{offset: ${offset}}`).to.throw();
+      });
+
+      [0, 1, 10, 100, 1000].forEach((offset)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({offset} as any)).not.to.throw();
+      });
+    });
+
+    it("requires orderDirection to match", function(){
+      ["AS", "DE", null, 0, -1, 1, "1"].forEach((orderDirection)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({orderDirection} as any), `{orderDirection: ${orderDirection}}`).to.throw("Invalid orderDirection");
+      });
+      ["ASC", "DESC", "asc", "desc"].forEach((orderDirection)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({orderDirection} as any)).not.to.throw();
+      })
+    });
+
+    it("requires orderBy to match", function(){
+      ["foo", 1, -1, null].forEach((orderBy)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({orderBy} as any), `{orderBy: ${orderBy}}`).to.throw(`Invalid orderBy`);
+      });
+
+      ["ctime", "mtime", "name"].forEach((orderBy)=>{
+        expect(()=>ScenesVfs._parseSceneQuery({orderBy} as any), `{orderBy: "${orderBy}"}`).not.to.throw();
+      });
+    });
   });
 
   describe("", function(){
@@ -478,13 +524,8 @@ describe("Vfs", function(){
         });
 
         it("limits LIMIT to 100", async function(){
-          for(let i = 0; i < 110; i++){
-            await vfs.createScene(`scene_${i}`);
-          }
-          let res = await vfs.getScenes(0, {limit: 110, offset: 0})
-          expect(res).to.have.property("length", 100);
-          expect(res[0]).to.have.property("name", "scene_0");
-        })
+          await expect(vfs.getScenes(0, {limit: 110, offset: 0})).to.be.rejectedWith("[400]");
+        });
       });
     });
 
@@ -1077,25 +1118,51 @@ describe("Vfs", function(){
 
       describe("getSceneHistory()", function(){
         let default_folders = 2
-        it("get an ordered history of all writes to a scene", async function(){
-          let fileProps :WriteFileParams = {user_id: 0, scene:scene_id, mime: "model/gltf-binary", name:"models/foo.glb"}
-          await vfs.writeFile(dataStream(), fileProps);
-          await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          await vfs.writeFile(dataStream(), fileProps);
-          await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          let history = await vfs.getSceneHistory(scene_id);
-          expect(history).to.have.property("length", 4 + default_folders);
-          //Couln't easily test ctime sort
-          expect(history.map(e=>e.name)).to.deep.equal([
-            "scene.svx.json",
-            "scene.svx.json",
-            "models/foo.glb",
-            "models/foo.glb",
-            "models",
-            "articles",
-          ]);
-          expect(history.map(e=>e.generation)).to.deep.equal([2,1,2,1,1,1]);
+        describe("get an ordered history", function(){
+          this.beforeEach(async function(){
+            let fileProps :WriteFileParams = {user_id: 0, scene:scene_id, mime: "model/gltf-binary", name:"models/foo.glb"}
+            await vfs.writeFile(dataStream(), fileProps);
+            await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            await vfs.writeFile(dataStream(), fileProps);
+            await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          });
+
+          it("all events", async function(){
+            let history = await vfs.getSceneHistory(scene_id);
+            expect(history).to.have.property("length", 4 + default_folders);
+            //Couln't easily test ctime sort
+            expect(history.map(e=>e.name)).to.deep.equal([
+              "scene.svx.json",
+              "scene.svx.json",
+              "models/foo.glb",
+              "models/foo.glb",
+              "models",
+              "articles",
+            ]);
+            expect(history.map(e=>e.generation)).to.deep.equal([2,1,2,1,1,1]);
+          });
+          
+          it("with limit", async function(){
+            let history = await vfs.getSceneHistory(scene_id, {limit: 1});
+            expect(history).to.have.property("length", 1);
+            //Couln't easily test ctime sort
+            expect(history.map(e=>e.name)).to.deep.equal([
+              "scene.svx.json",
+            ]);
+            expect(history.map(e=>e.generation)).to.deep.equal([2]);
+          });
+          it("with offset", async function(){
+            let history = await vfs.getSceneHistory(scene_id, {limit: 2, offset: 1});
+            expect(history).to.have.property("length", 2);
+            //Couln't easily test ctime sort
+            expect(history.map(e=>e.name)).to.deep.equal([
+              "scene.svx.json",
+              "models/foo.glb",
+            ]);
+            expect(history.map(e=>e.generation)).to.deep.equal([1,2]);
+          });
         });
+
         it("reports proper size for data strings", async function(){
           //By default sqlite counts string length as char length and not byte length
           let str = `{"id":"你好"}`;

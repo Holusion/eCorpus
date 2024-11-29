@@ -72,7 +72,29 @@ describe("GET /history/:scene", function(){
       await vfs.createScene("empty", user.uid);
       let res = await request(this.server).get("/history/empty")
       .expect(200);
-    })
+    });
+
+    it("can ?limit results", async function(){
+      let res = await request(this.server).get("/history/foo?limit=1")
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+
+      expect(res.body.map((i:any)=>([i.name, i.generation]))).to.deep.equal([
+        ["scene.svx.json", 1],
+      ]);
+    });
+
+    it("can ?offset results", async function(){
+      let res = await request(this.server).get("/history/foo?limit=1&offset=1")
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+
+      expect(res.body.map((i:any)=>([i.name, i.generation]))).to.deep.equal([
+        ["models", 1],
+      ]);
+    });
 
     describe("requires read access", function(){
       this.beforeAll(async function(){

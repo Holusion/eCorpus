@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 
 import { BadRequestError } from "../../utils/errors.js";
 import { getUser, getVfs } from "../../utils/locals.js";
-import { ItemEntry } from "../../vfs/index.js";
+import { HistoryEntry, ItemEntry } from "../../vfs/index.js";
 
 
 /**
@@ -18,7 +18,7 @@ export async function postSceneHistory(req :Request, res :Response){
   let requester = getUser(req);
   let {scene:sceneName} = req.params;
   let {name, generation } = req.body;
-  let files :Map<string, ItemEntry> = new Map();
+  let files :Map<string, HistoryEntry> = new Map();
   if(!(typeof name === "string" && typeof generation === "number")){
     throw new BadRequestError(`History restoration requires either of "name" and "generation" or "id" and "type" or "name" to be set`);
   }
