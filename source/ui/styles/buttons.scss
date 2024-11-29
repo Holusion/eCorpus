@@ -55,6 +55,11 @@ a{
       box-shadow: 2px 2px rgba(20, 20, 20, 0.3);
     }
   }
+
+  &.btn-small{
+    padding: 0 4px;
+    min-width: auto;
+  }
   
   &.btn-outline{
     background: transparent;
@@ -117,5 +122,22 @@ a{
     &:hover{
       color: var(--color-highlight2);
     }
+  }
+}
+
+.caret{
+  &::before{
+    content: "⌄";
+    display: inline;
+    line-height: 75%;
+    vertical-align: top;
+  }
+
+  .visible &::before,
+  .active &::before, 
+  &.active::before
+  {
+    content: "⌃";
+    vertical-align: bottom;
   }
 }
