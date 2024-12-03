@@ -13,17 +13,12 @@ import i18n from "../state/translate";
 import { withUser } from "../state/auth";
 import { navigate } from "../state/router";
 import Modal from "../composants/Modal";
-import { AccessType, Scene } from "state/withScenes";
+import { AccessType, AccessTypes, Scene } from "../state/withScenes";
 import HttpError from "../state/HttpError";
 import { HistoryEntry, HistoryEntryJSON } from "../composants/HistoryAggregation";
 
 
-const AccessTypes = [
-  "none",
-  "read",
-  "write",
-  "admin"
-] as const;
+
 
 
 interface ItemEntry{
@@ -40,41 +35,7 @@ interface ItemEntry{
 interface AccessRights{
   uid :number;
   username :string;
-  access :typeof AccessTypes[number];
-}
-
-/**
- * Specialized container to arrange scene entries into groups
- * 
-*/
-class SceneVersion{
-  start :Date;
-  end :Date;
-  names :Set<string> = new Set();
-  authors :Set<string> = new Set();
-  entries :Array<ItemEntry> = [];
-  size :number = 0;
-  constructor(first :ItemEntry){
-    this.start = new Date(first.ctime);
-    this.add(first);
-  }
-  /**Time diff between two entries in milliseconds */
-  diff(i:ItemEntry){
-    return (new Date(i.ctime).valueOf() - this.start.valueOf());
-  }
-  accepts(i:ItemEntry){
-    if(this.names.has(i.name)) return false;
-    if( 1000*60*60*24 /*24 hours */ < (this.diff(i))) return false;
-    if(!this.authors.has(i.author) && 3 <=this.authors.size) return false;
-    return true;
-  }
-  add(i:ItemEntry){
-    this.names.add(i.name);
-    this.authors.add(i.author);
-    this.end = new Date(i.ctime);
-    this.size += i.size
-    this.entries.push(i);
-  }
+  access :AccessType;
 }
 
 
