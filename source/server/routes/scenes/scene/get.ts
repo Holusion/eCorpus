@@ -7,6 +7,7 @@ import { HTTPError } from "../../../utils/errors.js";
 import { getVfs, getUserId } from "../../../utils/locals.js";
 import { wrapFormat } from "../../../utils/wrapAsync.js";
 import { ZipEntry, zip } from "../../../utils/zip/index.js";
+import Vfs from "../../../vfs/index.js";
 
 
 
@@ -23,8 +24,9 @@ export default async function getScene(req :Request, res :Response){
     },
     "application/zip": async ()=>{
       
-      async function *getFiles() :AsyncGenerator<ZipEntry, any, unknown>{
-        let files = await vfs.listFiles(id, false, true);
+      async function *getFiles(tr:Vfs) :AsyncGenerator<ZipEntry, any, unknown>{
+        
+        let files = await tr.listFiles(id, false, true);
 
         yield {
           filename: scene,
@@ -33,34 +35,24 @@ export default async function getScene(req :Request, res :Response){
         }
 
         for(let file of files){
-          let f = await vfs.getFileProps({scene: id, name: file.name});
-          let hash = f.hash;
+          let f = await tr.getFile({scene: id, name: file.name});
           yield {
             filename: path.join(scene, f.name),
             mtime: f.mtime,
             isDirectory: f.mime == "text/directory",
-            stream: ((typeof hash ==="string" && hash != "directory")? (await vfs.openFile({hash})).createReadStream(): undefined),
+            stream: f.stream,
           }
-        }
-
-        try{
-          let sceneDoc = await vfs.getDoc(id);
-          yield {
-            filename: path.join(scene, `scene.svx.json`),
-            mtime: sceneDoc.mtime,
-            stream: [Buffer.from(sceneDoc.data)]
-          }
-        }catch(e){
-          if((e as HTTPError).code != 404) throw e;
-          //Ignore errors if scene has no document
         }
       }
 
       res.status(200);
-      for await (let data of zip(getFiles())){
-        let again = res.write(data);
-        if(!again) await once(res, "drain");
-      }
+
+      await vfs.isolate(async (tr)=>{
+        for await (let data of zip(getFiles(tr))){
+          let again = res.write(data);
+          if(!again) await once(res, "drain");
+        }
+      });
       res.end();
     }
   });

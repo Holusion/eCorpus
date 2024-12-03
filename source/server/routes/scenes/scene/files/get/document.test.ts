@@ -37,17 +37,19 @@ describe("GET /scenes/:scene/scene.svx.json", function(){
     titleSlug = this.currentTest?.title.replace(/[^\w]/g, "_").slice(0, 15)+"_"+randomBytes(4).toString("base64url");
     scene_id = await vfs.createScene(titleSlug, user.uid);
     sampleDoc = JSON.parse(sampleDocString);
-    await vfs.writeDoc(sampleDocString, scene_id, user.uid);
+    await vfs.writeDoc(sampleDocString, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
   });
 
 
   it("inserts a generation id into the document", async function(){
+    let {id} = await vfs.getDoc(titleSlug);
+    expect(id).to.be.a("number");
     let res = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
     .auth("bob", "12345678")
     .expect(200)
     .expect("Content-Type", "application/si-dpo-3d.document+json");
 
-    expect(JSON.parse(res.text)).to.have.property("asset").to.have.property("id", 1);
+    expect(JSON.parse(res.text)).to.have.property("asset").to.have.property("id", id);
   });
 
 });

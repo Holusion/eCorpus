@@ -29,7 +29,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
   it("can get a public scene's file", async function(){
     let scene_id = await vfs.createScene("foo", {"0":"read"});
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
     await request(this.server).get("/scenes/foo/models/foo.glb")
@@ -40,7 +40,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
   it("can't get a private scene's file (obfuscated as 404)", async function(){
     let scene_id = await vfs.createScene("foo", {"0":"none", "1": "none", [user.uid]: "admin"});
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
     await request(this.server).get("/scenes/foo/models/foo.glb")
@@ -49,7 +49,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
   it("can get an owned scene's file", async function(){
     let scene_id = await vfs.createScene("foo", {"0":"none", [user.uid]: "admin"});
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
     let agent = request.agent(this.server);
     await agent.post("/auth/login")
@@ -67,7 +67,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
   it("is case-sensitive", async function(){
     let scene_id = await vfs.createScene("foo", {"0":"read", [user.uid]: "admin"});
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
     await vfs.writeFile(dataStream(["FOO\n"]), {scene: "foo", mime:"model/gltf-binary", name: "models/FOO.GLB", user_id: user.uid});
 

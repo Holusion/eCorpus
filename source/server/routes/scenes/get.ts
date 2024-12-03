@@ -9,6 +9,7 @@ import { HTTPError } from "../../utils/errors.js";
 import { getVfs, getUser, getHost } from "../../utils/locals.js";
 import { wrapFormat } from "../../utils/wrapAsync.js";
 import { ZipEntry, zip } from "../../utils/zip/index.js";
+import Vfs from "../../vfs/index.js";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
@@ -92,7 +93,7 @@ export default async function getScenes(req :Request, res :Response){
     "text": ()=> res.status(200).send(scenes.map(m=>m.name).join("\n")+"\n"),
 
     "application/zip": async ()=>{
-      async function *getFiles():AsyncGenerator<ZipEntry,any, unknown>{
+      async function *getFiles(tr: Vfs):AsyncGenerator<ZipEntry,any, unknown>{
         for(let scene of scenes){
           let root = `scenes/${scene.name}`;
 
@@ -104,25 +105,12 @@ export default async function getScenes(req :Request, res :Response){
 
           let files = await vfs.listFiles(scene.id, false, true);
 
-
           for(let file of files ){
             yield {
               ...( file.mime === "text/directory"? file: await vfs.getFile({scene:scene.id, name: file.name})),
               filename: path.join("scenes", scene.name, file.name),
               isDirectory: file.mime == "text/directory",
             }
-          }
-
-          try{
-            let sceneDoc = await vfs.getDoc(scene.id);
-            yield {
-              filename: `${root}/scene.svx.json`,
-              mtime: sceneDoc.mtime,
-              stream: [Buffer.from(sceneDoc.data)]
-            }
-          }catch(e){
-            if((e as HTTPError).code != 404) throw e;
-            //Ignore errors if scene has no document
           }
         }
       }
@@ -132,10 +120,13 @@ export default async function getScenes(req :Request, res :Response){
       // but we need to take into account the size of all zip headers
       // It would also allow for strong ETag generation, which would be desirable
       res.status(200);
-      for await (let data of zip(getFiles())){
-        let again = res.write(data);
-        if(!again) await once(res, "drain");
-      }
+      await vfs.isolate(async tr=>{
+        for await (let data of zip(getFiles(tr))){
+          let again = res.write(data);
+          if(!again) await once(res, "drain");
+        }
+
+      })
       res.end();
     }
   });

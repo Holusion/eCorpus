@@ -22,7 +22,6 @@ describe("POST /history/:scene", function(){
     let d = new Date(ts*1000);
     await vfs._db.exec(`
       UPDATE scenes SET ctime = datetime("${d.toISOString()}") WHERE datetime("${d.toISOString()}") < ctime;
-      UPDATE documents SET ctime = datetime("${d.toISOString()}")  WHERE datetime("${d.toISOString()}") < ctime;
       UPDATE files SET ctime = datetime("${d.toISOString()}")  WHERE datetime("${d.toISOString()}") < ctime;
     `);
   }
@@ -47,10 +46,10 @@ describe("POST /history/:scene", function(){
   it("restores a scene's document to a specific point in time", async function(){
     let ids :number[] = [];
     for(let i = 0; i < 5; i++){
-      ids.push(await vfs.writeDoc(`{"id": ${i}}`, scene_id));
+      ids.push((await vfs.writeDoc(`{"id": ${i}}`,  {scene:scene_id, user_id:0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id);
     }
     let point = ids[2];
-    let expectedDoc = await vfs.getDocById(point);
+    let expectedDoc = await vfs.getFileById(point);
     await antidate();
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
@@ -62,18 +61,18 @@ describe("POST /history/:scene", function(){
     expect(res.body).to.have.property("changes");
     expect(Object.keys(res.body.changes)).to.have.property("length", 1);
 
-    let docs = await vfs.getDocHistory(scene_id);
+    let docs = await vfs.getFileHistory({scene:scene_id, name:"scene.svx.json"});
     expect(docs).to.have.property("length", 6);
     let doc = docs[0];
     expect(doc).to.have.property("generation", 6);
-    expect(doc).to.have.property("data", expectedDoc.data);
+    expect(doc).to.not.have.property("data", expectedDoc.data);
   });
 
   it("restores other files in the scene", async function(){
-    await vfs.writeDoc(`{"id": 1}`, scene_id);
+    await vfs.writeDoc(`{"id": 1}`,  {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await antidate(); //otherwise ordering of files of different names with the same timestamp is unclear
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
-    await vfs.writeDoc(`{"id": 2}`, scene_id);
+    await vfs.writeDoc(`{"id": 2}`,  {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(["world"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
@@ -90,10 +89,10 @@ describe("POST /history/:scene", function(){
   });
 
   it("delete a file if needed", async function(){
-    let id = await vfs.writeDoc(`{"id": 1}`, scene_id);
+    let id = (await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
     await antidate();
     await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
-    let ref = await vfs.getDocById(id);
+    let ref = await vfs.getFileById(id);
     
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
@@ -109,14 +108,16 @@ describe("POST /history/:scene", function(){
     expect(doc).to.deep.equal(ref);
     
     let allFiles = await vfs.listFiles(scene_id, true);
-    expect(allFiles, JSON.stringify(allFiles, null, 2)).to.have.property("length", 1);
-    expect(allFiles[0]).to.have.property("hash", null);
-    expect(allFiles[0]).to.have.property("size", 0);
+    expect(allFiles).to.have.property("length", 2);
+    const article = allFiles.find(f=>f.name ==="articles/hello.txt");
+    expect(article).to.be.ok;
+    expect(article).to.have.property("hash", null);
+    expect(article).to.have.property("size", 0);
   });
 
   it("restore a file to deleted state", async function(){
     //This is not exactly the same as "delete a file if needed" because here the file has some previous history
-    await vfs.writeDoc(`{"id": 1}`, scene_id);
+    await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await antidate();
     await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
     let refId = await  vfs.removeFile({mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
@@ -124,8 +125,9 @@ describe("POST /history/:scene", function(){
     await vfs.writeFile(dataStream(["world"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
     let allFiles = await vfs.listFiles(scene_id, true);
-    expect(allFiles).to.have.property("length", 1);
+    expect(allFiles).to.have.property("length", 2);
     expect(allFiles[0]).to.have.property("hash" ).ok;
+    expect(allFiles[1]).to.have.property("hash" ).ok;
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
@@ -137,28 +139,30 @@ describe("POST /history/:scene", function(){
     expect(res.body.changes).to.deep.equal(['articles/hello.txt']);
 
     allFiles = await vfs.listFiles(scene_id, true);
-    expect(allFiles).to.have.property("length", 1);
-    expect(allFiles[0]).to.have.property("hash", null);
-    expect(allFiles[0]).to.have.property("size", 0);
-    expect(allFiles[0]).to.have.property("generation", 4);
-
+    expect(allFiles).to.have.property("length", 2);
+    let article = allFiles.find(f=>f.name === "articles/hello.txt");
+    expect(article).to.be.ok;
+    expect(article).to.have.property("hash", null);
+    expect(article).to.have.property("size", 0);
+    expect(article).to.have.property("generation", 4);
   });
 
   it("undelete a file if needed", async function(){
     let now = Date.now();
-    await vfs.writeDoc(`{"id": 1}`, scene_id);
+    await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await antidate(now -10000);
     await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
     await antidate(now -8000);
-    let ref = await vfs.writeDoc(`{"id": 2}`, scene_id);
+    let ref = await vfs.writeDoc(`{"id": 2}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await antidate(now -4000);
     await  vfs.removeFile({ name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
-    let doc = await vfs.getDocById(ref);
+    let doc = await vfs.getFileById(ref.id);
 
     let allFiles = await vfs.listFiles(scene_id, true);
-    expect(allFiles).to.have.property("length", 1);
-    expect(allFiles[0]).to.have.property("hash" ).not.ok;
+    expect(allFiles, `Two files should exist, but found ${allFiles.map(f=>f.name).join(", ")}`).to.have.property("length", 2);
+    expect(allFiles.find(({id})=>id == doc.id)).to.be.ok;
+    expect(allFiles.find(({id})=> id != doc.id)).to.have.property("hash" ).not.ok;
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
@@ -171,17 +175,19 @@ describe("POST /history/:scene", function(){
     expect(res.body.changes).to.deep.equal(['articles/hello.txt']);
 
     allFiles = await vfs.listFiles(scene_id, true);
-    expect(allFiles).to.have.property("length", 1);
-    expect(allFiles[0]).to.have.property("hash").to.equal("LPJNul-wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ");
+    expect(allFiles).to.have.property("length", 2);
+    expect(allFiles.find(({id})=>id == doc.id)).to.be.ok;
+    const article = allFiles.find(({id})=> id != doc.id);
+    expect(article).to.have.property("hash").to.equal("LPJNul-wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ");
     //console.log(allFiles[0]);
-    expect(allFiles[0]).to.have.property("size").above(0);
-    expect(allFiles[0]).to.have.property("generation", 3);
+    expect(article).to.have.property("size").above(0);
+    expect(article).to.have.property("generation", 3);
   });
 
   it("refuses to completely delete a document", async function(){
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
     await antidate();
-    await vfs.writeDoc(`{"id": 1}`, scene_id);
+    await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
@@ -194,7 +200,7 @@ describe("POST /history/:scene", function(){
   });
 
   it("requires proper file identifier", async function(){
-    let docId = await vfs.writeDoc(`{"id": 1}`, scene_id);
+    await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
     //no generation
@@ -229,8 +235,8 @@ describe("POST /history/:scene", function(){
   describe("permissions", function(){
     let docId:number, body = {name: "scene.svx.json", generation: 1};
     this.beforeEach(async function(){
-      docId = await vfs.writeDoc(`{"id": 1}`, scene_id);
-      await vfs.writeDoc(`{"id": 2}`, scene_id);
+      docId = (await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
+      await vfs.writeDoc(`{"id": 2}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     });
     it("requires admin rights over the scene", async function(){
       const oscar = await userManager.addUser("oscar", "12345678");

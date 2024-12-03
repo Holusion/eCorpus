@@ -154,9 +154,7 @@ async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:nu
   if(recurse <= -1 || 2 <= recurse ){
 
     let files :FileProps[] = await vfs.listFiles(scene.id, false, true);
-    
     elements.push(
-      Element.fromFile(new URL(`scene.svx.json`, sceneUrl),  {...scene}),
       ...files.filter(f => recurse <= -1 || f.name.split("/").length +1 <= recurse ).map(f => {
         let isDirectory =  f.mime == "text/directory"
         return Element.fromFile(

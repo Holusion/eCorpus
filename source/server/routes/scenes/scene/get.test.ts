@@ -17,7 +17,7 @@ describe("GET /scenes/:scene", function(){
         vfs.createScene("foo"),
         vfs.createScene("bar"),
     ]);
-    await Promise.all(ids.map((id=>vfs.writeDoc("{}", id))));
+    await Promise.all(ids.map((id=>vfs.writeDoc("{}", {scene: id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"}))));
     await Promise.all(ids.map(id=> vfs.writeFile(dataStream(), {scene:id, name:"articles/hello-world.html", mime: "text/html", user_id: 0})))
   });
   this.afterEach(async function(){
@@ -41,7 +41,6 @@ describe("GET /scenes/:scene", function(){
     it("download a zip file", async function(){
       let t = new Date("2023-05-03T13:34:26.000Z");
       await vfs._db.run(`UPDATE files SET ctime = datetime("${t.toISOString()}")`);
-      await vfs._db.run(`UPDATE documents SET ctime = datetime("${t.toISOString()}")`);
 
       let res = await request(this.server).get("/scenes/foo")
       .set("Accept", "application/zip")
@@ -93,7 +92,7 @@ describe("GET /scenes/:scene", function(){
         },
         {
           filename: 'foo/scene.svx.json',
-          crc: 4261281091,
+          crc: 1107104509,
           size: 2,
           compressedSize: 2,
           dosMode: 0,

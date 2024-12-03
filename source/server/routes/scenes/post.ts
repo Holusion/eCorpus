@@ -72,7 +72,7 @@ export default async function postScenes(req :Request, res :Response){
         }finally{
           await handle.close();
         }
-        await vfs.writeDoc(data.toString("utf8"), scene, requester.uid);
+        await vfs.writeDoc(data.toString("utf8"), {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
       }else{
         //Add the file
         let rs = createReadStream(tmpfile, {start: record.start, end: record.end});

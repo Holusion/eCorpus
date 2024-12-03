@@ -57,6 +57,5 @@ describe("POST /scenes/:scene", function(){
     .expect(500);
     expect( await vfs.getScenes()).to.have.property("length", 0);
     expect(await vfs._db.get(`SELECT COUNT(*) AS count FROM files`)).to.have.property("count", 0);
-    expect(await vfs._db.get(`SELECT COUNT(*) AS count FROM documents`)).to.have.property("count", 0);
   })
 });

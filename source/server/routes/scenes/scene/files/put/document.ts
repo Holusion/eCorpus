@@ -23,16 +23,16 @@ export default async function handlePutDocument(req :Request, res :Response){
   if(typeof newDoc !== "object"|| !Object.keys(newDoc).length) throw new BadRequestError(`Invalid json document`);
 
   if(!refId || !config.enable_document_merge){
-    await getVfs(req).writeDoc(JSON.stringify(newDoc), scene, uid);
+    await getVfs(req).writeDoc(JSON.stringify(newDoc), {scene: scene, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     return res.status(204).send();
   }
 
   await getVfs(req).isolate(async (tr)=>{
     // perform a diff of the document with the reference one
-    const {id: scene_id} = await tr.getScene(scene);
-    const {data: currentDocString} = await tr.getDoc(scene_id);
+    const {data: currentDocString, id: currentDocId} = await tr.getDoc(scene);
     const currentDoc = JSON.parse(currentDocString);
-    const {data: refDocString} = await tr.getDocById(refId);
+    const {data: refDocString,} = await tr.getFileById(refId);
+    if(!refDocString) throw new BadRequestError(`Referenced document is not valid`);
     const refDoc = JSON.parse(refDocString);
 
     const docDiff = merge.diffDoc(refDoc, newDoc);
@@ -43,7 +43,7 @@ export default async function handlePutDocument(req :Request, res :Response){
 
     const mergedDoc = merge.applyDoc(currentDoc, docDiff);
     let s = JSON.stringify(mergedDoc);
-    let id = await tr.writeDoc(s, scene, uid);
+    await tr.writeDoc(s, {scene: scene, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     res.status(204).send();
   });
   

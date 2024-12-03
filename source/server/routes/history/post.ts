@@ -49,8 +49,13 @@ export async function postSceneHistory(req :Request, res :Response){
       }else if(typeof prev === "undefined"){
         throw new BadRequestError(`Trying to remove scene document for ${sceneName}. This would create an invalid scene`);
       }else{
-        let {data} = await tr.getDocById(prev.id);
-        await tr.writeDoc(data, scene.id, prev.author_id );
+        let {data} = await tr.getFileById(prev.id);
+        await tr.writeDoc(data ?? null, {
+          scene: scene.id,
+          user_id: prev.author_id,
+          name: "scene.svx.json", 
+          mime: "application/si-dpo-3d.document+json",
+        });
       }
     }
   });

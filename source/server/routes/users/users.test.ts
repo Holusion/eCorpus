@@ -146,7 +146,7 @@ describe("/users", function(){
       it("will cleanup files created by a removed user", async function(){
         let props :WriteFileParams= {scene:"foo", mime: "model/gltf-binary", name: "models/foo.glb", user_id: user.uid}
         let scene = await vfs.createScene("foo", user.uid);
-        let doc_id = await vfs.writeDoc("{}", scene, user.uid);
+        let doc_id = await vfs.writeDoc("{}", {scene: scene, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         expect(await userManager.getPermissions(scene)).to.deep.equal([
           {uid: 0, username: "default", access: "read"},
           {uid:1, username: "any", access: "read"},

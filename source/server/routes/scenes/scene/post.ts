@@ -68,7 +68,7 @@ export default async function postScene(req :Request, res :Response){
   try{
     let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});
     let document = await getDocument(scene, vfs.filepath(f));
-    await vfs.writeDoc(JSON.stringify(document), scene_id, user_id);
+    await vfs.writeDoc(JSON.stringify(document), {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
   }catch(e){
     //If written, the file will stay as a loose object but will get cleaned-up later
     await vfs.removeScene(scene_id).catch(e=>console.warn(e));

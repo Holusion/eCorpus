@@ -23,7 +23,7 @@ describe("PROPFIND /scenes", function(){
     admin = await userManager.addUser("alice", "12345678", true);
 
     scene_id = await vfs.createScene("foo", user.uid);
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
   });
   this.afterEach(async function(){

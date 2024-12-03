@@ -13,11 +13,18 @@ export default abstract class ScenesVfs extends BaseVfs{
   async createScene(name :string, permissions:AccessMap):Promise<number>
   async createScene(name :string, perms ?:AccessMap|number) :Promise<number>{
     let permissions :AccessMap = (typeof perms === "object")? perms : {};
+    let author_id = 0;
     //Always provide permissions for default user
     permissions['0'] ??= (config.public?"read":"none");
     permissions['1'] ??= "read";
     //If an author_id is provided, it is an administrator
-    if(typeof perms === "number" ) permissions[perms.toString(10)] = "admin";
+    if(typeof perms === "number" ){
+      permissions[perms.toString(10)] = "admin";
+      author_id = perms;
+    }else if(typeof perms ==="object"){
+      let adm = Object.keys(perms).map(k=>parseInt(k)).find(n=> Number.isInteger(n) && 1 < n);
+      if(adm) author_id = adm;
+    }
 
     for(let i=0; i<3; i++){
       try{
@@ -26,17 +33,19 @@ export default abstract class ScenesVfs extends BaseVfs{
         if(name.endsWith("#"+uid.toString(10))) continue;
 
         let r = await this.db.get(`
-          INSERT INTO scenes (scene_name, scene_id, access) 
+          INSERT INTO scenes (scene_name, scene_id, access, fk_author_id) 
           VALUES (
             $scene_name,
             $scene_id,
-            $access
+            $access,
+            $author
           )
           RETURNING scene_id AS scene_id;
         `, {
           $scene_name:name, 
           $scene_id: uid,
-          $access: JSON.stringify(permissions)
+          $access: JSON.stringify(permissions),
+          $author: author_id,
         });
         return r.scene_id;
       }catch(e){
@@ -137,9 +146,9 @@ export default abstract class ScenesVfs extends BaseVfs{
     let likeness = "";
     let mParams :Record<string, string> = {};
 
-    function addMatch(ms :string, words :number){
-      let name = `$match${words}`;
-      let fname = `$fmatch${words}`; //fuzzy
+    function addMatch(ms :string, index :number) :string{
+      let name = `$match${index}`;
+      let fname = `$fmatch${index}`; //fuzzy
       let fm = ms;
       if(ms.startsWith("^")) fm = fm.slice(1);
       else if(!ms.startsWith("%")) fm = "%"+ fm;
@@ -150,13 +159,13 @@ export default abstract class ScenesVfs extends BaseVfs{
       mParams[fname] = fm;
       mParams[name] = ms;
 
-      likeness += `${words ==0 ? " ": " AND "}(
-        name LIKE ${fname}
-        OR document.metas LIKE ${fname}
-        OR author = ${name}
-        OR json_extract(access, '$.' || ${name}) IN (${AccessTypes.slice(2).map(a=>`'${a}'`).join(", ")})
-        OR access LIKE '%"' || ${name} || '":%'
-      )`;
+      let conditions = [
+        `name LIKE ${fname}`,
+        `docs.meta LIKE ${fname}`,
+        `author = ${name}`,
+        `json_extract(scenes.access, '$.' || ${name}) IN (${AccessTypes.slice(2).map(a=>`'${a}'`).join(", ")})`,
+      ]
+      return `${index ==0 ? " ": " AND "}( ${conditions.join(" OR ")} )`;
     }
 
 
@@ -169,42 +178,46 @@ export default abstract class ScenesVfs extends BaseVfs{
         if(c == '"')    quoted = !quoted;
         else if(c != " " || quoted) ms += c;
         else{
-          addMatch(ms, words++);
+          likeness += addMatch(ms, words++);
           ms = "";
         }
       });
-      if(ms.length) addMatch(ms, words++);
+      if(ms.length) likeness += addMatch(ms, words++);
       likeness += `)`;
     }
 
-
-
-    return (await this.db.all(`
-      WITH last_docs AS (
-        SELECT 
-          documents.ctime AS mtime, 
-          documents.fk_author_id AS fk_author_id,
-          documents.fk_scene_id AS fk_scene_id,
-          json_extract(documents.data, '$.metas') AS metas
-        FROM (
-            SELECT MAX(generation) AS generation, fk_scene_id FROM documents GROUP BY fk_scene_id
-          ) AS last_docs
-          LEFT JOIN documents
-          ON 
-            last_docs.fk_scene_id = documents.fk_scene_id 
-            AND last_docs.generation = documents.generation
-      )
-
+    return (await this.db.all<{
+      id:number,
+      name:string,
+      ctime: string,
+      mtime: string,
+      author_id: number,
+      author: string,
+      thumb: string|null,
+      tags: string,
+      access: string,
+    }[]>(`
+      WITH 
+        docs AS (
+          SELECT json_extract(data, "$.metas") AS meta, ctime AS mtime, fk_scene_id
+          FROM current_files
+          WHERE mime = "application/si-dpo-3d.document+json" AND data IS NOT NULL
+        ),
+        thumbnails AS (
+          SELECT name, fk_scene_id
+          FROM current_files
+          WHERE name="scene-image-thumb.jpg" AND size != 0
+        )
       SELECT 
-        IFNULL(mtime, scenes.ctime) as mtime,
+        scenes.scene_id AS id,
+        scenes.scene_name AS name,
         scenes.ctime AS ctime,
-        scene_id AS id,
-        scene_name AS name,
-        IFNULL(fk_author_id, 0) AS author_id,
+        IFNULL(docs.mtime, scenes.ctime) as mtime,
+        scenes.fk_author_id AS author_id,
         IFNULL((
-          SELECT username FROM users WHERE fk_author_id = user_id
+          SELECT username FROM users WHERE scenes.fk_author_id = user_id
         ), "default") AS author,
-        json_extract(thumb.value, '$.uri') AS thumb,
+        (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id) AS thumb,
         tags.names AS tags,
         json_object(
           ${(typeof user_id === "number" && 0 < user_id)? `
@@ -215,8 +228,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         ) AS access
       
       FROM scenes
-        LEFT JOIN last_docs AS document ON document.fk_scene_id = scene_id
-        LEFT JOIN json_tree(document.metas) AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
+        LEFT JOIN docs ON docs.fk_scene_id = scene_id
         LEFT JOIN (
           SELECT 
             json_group_array(tag_name) AS names,
@@ -253,44 +265,55 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
-    let r = await this.db.get(`
-      SELECT
-        scene_name AS name,
-        scene_id AS id,
-        scenes.ctime AS ctime,
-        IFNULL(documents.ctime, scenes.ctime) AS mtime,
-        IFNULL(fk_author_id, 0) AS author_id,
+    let scene = await this.db.get<{
+      name: string,
+      id: number,
+      ctime :string,
+      author_id: number,
+      author: string,
+      access: string,
+    }>(`
+      SELECT 
+        scene_name as name,
+        scene_id as id,
+        ctime,
+        fk_author_id AS author_id,
         IFNULL((
           SELECT username FROM users WHERE user_id = fk_author_id
         ), 'default') AS author,
-        json_extract(thumb.value, '$.uri') AS thumb,
-        tags.names AS tags,
         json_object(
           ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),`: ``}
           "any", json_extract(scenes.access, '$.1'),
           "default", json_extract(scenes.access, '$.0')
         ) AS access
-      FROM scenes 
-        LEFT JOIN documents ON documents.fk_scene_id = scene_id
-        LEFT JOIN json_tree(documents.data, "$.metas") AS thumb ON thumb.fullkey LIKE "$[_].images[_]" AND json_extract(thumb.value, '$.quality') = 'Thumb'
-        LEFT JOIN (
-          SELECT 
-            json_group_array(tag_name) AS names,
-            fk_scene_id
-          FROM tags
-          GROUP BY fk_scene_id
-        ) AS tags ON tags.fk_scene_id = scene_id
-      WHERE ${key} = $value
-      ORDER BY generation DESC
-      LIMIT 1
-    `, {$value: nameOrId, $user_id: user_id? user_id.toString(10): undefined});
-    if(!r|| !r.name) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+      FROM scenes WHERE ${key} = $value`, {$value: nameOrId, $user_id: user_id? user_id.toString(10): undefined});
+    
+    if(!scene) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+    
+    let tags = await this.db.all<{name:string}[]>(`
+      SELECT 
+        tag_name AS name
+      FROM tags
+      WHERE tags.fk_scene_id = $scene_id
+    `, {$scene_id: scene.id});
+
+    let r = await this.db.get<{mtime:string, thumb?:string}>(`
+      WITH scene_files AS (
+        SELECT *
+        FROM current_files
+        WHERE fk_scene_id = $scene_id
+      )
+      SELECT 
+        (SELECT MAX(ctime) FROM scene_files) AS mtime,
+        (SELECT name FROM scene_files WHERE name = "scene-image-thumb.jpg" AND size != 0) AS thumb
+    `, {$scene_id: scene.id});
     return {
-      ...r,
-      tags: r.tags ? JSON.parse(r.tags): [],
-      access: JSON.parse(r.access),
-      ctime: BaseVfs.toDate(r.ctime),
-      mtime: BaseVfs.toDate(r.mtime),
+      ...scene,
+      access: JSON.parse(scene.access),
+      ctime: BaseVfs.toDate(scene.ctime),
+      mtime: BaseVfs.toDate(r?.mtime ?? scene.ctime),
+      thumb: r?.thumb ?? null,
+      tags: tags.map(t=>t.name),
     }
   }
 
@@ -306,31 +329,18 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   async getSceneHistory(id :number) :Promise<Array<ItemEntry>>{
     let entries = await this.db.all(`
-      SELECT name, mime, id, generation, ctime, username AS author, author_id, size
-      FROM(
-        SELECT 
-          "scene.svx.json" AS name,
-          "application/si-dpo-3d.document+json" AS mime,
-          doc_id AS id,
-          generation,
-          ctime,
-          fk_author_id AS author_id,
-          LENGTH(CAST(data AS BLOB)) AS size
-        FROM documents
-        WHERE fk_scene_id = $scene
-        UNION ALL
-        SELECT
-          name,
-          mime,
-          file_id AS id,
-          generation,
-          ctime,
-          fk_author_id AS author_id,
-          size
-        FROM files
-        WHERE fk_scene_id = $scene
-      )
+      SELECT 
+        file_id AS id,
+        name,
+        mime,
+        generation,
+        ctime,
+        username AS author,
+        fk_author_id AS author_id,
+        size
+      FROM files
       INNER JOIN users ON author_id = user_id
+      WHERE fk_scene_id = $scene
       ORDER BY ctime DESC, name DESC, generation DESC
     `, {$scene: id});
 

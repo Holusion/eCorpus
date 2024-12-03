@@ -1,18 +1,23 @@
 import { constants, promises as fs } from "fs";
 import { createHash } from "crypto";
 import path from "path";
-import { NotFoundError, InternalError, ConflictError, BadRequestError } from "../utils/errors.js";
+import { NotFoundError, ConflictError, BadRequestError, InternalError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { DataStream, FileProps, GetFileParams, GetFileResult, Stored, WriteDirParams, WriteFileParams } from "./types.js";
+import { DataStream, DocProps, FileProps, GetFileParams, GetFileResult, Stored, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
+import { Readable } from "stream";
 
 interface DiskFileParams{
   size :number;
   hash :string|null;
   mime ?:string;
+}
+
+interface DocFileParams extends DiskFileParams{
+  data : string|Buffer|null;
 }
 
 interface CreateFileCallbackParams{
@@ -71,70 +76,122 @@ export default abstract class FilesVfs extends BaseVfs{
     });
     
   }
+
+
+  /**
+   * Write a document for a scene
+   * Unlike regular files, documents are stored as a string in the database
+   * @returns the created document id
+   */
+  async writeDoc(data:string|Buffer|null, props :WriteFileParams) :Promise<FileProps>{
+    if(data == null) return await this.createFile(props, {hash:null, data: null, size: 0});
+    let b = Buffer.isBuffer(data)? data: Buffer.from(data);
+    let text = typeof data === "string"? data: b.toString("utf-8");
+    let hashsum = createHash("sha256");
+    hashsum.update(b);
+    let hash = hashsum.digest("base64url");
+    let size = b.length;
+    return await this.createFile(props, {data: text, size, hash});
+  }
+
   /**
    * create an entry for a file. It is expected to already exist or be created in the callback
-   * It is generally best to use one of the more specialized functions that provide more security checks
-   * @see writeFile for a wrapper that safely handles file creation 
+   * @see writeFile for a wrapper that handles file creation and is easier to use properly
+   * @see writeDoc to create a file with embedded data
    */
-  async createFile({scene,name, mime = "application/octet-stream", user_id} :WriteFileParams, theFile :DiskFileParams|((params:CreateFileCallbackParams)=>Promise<DiskFileParams>)) :Promise<FileProps>{
-    
+  async createFile(params :WriteFileParams,  theFile :DocFileParams) :Promise<FileProps>
+  async createFile(params :WriteFileParams, theFile :DiskFileParams) :Promise<FileProps>
+  async createFile(params :WriteFileParams, theFile :((params:CreateFileCallbackParams)=>Promise<DiskFileParams>)) :Promise<FileProps>
+  async createFile(params :WriteFileParams|WriteDocParams, theFile :DocFileParams|DiskFileParams|((params:CreateFileCallbackParams)=>Promise<DiskFileParams>)) :Promise<FileProps>{
+
+    let fileParams :DiskFileParams  = Object.assign({
+      size: 0,
+      hash: null,
+    }, ((typeof theFile === "function")? {} : theFile));
+    let data = ((typeof theFile === "object" && "data" in theFile && theFile.data)? theFile.data : null);
+
     return await this.db.beginTransaction<FileProps>(async tr =>{
-      let r = await tr.get(`
-        WITH scene AS (SELECT scene_id FROM scenes WHERE ${typeof scene =="number"? "scene_id":"scene_name"} = $scene )
-        INSERT INTO files (name, mime, generation, fk_scene_id, fk_author_id)
+      let r = await tr.get<{id:number, generation: number, ctime: string}>(`
+        WITH scene AS (SELECT scene_id FROM scenes WHERE ${typeof params.scene =="number"? "scene_id":"scene_name"} = $scene )
+        INSERT INTO files (name, mime, data, hash, size, generation, fk_scene_id, fk_author_id)
         SELECT 
           $name AS name,
           $mime AS mime,
+          $data AS data,
+          $hash AS hash,
+          $size AS size,
           IFNULL((
             SELECT MAX(generation) FROM files WHERE fk_scene_id = scene_id AND name = $name
           ), 0) + 1 AS generation,
           scene_id AS fk_scene_id,
           $user_id AS fk_author_id
         FROM scene
-        GROUP BY name
         RETURNING 
-          file_id,
+          file_id as id,
           generation, 
           ctime
-      `, {$scene: scene, $name: name, $mime: mime, $user_id: user_id});
-      if(!r) throw new NotFoundError(`Can't find a scene named ${scene}`);
+      `, {
 
-      let {file_id, generation, ctime} = r;
+        $scene: params.scene,
+        $name: params.name,
+        $mime: params.mime || "application/octet-stream" ,
+        $user_id: params.user_id,
+        $data: data,
+        $hash: fileParams.hash,
+        $size: fileParams.size,
+      });
+      if(!r) throw new NotFoundError(`Can't find a scene named ${params.scene}`);
+
+      let {id, generation, ctime} = r;
+      
       if(typeof theFile === "function"){
-        theFile = await theFile({id: file_id, tr});
-      }
-      if(theFile.hash){
-        r = await tr.run(`UPDATE files SET hash = $hash, size = $size WHERE file_id = $id`, {$hash: theFile.hash, $size: theFile.size, $id: file_id});
-        if(r.changes != 1) throw new InternalError(`Failed to update file hash`);
+        fileParams = await theFile({id, tr});
+        if(fileParams?.hash || fileParams?.size){
+          let setHash = await tr.run(`UPDATE files SET hash = $hash, size = $size WHERE file_id = $id`, {$hash: fileParams.hash, $size: fileParams.size, $id: id});
+          if(setHash.changes != 1) throw new InternalError(`Failed to update file hash`);
+        }
       }
 
-      let author = await tr.get(`SELECT username FROM users WHERE user_id = $user_id`,{$user_id: user_id});
+      let author = await tr.get(`SELECT username FROM users WHERE user_id = $user_id`,{$user_id: params.user_id});
       return {
         generation,
-        id: file_id,
+        id: id,
         ctime: BaseVfs.toDate(ctime),
         mtime: BaseVfs.toDate(ctime),
-        size : theFile.size,
-        hash: theFile.hash || null,
-        mime,
-        name,
-        author_id: user_id,
+        size : fileParams.size,
+        hash: fileParams.hash,
+        mime: params.mime ?? "application/octet-stream",
+        name: params.name,
+        author_id: params.user_id,
         author: author.username,
       };
     });
   }
 
   async getFileById(id :number) :Promise<FileProps>{
-    let r = await this.db.get<Stored<FileProps>>(`
+    let r = await this.db.get<{
+      id: number,
+      name: string,
+      mime: string,
+      size: number,
+      data?: string,
+      hash: string|null,
+      generation: number,
+      ctime: string,
+      mtime: string,
+      author_id: number,
+      author: string,
+    }>(`
       SELECT
         file_id AS id,
+        files.name AS name,
+        mime,
         size,
+        data,
         hash,
         generation,
         first.ctime AS ctime,
         files.ctime AS mtime,
-        files.name AS name,
-        mime,
         files.fk_author_id AS author_id,
         username AS author
       FROM files 
@@ -150,16 +207,23 @@ export default abstract class FilesVfs extends BaseVfs{
       mtime: BaseVfs.toDate(r.mtime),
     };
   }
-
-  async getFileProps({scene, name, archive = false} :GetFileParams) :Promise<FileProps>{
+  /**
+   * Fetch a file's properties from database
+   * This function is growing out of control, having to manage disk vs doc stored files, mtime aggregation, etc...
+   * The whole thing might become a performance bottleneck one day.
+   */
+  async getFileProps({scene, name, archive} :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
+  async getFileProps({scene, name, archive} :GetFileParams, withData :true) :Promise<FileProps>
+  async getFileProps({scene, name, archive = false} :GetFileParams, withData = false) :Promise<FileProps>{
     let is_string = typeof scene === "string";
-    let r = await this.db.get<Stored<FileProps>>(`
+    let r = await this.db.get(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $scene )
       SELECT
         file_id AS id,
         files.name AS name,
         size,
         hash,
+        ${withData? "data,":""}
         generation,
         (SELECT ctime FROM files WHERE fk_scene_id = scene.scene_id AND name = $name AND generation = 1) AS ctime,
         files.ctime AS mtime,
@@ -167,7 +231,7 @@ export default abstract class FilesVfs extends BaseVfs{
         files.fk_author_id AS author_id,
         (SELECT username FROM users WHERE files.fk_author_id = user_id LIMIT 1) AS author
       FROM files 
-        INNER JOIN scene ON files.fk_scene_id = scene.scene_id 
+      INNER JOIN scene ON files.fk_scene_id = scene.scene_id 
       WHERE files.name = $name
       ORDER BY generation DESC
       LIMIT 1
@@ -187,17 +251,32 @@ export default abstract class FilesVfs extends BaseVfs{
    * @see getFileProps
    */
   async getFile(props:GetFileParams) :Promise<GetFileResult>{
-    let r = await this.getFileProps(props);
-    if(!r.hash) throw new NotFoundError(`Trying to open deleted file : ${ r.name }`);
-    if(r.hash === "directory") throw new BadRequestError(`${props.name} in ${props.scene} appears to be a directory`);
-    let handle = await this.openFile({hash: r.hash!});
+    let r = await this.getFileProps(props, true);
+    if(!r.hash && !r.data) throw new NotFoundError(`Trying to open deleted file : ${ r.name }`);
+    if(r.hash === "directory") return r;
+
+    let handle = (typeof r.data === "string")? Readable.from([r.data]): (await this.openFile({hash: r.hash!})).createReadStream();
     return {
       ...r,
-      stream: handle.createReadStream(),
+      stream: handle,
     };
   }
 
+  /**
+   * Shorthand to get latest doc of a scene. Ensure data is properly stored
+   */
+  async getDoc(scene :string|number) :Promise<DocProps>{
+    let r = await this.getFileProps({scene, name: "scene.svx.json"}, true);
+    if(!r.data)  throw new BadRequestError(`Not a valid document: ${ r.name }`);
+    if(Buffer.isBuffer(r.data)) r.data = r.data.toString("utf8");
+    
+    return r as DocProps;
+  }
 
+  /**
+   * Low-level filesystem call to get a FsHandle to a file
+   * Isolated here so it can easily be replaced to any blob storage external service if needed
+   */
   async openFile(file:{hash :string}) :Promise<FileHandle>{
     return await fs.open(path.join(this.objectsDir, file.hash), constants.O_RDONLY);
   }
@@ -260,7 +339,7 @@ export default abstract class FilesVfs extends BaseVfs{
         : props.scene
       );
       //Get current file
-      let thisFile = await tr.getFileProps(props);
+      let thisFile = await tr.getFileProps(props, true);
       //Get dest file
       let destFile = await tr.getFileProps({...props, name: nextName, archive: true})
       .catch(e=>{
@@ -282,22 +361,23 @@ export default abstract class FilesVfs extends BaseVfs{
    * Get a list of all files in a scenes in their current state.
    * @see getSceneHistory for a list of all versions
    * Ordering should be consistent with `getSceneHistory`
+   * @fixme check for performance benefits of using the new current_files view? 
    */
   async listFiles(scene_id :number, archive :boolean =false, withFolders = false) :Promise<FileProps[]>{
 
     return (await this.db.all<Stored<FileProps>[]>(`
       WITH ag AS ( 
-        SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS last
+        SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS generation
         FROM files
         WHERE fk_scene_id = $scene_id
         GROUP BY fk_scene_id, name
       )
       SELECT 
-        ag.mtime as mtime,
-        ag.ctime as ctime,
-        files.size,
+        ag.mtime AS mtime,
+        ag.ctime AS ctime,
+        files.size AS size,
         hash,
-        ag.last as generation,
+        ag.generation as generation,
         file_id as id,
         files.name AS name,
         mime,
@@ -305,7 +385,7 @@ export default abstract class FilesVfs extends BaseVfs{
         username AS author
       FROM ag
         INNER JOIN files 
-          ON files.fk_scene_id = ag.fk_scene_id AND files.name = ag.name AND files.generation = ag.last
+          USING(fk_scene_id, name, generation)
         INNER JOIN users 
           ON files.fk_author_id = user_id
       WHERE 1

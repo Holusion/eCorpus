@@ -16,6 +16,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
   let sampleDocString :string;
   let titleSlug :string, scene_id :number, sampleDoc :any;
+  let firstDocId :number;
 
   this.beforeAll(async function(){
     let locals = await createIntegrationContext(this, {enable_document_merge: true});
@@ -35,7 +36,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     titleSlug = this.currentTest?.title.replace(/[^\w]/g, "_").slice(0, 15)+"_"+randomBytes(4).toString("base64url");
     scene_id = await vfs.createScene(titleSlug, user.uid);
     sampleDoc = JSON.parse(sampleDocString);
-    await vfs.writeDoc(sampleDocString, scene_id, user.uid);
+    firstDocId = (await vfs.writeDoc(sampleDocString, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
   });
 
 
@@ -49,12 +50,13 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     .expect(204);
 
     let {ctime, mtime, size, data, id, ...doc} =  await vfs.getDoc(scene_id);
-    console.log("Doc :", doc);
     expect(doc).to.deep.equal({
       name: 'scene.svx.json',
       author_id: user.uid,
       author: user.username,
-      generation: 2
+      generation: 2,
+      hash: "vpX0f_vG7OW_3GwXOPme_Cv2qNLoINjYdTX770KMdEg",
+      mime: "application/si-dpo-3d.document+json",
     });
     expect(mtime).to.be.instanceof(Date);
     expect(ctime).to.be.instanceof(Date);
@@ -68,11 +70,11 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     currentDoc.models[0].annotations = [
       {id: uid(), title:"Annotation"}
     ];
-    await vfs.writeDoc(JSON.stringify(currentDoc), scene_id, user.uid);
+    await vfs.writeDoc(JSON.stringify(currentDoc), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
 
     //Make our user reference the first doc generation
-    sampleDoc.asset.id = 1;
+    sampleDoc.asset.id = firstDocId;
     sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
     let r = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
     .auth("bob", "12345678")
@@ -115,11 +117,11 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
         }
       ]
     });
-    await vfs.writeDoc(JSON.stringify(currentDoc), scene_id, user.uid);
 
+    await vfs.writeDoc(JSON.stringify(currentDoc), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
     //Make our user reference the first doc generation
-    sampleDoc.asset.id = 1;
+    sampleDoc.asset.id = firstDocId;
     idx = sampleDoc.nodes.push({
       "id": "xpxZWrFw0Twi",
       "name": "Model 2",
@@ -148,9 +150,12 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
 
     let {ctime, mtime, data:docString, id, ...doc} =  await vfs.getDoc(scene_id);
     const data = JSON.parse(docString);
-    console.log("models : ", data.models);
     expect(data.models).to.have.length(3);
     expect(data.nodes).to.have.length(6);
+  });
+
+  it.skip("can't reference a foreign document to diff against", async function(){
+    expect.fail("Unimplemented");
   });
 
 });

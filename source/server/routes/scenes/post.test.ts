@@ -42,11 +42,11 @@ describe("POST /scenes", function(){
     //Where scenes are exported from the `GET /scenes` endpoint
     const user = await userManager.addUser("alice", "12345678", true);
     await vfs.createScene("foo", user.uid);
-    await vfs.writeDoc(`{"id":1}`, "foo", user.uid);
+    await vfs.writeDoc(`{"id":1}`, {scene: "foo", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene:"foo", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
 
     await vfs.createScene("bar", user.uid);
-    await vfs.writeDoc(`{"id":2}`, "bar", user.uid);
+    await vfs.writeDoc(`{"id":2}`, {scene: "bar", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene:"bar", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
 
     let zip = await request(this.server).get("/scenes")
@@ -81,7 +81,7 @@ describe("POST /scenes", function(){
     //Where scene is exported from the `GET /scenes/{id}` endpoint
     const user = await userManager.addUser("alice", "12345678", true);
     await vfs.createScene("foo", user.uid);
-    await vfs.writeDoc(`{"id":1}`, "foo", user.uid);
+    await vfs.writeDoc(`{"id":1}`, {scene: "foo", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene:"foo", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
     let zip = await request(this.server).get("/scenes/foo")
     .auth("alice", "12345678")

@@ -28,7 +28,7 @@ describe("GET /history/:scene", function(){
       scene_id = await vfs.createScene("foo", user.uid);
       await Promise.all([
         vfs.writeFile(dataStream(), {scene: "foo", name:"articles/foo.txt", mime:"text/plain", user_id: user.uid}),
-        vfs.writeDoc("{}", "foo", user.uid),
+        vfs.writeDoc("{}", {scene: "foo", user_id:user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"} ),
       ]);
       await vfs.removeFile({scene: "foo", name:"articles/foo.txt", mime:"text/plain", user_id: user.uid});
       await vfs.writeFile(dataStream(), {scene: "foo", name:"articles/foo.txt", mime:"text/plain", user_id: user.uid});
@@ -37,7 +37,6 @@ describe("GET /history/:scene", function(){
       //Ensure proper dates
       await vfs._db.exec(`
         UPDATE files SET ctime = datetime("${now.toISOString()}");
-        UPDATE documents SET ctime = datetime("${now.toISOString()}");
       `);
     });
   

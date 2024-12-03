@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import uid from "../../utils/uid.js";
 import Vfs from "../index.js";
+import UserManager from "../../auth/UserManager.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -33,15 +34,36 @@ describe("Database", function(){
     }
     await fs.rm(db.config.filename);
   });
-
-  it("migrations are indempotent", async function(){
-    let config = db.config;
-    await db.close();
-    //Will fail if migrations can't be reapplied
-    //Also tests syntax of the "down" migration.
-    db = await open({
-      ...config,
-      forceMigration: true
+  describe("migration", function(){
+    //Check if the last migration's UP/DOWN steps can be applied without error
+    //Doesn't check much else
+    it("over empty database", async function(){
+      let config = db.config;
+      await db.close();
+      //Will fail if migrations can't be reapplied
+      //Also tests syntax of the "down" migration.
+      db = await open({
+        ...config,
+        forceMigration: true
+      });
+    });
+  
+    it("over dummy data", async function(){
+      let vfs = new Vfs(os.tmpdir(), db);
+      let users = new UserManager(db);
+      let user = await users.addUser("bob", "12345678", false);
+      await vfs.createScene("foo");
+      // await vfs.writeDoc("{}", {scene: "foo", user_id: 0, name: "test.json", mime: "application/json"});
+      // await vfs.removeFile({scene: "foo", name: "test.json", user_id: 0});
+      // await vfs.writeDoc(`{"foo": "bar"}`, {scene: "foo", user_id: user.uid, name: "test.json", mime: "application/json"});
+      let config = db.config;
+      await db.close();
+      //Will fail if migrations can't be reapplied
+      //Also tests syntax of the "down" migration.
+      db = await open({
+        ...config,
+        forceMigration: true
+      });
     });
   });
 
@@ -78,81 +100,5 @@ describe("Database", function(){
       return await tr.all(`SELECT name FROM test`);
     })).to.eventually.deep.equal([{name: "foo"}]);
     await expect(p).to.be.fulfilled;
-  });
-});
-
-describe("migrations", function(){
-  let db :Database, count=0;
-  this.beforeEach(async function(){
-    db = await open({
-      filename: `file:memDbMigration${++count}?mode=memory&cache=shared`,
-      forceMigration: true,
-    });
-  });
-  this.afterEach(async function(){
-    await db.close();
-  });
-
-  describe("004-node-ids.sql", function(){
-    let upStmt :string, downStmt :string;
-    this.beforeAll(async function(){
-      [upStmt, downStmt] = (await fs.readFile(path.join(thisDir, "../../migrations/004-node-ids.sql"),"utf-8")).split("-- Down");
-    });
-    it("creates node and tour ids", async function(){
-      let vfs = new Vfs("/tmp/not-a-directory", db);
-      const scene_id = await vfs.createScene("foo");
-      const data = JSON.stringify({
-        nodes: [
-          {name: "Camera"},
-          {name: "Model"},
-          {name: "Lights"}
-        ],
-        setups: [{
-          tours: [
-            {steps:[], titles:{EN: "Tour 1"}}
-          ]
-        }]
-      });
-
-      const id = await vfs.writeDoc(data, scene_id);
-
-      await expect(db.exec(upStmt)).to.be.fulfilled;
-
-      const m_doc = JSON.parse((await vfs.getDocById(id)).data);
-      expect(m_doc).to.have.property("nodes").with.length(3);
-      for(let node of m_doc.nodes){
-        expect(node).to.have.property("id").a.string;
-      }
-
-      expect(m_doc).to.have.property("setups").with.length(1);
-      const tours = m_doc.setups[0].tours;
-      expect(tours).to.have.length(1);
-      expect(tours[0]).to.have.property("id").a.string;
-    });
-
-    it("respects existing ids", async function(){
-      let vfs = new Vfs("/tmp/not-a-directory", db);
-      const scene_id = await vfs.createScene("foo");
-      const data = JSON.stringify({
-        nodes: [
-          {name: "Camera", id:"01abfe"},
-          {name: "Model"},
-          {name: "Lights"}
-        ],
-        setups: [{
-          tours: [
-            {steps:[], titles:{EN: "Tour 1"}}
-          ]
-        }]
-      });
-
-      const id = await vfs.writeDoc(data, scene_id);
-
-      await expect(db.exec(upStmt)).to.be.fulfilled;
-
-      const m_doc = JSON.parse((await vfs.getDocById(id)).data);
-      expect(m_doc).to.have.property("nodes").with.length(3);
-      expect(m_doc.nodes[0]).to.have.property("id", "01abfe");
-    });
   });
 });

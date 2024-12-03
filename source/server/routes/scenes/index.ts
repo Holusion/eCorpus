@@ -15,8 +15,6 @@ import handleCreateScene from "./scene/mkcol.js";
 import getScene from "./scene/get.js";
 import patchScene from "./scene/patch.js";
 
-import handleCopyDocument from "./scene/files/copy/document.js";
-import handleCopyFile from "./scene/files/copy/file.js";
 import handleDeleteFile from "./scene/files/delete/file.js";
 import handleGetDocument from "./scene/files/get/document.js";
 import handleGetFile from "./scene/files/get/file.js";
@@ -67,13 +65,11 @@ router.put("/:scene/:file(*.svx.json)",
   bodyParser.json({type:["application/si-dpo-3d.document+json", "application/json"], limit: 204800}),
   wrap(handlePutDocument)
 );
-router.copy("/:scene/:file(*.svx.json)", canWrite, wrap(handleCopyDocument));
 
 
 router.get(`/:scene/:name(*)`, wrap(handleGetFile));
 router.put(`/:scene/:name(*)`, canWrite, wrap(handlePutFile));
 router.move(`/:scene/:name(*)`, canWrite, wrap(handleMoveFile));
-router.copy(`/:scene/:name(*)`, canWrite, wrap(handleCopyFile));
 router.delete(`/:scene/:name(*)`, canWrite, wrap(handleDeleteFile));
 router.mkcol(`/:scene/:name(*)`, canWrite, wrap(handleCreateFolder));
 

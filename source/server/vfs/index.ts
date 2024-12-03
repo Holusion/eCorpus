@@ -5,7 +5,6 @@ import open, {Database} from "./helpers/db.js";
 
 import BaseVfs from "./Base.js";
 import FilesVfs from "./Files.js";
-import DocsVfs from "./Docs.js";
 import ScenesVfs from "./Scenes.js";
 import CleanVfs from "./Clean.js";
 import StatsVfs from "./Stats.js";
@@ -13,6 +12,12 @@ import TagsVfs from "./Tags.js";
 
 export * from "./types.js";
 
+
+interface VfsOptions{
+  db ?:Database;
+  createDirs?:boolean;
+  forceMigration ?:boolean;
+}
 
 /**
  * Virtual filesystem interactions.
@@ -27,7 +32,7 @@ class Vfs extends BaseVfs{
     return !!this.db;
   }
 
-  static async Open(rootDir :string, {db, createDirs=true, forceMigration = true} :{db ?:Database, createDirs?:boolean, forceMigration ?:boolean} = {} ){
+  static async Open(rootDir :string, {db, createDirs=true, forceMigration = true} :VfsOptions = {} ){
     if(createDirs){
       await fs.mkdir(path.join(rootDir, "objects"), {recursive: true});
       await fs.rm(path.join(rootDir, "uploads"), {recursive: true, force: true});
@@ -47,8 +52,8 @@ class Vfs extends BaseVfs{
   }
 }
 
-interface Vfs extends FilesVfs, DocsVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs {};
-applyMixins(Vfs, [FilesVfs, DocsVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs]);
+interface Vfs extends FilesVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs {};
+applyMixins(Vfs, [FilesVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs]);
 
 export default Vfs;
 

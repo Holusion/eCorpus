@@ -2,6 +2,7 @@ import {pipeline} from "node:stream/promises";
 
 import { Request, Response } from "express";
 import { getVfs, getFileParams } from "../../../../../utils/locals.js";
+import { BadRequestError } from "../../../../../utils/errors.js";
 
 
 /**
@@ -11,7 +12,9 @@ export default async function handleGetFile(req :Request, res :Response){
   const vfs = getVfs(req);
   const {scene, name} = getFileParams(req);
   let f = await vfs.getFile({ scene, name });
-
+  if(!f.stream){
+    throw new BadRequestError(`${name} in ${scene} appears to be a directory`);
+  }
   res.set("ETag", `W/${f.hash}`);
   res.set("Last-Modified", f.mtime.toUTCString());
   if(req.fresh){

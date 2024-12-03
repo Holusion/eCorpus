@@ -42,7 +42,7 @@ describe("Web Server Integration", function(){
     let scene_id :number;
     this.beforeEach(async function(){
       scene_id = await vfs.createScene("foo", user.uid);
-      await vfs.writeDoc("{}", scene_id, user.uid);
+      await vfs.writeDoc("{}", {scene:scene_id, user_id:user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
       await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
     });
     describe("(anonymous)", function(){

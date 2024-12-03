@@ -1,6 +1,6 @@
 
 import path from "path";
-import util from "util";
+import util, { debuglog } from "util";
 
 import cookieSession from "cookie-session";
 import express, { Request, Response } from "express";
@@ -37,7 +37,14 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     setTimeout(()=>{
       //Clean file system after a while to prevent delaying startup
       vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
-    }, 60000).unref();
+    }, 6000).unref();
+
+    /** @fixme remove once all databases are migrated */
+    try{
+      await vfs.fillHashes()
+    }catch(e){
+      console.error("Failed to fill-in missing hashsums in database");
+    }
 
     setInterval(()=>{
       vfs.optimize();
@@ -236,7 +243,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     res.redirect(301, dest.pathname);
   }, `/api/v1 routes are deprecated. Use the new shorter naming scheme`));
 
-  const log_errors = process.env["TEST"] !== 'true';
+  const log_errors = config.verbose || debuglog("http:errors").enabled;
   const isTTY = process.stderr.isTTY;
 
   // error handling

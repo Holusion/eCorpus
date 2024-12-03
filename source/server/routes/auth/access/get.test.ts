@@ -30,7 +30,7 @@ describe("GET /auth/access/:scene", function(){
     //Initialize a unique scene for each test
     titleSlug = this.currentTest?.title.replace(/[^\w]/g, "_").slice(0,15)+"_"+randomBytes(4).toString("base64url");
     scene_id = await vfs.createScene(titleSlug, user.uid);
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene:scene_id, user_id:user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
   });
 
   it("requires read access", async function(){

@@ -7,26 +7,31 @@ import { AccessType } from "../auth/UserManager.js";
 export type DataStream = ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;
 
 
-
-export interface GetFileParams {
+export interface CommonFileParams{
   /** Scene name or scene id */
   scene :string|number;
   name  :string;
+}
+
+export interface WriteFileParams extends CommonFileParams{
+  user_id: number;
+  /** mime is application/octet-stream if omitted */
+  mime ?:string;
+}
+
+export interface GetFileParams extends CommonFileParams{
   /**Also return deleted files */
   archive ?:boolean;
 }
 
-export interface WriteFileParams extends GetFileParams {
-  user_id :number;
-  mime ?:string;
+
+export interface WriteDirParams extends WriteFileParams{
+  mime?:"text/directory";
 }
 
-export interface WriteDirParams{
-  scene :string|number;
-  name :string;
-  user_id :number;
+export interface WriteDocParams extends WriteFileParams{
+  data :string;
 }
-
 
 export interface ItemProps{
   ctime :Date;
@@ -48,11 +53,14 @@ export interface ItemEntry extends ItemProps{
 export interface FileProps extends ItemEntry{
   /**sha254 base64 encoded string or null for deleted files */
   hash :string|null;
+  /**data might be returned as a string */
+  data?: string;
 }
 
 export interface GetFileResult extends FileProps{
-  stream :Readable;
+  stream ?:Readable;
 }
+
 
 
 export interface Scene extends ItemProps{
@@ -68,9 +76,7 @@ export interface Scene extends ItemProps{
   };
 }
 
-export interface DocProps extends ItemEntry{
-  name :"scene.svx.json";
-  mime: "application/si-dpo-3d.document+json";
+export interface DocProps extends FileProps{
   data: string;
 }
 

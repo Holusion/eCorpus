@@ -19,7 +19,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", true);
     scene_id = await vfs.createScene("foo", {"0":"write", [user.uid]: "admin"});
-    await vfs.writeDoc("{}", scene_id, user.uid);
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
   });
   this.afterEach(async function(){
@@ -31,9 +31,9 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     await request(this.server).put("/scenes/foo/articles/foo.html")
     .set("Content-Type", "text/plain")
     .expect(201);
-    let {ctime, mtime, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo.html"});
+    let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo.html"});
+    expect(id).to.be.a("number");
     expect(file).to.deep.equal({
-      id: 3,
       size: 0,
       hash: '47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU',
       generation: 1,
@@ -51,9 +51,8 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     await request(this.server).put("/scenes/foo/articles/foo")
     .set("Content-Type", "text/html")
     .expect(201);
-    let {ctime, mtime, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo"});
+    let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo"});
     expect(file).to.deep.equal({
-      id: 3,
       size: 0,
       hash: '47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU',
       generation: 1,

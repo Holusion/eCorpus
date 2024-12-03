@@ -126,7 +126,7 @@ async function createScenes(c :{vfs:Vfs}){
     start = performance.now();
 
     for(let j = 0; j < size; j++){
-      await c.vfs.writeDoc(`{"id":"${j.toString().padStart(5, "0")}"}`, scene, 0);
+      await c.vfs.writeDoc(`{"id":"${j.toString().padStart(5, "0")}"}`, {scene: scene, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     }
     times.push(`docs: ${timeString(start)}`);
     start = performance.now();
