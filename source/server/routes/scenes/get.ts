@@ -93,7 +93,7 @@ export default async function getScenes(req :Request, res :Response){
     "text": ()=> res.status(200).send(scenes.map(m=>m.name).join("\n")+"\n"),
 
     "application/zip": async ()=>{
-      async function *getFiles(tr: Vfs):AsyncGenerator<ZipEntry,any, unknown>{
+      async function *getFiles(vfs: Vfs):AsyncGenerator<ZipEntry,any, unknown>{
         for(let scene of scenes){
           let root = `scenes/${scene.name}`;
 
@@ -125,8 +125,7 @@ export default async function getScenes(req :Request, res :Response){
           let again = res.write(data);
           if(!again) await once(res, "drain");
         }
-
-      })
+      });
       res.end();
     }
   });

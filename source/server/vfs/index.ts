@@ -24,12 +24,10 @@ interface VfsOptions{
  * Wraps calls in necessary locks and checks to prevent file corruption
  */
 class Vfs extends BaseVfs{
+  public isOpen :boolean = true;
 
   constructor(protected rootDir :string, protected db :Database){
     super(rootDir, db);
-  }
-  public get isOpen(){
-    return !!this.db;
   }
 
   static async Open(rootDir :string, {db, createDirs=true, forceMigration = true} :VfsOptions = {} ){
@@ -49,6 +47,7 @@ class Vfs extends BaseVfs{
   
   async close(){
     await this.db.close();
+    this.isOpen = false;
   }
 }
 

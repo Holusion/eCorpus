@@ -70,8 +70,8 @@ describe("POST /scenes", function(){
     .send(zip.body)
     .expect(200);
 
-    expect(await vfs.getScene("foo")).to.be.ok;
-    expect(await vfs.getScene("bar")).to.be.ok;
+    await expect(vfs.getScene("foo"), `scene "foo" should now exist`).to.be.fulfilled.to.be.ok;
+    await expect(vfs.getScene("bar"), `scene "bar" should now exist`).to.be.fulfilled.to.be.ok;
     let {id}= await vfs.getScene("foo");
     expect(await vfs.getFileProps({scene: "foo", name:"articles/hello.html"})).to.have.property("hash", "IHQcUEH8CVmcu6Jc_zSB5HCc0K9HPvP0XGSk3S6f0rQ");
     expect(await vfs.getDoc(id)).to.have.property("data", `{"id":1}`);
@@ -102,7 +102,6 @@ describe("POST /scenes", function(){
 
     expect(res.body).to.be.an("object");
     expect(res.body.fail).to.deep.equal([]);
-    console.log(res.body.ok);
     expect(res.body.ok).to.deep.equal([
       'foo',
       'foo/articles/',
@@ -110,8 +109,7 @@ describe("POST /scenes", function(){
       'foo/models/',
       'foo/scene.svx.json'
     ]);
-
-    await expect(vfs.getScene("foo")).to.be.fulfilled;
+    await expect(vfs.getScene("foo"), `expect scene "foo" to be restored`).to.be.fulfilled;
     let {id}= await vfs.getScene("foo");
     expect(await vfs.getFileProps({scene: "foo", name:"articles/hello.html"})).to.have.property("hash", "IHQcUEH8CVmcu6Jc_zSB5HCc0K9HPvP0XGSk3S6f0rQ");
     expect(await vfs.getDoc(id)).to.have.property("data", `{"id":1}`);

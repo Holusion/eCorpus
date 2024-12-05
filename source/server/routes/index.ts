@@ -43,7 +43,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     try{
       await vfs.fillHashes()
     }catch(e){
-      console.error("Failed to fill-in missing hashsums in database");
+      console.error("Failed to fill-in missing hashsums in database. Application may be unstable.");
     }
 
     setInterval(()=>{

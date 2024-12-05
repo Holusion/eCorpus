@@ -24,22 +24,25 @@ export default async function postScenes(req :Request, res :Response){
   let file_name = Uid.toString(Uid.make());
   let tmpfile = path.join(vfs.uploadsDir, file_name);
   let results :ImportResults = {fail:[], ok:[]};
+  let handle = await fs.open(tmpfile, "wx+");
   try{
-    let handle = await fs.open(tmpfile, "wx+");
-    try{
-      for await (let data of req){
-        await handle.write(data);
-      }
-    }finally{
-      await handle.close();
+    for await (let data of req){
+      await handle.write(data);
     }
+  }catch(e){
+    await fs.rm(tmpfile, {force: true}).catch(e=>{});
+    throw e;
+  }
+  finally{
+    await handle.close();
+  }
 
-    /** @fixme make atomic */
+  await vfs.isolate(async (vfs)=>{
     for (let record of await unzip(tmpfile)){
       let m  = /^(?<contained>scenes\/)?(?<scene>[^/]+)(?:\/(?<name>.+))?\/?$/.exec(record.filename);
       const scene :string|undefined = m?.groups?.scene;
       const name :string|undefined = m?.groups?.name;
-
+      console.log("Parse %s %s from zip", scene, name);
       if(!scene){
         results.fail.push(`${record.filename}: not matching pattern`);
         continue;
@@ -48,6 +51,7 @@ export default async function postScenes(req :Request, res :Response){
       if(!name){
         //Create the scene
         try{
+          console.log("create scene");
           await vfs.createScene(scene, requester.uid);
         }catch(e){
           if((e as HTTPError).code != 409) throw e;
@@ -76,13 +80,13 @@ export default async function postScenes(req :Request, res :Response){
       }else{
         //Add the file
         let rs = createReadStream(tmpfile, {start: record.start, end: record.end});
-        let f = await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime: getMimeType(name)});
+        await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime: getMimeType(name)});
       }
       
       results.ok.push(`${scene}/${name}`);
     }
-  }finally{
-    await fs.rm(tmpfile, {force: true});
-  }
+    console.log("Scenes : ", await vfs.getScene("foo"));
+  }).finally(() => fs.rm(tmpfile, {force: true}));
+
   res.status(200).send(results);
 };

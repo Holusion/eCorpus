@@ -67,38 +67,114 @@ describe("Database", function(){
     });
   });
 
-  it("opens and makes a transaction", async function(){
-    await expect(db.beginTransaction(async (tr)=>{
-      await tr.exec(`INSERT INTO test (name) VALUES ("bar")`);
-      return await tr.all(`SELECT * FROM test`);
-    })).to.eventually.have.property("length", 2);
-    await expect(db.all(`SELECT * FROM test`)).to.eventually.have.property("length", 2);
-  });
+  describe("beginTransaction()", function(){
+    it("provides isolation to parent db", async function(){
+      let p;
+      let length = (await db.all(`SELECT * FROM test`)).length
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.run(`INSERT INTO test (name) VALUES ($val)`,{$val: "bar"});
+        p = await db.all(`SELECT * FROM test`)
+      })).to.be.fulfilled;
+      expect(p).to.have.property("length", length);
+    });
+  
+    it("provides isolation from parent db", async function(){
+      let p;
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.get("SELECT * FROM test") // makes the transaction explicit
+        p = db.run(`INSERT INTO test (name) VALUES ("bar")`)
+        return await tr.all(`SELECT name FROM test`);
+      })).to.eventually.deep.equal([{name: "foo"}]);
+      await expect(p).to.be.fulfilled;
+    });
+  
+    it("nested transactions reuse the same database instance", async function(){
+      let count = 0;
+      await expect(db.beginTransaction(async (tr)=>{
+        let _close = tr.close;
+        tr.close = async ()=>{
+          _close.call(tr);
+          count++;
+        }
+        expect(tr).to.not.equal(db);
+        await tr.beginTransaction(async tr2=>{
+          expect(tr2).to.equal(tr);
+        })
+      })).to.be.fulfilled;
+      expect(count).to.equal(1);
+      
+    });
+  
+    it("opens and makes a transaction", async function(){
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.exec(`INSERT INTO test (name) VALUES ("bar")`);
+        return await tr.all(`SELECT * FROM test`);
+      })).to.eventually.have.property("length", 2);
+      await expect(db.all(`SELECT * FROM test`)).to.eventually.have.property("length", 2);
+    });
+  
+    it("rollbacks when an error occurs", async function(){
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.exec(`INSERT INTO test (name) VALUES ("bar")`);
+        await tr.exec(`INSERT INTO test (name) VALUES ("foo")`); //UNIQUE VIOLATION
+      })).to.be.rejectedWith("SQLITE_CONSTRAINT: UNIQUE");
+      await expect(db.all(`SELECT * FROM test`)).to.eventually.have.property("length", 1);
+    });
+  
+    it("won't deadlock", async function(){
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.all("SELECT * FROM test");
+        await tr.run(`INSERT INTO test (name) VALUES ("alice")`);
+        await tr.beginTransaction(async tr2=>{
+          await tr2.all("SELECT * FROM test");
+          await tr2.run(`INSERT INTO test (name) VALUES ("bob")`);
+        })
+        await tr.all("SELECT * FROM test");
+        await tr.run(`INSERT INTO test (name) VALUES ("charlie")`)
+      })).to.be.fulfilled;
+    });
+  
+    it("rollback unwraps properly from within", async function(){
+      let exp = [
+        {id: 1, name: "foo"},
+        {id: 2, name: "alice"},
+        {id: 3, name: "bob"}
+      ]
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.run(`INSERT INTO test (name) VALUES ("alice")`);
+        await expect(tr.beginTransaction(async tr2=>{
+          await tr2.all("SELECT * FROM test");
+          throw new Error("Dummy");
+        })).to.be.rejectedWith("Dummy");
+        await tr.run(`INSERT INTO test (name) VALUES ("bob")`);
+        return await tr.all("SELECT * FROM test");
+      })).to.eventually.deep.equal(exp);
+  
+      expect(await db.all("SELECT * FROM test"), `changes should not be rolled back`).to.deep.equal(exp);
+  
+    })
+  
+    it("picks up changes made within a transaction", async function(){
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.run(`PRAGMA user_version = 42`);
+      })).to.be.fulfilled;
+      await expect(db.get("PRAGMA user_version"), `user_version change should be picked up from outside the transaction`).to.eventually.have.property("user_version", 42);
+    });
+  
+    it("clears the transaction stack", async function(){
+      await expect(db.beginTransaction(async (tr)=>{
+        await tr.beginTransaction(async ()=>{});
+        //Ending a transaction will cause the outer COMMIT to fail 
+        //unless the previous transaction is still on the stack
+        await tr.run(`END`);
+      })).to.be.rejectedWith("SQLITE_ERROR: no such savepoint");
 
-  it("rollbacks when an error occurs", async function(){
-    await expect(db.beginTransaction(async (tr)=>{
-      await tr.exec(`INSERT INTO test (name) VALUES ("bar")`);
-      await tr.exec(`INSERT INTO test (name) VALUES ("foo")`); //UNIQUE VIOLATION
-    })).to.be.rejectedWith("SQLITE_CONSTRAINT: UNIQUE");
-    await expect(db.all(`SELECT * FROM test`)).to.eventually.have.property("length", 1);
-  });
-
-  it("provides isolation to parent db", async function(){
-    let p;
-    let length = (await db.all(`SELECT * FROM test`)).length
-    await expect(db.beginTransaction(async (tr)=>{
-      await tr.exec(`INSERT INTO test (name) VALUES ($val)`,{$val:"bar"});
-      p = await db.all(`SELECT * FROM test`)
-    })).to.be.fulfilled;
-    expect(p).to.have.property("length", length);
-  });
-  it("provides isolation from parent db", async function(){
-    let p;
-    await expect(db.beginTransaction(async (tr)=>{
-      await tr.get("SELECT * FROM test") // makes the transaction explicit
-      p = db.exec(`INSERT INTO test (name) VALUES ("bar")`)
-      return await tr.all(`SELECT name FROM test`);
-    })).to.eventually.deep.equal([{name: "foo"}]);
-    await expect(p).to.be.fulfilled;
-  });
+      await expect(db.beginTransaction(async (tr)=>{
+        await expect(tr.beginTransaction(()=>Promise.reject(new Error("dummy")))).to.be.rejectedWith("dummy");
+        //Ending a transaction will cause the outer COMMIT to fail 
+        //unless the previous transaction is still on the stack
+        await tr.run(`END`);
+      })).to.be.rejectedWith("SQLITE_ERROR: no such savepoint");
+    });
+  })
 });

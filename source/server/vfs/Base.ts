@@ -5,6 +5,8 @@ import { InternalError, NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
 
 
+export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
+
 export default abstract class BaseVfs{
 
   constructor(protected rootDir :string, protected db :Database){}
@@ -18,21 +20,29 @@ export default abstract class BaseVfs{
 
   /**
    * Runs a sequence of methods in isolation
-   * Every calls to Vfs.db inside of the callback will be wrapped in a transaction
-   * It _can_ be nested but be sure you understand how savepoints will be unwrapped and how SQLITE_BUSY works
+   * Every calls to Vfs.db inside of the callback will be seriualized and wrapped in a transaction
+   * 
    * @see Database.beginTransaction
    */
-  public isolate = async <T>(fn :(this: typeof this, vfs :typeof this)=> Promise<T>)=>{
-    return await this.db.beginTransaction(async (transaction)=>{
-      let that = new Proxy<typeof this>(this, {
+  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>{
+    const parent = this;
+    return await this.db.beginTransaction(async function isolatedTransaction(transaction){
+      let closed = false;
+      let that = new Proxy<typeof parent>(parent, {
         get(target, prop, receiver){
           if(prop === "db"){
             return transaction;
+          }else if (prop === "isOpen"){
+            return !closed;
           }
           return Reflect.get(target, prop, receiver);
         }
       });
-      return await fn.call(that, that);
+      try{
+        return await fn.call(that, that);
+      }finally{
+        closed = true;
+      }
     }) as T;
   }
   
@@ -47,7 +57,7 @@ export default abstract class BaseVfs{
   }
 
   abstract close() :Promise<any>;
-  public abstract get isOpen():boolean;
+  public abstract isOpen :boolean;
     /**
  * Converts a date as stored by sqlite into a js Date object
  * Necessary because sqlite applies the ISO standard and omits the "Z" for UTC generated timestamps, 

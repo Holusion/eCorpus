@@ -54,13 +54,40 @@ describe("Vfs", function(){
       })).to.be.rejected;
       expect(await vfs.getScenes()).to.have.property("length", 0);
     });
-    it("can be nested", async function(){
+
+    it("reuses a connection when nested", async function(){
+      let vfs = await Vfs.Open(this.dir);
+      await expect(vfs.isolate( async (v2)=>{
+        await v2.isolate(async (v3)=>{
+          expect(v3._db).to.equal(v2._db);
+        });
+      })).to.be.fulfilled;
+    });
+
+    it("can be nested (success)", async function(){
       let vfs = await Vfs.Open(this.dir);
       let scenes = await expect(vfs.isolate( async (v2)=>{
+        await v2.getScenes();
+        await v2.isolate(async (v3)=>{
+          await v3.getScenes();
+          await v3.createScene("foo");
+        });
+        await v2.getScenes();
+        await v2.createScene("bar")
+        return await v2.getScenes();
+      })).to.be.fulfilled;
+      expect(scenes).to.have.property("length", 2);
+      await expect(vfs.getScenes()).to.eventually.deep.equal(scenes);
+    });
+
+    it("can be nested (with caught error)", async function(){
+      let vfs = await Vfs.Open(this.dir);
+      let scenes = await expect(vfs.isolate( async (v2)=>{
+        await v2.createScene("foo");
         //This isolate rolls back but since we don't propagate the error
         //the parent will succeed
         await v2.isolate(async (v3)=>{
-          await v3.createScene("foo");
+          await v3.createScene("bar");
           //Force this transaction to roll back
           throw new Error("TEST");
         }).catch(e=>{
@@ -68,8 +95,31 @@ describe("Vfs", function(){
         });
         return await v2.getScenes();
       })).to.be.fulfilled;
-      expect(scenes).to.have.property("length", 0);
+      expect(scenes).to.have.property("length", 1);
+      expect(scenes[0]).to.have.property("name", "foo");
+      expect(await vfs.getScenes()).to.deep.equal(scenes);
     });
+
+    it("is properly closed on success", async function(){
+      let vfs = await Vfs.Open(this.dir);
+      let _transaction:Vfs|null =null;
+      await expect(vfs.isolate(async tr=>{
+        _transaction = tr;
+        expect(_transaction).to.have.property("isOpen", true);
+      })).to.be.fulfilled;
+      expect(_transaction).to.have.property("isOpen", false);
+    })
+
+    it("is properly closed on error", async function(){
+      let vfs = await Vfs.Open(this.dir);
+      let _transaction:Vfs|null =null;
+      await expect(vfs.isolate(async tr=>{
+        _transaction = tr;
+        expect(_transaction).to.have.property("isOpen", true);
+        throw new Error("dummy");
+      })).to.be.rejectedWith("dummy");
+      expect(_transaction).to.have.property("isOpen", false);
+    })
   });
 
   describe("", function(){

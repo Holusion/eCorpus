@@ -39,7 +39,10 @@ export default abstract class CleanVfs extends BaseVfs{
   }
 
   public async optimize(){
-    await this.db.exec(`PRAGMA optimize;`);
+    await this.db.exec(`
+      PRAGMA optimize;
+      PRAGMA wal_checkpoint(PASSIVE);
+    `);
   }
 
   /**
