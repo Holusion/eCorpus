@@ -72,7 +72,10 @@ export default async function open({filename, forceMigration=true} :DbOptions) :
       if(commit) await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
       return res;
     }catch(e){
-      if(commit) await this.run(`ROLLBACK TRANSACTION TO VFS_TRANSACTION_${transaction_id}`);
+      if(commit){
+        await this.run(`ROLLBACK TRANSACTION TO VFS_TRANSACTION_${transaction_id}`);
+        await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+      }
       throw e;
     }
   }

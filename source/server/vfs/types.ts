@@ -22,6 +22,7 @@ export interface WriteFileParams extends CommonFileParams{
 export interface GetFileParams extends CommonFileParams{
   /**Also return deleted files */
   archive ?:boolean;
+  generation ?:number;
 }
 
 
