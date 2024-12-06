@@ -902,7 +902,33 @@ describe("Vfs", function(){
           it("throw 404 error if file doesn't exist", async function(){
             await expect(vfs.getFileProps({...props, name: "bar.html"})).to.be.rejectedWith("404");
           });
+
+          it("get archived file", async function(){
+            let id = await vfs.removeFile({...props, user_id: 0});
+            await expect(vfs.getFileProps(props), `File with id ${id} shouldn't be returned`).to.be.rejectedWith("[404]");
+            await expect(vfs.getFileProps({...props, archive: true})).to.eventually.have.property("id", id);
+          });
+
+          it("get by generation", async function(){
+            let r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: 0});
+            expect(r).to.have.property("generation", 2);
+            await expect(vfs.getFileProps({...props, generation: 2})).to.eventually.have.property("generation", 2);
+            await expect(vfs.getFileProps({...props, generation: 1})).to.eventually.have.property("generation", 1);
+          });
+
+          it("get archived by generation", async function(){
+            await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: 0});
+            let id = await vfs.removeFile({...props, user_id: 0});
+            await expect(vfs.getFileProps({...props, archive: true, generation: 3})).to.eventually.have.property("id", id);
+            await expect(vfs.getFileProps({...props, archive: true, generation: 3}, true)).to.eventually.have.property("id", id);
+          });
+          
+          it("get document", async function(){
+            let doc = await vfs.writeDoc("{}", {...props, user_id: 0});
+            await expect(vfs.getFileProps({...props, archive: true, generation: doc.generation}, true)).to.eventually.deep.equal({...doc, data: "{}"});
+          });
         });
+
         describe("getFile()", function(){
           it("get a file", async function(){
             let {stream} = await vfs.getFile(props);

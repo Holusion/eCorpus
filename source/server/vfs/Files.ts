@@ -212,9 +212,9 @@ export default abstract class FilesVfs extends BaseVfs{
    * This function is growing out of control, having to manage disk vs doc stored files, mtime aggregation, etc...
    * The whole thing might become a performance bottleneck one day.
    */
-  async getFileProps({scene, name, archive} :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
-  async getFileProps({scene, name, archive} :GetFileParams, withData :true) :Promise<FileProps>
-  async getFileProps({scene, name, archive = false} :GetFileParams, withData = false) :Promise<FileProps>{
+  async getFileProps({scene, name, archive, generation} :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
+  async getFileProps({scene, name, archive, generation} :GetFileParams, withData :true) :Promise<FileProps>
+  async getFileProps({scene, name, archive = false, generation} :GetFileParams, withData = false) :Promise<FileProps>{
     let is_string = typeof scene === "string";
     let r = await this.db.get(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $scene )
@@ -230,12 +230,19 @@ export default abstract class FilesVfs extends BaseVfs{
         mime,
         files.fk_author_id AS author_id,
         (SELECT username FROM users WHERE files.fk_author_id = user_id LIMIT 1) AS author
-      FROM files 
-      INNER JOIN scene ON files.fk_scene_id = scene.scene_id 
+      FROM scene  
+      LEFT JOIN files ON files.fk_scene_id = scene.scene_id 
       WHERE files.name = $name
-      ORDER BY generation DESC
-      LIMIT 1
-    `, {$scene: scene, $name: name});
+      ${(typeof generation!== "undefined")? `
+        AND generation = $generation
+      ` : `
+        ORDER BY generation DESC
+        LIMIT 1`}
+    `, {
+      $scene: scene,
+      $name: name,
+      $generation: generation
+    });
     if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
     return {
       ...r,
@@ -278,7 +285,18 @@ export default abstract class FilesVfs extends BaseVfs{
    * Isolated here so it can easily be replaced to any blob storage external service if needed
    */
   async openFile(file:{hash :string}) :Promise<FileHandle>{
-    return await fs.open(path.join(this.objectsDir, file.hash), constants.O_RDONLY);
+    return await fs.open(this.getPath(file), constants.O_RDONLY);
+  }
+
+  /**
+   * Gets the path to a filesystem-stored file
+   */
+  public getPath(file:{hash:string}) :string{
+    return path.join(this.objectsDir, file.hash)
+  }
+
+  public exists(file :Partial<FileProps>) :file is {hash :string}{
+    return typeof file.hash === "string" && file.data == null;
   }
 
   /**
