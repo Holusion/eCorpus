@@ -53,6 +53,7 @@ export default class TagList extends LitElement{
     .tags-list{
       display: flex;
       gap: 2px;
+      padding: .5rem 0;
     }
 
     .tag, .add-tag{

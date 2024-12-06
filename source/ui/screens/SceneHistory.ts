@@ -166,7 +166,7 @@ interface AccessRights{
         </div>
         <div class="section">
           <h2>${this.t("ui.history")}</h2>
-          <history-aggregation .entries=${this.versions} ></history-aggregation>
+          <history-aggregation .entries=${this.versions} .scene=${scene} ></history-aggregation>
         </div>
         ${this.can("admin")? html`<div style="padding: 10px 0;display:flex;color:red;justify-content:end;gap:10px">
         <div><ui-button class="btn-main" icon="edit" text=${this.t("ui.rename")} @click=${this.onRename}></ui-button></div>
@@ -274,7 +274,7 @@ interface AccessRights{
         })
       }
       return html`<span class="form-item"><select .disabled=${disabled} @change=${onSelectPermission}>
-        ${AccessTypes.map(a=>html`<option .selected=${a === selected} value="${a}">${this.t(`ui.${a}`)}</option>`)}
+        ${AccessTypes.map(a=>(a?html`<option .selected=${a === selected} value="${a}">${this.t(`ui.${a}`)}</option>`:null))}
       </select></span>`
     }
 
