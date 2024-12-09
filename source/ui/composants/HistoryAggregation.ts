@@ -1,4 +1,4 @@
-import { css, customElement, html, LitElement, property, PropertyValues, state } from "lit-element";
+import { css, customElement, html, LitElement, property, PropertyValues, state, TemplateResult } from "lit-element";
 
 import Notification from "../composants/Notification";
 import i18n from "../state/translate";
@@ -22,7 +22,7 @@ export type HistoryEntry = Omit<HistoryEntryJSON,"ctime"> & {ctime: Date};
 
 
 type AggregatedEntry = [HistoryEntry, ...HistoryEntry[]];
-
+type HistoryBucket = AggregatedEntry[];
 
 interface EntryDiff{
   src: HistoryEntry;
@@ -30,39 +30,52 @@ interface EntryDiff{
   diff: string;
 }
 
-
-function acceptsEntry(aggregate:AggregatedEntry, entry: HistoryEntry):boolean{
-  if( !aggregate?.length) return false;
-  const previousName = aggregate.find(a => a.name === entry.name);
-  let start = new Date(aggregate[0].ctime.valueOf()).setHours(0, 0, 0, 0);
-
-  if(!previousName && (entry.ctime.valueOf() - start) < 1000*3600*24) return true; //Unique names within 24h are auto-grouped
-  else if((entry.ctime.valueOf() - aggregate[0].ctime.valueOf()) < 3600*1000 && previousName.author == entry.author) return true; //Changes within one hour by the same author are grouped
-  return false;
+interface HistorySummary{
+  name :string|TemplateResult|TemplateResult[];
+  authoredBy :string|TemplateResult|TemplateResult[];
+  restorePoint :number;
+  from: Date;
+  to?:Date;
+  showDetails?: ()=>void;
 }
 
-function aggregate(aggregate: AggregatedEntry[], entry: HistoryEntry, entryIndex: number, array: HistoryEntry[]): AggregatedEntry[]{
-  let currentPtr = aggregate.slice(-1)[0];
-  if( acceptsEntry(currentPtr, entry) ) {
-    currentPtr.push(entry);
-  }else{
-    currentPtr = [entry];
-    aggregate.push(currentPtr);
+/**
+ * Slice an array of entries into an aggregation, adjusting the timeframe as needed
+ * Base bucket duration is 1 minute.
+ */
+function bucketize(entries :HistoryEntry[], duration :number= (1/3)*24*60*60*1000/16384) :HistoryBucket{
+  if(24*60*60*1000 < duration) throw new Error("Duration too long. Infinite loop?");
+  if(entries.length <= 3) return entries.map(e=>([e]));
+  let buckets :HistoryBucket = [];
+  let current :AggregatedEntry = null;
+  let bucket_end = 0;
+  for(let e of entries){
+    if(!current || e.ctime.valueOf()+ duration < bucket_end){
+      bucket_end = e.ctime.valueOf();
+      current = [e];
+      buckets.push(current);
+    }else{
+      current.push(e);
+    }
   }
-
-  return aggregate;
+  if(4 < buckets.length){
+    return bucketize(entries, duration *2);
+  }else if (buckets.length === 1){
+    let sep = Math.floor(entries.length/2);
+    return [entries.slice(0, sep), entries.slice(sep)] as any;
+  }
+  return buckets;
 }
 
-
-@customElement("history-entry-line")
-export class HistoryEntryLine extends i18n(LitElement){
+@customElement("history-entry-aggregate")
+export class HistoryEntryAggregate extends i18n(LitElement){
   #c = new AbortController();
 
   @property({attribute: false, type: String})
   scene :string;
 
   @property({attribute: true, type: Object })
-  entry :HistoryEntry;
+  entries :AggregatedEntry;
 
   @property()
   ariaExpanded: "true"|"false" = "false";
@@ -70,12 +83,23 @@ export class HistoryEntryLine extends i18n(LitElement){
   @state()
   diff ?:Partial<EntryDiff>;
 
+  protected toggleSelect = (e?:MouseEvent)=>{
+    e?.stopPropagation();
+    if(this.ariaExpanded === "true"){
+      this.ariaExpanded = "false";
+      this.classList.remove("active");
+    }else{
+      this.ariaExpanded = "true";
+      this.classList.add("active");
+    }
+  }
+
 
   fetchDiff(){
     this.#c.abort();
     this.#c = new AbortController();
-    console.log("Fetch entry : ", this.scene, this.entry);
-    fetch(`/history/${encodeURIComponent(this.scene)}/${this.entry.id.toString()}/diff`, {
+    console.log("Fetch entry : ", this.scene, this.entries[0]);
+    fetch(`/history/${encodeURIComponent(this.scene)}/${this.entries[0].id.toString()}/diff`, {
       signal: this.#c.signal,
       headers: {"Accept": "application/json"},
     }).then(async (r)=>{
@@ -103,7 +127,7 @@ export class HistoryEntryLine extends i18n(LitElement){
         changedProperties.set("diff", this.diff);
         this.diff = undefined;
       }
-      if(this.ariaExpanded === "true"){
+      if(this.ariaExpanded === "true" && this.entries.length === 1){
         this.fetchDiff();
       }
     }
@@ -114,7 +138,6 @@ export class HistoryEntryLine extends i18n(LitElement){
   renderDiff(){
     if(!this.diff) return html`<div class="history-entry-diff-block"><spin-loader ?visible=${true}></spin-loader></div>`;
     const {src, dst, diff} = this.diff;
-    console.log("ctime :", new Date(src.ctime).valueOf());
     return html`<div class="history-entry-diff-block">
       <p>
         ${(src.size !=0 && src.size != dst.size)?  html`
@@ -138,42 +161,99 @@ export class HistoryEntryLine extends i18n(LitElement){
     </div>`;
   }
 
-
-  render(){
-    let entry = this.entry;
-    let diff = {color:"warning", char: "~"};
-    if(entry.generation == 1){
-      diff = {color:"success", char: "+"};
-    }else if(entry.size === 0){
-      diff = {color:"error", char: "-"};
-    }
-
-    return html`<div class="history-detail-entry">
-      <a class="history-detail-entry-header" @click=${()=>{
-        if(this.ariaExpanded === "true"){
-          this.ariaExpanded = "false";
-          this.classList.remove("active");
-        }else{
-          this.ariaExpanded = "true";
-          this.classList.add("active");
-        }
-      }}>
-        <span>${entry.ctime.toLocaleString(this.language)}</span>
-        <span class="text-${diff.color}" style="font-weight: bold">${diff.char}</span>
-        <span style="flex-grow:1">${entry.name+((entry.mime =="text/directory")?"/":"")}</span>
-        <span>${entry.size? html`<b-size b=${entry.size}></b-size>`:null}
-        <span class="caret"></span>
-      </a>
-      <span class="history-detail-entry-action">
-        <ui-button class="btn-main btn-small" style="flex:initial; height:fit-content;" title="${entry.name+"#"+entry.generation}" @click=${()=>this.onRestore(entry)} text="restore" icon="restore"></ui-button>
-      </span>
-    </div>
-    ${(this.ariaExpanded === "true")?this.renderDiff(): null}
+  
+  protected renderSummary({name, restorePoint, authoredBy, from, to}:HistorySummary){
+    const selected = this.ariaExpanded === "true";
+    
+    const expand = (this.entries.length === 1)?null: html`
+      <ui-button @click=${this.toggleSelect} class="btn btn-primary btn-small btn-transparent btn-inline" text=${(selected? "-":"+")}></ui-button>
     `;
+
+    const showDiff = (this.entries.length === 1)? html`
+      <ui-button @click=${this.toggleSelect} class="btn btn-primary btn-small btn-transparent btn-inline" text=${this.t(selected?"info.hideDetails": "info.showDetails")}></ui-button>
+    `: null;
+
+    const longActions = (selected)?html`<div style="display: flex;justify-content: end;">
+      <ui-button
+        style="margin-top:-1px"
+        class="btn btn-primary btn-outline"
+        text=${this.t("info.restoreTo",{point:(to??from).toLocaleString(this.language)})}
+        @click=${()=>this.onRestore(restorePoint)}
+        icon="restore"
+      ></ui-button>
+    </div>`: null;
+    
+    return html`<div class="history-point" @click=${(selected?null:this.toggleSelect)}>
+      <ui-button class="btn btn-small btn-transparent btn-rollback" title="${this.t("info.restoreTo",{point:(to??from).toLocaleDateString(this.language)})}" @click=${()=>this.onRestore(restorePoint)} icon="restore"></ui-button>
+      <div class="history-line-summary">
+        <span class="history-line-summary-name">
+          ${name}
+        </span>
+        <div class="history-line-summary-additional">
+          <span>${authoredBy}</span>
+          <span style="opacity:0.75; font-size: 90%;font-family: monospace">${from.toLocaleTimeString(this.language)}</span>
+          ${to? html` - <span style="opacity:0.75; font-size: 90%; font-family: monospace">${to.toLocaleTimeString(this.language)}</span>` : null}
+        </div>
+      </div>
+      ${expand}
+      <span style="flex-grow:1"></span>
+      ${longActions}
+    </div>
+    <div style="display: flex;justify-content:end; max-width: 300px">
+      ${showDiff}
+    </div>`
   }
 
-  onRestore(entry :HistoryEntry){
-    this.dispatchEvent(new CustomEvent("restore", {detail: entry, bubbles: true}));
+  protected renderEntry(entry:HistoryEntry){
+    const selected = this.ariaExpanded === "true";
+    let diff = {color:"warning", char: "~", text: this.t("ui.modified")};
+    if(entry.generation == 1){
+      diff = {color:"success", char: "+", text: this.t("ui.created")};
+    }else if(entry.size === 0){
+      diff = {color:"error", char: "-", text: this.t("ui.deleted")};
+    }
+    let name = html`
+      <span class="text-${diff.color}" style="font-weight: bold">${diff.char}</span>
+      <span style="flex-grow:1">${entry.name+((entry.mime =="text/directory")?"/":"")}</span>
+    `
+    let summary = this.renderSummary({
+      name,
+      restorePoint: entry.id,
+      authoredBy: html`<span class="text-${diff.color}">${diff.text}</span> <i>${this.t("ui.by")}</i> <b>${entry.author}</b>`,
+      from: entry.ctime,
+      showDetails: this.toggleSelect,
+    });
+    return (selected? ([summary, this.renderDiff()]): summary);
+  }
+
+  protected render() {
+    const entries = this.entries;
+    //If aggregate has only one file, render a developped view. Otherwise render a summary
+    if( entries.length == 1){
+      return this.renderEntry(entries[0]);
+    }
+    const selected = this.ariaExpanded === "true";
+
+    if(selected){
+      return bucketize(entries).map((bucket, index)=>html`<history-entry-aggregate id=${this.id+"-"+index.toString(10)} .scene=${this.scene} .entries=${bucket}></history-entry-aggregate>`);
+    }
+
+
+    let lastFile = entries.slice(-1)[0]; //File we would restore to by default
+    let name = (3 < entries.length)? 
+      html`${lastFile.name} <span class="show-more" title=${this.t("info.showDetails")}  @click=${this.toggleSelect}>${this.t("info.etAl", {count:entries.length-1})}</span>`
+      : entries.map((e, index, a)=>html`<span class="expandable">${e.name}</span>${index < a.length - 1?", ":""}`);
+
+    let authors = Array.from(new Set(entries.map(e=>e.author)))
+    let authoredBy = (3 < authors.length )? html`
+      ${authors.slice(-2).join(", ")}
+      <span class="show-more" title=${this.t("info.showDetails")} @click=${this.toggleSelect}>${this.t("info.etAl", {count:entries.length-2})}</span>` :
+      html` <i>${this.t("ui.by")}</i> <b>${authors.join(", ")}</b>`;  
+    return  this.renderSummary({name, authoredBy, showDetails: this.toggleSelect, restorePoint: lastFile.id, from: entries[0].ctime, to: (1 < entries.length)?lastFile.ctime:undefined})
+  }
+
+  onRestore(id:number){
+    this.dispatchEvent(new CustomEvent("restore", {detail: id, bubbles: true}));
   }
 }
 
@@ -187,121 +267,124 @@ export default class HistoryAggregation extends i18n(LitElement){
   entries :HistoryEntry[];
 
   @state()
-  selected?:number;
+  selected?: number = -1;
 
-
-
-
-  private renderAggregation = (v : AggregatedEntry, index :number)=>{
-    let mainFile = v.slice(-1)[0]; //File we would restore to by default
-    let name = (3 < v.length)? 
-    html`${mainFile.name} <span style="text-decoration:underline;">${this.t("info.etAl", {count:v.length-1})}</span>`
-    : v.map(e=>e.name).join(", ");
-
-    let authors = Array.from(new Set(v.map(e=>e.author)))
-    let authored = (3 < authors.length )? html`${authors.slice(-2).join(", ")} <span style="text-decoration:underline;">${this.t("info.etAl", {count:v.length-2})}</span>`: authors.join(", ");
-
-    const selected = this.selected === index;
+  protected renderDay = (day :AggregatedEntry, index:number)=>{
+    const selected = this.selected[0] === index;
     return html`
-      <div class="list-item${selected?" selected":""} history-version-block" @click=${()=>{this.selected = index}}>
-        ${selected?html`
-          <div class="history-detail-grid">
-            ${v.map((entry, idx) => html`<history-entry-line ?disabled=${idx==0 && index == 0} .scene=${this.scene} .entry=${entry}></history-entry-line>`)}
-          </div>
-        `: html`
-          <div style="flex: 1 0 6rem;overflow: hidden;text-overflow: ellipsis">
-            <div class="tooltip" style="margin-bottom:5px" >${name}</div>
-            <div style=""><b>${authored}</b> <span style="opacity:0.6; font-size: smaller">${v[0].ctime.toLocaleString(this.language)}</span></div>
-          </div>
-          ${index==0?html`<ui-button disabled transparent text="active">active</ui-button>`:html`<ui-button class="btn-main" style="flex:initial; height:fit-content;" title="restore" @click=${()=>this.onRestore(mainFile)} text="restore" icon="restore"></ui-button>`}
-        `}
-      </div>
-    `
+      <h4 class="history-day-header">
+        • ${this.t("info.changeDay", {date: day[0].ctime.toLocaleDateString(this.language)})}
+      </h4>
+      <history-entry-aggregate .scene=${this.scene} .entries=${day} id=${index.toString(10)}></history-entry-aggregate>
+    `;
   }
 
   protected render(){
-    //versions could easily be memcached if it becomes a bottleneck to compute on large histories. It is currently not though.
-    let versions = this.entries.reduce(aggregate, []);
+    let start_of_day = 0;
+    let days:Array<[HistoryEntry, ...HistoryEntry[]]> = []; //day-grouped changes. days[0] has the latest changes
+    //Entries is with newest files first so everything is backward
+    for(let version of this.entries){
+      //First, split versions by day
+      if(version.ctime.valueOf() < start_of_day || !days.length){
+        days.push([version]);
+        start_of_day = new Date(version.ctime).setHours(0, 0, 0, 0);
+      }else{
+        //console.log("Add version : ", version.ctime.toLocaleDateString("fr"), new Date(new Date(version.ctime).setHours(0, 0, 0, 0) + 1000*3600*24), new Date(start_of_day));
+        days[days.length - 1].push(version);
+      }
+    }
+
     return html`
-        <div class="list-items">
-          ${versions.map(this.renderAggregation)}
+        <div class="history-list">
+          ${days.map(this.renderDay)}
         </div>
         `
   }
 
 
-  onRestore(entry :HistoryEntry){
-    this.dispatchEvent(new CustomEvent("restore", {detail: entry}));
+  onRestore(id :number){
+    this.dispatchEvent(new CustomEvent("restore", {detail: id}));
   }
 
   static styles = [
     styles,
     css`
-      .history-version-block:not(.selected){
-        cursor: pointer;
-      }
-      .list-items .list-item.selected{
-        background: var(--color-highlight);
-      }
-
-      .history-detail-grid{
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        width: 100%;
-      }
-      
-      .history-entry-line{
+      .history-list{
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        padding: 0 .5rem;
-        border-bottom: 1px solid var(--color-highlight2);
       }
       
-      .history-entry-line.active{
-        padding: .5rem;
-        background: var(--color-element);
-      }
-      .history-entry-line[disabled] .btn{
-        pointer-events: none;
-        background: var(--color-section);
-        color: #444;
+
+      .history-list .history-entry-line{
+        border-top: 1px solid transparent;
+        transition: border .5s ease-out;
+        display: block;
+
+
+        .btn-rollback{
+          opacity: 0;
+          transition: opacity .2s;
+          color: var(--color-primary);
+
+          &:hover {
+            color: var(--color-primary-light);
+          }
+        }
+
+        &:hover:not(.active), &:hover:not(:has(.history-entry-line)) {
+          border-top-color: var(--color-primary);
+          & .btn-rollback{
+            opacity: 1;
+          }
+        }
+
+
+        .history-point{
+          display: flex;
+          flex-direction: row;
+          align-items: flex-start;
+        }
+
+
+        .history-line-summary{
+          padding: .5rem 0;
+          .history-line-summary-name .btn + *{
+            padding-left: 1rem;
+          }
+
+          .history-line-summary-additional{
+            padding-left: 2rem;
+          }
+          
+        }
+
+
       }
 
-      
-      .history-detail-entry{
-        display: flex;
-        flex-direction: row;
-        justify-content: stretch;
-        align-items: center;
-        gap: 4px;
+
+
+      .history-day-header{
+        margin: .75rem 0 .25rem 0;
       }
 
-      .history-detail-entry:hover{
-        background: var(--color-element);
+      .show-more{
+        font-weight: bold;
       }
-      
-      .history-detail-entry > .history-detail-entry-header{
-        display block;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: row;
-        justify-content: stretch;
-        gap: 4px;
+      .expandable:hover, .show-more:hover{
         cursor: pointer;
-      }
-      
-      .history-detail-entry> .history-detail-entry-action{
-        display block;
-        flex-grow: 0;
+        text-decoration: underline;
       }
 
-      .history-entry-diff-block > pre{
-        max-height: 75vh; 
-        overflow: auto;
-        padding: .25rem 1rem .25rem .5rem;
-        background: rgba(0, 0, 0, 0.4);
+      .history-entry-diff-block{
+        margin-left: 4rem;
+        pre{
+          background: var(--color-element);
+          overflow: auto;
+          max-height: 75vh;
+          max-width: 130ch;
+          padding: 4px;
+        }
       }
     `
   ]
