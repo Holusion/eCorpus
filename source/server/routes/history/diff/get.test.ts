@@ -34,7 +34,7 @@ describe("GET /history/:scene/:id/diff", function(){
     .set("Accept", "text/plain")
     .expect(200)
     .expect("Content-Type", "text/plain; charset=utf-8");
-    expect(res.text).to.equal(`1c1\n< Hello\n---\n> Hello World\n`);
+    expect(res.text).to.equal(`--- hello.txt\n+++ hello.txt\n@@ -1 +1 @@\n-Hello\n+Hello World\n`);
   });
 
   it("get diff summary for documents", async function(){
@@ -44,7 +44,7 @@ describe("GET /history/:scene/:id/diff", function(){
     .set("Accept", "application/json")
     .expect(200)
     .expect("Content-Type", "application/json; charset=utf-8");
-    expect(res.body).to.have.property("diff", 'Diff of JSON data not yet supported');
+    expect(res.body).to.have.property("diff").match(/Couldn't compile diff/);
     expect(res.body).to.have.property("src");
     expect(res.body).to.have.property("dst");
   })

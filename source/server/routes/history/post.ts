@@ -15,48 +15,66 @@ import { HistoryEntry, ItemEntry } from "../../vfs/index.js";
  * @see {getSceneHistory} 
  */
 export async function postSceneHistory(req :Request, res :Response){
+  // Keep in mind history is in reverse-natural order, with newest files coming first.
+  // This makes everything "backward" from natural order
   let requester = getUser(req);
   let {scene:sceneName} = req.params;
-  let {name, generation } = req.body;
-  let files :Map<string, HistoryEntry> = new Map();
-  if(!(typeof name === "string" && typeof generation === "number")){
-    throw new BadRequestError(`History restoration requires either of "name" and "generation" or "id" and "type" or "name" to be set`);
+  let {name, generation, id } = req.body;
+  /**keep a reference to the name and generation of the files that are to be undone */
+  let files :Map<string, number> = new Map();
+  if(!(typeof name === "string" && typeof generation === "number") && typeof id !== "number"){
+    throw new BadRequestError(`History restoration requires either "name" and "generation" or "id" to be set`);
   }
 
-  await getVfs(req).isolate(async (tr)=>{
+  await getVfs(req).isolate(async (vfs)=>{
+    let scene = await vfs.getScene(sceneName);
+    let index :number  = -1, offset = 0;
+    while(index < 0){
+      let historySlice = await vfs.getSceneHistory(scene.id, {limit: 100, offset});
+      for(let idx = 0; idx < historySlice.length; idx++){
+        const item = historySlice[idx];
+        if(((typeof id === "number")? (item.id === id) : (item.name == name && item.generation == generation))){
+          index = idx + offset;
+          break;
+        }
+        files.set(item.name, item.generation);
+      }
+      if(historySlice.length < 100) break;
+    }
+    if(index === -1) throw new BadRequestError(`No file found in ${sceneName} matching ${typeof id =="number"? "id:"+id: (name+"#"+generation)}`);
 
-    let scene = await tr.getScene(sceneName);
-    let history = await tr.getSceneHistory(scene.id);
-    
-    /* Find index of the history entry we are restoring to */
-    let index = history.findIndex((item)=> {
-      return (item.name == name && item.generation == generation)
-    });
-    if(index === -1) throw new BadRequestError(`No file found in ${sceneName} matching ${(name+"#"+generation)}`);
-
-    // Keep in mind history is in reverse-natural order, with newest files coming first.
-    //Slice history to everything *after* index. That's every refs that was registered *before* cutoff.
-    let refs = history.slice(index);
-    //Keep a reference of files that will be modified: Every ref that is *before* index.
-    files = new Map(history.slice(0, index).map(item=>([`${item.name}`, item])));
-
-    for(let file of files.values()){
-      //Find which version of the file needs to be restored :
-      let prev = refs.find((ref)=> ref.name === file.name);
-      if(file.mime !== "application/si-dpo-3d.document+json"){
-        let theFile = (prev? await tr.getFileById(prev.id): {hash: null, size: 0});
-        await tr.createFile({scene: scene.id, name: file.name, user_id: (prev? prev.author_id : requester.uid) }, theFile )
-      }else if(typeof prev === "undefined"){
-        throw new BadRequestError(`Trying to remove scene document for ${sceneName}. This would create an invalid scene`);
-      }else{
-        let {data} = await tr.getFileById(prev.id);
-        await tr.writeDoc(data ?? null, {
+    for (let [name, generation] of files.entries()){
+      let prev =( (1 < generation)? (await vfs.getFileProps({scene: scene.id, name, generation: generation - 1, archive: true}, true)): null);
+      if(prev?.data){
+        await vfs.writeDoc(prev.data ?? null, {
           scene: scene.id,
           user_id: prev.author_id,
-          name: "scene.svx.json", 
-          mime: "application/si-dpo-3d.document+json",
+          name: name, 
+          mime: prev.mime,
+        });
+      }else if(prev){
+        await vfs.createFile({
+          scene: scene.id,
+          name: name,
+          user_id: prev.author_id,
+        }, {
+          hash: prev.hash,
+          size: prev.size,
+          mime: prev.mime,
+        });
+      }else if(name==="scene.svx.json"){
+        throw new BadRequestError("Deleting a scene's document entirely is forbidden");
+      }else{
+        await vfs.createFile({
+          scene: scene.id,
+          name: name,
+          user_id: requester.uid,
+        }, {
+          hash: null,
+          size: 0,
         });
       }
+
     }
   });
 

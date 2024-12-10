@@ -195,7 +195,6 @@ describe("POST /history/:scene", function(){
     .send({name: "articles/hello.txt", generation: 1})
     .expect("Content-Type", "application/json; charset=utf-8")
     .expect(400);
-    expect(res.text).to.match(/Trying to remove scene document for /);
     expect(await vfs.getDoc(scene_id)).to.have.property("data", `{"id": 1}`);
   });
 

@@ -332,7 +332,9 @@ export default abstract class FilesVfs extends BaseVfs{
       ctime: BaseVfs.toDate(r.ctime), //z specifies the string as UTC != localtime
     }));
   }
-
+  /**
+   * a shortHand to createFile(params, {hash: null, size: 0}) that also verifies if the file actually exists
+   */
   async removeFile(params :WriteFileParams) :Promise<number>{
     return await this.isolate<number>(async function(tr){
       //Check if file does exist
