@@ -97,7 +97,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     this.#c.abort();
     this.#c = new AbortController();
     console.log("Fetch entry : ", this.scene, this.entries[0]);
-    fetch(`/history/${encodeURIComponent(this.scene)}/${this.entries[0].id.toString()}/diff`, {
+    fetch(`/history/${this.scene}/${this.entries[0].id.toString()}/diff`, {
       signal: this.#c.signal,
       headers: {"Accept": "application/json"},
     }).then(async (r)=>{

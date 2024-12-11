@@ -1,4 +1,5 @@
 import { LitElement, css, customElement, html, property } from "lit-element";
+import { navigate } from "../state/router";
 
 
 
@@ -27,13 +28,17 @@ export default class TagList extends LitElement{
   
 
   private onRemove = (e:Event)=>{
+    e.preventDefault();
+    e.stopPropagation();
     this.dispatchEvent(new CustomEvent("remove", {detail:(e.target as HTMLButtonElement).name}));
   }
 
   private onClick = (index :number, ev :Event)=>{
     ev.preventDefault();
     ev.stopPropagation();
-    this.dispatchEvent(new CustomEvent("click", {detail: {name: this.tags[index], index}}));
+    if(this.dispatchEvent(new CustomEvent("click", {detail: {name: this.tags[index], index}}))){
+      navigate(this, `/ui/tags/${this.tags[index]}`);
+    }
   }
 
   render(){

@@ -180,7 +180,7 @@ interface User {
         </div>`;
     }
     createLoginLink(u :User){
-        fetch(`/auth/login/${u.username}/link`, {
+        fetch(`/auth/login/${encodeURIComponent(u.username)}/link`, {
             method: "GET",
             headers: {
                 "Content-Type": "text/plain"

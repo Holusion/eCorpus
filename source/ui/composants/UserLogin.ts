@@ -51,7 +51,7 @@ import Notification from "./Notification";
       ev.preventDefault();
       const username = ev.target["username"].value;
       this.active = true;
-      fetch(`/auth/login/${username}/link`, {
+      fetch(`/auth/login/${encodeURIComponent(username)}/link`, {
         method: "POST",
       }).then(async (r)=>{
         if(!r.ok){

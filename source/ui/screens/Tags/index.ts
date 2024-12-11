@@ -69,7 +69,7 @@ export default class TagsScreen extends router(withUser(LitElement)){
 
 
   handleTagClick = (e:CustomEvent<{name:string, index:number}>)=>{
-    navigate(this, `${this.path}${encodeURIComponent(this.tags[e.detail.index].name)}`);
+    navigate(this, `${this.path}${this.tags[e.detail.index].name}`);
   }
 
   formatTag({name, size}:Tag){
@@ -77,7 +77,7 @@ export default class TagsScreen extends router(withUser(LitElement)){
   }
 
   render(){
-    const selection = this.tags.findIndex((t)=>this.isActive(`${encodeURIComponent(t.name)}`))
+    const selection = this.tags.findIndex((t)=>this.isActive(`${t.name}`))
     return html`
       <h2>Tags</h2>
       <div class="section">

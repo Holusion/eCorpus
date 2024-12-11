@@ -57,8 +57,8 @@ import { AccessType, AccessTypes, Scene } from "../state/withScenes";
     }
 
     protected render() :TemplateResult {
-      let explorer = `/ui/scenes/${encodeURIComponent(this.name)}/view`;
-      let story = `/ui/scenes/${encodeURIComponent(this.name)}/edit`;
+      let explorer = `/ui/scenes/${this.name}/view`;
+      let story = `/ui/scenes/${this.name}/edit`;
       return html`
         <div class="scene-card-inner ${this.cardStyle == "list" ? "scene-card-inner-list": ""}">
             <div style="display:flex; flex:auto; align-items:center;">

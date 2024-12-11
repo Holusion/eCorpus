@@ -126,7 +126,7 @@ interface AccessRights{
           </div>`;
         }
 
-        let scene = encodeURIComponent(this.name);
+        let scene = this.name;
         return html`<div>
           <h1 style="color:white">${this.name}</h1>
 
@@ -142,7 +142,7 @@ interface AccessRights{
                   <ui-icon name="edit"></ui-icon>  ${this.t("ui.editScene")}
                 </a>`:null}
                 <a class="btn btn-main" style="margin-top:10px" href=${`/ui/scenes/${scene}/view`}><ui-icon name="eye"></ui-icon>  ${this.t("ui.viewScene")}</a>
-                <a class="btn btn-main" style="margin-top:10px" download href="/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
+                <a class="btn btn-main" style="margin-top:10px" download="${scene}.zip" href="/scenes/${scene}?format=zip"><ui-icon name="save"></ui-icon> ${this.t("ui.downloadScene")}</a>
               </div>
             </div>
 
@@ -358,7 +358,7 @@ interface AccessRights{
         }).then((r)=>{
           if(r.ok){
             Notification.show("Renamed "+this.name+" to "+name, "info", 1600);
-            navigate(this, `/ui/scenes/${encodeURIComponent(name)}/`);
+            navigate(this, `/ui/scenes/${name}/`);
           }else{
             throw new Error(`[${r.status}] ${r.statusText}`);
           }

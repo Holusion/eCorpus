@@ -61,7 +61,7 @@ interface User {
 
     onDeleteScene = (ev :MouseEvent, s :Scene)=>{
         ev.preventDefault();
-        fetch(`/scenes/${s.name}?archive=false`, {
+        fetch(`/scenes/${encodeURIComponent(s.name)}?archive=false`, {
             headers: {"Content-Type": "application/json"},
             method: "DELETE"
         }).then(HttpError.okOrThrow)
