@@ -14,10 +14,21 @@ export interface AppLocals extends Record<string, any>{
   vfs :Vfs;
   templates :Templates;
   config: Config;
+  /** Length of a session, in milliseconds since epoch */
+  sessionMaxAge: number;
 }
 
 export function getLocals(req :Request){
   return req.app.locals as AppLocals;
+}
+
+export interface SessionData extends SafeUser{
+  /** Expire date, in ms since epoch */
+  expires?: number;
+}
+
+export function getSession(req :Request){
+  return req.session as SessionData|null|undefined;
 }
 
 /**

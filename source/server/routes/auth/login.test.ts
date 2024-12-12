@@ -3,6 +3,7 @@ import request from "supertest";
 import Vfs from "../../vfs/index.js";
 import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
+import { AppLocals } from "../../utils/locals.js";
 
 
 
@@ -33,7 +34,7 @@ describe("/auth/login", function(){
     await request(this.server).get("/auth/login")
     .set("Accept", "application/json")
     .expect(200)
-    .expect({isAdministrator:false, isDefaultUser: true});
+    .expect({uid: 0, username: "default", isAdministrator:false, isDefaultUser: true});
   });
   
   it("can get login status (connected)", async function(){
@@ -72,6 +73,24 @@ describe("/auth/login", function(){
     });
   });
 
+  it("expires sessions", async function(){
+    (this.server.locals as AppLocals).sessionMaxAge = -1;
+    this.agent = request.agent(this.server);
+    await this.agent.post("/auth/login")
+    .send({username: user.username, password: "12345678"})
+    .set("Content-Type", "application/json")
+    .set("Accept", "")
+    .expect(200);
+
+    await this.agent.get("/auth/login")
+    .set("Accept", "application/json")
+    .expect(401)
+    .expect({
+      code: 401,
+      message: "Error: [401] Session Token expired. Please reauthenticate"
+    });
+  });
+
   it("send a proper error if username is missing", async function(){
     this.agent = request.agent(this.server);
     let res = await this.agent.post("/auth/login")
@@ -107,10 +126,13 @@ describe("/auth/login", function(){
     await agent.get("/auth/login")
     .expect(200)
     .expect({
+      uid: 0,
+      username: "default", 
       isDefaultUser: true,
       isAdministrator: false,
     });
   });
+  
   describe("Authorization header", function(){
     it("can use header to authenticate a request", async function(){
       let res = {
@@ -141,7 +163,7 @@ describe("/auth/login", function(){
       .set("Authorization", `${Buffer.from(`${user.username}:12345678`).toString("base64")}`)
       .expect(200); //Still answers 200, but no login data
 
-      expect(res.body).to.deep.equal({ isAdministrator: false, isDefaultUser: true });
+      expect(res.body).to.deep.equal({ uid: 0, username: "default", isAdministrator: false, isDefaultUser: true });
     });
     it("rejects bad user:password", async function(){
       // Missing the "Basic " part

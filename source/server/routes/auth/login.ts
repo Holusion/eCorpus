@@ -9,13 +9,18 @@ import sendmail from "../../utils/mails/send.js";
  * @type {RequestHandler}
  */
 export const postLogin :RequestHandler = (req, res, next)=>{
+  const {sessionMaxAge} = getLocals(req);
   let userManager = getUserManager(req);
   let {username,password} = req.body;
   if(!username) throw new BadRequestError("username not provided");
   if(!password) throw new BadRequestError("password not provided");
   userManager.getUserByNamePassword(username, password).then(user=>{
     let safeUser = User.safe(user);
-    Object.assign((req as any).session as any, safeUser);
+    Object.assign(
+      (req as any).session as any,
+      {expires: Date.now() + sessionMaxAge},
+      safeUser
+    );
     res.status(200).send({...safeUser, code: 200, message: "OK"});
 
   }, (e)=>{

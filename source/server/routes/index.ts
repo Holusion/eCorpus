@@ -7,10 +7,10 @@ import express, { Request, Response } from "express";
 
 
 import UserManager from "../auth/UserManager.js";
-import { BadRequestError, HTTPError } from "../utils/errors.js";
+import { BadRequestError, HTTPError, UnauthorizedError } from "../utils/errors.js";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, canRead, canWrite, getHost, getUserManager, isUser} from "../utils/locals.js";
+import {AppLocals, canRead, canWrite, getHost, getLocals, getUserManager, isUser} from "../utils/locals.js";
 
 import openDatabase from "../vfs/helpers/db.js";
 import Vfs from "../vfs/index.js";
@@ -58,25 +58,45 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     vfs,
     templates,
     config,
+    sessionMaxAge: 31 * 24 * 60 * 60*1000 // 1 month, in seconds
   }) as AppLocals;
 
   app.use(cookieSession({
     name: 'session',
     keys: await userManager.getKeys(),
     // Cookie Options
-    maxAge: 31 * 24 * 60 * 60 * 1000, // 1 month
+    maxAge: (app.locals as AppLocals).sessionMaxAge * 1000,
     sameSite: "strict"
   }));
 
+  /**
+   * Does authentication-related work like renewing and expiring session-cookies
+   */
   app.use((req, res, next)=>{
-    if((req.session as any).uid) return next();
+    const {sessionMaxAge} = getLocals(req);
+    const now = Date.now();
+    if(req.session && !req.session.isNew){
+      if(!req.session.expires || req.session.expires < now){
+        req.session = null;
+        return next(new UnauthorizedError(`Session Token expired. Please reauthenticate`));
+      }else if(now < req.session.expires + sessionMaxAge*0.66){
+        req.session.expires = now + sessionMaxAge;
+      }
+    }
+    
+    if(req.session?.uid) return next();
+    
     let auth = req.get("Authorization");
     if(!auth) return next()
     else if(!auth.startsWith("Basic ") ||  auth.length <= "Basic ".length ) return next();
     let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
     if(!username || !password) return next();
     getUserManager(req).getUserByNamePassword(username, password).then((user)=>{
-      Object.assign(req.session as any, User.safe(user));
+      Object.assign(
+        req.session as any,
+        {expires: now + sessionMaxAge},
+        User.safe(user),
+      );
       next();
     }, (e)=>{
       if((e as HTTPError).code === 404) next();

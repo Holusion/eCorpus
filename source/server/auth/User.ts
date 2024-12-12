@@ -41,10 +41,10 @@ export default class User implements SafeUser {
     /**
    * Make a user safe for export and public use (remove password field)
    */
-  static safe(u :User) :SafeUser{
+  static safe(u :Partial<User> = {}) :SafeUser{
     return {
-      uid: u.uid,
-      username: u.username,
+      uid: u.uid ?? 0,
+      username: u.username ?? "default",
       email: u.email,
       isAdministrator: !!u.isAdministrator,
       isDefaultUser: u.isDefaultUser ?? true,
