@@ -2,7 +2,7 @@ import { createHmac } from "crypto";
 import { Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../auth/User.js";
 import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
-import { AppLocals, getHost, getLocals, getUser, getUserManager } from "../../utils/locals.js";
+import { AppLocals, getHost, getLocals, getSession, getUser, getUserManager } from "../../utils/locals.js";
 import sendmail from "../../utils/mails/send.js";
 /**
  * 
@@ -34,8 +34,11 @@ export const postLogin :RequestHandler = (req, res, next)=>{
 
 export async function getLogin(req :Request, res:Response){
   let {payload, sig, redirect} = req.query;
-  if(typeof payload !== "string" || !payload || !sig){
-    return res.status(200).send(User.safe((req as any).session as any));
+  if(!payload && !sig){
+    const session = getSession(req);
+    return res.status(200).send(User.safe(session ?? {}));
+  }else if(typeof payload !== "string" || !payload || !sig){
+    throw new BadRequestError(`Bad login links parameters`);
   }
 
   let userManager = getUserManager(req);
@@ -62,8 +65,9 @@ export async function getLogin(req :Request, res:Response){
   Object.assign((req as any).session as any, User.safe(user));
   if(redirect && typeof redirect === "string"){
     return res.redirect(302, redirect );
+  }else{
+    return res.status(200).send(User.safe((req as any).session));
   }
-  res.status(204).send();
 };
 
 

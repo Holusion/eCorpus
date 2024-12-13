@@ -173,4 +173,54 @@ describe("/auth/login", function(){
     })
 
   });
+  
+  describe("Login links", function(){
+    it("rejects bad login links", async function(){
+      await request(this.server).get("/auth/login?payload=foo")
+      .expect(400);
+      await request(this.server).get("/auth/login?sig=bar")
+      .expect(400);
+
+
+      await request(this.server).get("/auth/login?payload=foo&sig=bar")
+      .expect(403);
+    });
+
+    it("obtains a valid login link (text/plain)", async function(){
+      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
+      .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
+      .set("Accept", "text/plain")
+      .expect(200)
+      .expect("Content-Type", "text/plain; charset=utf-8");
+
+      expect(res.text).to.match(/^http:/);
+      let url = new URL(res.text);
+      await request(this.server).get(url.pathname+url.search)
+      .expect(302)
+      .expect("Set-Cookie", /session=/)
+      .expect("Location", "/");
+    });
+
+    it("obtains a valid login link (application/json)", async function(){
+      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
+      .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+
+      expect(res.body).to.have.property("params").a("string");
+      expect(res.body).to.have.property("expires").a("string");
+      expect(res.body).to.have.property("sig").a("string");
+      
+      await request(this.server).get(`/auth/login?payload=${encodeURIComponent(res.body.params)}&sig=${res.body.sig}`)
+      .expect(200)
+      .expect("Set-Cookie", /session=/);
+    });
+
+    it("requires authorization", async function(){
+      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
+      .set("Accept", "text/plain")
+      .expect(401);
+    })
+  });
 });

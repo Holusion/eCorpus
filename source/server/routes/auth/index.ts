@@ -9,6 +9,7 @@ import { getLogin, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
+import User from "../../auth/User.js";
 
 const useJSON = bodyParser.json();
 
@@ -24,10 +25,15 @@ router.use((req, res, next)=>{
 });
 
 
-router.use("/login", (req, res, next)=>{
+router.use("/", (req, res, next)=>{
   res.append("Cache-Control", "private");
   next();
 });
+
+router.get("/", wrap(async function(req, res){
+  return res.status(200).send(User.safe((req as any).session as any));
+}));
+
 router.get("/login", wrap(getLogin));
 router.post("/login", useJSON, postLogin);
 router.get("/login/:username/link", isAdministrator, wrap(getLoginLink));
