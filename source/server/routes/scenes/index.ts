@@ -62,7 +62,7 @@ router.propfind("/:scene/*", wrap(handlePropfind));
 router.get("/:scene/:file(*.svx.json)", wrap(handleGetDocument));
 router.put("/:scene/:file(*.svx.json)", 
   canWrite,
-  bodyParser.json({type:["application/si-dpo-3d.document+json", "application/json"], limit: 204800}),
+  bodyParser.json({type:["application/si-dpo-3d.document+json", "application/json"], limit: 4e6}),
   wrap(handlePutDocument)
 );
 
