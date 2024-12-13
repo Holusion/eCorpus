@@ -27,12 +27,11 @@ export default class UserMenu extends i18n(NavLink){
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.innerHTML = this.user?.username || this.t("ui.login");
   }
 
   override onClick = (ev :MouseEvent)=>{
     ev.preventDefault();
-    if(this.user?.username){
+    if(this.user?.uid){
       navigate(this);
     }else{
       Modal.show({
@@ -47,7 +46,7 @@ export default class UserMenu extends i18n(NavLink){
   {
     let s = super.shouldUpdate(changedProperties);
     if(changedProperties.has("user") || changedProperties.has("language")){
-      this.innerHTML = this.user?.username || this.t("ui.login");
+      this.innerHTML = ((this.user?.uid)? this.user.username : this.t("ui.login"));
       return true;
     }
     return s;
