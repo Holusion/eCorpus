@@ -170,7 +170,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   app.get("/ui/scenes/:scene/edit", canWrite, (req, res)=>{
     let {scene} = req.params;
-    let {lang} = req.query;
+    let {mode="Edit"} = req.query;
     let host = getHost(req);
     let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
     let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
@@ -180,7 +180,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       scene,
       thumb: thumb.toString(),
       referrer: referrer.toString(),
-      mode: "Edit",
+      mode,
     });
   });
   
