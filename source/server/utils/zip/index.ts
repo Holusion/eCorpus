@@ -98,8 +98,26 @@ export function create_file_header({ filename, extra="", mtime, flags } :FileHea
   return header;
 }
 
-export function create_data_descriptor({size, compressedSize=size, crc}:{size:number,compressedSize?:number, crc:number}):Buffer{
-  let dd = Buffer.alloc(data_descriptor_size);
+
+export function parse_file_header(b :Buffer) :FileHeader{
+  const start_bytes = b.readUInt32LE(0);
+  assert(start_bytes === 0x04034b50, `Not a valid zip file header. expected 0x04034b50 but starting with 0x${start_bytes.toString(16)}`);
+  const version = b.readUInt16LE(4);
+  const flags = b.readUInt16LE(6);
+  const dosTime =b.readUInt32LE(10);
+  const mtime = DateTime.toUnix(dosTime);
+
+  const name_length = b.readUInt16LE(26);
+  const extra_length = b.readUInt16LE(28);
+
+  const filename = b.slice(30, 30+name_length).toString("utf-8");
+  const extra = b.slice(30+name_length, 30+name_length+extra_length).toString("utf-8");
+  return {filename, mtime, extra, flags};
+}
+
+
+export function create_data_descriptor({size, compressedSize=size, crc}: {size:number,compressedSize?:number, crc:number}):Buffer{
+  let dd = Buffer.allocUnsafe(data_descriptor_size);
   dd.writeUInt32LE(0x08074b50, 0);
   dd.writeUInt32LE(crc, 4);
   dd.writeUInt32LE(compressedSize, 8) //Compressed size
@@ -111,8 +129,8 @@ export function create_cd_header({filename, mtime, extra="", dosMode, unixMode, 
   let name_length = Buffer.byteLength(filename);
   let extra_length = Buffer.byteLength(extra);
   //Construct central directory record
-  let cdr = Buffer.alloc(cd_header_length + name_length + extra_length);
-
+  let cdr = Buffer.allocUnsafe(cd_header_length + name_length + extra_length);
+  
   cdr.writeUInt32LE(0x02014b50, 0); // Signature
   cdr.writeUInt16LE( 3 << 8 | 20, 4); // made by UNIX with zip v2.0
   cdr.writeUInt16LE(20, 6); // need version 2.0 to extract
@@ -141,8 +159,9 @@ export function isDirectory(h:CDHeader):boolean{
 }
 
 export function parse_cd_header(cd :Buffer, offset :number) :CDHeader & {length:number}{
-  let cdh = cd.slice(offset, offset +cd_header_length);
-  
+  let cdh = cd.slice(offset, offset + cd_header_length);
+  const signature = cd.readUInt32LE(0);
+  assert(signature === 0x02014b50,`Expect header to begin with 0x02014b50 but found 0x${signature.toString(16)}`)
   let mtime = DateTime.toUnix(cdh.readUInt32LE(12));
   let name_length = cdh.readUInt16LE(28);
   let extra_length = cdh.readUInt16LE(30);
@@ -156,10 +175,10 @@ export function parse_cd_header(cd :Buffer, offset :number) :CDHeader & {length:
     // compression: cdh.readUInt16LE(8),
     // 12 last mod time
     //14 last mod date
+    mtime,
     crc: cdh.readUInt32LE(16),
     compressedSize: cdh.readUInt32LE(20), // 20 compressed size
     size: cdh.readUInt32LE(24),
-    mtime,
     // 28 file name length
     // 30 extra field length
     // 32 comment length
@@ -181,7 +200,7 @@ export function parse_cd_header(cd :Buffer, offset :number) :CDHeader & {length:
  */
 export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {comments = "" }={}) :AsyncGenerator<Buffer,void,unknown>{
 
-  let cd = Buffer.alloc(0);
+  let cd = Buffer.allocUnsafe(0);
   let files_count = 0, archive_size = 0;
 
   let flag_bits = flags.USE_DATA_DESCRIPTOR | flags.UTF_FILENAME;
@@ -200,7 +219,7 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
       mtime = new Date("1980-01-01T0:0:0Z");
     }
 
-    let local_header_offset = archive_size;
+    const local_header_offset = archive_size;
 
     //File header
     let header = create_file_header({filename, mtime, flags: flag_bits});
@@ -227,7 +246,7 @@ export async function *zip(files :AsyncIterable<ZipEntry>|Iterable<ZipEntry>, {c
     //Construct central directory record for later use
     let cdr = create_cd_header({
       filename,
-      compressedSize:size,
+      compressedSize: size,
       size,
       crc,
       flags: flag_bits,
@@ -303,13 +322,12 @@ export async function zip_read_eocd(handle :FileHandle){
  */
 export async function *read_cdh(handle : FileHandle) :AsyncGenerator<CDHeader, void, void >{
   let eocd = await zip_read_eocd(handle);
-  let cd = Buffer.alloc(eocd.cd_size);
+  let cd = Buffer.allocUnsafe(eocd.cd_size);
   let bytes = (await handle.read({buffer:cd, position: eocd.cd_start})).bytesRead;
   assert( bytes == cd.length, `Can't read Zip Central Directory Records (missing ${cd.length - bytes} of ${cd.length} bytes)`);
   let offset = 0;
   while(offset < eocd.cd_size){
     let {length, ...header} = parse_cd_header(cd, offset);
-    //FIXME verify file header
     yield header;
     offset = offset + length;
   }

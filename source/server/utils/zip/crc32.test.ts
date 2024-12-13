@@ -14,4 +14,14 @@ describe("crc32", function(){
     crc.next(Buffer.from("\n"));
     expect((crc.next().value).toString(16)).to.equal(0xaf083b2d.toString(16));
   });
+  it("checks known values", function(){
+    ([
+      ["{}", 2745614147],
+      ["foo\n", 2117232040],
+    ] as [string, number][]).forEach(([s, sum])=>{
+      let crc = crc32();
+      crc.next(Buffer.from(s))
+      expect(crc.next().value, `Expected CRC32 sum for ${s} to be ${sum}`).to.equal(sum);
+    });
+  })
 });

@@ -262,7 +262,7 @@ export default abstract class FilesVfs extends BaseVfs{
     if(!r.hash && !r.data) throw new NotFoundError(`Trying to open deleted file : ${ r.name }`);
     if(r.hash === "directory") return r;
 
-    let handle = (typeof r.data === "string")? Readable.from([r.data]): (await this.openFile({hash: r.hash!})).createReadStream();
+    let handle = (typeof r.data === "string")? Readable.from([Buffer.from(r.data)]): (await this.openFile({hash: r.hash!})).createReadStream();
     return {
       ...r,
       stream: handle,

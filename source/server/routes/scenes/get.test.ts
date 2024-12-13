@@ -7,6 +7,9 @@ import UserManager from "../../auth/UserManager.js";
 import { read_cdh } from "../../utils/zip/index.js";
 import { HandleMock } from "../../utils/zip/zip.test.js";
 import Vfs from "../../vfs/index.js";
+import path from "path";
+import { tmpdir } from "os";
+import { execFile } from "child_process";
 
 
 
@@ -50,10 +53,12 @@ describe("GET /scenes", function(){
   it("can send a zip file", async function(){
     let res = await request(this.server).get("/scenes")
     .set("Accept", "application/zip")
+    .responseType('blob')
     .expect(200)
     .expect("Content-Type", "application/zip");
 
-    let b :any = Buffer.from(res.text, "binary");
+    let b :any = res.body;
+    expect(b).to.be.instanceof(Buffer);
     expect(b).to.have.property("length").above(0);
     let handle = HandleMock.Create(b);
     let headers = [];
@@ -69,6 +74,35 @@ describe("GET /scenes", function(){
       "scenes/foo/models/",
     ]);
   });
+  
+  it("returned zip file is valid", async function(){
+    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: 0});
+    await vfs.writeFile(dataStream(["hello world \n"]), {scene: "bar", name: "articles/hello.html", user_id: 0});
+    
+    let res = await request(this.server).get("/scenes")
+    .set("Accept", "application/zip")
+    .responseType('blob')
+    .expect(200)
+    .expect("Content-Type", "application/zip");
+
+    let b :any = res.body;
+    expect(b).to.be.instanceof(Buffer);
+    expect(b).to.have.property("length").above(0);
+
+    let dir = await fs.mkdtemp(path.join(tmpdir(), "eCorpus-zip-file-test"));
+    try{
+      let file = path.join(dir, "test.zip");
+      await fs.writeFile(file, b);
+      await expect(new Promise<void>((resolve, reject)=>{
+        execFile("unzip", ["-t", file], (error, stdout, stderr)=>{
+          if(error) reject(error);
+          else resolve();
+        });
+      })).to.be.fulfilled;
+    }finally{
+      await fs.rm(dir, {recursive: true, force: true}).catch(()=>{});
+    }
+  })
 
   describe("can get a list of scenes", function(){
     let scenes:number[];

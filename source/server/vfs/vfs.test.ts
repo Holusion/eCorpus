@@ -939,6 +939,18 @@ describe("Vfs", function(){
             expect(str).to.equal("foo\n");
           });
 
+          it("get a document", async function(){
+            //getFile can sometimes be used to get a stream to an existing document. Its shouldn't care and do it.
+            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            let {stream} = await vfs.getFile(props);
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("Hello World\n");
+          });
+
           it("throw 404 error if file doesn't exist", async function(){
             await expect(vfs.getFile({...props, name: "bar.html"})).to.be.rejectedWith("404");
           });

@@ -51,7 +51,7 @@ export default async function postScenes(req :Request, res :Response){
       if(!name){
         //Create the scene
         try{
-          console.log("create scene");
+          console.log("create scene: ", scene);
           await vfs.createScene(scene, requester.uid);
         }catch(e){
           if((e as HTTPError).code != 409) throw e;
@@ -85,7 +85,7 @@ export default async function postScenes(req :Request, res :Response){
       
       results.ok.push(`${scene}/${name}`);
     }
-    console.log("Scenes : ", await vfs.getScene("foo"));
+
   }).finally(() => fs.rm(tmpfile, {force: true}));
 
   res.status(200).send(results);
