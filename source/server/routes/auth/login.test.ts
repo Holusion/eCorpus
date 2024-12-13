@@ -21,13 +21,20 @@ describe("/auth/login", function(){
   });
 
   it("sets a cookie", async function(){
+    const maxAge = this.server.locals.sessionMaxAge;
     this.agent = request.agent(this.server);
-    await this.agent.post("/auth/login")
+    let res = await this.agent.post("/auth/login")
     .send({username: user.username, password: "12345678"})
     .set("Content-Type", "application/json")
     .set("Accept", "")
     .expect(200)
     .expect('set-cookie', /session=/);
+
+    let expiresText = /expires=([^;]+);/.exec(res.headers["set-cookie"]);
+    expect(expiresText, `expected regex to match ${res.headers["set-cookie"]}`).to.be.ok;
+    let expiresDate = new Date((expiresText as any)[1]);
+    expect(expiresDate.valueOf()).to.be.above(Date.now()+maxAge-2000);
+    expect(expiresDate.valueOf()).to.be.below(Date.now()+ maxAge + 1);
   });
 
   it("can get login status (not connected)", async function(){
@@ -187,6 +194,7 @@ describe("/auth/login", function(){
     });
 
     it("obtains a valid login link (text/plain)", async function(){
+      const maxAge = this.server.locals.sessionMaxAge;
       let res = await request(this.server).get(`/auth/login/${user.username}/link`)
       .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
       .set("Accept", "text/plain")
@@ -195,10 +203,23 @@ describe("/auth/login", function(){
 
       expect(res.text).to.match(/^http:/);
       let url = new URL(res.text);
-      await request(this.server).get(url.pathname+url.search)
+
+      const agent = request.agent(this.server);
+      res = await agent.get(url.pathname+url.search)
       .expect(302)
       .expect("Set-Cookie", /session=/)
       .expect("Location", "/");
+
+      let expiresText = /expires=([^;]+);/.exec(res.headers["set-cookie"]);
+      expect(expiresText, `expected regex to match ${res.headers["set-cookie"]}`).to.be.ok;
+      let expiresDate = new Date((expiresText as any)[1]);
+      expect(expiresDate.valueOf()).to.be.above(Date.now() + maxAge - 1000);
+
+      //Verifies that the authentication does actually work
+      res = await agent.get("/auth/login")
+      .set("Accept", "application/json")
+      .expect(200);
+      expect(res.body).to.have.property("username", user.username);
     });
 
     it("obtains a valid login link (application/json)", async function(){

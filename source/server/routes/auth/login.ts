@@ -62,7 +62,11 @@ export async function getLogin(req :Request, res:Response){
     console.log((e as any).message);
     throw new BadRequestError(`Failed to parse login payload`);
   }
-  Object.assign((req as any).session as any, User.safe(user));
+  Object.assign(
+    (req as any).session as any,
+    {expires: Date.now() + getLocals(req).sessionMaxAge },
+    User.safe(user),
+  );
   if(redirect && typeof redirect === "string"){
     return res.redirect(302, redirect );
   }else{

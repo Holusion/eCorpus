@@ -49,7 +49,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     setInterval(()=>{
       vfs.optimize();
     }, 2*3600*1000).unref();
-  } 
+  }
 
 
   app.locals  = Object.assign(app.locals, {
@@ -58,14 +58,14 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     vfs,
     templates,
     config,
-    sessionMaxAge: 31 * 24 * 60 * 60*1000 // 1 month, in seconds
+    sessionMaxAge: 31 * 24 * 60 * 60*1000 // 1 month, in milliseconds
   }) as AppLocals;
 
   app.use(cookieSession({
     name: 'session',
     keys: await userManager.getKeys(),
     // Cookie Options
-    maxAge: (app.locals as AppLocals).sessionMaxAge * 1000,
+    maxAge: (app.locals as AppLocals).sessionMaxAge,
     sameSite: "strict"
   }));
 
