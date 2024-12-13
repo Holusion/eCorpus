@@ -53,7 +53,8 @@ export async function getLogin(req :Request, res:Response){
     let s = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
     user = await userManager.getUserByName(s.username);
     if(user.uid != s.uid) throw new Error("uid mismatch");
-    if(new Date(s.expires).valueOf() < new Date().valueOf()) throw new Error("Token expired");
+    if(!s.expires || !Number.isInteger(s.expires)) throw new BadRequestError("Bad token payload");
+    else if(s.expires < Date.now()) throw new ForbiddenError("Token expired");
   }catch(e){
     console.log((e as any).message);
     throw new BadRequestError(`Failed to parse login payload`);
@@ -66,12 +67,12 @@ export async function getLogin(req :Request, res:Response){
 };
 
 
-function makeLoginLink(user :User, key :string){
-  let expires = new Date(Date.now()+ 1000*60*60*24*30); //1 month
+function makeLoginLink(user :User, key :string, expiresIn :number){
+  let expires = new Date(Date.now()+ expiresIn);
   let params = Buffer.from(JSON.stringify({
     uid: user.uid.toString(10),
     username: user.username,
-    expires: expires.toISOString(),
+    expires: expires.valueOf(),
   })).toString("base64url");
 
   let sig = createHmac("sha512", key).update(params).digest("base64url");
@@ -93,12 +94,13 @@ function makeRedirect(opts:ReturnType<typeof makeLoginLink>, redirect :URL) :URL
 
 
 export async function getLoginLink(req :Request, res :Response){
+  let {sessionMaxAge} = getLocals(req);
   let {username} = req.params;
   let userManager = getUserManager(req);
   let user = await userManager.getUserByName(username);
   let key = (await userManager.getKeys())[0];
 
-  let payload = makeLoginLink(user, key);
+  let payload = makeLoginLink(user, key, sessionMaxAge);
   res.format({
     "text/plain":()=>{
       let rootUrl = getHost(req);
@@ -112,6 +114,7 @@ export async function getLoginLink(req :Request, res :Response){
 
 
 export async function sendLoginLink(req :Request, res :Response){
+  let {sessionMaxAge} = getLocals(req);
   let {username} = req.params;
   let userManager = getUserManager(req);
 
@@ -120,7 +123,7 @@ export async function sendLoginLink(req :Request, res :Response){
     throw new BadRequestError(`Requested user has no registered email`);
   }
   let key = (await userManager.getKeys())[0];
-  let payload = makeLoginLink(user, key);
+  let payload = makeLoginLink(user, key, sessionMaxAge);
   let link = makeRedirect(
     payload, 
     getHost(req)
