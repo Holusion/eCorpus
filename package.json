@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "3D model database and content management system with integrated annotations and stories 3D editor",
   "scripts": {
-    "start": "cd source/server/ && EXPERIMENTAL=1 npm start",
+    "start": "cd source/server/ && ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start",
     "test": "cd source/server/ && npm test",
     "build-ui": "cd source/ui && webpack --mode=production",
     "build-server": "tsc -b source/server",
