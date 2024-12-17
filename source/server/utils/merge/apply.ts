@@ -1,5 +1,5 @@
 'use strict';
-import {Diff, DELETE_KEY} from "./pointers/types.js";
+import {Diff, DELETE_KEY, SOURCE_INDEX, withIndex} from "./pointers/types.js";
 
 /**
  * Deep assign two or more objects
@@ -10,6 +10,7 @@ import {Diff, DELETE_KEY} from "./pointers/types.js";
  */
 export default function apply<T extends Record<string, any>>(into :T, ...diffs :Diff<T>[]):T{
   for(const diff of diffs){
+    if(SOURCE_INDEX in diff) into = withIndex(into, diff[SOURCE_INDEX] as number);
     for(const key in diff){
       const value = diff[key] as T[Extract<keyof T, string>];
 

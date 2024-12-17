@@ -18,13 +18,13 @@ import { DerefDocument, DerefMeta, DerefNode, DerefScene, DerefSetup, SOURCE_IND
  * It's akin to the `toDocument()`methods seen in DPO-voyager, in particular in `CVScene.ts`.
  * @see toPointers for the inverse operation
  */
-export function fromPointers({asset, scene} :DerefDocument): IDocument{
+export function fromPointers({asset, scene} :Partial<DerefDocument>): IDocument{
 
   //The output document.
   // All fields are initially created to later filter unused ones
   let document :Required<IDocument> = {
-    asset,
-    scene: -1,
+    asset: asset as any,
+    scene: undefined as any,
     "scenes": [] as IScene[],
     "nodes": [] as INode[],
     "cameras": [] as ICamera[],
@@ -36,7 +36,7 @@ export function fromPointers({asset, scene} :DerefDocument): IDocument{
 
 
 
-  document.scene = appendScene(document, scene);
+  if(scene) document.scene = appendScene(document, scene);
 
   return cleanDocument(document);
 }

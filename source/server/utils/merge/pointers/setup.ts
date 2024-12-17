@@ -2,18 +2,17 @@ import { IDocument } from "../../schema/document.js";
 import { ISetup, ITour, ITourStep } from "../../schema/setup.js";
 import uid from "../../uid.js";
 import { mapTarget, unmapTarget } from "./snapshot.js";
-import { DerefNode, DerefSetup, DerefSnapshots, DerefTour, IdMap } from "./types.js";
+import { DerefNode, DerefSetup, DerefSnapshots, DerefState, DerefTour, fromMap, IdMap, toIdMap } from "./types.js";
 
 export function appendSetup(document :Required<IDocument>, {tours: toursMap, snapshots, ...setup} :DerefSetup) :number{
   let iSetup :ISetup = {...setup};
 
-  const tours = Object.values(toursMap ?? {});
+  const tours = fromMap(toursMap ?? {});
   if(tours.length){
-    iSetup.tours = tours.map(({steps, ...t})=>{
-      const tour = t as ITour;
-      tour.steps =  Object.values(steps);
-      return tour;
-    });
+    iSetup.tours = tours.map(({steps, ...t})=>({
+      ...t,
+      steps: fromMap(steps),
+    }));
   }
   
   if(snapshots){
@@ -24,7 +23,7 @@ export function appendSetup(document :Required<IDocument>, {tours: toursMap, sna
     iSetup.snapshots = {
       ...snapshots,
       targets,
-      states: Object.values(snapshots.states ?? {}).map(s=>({
+      states: fromMap(snapshots.states ?? {}).map(s=>({
         ...s, 
         values: targetStrings.map(t=>s.values[t])
       })),
@@ -39,18 +38,14 @@ export function appendSetup(document :Required<IDocument>, {tours: toursMap, sna
 export function mapSetup({tours, snapshots, ...iSetup} :ISetup, nodes :DerefNode[]) :DerefSetup {
   const setup = {
     ...iSetup,
-    tours: (tours?.length ? {} : undefined) as IdMap<DerefTour & {id:string}>,
+    tours: (tours?.length ? toIdMap(tours.map(t=>({
+      ...t,
+      id:t.id??uid(),
+      steps: toIdMap(t.steps)
+    }))) : undefined) as IdMap<DerefTour & {id:string}>,
     snapshots: undefined as any as DerefSnapshots,
   }
-
-  for(let iTour of tours??[]){
-    const tour :DerefTour = {...iTour, steps: {}};
-    tour.id ??= uid();
-    for(let step of iTour.steps ?? []){
-      tour.steps[step.id] = step;
-    }
-    setup.tours[tour.id] = tour as DerefTour & {id: string};
-  }
+  
   if(snapshots){
     //Nest targets into objects to ease deep merge by node ID
     const targetNames = snapshots.targets.map(t=>mapTarget(t, nodes))
@@ -62,13 +57,7 @@ export function mapSetup({tours, snapshots, ...iSetup} :ISetup, nodes :DerefNode
     }, {} as Record<string, Record<string, true>>);
 
 
-    setup.snapshots = {
-      ...snapshots,
-      targets ,
-      states: {} as DerefSnapshots["states"],
-    } as DerefSnapshots;
-
-
+    const states :DerefState[] = []
     for(let state of snapshots?.states??[]){
       if(state.values.length != targetNames.length){
         throw new Error(`Invalid snapshot states length ${state.values.length} != ${targets.length}`);
@@ -79,9 +68,14 @@ export function mapSetup({tours, snapshots, ...iSetup} :ISetup, nodes :DerefNode
         const key = targetNames[idx];
         values[key] = state.values[idx];
       }
-
-      setup.snapshots.states[state.id] = {...state, values};
+      states.push({...state, values})
     }
+
+    setup.snapshots = {
+      ...snapshots,
+      targets ,
+      states: toIdMap(states),
+    };
 
   }
   return setup;

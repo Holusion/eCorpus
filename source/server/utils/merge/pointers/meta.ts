@@ -1,6 +1,6 @@
 import { IDocument } from "../../schema/document.js";
 import { IMeta } from "../../schema/meta.js";
-import { DerefMeta, toIdMap, toUriMap } from "./types.js";
+import { DerefMeta, fromMap, toIdMap, toUriMap } from "./types.js";
 
 export function appendMeta(document :Required<IDocument>, meta :DerefMeta) :number{
   let iMeta :IMeta = {};
@@ -9,17 +9,17 @@ export function appendMeta(document :Required<IDocument>, meta :DerefMeta) :numb
 
   if(meta.process) iMeta.process = meta.process;
 
-  let images = Object.values(meta.images ?? {});
+  let images = fromMap(meta.images ?? {});
   if(images.length){
     iMeta.images = images;
   }
 
-  let articles = Object.values(meta.articles ?? {});
+  let articles = fromMap(meta.articles ?? {});
   if(articles.length){
     iMeta.articles = articles;
   }
 
-  let audio = Object.values(meta.audio ?? {});
+  let audio = fromMap(meta.audio ?? {});
   if(audio.length){
     iMeta.audio = audio;
   }

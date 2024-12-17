@@ -9,20 +9,44 @@ import uid from "../../uid.js";
 
 /**
  * Special symbol to track original index within an array
+ * We lie about its type to simplify usage as an indexed value
  */
-export const SOURCE_INDEX = Symbol("SOURCE_INDEX");
+export const SOURCE_INDEX :"_SOURCE_INDEX" = Symbol("_SOURCE_INDEX") as any;
 
 export interface Indexed{
   [SOURCE_INDEX]: number;
 }
 /**
+ * Inserts an index as a hidden Symbol property in an object
+ * Since it's a symbol it will never appear in `Object.keys()` or `for .. in` loops.
+ * It's enumerable so it can be obtained through `Object.assign` or Object spread.
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Enumerability_and_ownership_of_properties#traversing_object_properties
+ * @param obj obj to insert an index into
+ * @param index 
+ * @returns 
+ */
+export function withIndex<T extends {}>(obj :T, index: number):Indexed&T{
+  return Object.defineProperty<T>(obj, SOURCE_INDEX, {
+    configurable: true, //May be deleted
+    enumerable: true,
+    value: index
+  }) as Indexed&T;
+}
+
+/**
  * Special symbol to mark a field for deletion in a diff object
  */
 export const DELETE_KEY = Symbol("_DELETE_KEY");
 
-export type Diff<T> = {
-  [K in keyof T]?: typeof DELETE_KEY|Diff<T[K]>|T[K]|Record<number, any>;
-}
+
+export type Diff<T extends Record<string, any>> = {
+  [K in keyof T]?: 
+    | typeof DELETE_KEY
+    | Diff<T[K]>
+    | T[K]
+    | Record<number, any>
+    |  (K extends keyof T ? number : never);
+};
 
 /**
  * IScene where all indexed references were replaced by pointers to the actual objects.
@@ -69,6 +93,13 @@ export interface DerefTour{
   taglist?: Dictionary<string[]>;
 }
 
+export interface DerefState{
+    id: string;
+    curve: string;
+    duration: number;
+    threshold: number;
+    values: Record<string, any>;
+}
 
 /**
  * A snapshot is a set of states that can be restored to the scene.
@@ -78,13 +109,7 @@ export interface DerefTour{
 export interface DerefSnapshots{
   features: string[];
   targets :Record<string, Record<string, true>>;
-  states: IdMap<{
-      id: string;
-      curve: string;
-      duration: number;
-      threshold: number;
-      values: Record<string, any>;
-  }>;
+  states: IdMap<DerefState>;
 }
 
 export interface DerefMeta extends Omit<IMeta, "images"|"articles"|"audio"|"leadArticle"> {    
@@ -121,49 +146,56 @@ export interface DerefDerivative extends Omit<IDerivative, "assets">{
 // Maps are replacing arrays of identified nodes with a map-by-id
 
 export type AbstractMap<T> = {
-  [id: string]: T;
+  [id: string]: Indexed & T;
 }
 
 
 type MappableType = {id:string} | {uri:string} | {name?:string};
 
-export type IdMap<T extends MappableType> = {
-  [id: string]: T;
-}
+export type IdMap<T extends MappableType> = AbstractMap<T>;
 
 export function toIdMap<T extends MappableType>(arr :T[]) :IdMap<T>{
   const map = {} as IdMap<T>;
-  for(let item of arr){
+  for(let [index, item] of arr.entries()){
     const id :string = (item as any).id || (item as any).uri || (item as any).name || uid();
-    map[id] = item;
+    map[id] = withIndex(item, index);
   }
   return map;
 }
 
 
-export type NameMap<T extends {name :string}> = {
-  [name: string]: T;
-}
+export type NameMap<T extends {name :string}> = IdMap<T>;
 
 export function toNameMap<T extends {name:string}>(arr :T[]) :NameMap<T>{
   const map = {} as NameMap<T>;
-  for(let item of arr){
-    map[item.name] = item;
+  for(let [index, item] of arr.entries()){
+    map[item.name] = withIndex(item, index);
   }
   return map;
 }
 
-
-export type UriMap<T extends {uri :string}> = {
-  [uri: string]: T;
-}
+export type UriMap<T extends {uri :string}> = IdMap<T>;
 
 export function toUriMap<T extends {uri:string}>(arr :T[]) :UriMap<T>{
   const map = {} as UriMap<T>;
-  for(let item of arr){
-    map[item.uri] = item;
+  for(let [index, item] of arr.entries()){
+    map[item.uri] = withIndex(item, index);
   }
   return map;
+}
+
+export function fromMap<T extends MappableType>(map :IdMap<T>):T[]
+export function fromMap<T>(map :AbstractMap<T>):T[]
+export function fromMap<T>(map :AbstractMap<T>):T[]{
+  return restoreIndex(Object.values(map));
+}
+
+/** Sort an array of symbol-indexed items to restore their initial order */
+export function restoreIndex<T>(src: Array<T & Indexed>):Array<T>{
+  return src.sort((a, b)=>a[SOURCE_INDEX] -b[SOURCE_INDEX]).map((item: T & Indexed)=>{
+    delete (item as T & Partial<Indexed>)[SOURCE_INDEX];
+    return item as T;
+  });
 }
 
 /**

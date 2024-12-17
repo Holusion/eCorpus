@@ -6,9 +6,9 @@ import { fixturesDir } from "../../__test_fixtures/fixtures.js";
 
 
 import { IDocument, INode } from "../schema/document.js";
-import {DELETE_KEY, apply, applyDoc, diff, diffDoc} from "./index.js";
+import { apply, applyDoc, diff, diffDoc } from "./index.js";
 import { ISetup } from "../schema/setup.js";
-import { DerefScene, DerefSnapshots } from "./pointers/types.js";
+import { DerefScene, fromMap, SOURCE_INDEX, toIdMap } from "./pointers/types.js";
 
 
 
@@ -21,7 +21,21 @@ describe("fast-forward", function(){
     const next = {nodes:{bar:{name:"bar"}}};
     expect(apply(ref, diff<any>(ref, next))).to.deep.equal({nodes:{bar:{name:"bar"}}});
   });
-})
+
+  it("keys reordering", function(){
+    //ECMA2015 and up guarantees iteration over string-keyed properties to respect insertion order.
+    // https://tc39.es/ecma262/#sec-ordinaryownpropertykeys
+    const ref = {keys: toIdMap([{id: "a"}, {id:"b"}, {id: "c"}])};
+    const next = {keys: toIdMap([{id: "c"}, {id:"a"}, {id: "b"}])};
+    console.log("next: ", next, Object.values(next.keys).map(o=>`${o.id} ${(o as any)[SOURCE_INDEX]}`));
+    const d = diff<any>(ref, next);
+    console.log("Diff : ", d);
+    const result = apply(ref, d);
+    console.log("Res : ", result, Object.values(result.keys).map(o=>`${(o as any).id} ${(o as any)[SOURCE_INDEX]}`));
+    expect(result).to.have.property("keys").an("object");
+    expect(fromMap(result.keys), `Array order should have been kept`).to.deep.equal([{id: "c"}, {id:"a"}, {id: "b"}]);
+  });
+});
 
 describe("three-way merge", function(){
   /* 
@@ -56,137 +70,193 @@ describe("merge documents", function(){
   this.beforeEach(function(){
     doc = JSON.parse(docString);
   });
-  it("merge simple document changes", function(){
-    const current = JSON.parse(docString);
-    current.lights.push({type:"ambiant"});
 
-    current.nodes.push({
-      "id": "QE4H7dSQw9sY",
-      "name": "Ambiant Light",
-      "light": 1,
+  describe("fast-forward", function(){
+    it("reorders tour steps", function(){
+      const ref = JSON.parse(docString);
+      ref.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+          {"id": "hdh7ob", "titles": {"EN": "New Step #1"}},
+        ]
+      }];
+
+      const next = JSON.parse(docString);
+      next.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          {"id": "hdh7ob", "titles": {"EN": "New Step #1"}},
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+        ]
+      }];
+
+      const exp = JSON.parse(JSON.stringify(next));
+      const d = diffDoc(doc, next);
+      console.log("Diff :", JSON.stringify(d, null, 2));
+
+      const result = applyDoc(doc, d);
+
+      console.log("Merged doc :", JSON.stringify(result.setups![0].tours, null, 2));
+      expect(result).to.deep.equal(exp);
     });
-    current.nodes.find( (n:INode) =>n.name=="Lights").children.push(current.nodes.length-1);
 
+    it("reorders tour steps (bis)", async function(){
+      //When reordering tour steps, their snapshots are not reordered
+      docString = await fs.readFile(path.resolve(fixturesDir, "documents/04_tours.svx.json"), "utf8");
+      const ref = JSON.parse(docString);
 
-    const next = JSON.parse(docString);
-    next.lights.push({type:"directional"});
+      const next = JSON.parse(docString);
+      next.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          ref.setups[0].tours[0].steps[1],
+          ref.setups[0].tours[0].steps[0],
+        ]
+      }];
 
-    next.nodes.push({
-      "id": "bCZEzSXPERGa",
-      "name": "Directional Light",
-      "light": 1,
+      const exp = JSON.parse(JSON.stringify(next));
+      const d = diffDoc(doc, next);
+
+      const result = applyDoc(doc, d);
+      expect(result).to.deep.equal(exp);
     });
-    next.nodes.find( (n:INode) =>n.name=="Lights").children.push(next.nodes.length-1);
-    const d = diffDoc(doc, next);
-    
-    const result = applyDoc(current, d);
-    
-    expect(result.nodes, "merged nodes").to.deep.equal([
-      (doc.nodes as any)[0], //The camera
-      {id: "QE4H7dSQw9sY", name: "Lights", children: [2, 3, 4]},
-      (doc.nodes as any)[2], //The base light (index 2)
-      { //index 3
+  });
+
+  describe("three-way", function(){
+    it("merge simple document changes", function(){
+      const current = JSON.parse(docString);
+      current.lights.push({type:"ambiant"});
+  
+      current.nodes.push({
         "id": "QE4H7dSQw9sY",
         "name": "Ambiant Light",
         "light": 1,
-      },
-      { //index 4
-        "name": "Directional Light",
-        "id": "bCZEzSXPERGa",
-        "light": 2,
-      },
-      (doc.nodes as any)[3], //The model
-    ]);
-    expect(result.lights).to.deep.equal([
-      ...(doc.lights as any),
-      {type: "ambiant"},
-      {type:"directional"}
-    ])
-  });
-
-  it("merge updated tours", async function(){
-    const [
-      doc,
-      current,
-      next,
-    ] = await Promise.all([
-      "02_tours.svx.json",
-      "03_tours.svx.json",
-      "04_tours.svx.json",
-    ].map( async (file) => {
-      const str = await fs.readFile(path.resolve(fixturesDir, "documents/", file), {encoding:"utf8"});
-      return JSON.parse(str);
-    }));
-
-    const d = diffDoc(doc, next);
-    const result = applyDoc(current, d);
-    expect(result.setups).to.have.length(1);
-    const {snapshots} = (result.setups as Required<ISetup>[])[0];
-    expect(snapshots).to.have.property("targets").to.deep.equal([
-      "model/0/visible",
-      "node/0/position",
-      "node/0/scale"
-    ]);
-    expect(snapshots).to.have.property("states").to.have.length(3);
-    const values = [];
-    for(let idx = 0; idx < 3; idx++){
-      values.push(snapshots.states.map(s=>s.values[idx]));
-    }
-    expect(values[0]).to.deep.equal([true, true, false]);
-    expect(values[1]).to.deep.equal([[0,0,0], [1,1,0], [0,0,0]]);
-    expect(values[2]).to.deep.equal([[1,1,1], [2,2,2], [1,1,1]]);
-  });
-
-  it("merge added tour steps", function(){
-    const doc = JSON.parse(docString);
-    doc.setups[0].tours = [{
-      "id": "fxQkZ9rUwNAU",
-      "steps": [
-        {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
-        {"id": "bdh7ob", "titles": {"EN": "New Step #1"}}
-      ]
-    }];
-
-    const current = JSON.parse(docString);
-    current.setups[0].tours = [{
-      "id": "fxQkZ9rUwNAU",
-      "steps": [
-        {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
-        {"id": "bdh7ob", "titles": {"EN": "New Step #1"}},
-        {"id": "bYMguT", "titles": {"EN": "New Step #2"}}
-      ]
-    }];
-
-    const next = JSON.parse(docString);
-    next.setups[0].tours = [{
-      "id": "fxQkZ9rUwNAU",
-      "steps": [
-        {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
-      ]
-    }];
-    const d = diffDoc(doc, next);
-
-    expect((d?.scene as DerefScene)?.setup?.tours).to.have.property("fxQkZ9rUwNAU");
-
-    const result = applyDoc(current, d);
-    expect(result.setups).to.have.length(1);
-    const setup = (result.setups as any)[0]
-    expect(setup, JSON.stringify(setup.tours, null, 2)).to.have.property("tours").to.deep.equal([{
-      "id": "fxQkZ9rUwNAU",
-      "steps": [
-        {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
-        {"id": "bYMguT", "titles": {"EN": "New Step #2"}}
-      ]
-    }]);
-  })
+      });
+      current.nodes.find( (n:INode) =>n.name=="Lights").children.push(current.nodes.length-1);
   
-  it("detects a no-op", function(){
-    const current = JSON.parse(docString);
-    const next = JSON.parse(docString);
-    const d = diffDoc(doc, next);
-    expect(d, JSON.stringify(d)).to.deep.equal({});
+  
+      const next = JSON.parse(docString);
+      next.lights.push({type:"directional"});
+  
+      next.nodes.push({
+        "id": "bCZEzSXPERGa",
+        "name": "Directional Light",
+        "light": 1,
+      });
+      next.nodes.find( (n:INode) =>n.name=="Lights").children.push(next.nodes.length-1);
+      const d = diffDoc(doc, next);
+      
+      const result = applyDoc(current, d);
+      
+      expect(result.nodes, "merged nodes").to.deep.equal([
+        (doc.nodes as any)[0], //The camera
+        {id: "QE4H7dSQw9sY", name: "Lights", children: [2, 3, 4]},
+        (doc.nodes as any)[2], //The base light (index 2)
+        { //index 3
+          "id": "QE4H7dSQw9sY",
+          "name": "Ambiant Light",
+          "light": 1,
+        },
+        { //index 4
+          "name": "Directional Light",
+          "id": "bCZEzSXPERGa",
+          "light": 2,
+        },
+        (doc.nodes as any)[3], //The model
+      ]);
+      expect(result.lights).to.deep.equal([
+        ...(doc.lights as any),
+        {type: "ambiant"},
+        {type:"directional"}
+      ])
+    });
+  
+    it("merge updated tours", async function(){
+      const [
+        doc,
+        current,
+        next,
+      ] = await Promise.all([
+        "02_tours.svx.json",
+        "03_tours.svx.json",
+        "04_tours.svx.json",
+      ].map( async (file) => {
+        const str = await fs.readFile(path.resolve(fixturesDir, "documents/", file), {encoding:"utf8"});
+        return JSON.parse(str);
+      }));
+  
+      const d = diffDoc(doc, next);
+      const result = applyDoc(current, d);
+      expect(result.setups).to.have.length(1);
+      const {snapshots} = (result.setups as Required<ISetup>[])[0];
+      expect(snapshots).to.have.property("targets").to.deep.equal([
+        "model/0/visible",
+        "node/0/position",
+        "node/0/scale"
+      ]);
+      expect(snapshots).to.have.property("states").to.have.length(3);
+      const values = [];
+      for(let idx = 0; idx < 3; idx++){
+        values.push(snapshots.states.map(s=>s.values[idx]));
+      }
+      expect(values[0]).to.deep.equal([true, true, false]);
+      expect(values[1]).to.deep.equal([[0,0,0], [1,1,0], [0,0,0]]);
+      expect(values[2]).to.deep.equal([[1,1,1], [2,2,2], [1,1,1]]);
+    });
+  
+    it("merge added tour steps", function(){
+      const doc = JSON.parse(docString);
+      doc.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+          {"id": "bdh7ob", "titles": {"EN": "New Step #1"}}
+        ]
+      }];
+  
+      const current = JSON.parse(docString);
+      current.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+          {"id": "bdh7ob", "titles": {"EN": "New Step #1"}},
+          {"id": "bYMguT", "titles": {"EN": "New Step #2"}}
+        ]
+      }];
+  
+      const next = JSON.parse(docString);
+      next.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+        ]
+      }];
+      const d = diffDoc(doc, next);
+  
+      expect((d?.scene as DerefScene)?.setup?.tours).to.have.property("fxQkZ9rUwNAU");
+  
+      const result = applyDoc(current, d);
+      expect(result.setups).to.have.length(1);
+      const setup = (result.setups as any)[0];
+      expect(setup, JSON.stringify(setup.tours, null, 2)).to.have.property("tours").to.deep.equal([{
+        "id": "fxQkZ9rUwNAU",
+        "steps": [
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+          {"id": "bYMguT", "titles": {"EN": "New Step #2"}}
+        ]
+      }]);
+    })
     
-    const result = applyDoc(current, d);
-    expect(result, JSON.stringify(result)).to.deep.equal(current);
-  });
+    it("detects a no-op", function(){
+      const current = JSON.parse(docString);
+      const next = JSON.parse(docString);
+      const d = diffDoc(doc, next);
+      expect(d).to.deep.equal({});
+      
+      const result = applyDoc(current, d);
+
+      expect(result).to.deep.equal(current);
+    });
+  });  
 })

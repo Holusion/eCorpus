@@ -1,5 +1,5 @@
 
-import {DELETE_KEY} from "./pointers/types.js";
+import {DELETE_KEY, SOURCE_INDEX} from "./pointers/types.js";
 import apply from "./apply.js";
 
 describe("merge.apply()", function(){
@@ -37,5 +37,9 @@ describe("merge.apply()", function(){
       {name: "A'"},
       {name: "C"} // C gets pushed-back to index 2
     ]});
+  });
+
+  it("merges special SOURCE_INDEX symbol", function(){
+    expect(apply({a:{[SOURCE_INDEX]:0}}, {a:{[SOURCE_INDEX]:1}})).to.deep.equal({a:{[SOURCE_INDEX]:1}});
   });
 });

@@ -1,5 +1,5 @@
 
-import {DELETE_KEY} from "./pointers/types.js";
+import {DELETE_KEY, SOURCE_INDEX} from "./pointers/types.js";
 
 import diff from "./diff.js";
 
@@ -96,6 +96,16 @@ describe("merge.diff()", function(){
     
     it("handles object creation", function(){
       expect(diff({name:"A", articles: null}, {name:"A", articles: {id:"1"}})).to.deep.equal({articles: {id:"1"}});
+    });
+
+    it("handles the special SOURCE_INDEX symbol", function(){
+      // SOURCE_INDEX is used internally to reference an array's ordering
+      // We need this to restore the expected array order in the end
+      let res = diff<any>(
+        {v: {a: 1, [SOURCE_INDEX]: 1 }},
+        {v: {a: 1, [SOURCE_INDEX]: 2 }}
+      );
+      expect(res).to.deep.equal({v:{[SOURCE_INDEX]: 2}});
     })
   });
 });

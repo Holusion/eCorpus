@@ -42,7 +42,7 @@ export default async function postScenes(req :Request, res :Response){
       let m  = /^(?<contained>scenes\/)?(?<scene>[^/]+)(?:\/(?<name>.+))?\/?$/.exec(record.filename);
       const scene :string|undefined = m?.groups?.scene;
       const name :string|undefined = m?.groups?.name;
-      console.log("Parse %s %s from zip", scene, name);
+      
       if(!scene){
         results.fail.push(`${record.filename}: not matching pattern`);
         continue;

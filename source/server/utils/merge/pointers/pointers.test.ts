@@ -58,22 +58,23 @@ describe("(de)reference pointers", function(){
         scene: {
           units: "m",
           nodes:{
-            "Th8JYtrkNCV6": {id: "Th8JYtrkNCV6", name: "Camera", camera: {type: "perspective"}},
-            "aubbHqyLuye2": {id: "aubbHqyLuye2", name: "Lights", children: [{id: "Xm20ZazxwRbP", name:"L1",light:{"type":"ambient"}}]},
-            "PeIZ72MDwAGH": {id: "PeIZ72MDwAGH", name: "Model", model: {uri: "model.gltf"}},
+            "Th8JYtrkNCV6": {[SOURCE_INDEX]:0, id: "Th8JYtrkNCV6", name: "Camera", camera: {type: "perspective"}},
+            "aubbHqyLuye2": {[SOURCE_INDEX]:1, id: "aubbHqyLuye2", name: "Lights", children: [{[SOURCE_INDEX]:0, id: "Xm20ZazxwRbP", name:"L1",light:{"type":"ambient"}}]},
+            "PeIZ72MDwAGH": {[SOURCE_INDEX]:2, id: "PeIZ72MDwAGH", name: "Model", model: {derivatives:{"High/Web3D":{assets:{ "model.gltf":{uri: "model.gltf"}}}}}},
           },
         }
       };
 
       const doc:IDocument = fromPointers(deref as any);
       //use JSON.parse(JSON.stringify()) to remove undefined values
+
       expect(doc).to.deep.equal({
         ...baseDoc,
         nodes: [
           {id: "Th8JYtrkNCV6", name: "Camera", camera: 0},
-          {id: "aubbHqyLuye2", name: "Lights", children: [2]},
+          { id: "aubbHqyLuye2", name: "Lights", children: [2]},
           {id: "Xm20ZazxwRbP", name: "L1", light: 0},
-          {id: "PeIZ72MDwAGH", name: "Model", model: 0},
+          { id: "PeIZ72MDwAGH", name: "Model", model: 0},
         ],
         scenes:[{
           nodes: [0, 1, 3],
@@ -81,7 +82,7 @@ describe("(de)reference pointers", function(){
         }],
         cameras: [{type: "perspective"}],
         lights: [{type: "ambient"}],
-        models: [{uri: "model.gltf", derivatives: []}],
+        models: [{derivatives: [{assets:[{uri: "model.gltf"}]}]}],
       });
     });
 
@@ -93,7 +94,7 @@ describe("(de)reference pointers", function(){
           [SOURCE_INDEX]: 0,
           units: "cm",
           derivatives:{
-            "High/Web3D":{quality: "High", usage: "Web3D", assets:{"model.gltf": {uri: "model.gltf", type:"Model"}}}
+            "High/Web3D": {[SOURCE_INDEX]: 0, quality: "High", usage: "Web3D", assets:{ "model.gltf": {[SOURCE_INDEX]: 0, uri: "model.gltf", type:"Model"}}}
           }
         },
         matrix: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
@@ -376,6 +377,18 @@ describe("(de)reference pointers", function(){
         expect(Object.keys(deref.scene)).to.deep.equal(["name", "units", "nodes", "setup"]);
         expect(Object.keys(deref.scene.nodes)).to.have.property("length", 3);
         expect(deref.scene.nodes["ot9vj20DZ6Y5"]).to.have.property("meta").to.deep.equal({collection: {titles:{EN: "Meta Title"}}});
+      });
+
+      it("SOURCE_INDEX is removed", async function(){
+        function walk(obj :any, path:string){
+          if( (SOURCE_INDEX in obj)) throw new Error(`${path}: Symbol("SOURCE_INDEX")`);
+          for(let key in obj){
+            if(typeof obj[key] === "object") walk(obj[key], `${path}.${key}`);
+          }
+        }
+        const deref = toPointers(doc);
+        const redoc = fromPointers(deref);
+        expect(()=>walk(redoc, "doc")).not.to.throw();
       });
 
       it("dereferencing is indempotent", async function(){

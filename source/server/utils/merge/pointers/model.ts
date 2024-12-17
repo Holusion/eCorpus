@@ -2,22 +2,19 @@ import { IDocument } from "../../schema/document.js";
 
 import { IModel } from "../../schema/model.js";
 
-import { DerefModel,  SOURCE_INDEX,  toIdMap, toUriMap } from "./types.js";
+import { DerefDerivative, DerefModel,  fromMap,  SOURCE_INDEX,  toIdMap, toUriMap } from "./types.js";
 
 export function appendModel(document :Required<IDocument>, {derivatives, annotations, [SOURCE_INDEX]: src_index, ...model} :DerefModel) :number{
   let iModel :IModel = {
     ...model,
-    derivatives: [],
+    derivatives: fromMap<DerefDerivative>(derivatives).map(d=>({
+      ...d,
+      assets: fromMap(d.assets),
+    })),
   };
-  
-  for (let derivative in derivatives){
-    iModel.derivatives.push({
-      ...derivatives[derivative],
-      assets: Object.values(derivatives[derivative].assets),
-    });
-  }
+
   if(annotations){
-    iModel.annotations = Object.values(annotations);
+    iModel.annotations = fromMap(annotations);
   }
 
   const idx = document.models.push(iModel) - 1;
@@ -32,7 +29,7 @@ export function mapModel({annotations, derivatives, ...iModel} :IModel, index: n
     annotations: annotations?toIdMap(annotations): undefined,
     [SOURCE_INDEX]: index,
   }
-  for(let derivative of derivatives){
+  for(let [index, derivative] of derivatives.entries()){
     const id = `${derivative.usage}/${derivative.quality}`;
 
     if(!Array.isArray(derivative.assets)){
@@ -40,7 +37,8 @@ export function mapModel({annotations, derivatives, ...iModel} :IModel, index: n
     }
     model.derivatives[id] = {
       ...derivative,
-      assets: toUriMap(derivative.assets)
+      assets: toUriMap(derivative.assets),
+      [SOURCE_INDEX]: index,
     };
   }
 

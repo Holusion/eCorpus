@@ -1,9 +1,12 @@
+import path from "path";
+import { readFile } from "fs/promises";
 
 import request from "supertest";
 import Vfs from "../../../vfs/index.js";
 import User from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 
+import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
 
 
 /**
@@ -36,16 +39,37 @@ describe("GET /history/:scene/:id/diff", function(){
     .expect("Content-Type", "text/plain; charset=utf-8");
     expect(res.text).to.equal(`--- hello.txt\n+++ hello.txt\n@@ -1 +1 @@\n-Hello\n+Hello World\n`);
   });
+  describe("documents", function(){
+    it("get diff summary", async function(){
+      await vfs.writeDoc(`{"label":"foo"}`, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
+      let ref = await vfs.writeDoc(`{"label":"bar"}`, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
+      let res = await request(this.server).get(`/history/foo/${ref.id}/diff`)
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(res.body).to.have.property("diff").match(/Couldn't compile .*diff/);
+      expect(res.body).to.have.property("src");
+      expect(res.body).to.have.property("dst");
+    });
+    it("stringifies DELETED_KEY symbol", async function(){
+      const docString = await readFile(path.join(fixturesDir, "documents", "01_simple.svx.json"), {encoding: "utf-8"});
+      let doc2 = JSON.parse(docString);
+      delete doc2.asset.version
+      await vfs.writeDoc(docString, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
+      let ref = await vfs.writeDoc(JSON.stringify(doc2), {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
+      let res = await request(this.server).get(`/history/foo/${ref.id}/diff`)
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
 
-  it("get diff summary for documents", async function(){
-    await vfs.writeDoc(`{"label":"foo"}`, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
-    let ref = await vfs.writeDoc(`{"label":"bar"}`, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
-    let res = await request(this.server).get(`/history/foo/${ref.id}/diff`)
-    .set("Accept", "application/json")
-    .expect(200)
-    .expect("Content-Type", "application/json; charset=utf-8");
-    expect(res.body).to.have.property("diff").match(/Couldn't compile diff/);
-    expect(res.body).to.have.property("src");
-    expect(res.body).to.have.property("dst");
+      expect(res.body).to.have.property("diff", "STRUCTURED CHANGES SUMMARY\n"+JSON.stringify({
+        "asset": {
+          "version": "*DELETED*"
+        }
+      }, null, 2));
+      expect(res.body).to.have.property("src");
+      expect(res.body).to.have.property("dst");
+    });
+
   })
 });

@@ -14,6 +14,8 @@ export {
 
 /**
  * like `diff()` but dereferences a document's pointers first to make a cleaner diff
+ * 
+ * `diff()` holds the generalized diff logic while `toPointers` is in charge of the implementation details regarding the document's schema
  * @see diff
  */
 export function diffDoc(from:IDocument,to:IDocument){
@@ -22,6 +24,8 @@ export function diffDoc(from:IDocument,to:IDocument){
 
 /**
  * like `apply()` but dereferences a document's pointers first to make a cleaner diff, then re-references the result
+ * 
+ * `apply()` holds the generalized merge logic while `toPointers` and `fromPointers` are in charge of the implementation details regarding the document's schema
  * @see apply
  * @see fromPointers
  * @see toPointers

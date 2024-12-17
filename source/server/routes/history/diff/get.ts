@@ -5,10 +5,12 @@ import {Request, Response} from "express";
 import { getVfs } from "../../../utils/locals.js";
 import { BadRequestError } from "../../../utils/errors.js";
 import { FileProps } from "../../../vfs/types.js";
-import { diffDoc } from "../../../utils/merge/index.js";
+import { DELETE_KEY, diffDoc } from "../../../utils/merge/index.js";
 import { fromPointers } from "../../../utils/merge/pointers/index.js";
 
 const sizeMax = 400*1000;
+
+
 
 /**
  * Computes a somewhat arbitrary text representation of the difference between 
@@ -52,7 +54,10 @@ export default async function handleGetDiff(req :Request, res :Response){
     try{
       let fromDoc = JSON.parse(fromFile.data);
       let toDoc = JSON.parse(dstFile.data);
-      diff = `STRUCTURED CHANGES SUMMARY\n`+JSON.stringify(fromPointers(diffDoc(fromDoc, toDoc) as any), null, 2);
+      diff = `STRUCTURED CHANGES SUMMARY\n`+JSON.stringify(fromPointers(diffDoc(fromDoc, toDoc) as any), (key, value)=>{
+        if(value === DELETE_KEY) return "*DELETED*";
+        return value;
+      }, 2);
     }catch(e:any){
       console.error("Failed to compile scene diff : ", e);
       diff = `Couldn't compile diff from #${fromFile.id} to #${dstFile.id}: ${e.message}`;

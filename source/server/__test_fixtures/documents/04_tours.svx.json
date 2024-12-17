@@ -129,6 +129,31 @@
             "duration": 1.5
           }
         ]
-      }
+      },
+      "tours": [
+        {
+          "id": "9Ya68S8n2tnl",
+          "steps": [
+            {
+              "id": "MJ05xF",
+              "titles": {
+                "EN": "New Step #0"
+              }
+            },
+            {
+              "id": "xyhq5j",
+              "titles": {
+                "EN": "New Step #1"
+              }
+            }
+          ],
+          "titles": {
+            "EN": "New Tour #0"
+          },
+          "leads": {
+            "EN": ""
+          }
+        }
+        ]
    }]
 }

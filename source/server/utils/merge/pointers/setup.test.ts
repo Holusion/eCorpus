@@ -1,6 +1,6 @@
 import { IDocument } from "../../schema/document.js";
 import { appendSetup } from "./setup.js";
-import { DerefSetup } from "./types.js";
+import { DerefSetup, SOURCE_INDEX } from "./types.js";
 
 
 describe("appendSetup()", function(){
@@ -25,7 +25,7 @@ describe("appendSetup()", function(){
     // (As defined in ITour schema)
     const setup :DerefSetup = {
       tours: {
-        "tour1": {id: "tour1", title: "Tour Title", steps: {}}
+        "tour1": {[SOURCE_INDEX]: 0, id: "tour1", title: "Tour Title", steps: {}}
       },
       snapshots: {
         features: [],
