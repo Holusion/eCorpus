@@ -51,8 +51,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: matrix.node-version == 16
         with:
-          name: "server-files"
+          name: "server"
           path: |
+            source/server/dist/*
+            !source/server/dist/*.test.js
+            !source/server/dist/*.test.js.map
+            !source/server/dist/__test_fixtures/**
             source/server/package.json
             source/server/package-lock.json
             source/server/migrations/
@@ -67,22 +71,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: eCorpus-unpacked
+          path: eCorpus
       - name: edit run scripts
-        working-directory: eCorpus-unpacked
+        working-directory: eCorpus
         run: |
-          jq '.scripts.start ="node server/index.js"' ./server-files/package.json > "package.json"
-          rm server-files/package.json
-          mv server-files/* ./
-          rm -r server-files
-      - name: make tarball
-        working-directory: eCorpus-unpacked
-        run: |
-          tar -zcf ../eCorpus-${{github.ref_name}}.tgz ./*
+          mv server/* ./
+          rm -r server
 
       - uses: actions/upload-artifact@v4
         with:
-          name: "dist"
-          path: "eCorpus-*.tgz"
+          name: "eCorpus-${{github.ref_name}}"
+          path: eCorpus
           if-no-files-found: error
           retention-days: 10
