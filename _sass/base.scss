@@ -74,20 +74,7 @@ img.fluid{
 /// NAVIGATION
 //////////////////////////////
 
-.nav-tuto{
-  height: 125%;
-  margin-top: -5px;
-  margin-right: 25px;
-  color: #444444;
-  background: #E6B900;
-  padding-top: 16px;
-  text-align: center;
-  padding-inline: 30px;
-  padding-bottom: 10px;
-  position: relative;
-  font-weight: bold;
-  box-shadow: 0px 3px 5px grey;
-}
+
 
 .navbar-header{
   grid-area: header;
@@ -129,6 +116,7 @@ nav.navbar{
   margin: 0;
   padding: 1px 0;
   box-sizing: border-box;
+  
 
 
   display: flex;
@@ -140,6 +128,7 @@ nav.navbar{
     padding-left: 2em;
     background-color: $middlegrey;
     box-shadow: 0 2px 2px 0px rgba(0, 0, 0, 0.4);
+    max-height: 50px;
     @media screen and  (max-width: calc($main_width - 1px) ){
       padding-left:5px;
     }
@@ -188,6 +177,26 @@ nav.navbar{
     // }
   }
 
+  .nav-tuto{
+    height: 125%;
+    margin-top: -5px;
+    margin-right: 25px;
+    background: #E6B900;
+    text-align: center;
+    padding-inline: 30px;
+    padding-bottom: 10px;
+    font-weight: bold;
+    box-shadow: 0px 3px 5px grey;
+    
+  } 
+  .nav-tuto > a{
+    color: #444444;
+    padding-inline: 10px;
+    &:hover {color : white;}
+  }
+
+
+
   .menu-btn{
     height: calc($navbar_height - 2px);
     box-sizing: border-box;
@@ -208,6 +217,8 @@ nav.navbar{
   display: flex;
   flex-direction: row;
 }
+
+
 
 ul{
   padding-inline-start: 40px;
