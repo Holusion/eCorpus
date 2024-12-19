@@ -74,7 +74,20 @@ img.fluid{
 /// NAVIGATION
 //////////////////////////////
 
-
+.nav-tuto{
+  height: 125%;
+  margin-top: -5px;
+  margin-right: 25px;
+  color: #444444;
+  background: #E6B900;
+  padding-top: 16px;
+  text-align: center;
+  padding-inline: 30px;
+  padding-bottom: 10px;
+  position: relative;
+  font-weight: bold;
+  box-shadow: 0px 3px 5px grey;
+}
 
 .navbar-header{
   grid-area: header;
