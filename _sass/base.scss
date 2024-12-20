@@ -8,7 +8,7 @@
 }
 
 body {
-  background: $backgroundColor;
+  background: $darkgrey;
   &:has(.doc-page){
     background-color: $darkgrey;
   }
@@ -47,6 +47,14 @@ main {
   }
   
   &, section, .section{
+    >#jumbotron {
+      width: 150%;
+      margin-left: -25%;
+      object-fit: cover;
+      height: 400px;
+      box-shadow: 0 10px 15px 0px rgba(0, 0, 0, 0.5), 0 1px 2px 0px rgba(0, 0, 0, 0.8);
+    }
+
     >img:not(.fluid), >.media:not(.fluid), .flush {
       margin: 0 -3rem;
       width: calc(100% + 6rem);
@@ -190,7 +198,7 @@ nav.navbar{
     
   } 
   .nav-tuto > a{
-    color: #444444;
+    color: $darkgrey;
     padding-inline: 10px;
     &:hover {color : white;}
   }
@@ -441,7 +449,6 @@ h5{
 }
 
 
-
 //////////////////////////////
 /// TEXT
 //////////////////////////////
@@ -565,6 +572,10 @@ main{
     border-left: 0.3em solid rgba(0,0,0,0);
   }
 }
+//////////////////////////////
+/// INTRO
+//////////////////////////////
+
 
 
 //////////////////////////////
