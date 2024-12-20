@@ -45,6 +45,54 @@ main {
   h1, h2, h3, h4, h5, h6, [role="doc-noteref"] {
     scroll-margin-top: calc($navbar_height + 0.8rem);
   }
+
+  .jumbotron {
+    position:relative;
+  }
+
+  
+  .jumbotron .call-to-action {
+    position: absolute;
+    height:50%;
+    margin-top: 100px;
+    top:0%;
+    left: 50%;
+    width:50%;
+  }
+
+  .jumbotron #baseline {
+    color: white;
+    font-weight: bold;
+    font-size: 200%;
+    text-align: justify;
+    text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+  }
+
+  .jumbotron #logo-eCorpus {
+    position: absolute;
+    top: 30%;
+    left: 0%;
+    width:50%;
+    color: white;
+    font-weight: bold;
+    font-size: 500%;
+    text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+
+  }
+  .jumbotron button {
+    background: $yellow;
+    color: $darkgrey;
+    text-align: center;
+    padding-inline: 30px;
+    padding-bottom: 10px;
+    font-weight: bold;
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+    &:hover{
+      background-color: $darkgrey;
+      color: white;
+    }
+  }
+
   
   &, section, .section{
     >#jumbotron {

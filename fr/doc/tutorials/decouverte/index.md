@@ -1,5 +1,5 @@
 ---
-title: Editeur de scènes 3D
+title: Créer une scène pas à pas
 rank: 0
 ---
 
