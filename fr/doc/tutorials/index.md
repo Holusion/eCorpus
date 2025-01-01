@@ -20,4 +20,24 @@ Intégration d'une scène eCorpus type
 
 ## Aller plus loin
 
-Sommaire
+### Les modèles 3D pour eCorpus
+
+eCorpus utilise des modèles au format .glb, un format 3D optimisé pour le web.
+
+Guide des modèles 3D
+
+STL : Créer une scène à partir d'un fichier de CAO
+
+OBJ / FBX : Créer une scène à partir d'un modèle 3D
+
+BLENDER : Créer votre propre modèle 3D
+
+FUSION 360 : Concevoir une pièce en 3D
+
+### Votre eCorpus
+
+Créer une nouvelle scène à partir d'un modèle 3D
+
+Configurer la caméra et l'échelle de la scène
+
+### Administrer votre base eCorpus
