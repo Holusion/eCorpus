@@ -50,3 +50,14 @@ export async function wrapFormat(res :Response, handlers :Record<string,()=>Prom
   //@ts-ignore (we know p will be assigned in res.format)
   return await p();
 }
+
+/**
+ * Collapse an async generator into an array
+ */
+export async function collapseAsync<T>(gen:AsyncGenerator<T>):Promise<T[]>{
+  let results :T[]= [];
+  for await (let item of gen){
+    results.push(item);
+  } 
+  return results;
+}

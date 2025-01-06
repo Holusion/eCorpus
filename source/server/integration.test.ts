@@ -98,7 +98,10 @@ describe("Web Server Integration", function(){
 
       it("can edit a model", async function(){
         await this.agent.put("/scenes/foo/models/foo.glb").send("foo\n").expect(200);
-        let {body} = await this.agent.get("/scenes/foo/models/foo.glb").expect(200);
+        let {body} = await this.agent.get("/scenes/foo/models/foo.glb")
+        .responseType("blob")
+        .expect("Content-Type", "model/gltf-binary")
+        .expect(200);
         expect(body.toString()).to.equal("foo\n");
       });
 

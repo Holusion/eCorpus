@@ -152,25 +152,21 @@ async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:nu
   elements.push(Element.fromFile(sceneUrl, {...scene, isDirectory: true}));
 
   if(recurse <= -1 || 2 <= recurse ){
-
-    let files :FileProps[] = await vfs.listFiles(scene.id, false, true);
-    elements.push(
-      ...files.filter(f => recurse <= -1 || f.name.split("/").length +1 <= recurse ).map(f => {
+    for await (let f of vfs.listFiles(scene.id, {withArchives: false, withFolders: true})){
+      if( !( recurse <= -1 || f.name.split("/").length +1 <= recurse ) ) continue;
         let isDirectory =  f.mime == "text/directory"
-        return Element.fromFile(
-          new URL(f.name + (isDirectory? "/": ""), sceneUrl),
-          {
-            ctime: f.ctime,
-            mtime: f.mtime,
-            size: f.size,
-            isDirectory,
-            mime: f.mime,
-          }
-        );
-      }),
-    )
+      elements.push(Element.fromFile(
+        new URL(f.name + (isDirectory? "/": ""), sceneUrl),
+        {
+          ctime: f.ctime,
+          mtime: f.mtime,
+          size: f.size,
+          isDirectory,
+          mime: f.mime,
+        }
+      ));
+    }
   }
-
   return elements;
 }
 

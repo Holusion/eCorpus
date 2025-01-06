@@ -5,6 +5,7 @@ import { expect } from "chai";
 import User from "../../../../../auth/User.js";
 import UserManager from "../../../../../auth/UserManager.js";
 import Vfs from "../../../../../vfs/index.js";
+import { collapseAsync } from "../../../../../utils/wrapAsync.js";
 
 
 
@@ -35,7 +36,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
     .auth(user.username, "12345678")
     .expect(201);
 
-    let folders = await vfs.listFolders(scene_id)
+    let folders = await collapseAsync(vfs.listFolders(scene_id));
     expect(folders.map(f=>f.name)).to.have.members(["articles", "new_folder", "models"]);
 
   });
@@ -45,7 +46,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
     .auth(user.username, "12345678")
     .expect(201);
 
-    let folders = await vfs.listFolders(scene_id)
+    let folders = await collapseAsync(vfs.listFolders(scene_id));
     expect(folders.map(f=>f.name)).to.have.members(["articles", "new_folder", "models"]);
 
   });

@@ -4,6 +4,7 @@ import Vfs from "../../vfs/index.js";
 import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import { randomBytes } from "crypto";
+import { collapseAsync } from "../../utils/wrapAsync.js";
 
 
 
@@ -107,7 +108,7 @@ describe("POST /history/:scene", function(){
     let doc = await vfs.getDoc(scene_id);
     expect(doc).to.deep.equal(ref);
     
-    let allFiles = await vfs.listFiles(scene_id, true);
+    let allFiles = await collapseAsync(vfs.listFiles(scene_id, {withArchives:true}));
     expect(allFiles).to.have.property("length", 2);
     const article = allFiles.find(f=>f.name ==="articles/hello.txt");
     expect(article).to.be.ok;
@@ -124,7 +125,7 @@ describe("POST /history/:scene", function(){
     let ref = await vfs.getFileById(refId);
     await vfs.writeFile(dataStream(["world"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
-    let allFiles = await vfs.listFiles(scene_id, true);
+    let allFiles = await collapseAsync(vfs.listFiles(scene_id, {withArchives: true}));
     expect(allFiles).to.have.property("length", 2);
     expect(allFiles[0]).to.have.property("hash" ).ok;
     expect(allFiles[1]).to.have.property("hash" ).ok;
@@ -137,8 +138,8 @@ describe("POST /history/:scene", function(){
     .expect(200);
     expect(res.body).to.have.property("changes");
     expect(res.body.changes).to.deep.equal(['articles/hello.txt']);
-
-    allFiles = await vfs.listFiles(scene_id, true);
+    
+    allFiles = await collapseAsync(vfs.listFiles(scene_id, {withArchives: true}));
     expect(allFiles).to.have.property("length", 2);
     let article = allFiles.find(f=>f.name === "articles/hello.txt");
     expect(article).to.be.ok;
@@ -159,7 +160,7 @@ describe("POST /history/:scene", function(){
 
     let doc = await vfs.getFileById(ref.id);
 
-    let allFiles = await vfs.listFiles(scene_id, true);
+    let allFiles = await collapseAsync(vfs.listFiles(scene_id, {withArchives: true}));
     expect(allFiles, `Two files should exist, but found ${allFiles.map(f=>f.name).join(", ")}`).to.have.property("length", 2);
     expect(allFiles.find(({id})=>id == doc.id)).to.be.ok;
     expect(allFiles.find(({id})=> id != doc.id)).to.have.property("hash" ).not.ok;
@@ -174,7 +175,7 @@ describe("POST /history/:scene", function(){
     
     expect(res.body.changes).to.deep.equal(['articles/hello.txt']);
 
-    allFiles = await vfs.listFiles(scene_id, true);
+    allFiles = await collapseAsync(vfs.listFiles(scene_id, {withArchives: true}));
     expect(allFiles).to.have.property("length", 2);
     expect(allFiles.find(({id})=>id == doc.id)).to.be.ok;
     const article = allFiles.find(({id})=> id != doc.id);

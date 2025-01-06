@@ -8,7 +8,7 @@ import { DataStream, DocProps, FileProps, GetFileParams, GetFileResult, Stored, 
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
-import { Readable } from "stream";
+import { Duplex, Readable, Transform } from "stream";
 
 interface DiskFileParams{
   size :number;
@@ -26,6 +26,12 @@ interface CreateFileCallbackParams{
    * the database transaction used in this operation
    */
   tr :Transaction;
+}
+
+interface ListFilesOptions{
+  withArchives ?:boolean;
+  withFolders ?:boolean;
+  withData ?:boolean;
 }
 
 export default abstract class FilesVfs extends BaseVfs{
@@ -383,9 +389,22 @@ export default abstract class FilesVfs extends BaseVfs{
    * Ordering should be consistent with `getSceneHistory`
    * @fixme check for performance benefits of using the new current_files view? 
    */
-  async listFiles(scene_id :number, archive :boolean =false, withFolders = false) :Promise<FileProps[]>{
+  listFiles(scene_id :number) :AsyncGenerator<(FileProps & {hash: string}), void, undefined>
+  listFiles(scene_id :number, opts :{withArchives:false, withFolders: false}& ListFilesOptions) :AsyncGenerator<(FileProps & {hash: string}), void, undefined>
+  listFiles(scene_id :number, opts :ListFilesOptions) :AsyncGenerator<FileProps, void, undefined>
+  async *listFiles(scene_id :number, {withArchives = false, withFolders = false, withData = false}: ListFilesOptions ={}) :AsyncGenerator<FileProps, void, undefined>{
+    let channel = new Transform({
+      objectMode: true,
+      transform({ctime, mtime, ...row}, encoding, callback) {
+        callback(null, {
+          ctime: BaseVfs.toDate(ctime),
+          mtime: BaseVfs.toDate(mtime),
+          ...row,
+        });
+      },
+    });
 
-    return (await this.db.all<Stored<FileProps>[]>(`
+    this.db.each<Stored<FileProps>>(`
       WITH ag AS ( 
         SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS generation
         FROM files
@@ -397,6 +416,7 @@ export default abstract class FilesVfs extends BaseVfs{
         ag.ctime AS ctime,
         files.size AS size,
         hash,
+        ${withData? "data,":""}
         ag.generation as generation,
         file_id as id,
         files.name AS name,
@@ -409,14 +429,15 @@ export default abstract class FilesVfs extends BaseVfs{
         INNER JOIN users 
           ON files.fk_author_id = user_id
       WHERE 1
-        ${((archive)?"":`AND hash IS NOT NULL`)}
+        ${((withArchives)?"":`AND hash IS NOT NULL`)}
         ${((withFolders)? "": `AND mime IS NOT 'text/directory'`)}
       ORDER BY mtime DESC, name ASC
-    `, {$scene_id: scene_id})).map(({ctime, mtime, ...props})=>({
-        ...props,
-        ctime: BaseVfs.toDate(ctime),
-        mtime: BaseVfs.toDate(mtime),
-    }));
+    `, {$scene_id: scene_id}, (err, row)=>{
+      if(err) return channel.emit("error", err);
+      channel.write(row);
+    }).then(()=> channel.end(), (e)=>channel.destroy(e));
+
+    yield* channel;
   }
 
   async createFolder({scene, name, user_id} :WriteDirParams){
@@ -438,9 +459,11 @@ export default abstract class FilesVfs extends BaseVfs{
     });
   }
 
-  async listFolders(scene :number){
-    return (await this.listFiles(scene, false, true))
-    .filter(f=> f.mime == "text/directory");
+  async *listFolders(scene :number){
+    for await (let f of this.listFiles(scene, {withArchives: false, withFolders: true})){
+      if(f.mime !== "text/directory") continue; 
+      yield f;
+    }
   }
 
   async removeFolder({scene, name, user_id}:WriteDirParams){

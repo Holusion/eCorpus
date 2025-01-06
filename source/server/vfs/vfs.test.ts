@@ -8,6 +8,7 @@ import UserManager from "../auth/UserManager.js";
 import User from "../auth/User.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
 import ScenesVfs from "./Scenes.js";
+import { collapseAsync } from "../utils/wrapAsync.js";
 
 async function *dataStream(src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){
@@ -537,7 +538,7 @@ describe("Vfs", function(){
 
       it("create a folder in a scene", async function(){
         await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
-        let folders = await vfs.listFolders(scene_id);
+        let folders =  await collapseAsync(vfs.listFolders(scene_id));
         //order is by mtime descending, name ascending so we can't rely on it
         expect(folders.map(f=>f.name)).to.have.members(["articles", "models", "videos"]);
         expect(folders).to.have.length(3);
@@ -545,7 +546,7 @@ describe("Vfs", function(){
 
       it("create a tree of folders", async function(){
         await vfs.createFolder({scene:scene_id, name: "articles/videos",  user_id: 0});
-        let folders = await vfs.listFolders(scene_id)
+        let folders =  await collapseAsync(vfs.listFolders(scene_id));
         expect(folders.map(f=>f.name)).to.deep.equal(["articles", "articles/videos", "models"]);
       });
 
@@ -569,10 +570,10 @@ describe("Vfs", function(){
       it("remove a scene's folder", async function(){
         await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
         await vfs.removeFolder({scene: scene_id, name: "videos", user_id: 0});
-        let folders = await vfs.listFolders(scene_id)
+        let folders = await collapseAsync(vfs.listFolders(scene_id));
         expect(folders.map(f=>f.name)).to.deep.equal(["articles", "models"]);
         await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
-        folders = await vfs.listFolders(scene_id)
+        folders = await collapseAsync(vfs.listFolders(scene_id));
         expect(folders.map(f=>f.name).sort()).to.deep.equal(["videos", "models", "articles"].sort());
       });
 
@@ -584,7 +585,7 @@ describe("Vfs", function(){
 
         await vfs.removeFolder({scene: scene_id, name: "videos", user_id: user.uid });
 
-        let files = await vfs.listFiles(scene_id);
+        let files = await collapseAsync(vfs.listFiles(scene_id));
         expect(files).to.deep.equal([]);
       });
     });
@@ -1221,7 +1222,7 @@ describe("Vfs", function(){
           let f2 = await vfs.writeFile(dataStream(), {user_id: 0, scene:"foo",  mime: "image/jpeg", name:"foo.jpg"});
           let d1 = await vfs.writeDoc('{}', {user_id: 0, scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json"});
           await run(`UPDATE files SET ctime = $t`, {$t:tref.toISOString()});
-          let files = await vfs.listFiles(scene_id);
+          let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.deep.equal([
             {
               size: 4,
@@ -1272,7 +1273,7 @@ describe("Vfs", function(){
           await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tref.toISOString(), $id:del.id});
           await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tnext.toISOString(), $id:f2.id});
 
-          let files = await vfs.listFiles(scene_id);
+          let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.have.property("length", 1);
           expect(files).to.deep.equal([{
             size: 12,
@@ -1292,7 +1293,7 @@ describe("Vfs", function(){
           let props :WriteFileParams = {user_id: 0, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"}
           let f1 = await vfs.writeFile(dataStream(), props);
           await vfs.removeFile(props);
-          let files = await vfs.listFiles(scene_id);
+          let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.have.property("length", 0);
         });
 
@@ -1300,10 +1301,17 @@ describe("Vfs", function(){
           await vfs.writeFile(dataStream(["foo", "\n"]), {user_id: 0, scene: scene_id, mime: "text/html", name:"articles/hello.txt"});
           let del = await  vfs.createFile({user_id: 0, scene: scene_id, name:"articles/hello.txt"}, {hash: null, size: 0});
 
-          let files = await vfs.listFiles(scene_id, true);
+          let files = await collapseAsync(vfs.listFiles(scene_id, {withArchives: true}));
           expect(files).to.have.property("length", 1);
           expect(files[0]).to.have.property("hash", null);
           expect(files[0]).to.have.property("id", del.id);
+        });
+
+        it("can get file data", async function(){
+          await vfs.writeDoc(`{"foo":"bar"}`, {user_id: 0, scene: scene_id, mime: "text/html", name: "foo.txt"});
+          let files = await collapseAsync(vfs.listFiles(scene_id, {withData: true}));
+          expect(files).to.have.property("length", 1);
+          expect(files[0]).to.have.property("data", `{"foo":"bar"}`);
         });
       });
       
