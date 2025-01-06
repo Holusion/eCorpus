@@ -43,7 +43,7 @@ describe("POST /scenes", function(){
     const user = await userManager.addUser("alice", "12345678", true);
     await vfs.createScene("foo", user.uid);
     await vfs.writeDoc(`{"id":1}`, {scene: "foo", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-    await vfs.writeFile(dataStream(), {scene:"foo", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
+    let {hash: fileHash} = await vfs.writeFile(dataStream(), {scene:"foo", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
 
     await vfs.createScene("bar", user.uid);
     await vfs.writeDoc(`{"id":2}`, {scene: "bar", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
@@ -73,7 +73,7 @@ describe("POST /scenes", function(){
     await expect(vfs.getScene("foo"), `scene "foo" should now exist`).to.be.fulfilled.to.be.ok;
     await expect(vfs.getScene("bar"), `scene "bar" should now exist`).to.be.fulfilled.to.be.ok;
     let {id}= await vfs.getScene("foo");
-    expect(await vfs.getFileProps({scene: "foo", name:"articles/hello.html"})).to.have.property("hash", "IHQcUEH8CVmcu6Jc_zSB5HCc0K9HPvP0XGSk3S6f0rQ");
+    expect(await vfs.getFileProps({scene: "foo", name:"articles/hello.html"})).to.have.property("hash", fileHash);
     expect(await vfs.getDoc(id)).to.have.property("data", `{"id":1}`);
   });
 
@@ -81,8 +81,9 @@ describe("POST /scenes", function(){
     //Where scene is exported from the `GET /scenes/{id}` endpoint
     const user = await userManager.addUser("alice", "12345678", true);
     await vfs.createScene("foo", user.uid);
-    await vfs.writeDoc(`{"id":1}`, {scene: "foo", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-    await vfs.writeFile(dataStream(), {scene:"foo", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
+    let {hash: docHash} = await vfs.writeDoc(`{"id":1}`, {scene: "foo", user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    let {hash: fileHash} = await vfs.writeFile(dataStream(), {scene:"foo", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
+
     let zip = await request(this.server).get("/scenes/foo")
     .auth("alice", "12345678")
     .set("Accept", "application/zip")
@@ -104,15 +105,16 @@ describe("POST /scenes", function(){
     expect(res.body.fail).to.deep.equal([]);
     expect(res.body.ok).to.deep.equal([
       'foo',
-      'foo/articles/',
       'foo/articles/hello.html',
-      'foo/models/',
       'foo/scene.svx.json'
     ]);
     await expect(vfs.getScene("foo"), `expect scene "foo" to be restored`).to.be.fulfilled;
     let {id}= await vfs.getScene("foo");
-    expect(await vfs.getFileProps({scene: "foo", name:"articles/hello.html"})).to.have.property("hash", "IHQcUEH8CVmcu6Jc_zSB5HCc0K9HPvP0XGSk3S6f0rQ");
-    expect(await vfs.getDoc(id)).to.have.property("data", `{"id":1}`);
+    const doc = await vfs.getDoc(id);
+    expect(doc).to.have.property("hash", docHash);
+    expect(doc).to.have.property("data", `{"id":1}`);
+    expect(await vfs.getFileProps({scene: "foo", name:"articles/hello.html"})).to.have.property("hash", fileHash);
+
   });
 
 });

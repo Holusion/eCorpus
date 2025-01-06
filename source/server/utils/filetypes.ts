@@ -29,3 +29,13 @@ export function getMimeType(name:string){
 export function getContentType(req :Request){
   return  req.is(mimeList) || "application/octet-stream";
 }
+
+/**
+ * Checks whether a MIME type should be compressed using gzip
+ */
+export function compressedMime(mime :string) :boolean{
+  if( /^(?:image|video)\//.test(mime)){
+    return ["image/tiff", "image/svg+xml", "image/bmp"].indexOf(mime) !== -1;
+  }
+  return true;
+}

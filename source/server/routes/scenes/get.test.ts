@@ -1,15 +1,15 @@
 import fs from "fs/promises";
+import yauzl, { Entry, ZipFile } from "yauzl";
 
 import request from "supertest";
 import { expect } from "chai";
 import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
-import { read_cdh } from "../../utils/zip/index.js";
-import { HandleMock } from "../../utils/zip/zip.test.js";
 import Vfs from "../../vfs/index.js";
 import path from "path";
 import { tmpdir } from "os";
 import { execFile } from "child_process";
+import { once } from "events";
 
 
 
@@ -51,6 +51,7 @@ describe("GET /scenes", function(){
   });
   
   it("can send a zip file", async function(){
+    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: 0});
     let res = await request(this.server).get("/scenes")
     .set("Accept", "application/zip")
     .responseType('blob')
@@ -60,19 +61,11 @@ describe("GET /scenes", function(){
     let b :any = res.body;
     expect(b).to.be.instanceof(Buffer);
     expect(b).to.have.property("length").above(0);
-    let handle = HandleMock.Create(b);
-    let headers = [];
-    for await(let header of read_cdh(handle)){
-      headers.push(header);
-    }
-    expect(headers.map(h=>h.filename)).to.deep.equal([
-      "scenes/bar/",
-      "scenes/bar/articles/",
-      "scenes/bar/models/",
-      "scenes/foo/",
-      "scenes/foo/articles/",
-      "scenes/foo/models/",
-    ]);
+    let zip = await new Promise<ZipFile>((resolve, reject)=>yauzl.fromBuffer(b, (err:Error|null, zip:ZipFile)=> err?reject(err):resolve(zip)));
+    let entries :Entry[] = [];
+    zip.on("entry", (e)=>entries.push(e));
+    await once(zip, "end");
+    expect(entries).to.have.property("length", 1);
   });
   
   it("returned zip file is valid", async function(){
@@ -89,19 +82,16 @@ describe("GET /scenes", function(){
     expect(b).to.be.instanceof(Buffer);
     expect(b).to.have.property("length").above(0);
 
-    let dir = await fs.mkdtemp(path.join(tmpdir(), "eCorpus-zip-file-test"));
-    try{
-      let file = path.join(dir, "test.zip");
-      await fs.writeFile(file, b);
-      await expect(new Promise<void>((resolve, reject)=>{
-        execFile("unzip", ["-t", file], (error, stdout, stderr)=>{
-          if(error) reject(error);
-          else resolve();
-        });
-      })).to.be.fulfilled;
-    }finally{
-      await fs.rm(dir, {recursive: true, force: true}).catch(()=>{});
-    }
+
+    let outdir = await fs.mkdtemp(path.join(this.dir, "eCorpus-zip-file-test"));
+    let file = path.join(outdir, "test.zip");
+    await fs.writeFile(file, b);
+    await expect(new Promise<void>((resolve, reject)=>{
+      execFile("unzip", ["-t", file], (error, stdout, stderr)=>{
+        if(error) reject(error);
+        else resolve();
+      });
+    })).to.be.fulfilled;
   })
 
   describe("can get a list of scenes", function(){

@@ -6,8 +6,9 @@ import { once } from "events";
 import { HTTPError } from "../../../utils/errors.js";
 import { getVfs, getUserId } from "../../../utils/locals.js";
 import { wrapFormat } from "../../../utils/wrapAsync.js";
-import { ZipEntry, zip } from "../../../utils/zip/index.js";
 import Vfs from "../../../vfs/index.js";
+import yazl, { ZipFile } from "yazl";
+import { compressedMime } from "../../../utils/filetypes.js";
 
 
 
@@ -24,36 +25,33 @@ export default async function getScene(req :Request, res :Response){
     },
     "application/zip": async ()=>{
       
-      async function *getFiles(tr:Vfs) :AsyncGenerator<ZipEntry, any, unknown>{
-        
-        let files = await tr.listFiles(id, false, true);
-
-        yield {
-          filename: scene,
-          isDirectory: true,
-          mtime,
-        }
-
-        for(let file of files){
-          let f = await tr.getFile({scene: id, name: file.name});
-          yield {
-            filename: path.join(scene, f.name),
-            mtime: f.mtime,
-            isDirectory: f.mime == "text/directory",
-            stream: f.stream,
-          }
-        }
-      }
 
       res.status(200);
-
-      await vfs.isolate(async (tr)=>{
-        for await (let data of zip(getFiles(tr))){
-          let again = res.write(data);
-          if(!again) await once(res, "drain");
+      let zip = new yazl.ZipFile();
+      zip.outputStream.pipe(res, {end: true});
+      const op = vfs.isolate(async (tr)=>{
+        for await (let file of tr.listFiles(id, { withArchives: false, withFolders: false, withData: true})){
+          const metaPath = path.join("scenes", scene, file.name);
+          const opts = {
+            mtime: file.mtime,
+            mode: 0o100664,
+            compress: compressedMime(file.mime),
+          };
+          if(file.data){
+            zip.addBuffer(Buffer.from(file.data), metaPath);
+          }else{
+            zip.addFile(tr.getPath({hash: file.hash}), metaPath, opts);
+          }
         }
+      }).finally(()=>{
+        zip.end();
       });
-      res.end();
+
+      //Since this error handling happens after headers are sent, it will cause an abort error without much explanation
+      await Promise.all([
+        op, // we don't expect this to fail but can't wait for it to complete before listening for error events
+        await once(zip as any, "close"),
+      ]);
     }
   });
 };

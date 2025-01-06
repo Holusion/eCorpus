@@ -4,7 +4,7 @@ import {Readable} from "stream";
 import { AccessType } from "../auth/UserManager.js";
 
 
-export type DataStream = ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;
+export type DataStream = Readable|ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;
 
 
 export interface CommonFileParams{

@@ -3,13 +3,14 @@ import { createHash } from "crypto";
 import { Request, Response } from "express";
 import path from "path";
 import { once } from "events";
+import yazl from "yazl";
 
 import { AccessType } from "../../auth/UserManager.js";
 import { HTTPError } from "../../utils/errors.js";
 import { getVfs, getUser, getHost } from "../../utils/locals.js";
 import { wrapFormat } from "../../utils/wrapAsync.js";
-import { ZipEntry, zip } from "../../utils/zip/index.js";
 import Vfs from "../../vfs/index.js";
+import { compressedMime } from "../../utils/filetypes.js";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
@@ -93,40 +94,39 @@ export default async function getScenes(req :Request, res :Response){
     "text": ()=> res.status(200).send(scenes.map(m=>m.name).join("\n")+"\n"),
 
     "application/zip": async ()=>{
-      async function *getFiles(vfs: Vfs):AsyncGenerator<ZipEntry,any, unknown>{
-        for(let scene of scenes){
-          let root = `scenes/${scene.name}`;
-
-          yield {
-            filename: root,
-            mtime: scene.mtime,
-            isDirectory: true,
-          }
-
-          let files = await vfs.listFiles(scene.id, false, true);
-
-          for(let file of files ){
-            yield {
-              ...( file.mime === "text/directory"? file: await vfs.getFile({scene:scene.id, name: file.name})),
-              filename: path.join("scenes", scene.name, file.name),
-              isDirectory: file.mime == "text/directory",
-            }
-          }
-        }
-      }
-
       res.set("Content-Disposition", `attachment; filename="scenes.zip"`);
       //FIXME : it would be possible to compute content-length ahead of time 
       // but we need to take into account the size of all zip headers
       // It would also allow for strong ETag generation, which would be desirable
       res.status(200);
-      await vfs.isolate(async tr=>{
-        for await (let data of zip(getFiles(tr))){
-          let again = res.write(data);
-          if(!again) await once(res, "drain");
+      let zip = new yazl.ZipFile();
+      zip.outputStream.pipe(res, {end: true});
+      //@ts-ignore
+      zip.on("error", (e)=>console.warn("Error ", e));
+      let op = vfs.isolate(async tr =>{
+        for(let scene of scenes){
+          for await (let file of tr.listFiles(scene.id, {withArchives: false, withFolders: false, withData: true})){
+            const metaPath = path.join("scenes", scene.name, file.name);
+            const opts = {
+              mtime: file.mtime,
+              mode: 0o100664,
+              compress: compressedMime(file.mime),
+            };
+            if(file.data){
+              zip.addBuffer(Buffer.from(file.data), metaPath, opts);
+            }else{
+              zip.addFile(vfs.getPath({hash: file.hash}), metaPath, opts );
+            }
+          }
         }
+      }).finally(()=>{
+        zip.end();
       });
-      res.end();
+      //Since this error handling happens after headers are sent, it will cause an abort error without much explanation
+      await Promise.all([
+        op, // we don't expect this to fail but can't wait for it to complete before listening for error events
+        await once(zip as any, "close"),
+      ]);
     }
   });
 };
