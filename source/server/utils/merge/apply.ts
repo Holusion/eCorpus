@@ -11,7 +11,7 @@ import {Diff, DELETE_KEY, SOURCE_INDEX, withIndex} from "./pointers/types.js";
 export default function apply<T extends Record<string, any>>(into :T, ...diffs :Diff<T>[]):T{
   for(const diff of diffs){
     if(SOURCE_INDEX in diff) into = withIndex(into, diff[SOURCE_INDEX] as number);
-    for(const key in diff){
+    for(const key of Object.getOwnPropertyNames(diff) as Extract<keyof Diff<T>, string>[]){
       const value = diff[key] as T[Extract<keyof T, string>];
 
       if(value === DELETE_KEY){
@@ -21,9 +21,7 @@ export default function apply<T extends Record<string, any>>(into :T, ...diffs :
           delete into[key];
         }
   
-      }else if(typeof value !== "object" //primitive
-            ||  typeof into[key] === "undefined" //undefined target
-      ){
+      }else if(typeof value !== "object" /*primitive*/){
         into[key] = value;
       }else if(Array.isArray(value)){
         //Replace arrays without looking.

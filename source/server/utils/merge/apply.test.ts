@@ -42,4 +42,16 @@ describe("merge.apply()", function(){
   it("merges special SOURCE_INDEX symbol", function(){
     expect(apply({a:{[SOURCE_INDEX]:0}}, {a:{[SOURCE_INDEX]:1}})).to.deep.equal({a:{[SOURCE_INDEX]:1}});
   });
+
+  it("prevents prototype pollution (create object)", function(){
+    //This is not a strict
+    let result:any = apply({}, {a:{__proto__: {isAdmin: true}, tick: 1} as any});
+    expect(result.a, `Expected prototype pollution to be filtered internally`).to.not.have.property("isAdmin");
+  });
+
+  it("prevents prototype pollution (update object)", function(){
+    let result :any = apply({a: {tick: 0}}, {a:{__proto__: {isAdmin: true}, tick: 1} as any});
+    expect(result).to.deep.equal({a:{tick: 1}});
+    expect(result.a).to.not.have.property("isAdmin");
+  });
 });
