@@ -167,6 +167,17 @@ describe("Vfs", function(){
         expect(()=>ScenesVfs._parseSceneQuery({orderBy} as any), `{orderBy: "${orderBy}"}`).not.to.throw();
       });
     });
+
+    it("sanitizes access values", function(){
+      expect(()=>ScenesVfs._parseSceneQuery({access:["none", "read"] as any})).not.to.throw();
+      [
+        ["foo"],
+        [undefined],
+        ["read", "foo"]
+      ].forEach(a=>{
+        expect(()=>ScenesVfs._parseSceneQuery({access: a as any}),`expected ${a ?? typeof a} to not be an accepted access value`).to.throw(`Bad access type requested`);
+      });
+    })
   });
 
   describe("", function(){

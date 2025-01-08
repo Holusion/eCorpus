@@ -120,8 +120,9 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   static _parseSceneQuery(q :SceneQuery):SceneQuery{
     //Check various parameters compliance
-    if(Array.isArray(q.access) && q.access.find(a=>AccessTypes.indexOf(a) === -1)){
-      throw new BadRequestError(`Bad access type requested : ${q.access.join(", ")}`);
+    if(Array.isArray(q.access)){
+      let badIndex = q.access.findIndex(a=>AccessTypes.indexOf(a) === -1);
+      if(badIndex !== -1) throw new BadRequestError(`Bad access type requested : ${q.access[badIndex]}`);
     }
     if(typeof q.limit !== "undefined"){
       if(typeof q.limit !="number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(`When provided, limit must be an integer`);
