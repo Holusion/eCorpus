@@ -1,11 +1,9 @@
-import crypto from "crypto";
+import {randomBytes, randomInt} from "crypto";
 
 
 const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-//Binary to string lookup table
-const b2s = alphabet.split('');
 //String to binary lookup table
-const s2b = new Array(123);
+const s2b = new Array(alphabet.length);
 for (let i = 0; i < alphabet.length; i++) {
   s2b[alphabet.charCodeAt(i)] = i;
 }
@@ -22,22 +20,11 @@ for (let i = 0; i < alphabet.length; i++) {
  * 
  */
  export default function uid(size :number = 12) :string{
-
-  let data = Array.from(crypto.randomBytes(size));
-
-  let id = [];
-  let quotient = [];
-  let carry = 0;
-  for(let b of data){
-    let accumulator = b + carry * 256;
-    let digit = accumulator  / alphabet.length | 0;
-    carry = accumulator % alphabet.length;
-    if(quotient.length || digit){
-      quotient.push(digit);
-    }
-    id.unshift(carry);
+  let id = "";
+  for(let i = 0; i < size; i++){
+    id += alphabet[randomInt(0, alphabet.length)];
   }
-  return  id.reduce((str, idx)=> str+alphabet[idx], "");
+  return id;
 }
 
 export class Uid{
@@ -45,7 +32,7 @@ export class Uid{
    * generate a random number that is a safe 48bit uint
    */
   static make() :number{
-    return crypto.randomBytes(6).readUIntLE(0,6);
+    return randomBytes(6).readUIntLE(0,6);
   }
   /**
    * maps an unsigned integer ID to a base64url string
