@@ -207,8 +207,9 @@ describe("/auth/login", function(){
       const agent = request.agent(this.server);
       res = await agent.get(url.pathname+url.search)
       .expect(302)
-      .expect("Set-Cookie", /session=/)
-      .expect("Location", "/");
+      .expect("Set-Cookie", /session=/);
+
+      expect(res.headers["location"]).to.match(/http:\/\/(?:localhost|127.0.0.1|::1):\d+\//);
 
       let expiresText = /expires=([^;]+);/.exec(res.headers["set-cookie"]);
       expect(expiresText, `expected regex to match ${res.headers["set-cookie"]}`).to.be.ok;
@@ -242,6 +243,24 @@ describe("/auth/login", function(){
       let res = await request(this.server).get(`/auth/login/${user.username}/link`)
       .set("Accept", "text/plain")
       .expect(401);
-    })
+    });
+
+    it("validates redirection URL", async function(){
+      const maxAge = this.server.locals.sessionMaxAge;
+      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
+      .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
+      .set("Accept", "text/plain")
+      .expect(200)
+      .expect("Content-Type", "text/plain; charset=utf-8");
+
+      expect(res.text).to.match(/^http:/);
+      let url = new URL(res.text);
+      expect(url.searchParams.has("redirect")).to.be.true;
+      url.searchParams.set("redirect", "https://example.com")
+
+      const agent = request.agent(this.server);
+      res = await agent.get(url.pathname+url.search)
+      .expect(400);
+    });
   });
 });

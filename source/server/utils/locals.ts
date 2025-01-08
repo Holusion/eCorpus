@@ -171,3 +171,15 @@ export function getHost(req :Request) :URL{
   let host = (req.app.get("trust proxy")? req.get("X-Forwarded-Host") : null) ?? req.get("Host");
   return new URL(`${req.protocol}://${host}`);
 }
+
+export function validateRedirect(req :Request, redirect :string):string{
+  let host = getHost(req);
+  try{
+    let target = new URL(redirect, host);
+    if(target.origin !== host.origin) throw new BadRequestError(`Redirect origin mismatch`);
+    return target.toString();
+  }catch(e){
+    throw new BadRequestError(`Bad Redirect parameter`);
+  }
+
+}

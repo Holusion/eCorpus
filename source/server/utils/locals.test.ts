@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import { InternalError, UnauthorizedError } from "./errors.js";
-import { either } from "./locals.js";
+import { either, validateRedirect } from "./locals.js";
 
 //Dummy middlewares
 function pass(req :Request, res :Response, next :NextFunction){
@@ -53,3 +53,52 @@ describe("either() middleware", function(){
     await request(app).get("/").expect(401);
   });
 });
+
+describe("validateRedirect()", function(){
+  let app :Express;
+  this.beforeEach(function(){
+    app = express();
+    app.get("/", (req, res, next)=>{
+      try{
+        let r = validateRedirect(req, req.query.redirect as any);
+        res.status(302).set("Location", r).send(r);
+      }catch(e:any){
+        res.status(500).send(e.message);
+      }
+    })
+  });
+
+  it("Absolute URL", async function(){
+    let res = await request(app).get(`/?redirect=${encodeURIComponent("/ui/")}`).expect(302);
+    expect(res.text).to.be.ok
+  });
+  it("Rejects domain change", async function(){
+    let res = await request(app).get(`/?redirect=${encodeURIComponent("https://example.com/foo")}`).expect(500);
+    expect(res.text).to.equal("[400] Bad Redirect parameter");
+  });
+
+  it("with trust proxy", async function(){
+    app.set("trust proxy", true);
+    let res = await request(app).get(`/?redirect=${encodeURIComponent("/foo")}`)
+    .set("X-Forwarded-Host", "example.com")
+    .expect(302);
+    expect(res.text).to.equal("http://example.com/foo");
+  });
+
+  it("Canonical URL", async function(){
+    app.set("trust proxy", true);
+    let res = await request(app).get(`/?redirect=${encodeURIComponent("http://example.com/foo")}`)
+    .set("X-Forwarded-Host", "example.com")
+    .expect(302);
+    expect(res.text).to.equal("http://example.com/foo");
+  });
+
+  it("Bad Canonical URL", async function(){
+    app.set("trust proxy", true);
+    let res = await request(app).get(`/?redirect=${encodeURIComponent("http://something.com/foo")}`)
+    .set("X-Forwarded-Host", "example.com")
+    .expect(500);
+    expect(res.text).to.equal("[400] Bad Redirect parameter");
+  });
+
+})
