@@ -68,8 +68,10 @@ export default class TagsScreen extends router(withUser(LitElement)){
   }
 
 
-  handleTagClick = (e:CustomEvent<{name:string, index:number}>)=>{
-    navigate(this, `${this.path}${this.tags[e.detail.index].name}`);
+  handleTagClick = (e:MouseEvent)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(this, (e.target as HTMLAnchorElement).href);
   }
 
   formatTag({name, size}:Tag){
@@ -77,15 +79,18 @@ export default class TagsScreen extends router(withUser(LitElement)){
   }
 
   render(){
-    const selection = this.tags.findIndex((t)=>this.isActive(`${t.name}`))
+    const selection = this.tags.find((t)=>this.isActive(`${t.name}`));
+
     return html`
-      <h2>Tags</h2>
-      <div class="section">
-        ${this.tags.length?html`
-          <tag-list @click=${this.handleTagClick} .tags=${this.tags.map(this.formatTag)} .selected=${selection}></tag-list>
-        `:html`No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags`}
-      </div>
-      ${this.renderContent()}
+      <a href="/ui/tags/"><h2>Tags</h2></a>
+      ${selection? this.renderContent(): html`
+        <div class="section" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: .5rem;justify-content:center;">
+          ${this.tags.map((tag, index)=>html`<a class="btn" style="overflow: hidden; text-overflow:ellipsis" href="/ui/tags/${encodeURIComponent(tag.name)}" @click=${this.handleTagClick}>
+            ${this.formatTag(tag)}
+          </a>`)}
+          ${this.tags.length? null: html`<p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>`}
+        </div>
+      `}
     `;
   }
 }

@@ -72,7 +72,6 @@ export default class TagView extends withUser(LitElement){
   }
 
   render(){
-    console.log("Render tag : ", this.tag);
     return html`<div class="section">
         <h4>${this.tag}</h4>
         <div>
