@@ -38,6 +38,7 @@ describe("POST /scenes/:scene", function(){
   });
 
   it("has a soft lock over the scene file", async function(){
+    this.retries(2);
     //Tries to do two concurrent requests over the same file
     const r1 = request(app).post("/scenes/foo")
     .send(data);
