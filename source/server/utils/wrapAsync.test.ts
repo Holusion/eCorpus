@@ -86,7 +86,9 @@ describe("wrapFormat", function(){
           },
         });
       }));
-      app.use((err :Error, req :Request, res :Response, next :NextFunction)=> res.status(500).send(err.message));
+      app.use((err :Error, req :Request, res :Response, next :NextFunction)=> {
+        res.status(500).send(err.message);
+      });
 
       await request(app).get("/")
       .set("Accept", "text/plain")
