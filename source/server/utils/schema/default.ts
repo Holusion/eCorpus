@@ -1,4 +1,9 @@
-{
+/**
+ * Copied from DPO-Voyager
+ * 
+ * Some default changed. 
+ */
+const default_doc = {
     "asset": {
         "type": "application/si-dpo-3d.document+json",
         "version": "1.0",
@@ -138,4 +143,14 @@
         "intensity": 0.6,
         "type": "directional"
     }]
+} as const;
+
+/**
+ * This is a workaround for JSON imports syntax changing every other day and the fact we _might_ mutate the document in place one returned
+ * @returns a pristine default document that we are free to mutate or otherwise modify
+ */
+export default async function getDefaultDocument(){
+/** @fixme structuredClone is only available starting with node-17. Remove this check once node-16 support is dropped */
+//@ts-ignore 
+return (typeof structuredClone ==="function")?structuredClone(default_doc) : JSON.parse(JSON.stringify(default_doc));
 }
