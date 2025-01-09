@@ -1,17 +1,17 @@
+import { LitElement, TemplateResult, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
 import "../../composants/Spinner";
 import Modal from "../../composants/Modal";
 import "../../composants/SceneCard";
 import HttpError from "../../state/HttpError";
 import "../../composants/Icon";
-import { nothing } from "lit-html";
 import Notification from "../../composants/Notification";
 import i18n from "../../state/translate";
 
-import commonStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
-import tableStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/tables.scss';
+import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
+import tableStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/tables.scss';
 
 interface User {
     uid :string;
@@ -162,7 +162,7 @@ interface User {
                         </th>
                     </tr></thead>
                     <tbody>
-                    ${(!this.list?.length)?html`<tr><td colspan=4 style="text-align: center;">No user registered. Click the <ui-icon name="plus"></ui-icon> to add one</td</tr>`:nothing}
+                    ${(!this.list?.length)?html`<tr><td colspan=4 style="text-align: center;">No user registered. Click the <ui-icon name="plus"></ui-icon> to add one</td</tr>`:null}
                     ${this.list.map(u=>html`<tr>
                         <td style="font-family:monospace;">${u.uid}</td>
                         <td>${u.username}</td>

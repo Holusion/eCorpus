@@ -1,5 +1,5 @@
-
-import { Constructor, LitElement, property } from "lit-element";
+import { LitElement } from 'lit';
+import { property } from 'lit/decorators.js';
 import Notification from "../composants/Notification";
 
 export interface Scene {
@@ -51,6 +51,8 @@ export declare class SceneView{
   orderDirection :OrderDirection;
   fetchScenes(append?:Boolean):Promise<void>;
 }
+
+type Constructor<T = {}> = new (...args: any[]) => T;
 
 export function withScenes<T extends Constructor<LitElement>>(baseClass:T) : T & Constructor<SceneView> {
   class SceneView extends baseClass{

@@ -1,8 +1,11 @@
+import { LitElement } from 'lit';
+import { property } from 'lit/decorators.js';
 
-import { LitElement, Constructor, property } from "lit-element";
 import HttpError from "./HttpError";
 
 const LOGIN_STATE = "login-state";
+
+type Constructor<T = {}> = new (...args: any[]) => T;
 
 export interface UserSession{
   uid :number;

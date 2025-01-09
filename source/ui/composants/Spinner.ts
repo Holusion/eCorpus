@@ -1,4 +1,5 @@
-import { LitElement, property, customElement, html, css } from "lit-element";
+import { LitElement, css, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
 
 @customElement("spin-loader")

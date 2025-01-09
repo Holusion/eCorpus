@@ -1,4 +1,6 @@
-import { LitElement, customElement, property, html, TemplateResult, css } from "lit-element";
+import { LitElement, TemplateResult, css, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
 
 import defaultSprite from "../assets/images/defaultSprite.svg";
 

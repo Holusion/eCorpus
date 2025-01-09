@@ -1,7 +1,8 @@
-import { LitElement, Constructor } from "lit-element";
+import { LitElement } from "lit";
 
 import strings, { I18nDict, Language, LocalizedString } from "./strings";
 
+type Constructor<T = {}> = new (...args: any[]) => T;
 
 type TranslateParams = {
   plural?:boolean;

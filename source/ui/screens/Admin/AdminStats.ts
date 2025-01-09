@@ -1,5 +1,6 @@
+import { LitElement, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
 
 import "./UsersList";

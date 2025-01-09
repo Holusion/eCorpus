@@ -1,5 +1,6 @@
+import { LitElement, css, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
 
 
@@ -8,7 +9,7 @@ import i18n from "../../state/translate";
 import Modal from "../../composants/Modal";
 import "../../composants/Button";
 
-import commonStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
+import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
 
 @customElement("send-testmail")
 export class TestmailModalBody extends i18n(LitElement){

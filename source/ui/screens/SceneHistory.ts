@@ -1,5 +1,5 @@
-
-import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
+import { LitElement, TemplateResult, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
 import Notification from "../composants/Notification";
 import "../composants/Button";
@@ -8,7 +8,6 @@ import "../composants/Size";
 import "../composants/TagList";
 import "../composants/HistoryAggregation";
 
-import { nothing } from "lit-html";
 import i18n from "../state/translate";
 import { withUser } from "../state/auth";
 import { navigate } from "../state/router";
@@ -224,7 +223,7 @@ interface AccessRights{
               <td colspan=4 style="text-align: center;">
                 ${this.t("info.noData",{item: this.name})}
               </td>
-            </tr>`:nothing)}
+            </tr>`:null)}
             ${this.permissions.map((p, index) => {
               return html`<tr>
                 <td title="${p.uid}">${p.username}</td>

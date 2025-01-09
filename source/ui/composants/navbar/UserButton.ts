@@ -1,5 +1,6 @@
+import { LitElement, PropertyValues, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-import { customElement, property, html, PropertyValues, css } from "lit-element";
 
 import "../Modal";
 import Modal from "../Modal";
