@@ -36,7 +36,7 @@ global.createIntegrationContext = async function(c :Mocha.Context, config_overri
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
   c.config = Object.assign(
     parse({ //Common options
-    ROOT_DIR: c.dir, CLEAN_DATABASE: "false", VERBOSE: "false", HOT_RELOAD: "false",
+    ROOT_DIR: c.dir, CLEAN_DATABASE: "false", VERBOSE: "false",
     }),
     //Options we might want to customize
     config_override

@@ -7,17 +7,25 @@
     "test": "cd source/server/ && npm test",
     "build-ui": "cd source/ui && webpack --mode=production",
     "build-server": "tsc -b source/server",
-    "watch": "cd source/server && HOT_RELOAD=1 NODE_ENV=development EXPERIMENTAL=1 ROOT_DIR=\"../../\" nodemon -e ts,js -w . -w ../ui/webpack.config.js -x ts-node index.ts"
+    "watch-server": "tsc -b source/server --watch",
+    "watch-ui": "cd source/ui && webpack --watch --mode=development",
+    "watch": "NODE_ENV=development concurrently -k --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon  npm start\""
   },
   "author": "Holusion <contact@holusion.com>",
   "license": "Apache-2.0",
   "engines": {
-      "node": ">=16.20.2"
+    "node": ">=16.20.2"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2",
-    "typescript": "^4.9.4",
-    "webpack": "^5.88.1",
-    "webpack-cli": "^4.9.2"
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9",
+    "typescript": "^4.9.4"
+  },
+  "nodemonConfig": {
+    "delay": 100,
+    "extensions":["ts", "js"],
+    "watch": [
+        "source/server/dist"
+    ]
   }
 }
