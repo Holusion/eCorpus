@@ -27,9 +27,7 @@ interface GetDocumentParams{
  * @returns 
  */
 async function getDocument({scene, filepath, language}:GetDocumentParams){
-  let orig = await getDefaultDocument();
-  //dumb inefficient Deep copy because we want to mutate the doc in-place
-  let document = JSON.parse(JSON.stringify(orig));
+  let document = await getDefaultDocument();
   let meta = await parse_glb(filepath);
   let mesh = meta.meshes[0]; //Take the first mesh for its name
   document.nodes.push({
