@@ -8,9 +8,10 @@ import yauzl, { Entry, ZipFile } from "yauzl";
 import { HTTPError } from "../../utils/errors.js";
 import { getMimeType } from "../../utils/filetypes.js";
 import { getVfs, getUser } from "../../utils/locals.js";
-import { Uid } from "../../utils/uid.js";
+import uid, { Uid } from "../../utils/uid.js";
 import { once } from "events";
 import { Readable } from "stream";
+import { finished, pipeline } from "stream/promises";
 
 
 interface ImportResults {
@@ -23,7 +24,7 @@ export default async function postScenes(req :Request, res :Response){
   let vfs = getVfs(req);
   let requester = getUser(req);
 
-  let file_name = Uid.toString(Uid.make());
+  let file_name = uid(12)+".zip";
   let tmpfile = path.join(vfs.uploadsDir, file_name);
   let results :ImportResults = {fail:[], ok:[]};
   let handle = await fs.open(tmpfile, "wx+");
@@ -88,11 +89,12 @@ export default async function postScenes(req :Request, res :Response){
       }else if(name.endsWith(".svx.json")){
         let data = Buffer.alloc(record.uncompressedSize), size = 0;
         let rs = await openZipEntry(record);
-        for await (let chunk of rs){
+        rs.on("data", (chunk)=>{
           chunk.copy(data, size);
           size += chunk.length;
-        }
-        await vfs.writeDoc(data.toString("utf8"), {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
+        });
+        await finished(rs);
+        await vfs.writeDoc(data, {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
       }else{
         //Add the file
         let rs = await openZipEntry(record);
@@ -103,7 +105,9 @@ export default async function postScenes(req :Request, res :Response){
     };
 
     zip.on("entry", (record)=>{
-      onEntry(record).then(()=> zip.readEntry(), (e)=>{
+      onEntry(record).then(()=>{
+        zip.readEntry()
+      }, (e)=>{
         console.log("unzip error :", e);
         results.fail.push(`Unzip error : ${e.message}`);
         zip.close();
@@ -113,5 +117,5 @@ export default async function postScenes(req :Request, res :Response){
     await once(zip, "close");
   }).finally(() => fs.rm(tmpfile, {force: true}));
 
-  res.status(200).send(results);
+  res.status(results.fail.length? 500:200).send(results);
 };

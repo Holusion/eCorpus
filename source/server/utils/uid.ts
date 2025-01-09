@@ -32,7 +32,7 @@ export class Uid{
    * generate a random number that is a safe 48bit uint
    */
   static make() :number{
-    return randomBytes(6).readUIntLE(0,6);
+    return randomInt(0, 2**48-1);
   }
   /**
    * maps an unsigned integer ID to a base64url string

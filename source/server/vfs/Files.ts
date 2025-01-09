@@ -2,13 +2,15 @@ import { constants, promises as fs } from "fs";
 import { createHash } from "crypto";
 import path from "path";
 import { NotFoundError, ConflictError, BadRequestError, InternalError } from "../utils/errors.js";
-import { Uid } from "../utils/uid.js";
+import uid, { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
 import { DataStream, DocProps, FileProps, GetFileParams, GetFileResult, Stored, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
 import { Duplex, Readable, Transform } from "stream";
+import { pipeline } from "stream/promises";
+import { transform } from "typescript";
 
 interface DiskFileParams{
   size :number;
@@ -47,18 +49,24 @@ export default abstract class FilesVfs extends BaseVfs{
   ) :Promise<FileProps>{
 
     return this.createFile(params, async ({id})=>{
-      let file_name = Uid.toString(id)
+      let file_name = Uid.toString(id)+"_"+uid(6);
       let tmpfile = path.join(this.uploadsDir, file_name);
       let handle = await fs.open(tmpfile, constants.O_RDWR|constants.O_CREAT|constants.O_EXCL);
       let hashsum = createHash("sha256");
       let size = 0;
       try{
-        for await (let d of dataStream){
-          let {bytesWritten} = await handle.write(d);
-          size += bytesWritten;
-          hashsum.update(d);
-        }
-        //hash.digest("base64url")
+        let ws = handle.createWriteStream();
+        await pipeline(
+          dataStream,
+          new Transform({
+            transform(chunk, encoding, callback){
+              hashsum.update(chunk);
+              size += chunk.length;
+              callback(null, chunk);
+            }
+          }),
+          ws,
+        );
         let hash = hashsum.digest("base64url");
         let destfile = path.join(this.objectsDir, hash);
         try{
