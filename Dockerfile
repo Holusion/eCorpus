@@ -65,4 +65,4 @@ COPY --from=build /app/source/server/dist /app/server
 VOLUME [ "/app/files" ]
 EXPOSE ${PORT}
 
-CMD node server/index.js
+CMD node --disable-proto=delete server/index.js

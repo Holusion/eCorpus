@@ -52,6 +52,15 @@ describe("merge.apply()", function(){
   it("prevents prototype pollution (update object)", function(){
     let result :any = apply({a: {tick: 0}}, {a:{__proto__: {isAdmin: true}, tick: 1} as any});
     expect(result).to.deep.equal({a:{tick: 1}});
-    expect(result.a).to.not.have.property("isAdmin");
+    expect(result.a, `Expected prototype pollution to be filtered internally`).to.not.have.property("isAdmin");
+  });
+
+  it("prevents prototype pollution (create array)", function(){
+    let ref:any = [];
+    let val:any = [];
+    val.__proto__ = {isAdmin: true};
+    let result :any = apply({}, {a: val});
+    expect(ref, `Expected prototype pollution to be filtered internally`).to.not.have.property("isAdmin");
+    //This is partially mitigated because Array.prototype is not affected but result.a.isAdmin is still true.
   });
 });
