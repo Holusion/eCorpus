@@ -1,9 +1,10 @@
-import { css, customElement, html, LitElement, property, PropertyValues, state, TemplateResult } from "lit-element";
+import { LitElement, PropertyValues, TemplateResult, css, html } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
 
 import Notification from "../composants/Notification";
 import i18n from "../state/translate";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/common.scss';
 import HttpError from "../state/HttpError";
 
 
@@ -115,7 +116,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     super.connectedCallback();
   }
 
-  protected createRenderRoot(): Element | ShadowRoot {
+  protected createRenderRoot() {
     return this;
   }
 

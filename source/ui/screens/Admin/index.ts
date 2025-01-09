@@ -1,5 +1,5 @@
-
-import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
+import { LitElement, css, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
 
 import i18n from "../../state/translate";
@@ -13,7 +13,7 @@ import "./UsersList";
 import "../../composants/navbar/NavLink";
 import "../../composants/Button";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
 
 /**
  * Main UI view for the Voyager Explorer application.

@@ -1,8 +1,10 @@
-import { LitElement, css, customElement, html, property } from "lit-element";
+import { LitElement, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
 
 import "./Icon";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/notifications.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/notifications.scss';
 
 
 type NotificationLevel = "info" | "success" | "warning" | "error";

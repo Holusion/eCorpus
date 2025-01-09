@@ -1,9 +1,10 @@
+import { LitElement, TemplateResult, css, html } from 'lit';
+import { customElement, property, query } from 'lit/decorators.js';
 
-import { css, LitElement,customElement, property, html, TemplateResult, query } from "lit-element";
 import "./Icon"
 
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/common.scss';
 
 interface ModalOptions{
   header :TemplateResult|string;

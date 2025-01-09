@@ -1,4 +1,6 @@
-import { LitElement, html, customElement, property, css, TemplateResult } from 'lit-element';
+import { LitElement, TemplateResult, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
+
 
 import i18n, {Localization} from '../../state/translate';
 
@@ -13,7 +15,7 @@ export default class ChangeLocale extends i18n(LitElement){
 
     return false;
   }
-  protected createRenderRoot(): Element | ShadowRoot {
+  protected createRenderRoot(){
     return this;
   }
   

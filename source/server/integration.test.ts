@@ -74,7 +74,7 @@ describe("Web Server Integration", function(){
         let r = await this.agent.post("/scenes/bar")
         .set("Content-Type", "application/octet-stream")
         .send(content)
-        .expect(201);
+        expect(r.status, `Expected status code 201 but received [${r.status}]: ${r.text}`).to.equal(201);
         let res = await this.agent.get("/scenes/bar/models/bar.glb").expect(200);
         expect(res.text.slice(0,4).toString()).to.equal("glTF");
         expect(res.text.length).to.equal(content.length);

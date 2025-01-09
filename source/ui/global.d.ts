@@ -4,23 +4,23 @@ declare module '!raw-loader!*' {
 }
 
 declare module '!lit-css-loader*.scss' {
-    import {CSSResult} from 'lit-element';
+    import {CSSResult} from 'lit';
     const css: CSSResult;
     export default css;
 }
 declare module '!lit-css-loader*.css' {
-    import {CSSResult} from 'lit-element';
+    import {CSSResult} from 'lit';
     const css: CSSResult;
     export default css;
 }
 
 declare module "*.scss" {
-    import {CSSResult} from 'lit-element';
+    import {CSSResult} from 'lit';
     const css: CSSResult;
     export default css.cssText;
 }
 declare module "*.css"{
-    import {CSSResult} from 'lit-element';
+    import {CSSResult} from 'lit';
     const css: CSSResult;
     export default css.cssText;
 }

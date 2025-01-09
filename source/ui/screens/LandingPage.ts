@@ -1,10 +1,11 @@
+import { LitElement, TemplateResult, css, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
-import { css, customElement,  html, TemplateResult, LitElement} from "lit-element";
 
 import sketch from "../assets/images/sketch_ethesaurus.png";
 
 import i18n from "../state/translate";
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/common.scss';
 import "../composants/UserLogin"
 
  @customElement("landing-page")

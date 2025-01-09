@@ -1,18 +1,18 @@
+import { LitElement, TemplateResult, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-import { customElement, property, html, TemplateResult, LitElement, css } from "lit-element";
 
 import "../../composants/Spinner";
 import Modal from "../../composants/Modal";
 import "../../composants/SceneCard";
 import HttpError from "../../state/HttpError";
 import "../../composants/Icon";
-import { nothing } from "lit-html";
 import Notification from "../../composants/Notification";
 import i18n from "../../state/translate";
 import { Scene } from "../../state/withScenes";
 
-import commonStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/common.scss';
-import tableStyles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../../styles/tables.scss';
+import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
+import tableStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/tables.scss';
 
 interface User {
     uid :string;
@@ -105,7 +105,7 @@ interface User {
                         <th></th>
                     </tr></thead>
                     <tbody>
-                    ${(!this.list?.length)?html`<tr><td colspan=4 style="text-align: center;">Nothing was archived</td</tr>`:nothing}
+                    ${(!this.list?.length)?html`<tr><td colspan=4 style="text-align: center;">Nothing was archived</td</tr>`:null}
                     ${this.list.map(s=>html`<tr>
                         <td>${new Date(s.mtime).toLocaleString(this.language)}</td>
                         <td>${s.name}</td>

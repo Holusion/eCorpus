@@ -1,7 +1,8 @@
+import { LitElement, TemplateResult, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
-import { css, customElement, html, LitElement, TemplateResult } from "lit-element";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!./styles.scss';
 
 import logo from "../../assets/images/logo-full.svg";
 

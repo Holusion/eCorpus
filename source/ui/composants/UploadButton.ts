@@ -1,5 +1,6 @@
+import { LitElement, TemplateResult, css, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
-import { css, LitElement, customElement, html, TemplateResult } from "lit-element";
 
 
 @customElement("upload-button")

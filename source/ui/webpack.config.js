@@ -73,6 +73,7 @@ module.exports = function createAppConfig(env, argv={})
         resolve: {
             modules: [
                 dirs.modules,
+                path.resolve(project, "voyager/node_modules"),
             ],
             alias: {
                 "source": dirs.source,

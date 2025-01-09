@@ -1,11 +1,12 @@
+import { LitElement, TemplateResult, css, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-import { css, LitElement,customElement, property, html, TemplateResult } from "lit-element";
 
 
 import { doLogin } from "../state/auth";
 import i18n from "../state/translate";
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!../styles/common.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/common.scss';
 import Notification from "./Notification";
 
 /**

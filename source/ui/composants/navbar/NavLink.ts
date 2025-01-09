@@ -1,8 +1,10 @@
-import { LitElement, html, customElement, property, css } from 'lit-element';
+import { LitElement, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
 
 import { link, navigate } from '../../state/router';
 
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./styles.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!./styles.scss';
 
 @customElement("nav-link")
 export default class NavLink extends LitElement{

@@ -1,7 +1,7 @@
-import { LitElement, html, customElement } from 'lit-element';
+import { LitElement, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
-
-import styles from '!lit-css-loader?{"specifier":"lit-element"}!sass-loader!./styles/main.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!./styles/main.scss';
 
 import "./styles/globals.scss";
 

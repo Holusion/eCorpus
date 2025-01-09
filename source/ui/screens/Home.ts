@@ -1,4 +1,6 @@
-import { css, customElement, property, html, TemplateResult, LitElement } from "lit-element";
+import { LitElement, TemplateResult, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
 import Notification from "../composants/Notification";
 
 import "../composants/Spinner";
@@ -9,7 +11,7 @@ import "../composants/ListItem";
 
 import i18n from "../state/translate";
 import { UserSession, withUser } from "../state/auth";
-import { repeat } from "lit-html/directives/repeat";
+import {repeat} from 'lit/directives/repeat.js';
 
 import "../composants/TaskButton";
 import { withScenes, Scene, AccessType } from "../state/withScenes";
