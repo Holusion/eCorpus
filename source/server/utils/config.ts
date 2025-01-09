@@ -17,7 +17,6 @@ const values = {
   assets_dir: [undefined, toPath],
   trust_proxy: [true, toBool],
   hostname: [hostname(), toString],
-  hot_reload:[false, toBool],
   smart_host: ["smtp://localhost", toString],
   verbose: [false, toBool],
   build_ref: ["unknown", toString],

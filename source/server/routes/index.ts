@@ -209,23 +209,9 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     app.use("/dist", express.static(config.assets_dir));
   }
 
-  /* istanbul ignore next */
-  if(config.hot_reload){
-    console.log("Hot reload enabled");
-    const {default: webpack} = await import("webpack");
-    const {default: middleware} = await import("webpack-dev-middleware");
-    //@ts-ignore
-    const {default: configGenerator} = await import("../../ui/webpack.config.js");
+  // static file server
+  app.use("/dist", express.static(config.dist_dir));
 
-    const compiler = webpack(configGenerator());
-    const webpackInstance = middleware(compiler as any, {});
-    app.use("/dist", webpackInstance);
-    await new Promise(resolve=> webpackInstance.waitUntilValid(resolve));
-  }else{
-    // static file server
-    app.use("/dist", express.static(config.dist_dir));
-
-  }
 
 
   //Privilege-protected routes
