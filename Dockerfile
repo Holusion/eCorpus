@@ -6,7 +6,7 @@ ARG BUILD_REF
 ################### 
 # Build source
 ###################
-FROM node:16-alpine as build
+FROM node:22-alpine as build
 RUN mkdir -p /app/dist /app/source
 WORKDIR /app
 
