@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import {tmpdir} from "node:os";
 import path from "node:path";
-import chai from "chai";
+import * as chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 
 //@ts-ignore
@@ -16,7 +16,7 @@ process.env["TEST"] ??= "true";
 
 declare global{
   var dataStream:(src ?:Array<Buffer|string>)=>AsyncGenerator<Buffer, void, unknown>;
-  var expect :typeof chai["expect"];
+  var expect :typeof chai.expect;
   var createIntegrationContext :(c:Mocha.Context, config_override ?:Partial<Config>)=>Promise<AppLocals>;
   var cleanIntegrationContext :(c:Mocha.Context)=>Promise<void>;
 }

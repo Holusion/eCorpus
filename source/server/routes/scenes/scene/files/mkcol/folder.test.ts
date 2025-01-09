@@ -52,19 +52,36 @@ describe("MKCOL /scenes/:scene/.*", function(){
   });
 
   it("rejects bad names", async function(){
-    let names = [
+    let badNames = [
       "/",
       "/foo",
-      "..",
-      "../..",
-      ".",
-      "articles/..",
       ".anything" //Simply rejects any hidden directory as we have no use for them
     ];
-    for (let name of names){
-      await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
+    for (let name of badNames){
+      let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
       .auth(user.username, "12345678")
-      .expect(400);
+      expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 400)`).to.equal(400);
+    }
+    let self = [
+      ".",
+      "articles/..",
+
+    ]
+    for (let name of self){
+      let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
+      .auth(user.username, "12345678")
+      expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 409)`).to.equal(409);
+    }
+    
+    let parents = [
+      "..",
+      "../..",
+      "../../..",
+    ];
+    for(let name of parents){
+      let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
+      .auth(user.username, "12345678")
+      expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 404)`).to.equal(404);
     }
   });
 
