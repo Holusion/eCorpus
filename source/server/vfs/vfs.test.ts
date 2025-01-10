@@ -1221,8 +1221,25 @@ describe("Vfs", function(){
           let history = await vfs.getSceneHistory(scene_id);
           expect(history).to.have.property("length", 1+ default_folders);
           expect(history.find(f=>f.name == "scene.svx.json")).to.have.property("size", Buffer.byteLength(str));
-        })
-        it.skip("supports pagination");
+        });
+
+        it("supports pagination", async function(){
+          for(let i=0; i < 20; i++){
+            await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          }
+
+          let history = await vfs.getSceneHistory(scene_id, {limit: 2, offset: 0});
+          expect(history.map(e=>e.generation)).to.deep.equal([
+            20,
+            19,
+          ]);
+          history = await vfs.getSceneHistory(scene_id, {limit: 2, offset: 2});
+          expect(history).to.have.property("length", 2);
+          expect(history.map(e=>e.generation)).to.deep.equal([
+            18,
+            17,
+          ]);
+        });
       });
 
       describe("listFiles()", function(){
