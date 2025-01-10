@@ -88,7 +88,7 @@ main {
     text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
 
   }
-  .jumbotron button {
+  .jumbotron .button {
     background: $yellow;
     color: $darkgrey;
     text-align: center;
@@ -96,7 +96,7 @@ main {
     padding-bottom: 10px;
     font-weight: bold;
     width:150px;
-    height: 3em;
+    height: 4em;
     margin-inline: 25px;
     box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
     &:hover{
