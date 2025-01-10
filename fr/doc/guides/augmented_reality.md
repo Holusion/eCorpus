@@ -82,7 +82,7 @@ Recommandation de qualité :
 Importer le modèle avec l'API.
 
 ```bash
-curl -L -XPUT -u "${USERNAME}:${PASSWORD}" --data-binary @${FILENAME}.usdz https://irhis.ecorpus.holusion.com/scenes/${NAME}/${FILENAME}.usdz
+curl -L -XPUT -u "${USERNAME}:${PASSWORD}" --data-binary @${FILENAME}.usdz https://${HOSTNAME}/scenes/${NAME}/${FILENAME}.usdz
 ```
 
 La scène proposera maintenant un option AR pour les mobiles iOS ayant accès à l'ARKit.

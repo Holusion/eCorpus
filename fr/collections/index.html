@@ -12,7 +12,7 @@ layout: page
         Pièces d’orfèvrerie médiévale.
     </h2>
     <p>Collection assemblée dans le cadre du consortium <a href="/fr/about">eThesaurus</a>.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <div class="jumbotron" style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
             {% continue %}

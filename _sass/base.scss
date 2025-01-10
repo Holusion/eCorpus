@@ -8,7 +8,7 @@
 }
 
 body {
-  background: $backgroundColor;
+  background: $darkgrey;
   &:has(.doc-page){
     background-color: $darkgrey;
   }
@@ -45,8 +45,76 @@ main {
   h1, h2, h3, h4, h5, h6, [role="doc-noteref"] {
     scroll-margin-top: calc($navbar_height + 0.8rem);
   }
+
+  .jumbotron  {
+    position:relative;
+    @media screen and (max-width: #{$main_width} ){
+      display:none;
+  }
+}
+
+  
+  .jumbotron .call-to-action {
+    position: absolute;
+    height:50%;
+    margin-top: 100px;
+    top:0%;
+    left: 50%;
+    width:50%;
+  }
+  .jumbotron #buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .jumbotron #baseline {
+    color: white;
+    font-weight: bold;
+    font-size: 200%;
+    text-align: justify;
+    text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+    padding-bottom: 3rem;
+  }
+
+  .jumbotron #logo-eCorpus {
+    position: absolute;
+    top: 30%;
+    left: 0%;
+    width:50%;
+    color: white;
+    font-weight: bold;
+    font-size: 500%;
+    text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+
+  }
+  .jumbotron .button {
+    background: $yellow;
+    color: $darkgrey;
+    text-align: center;
+    padding-inline: 30px;
+    padding-bottom: 10px;
+    font-weight: bold;
+    width:150px;
+    height: 4em;
+    margin-inline: 25px;
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+    &:hover{
+      background-color: $darkgrey;
+      color: white;
+    }
+  }
+
   
   &, section, .section{
+    >#jumbotron {
+      width: 150%;
+      margin-left: -25%;
+      object-fit: cover;
+      height: 400px;
+      box-shadow: 0 10px 15px 0px rgba(0, 0, 0, 0.5), 0 1px 2px 0px rgba(0, 0, 0, 0.8);
+    }
+
     >img:not(.fluid), >.media:not(.fluid), .flush {
       margin: 0 -3rem;
       width: calc(100% + 6rem);
@@ -116,6 +184,7 @@ nav.navbar{
   margin: 0;
   padding: 1px 0;
   box-sizing: border-box;
+  
 
 
   display: flex;
@@ -127,6 +196,7 @@ nav.navbar{
     padding-left: 2em;
     background-color: $middlegrey;
     box-shadow: 0 2px 2px 0px rgba(0, 0, 0, 0.4);
+    max-height: $navbar_height;
     @media screen and  (max-width: calc($main_width - 1px) ){
       padding-left:5px;
     }
@@ -175,6 +245,26 @@ nav.navbar{
     // }
   }
 
+  .nav-tuto{
+    height: 125%;
+    margin-top: -5px;
+    margin-right: 25px;
+    background: #E6B900;
+    text-align: center;
+    padding-inline: 30px;
+    padding-bottom: 10px;
+    font-weight: bold;
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+    
+  } 
+  .nav-tuto > a{
+    color: $darkgrey;
+    padding-inline: 10px;
+    &:hover {color : white;}
+  }
+
+
+
   .menu-btn{
     height: calc($navbar_height - 2px);
     box-sizing: border-box;
@@ -195,6 +285,8 @@ nav.navbar{
   display: flex;
   flex-direction: row;
 }
+
+
 
 ul{
   padding-inline-start: 40px;
@@ -290,9 +382,9 @@ footer a:hover {
         padding: 0.1rem 0rem 0.1rem 1rem;
         max-width: 100%;
       }
-      ul > li {
+      //ul > li {
         // padding-bottom: 2rem;
-      }
+      //}
     }
   }
   
@@ -415,7 +507,6 @@ h5{
     margin: 0 0.5rem;
   }
 }
-
 
 
 //////////////////////////////
@@ -541,6 +632,10 @@ main{
     border-left: 0.3em solid rgba(0,0,0,0);
   }
 }
+//////////////////////////////
+/// INTRO
+//////////////////////////////
+
 
 
 //////////////////////////////

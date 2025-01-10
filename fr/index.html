@@ -1,20 +1,41 @@
 ---
 title: "eCorpus"
-description: >
-    Présentation du système de gestion de scènes 3D eCorpus.
-    Découvrez les détails des oeuvres numérisées par le projet eThesaurus
-    pour la valorisation du patrimoine d'orfèvrerie médiévale des 12 et 13e siècles.
+description: Présentation du système de gestion de scènes 3D eCorpus. Découvrez les détails des oeuvres numérisées par le projet eThesaurus pour la valorisation du patrimoine d'orfèvrerie médiévale des 12 et 13e siècles.
 ---
 
-<section class="larg100">
-    <div class="section">
-        <h2>Accueil</h2>
-    </div>
-</section>
+
 
 <section>
-    <img style="object-position: 70% 0;" src="/assets/img/focus_stbertin_matthieu.webp"
-        alt="Gros plan sur le pied de croix de l'abbaye de Saint-Bertin. l'évangéliste Matthieu devant son pupitre, tourné vers son symbole (l'ange). Réalisé en image de synthèse à partir d'une photogrammétrie">
+    <div class="section jumbotron">
+        <img style="object-position: 70% 0;" id="jumbotron" src="/assets/img/eCorpus_Asset_Jumbotron_Middle.webp"
+            alt="Grotte de Chauvet, salle du fond, en visite virtuelle sur eCorpus. Collections Grands Sites Archéologique">
+        
+            <div id="logo-eCorpus">eCorpus</div>
+            <div class="call-to-action">
+                <div id="baseline">L'outil d'édition 3D libre pour le patrimoine culturel et scientifique</div>
+                <div id="buttons">
+                    <a class="button" href="doc/tutorials">En savoir plus</a>
+                    <a class="button" href="about">A propos</a>
+                </div>    
+            </div>
+
+            <img style="
+            position: absolute;
+            top: 150px;
+            height: 336px;
+            width: auto;
+            left: -340px;
+            z-index: -1000;
+        " src="/assets/img/jumbotron_left.webp" alt="Grotte de Chauvet, salle du fond, en visite virtuelle sur eCorpus. Collections Grands Sites Archéologique">
+            <img style="    position: absolute;
+            top: 150px;
+            height: 336px;
+            width: auto;
+            left: 984px;
+            z-index: -1000" src="/assets/img/jumbotron_right.webp" alt="Grotte de Chauvet, salle du fond, en visite virtuelle sur eCorpus. Collections Grands Sites Archéologique">
+        </div>
+
+
     <div class="section">
         <h3>
             eCorpus : Outil d’édition 3D libre pour les chercheurs et les conservateurs
@@ -26,48 +47,60 @@ description: >
             utilisateurs
             et d’historique de modifications.
         </p>
-        <p>Le développement d'eCorpus a été initié dans le cadre du consortium <a
-                href="about"><b>eThesaurus</b></a>. Le projet portait sur la
+        <p>Le développement d'eCorpus a été initié dans le cadre du consortium <a href="about"><b>eThesaurus</b></a>. Le
+            projet portait sur la
             numérisation de
             six œuvres d'orfèvrerie médiévale, conservées au musée
             Sandelin à Saint-Omer et au Palais des Beaux-arts de Lille.</p>
-        <p>Le développement est assuré conjointement par l'Université de Lille, l'Université de Liège et la société Holusion</p>
+        <p>Le développement est assuré conjointement par l'Université de Lille, l'Université de Liège et la société
+            Holusion</p>
     </div>
     <!-- <div class="section">
         <img src="/assets/img/packshot.webp"
             alt="collection initiale d'objets de la campagne de numérisation eThesaurus">
     </div> -->
 
-        <!-- attention pas de lien -->
-        
+    <!-- attention pas de lien -->
+
     <!-- <div class="align-right">
         <p><a href="collection">Voir les objets</a></p>
     </div> -->
 </section>
 
-
 <section>
     <div class="section">
-        <h3>Numérisation d'objets</h3>
+        <h3> Conservation, médiation et diffusion des contenus</h3>
     </div>
-    <img style="object-position: 70% 0;" src="/assets/img/photogrammetryNiveaux.jpg"
-        alt="Prise de photogramétrie d'un biface Acheuléen par l'Inrap">
+    {% include voyager.html embed="encensoir" server="https://ecorpus.holusion.com" class="h-100" %}
     <div class="section">
         <p>
-            Les modèles numériques issus de la <b>photogrammétrie</b> comportent les informations liées à la géométrie
-            de l’objet sous la forme d’un maillage ainsi que les informations liées à son aspect visuels tels que décrit
-            dans un modèle PBR (Physical Based Rendering) décrivant pour chaque point de l’objet ses propriétés optique
-            : couleur, réflexion, spéculaires, rugosité etc…
+            eCorpus permet une diffusion des objets 3D et des métadonnées dans deux conﬁgurations différentes.
         </p>
-        <p>
-            eCorpus est développé au sein d'un ecosystème public-privé de spécialistes de la numérisation du patrimoine, formant un centre de compétence sur ces activités. Vous pouvez nous joindre pour acceder à des ressources ou des prestations au près de l'Université de Lille, de Liège, d'entreprises privées ou bien de partenaires en fonction de vos besoins.
-        </p>
-        <p>
-            eCorpus et les techniques de numérisation sont également enseignées dans le cadre de modules <b>Numérique et Patrimoine</b> au sein de plusieurs universités.
-        </p>
+        <ul class="retrait">
+            <li>
+                D’une part, <b>l'intégration du visualisateur Voyager dans une page web ou une application</b> permet
+                d’aller directement requérir la dernière version de l'objet 3D auprès du serveur en fonction de ses
+                droits de
+                diffusion. C’est la méthode la plus simple pour la <b>présentation des résultats sur des sites
+                    institutionnels, par email ou
+                    via des applications mobiles</b>. Les derniers développements en termes de <b>Réalité Augmentée</b>
+                permettent de diffuser
+                l’objet directement sous ce format à travers les AR Kit d’Apple 8 ou d'Androïd sans avoir besoin de
+                passer par
+                l’installation d’une application tierce.
+            </li>
+            <li>
+                D'autre part, <b>lorsqu'une connexion à internet n’est pas possible</b> (installations hors-les-murs par
+                exemple),
+                eCorpus permet de <b>créer des applications fonctionnant avec une base de données locale</b>, exportée
+                au
+                préalable depuis la plateforme en ligne. Cela permet d’avoir un travail asynchrone et d'ajouter des
+                données sans
+                connexion internet. Il faut par la suite resynchroniser les données en les exportant.
+            </li>
+        </ul>
     </div>
 </section>
-
 
 <section>
     <div class="section">
@@ -105,7 +138,8 @@ description: >
             Les résultats du développement sont diffusés dans un format Open Source, pour que l’utilisateur soit
             pleinement propriétaire de ses données et de son environnement. De plus, le dynamisme d’un projet Open
             Source est capital dans la réussite d’un projet et sa diffusion. La présence de sa documentation sur une
-            plateforme comme <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> et l’activité régulière du
+            plateforme comme <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> et l’activité
+            régulière du
             développement avec une équipe clairement identiﬁée.
         </p>
         <h4>Structure</h4>
@@ -131,6 +165,32 @@ description: >
     </div>
 </section>
 
+<section>
+    <div class="section">
+        <h3>Numérisation d'objets</h3>
+    </div>
+    <img style="object-position: 70% 0;" src="/assets/img/photogrammetryNiveaux.jpg"
+        alt="Prise de photogramétrie d'un biface Acheuléen par l'Inrap">
+    <div class="section">
+        <p>
+            Les modèles numériques issus de la <b>photogrammétrie</b> comportent les informations liées à la géométrie
+            de l’objet sous la forme d’un maillage ainsi que les informations liées à son aspect visuels tels que décrit
+            dans un modèle PBR (Physical Based Rendering) décrivant pour chaque point de l’objet ses propriétés optique
+            : couleur, réflexion, spéculaires, rugosité etc…
+        </p>
+        <p>
+            eCorpus est développé au sein d'un ecosystème public-privé de spécialistes de la numérisation du patrimoine,
+            formant un centre de compétence sur ces activités. Vous pouvez nous joindre pour acceder à des ressources ou
+            des prestations au près de l'Université de Lille, de Liège, d'entreprises privées ou bien de partenaires en
+            fonction de vos besoins.
+        </p>
+        <p>
+            eCorpus et les techniques de numérisation sont également enseignées dans le cadre de modules <b>Numérique et
+                Patrimoine</b> au sein de plusieurs universités.
+        </p>
+    </div>
+</section>
+
 <!-- <img style="object-position: 70% 0;" src="/assets/img/voyager-scene-tree.jpg"
 alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
 
@@ -147,46 +207,7 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
     </p>
 </section>
 
-<section>
-    <div class="section">
-        <h3> Médiation et diffusion des contenus</h3>
-    </div>
-    {% include voyager.html embed="encensoir" server="https://ecorpus.holusion.com" class="h-100" %}
-    <div class="section">
-        <p>
-            eCorpus permet une diffusion des objets 3D et des métadonnées dans deux conﬁgurations différentes.
-        </p>
-        <ul class="retrait">
-            <li>
-                D’une part, <b>l'intégration du visualisateur Voyager dans une page web ou une application</b> permet
-                d’aller directement requérir la dernière version de l'objet 3D auprès du serveur en fonction de ses
-                droits de
-                diffusion. C’est la méthode la plus simple pour la <b>présentation des résultats sur des sites
-                    institutionnels, par email ou
-                    via des applications mobiles</b>. Les derniers développements en termes de <b>Réalité Augmentée</b>
-                permettent de diffuser
-                l’objet directement sous ce format à travers les AR Kit d’Apple 8 ou d'Androïd sans avoir besoin de
-                passer par
-                l’installation d’une application tierce.
-            </li>
-            <li>
-                D'autre part, <b>lorsqu'une connexion à internet n’est pas possible</b> (installations hors-les-murs par
-                exemple),
-                eCorpus permet de <b>créer des applications fonctionnant avec une base de données locale</b>, exportée
-                au
-                préalable depuis la plateforme en ligne. Cela permet d’avoir un travail asynchrone et d'ajouter des
-                données sans
-                connexion internet. Il faut par la suite resynchroniser les données en les exportant.
-            </li>
-        </ul>
-    </div>
-</section>
 
-<section>
-    <!-- <img style="object-position: 70% 0;" src="/assets/img/sketch_ethesaurus.png"
-        alt="Sketch représentant le démonstrateur eThesaurus de Holusion sur une borne holographique"> -->
-    {% include youtube.html embed="ajOZ_fe8kso" %}
-</section>
 
 <section class="section">
     <p>
