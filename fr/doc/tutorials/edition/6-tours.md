@@ -13,12 +13,12 @@ Les visites guidées constituent la fonctionnalité d'eCorpus la plus complexe �
 \
 Cette fonctionnalité permet la création d'un véritable parcours, composé d'étapes, qui guideront l'utilisateur dans la scène. 
 \
-<img src="/assets/img/doc/Tour_01.jpg" width ="800" />
+<img src="/assets/img/doc/Tour_01.jpg" width ="800" alt="illustration tours"/>
 \
 Un icône "Tour" s'affiche lorseque la scène contient au moins une visite guidée. Pour afficher la liste des visites guidées disponibles, il vous suffit de cliquer sur l'icône "Tour".
 
 ## Créer une visite guidée
-<img src="/assets/img/doc/Tour_02.jpg" width ="800" />
+<img src="/assets/img/doc/Tour_02.jpg" width ="800" alt="illustration tours"/>
 \
 Les visites guidées ont un fonctionnement très similaires aux articles. Pour créer une visite guidée, séléctionner le bouton "Visites" ("Tours" si votre scène est en anglais) en haut de l'Explorer.
 
@@ -27,7 +27,7 @@ L'onglet Task en bas à gauche affichera alors la liste des visites guidées.
 A l'instar des articles, les visites guidées sont stockés directement dans les modèles 3D. Le modèle dans lequel vous stockez vos visites n'a pas beaucoup d'importance. Nous conseillons donc de ne créer les visites et les articles que dans un seul modèle 3D pour mieux vous y retrouver.
 
 
-<img src="/assets/img/doc/Tour_03.jpg" width ="400" />
+<img src="/assets/img/doc/Tour_03.jpg" width ="400" alt="illustration tours"/>
 \
 Pour créer une nouvelle visite guidée, selectionné un modèle et cliquez sur le bouton "+".
 
@@ -39,10 +39,10 @@ Nous vous conseillons d'ajouter un titre parlant et une description accrochante 
 
 ## Ajouter des étapes à sa visite
 
-<img src="/assets/img/doc/Tour_04.jpg" width ="800" />
+<img src="/assets/img/doc/Tour_04.jpg" width ="800" alt="illustration tours"/>
 \
 Pour ajouter des étapes à votre visite guidée, vous devez d'abord selectionner la visite en question dans la partie "Visite Guidée". Ensuite, rendez-vous dans l'onglet "Tour editor" en dessous de l'Explorer.
-<img src="/assets/img/doc/Tour_05.jpg" width ="700" />
+<img src="/assets/img/doc/Tour_05.jpg" width ="700" alt="illustration tours"/>
 \
 Une fois dans le Tour Editor, cliquez sur le bouton "Create" pour créer une nouvelle étape.
 \
@@ -50,7 +50,7 @@ Les étapes gardent en mémoire les informations de l'état de la scène dans le
 
 Vous pouvez changer le titre de l'étape via le paramètre "Title" tout à droite.
 ### Mettre à jour son étape
-<img src="/assets/img/doc/Tour_06.jpg" width ="700" />
+<img src="/assets/img/doc/Tour_06.jpg" width ="700" alt="illustration tours"/>
 \
 Si vous souhaitez changer ou mettre à jour un état montré dans une étape, cliquez si le bouton "Update" dans le Tour Editor.
 

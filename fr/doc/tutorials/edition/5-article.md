@@ -16,7 +16,7 @@ Le principe de création d'un article est assez similaire à celui de la créati
 (les modèles 3D servent ici d'"étagère de rangement" pour vos articles !)
 
 \
-<img src="/assets/img/doc/Article_01.jpg" width ="800" />
+<img src="/assets/img/doc/Article_01.jpg" width ="800"  alt="illustration articles"/>
 \
 
 Pour créer des articles, cliquez d'abord sur le bouton "Articles" en haut de l'Explorer. L'onglet "Task" en bas à gauche affichera alors la liste des articles créé sur le modèle selectionné.
@@ -24,7 +24,7 @@ Pour créer des articles, cliquez d'abord sur le bouton "Articles" en haut de l'
 ## Afficher la liste des Articles
 
 Tout comme les annotations, un icône "Article" s'affiche automatiquement si des articles ont été créés dans la scène. 
-<img src="/assets/img/doc/Article_02.jpg" width ="50" />
+<img src="/assets/img/doc/Article_02.jpg" width ="50" alt="illustration articles"/>
 \
 Pour afficher les articles dans un visualisateur de scène, il vous suffit donc de cliquer sur cet icône. Une liste s'affichera donnant accès à tous les articles enregistrés dans la scène. 
 
@@ -34,14 +34,14 @@ Par conséquent, veuillez à ce que la langue de vos articles correspondent touj
 
 ## Changer la langue de votre scène
 
-<img src="/assets/img/doc/Article_03.jpg" width ="800" />
+<img src="/assets/img/doc/Article_03.jpg" width ="800" alt="illustration articles"/>
 \
 Vous pouvez vérifier la langue de votre scène en bas à droite de la fenêtre d'explorer. En cliquant dessus, vous pourrez changer la langue de votre scène en fonction des langues disponibles
 
 **A noter que les langues proposées correspondent aux langues déjà utilisées dans votre scène**. Si vous souhaiter changer votre scène dans une langue qui n'a pas encore été utilisé, il vous suffit de créer un élément dans la langue souahité. Cela peut se faire dans les paramètres de la scène, dans les annotations, les articles ou bien encore les visites guidées,...
 
 ## Créer un Article
-<img src="/assets/img/doc/Article_04.jpg" width ="400" />
+<img src="/assets/img/doc/Article_04.jpg" width ="400" alt="illustration articles"/>
 \
 Pour créer un article, il suffit de cliquer sur le bouton "Create" dans l'Onglet "Task" à gauche de l'Explorer.
 
@@ -55,7 +55,7 @@ Si vous souhaiter changer le contenu de l'article, veuillez vous réferrer au po
 
 ## Editer des Articles
 
-<img src="/assets/img/doc/Article_05.jpg" width ="800" />
+<img src="/assets/img/doc/Article_05.jpg" width ="800" alt="illustration articles"/>
 \
 Pour changer le contenu de l'article, il faut vous rendre dans l'"Article Editor", disponible en dessous de l'Explorer.
 
@@ -68,14 +68,14 @@ Un article se compose généralement d'un titre et d'un corps. Vous pouvez y ajo
 **N'oubliez pas de sauvergarder votre article avant de le quitter !** Tout changement non sauvegardé dans l'éditeur d'article sera perdu, même si la scène a été sauvegardé au préalable.
 
 ### Sauvegarder ses modifications
-<img src="/assets/img/doc/Article_06.jpg" width ="600" />
+<img src="/assets/img/doc/Article_06.jpg" width ="600" alt="illustration articles"/>
 \
 Pour sauvegarder votre article, cliquez sur le bouton "Save" dans l'Article Editor.
 
 Si vous quitter votre article sans le sauvegarder, une pop-up d'arvertissement s'ouvrira pour vous mettre en garde. Vous pourrez alors chosir de sauvegarder, ou non, vos modifications.
 
 ### Supprimer un article
-<img src="/assets/img/doc/Article_07.jpg" width ="300" />
+<img src="/assets/img/doc/Article_07.jpg" width ="300" alt="illustration articles"/>
 \
 Pour supprimer un article, selectionnez-le dans la liste de l'onglet "Task" à gauche de l'Explorer. Cliquez ensuite sur le bouton "Delete".
 
