@@ -5,7 +5,7 @@ rank: 5
 
 ## Présentation de la fonctionnalité
 
-<iframe src="https://pod.univ-lille.fr/video/40136-creation-darticles-ecorpus/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="Création d'articles eCorpus" ></iframe>
+<iframe src="https://pod.univ-lille.fr/video/40136-creation-darticles-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Création d'articles eCorpus" ></iframe>
 
 ## Ajouter des articles
 
@@ -82,3 +82,6 @@ Pour supprimer un article, selectionnez-le dans la liste de l'onglet "Task" à g
 **Attention, aucun message d'avertissement ne s'ouvrira si vous cliquez sur ce bouton**. Faites donc attention à bien selectionner l'article voulu.
 
 Si il vous arrivez de supprimer un article par erreur, vous n'avez pas d'autre choix que de raffraichir la page pour annuler ce changement.
+
+## En savoir plus
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="6-tours">Créer des visites guidées</a>.

@@ -5,7 +5,7 @@ rank: 1
 
 ## Votre compte eCorpus
 
-<iframe src="https://pod.univ-lille.fr/video/40132-connexion-sur-une-base-ecorpus/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="Connexion sur une base eCorpus" ></iframe>    
+<iframe src="https://pod.univ-lille.fr/video/40132-connexion-sur-une-base-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Connexion sur une base eCorpus" ></iframe>    
   
 
 ## URL et accès à votre base de donnée
@@ -67,4 +67,5 @@ Prenez contact avec l'équipe de eCorpus pour vous accompagner dans la mise en p
 FORMULAIRE DE CONTACT
 
 
-SUIVANT : Ajouter un modèle 3D
+## En savoir plus
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="2-model">Préparer son modèle 3D</a>.

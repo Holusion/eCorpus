@@ -12,7 +12,7 @@ eCorpus utilise le visualisateur 3D DPO-Voyager.
 
 ## Découverte d'une scène eCorpus
 
-<iframe src="https://pod.univ-lille.fr/video/40131-creer_scenemp4/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="creer_scene.mp4" ></iframe>
+<iframe src="https://pod.univ-lille.fr/video/40131-creer_scenemp4/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="creer_scene.mp4" ></iframe>
 
 ## Préparation d'une scène eCorpus
 
@@ -83,7 +83,7 @@ Le centre de cette grille correspond au centre de rotation de la scène. Nous vo
 \
 Vous recentrer facilement votre modèle, il vous suffit de cliquer sur le bouton "Center", tout à droit de l'onglet.
 \
-Il se peut que le recentrage automatique ne suffise pas à règler les problèmes de placement. Pour replacer votre modèle manuellement, il vous suffit de changer les valeurs dans les emplacements de Position. Vous trouverez un tutoriel détaillé plus en profondeur en suivant ce lien: EN SAVOIR PLUS.
+Il se peut que le recentrage automatique ne suffise pas à règler les problèmes de placement. Pour replacer votre modèle manuellement, il vous suffit de changer les valeurs dans les emplacements de Position.
 
 ### Le bouton "Admin"
 <img src="/assets/img/doc/SceneCreation_05.jpg" width ="200" />
@@ -126,3 +126,6 @@ Intégration d'une scène eCorpus type
 ## Aller plus loin
 
 Sommaire
+
+## En savoir plus
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="4-annotation">Créer des annotations</a>.

@@ -5,7 +5,7 @@ rank: 6
 
 ## Présentation des visites guidées
 
-<iframe src="https://pod.univ-lille.fr/video/40137-creation-dune-visite-guidee-sur-ecorpus/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="Création d'une visite guidée sur eCorpus" ></iframe>
+<iframe src="https://pod.univ-lille.fr/video/40137-creation-dune-visite-guidee-sur-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Création d'une visite guidée sur eCorpus" ></iframe>
 
 ## Comprendre ce qu'est une visite guidée
 
@@ -55,3 +55,5 @@ Vous pouvez changer le titre de l'étape via le paramètre "Title" tout à droit
 Si vous souhaitez changer ou mettre à jour un état montré dans une étape, cliquez si le bouton "Update" dans le Tour Editor.
 
 Ce bouton correspond a un bouton de sauvegarde.
+\
+eCorpus crée automatiquement des transitions entre les différentes étapes. La durée de ces transitions peuvent être modifiés dans le paramètre "Duration" tout à droite. La valeur de ce paramètre est unique à chaque étape.
