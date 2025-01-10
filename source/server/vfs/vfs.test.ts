@@ -306,12 +306,42 @@ describe("Vfs", function(){
       });
 
       it("can return existing thumbnails", async function(){
-        let scene_id = await vfs.createScene("foo");
-        await vfs.writeDoc("\n", {scene: scene_id, user_id:0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+        let s1 = await vfs.createScene("01");
+        await vfs.writeDoc("\n", {scene: s1, user_id:0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+        let s2 = await vfs.createScene("02");
+        await vfs.writeDoc("\n", {scene: s2, user_id:0, name: "scene-image-thumb.png", mime: "image/jpeg"});
 
         let s = await vfs.getScenes(0);
-        expect(s).to.have.property("length", 1);
+        expect(s).to.have.property("length", 2);
         expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
+        expect(s[1]).to.have.property("thumb", "scene-image-thumb.png");
+      });
+
+      it("returns the last-saved thumbnail", async function(){
+        let s1 = await vfs.createScene("01");
+        let times = [
+          new Date("2022-01-01"),
+          new Date("2023-01-01"),
+          new Date("2024-01-01")
+        ];
+        const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: i, $time: d});
+        let png = await vfs.writeDoc("\n", {scene: s1, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
+        let jpg = await vfs.writeDoc("\n", {scene: s1, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+
+        let r = await setDate(jpg.id, times[1]);
+        await setDate(png.id, times[2]);
+        let s = await vfs.getScenes(0);
+        expect(s).to.have.length(1);
+        expect(s[0], `use PNG thumbnail if it's the most recent`).to.have.property("thumb", "scene-image-thumb.png");
+
+        await setDate(png.id, times[0]);
+        s = await vfs.getScenes(0);
+        expect(s[0], `use JPG thumbnail if it's the most recent`).to.have.property("thumb", "scene-image-thumb.jpg");
+
+        //If date is equal, prioritize jpg
+        await setDate(png.id, times[1]);
+        s = await vfs.getScenes(0);
+        expect(s[0], `With equal dates, alphanumeric order shopuld prioritize JPG over PNG file`).to.have.property("thumb", "scene-image-thumb.jpg");
       });
 
       it("can get archived scenes", async function(){
@@ -1145,10 +1175,41 @@ describe("Vfs", function(){
           expect(scene).to.have.property("author", "default");
         });
 
-        it("get a scene's thumbnail if it exist", async function(){
+        it("get a scene's thumbnail if it exist (jpg)", async function(){
           await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
-          let s = await vfs.getScenes(0);
-          expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
+          let s = await vfs.getScene(scene_id);
+          expect(s).to.have.property("thumb", "scene-image-thumb.jpg");
+        });
+
+        it("get a scene's thumbnail if it exist (png)", async function(){
+          await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
+          let s = await vfs.getScene(scene_id);
+          expect(s).to.have.property("thumb", "scene-image-thumb.png");
+        });
+
+        it("get a scene's thumbnail if it exist (prioritized)", async function(){
+          let times = [
+            new Date("2022-01-01"),
+            new Date("2023-01-01"),
+            new Date("2024-01-01")
+          ];
+          const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: i, $time: d});
+          let png = await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
+          let jpg = await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+
+          let r = await setDate(jpg.id, times[1]);
+          await setDate(png.id, times[2]);
+          let s = await vfs.getScene(scene_id);
+          expect(s, `use PNG thumbnail if it's the most recent`).to.have.property("thumb", "scene-image-thumb.png");
+
+          await setDate(png.id, times[0]);
+          s = await vfs.getScene(scene_id);
+          expect(s, `use JPG thumbnail if it's the most recent`).to.have.property("thumb", "scene-image-thumb.jpg");
+
+          //If date is equal, prioritize jpg
+          await setDate(png.id, times[1]);
+          s = await vfs.getScene(scene_id);
+          expect(s, `With equal dates, alphanumeric order shopuld prioritize JPG over PNG file`).to.have.property("thumb", "scene-image-thumb.jpg");
         });
 
         it("get requester's access right", async function(){

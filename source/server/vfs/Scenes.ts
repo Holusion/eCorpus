@@ -114,6 +114,9 @@ export default abstract class ScenesVfs extends BaseVfs{
     `;
   }
 
+  static _fragIsThumbnail(field :string = "name"){
+    return `(${field} = "scene-image-thumb.jpg" OR ${field} = "scene-image-thumb.png") AND size != 0`;
+  }
   /**
    * Performs a type and limit check on a SceneQuery object and throws if anything is unacceptable
    * @param q 
@@ -222,9 +225,9 @@ export default abstract class ScenesVfs extends BaseVfs{
           WHERE mime = "application/si-dpo-3d.document+json" AND data IS NOT NULL
         ),
         thumbnails AS (
-          SELECT name, fk_scene_id
+          SELECT name, ctime, fk_scene_id
           FROM current_files
-          WHERE name="scene-image-thumb.jpg" AND size != 0
+          WHERE ${ScenesVfs._fragIsThumbnail()}
         )
       SELECT 
         scenes.scene_id AS id,
@@ -235,7 +238,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         IFNULL((
           SELECT username FROM users WHERE scenes.fk_author_id = user_id
         ), "default") AS author,
-        (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id) AS thumb,
+        (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
         tags.names AS tags,
         json_object(
           ${(typeof user_id === "number" && 0 < user_id)? `
@@ -323,7 +326,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       )
       SELECT 
         (SELECT MAX(ctime) FROM scene_files) AS mtime,
-        (SELECT name FROM scene_files WHERE name = "scene-image-thumb.jpg" AND size != 0) AS thumb
+        (SELECT name FROM scene_files WHERE ${ScenesVfs._fragIsThumbnail()} ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb
     `, {$scene_id: scene.id});
     return {
       ...scene,

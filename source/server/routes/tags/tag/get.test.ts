@@ -17,6 +17,7 @@ describe("GET /tags/:tag", function(){
     userManager = locals.userManager;
     admin = await userManager.addUser("alice", "12345678", true);
     user = await userManager.addUser("bob", "12345678");
+    this.server.set("trust proxy", true);
   });
 
   this.afterEach(async function(){
@@ -61,9 +62,20 @@ describe("GET /tags/:tag", function(){
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
       expect(body).to.have.property("length", 2);
+    });
 
+    it("gets absolute URLs for thumbnails", async function(){
+      let s1 = await vfs.createScene("foo");
+      await vfs.writeDoc("some data\n", {scene: s1, name: "scene-image-thumb.jpg", user_id: 0, mime: "image/png"});
+      await vfs.addTag("foo", "footag");
 
-    })
+      let {body} = await this.agent.get("/tags/footag")
+      .set("X-Forwarded-Host", "example.com")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(body).to.have.property("length", 1);
+      expect(body[0]).to.have.property("thumb", "http://example.com/scenes/foo/scene-image-thumb.jpg");
+    });
   });
 
   describe("as administrator", function(){
