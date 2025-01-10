@@ -104,7 +104,7 @@ function _perms(check:number,req :Request, res :Response, next :NextFunction){
   if(!scene) throw new BadRequestError("no scene parameter in this request");
   if(check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${check}`);
 
-  res.append("Cache-Control", "private");
+  res.set("Vary", "Cookie, Authorization");
 
   if(isAdministrator) return next();
   
