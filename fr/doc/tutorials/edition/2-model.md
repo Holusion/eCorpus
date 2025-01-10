@@ -27,13 +27,13 @@ Cette scène ne peut pas être sauvegardé, tout changement réalisé sera perdu
 Tutoriel à venir: concevoir un modèle 3D sur Fusion360
 #### Sur Blender
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportSTLtoGLB_01.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportSTLtoGLB_01.jpg" width ="500" height="500" alt="illustration models" />
 \
 Tout d'abord, veuillez Importer votre fichier STL grâce au bouton d'importer STL présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000" alt="illustration models"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
@@ -49,13 +49,13 @@ Tutoriel à venir: numériser avec votre smartphone
 
 #### Sur Blender
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportOBJtoGLB_01.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportOBJtoGLB_01.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Tout d'abord, veuillez Importer votre fichier OBJ grâce au bouton d'importer OBJ présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"alt="illustration models"/>
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000" alt="illustration models"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
@@ -70,13 +70,13 @@ Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
 
 #### Sur Blender
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportPLYtoGLB_01.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportPLYtoGLB_01.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Tout d'abord, veuillez Importer votre fichier PLY grâce au bouton d'importer PLY présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"alt="illustration models"/>
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000" alt="illustration models"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
@@ -91,13 +91,13 @@ Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
 
 #### FBX
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportFBXtoGLB_01.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportFBXtoGLB_01.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Tout d'abord, veuillez Importer votre fichier FBX grâce au bouton d'importer FBX présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000" alt="illustration models"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
@@ -110,13 +110,13 @@ Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
 
 #### DAE
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportDAEtoGLB_01.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportDAEtoGLB_01.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Tout d'abord, veuillez Importer votre fichier DAE grâce au bouton d'importer DAE présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000" alt="illustration models"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
@@ -129,13 +129,13 @@ Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
 
 #### USD*
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportUSDtoGLB_01.jpg" width ="500" height="500" />
+<img src="/assets/img/doc/ExportUSDtoGLB_01.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Tout d'abord, veuillez Importer votre fichier USD* grâce au bouton d'importer USD* présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500" alt="illustration models"/>
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000" alt="illustration models"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
