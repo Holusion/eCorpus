@@ -9,6 +9,7 @@ Une scène eCorpus est initialisée par un modèle 3D au format GLTF Binary (abr
 
 Ce format est libre, il est défini par le Consotirum Khronos. Sa documentation est librement accessible sur la page github du projet.
 
+
 ## Tester votre modèles 3D
 
 Charger un modèle 3D test : []

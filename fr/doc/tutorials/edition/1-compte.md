@@ -1,14 +1,14 @@
 ---
-title: Connexion à votre compte eCorpus
+title: Connexion à eCorpus
 rank: 1
 ---
 
 ## Votre compte eCorpus
 
-VIDEO détaillée sur la connexion à un compte eCorpus
+<iframe src="https://pod.univ-lille.fr/video/40132-connexion-sur-une-base-ecorpus/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="Connexion sur une base eCorpus" ></iframe>    
+  
 
-
-## URL et accès
+## URL et accès à votre base de donnée
 
 Pour fonctionner, un serveur eCorpus doit être mis en place. eCorpus est décentralisé et fonctionne sur des instances indépendantes les unes les autres pour garantir la pleine souverainté des données de chacun. Les données restent interopérables et peuvent être facilement échangées entre utilisateurs.
 

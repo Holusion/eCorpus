@@ -5,6 +5,8 @@ rank: 0
 
 ## Prise en main d'eCorpus
 
+
+
 eCorpus est un logiciel libre permettant de conserver, annoter et diffuser des modèles 3D. Cet ensemble de tutoriel a pour but de vous permettre de découvrir les fonctionnalités d'eCorpus en tant qu'utilisateur, éditeur et administrateur.
 
 eCorpus utilise le visualisateur 3D DPO-Voyager.
@@ -12,7 +14,8 @@ eCorpus utilise le visualisateur 3D DPO-Voyager.
 
 ## Découverte d'une scène eCorpus
 
-VIDEO qui fait un tour d'Horizon des possibilités d'eCorpus
+
+<iframe src="https://pod.univ-lille.fr/video/40075-introduction-a-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Introduction à eCorpus" ></iframe>
 
 ## A vous de jouer
 

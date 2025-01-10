@@ -12,7 +12,7 @@ eCorpus utilise le visualisateur 3D DPO-Voyager.
 
 ## Découverte d'une scène eCorpus
 
-VIDEO qui fait un tour d'Horizon des possibilités d'eCorpus
+<iframe src="https://pod.univ-lille.fr/video/40131-creer_scenemp4/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="creer_scene.mp4" ></iframe>
 
 ## Préparation d'une scène eCorpus
 

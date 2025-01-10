@@ -3,6 +3,10 @@ title: Ajouter des Annotations
 rank: 4
 ---
 
+## Présentation des Annotations
+
+<iframe src="https://pod.univ-lille.fr/video/40135-gestion-des-annotations-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Gestion des annotations eCorpus" ></iframe>
+
 ## Ajouter des annotations
 
 Gérer le moteur d'annotation, ajouter du contenu, les organiser et les animer.
