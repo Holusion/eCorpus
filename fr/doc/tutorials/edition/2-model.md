@@ -12,9 +12,13 @@ Ce format est libre, il est défini par le Consotirum Khronos. Sa documentation 
 
 ## Tester votre modèles 3D
 
-Nous préparons la fonctionnalité d'une Scène Stand Alone pour vous permettre de tester vos modèles 3D de manière simple.
+Si vous n'avez pas encore de base de donnée eCorpus ou de compte utilisateur, vous pouvez tout de même tester l'importation de vos modèles via cette scène Stand Alone:
 \
-En attendant que cette fonctionnalité ne soit accessible, vous aurez besoin d'un compte et d'un accès à une base de donnée eCorpus afin de tester vos modèles 3D.
+[Cliquez ici pour accèder à la scène test Standalone](https://ecorpus.fr-scv.fr/ui/standalone)
+\
+Pour se faire, glisser simplement votre modèle en GLB dans la scène ci-dessus. L'object apparaitra dans le scène si l'importation a réussi.
+
+Cette scène ne peut pas être sauvegardé, tout changement réalisé sera perdu. Aucun des modèles envoyés sur cette scène ne sera récupérer.
 
 ## Préparer un modèle 3D
 
@@ -23,13 +27,13 @@ En attendant que cette fonctionnalité ne soit accessible, vous aurez besoin d'u
 Tutoriel à venir: concevoir un modèle 3D sur Fusion360
 #### Sur Blender
 Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
-<img src="/assets/img/doc/ExportSTLtoGLB_01.jpg" width ="500" />
+<img src="/assets/img/doc/ExportSTLtoGLB_01.jpg" width ="500" height="500" />
 \
 Tout d'abord, veuillez Importer votre fichier STL grâce au bouton d'importer STL présent dans Blender.
-<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" />
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500" />
 \
 Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
-<img src="/assets/img/doc/ExportGLB_00.jpg" width ="500" />
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
 \
 Voici les paramètres recommandés pour vos exports en GLB. 
 
@@ -43,15 +47,104 @@ Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
 
 Tutoriel à venir: numériser avec votre smartphone
 
+#### Sur Blender
+Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
+<img src="/assets/img/doc/ExportOBJtoGLB_01.jpg" width ="500" height="500" />
+\
+Tout d'abord, veuillez Importer votre fichier OBJ grâce au bouton d'importer OBJ présent dans Blender.
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+\
+Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+\
+Voici les paramètres recommandés pour vos exports en GLB. 
+
+Tout d'abord, nous vous conseillons de cocher la case "Selected Object Only" pour être sûr de n'exporter que l'objet selectionné.
+\
+Ensuite, dans "Data" et "Material" selectionnez le format "WebP" en compression 90 pour les textures.
+\
+Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
+
+
 ### A partir d'un nuage de point PLY
+
+#### Sur Blender
+Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
+<img src="/assets/img/doc/ExportPLYtoGLB_01.jpg" width ="500" height="500" />
+\
+Tout d'abord, veuillez Importer votre fichier PLY grâce au bouton d'importer PLY présent dans Blender.
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+\
+Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+\
+Voici les paramètres recommandés pour vos exports en GLB. 
+
+Tout d'abord, nous vous conseillons de cocher la case "Selected Object Only" pour être sûr de n'exporter que l'objet selectionné.
+\
+Ensuite, dans "Data" et "Material" selectionnez le format "WebP" en compression 90 pour les textures.
+\
+Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
+
 
 ### Autres formats de fichier compatibles
 
-FBX
+#### FBX
+Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
+<img src="/assets/img/doc/ExportFBXtoGLB_01.jpg" width ="500" height="500" />
+\
+Tout d'abord, veuillez Importer votre fichier FBX grâce au bouton d'importer FBX présent dans Blender.
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+\
+Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+\
+Voici les paramètres recommandés pour vos exports en GLB. 
 
-DAE
+Tout d'abord, nous vous conseillons de cocher la case "Selected Object Only" pour être sûr de n'exporter que l'objet selectionné.
+\
+Ensuite, dans "Data" et "Material" selectionnez le format "WebP" en compression 90 pour les textures.
+\
+Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
 
-USD*
+
+#### DAE
+Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
+<img src="/assets/img/doc/ExportDAEtoGLB_01.jpg" width ="500" height="500" />
+\
+Tout d'abord, veuillez Importer votre fichier DAE grâce au bouton d'importer DAE présent dans Blender.
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+\
+Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+\
+Voici les paramètres recommandés pour vos exports en GLB. 
+
+Tout d'abord, nous vous conseillons de cocher la case "Selected Object Only" pour être sûr de n'exporter que l'objet selectionné.
+\
+Ensuite, dans "Data" et "Material" selectionnez le format "WebP" en compression 90 pour les textures.
+\
+Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
+
+
+#### USD*
+Blender est un logiciel d'édition 3D gratuit que vous pouvez utiliser pour importer vos modèles afin de les exporter en GLB.
+<img src="/assets/img/doc/ExportUSDtoGLB_01.jpg" width ="500" height="500" />
+\
+Tout d'abord, veuillez Importer votre fichier USD* grâce au bouton d'importer USD* présent dans Blender.
+<img src="/assets/img/doc/ExportSTLtoGLB_02.jpg" width ="500" height="500"/>
+\
+Une fois votre modèle importé, vous pouvez l'exporter via le bouton d'Export en GLB présent dans Blender.
+<img src="/assets/img/doc/ExportGLB_00.jpg" width ="400" height="1000"/>
+\
+Voici les paramètres recommandés pour vos exports en GLB. 
+
+Tout d'abord, nous vous conseillons de cocher la case "Selected Object Only" pour être sûr de n'exporter que l'objet selectionné.
+\
+Ensuite, dans "Data" et "Material" selectionnez le format "WebP" en compression 90 pour les textures.
+\
+Ensuite, cochez la case "Compression" pour alléger encore plus votre modèle.
+
 
 
 
