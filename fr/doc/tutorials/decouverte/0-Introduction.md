@@ -84,6 +84,25 @@ Une fois que l'image vous convient, vous pouvez la sauvegarder en cliquant sur l
 
 **Attention, sauvegarder la scène sans avoir sauvegarder la miniature dans l'onglet Capture ne suffit pas, vous risquez de perdre votre image de miniature.**
 
+## Replacer son modèle dans la scène
+
+Lors de l'importation de votre modèle 3D, il se peut que l'emplacement du modèle ne soit pas le bon. Si vous remarquez que votre modèle est excentré dans la scène, ou que son centre de rotation ne semble pas correcte, vous pouvez corriger son emplacement via l'onglet "Pose", en haut de l'Explorer.
+<img src="/assets/img/doc/SceneEdition_07.jpg" width ="800" />
+\
+En cliquant sur "Pose" vous noterez un changement dans l'Explorer. La vu 3D est désormais divisée en 4 plans, montrant respectivant une vue 3/4, une vue de dessus, un vue de côté, et enfin une vue de face de votre scène.
+
+Vous remarquerez également l'apparition d'une grille virtuelle. Cette grille ne sert que de repère pour repositionner votre modèle, elle n'apparaîtra donc pas sur votre scène finale.
+
+Le centre de cette grille correspond au centre de rotation de la scène. Nous vous conseillons donc de replacer votre objet de manière à ce que son centre de rotation soit placé au centre de cette grille.
+\
+
+### Centrer son modèle automatiquement
+<img src="/assets/img/doc/SceneEdition_08.jpg" width ="300" />
+\
+Vous recentrer facilement votre modèle, il vous suffit de cliquer sur le bouton "Center", tout à droit de l'onglet.
+\
+Il se peut que le recentrage automatique ne suffise pas à règler les problèmes de placement. Pour replacer votre modèle manuellement, il vous suffit de changer les valeurs dans les emplacements de Position. Vous trouverez un tutoriel détaillé plus en profondeur en suivant ce lien: EN SAVOIR PLUS.
+
 ### Le bouton "Admin"
 <img src="/assets/img/doc/SceneCreation_05.jpg" width ="200" />
 \
