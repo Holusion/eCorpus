@@ -1,33 +1,37 @@
 
 
-:host(corpus-navbar) {
+
+nav.navbar-nav {
   position: fixed;
   top: 0;
-  width: 100%;
-  z-index: 1001;
-  
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-
-  background-color: var(--color-section);
-  border-bottom: 3px solid var(--color-element);
-}
-
-nav {
-  max-width: var(--col-width);
   width:100%;
   height: var(--nav-height);
   box-sizing: border-box;
   display: flex;
-  justify-content: space-between;
+  justify-content:center;
+  z-index: 1001;
+
+  background-color: var(--color-section);
+  border-bottom: 3px solid var(--color-element);
+
+  .nav-content{
+    flex: 1 1 auto;
+    max-width: var(--col-width);
+    height: var(--nav-height);
+    display:flex;
+    justify-content: space-between;
+  }
+
   .spacer{
     flex: 1 1 auto;
   }
-  .divider, ::slotted(.divider){
+
+  .divider{
     width: 1px;
     background-color: var(--color-dark);
   }
+
+
   .brand {
     display: flex;
     height: 100%;
@@ -47,12 +51,18 @@ nav {
   .brand:hover {
     filter: opacity(80%);
   }
+  
+}
+
+nav{
+
   .navbar{
     display: flex;
     align-items: stretch;
     flex-basis: auto;
     justify-content: end;
-    ::slotted(.btn), ::slotted(.nav-link), ::slotted(.form-item){
+    align-items: center;
+    .btn, .nav-link, .form-item{
       height:100%;
       flex: 0 0 auto;
       box-sizing: border-box;
@@ -60,51 +70,45 @@ nav {
       font-size: 13px;
       color: var(--color-text);
     }
-    ::slotted(.btn){
+    .btn{
       padding: 4px 10px !important;
     }
   }
-}
-
-:host(.nav-link){
-  position: relative;
-  flex-wrap: wrap;
-  color: inherit;
-  font-size: 13px;
-  
-  slot{
-    padding: 5px;
-    margin: 3px;
-    white-space: nowrap;
-  }
-
-  > a {
-    color: inherit;
-    font-size: inherit;
-    border-bottom: 3px solid transparent;
-    transition: border 0.2s ease 0s;
-    svg { fill: currentColor; }
-
-    &:hover, &:focus{
-      color: white;
-      background-color: var(--color-highlight2);
-    }
-  
-    &.selected {
-      border-bottom: 3px solid var(--color-primary);
-      &:hover, &:focus {
-        border-bottom: 3px solid var(--color-primary-lighter);
-      }
-    }
-
-    cursor: pointer;
-    text-decoration: none;
+  .nav-link{
+    position: relative;
+    flex-wrap: wrap;
     height:100%;
     display: flex;
     align-items: center;
     flex: 1 1 auto;
     box-sizing: border-box;
     padding: 4px 10px;
-    white-space:nowrap;
+    margin: 3px;
+    border-bottom: 3px solid transparent;
+    font-size: 13px;
+    transition: border 0.2s ease 0s;
+
+    color: inherit;
+
+    svg { fill: currentColor; }
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+
+    &:hover, &:focus{
+      color: white;
+      background-color: var(--color-highlight2);
+    }
+  
+    &.active {
+      border-bottom: 3px solid var(--color-primary);
+      &:hover, &:focus {
+        border-bottom: 3px solid var(--color-primary-lighter);
+      }
+    }
   }
+}
+
+change-locale{
+  cursor: pointer;
 }

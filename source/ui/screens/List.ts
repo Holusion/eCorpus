@@ -5,7 +5,6 @@ import Notification from "../composants/Notification";
 
 import "../composants/Spinner";
 import "../composants/UploadButton";
-import "./LandingPage";
 import "../composants/SceneCard";
 import "../composants/ListItem";
 import "../composants/TagList";
@@ -141,9 +140,7 @@ interface Upload{
 
     protected render() :TemplateResult {
         console.log("Render :", window.location.href);
-        if(!this.isUser){
-            return html`<landing-page></landing-page>`;
-        }
+
         let mode = (this.user?"write":"read");
 
         let listContent = html`

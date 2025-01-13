@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {{> head }}
+
+    <link rel="stylesheet" href="/dist/css/theme.css">
+    <link rel="stylesheet" href="/dist/css/corpus.css">
+
+  </head>
+  <body>
+  {{> navbar }}
+  <main class="admin-panel">
+    <nav>
+      {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.adminRecap"}}{{/navLink}}
+      {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.adminUsers"}}{{/navLink}}
+      {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> {{i18n "nav.adminStats"}}{{/navLink}}
+      {{#navLink "/ui/admin/archives" "exact"}}<ui-icon name="folder"></ui-icon> {{i18n "nav.adminArchives"}}{{/navLink}}
+    </nav>
+    <section>
+      {{{body}}}
+    </section>
+  </main>
+  {{> footer }}
+  <script src="/dist/js/corpus.js"></script>
+  <style>
+    .admin-panel{
+      display:flex;
+      gap: 15px;
+      padding: 1rem;
+      align-items: start;
+    }
+    .admin-panel nav{
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding-bottom: 10px;
+      margin-top: 75px;
+    }
+    section{
+      width:100%;
+    }
+    .admin-panel nav > .nav-link{
+      font-size: 1rem;
+      text-align: left;
+      min-width:200px;
+      flex-wrap: nowrap;
+    }
+    .admin-panel  nav > .nav-link svg{
+      fill: white;
+      padding-right: 2px;
+    }
+    .admin-panel  nav > .nav-link ui-icon{
+      width: 1.5rem !important;
+      height: 1.5rem !important;
+    }
+
+    @media (max-width: 1024px){
+      .admin-panel{
+        flex-direction: column;
+      }
+      .admin-panel nav{
+        justify-content: center;
+        margin-top:0;
+        border-bottom: 1px solid #103040;
+      }
+    }
+  </style>
+  </body>
+</html>

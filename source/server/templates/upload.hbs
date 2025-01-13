@@ -1,0 +1,38 @@
+<h2>{{i18n "titles.upload"}}</h2>
+
+<upload-form>
+  <form class="form-control">
+    <section class="container">
+      <h3>{{i18n "titles.createScene"}}</h3>
+      <div class="form-group">
+        <div class="form-item">
+          <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile"}}</label>
+          <input 
+              class="dropzone"
+              id="fileUpload" 
+              type="file"
+              name="files"
+            />
+        </div>
+      </div>
+      <div class="form-group inline" style="gap: .5rem;" >
+        <div class="form-item" style="flex: 1 1 auto;">
+          <label for="sceneTitle">{{i18n "labels.sceneTitle"}} ({{i18n "labels.optional"}})</label>
+          <input id="sceneTitle" type="text" name="name">
+        </div>
+        
+        <div class="form-item">
+          <label for="sceneSetupLanguage">{{i18n "labels.setupLanguage"}}</label>
+          <select name="language" id="sceneSetupLanguage" >
+            {{#each languages}}
+            <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="form-item" style="align-self: end; justify-self: end">
+          <button class="btn btn-main" type="submit" role="submit" >{{i18n "buttons.upload"}}</button>
+        </div>
+      </div>
+    </section>
+  </form>
+</upload-form>

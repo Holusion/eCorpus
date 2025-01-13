@@ -23,21 +23,6 @@ describe("Web Server Integration", function(){
     await cleanIntegrationContext(this);
   });
 
-  describe("html content", function(){
-    this.beforeEach(async function(){
-      await fs.mkdir(path.join(this.dir, "dist"), {recursive: true});
-      await fs.writeFile(path.join(this.dir, "dist", "ecorpus-main.html"), "<html></html>");
-    });
-
-    ["/ui/scenes/", "/ui/users"].forEach(function(path){
-      it(`GET ${path}`, async function(){
-        await request(this.server).get(path)
-        .expect("Content-Type", "text/html; charset=utf-8")
-        .expect(200);
-      })
-    });
-  });
-
   describe("permissions", function(){
     let scene_id :number;
     this.beforeEach(async function(){

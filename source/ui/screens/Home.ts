@@ -5,7 +5,6 @@ import Notification from "../composants/Notification";
 
 import "../composants/Spinner";
 import "../composants/UploadButton";
-import "./LandingPage";
 import "../composants/SceneCard";
 import "../composants/ListItem";
 
@@ -146,9 +145,6 @@ interface Upload{
     }
 
     protected render() :TemplateResult {
-        if(!this.isUser){
-            return html`<landing-page></landing-page>`;
-        }
         let mode = (this.user?"write":"read")
         if(!this.list){
             return html`<div style="margin-top:10vh"><spin-loader visible></spin-loader></div>`;

@@ -1,4 +1,4 @@
-import { LitElement, TemplateResult, html } from 'lit';
+import { LitElement, TemplateResult, html, render } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 import Notification from "../composants/Notification";
@@ -11,10 +11,10 @@ import "../composants/HistoryAggregation";
 import i18n from "../state/translate";
 import { withUser } from "../state/auth";
 import { navigate } from "../state/router";
-import Modal from "../composants/Modal";
 import { AccessType, AccessTypes, Scene } from "../state/withScenes";
 import HttpError from "../state/HttpError";
 import { HistoryEntry, HistoryEntryJSON } from "../composants/HistoryAggregation";
+import { createDialog, showFormModal, showTaskModal } from '../state/dialog';
 
 
 
@@ -279,7 +279,10 @@ interface AccessRights{
       const id = e.detail;
       let entry = this.versions.find(e=>e.id === id);
       if(!Number.isInteger(id) || !entry) return Notification.show(`Can't restore to ${id}: Invalid id`, "error");
-      Notification.show(this.t("info.restoreTo", {point: `${entry.name}#${entry.generation}`}), "info", 1500);
+      if(!confirm(this.t("info.restoreTo", {point: `${entry.name}#${entry.generation}`}))){
+        return;
+      }
+      const closeNotification = Notification.show(this.t("info.restoreTo", {point: `${entry.name}#${entry.generation}`}), "info", 1500);
       this.versions = null;
       fetch(`/history/${encodeURIComponent(this.name)}`, {
         method: "POST",
@@ -290,7 +293,12 @@ interface AccessRights{
         Notification.show("Restoration completed.", "info", 3000)
       }).catch(e=>{
         Notification.show(`Failed to restore : ${e.message}`, 'error');
-      }).finally(()=>this.fetchHistory())
+      })
+      .then(()=>this.fetchHistory())
+      .then(()=>{
+        closeNotification();
+        Notification.show(this.t("info.restoredTo", {point: `${entry.name}#${entry.generation}`}), "info", 2500)
+      });
     }
 
     async grant(username :string, access :AccessRights["access"]){
@@ -317,12 +325,33 @@ interface AccessRights{
 
     onDelete = ()=>{
       const isArchived = this.scene.name.endsWith("#"+this.scene.id.toString(10));
-      console.log("Scene: ", this.scene.name, this.scene.id);
+      console.log("Delete Scene: ", this.scene.name, this.scene.id);
+      
+      let dialogBody = document.createElement("p");
+      dialogBody.innerHTML = this.t("info.sceneDeleteConfirm", {name: this.name});
+
+      let dialogButtons = document.createElement("div");
+      Object.assign(dialogButtons.style, {
+        display: "flex",
+        gap: "5px",
+        justifyContent: "end",
+      });
+
+      render(html`
+        ${isArchived? null: html`<ui-button class="btn-main" @click=${()=>doDelete(true)} text=${this.t("ui.archive")}></ui-button>`}
+        ${this.user.isAdministrator?html`<ui-button class="btn-main btn-danger" @click=${()=>doDelete(false)} text=${this.t("ui.delete")}></ui-button>`:null}
+      `,dialogButtons);
+      
+      let c = new AbortController();
+      let dialog :HTMLDialogElement|null = null;
       const doDelete = (archive:boolean)=>{
-        Notification.show(`${archive?"Archiving":"Deleting"} scene ${this.name}`, "warning");
-        fetch(`/scenes/${encodeURIComponent(this.name)}?archive=${archive?"true":"false"}`, {method:"DELETE"})
+        render(html`${archive?"Archiving":"Deleting"} scene ${this.name}`, dialogBody);
+        render(html`
+          <ui-button class="btn-main" @click=${()=>dialog?.close()} text=${this.t("ui.cancel")}></ui-button>
+        `,dialogButtons);
+        fetch(`/scenes/${encodeURIComponent(this.name)}?archive=${archive?"true":"false"}`, {method:"DELETE", signal: c.signal})
         .then(()=>{
-          Modal.close();
+          dialog?.close();
           navigate(this, "/ui/");
         }, (e)=>{
           console.error(e);
@@ -330,55 +359,62 @@ interface AccessRights{
         });
       }
 
-      Modal.show({
+      dialog = createDialog({
         header: this.t("ui.delete", {capitalize: "string"}),
-        body: html`<p>${ this.t("info.sceneDeleteConfirm", {name: this.name})}</p>`,
-        buttons: html`<div style="display: flex;gap: 5px;justify-content: end;">
-          ${isArchived? null: html`<ui-button class="btn-main" @click=${()=>doDelete(true)} text=${this.t("ui.archive")}></ui-button>`}
-          ${this.user.isAdministrator?html`<ui-button class="btn-main btn-danger" @click=${()=>doDelete(false)} text=${this.t("ui.delete")}></ui-button>`:null}
-        </div>`
-      })
+        body: dialogBody,
+        buttons: dialogButtons,
+      });
+
+      dialog.addEventListener("close", ()=>{
+        c.abort();
+        document.body.removeChild(dialog);
+        dialog = null;
+      });
       
+      document.body.appendChild(dialog);
+      dialog.showModal();
     }
 
     onRename = ()=>{
-      const onRenameSubmit = (ev)=>{
-        ev.preventDefault();
-        let name = (Modal.Instance.shadowRoot.getElementById("sceneRenameInput") as HTMLInputElement).value;
-        Modal.close();
-        Modal.show({
-          header: this.t("ui.renameScene"),
-          body: html`<div style="display:block;position:relative;padding-top:110px"><spin-loader visible></spin-loader></div>`,
-        });
-        fetch(`/scenes/${encodeURIComponent(this.name)}`, {
-          method:"PATCH",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({name})
-        }).then((r)=>{
+
+      showFormModal({
+        header: this.t("ui.renameScene"),
+        body: html`
+          <div class="form-item">
+            <input name="name" type="text" required minlength=3 autocomplete="off" style="padding:.25rem;margin-bottom:.75rem;width:100%;" class="form-control" id="sceneRenameInput" placeholder="${this.name}">
+          </div>
+          <div style="display:flex;justify-content:end">
+            <button class="btn btn-main" type="submit">${this.t("ui.rename")}</button>
+          </div>
+        `,
+      }).then(async (data)=>{
+        let name = data.get("name");
+        if(!name) return Notification.show("Invalid scene name :"+name, "warning");
+        let c = new AbortController();
+        await showTaskModal((async ()=>{
+          let r = await fetch(`/scenes/${encodeURIComponent(this.name)}`, {
+            method:"PATCH",
+            headers:{"Content-Type":"application/json"},
+            signal: c.signal,
+            body: JSON.stringify({name}),
+          })
           if(r.ok){
-            Notification.show("Renamed "+this.name+" to "+name, "info", 1600);
+            Notification.show("Renamed "+this.name+" to "+name, "info", 2000);
             navigate(this, `/ui/scenes/${name}/`);
           }else{
             throw new Error(`[${r.status}] ${r.statusText}`);
           }
-        }).catch((e)=>{
+        })().catch(e=>{
+          if(e.name === "AbortError")return Notification.show("Rename Aborted", "info");
           console.error(e);
           Notification.show(`Failed to rename ${this.name} : ${e.message}`);
-        }).finally(()=>{
-          setTimeout(()=>{
-            Modal.close();
-          }, 500);
+        }), {
+          header: this.t("ui.rename"),
+          onClose: ()=> c.abort(),
         });
-      }
-
-      Modal.show({
-        header: this.t("ui.renameScene"),
-        body: html`<form class="form-group" @submit=${onRenameSubmit}>
-          <div class="form-item">
-            <input type="text" required minlength=3 autocomplete="off" style="padding:.25rem;margin-bottom:.75rem;width:100%;" class="form-control" id="sceneRenameInput" placeholder="${this.name}">
-          </div>
-        </form>`,
-        buttons: html`<ui-button class="btn-main" @click=${onRenameSubmit} text=${this.t("ui.rename")}></ui-button>`,
+          
+      }, ()=>{
+        console.log("Rename Cancelled");
       });
 
     }

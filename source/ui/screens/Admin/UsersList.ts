@@ -3,7 +3,6 @@ import { customElement, property } from 'lit/decorators.js';
 
 
 import "../../composants/Spinner";
-import Modal from "../../composants/Modal";
 import "../../composants/SceneCard";
 import HttpError from "../../state/HttpError";
 import "../../composants/Icon";
@@ -12,6 +11,7 @@ import i18n from "../../state/translate";
 
 import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
 import tableStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/tables.scss';
+import { showModal, showTaskModal } from '../../state/dialog';
 
 interface User {
     uid :string;
@@ -62,26 +62,35 @@ interface User {
         const email = ev.target["email"].value;
         const password = ev.target["password"].value;
         const isAdministrator = ev.target["isAdministrator"].checked;
-        (ev.target as HTMLFormElement).reset();
-        Modal.close();
         console.log("create user : ", username, password, isAdministrator, email);
-        fetch("/users", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username, password, isAdministrator, email})
-        }).then(HttpError.okOrThrow)
-        .then(()=>this.fetchUsers())
-        .catch(e=>{
-            console.error(e);
-            Modal.show({
-                header: this.t("error.createUser"),
-                body: "Message : "+e.message,
-            });
-        });
+        let c = new AbortController();
+        showTaskModal(
+            fetch("/users", {
+                signal: c.signal,
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({username, password, isAdministrator, email})
+            }).then(HttpError.okOrThrow)
+            .then(()=>this.fetchUsers())
+            .catch(e=>{
+                console.error(e);
+                showModal({
+                    header: this.t("error.createUser"),
+                    body: "Message : "+e.message,
+                });
+            }), 
+            {
+                header: this.t("ui.createUser"),
+                onClose(){
+                    c.abort();
+                }
+            }
+        );
     }
+
     onDeleteUser = (ev :MouseEvent, u :User)=>{
         ev.preventDefault();
-        fetch(`/users/${u.uid}`, {
+        return fetch(`/users/${u.uid}`, {
             headers: {"Content-Type": "application/json"},
             method: "DELETE"
         }).then(HttpError.okOrThrow)
@@ -89,29 +98,28 @@ interface User {
         .then(()=>Notification.show(`User ${u.username} Deleted`, "info"))
         .catch(e=>{
             console.error(e);
-            Modal.show({
+            showModal({
                 header: "Error deleting user",
                 body: "Message : "+e.message,
             });
         });
-        Modal.close();
     }
 
     deleteUserOpen(u :User){
-        Modal.show({
+        const close = showModal({
             header: "Delete user",
             body: html`<div>${this.t("info.userDeleteConfirm", {username : u.username})}</div>`,
-            buttons: html`<div style="display:flex;padding-top:30px;">
-                <ui-button class="btn-main" text="cancel" @click=${Modal.close}></ui-button>
-                <ui-button class="btn-danger" text="delete" @click=${(ev)=>this.onDeleteUser(ev, u)}><ui-button>
-            </div>`
+            buttons: html`
+                <ui-button class="btn-main" text="${this.t("ui.cancel")}" @click=${()=>close()}></ui-button>
+                <ui-button class="btn-danger" text="${this.t("ui.delete")}" @click=${(ev:MouseEvent)=>this.onDeleteUser(ev, u).finally(()=>close())}></ui-button>
+            `
         });
     }
 
     createUserOpen(){
-        Modal.show({
+        const close = showModal({
             header: this.t("ui.createUser"),
-            body: html`<form id="userlogin" autocomplete="off" class="form-control form-modal" @submit=${this.onCreateUser}>
+            body: html`<form id="userlogin" autocomplete="off" class="form-control form-modal" @submit=${(ev)=>{this.onCreateUser(ev); close();}}>
                 <div class="form-item">
                     <input type="text" name="username" id="username" autocomplete="off" placeholder=${this.t("ui.username")} required>
                     <label for="username">${this.t("ui.username")}</label>

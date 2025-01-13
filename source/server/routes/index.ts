@@ -52,13 +52,14 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   }
 
 
+
   app.locals  = Object.assign(app.locals, {
     userManager,
     fileDir: config.files_dir,
     vfs,
     templates,
     config,
-    sessionMaxAge: 31 * 24 * 60 * 60*1000 // 1 month, in milliseconds
+    sessionMaxAge: 31 * 24 * 60 * 60*1000, // 1 month, in milliseconds
   }) as AppLocals;
 
   app.use(cookieSession({
@@ -68,6 +69,13 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     maxAge: (app.locals as AppLocals).sessionMaxAge,
     sameSite: "strict"
   }));
+
+  app.use("/", (req, res, next)=>{
+    if(req.query.lang && (req.query.lang === "fr" || req.query.lang === "en")){
+      req.session!.lang = req.query.lang;
+    }
+    next();
+  })
 
   /**
    * Does authentication-related work like renewing and expiring session-cookies
@@ -121,89 +129,14 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
 
-  /**
-   * Set permissive cache-control for ui pages
-   */
-  app.use("/ui", (req :express.Request, res:express.Response, next)=>{
-    res.set("Cache-Control", `max-age=${30*60}, public`);
-    next();
-  });
-
-  //Ideally we would like a really long cache time for /dist but it requires unique filenames for each build
+   //Ideally we would like a really long cache time for /dist but it requires unique filenames for each build
   //Allow CORS for assets that might get embedded
   app.use("/dist", (req, res, next)=>{
     res.set("Cache-Control", `max-age=${30*60}, public`);
     res.set("Access-Control-Allow-Origin", "*");
     next();
   });
-
-  app.use("/ui/scenes/:scene/", canRead);
-
-  app.get("/ui/scenes/:scene/view", (req, res)=>{
-    let {scene} = req.params;
-    let {lang, tour} = req.query;
-    let host = getHost(req);
-    let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-    let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-    
-    let script = undefined;
-    if(tour && !Number.isNaN(parseInt(tour as any))){
-      script = `
-        const v = document.querySelector("voyager-explorer");
-        v?.on("model-load",()=>{
-          v?.toggleTours();
-          v?.setTourStep(${parseInt(tour as any)}, 0, true);
-        })
-      `;
-    }
-
-
-    res.render("explorer", {
-      title: `${scene}: Explorer`,
-      scene,
-      thumb: thumb.toString(),
-      referrer: referrer.toString(),
-      script
-    });
-  });
-
-
-  app.get("/ui/scenes/:scene/edit", canWrite, (req, res)=>{
-    let {scene} = req.params;
-    let {mode="Edit"} = req.query;
-    let host = getHost(req);
-    let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-    let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-    
-    res.render("story", {
-      title: `${scene}: Story Editor`,
-      scene,
-      thumb: thumb.toString(),
-      referrer: referrer.toString(),
-      mode,
-    });
-  });
   
-  app.get("/ui/standalone", (req, res)=>{
-    let {lang} = req.query;
-    let host = getHost(req);
-    let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-
-    res.render("story", {
-      title: `Standalone Story`,
-      mode: "Standalone",
-      thumb: "/images/sketch_ethesaurus.png",
-      referrer: referrer.toString(),
-    });
-  });
-
-  app.get(["/ui/", "/ui/*"],(req, res)=>{
-    res.render("home", {
-      title: "eCorpus",
-      thumb: "/images/sketch_ethesaurus.png"
-    });
-  });
-
 
   if(config.assets_dir){
     app.use("/dist", express.static(config.assets_dir));
@@ -212,7 +145,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   // static file server
   app.use("/dist", express.static(config.dist_dir));
 
-
+  app.use("/ui", (await import("./views/index.js")).default);
 
   //Privilege-protected routes
   app.use("/admin", (await import("./admin/index.js")).default);
@@ -257,18 +190,22 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   app.use((req, res)=>{
     //We don't just throw an error to be able to differentiate between
     //internally-thrown 404 and routes that doesn't exist in logs
-    const err = { code:404, message: `Not Found`, reason: `No route was defined that could match ${req.originalUrl}`}
+    const error = { code:404, message: `Not Found`, reason: `No route was defined that could match "${req.method} ${req.originalUrl}"`}
     res.format({
       "application/json": ()=> {
-        res.status(404).send(err)
+        res.status(404).send(error)
       },
       "text/html": ()=>{
-        res.status(404).render("error", { err });
+        res.status(404).render("error", { 
+          error,
+          lang: req.acceptsLanguages(["en", "fr"]),
+          user: req.session,
+        });
       },
       "text/plain": ()=>{
-        res.status(404).send(err.message);
+        res.status(404).send(error.message);
       },
-      default: ()=> res.status(404).send(err.message),
+      default: ()=> res.status(404).send(error.message),
     });
   });
 

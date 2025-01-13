@@ -81,15 +81,18 @@ class Notification extends LitElement{
 @customElement("notification-stack")
 export default class Notifications extends LitElement{
   static container: HTMLElement = null;
-  static show(message: string, level?: NotificationLevel, timeout?: number){
-    let line = new Notification(message, level, timeout);
+  static show(message: string, level?: NotificationLevel, timeout?: number) :()=>void{
     if(!Notifications.container){
-      return console.error("Notification stack not configured. Please mount <notification-stack> in your DOM before calling Notification.show");
+      console.error("Notification stack not configured. Please mount <notification-stack> in your DOM before calling Notification.show");
+      return ()=>{};
     }
+    let line = new Notification(message, level, timeout);
     Notifications.container.appendChild(line);
     if(0 < timeout) setTimeout(()=>{
       line.remove();
     }, line.timeout);
+    
+    return line.remove.bind(line);
   }
 
   connectedCallback(){

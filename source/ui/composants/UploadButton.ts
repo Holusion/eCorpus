@@ -8,17 +8,14 @@ export default class UploadButton extends LitElement
 {
   
   dispatchChange = (ev :MouseEvent)=>{
-    this.dispatchEvent(new CustomEvent("change", {
-      detail: {
-        files: (ev.target as HTMLInputElement).files,
-      }
-    }));
+    ev.preventDefault();
+    ev.stopPropagation();
   }
 
   render() :TemplateResult {
       return html`<label class="upload-btn" for="fileUpload"><slot></slot></label>
       <input 
-        @change={${this.dispatchChange}} id="fileUpload" 
+        @change=${this.dispatchChange} id="fileUpload" 
         type="file"
         multiple
         hidden

@@ -1,0 +1,41 @@
+---
+lang:
+  fr: French
+  en: English
+labels:
+  optional: optional
+  sceneTitle: scene title
+  setupLanguage: scene language
+  selectFile: select a file
+buttons:
+  searchScene: search scenes
+  upload: create a scene
+  useStandalone: use standalone mode
+fields:
+  name: name
+  mtime: last modification
+nav:
+  tags: collection
+  login: connection
+  administration: administration
+  adminRecap: summary
+  adminUsers: utilisateurs
+  adminStats: statistiques
+  adminArchives: archives
+  reportBug: report a bug
+  documentation: projet documentation
+  license: Apache License
+
+titles:
+  myScenesSection: my scenes
+  homeHeader: 3D scenes management engine
+  mtimeScenesSection: Recently modified scenes
+  ctimeScenesSection: Recently added scenes
+  upload: upload
+  createScene: create a new scene
+  tools: tools
+
+leads:
+  appLead: >
+    eCorpus is a database of 3D scenes using a rich scene editor shared
+    with the Smithsonian Institute's Digitization Project Office

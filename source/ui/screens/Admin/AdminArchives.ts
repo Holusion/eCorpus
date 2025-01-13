@@ -3,7 +3,6 @@ import { customElement, property } from 'lit/decorators.js';
 
 
 import "../../composants/Spinner";
-import Modal from "../../composants/Modal";
 import "../../composants/SceneCard";
 import HttpError from "../../state/HttpError";
 import "../../composants/Icon";
@@ -13,6 +12,7 @@ import { Scene } from "../../state/withScenes";
 
 import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
 import tableStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/tables.scss';
+import { showModal, showTaskModal } from '../../state/dialog';
 
 interface User {
     uid :string;
@@ -61,29 +61,38 @@ interface User {
 
     onDeleteScene = (ev :MouseEvent, s :Scene)=>{
         ev.preventDefault();
-        fetch(`/scenes/${encodeURIComponent(s.name)}?archive=false`, {
-            headers: {"Content-Type": "application/json"},
-            method: "DELETE"
-        }).then(HttpError.okOrThrow)
-        .then(()=>this.fetchScenes())
-        .then(()=>Notification.show(`Scene ${s.name} Deleted`, "info"))
-        .catch(e=>{
-            console.error(e);
-            Modal.show({
-                header: "Error deleting Scene",
-                body: "Message : "+e.message,
-            });
-        });
-        Modal.close();
+        const c = new AbortController();
+        showTaskModal(
+            fetch(`/scenes/${encodeURIComponent(s.name)}?archive=false`, {
+                signal: c.signal,
+                headers: {"Content-Type": "application/json"},
+                method: "DELETE"
+            }).then(HttpError.okOrThrow)
+            .then(()=>this.fetchScenes())
+            .then(()=>Notification.show(`Scene ${s.name} Deleted`, "info"))
+            .catch(e=>{
+                console.error(e);
+                showModal({
+                    header: "Error deleting Scene",
+                    body: "Message : "+e.message,
+                });
+            }),
+            {
+                header: this.t("ui.delete")+ " "+ s.name,
+                onClose(){
+                    c.abort();
+                }
+            }
+        );
     }
 
     deleteSceneOpen(s:Scene){
-        Modal.show({
+        const close = showModal({
             header: "Delete scene",
             body: html`<div>${this.t("info.sceneDeleteConfirm", {name : s.name})}</div>`,
             buttons: html`<div style="display:flex;padding-top:30px;">
-                <ui-button class="btn-main" text="cancel" @click=${Modal.close}></ui-button>
-                <ui-button class="btn-danger" text="delete" @click=${(ev)=>this.onDeleteScene(ev, s)}><ui-button>
+                <ui-button class="btn-main" text="cancel" @click=${()=>close()}></ui-button>
+                <ui-button class="btn-danger" text="delete" @click=${(ev)=>{this.onDeleteScene(ev, s); close()}}><ui-button>
             </div>`
         });
     }

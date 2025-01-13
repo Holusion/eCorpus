@@ -39,7 +39,9 @@ import Notification from "./Notification";
       doLogin(username, password)
       .then(()=>{
         console.log("User logged-in succesfully");
-        this.dispatchEvent(new CustomEvent("close"));
+        if(this.dispatchEvent(new CustomEvent("close"))){
+          window.location.reload();
+        }
         this.error = "";
       },(e)=>{
         console.log("Login failed :", e);

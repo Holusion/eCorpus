@@ -1,3 +1,61 @@
+<h2>{{i18n "titles.homeHeader"}}</h2>
+<div class="main-grid">
+  
+  <div class="grid-toolbar">
+    <div class="section">
+        <h4>{{i18n "titles.tools"}}</h4>
+        <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
+        <a class="btn btn-main" href="/ui/upload/">
+            {{i18n "buttons.upload"}}
+        </a>
+        <a class="btn btn-main" href="/ui/standalone/?lang={{lang}}">{{i18n "buttons.useStandalone"}}</a>
+    </div>
+    <div class="section">
+        <h3>{{i18n "titles.mtimeScenesSection" }}</h3>
+        <div class="list list-items flush" style="position:relative;">
+            <span class="list-header">
+                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">{{i18n "fields.name"}}</span>
+                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">{{i18n "fields.mtime"}}</span>
+            </span>
+            {{#each recentChanges }}
+              <a class="list-item" name="${scene.name}" href="/ui/scenes/{{name}}/">
+                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">{{name}}</span>
+                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">{{dateString mtime}}</span>
+              </a>
+            {{/each}}
+        </div>
+    </div>
+  </div>
 
-<ecorpus-main></ecorpus-main>
-<script src="/dist/js/corpus.js"></script>
+  <div class="grid-content">
+      <div class="section">
+        <h3>{{i18n "titles.myScenesSection"}}</h3>
+        <div class="list-grid" style="position:relative; margin-top:20px">
+          {{#each userScenes}}
+          <scene-card 
+            card-style="grid" 
+            name="{{name}}"
+            thumb="{{thumb}}"
+            time="{{mtime}}"
+            access="{{access.user}}"
+          ></scene-card>
+          {{/each}}
+        </div>
+      </div>
+      <div class="section">
+          <h3>{{i18n "titles.ctimeScenesSection"}}</h3>
+          <div class="list-grid" style="position:relative;">
+            {{#each recentScenes }}
+              <scene-card 
+                card-style="grid"
+                name="{{name}}"
+                thumb="{{thumb}}"
+                time="{{mtime}}"
+                access="{{access.user}}"
+              ></scene-card>
+            {{/each}}
+          </div>
+      </div>
+
+    </div>
+</div>
