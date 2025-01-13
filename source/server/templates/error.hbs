@@ -1,24 +1,15 @@
-<corpus-navbar>
-  <nav-link href="/ui/scenes/" class="nav-link">Collection</nav-link>
-  <nav-link href="https://ethesaurus.holusion.com" class="nav-link">Documentation</nav-link>
-  
-  <div class="divider"></div>
-  <user-button class="nav-link">Connexion</user-button>
-</corpus-navbar>
-<main  class="error-main">
-{{#with error}}
-<h1 class="error-title">Error :{{code}}</h1>
+<div class="error-main">
+  {{#with error}}
+    <h1 class="error-title">Error :{{code}}</h1>
 
-<p class="message">{{message}}</p>
+    <p class="message">{{message}}</p>
 
-<pre class="stack"><code>{{#if reason}}{{reason}}{{else}}{{stack}}{{/if}}</code></pre>
+    <pre class="stack"><code>{{#if reason}}{{reason}}{{else}}{{stack}}{{/if}}</code></pre>
 
-{{/with}}
-</main>
-<modal-dialog></modal-dialog>
-
+  {{/with}}
+</div>
 <style>
-  main.error-main{
+  .error-main{
     color:var(--color-light);
     margin: auto;
     max-width:1200px;
@@ -29,14 +20,14 @@
     flex-direction: column;
     justify-content: center;
   }
-  main.error-main .error-title{
+  .error-main .error-title{
     color:var(--color-primary);
   }
-  main.error-main .message{
+  .error-main .message{
     font-weight: bold;
     color: var(--color-light);
   }
-  main.error-main .stack{
+  .error-main .stack{
     background:var(--color-medium);
     max-width:82ch;
     padding: 1ch;

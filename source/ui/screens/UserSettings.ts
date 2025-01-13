@@ -32,7 +32,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
     <div class="user-form">
       <h2>${this.t("ui.userSettings")}</h2>
 
-      <form id="userlogin" class="form-control section" style="max-width:500px" @submit=${this.onChangeUserSubmit}>
+      <form id="user-profile" class="form-control section" style="max-width:500px" @submit=${this.onChangeUserSubmit}>
       <div class="form-group">
         <h3>Modifier le profil</h3>
       </div>
@@ -53,10 +53,11 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
         </div>
       </form>
 
-      <form id="userlogin" class="form-control section" style="max-width:500px" @submit=${this.onChangePasswordSubmit}>
+      <form id="user-password" class="form-control section" style="max-width:500px" @submit=${this.onChangePasswordSubmit}>
         <div class="form-group">
           <h3>${this.t("ui.changePassword")}</h3>
         </div>
+        <input type="hidden" name="username" id="username" value="${this.user.username}"> 
         <div class="form-group">
           <div class="form-item">
             <label for="password">${this.t("ui.password")}</label>
@@ -124,7 +125,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
     .catch(e=>{
       Notification.show("Failed to logout "+ e.message, "error");
     });
-    navigate(this, "/ui/scenes/");
+    window.location.reload();
   }
   static styles = []
 }

@@ -1,9 +1,14 @@
 
 
-.section{
+section, .section{
   --caret-width: 2px;
   position: relative;
   background: var(--color-section);
+
+  &.container{
+    max-width: 1200px;
+    margin: 1rem auto;
+  }
 
   &::before, &::after{
     content: "";

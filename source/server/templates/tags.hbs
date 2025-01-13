@@ -1,0 +1,11 @@
+<h2>{{i18n "nav.tags"}}</h2>
+<div class="section" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: .5rem;justify-content:center;">
+  {{#each tags}}
+    <a class="btn" style="overflow: hidden; text-overflow:ellipsis" href="/ui/tags/{{encodeURIComponent name}}">
+      {{name}} ({{size}})
+    </a>
+  {{/each}}
+  {{#unless tags.length}}
+    <p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>
+  {{/unless}}
+</div>

@@ -96,7 +96,7 @@ export function router<T extends Constructor<LitElement>>(baseClass:T) : T & Con
       window.history.pushState({},"", url);
       this.requestUpdate();
       window.dispatchEvent(new CustomEvent("navigate", {
-        detail: {href: url.toString()}
+        detail: {href: url}
       }))
     }
 

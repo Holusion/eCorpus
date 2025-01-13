@@ -1,9 +1,9 @@
 
-import { NextFunction, Request, RequestHandler, Response } from "express";
+import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import {basename, dirname} from "path";
 import User, { SafeUser } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes } from "../auth/UserManager.js";
-import Vfs, { GetFileParams } from "../vfs/index.js";
+import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
 import Templates from "./templates.js";
 import { Config } from "./config.js";
@@ -25,12 +25,17 @@ export function getLocals(req :Request){
 export interface SessionData extends SafeUser{
   /** Expire date, in ms since epoch */
   expires?: number;
+  lang?: "fr"|"en";
 }
 
 export function getSession(req :Request){
   return req.session as SessionData|null|undefined;
 }
 
+export function canonical(req :Request, ref :string) :URL{
+  let host = getHost(req);
+  return new URL(ref, host);
+}
 /**
  * @throws {InternalError} if app.locals.userManager is not defined for this request
  */
@@ -144,6 +149,7 @@ export function getUser(req :Request){
     username: "default",
     uid: 0,
     isAdministrator:false,
+    isDefaultUser: (req.session?.uid? false: true),
     ...req.session,
   } as SafeUser;
 }

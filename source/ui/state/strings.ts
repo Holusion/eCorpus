@@ -189,6 +189,10 @@ export default {
       fr: "renommer",
       en: "rename"
     },
+    cancel:{
+      fr: "annuler",
+      en: "cancel"
+    },
     name:{
       fr: "nom",
       en: "name"
@@ -294,6 +298,10 @@ export default {
     restoreTo: {
       fr: "restaurer à {point}",
       en: "restore to {point}"
+    },
+    restoredTo: {
+      fr: "scène restaurée à {point}",
+      en: "scene restored to {point}",
     }
   },
   errors:{

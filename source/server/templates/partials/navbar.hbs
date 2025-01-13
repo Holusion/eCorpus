@@ -1,0 +1,28 @@
+<nav class="navbar-nav">
+  <div class="nav-content">
+    <div class="brand">
+      <a class="brand" href="/">
+        <img src="/dist/images/logo-full.svg" alt="Site Logo" />
+      </a>
+    </div>
+    <div class="spacer"></div>
+    <div class="navbar">
+      <form class="form-item" style="display:flex; padding-right: 10px;display:flex;align-items: center" method="get" action="/ui/scenes/">
+        <span style="height:24px;width:24px;">
+          <ui-icon style="fill: var(--color-highlight);pointer-events: none;" name="search"></ui-icon>
+        </span>
+        <input style="height:calc(100% - 6px);margin-left:-24px; padding-left: 24px" class="search-box-input" name="search" type="search" id="model-search" value="{{search}}">
+      </form>
+      {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
+      {{#if user.isAdministrator}}
+        {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
+      {{/if}}
+      <div class="divider"></div>
+      {{#if user.isDefaultUser}}
+        {{#navLink "/ui/admin/"}}{{i18n "nav.login"}}{{/navLink}}
+      {{else}}
+        {{#navLink "/ui/user/"}}{{user.username}}</a>{{/navLink}}
+      {{/if}}
+    </div>
+  </div>
+</nav>

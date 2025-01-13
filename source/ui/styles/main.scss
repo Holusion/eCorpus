@@ -1,6 +1,6 @@
 @import "./common.scss";
-
-
+@import "./nav.scss";
+@import "./landing.scss";
 
 html {
   color: var(--color-text);
@@ -13,7 +13,7 @@ main{
 
   font-family: var(--font-body);
   color: var(--color-text);
-  min-height: calc(100vh - var(--nav-height));
+  min-height: calc(100vh - var(--nav-height) * 2);
   padding-top: .67em;
 }
 

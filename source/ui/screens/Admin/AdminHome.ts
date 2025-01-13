@@ -6,10 +6,10 @@ import { customElement, property } from 'lit/decorators.js';
 
 import "./UsersList";
 import i18n from "../../state/translate";
-import Modal from "../../composants/Modal";
 import "../../composants/Button";
 
 import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/common.scss';
+import { showModal } from '../../state/dialog';
 
 @customElement("send-testmail")
 export class TestmailModalBody extends i18n(LitElement){
@@ -79,7 +79,7 @@ export default class AdminHomeScreen extends i18n(LitElement) {
               <li>
                 <a href="" @click=${(e)=>{
                   e.preventDefault();
-                  Modal.show({
+                  showModal({
                     header: this.t("ui.sendTestMail"),
                     body: html`<send-testmail></send-testmail>`,
                   });

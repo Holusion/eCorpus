@@ -138,6 +138,22 @@
     }
   }
 
+  input[type=file]{
+    &.dropzone{
+      max-width: 100%;
+      flex: 1 1 auto;
+      background: var(--color-highlight2);
+    }
+    &::file-selector-button {
+      margin-right: 8px;
+      border: none;
+      background: var(--color-secondary);
+      padding: 8px 12px;
+      color: #fff;
+      cursor: pointer;
+    }
+  }
+
   .form-checkbox{
     display: flex;
     input[type="checkbox"] {

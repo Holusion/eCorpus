@@ -1,0 +1,12 @@
+<h2>{{tag}}</h2>
+<div class="section">
+{{#each scenes}}
+  <scene-card 
+        cardStyle="list"
+        name="{{name}}"
+        thumb="{{thumb}}" 
+        time="{{mtime}}"
+        access="{{#if access}}{{#if @root.user.isAdministrator}}admin{{else}}{{access.user}}{{/if}}{{else}}none{{/if}}"
+  ></scene-card>
+{{/each}}
+</div>
