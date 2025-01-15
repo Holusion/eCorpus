@@ -9,7 +9,7 @@
     "build-server": "tsc -b source/server",
     "watch-server": "tsc -b source/server --watch",
     "watch-ui": "cd source/ui && webpack --watch --mode=development",
-    "watch": "NODE_ENV=development concurrently -k --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon  npm start\""
+    "watch": "NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon  npm start\""
   },
   "author": "Holusion <contact@holusion.com>",
   "license": "Apache-2.0",
@@ -17,15 +17,20 @@
     "node": ">=16.20.2"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
+    "concurrently": "^8.2.2",
     "nodemon": "^3.1.9",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.4",
+    "webpack": "^5.88.1",
+    "webpack-cli": "^4.9.2"
   },
   "nodemonConfig": {
     "delay": 100,
-    "extensions":["ts", "js"],
+    "extensions": [
+      "ts",
+      "js"
+    ],
     "watch": [
-        "source/server/dist"
+      "source/server/dist"
     ]
   }
 }

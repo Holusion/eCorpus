@@ -121,12 +121,16 @@ export default abstract class ScenesVfs extends BaseVfs{
    * Performs a type and limit check on a SceneQuery object and throws if anything is unacceptable
    * @param q 
    */
-  static _parseSceneQuery(q :SceneQuery):SceneQuery{
+  static _parseSceneQuery(q :SceneQuery|any):SceneQuery{
     //Check various parameters compliance
     if(Array.isArray(q.access)){
-      let badIndex = q.access.findIndex(a=>AccessTypes.indexOf(a) === -1);
+      let badIndex = q.access.findIndex((a:any)=>AccessTypes.indexOf(a) === -1);
       if(badIndex !== -1) throw new BadRequestError(`Bad access type requested : ${q.access[badIndex]}`);
     }
+    if(typeof q.author !== "undefined" && (!Number.isInteger(q.author) || q.author < 0)){
+      throw new BadRequestError(`Invalid author filter request: ${q.author}`);
+    }
+
     if(typeof q.limit !== "undefined"){
       if(typeof q.limit !="number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(`When provided, limit must be an integer`);
       if(q.limit <= 0) throw new BadRequestError(`When provided, limit must be >0`);
@@ -159,8 +163,8 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   async getScenes(user_id:null, q :{access:["none"]}) :Promise<Scene[]>;
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
-    const {access, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"}  = ScenesVfs._parseSceneQuery(q);
-    let with_filter = typeof user_id === "number" || match || access?.length;
+    const {access, author, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"}  = ScenesVfs._parseSceneQuery(q);
+    let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length;
 
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
 
@@ -258,6 +262,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           GROUP BY fk_scene_id
         ) AS tags ON tags.fk_scene_id = scene_id
       ${with_filter? "WHERE true": ""}
+      ${typeof author === "number"? `AND author_id = $author`:"" }
       ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
       ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
       ${likeness}
@@ -270,6 +275,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       $user_id: (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
       $limit: limit,
       $offset: offset,
+      $author: author,
     })).map(({ctime, mtime, id, access, ...m})=>({
       ...m,
       id,

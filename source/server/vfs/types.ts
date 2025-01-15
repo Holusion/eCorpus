@@ -94,6 +94,7 @@ export interface DocProps extends FileProps{
 export interface SceneQuery {
   /** desired scene access level */
   access ?:AccessType[];
+  author ?:number;
   match ?:string;
   offset ?:number;
   limit ?:number;
