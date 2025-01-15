@@ -129,6 +129,7 @@ describe("Vfs", function(){
     it("accepts no parameters", function(){
       expect(()=>ScenesVfs._parseSceneQuery({})).not.to.throw();
     });
+
     it("requires limit to be a positive integer", function(){
       [null, "foo", 0.5, "0", 0, -1, 101].forEach((limit)=>{
         expect(()=>ScenesVfs._parseSceneQuery({limit} as any), `{limit: ${limit}}`).to.throw();
@@ -176,6 +177,15 @@ describe("Vfs", function(){
         ["read", "foo"]
       ].forEach(a=>{
         expect(()=>ScenesVfs._parseSceneQuery({access: a as any}),`expected ${a ?? typeof a} to not be an accepted access value`).to.throw(`Bad access type requested`);
+      });
+    });
+
+    it("sanitizes author ids", function(){
+      [ 0, 1, 100 ].forEach(a=>{
+        expect(()=>ScenesVfs._parseSceneQuery({author: a})).not.to.throw();
+      });
+      [ null, "0", "foo", -1 ].forEach(a=>{
+        expect(()=>ScenesVfs._parseSceneQuery({author: a as any}),`expected ${a ?? typeof a} to not be an accepted author value`).to.throw(`[400] Invalid author filter request: ${a}`);
       });
     })
   });
@@ -426,6 +436,13 @@ describe("Vfs", function(){
         it("can select by specific user access level", async function(){
           await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read", "0":"read", "1": "read"});
           expect(await vfs.getScenes(user.uid, {access:["read"]})).to.have.property("length", 1);
+        });
+
+        it("filters by author", async function(){
+          await vfs.createScene("User Authored", user.uid);
+          await vfs.createScene("Admin Authored", admin.uid);
+          let s = await vfs.getScenes(user.uid, {author: user.uid});
+          expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
 
         it("filters by name match", async function(){
