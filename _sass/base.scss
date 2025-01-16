@@ -18,11 +18,10 @@ body {
   margin:0px;
   padding: 0px;
   display: grid;
-  grid-template-rows: $header_height auto auto $footer_height;
+  grid-template-rows: auto auto $footer_height;
   grid-template-columns: 1fr minmax(auto, 300px) min($main_width, 100vw - 20px) minmax(auto, 300px) 1fr;
 
   grid-template-areas:
-    'header header header header header'
     'navbar navbar navbar navbar navbar'
     '. nav-left main nav-right .'
     'footer footer footer footer footer';
@@ -46,74 +45,8 @@ main {
     scroll-margin-top: calc($navbar_height + 0.8rem);
   }
 
-  .jumbotron  {
-    position:relative;
-    @media screen and (max-width: #{$main_width} ){
-      display:none;
-  }
-}
-
-  
-  .jumbotron .call-to-action {
-    position: absolute;
-    height:50%;
-    margin-top: 100px;
-    top:0%;
-    left: 50%;
-    width:50%;
-  }
-  .jumbotron #buttons {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-
-  .jumbotron #baseline {
-    color: white;
-    font-weight: bold;
-    font-size: 200%;
-    text-align: justify;
-    text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
-    padding-bottom: 3rem;
-  }
-
-  .jumbotron #logo-eCorpus {
-    position: absolute;
-    top: 30%;
-    left: 0%;
-    width:50%;
-    color: white;
-    font-weight: bold;
-    font-size: 500%;
-    text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
-
-  }
-  .jumbotron .button {
-    background: $yellow;
-    color: $darkgrey;
-    text-align: center;
-    padding-inline: 30px;
-    padding-bottom: 10px;
-    font-weight: bold;
-    width:150px;
-    height: 4em;
-    margin-inline: 25px;
-    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
-    &:hover{
-      background-color: $darkgrey;
-      color: white;
-    }
-  }
-
   
   &, section, .section{
-    >#jumbotron {
-      width: 150%;
-      margin-left: -25%;
-      object-fit: cover;
-      height: 400px;
-      box-shadow: 0 10px 15px 0px rgba(0, 0, 0, 0.5), 0 1px 2px 0px rgba(0, 0, 0, 0.8);
-    }
 
     >img:not(.fluid), >.media:not(.fluid), .flush {
       margin: 0 -3rem;
@@ -141,42 +74,6 @@ img.fluid{
 //////////////////////////////
 /// NAVIGATION
 //////////////////////////////
-
-
-
-.navbar-header{
-  grid-area: header;
-  overflow: hidden;
-  background-color: $darkgrey;
-  margin: 0;
-  width: 100%;
-  height: $header_height;
-  display: grid;
-  grid-template-columns: [brand] minmax(230px, 1fr) [header] auto 1fr;
-  align-items: center;
-  
-  .img-header {
-    grid-column: header / span 1;
-    height: 100%;
-    object-fit: cover;
-    object-position: 0% 30%;
-    overflow: hidden;
-    display: block;
-    flex-grow: 1;
-    max-width: 1200px;
-  }
-
-  .header-brand{
-    grid-column: brand / span 1;
-    color: $yellow;
-    text-decoration: none;
-    font-family: $serifFont;
-    font-weight: 400;
-    font-size: 3rem;
-    padding-left: 40px;
-  }
-}
-
 
 nav.navbar{
   grid-area: navbar;
@@ -245,24 +142,25 @@ nav.navbar{
     // }
   }
 
-  .nav-tuto{
-    height: 125%;
-    margin-top: -5px;
-    margin-right: 25px;
-    background: #E6B900;
+  .nav-cta{
+    margin: 0 .5rem -5px 0;
+    width: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     text-align: center;
-    padding-inline: 30px;
-    padding-bottom: 10px;
+    white-space: wrap;
+    padding: 10px 2px;
     font-weight: bold;
-    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
-    
-  } 
-  .nav-tuto > a{
-    color: $darkgrey;
-    padding-inline: 10px;
-    &:hover {color : white;}
   }
 
+  .nav-brand{
+    font-family: $serifFont;
+    color: $yellow;
+    &:hover{
+      color: $yellow-light;
+    }
+  }
 
 
   .menu-btn{
@@ -508,6 +406,13 @@ h5{
   }
 }
 
+.baseline{
+  font-size: 1.1rem;
+  font-family: $serifFont;
+  font-style: italic;
+  text-align: center;
+  margin: 1rem auto;
+}
 
 //////////////////////////////
 /// TEXT
@@ -802,6 +707,21 @@ button, .button{
   &:hover{
     background-color: $yellow;
     color: black;
+  }
+  &.button-primary{
+    background-color: $yellow;
+    &:hover{
+      background-color: $yellow-light;
+      color: white;
+    }
+  }
+
+  &.button-shadow{
+    box-shadow: 1px 3px 3px 0 rgba(0, 0, 0, 0.4);
+    transition: box-shadow .1s ease;
+    &:hover{
+      box-shadow: 3px 5px 5px 1px rgba(0, 0, 0, 0.4);
+    }
   }
 }
 .center-button{

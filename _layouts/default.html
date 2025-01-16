@@ -65,7 +65,7 @@
         <button type="button" class="hidden">
           <span>Toggle navigation</span>
         </button>
-        <a href="/{{ lang }}/" class="header-brand" aria-label="ecorpus logo">
+        <a href="/{{ lang }}/" class="nav-brand" aria-label="ecorpus logo">
           eCorpus
         </a>
         {%- for item in site.data.nav -%}
@@ -76,9 +76,7 @@
       </ul>
     </div>
     <div class="navbar-nav">
-      <div class="nav-tuto">
-        <a href="/{{ lang }}/doc/tutorials">Tutoriel <br /> eCorpus</a>
-      </div>
+      <a class="button button-primary button-shadow nav-cta" href="/{{ lang }}/doc/tutorials">Tutoriel eCorpus</a>
       {% include language_picker.html type="nav-item dropdown" classes="nav-link" %}
       
     </div>
