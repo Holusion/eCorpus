@@ -97,6 +97,16 @@ nav.navbar{
     @media screen and  (max-width: calc($main_width - 1px) ){
       padding-left:5px;
     }
+    .nav-group{
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      
+      > .nav-item, >li{
+        margin : 0;
+        display : inline-block;
+      }
+    }
   }
 
   &.navbar-sticky{
@@ -107,14 +117,6 @@ nav.navbar{
   }
 
   .nav-group, ul{
-    margin: 0;
-    padding: 0;
-    > .nav-item, >li{
-      margin : 0;
-      list-style : none;
-      display : inline-block;
-    }
-    
     @media screen and  (max-width: calc($main_width - 1px) ){
       > .nav-item, >li{
         display: none;
@@ -134,7 +136,7 @@ nav.navbar{
     display: inline-block;
     text-decoration: none;
     white-space: nowrap;
-    &:hover, &[aria-expanded="true"]{
+    &:hover{
       color: $yellow;
     }
     // &:first-of-type{
@@ -263,19 +265,27 @@ footer a:hover {
   ul{
     // padding: 1rem 1rem 1rem 0;
     padding: 0;
+    width: 100%;
+    list-style: none;
 
     @media screen and (max-width: #{$main_width} ){
       // padding: 1rem 0 0.7rem 0;
     }
 
-    li, li a{
+    li{
       // min-width: 240px;
       width: 100%;
       // max-width: calc(300px - 1.1rem);
-      color: white;
-      padding: 0.1rem 0rem 0.1rem 1rem;
-      margin-top: 0.3rem;
-      overflow: hidden;
+      padding: 0.2rem 0rem 0.2rem 1rem;
+      &.current > a.dropdown-toggle{
+        color: $yellow;
+      }
+      &:has(.list-group-item:hover){
+        > a.dropdown-toggle{
+          color: $yellow-light;
+        }
+      }
+
       @media screen and (max-width: #{$main_width} ){
         padding: 0.1rem 0rem 0.1rem 1rem;
         max-width: 100%;
@@ -283,6 +293,19 @@ footer a:hover {
       //ul > li {
         // padding-bottom: 2rem;
       //}
+      a{
+        width: 100%;
+        padding: 0.1rem 0rem 0.1rem 0;
+      }
+      a:first-child{
+        margin-left: -1ch;
+      }
+    }
+  }
+  //Add a border on nested group elements
+  a + ul{
+    li{
+      border-left: 1px solid $middlegrey;
     }
   }
   
@@ -334,12 +357,21 @@ footer a:hover {
   &.nav-right{
     grid-area: nav-right;
     overflow-x: hidden;
-    
+    padding-left: .75rem;
+    li{
+      text-overflow: ellipsis;
+      li{
+        font-size: 90%;
+        li{
+          font-size: 85%;
+        }
+      }
+    }
     @media screen and (max-width: #{$sidebar_width * 2 + $main_width + 100px} ){
       /* enforce more compact layout before collapsing */
       ul {
         li, li a{
-          padding-left: .25rem;
+          padding-left: .3rem;
         }
       }
     }
@@ -782,13 +814,11 @@ div > ul > li:has(> .voyager-btn:first-child){
 .list-group {
   display: flex;
   flex-direction: column;
-  border-left: 1px white solid;
   width: 300px;
   &.collapse {
-    display: none;
     border-left: none;
-    &.show {
-      display: flex;
+    &:not(.show) {
+      display: none;
     }
   }
   @media screen and (max-width: #{$sidebar_width * 2 + $main_width}){
