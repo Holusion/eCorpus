@@ -68,4 +68,4 @@ FORMULAIRE DE CONTACT
 
 
 ## En savoir plus
-Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="2-model">Préparer son modèle 3D</a>.
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="model">Préparer son modèle 3D</a>.

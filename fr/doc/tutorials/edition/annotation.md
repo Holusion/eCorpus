@@ -92,7 +92,7 @@ Pour plus d'efficacité, nous vous conseillons d'utiliser des titres courts et c
 
 La description est à ajouter dans le paramètre "Lead". Les chiffres affichés sur le côté correspondent au nombre de mot contenus dans le Lead.
 \
-Il est tout à fait possible que les 200 caractères d'une description ne suffisent pas à décrire efficacement le partie montré. Si vous souhaitez ajouter plus de contenu dans votre annotation, veuillez-vous réferrer au point suivant: <a href="5-article">Créer des articles</a>.
+Il est tout à fait possible que les 200 caractères d'une description ne suffisent pas à décrire efficacement le partie montré. Si vous souhaitez ajouter plus de contenu dans votre annotation, veuillez-vous réferrer au point suivant: <a href="article">Créer des articles</a>.
 
 ### lier un Article à son annotation 
 
@@ -104,6 +104,6 @@ Pour lier votre annotation a un article, il suffit simplement de selectionner l'
 **Pensez à bien vérifier que le style de votre annotation est en "Extended"**
 \
 Pour fonctionner, vérifiez préalablement que l'article que vous voulez lier a bien été créé dans les mêmes Langues disponibles que l'annotation.
-Si vous souhaitez apprendre à créer des articles, rendez-vous dans ce guide: <a href="5-article">Créer des articles</a>..
+Si vous souhaitez apprendre à créer des articles, rendez-vous dans ce guide: <a href="article">Créer des articles</a>..
 
 

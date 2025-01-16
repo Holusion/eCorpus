@@ -128,4 +128,4 @@ Intégration d'une scène eCorpus type
 Sommaire
 
 ## En savoir plus
-Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="4-annotation">Créer des annotations</a>.
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="annotation">Créer des annotations</a>.

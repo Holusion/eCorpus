@@ -84,4 +84,4 @@ Pour supprimer un article, selectionnez-le dans la liste de l'onglet "Task" à g
 Si il vous arrivez de supprimer un article par erreur, vous n'avez pas d'autre choix que de raffraichir la page pour annuler ce changement.
 
 ## En savoir plus
-Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="6-tours">Créer des visites guidées</a>.
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="tours">Créer des visites guidées</a>.

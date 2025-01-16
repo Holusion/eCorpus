@@ -160,4 +160,4 @@ Intégration d'une scène eCorpus type
 Sommaire
 
 ## En savoir plus
-Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="3-import">Importer son modèle dans une scène eCorpus</a>.
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="import">Importer son modèle dans une scène eCorpus</a>.

@@ -49,7 +49,7 @@ L'application peut enregistrer plusieurs niveaux de détail pour un objet et ten
     Highest 
 
 
-Voir <a href="/fr/doc/guides/optimizing_models">le guide d'optimisatio</a> pour plus de détails.
+Voir <a href="/fr/doc/guides/voyager/optimizing_models">le guide d'optimisatio</a> pour plus de détails.
 Il est conseillé de fournir des textures de taille correspondante ou inférieure avec les modèles. 
 
 ### Shaders

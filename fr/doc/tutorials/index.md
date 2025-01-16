@@ -23,8 +23,8 @@ Le mode StandAlone de Voyager vous permet d'expérimenter le chargement de modè
 
 ## Tutoriels
 
-* [Connexion à votre compte eCorpus](edition/1-compte)
-* [Importer un modèle 3D ](edition/3-import)
-* [Ajouter des annotations](edition/4-annotation)
-* [Créer des articles](edition/4-annotation)
-* [Préparer une visite guidée](edition/5-article)
+* [Connexion à votre compte eCorpus](edition/compte)
+* [Importer un modèle 3D ](edition/import)
+* [Ajouter des annotations](edition/annotation)
+* [Créer des articles](edition/article)
+* [Préparer une visite guidée](edition/tours)
