@@ -18,12 +18,11 @@ import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
 describe("POST /scenes/:scene", function(){
   let vfs:Vfs, app: Application, data:Buffer;
   this.beforeEach(async function(){
+    const locals = await createIntegrationContext(this); 
+    vfs = locals.vfs;
+    app = this.server;
+    // @fixme createIntegrationContext !!!!
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
-    this.dir = await fs.mkdtemp(path.join(tmpdir(), `scenes-integration`));
-    vfs = await Vfs.Open(this.dir,{createDirs: true});
-    app = express();
-    app.locals.vfs = vfs;
-    app.post("/scenes/:scene", wrap(postScene));
   });
   this.afterEach(async function(){
     await vfs.close();
@@ -53,10 +52,27 @@ describe("POST /scenes/:scene", function(){
   });
 
   it("rejects bad files", async function(){
-    await request(app).post("/scenes/foo")
-    .send("foo")
-    .expect(500);
+    let res = await request(app).post("/scenes/foo")
+    .set("Content-Type", "application/zip")
+    .send("foo");
+    expect(res.status, `${res.error}`).to.equal(500);
+    //Code 500 to differentiate bad data from bad encoding (see following tests)
+    //If return code is ever changed to 400, we need to specify those tests further.
     expect( await vfs.getScenes()).to.have.property("length", 0);
     expect(await vfs._db.get(`SELECT COUNT(*) AS count FROM files`)).to.have.property("count", 0);
+  })
+
+  it("rejects multipart form-data", async function(){
+    await request(app).post("/scenes/foo")
+    .set("Content-Type", "multipart/form-data")
+    .send(data) //Don't care
+    .expect(400);
+  })
+
+  it("rejects urlencoded form-data", async function(){
+    await request(app).post("/scenes/foo")
+    .set("Content-Type", "application/x-www-form-urlencoded")
+    .send(data) //Don't care
+    .expect(400);
   })
 });

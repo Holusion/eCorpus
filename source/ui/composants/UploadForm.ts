@@ -19,15 +19,14 @@ export default class UploadForm extends LitElement{
       progress ?:number,
       abort :()=>void
   }} = {};
-
-
   /**
    * @returns True if the file upload started. False otherwise
    */
   upload(data :FormData) :boolean{
     const file = data.get("files") as File;
     let name = data.get("name") as string;
-    const as_scenes = file.name.endsWith(".zip");
+    let language = data.get("language");
+    const as_scenes = file.name.endsWith(".zip") && !name;
     name = name || file.name.split(".").slice(0,-1).join(".");
     if(name in this.uploads){
         Notification.show(`Can't create ${name}: already uploading`, "error", 4000);
@@ -82,8 +81,8 @@ export default class UploadForm extends LitElement{
         setError({code: xhr.status, message: xhr.statusText});
     }
 
-    xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}`);
-    xhr.send(data);
+    xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}?lang=${language}`);
+    xhr.send(file);
   }
 
   onsubmit = (ev:SubmitEvent)=>{

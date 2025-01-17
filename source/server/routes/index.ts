@@ -216,6 +216,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       compact: 3,
       breakLength: Infinity,
     }).replace(/\n/g,"\\n"));
+    else if(error.code === 500 || !error.code) console.error("Request error", error.message);
     
     if (res.headersSent) {
       console.warn("An error happened after headers were sent for %s : %s", req.method, req.originalUrl);
