@@ -8,7 +8,7 @@ import wrap from "../../utils/wrapAsync.js";
 
 import getScenes from "./get.js";
 import {handlePropfind} from "./propfind.js";
-import handlePostScene from "./post.js";
+import postScenes from "./post.js";
 
 import handleDeleteScene from "./scene/delete.js";
 import handleCreateScene from "./scene/mkcol.js";
@@ -38,7 +38,7 @@ router.use((req, res, next)=>{
 
 router.get("/", wrap(getScenes));
 router.propfind("/", wrap(handlePropfind));
-router.post("/", isAdministrator, wrap(handlePostScene));
+router.post("/", isAdministrator, wrap(postScenes));
 
 //allow POST outside of canRead : overwrite permissions are otherwise checked
 router.post("/:scene", wrap(postScene));

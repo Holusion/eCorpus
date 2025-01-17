@@ -4,7 +4,7 @@ import { parse_glb } from "../../../utils/glTF.js";
 import { getVfs, getUserId } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
 import getDefaultDocument from "../../../utils/schema/default.js";
-
+import { BadRequestError } from "../../../utils/errors.js";
 
 
 /**
@@ -66,6 +66,11 @@ export default async function postScene(req :Request, res :Response){
   let vfs = getVfs(req);
   let user_id = getUserId(req);
   let {scene} = req.params;
+
+  if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
+    throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
+  }
+
   let scene_id = await vfs.createScene(scene, user_id);
   try{
     let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});

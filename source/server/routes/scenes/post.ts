@@ -5,7 +5,7 @@ import path from "path";
 import { Request, Response } from "express";
 import yauzl, { Entry, ZipFile } from "yauzl";
 
-import { HTTPError } from "../../utils/errors.js";
+import { BadRequestError, HTTPError } from "../../utils/errors.js";
 import { getMimeType } from "../../utils/filetypes.js";
 import { getVfs, getUser } from "../../utils/locals.js";
 import uid, { Uid } from "../../utils/uid.js";
@@ -23,6 +23,10 @@ interface ImportResults {
 export default async function postScenes(req :Request, res :Response){
   let vfs = getVfs(req);
   let requester = getUser(req);
+  
+  if(req.is("multipart") || req.is("application/x-www-form-urlencoded")){
+    throw new BadRequestError(`Form data is not supported on this route. Provide a raw Zip attachment`);
+  }
 
   let file_name = uid(12)+".zip";
   let tmpfile = path.join(vfs.uploadsDir, file_name);
