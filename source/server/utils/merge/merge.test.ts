@@ -23,15 +23,10 @@ describe("fast-forward", function(){
   });
 
   it("keys reordering", function(){
-    //ECMA2015 and up guarantees iteration over string-keyed properties to respect insertion order.
-    // https://tc39.es/ecma262/#sec-ordinaryownpropertykeys
     const ref = {keys: toIdMap([{id: "a"}, {id:"b"}, {id: "c"}])};
     const next = {keys: toIdMap([{id: "c"}, {id:"a"}, {id: "b"}])};
-    console.log("next: ", next, Object.values(next.keys).map(o=>`${o.id} ${(o as any)[SOURCE_INDEX]}`));
     const d = diff<any>(ref, next);
-    console.log("Diff : ", d);
     const result = apply(ref, d);
-    console.log("Res : ", result, Object.values(result.keys).map(o=>`${(o as any).id} ${(o as any)[SOURCE_INDEX]}`));
     expect(result).to.have.property("keys").an("object");
     expect(fromMap(result.keys), `Array order should have been kept`).to.deep.equal([{id: "c"}, {id:"a"}, {id: "b"}]);
   });

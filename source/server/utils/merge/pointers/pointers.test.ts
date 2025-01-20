@@ -317,6 +317,12 @@ describe("(de)reference pointers", function(){
     });
 
     describe("throws", function(){
+      it("if no doc is provided", function(){
+        expect(()=> toPointers(null as any)).to.throw("Can't dereference invalid document null");
+        expect(()=> toPointers(undefined as any)).to.throw("Can't dereference invalid document undefined");
+        expect(()=> toPointers("" as any)).to.throw("Can't dereference invalid document ");
+      });
+
       it("if doc has no scene", function(){
         const doc = {...baseDoc, scenes: []};
         expect(()=> toPointers(doc)).to.throw("Document has no valid scene");

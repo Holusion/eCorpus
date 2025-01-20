@@ -106,6 +106,15 @@ describe("merge.diff()", function(){
         {v: {a: 1, [SOURCE_INDEX]: 2 }}
       );
       expect(res).to.deep.equal({v:{[SOURCE_INDEX]: 2}});
+    });
+
+    it("handles key renames", function(){
+      let res = diff<any>(
+        {a: {name: "foo"}},
+        {b: {name: "foo"}}
+      );
+      expect(res).to.have.property("a", DELETE_KEY);
+      expect(res).to.have.deep.property("b", {name: "foo"});
     })
   });
 });

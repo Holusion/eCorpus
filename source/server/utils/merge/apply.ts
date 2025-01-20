@@ -23,6 +23,8 @@ export default function apply<T extends Record<string, any>>(into :T, ...diffs :
   
       }else if(typeof value !== "object" /*primitive*/){
         into[key] = value;
+      }else if(value == null /* null is typeof object*/){
+        into[key] = value;
       }else if(Array.isArray(value)){
         //Replace arrays without looking.
         //This will generally not happen unles there is an exception in diff() that says so.

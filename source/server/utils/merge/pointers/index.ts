@@ -72,7 +72,7 @@ function cleanDocument(document :Required<IDocument>) :IDocument{
  * @fixme should be simplified by exporting most of its code into separate functions, like in `fromPointers()`
  */
 export function toPointers(src :IDocument) :DerefDocument {
-
+  if(!src) throw new Error(`Can't dereference invalid document ${src}`);
   // Dereference self-contained collections
   const metas = src.metas?.map(mapMeta) ?? [];
   const models = src.models?.map(mapModel)?? [];

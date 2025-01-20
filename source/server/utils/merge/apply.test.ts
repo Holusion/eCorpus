@@ -27,6 +27,9 @@ describe("merge.apply()", function(){
   it("merges updated arrays", function(){
     expect(apply({a:[1,2]}, {a:{0:1, 1:3}})).to.deep.equal({a:[1,3]});
   });
+  it("merges array of null", function(){
+    expect(apply({a:[null,null]}, {a:{0:null, 1:3}})).to.deep.equal({a:[null,3]});
+  });
 
   it("merges created arrays", function(){
     expect(apply({a:"A"}, { b:[{name:"A1"}]} as any)).to.deep.equal({a:"A", b:[{name:"A1"}]});
