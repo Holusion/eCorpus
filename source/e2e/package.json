@@ -1,0 +1,21 @@
+{
+  "name": "e2e",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.7"
+  },
+  "dependencies": {
+    "@types/yauzl": "^2.10.3",
+    "xml-js": "^1.6.11",
+    "yauzl": "^3.2.0"
+  }
+}
