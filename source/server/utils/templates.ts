@@ -33,12 +33,26 @@ interface HandlebarsHelperContext{
 }
 
 const staticHelpers = {
-  navLink(this:any, href :string, ...args :any[]){
-    if(args.length < 1) return `Invalid block parameters: require at least 1 argument, received ${args.length}`;
+  navLink(this:any, ...args :any[]){
+    if(args.length < 2) return `Invalid block parameters: require at least 1 argument, received ${args.length}`;
     const options = args.pop();
-    const exact = args[0] === "exact"?true:false;
+    let href = "";
+    let exact = false;
+    let rest = [];
+    for(let arg of args){
+      if(arg === "exact"){
+        exact = true;
+        continue;
+      }else if(!href){
+        href = arg;
+        continue;
+      }else if(typeof arg === "undefined"){
+        continue;
+      }
+      rest.push(arg);
+    }
     const match = exact? href === this.location : this.location?.startsWith(href);
-    return `<a class="nav-link ${match?" active":""}" href="${href}">${options.fn(this)}</a>`;
+    return `<a class="nav-link${match?" active":""}" href="${href}"${rest.length?" ":""}${rest.join(" ")}>${options.fn(this)}</a>`;
   },
   i18n(this:any, key: string, ...args:any[]){
     const context:HandlebarsHelperContext = args.pop();
@@ -58,6 +72,18 @@ const staticHelpers = {
   },
   encodeURIComponent(this:any, component:string){
     return encodeURIComponent(component);
+  },
+  encodeURI(this:any, uri:string){
+    return encodeURI(uri);
+  },
+  join(this:any, ...args:any[]){
+    function m(p:any):string|string[]{
+      if(typeof p === "undefined") return "undefined";
+      else if(p === null) return "null";
+      else if(Array.isArray(p)) return p.map(m) as string[];
+      else return p.toString();
+    }
+    return args.slice(0, -1).map(m).flat().join("");
   },
   dateString(this:any, when:Date|string, ...args:any[]){
     const context = args.pop();

@@ -131,9 +131,22 @@ describe("PROPFIND /scenes", function(){
         name: "D:getcontenttype",
         elements:[{type: "text", text: "text/html"}]
       });
+
+      //Expected etag value:
+      let res = await request(this.server).get("/scenes/foo/articles/hello.html")
+      .expect(200);
+      let eTag = res.headers["etag"]
+      expect(eTag, `Expected response to have a "ETag" header but received : ${Object.keys(res.headers).join(", ")}`).to.be.ok;
+      // per RFC4918, D:getetag should always match what a GET request without Content-Type would return
+      //Which is exactly what we are testing here
+      expect(props.elements, JSON.stringify(props.elements, null, 2)).to.deep.include({
+        type: "element",
+        name: "D:getetag",
+        elements:[{type: "text", text: eTag}] 
+      });
     });
 
-    it("lists empty folders", async function(){
+    it.skip("lists empty folders", async function(){
       
     });
   })

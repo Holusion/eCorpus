@@ -55,7 +55,7 @@ export default {
     },
     login: {
       "fr": "Connexion",
-      "en": "Login"
+      "en": "Sign In"
     },
     logout: {
       "fr": "Se déconnecter",

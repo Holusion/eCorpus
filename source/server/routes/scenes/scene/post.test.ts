@@ -21,7 +21,6 @@ describe("POST /scenes/:scene", function(){
     const locals = await createIntegrationContext(this); 
     vfs = locals.vfs;
     app = this.server;
-    // @fixme createIntegrationContext !!!!
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
   });
   this.afterEach(async function(){
@@ -29,12 +28,33 @@ describe("POST /scenes/:scene", function(){
     await fs.rm(this.dir, {recursive: true});
   });
 
-  it("creates .glb and .svz.json files", async function(){
+  it("creates .glb and .svx.json files", async function(){
     await request(app).post("/scenes/foo")
     .send(data)
     .expect(201);
     await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
+
+
+    await request(app).get("/scenes/foo/models/foo.glb")
+    .expect(200)
+    .expect("Content-Type", "model/gltf-binary");
+
+    await request(app).get("/scenes/foo/scene.svx.json")
+    .expect(200)
+    .expect("Content-Type", "application/si-dpo-3d.document+json");
   });
+
+  it("can force scene's setup language", async function(){
+    await request(app).post("/scenes/foo?language=fr")
+    .send(data)
+    .expect(201);
+
+    await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
+    let {body:document} = await request(app).get("/scenes/foo/scene.svx.json")
+    .expect(200)
+    .expect("Content-Type", "application/si-dpo-3d.document+json");
+    expect(document.setups[0]).to.have.deep.property("language", {language: "FR"});
+  })
 
   it("has a soft lock over the scene file", async function(){
     this.retries(2);

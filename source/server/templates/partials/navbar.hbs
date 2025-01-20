@@ -19,9 +19,9 @@
       {{/if}}
       <div class="divider"></div>
       {{#if user.isDefaultUser}}
-        {{#navLink "/ui/admin/"}}{{i18n "nav.login"}}{{/navLink}}
-      {{else}}
-        {{#navLink "/ui/user/"}}{{user.username}}</a>{{/navLink}}
+        {{#navLink (join "/ui/login/?redirect=" (encodeURI location)) 'title="/ui/login/"'}}{{i18n "nav.login"}}{{/navLink}}
+      {{else if user.username}}
+        {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}
       {{/if}}
     </div>
   </div>

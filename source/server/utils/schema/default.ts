@@ -53,68 +53,7 @@ const default_doc = {
         "light": 3
     }],
     "setups": [{
-        "units": "cm",
-        "interface": {
-            "visible": true,
-            "logo": true,
-            "menu": true,
-            "tools": true
-        },
-        "viewer": {
-            "shader": "Default",
-            "exposure": 1,
-            "gamma": 2,
-            "annotationsVisible": false
-        },
-        "reader": {
-            "enabled": false,
-            "position": "Overlay"
-        },
-        "navigation": {
-            "type": "Orbit",
-            "enabled": true,
-            "autoZoom": true,
-            "lightsFollowCamera": true,
-            "autoRotation": false,
-            "orbit": {
-                "orbit": [-24, -26, 0],
-                "offset": [0, 0, 150],
-                "minOrbit": [-90, null, null],
-                "maxOrbit": [90, null, null],
-                "minOffset": [null, null, 0.1],
-                "maxOffset": [null, null, 10000]
-            }
-        },
-        "background": {
-            "style": "RadialGradient",
-            "color0": [ 0.06, 0.19, 0.25 ],
-            "color1": [ 0.04, 0.04, 0.04 ]
-        },
-        "floor": {
-            "visible": false,
-            "position": [0, -25, 0],
-            "size": 50,
-            "color": [ 0.6, 0.75, 0.8 ],
-            "opacity": 0.5,
-            "receiveShadow": false
-        },
-        "grid": {
-            "visible": false,
-            "color": [0.5, 0.7, 0.8]
-        },
-        "tape": {
-            "enabled": false,
-            "startPosition": [0, 0, 0],
-            "startDirection": [0, 0, 0],
-            "endPosition": [0, 0, 0],
-            "endDirection": [0, 0, 0]
-        },
-        "slicer": {
-            "enabled": false,
-            "axis": "X",
-            "inverted": false,
-            "position": 0.5
-        }
+        "units": "m"
     }],
     "cameras": [{
         "type": "perspective",

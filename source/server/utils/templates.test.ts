@@ -166,6 +166,93 @@ describe("Templates", function(){
     })
   });
 
+  describe("helpers", function(){
+    let t :Templates, dir :string;
+
+    this.beforeAll(async function(){
+      dir = await fs.mkdtemp(path.join(tmpdir(), "ecorpus_templates_test"));
+      t = new Templates({dir, cache: false});
+      await fs.mkdir(path.join(dir, "locales"));
+      await fs.writeFile(path.join(dir, "locales/fr.yml"), `---\ngreet: Bonjour Monde\n`);
+      await fs.writeFile(path.join(dir, "locales/en.yml"), `---\ngreet: Hello World\n`);
+    });
+    this.afterAll(async function(){
+      await fs.rm(dir, {recursive: true});
+    });
+
+    describe("join", function(){
+      this.beforeAll(async function(){
+        await fs.writeFile(path.join(dir, "concat_test.hbs"), `{{join "hello" foo}}`);
+      });
+
+      it("join path parts", async function(){
+        await expect(t.render("concat_test", {layout: null, foo: "/world"})).to.eventually.equal("hello/world");
+      });
+      it("join arrays", async function(){
+        await expect(t.render("concat_test", {layout: null, foo: ["world", "and", "universe"]})).to.eventually.equal("helloworldanduniverse");
+
+      })
+      it("stringifies parameters", async function(){
+        await expect(t.render("concat_test", {layout: null, foo: null}), `Stringifies null`).to.eventually.equal("hellonull");
+        await expect(t.render("concat_test", {layout: null, foo: {}}), `Stringifies an empty object`).to.eventually.equal("hello[object Object]");
+        await expect(t.render("concat_test", {layout: null, foo: 1}), `Stringifies a number`).to.eventually.equal("hello1");
+      })
+      it("handles undefined", async function(){
+        //Otherwise path.join() throws, and we don't want that
+        await expect(t.render("concat_test", {layout: null, foo: undefined})).to.eventually.equal("helloundefined");
+      });
+    })
+
+    describe("i18n", function(){
+      this.beforeAll(async function(){
+        await fs.writeFile(path.join(dir, "lang_test.hbs"), `{{i18n "greet"}}`);
+      });
+
+      it("uses local lang parameter", async function(){
+        expect(await t.render("lang_test", {lang: "fr", layout: null})).to.equal("Bonjour Monde");
+        expect(await t.render("lang_test", {lang: "en", layout: null})).to.equal("Hello World");
+      });
+
+      it("handles \"cimode\"", async function(){
+        await expect(t.render("lang_test", {lang: "cimode", layout: null})).to.eventually.equal("greet");
+      });
+    });
+
+    describe("navLink", function(){
+      this.beforeAll(async function(){
+        await fs.writeFile(path.join(dir, "navlink_simple.hbs"), `{{#navLink "/foo"}}Foo{{/navLink}}`);
+      })
+      it("creates an anchor with href", async function(){
+        await expect(t.render("navlink_simple", {layout: null})).to.eventually.equal(`<a class="nav-link" href="/foo">Foo</a>`);
+      });
+
+      it("match pathname prefix with \"active\" class", async function(){
+        await expect(t.render("navlink_simple", {layout: null, location: "/foo"})).to.eventually.equal(`<a class="nav-link active" href="/foo">Foo</a>`);
+        await expect(t.render("navlink_simple", {layout: null, location: "/foo/"})).to.eventually.equal(`<a class="nav-link active" href="/foo">Foo</a>`);
+        await expect(t.render("navlink_simple", {layout: null, location: "/foo/bar"})).to.eventually.equal(`<a class="nav-link active" href="/foo">Foo</a>`);
+
+        await expect(t.render("navlink_simple", {layout: null, location: "/bar"})).to.eventually.equal(`<a class="nav-link" href="/foo">Foo</a>`);
+      });
+
+      it("match exact pathname", async function(){
+        await fs.writeFile(path.join(dir, "navlink_exact.hbs"), `{{#navLink "/foo" "exact" }}Foo{{/navLink}}`);
+        await expect(t.render("navlink_exact", {layout: null, location: "/foo"}), `/foo should match with exact keyword`).to.eventually.equal(`<a class="nav-link active" href="/foo">Foo</a>`);
+        
+        await expect(t.render("navlink_exact", {layout: null, location: "/foo/bar"}), `/foo/bar should not match exact keyword`).to.eventually.equal(`<a class="nav-link" href="/foo">Foo</a>`);
+        await expect(t.render("navlink_exact", {layout: null, location: "/bar"})).to.eventually.equal(`<a class="nav-link" href="/foo">Foo</a>`);
+      });
+
+      it("can have additional properties", async function(){
+        await fs.writeFile(path.join(dir, "navlink_params.hbs"), `{{#navLink "/foo" "disabled" 'id="foo"' }}Foo{{/navLink}}`);
+        await expect(t.render("navlink_params", {layout: null, location:"/"})).to.eventually.equal(`<a class="nav-link" href="/foo" disabled id="foo">Foo</a>`)
+      });
+      it("can interpolate its href", async function(){
+        await fs.writeFile(path.join(dir, "navlink_interpolation.hbs"), `{{#navLink (join "/foo/" target) }}Foo{{/navLink}}`);
+        await expect(t.render("navlink_interpolation", {layout: null, target:"bar", location:"/"})).to.eventually.equal(`<a class="nav-link" href="/foo/bar">Foo</a>`)
+      });
+    })
+  })
+
 
   describe("as a middleware", function(){
     let app :Express;

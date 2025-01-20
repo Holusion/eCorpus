@@ -117,6 +117,16 @@ describe("/auth/login", function(){
     .expect(400);
     expect(res.body).to.have.property("message").match(/password not provided/);
   });
+
+  it("send a proper error if form is malformed", async function(){
+    this.agent = request.agent(this.server);
+    let res = await this.agent.post("/auth/login")
+    .send({username:["foo", "bar"], password: "12345678"})
+    .set("Content-Type", "application/json")
+    .set("Accept", "")
+    .expect(400);
+    expect(res.body).to.have.property("message").match(/Bad username format/);
+  });
   
   it("can logout", async function(){
     let agent = request.agent(this.server);
@@ -138,6 +148,38 @@ describe("/auth/login", function(){
       isDefaultUser: true,
       isAdministrator: false,
     });
+  });
+
+  it("accepts a redirect parameter", async function(){
+    let s = new URLSearchParams();
+    s.set("redirect", "/ui/")
+    let agent = request.agent(this.server);
+    await agent.post("/auth/login?"+s.toString())
+    .send({username: user.username, password: "12345678"})
+    .set("Content-Type", "application/json")
+    .set("Accept", "")
+    .expect(302)
+    .expect('set-cookie', /session=/)
+    .expect("Location", /\/ui\/$/);
+  });
+
+  it("validates the redirect parameter", async function(){
+    let s = new URLSearchParams();
+    s.set("redirect", "https://example.com/foo")
+    let agent = request.agent(this.server);
+    await agent.post("/auth/login?"+s.toString())
+    .send({username: user.username, password: "12345678"})
+    .set("Content-Type", "application/json")
+    .set("Accept", "")
+    .expect(400);
+  });
+
+  it("accepts application/x-www-form-urlencoded data", async function(){
+    let agent = request.agent(this.server);
+    await agent.post("/auth/login")
+    .set("Content-Type", "application/x-www-form-urlencoded")
+    .send(`username=${user.username}&password=12345678`)
+    .expect(200);
   });
   
   describe("Authorization header", function(){

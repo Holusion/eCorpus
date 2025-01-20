@@ -1,0 +1,40 @@
+<div class="landing-page">
+    <div class="illustration">
+        <img src="/dist/images/sketch_ethesaurus.png" alt="dessin représentant l'application voyager et son utilisation dans une borne holographique"/>
+        <p id="app-lead">{{ i18n "leads.appLead" }}</p>
+        <p style="text-align:right">
+            <a href="/ui/standalone/?lang={{lang}}">{{ i18n "buttons.useStandalone" }}</a>
+        </p>
+    </div>
+    
+    <div class="user-login">
+        <h2>{{ i18n "nav.login" }}</h2>
+        <form id="userlogin" class="form-control form-modal" name="{{i18n "labels.signin"}}" method="POST" action="/auth/login?redirect={{#if redirect}}{{encodeURI redirect}}{{else}}{{encodeURI location}}{{/if}}" enctype="application/x-www-form-urlencoded" "on" autocapitalize="none" >
+        <div class="form-group">
+          <div class="form-item">
+            <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "labels.username"}}">
+            <label for="username">{{i18n "labels.username"}}</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-item">
+            <input type="password" autocomplete="current-password" name="password" id="password" required="" placeholder="{{i18n "labels.password"}}">
+            <label for="password">{{i18n "labels.password"}}</label>
+          </div>
+        </div>
+        <div>
+          {{#if validationError}}
+            <span class="text-error">{{validationError}}</span>
+          {{/if}}
+        </div>
+        <div class="form-group">
+          <div class="form-item">
+            <input type="submit" value="{{ i18n "labels.signin" }}">
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <a style="cursor:pointer;" href="/ui/login/recover">{{ i18n "labels.forgottenPassword" }}</a>
+        </div>
+      </form>
+    </div>
+</div>

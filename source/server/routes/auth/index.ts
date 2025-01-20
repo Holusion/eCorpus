@@ -12,7 +12,9 @@ import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
 
 const useJSON = bodyParser.json();
-
+const useURLEncoded = bodyParser.urlencoded({
+  extended: false //Contains only strings
+})
 const router = Router();
 
 /** Configure cache behaviour for the whole API
@@ -35,7 +37,7 @@ router.get("/", wrap(async function(req, res){
 }));
 
 router.get("/login", wrap(getLogin));
-router.post("/login", useJSON, postLogin);
+router.post("/login", useJSON, useURLEncoded, postLogin);
 router.get("/login/:username/link", isAdministrator, wrap(getLoginLink));
 router.post("/login/:username/link", either(isAdministrator, rateLimit({
   //Special case of real low rate-limiting for non-admin users to send emails
