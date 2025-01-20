@@ -1,15 +1,10 @@
 import { LitElement, TemplateResult, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
-import Notification from "../composants/Notification";
-
 import "../composants/Spinner";
-import "../composants/UploadButton";
 import "../composants/SceneCard";
 import "../composants/ListItem";
 import "../composants/TagList";
-
-import spinnerImage from "../assets/images/spinner.svg";
 
 import i18n from "../state/translate";
 import { UserSession, withUser } from "../state/auth";
@@ -19,9 +14,6 @@ import "../composants/TaskButton";
 import { withScenes, Scene, sorts, OrderBy } from "../state/withScenes";
 import { navigate } from "../state/router";
 
-interface Upload{
-    name :string;
-}
 
 
 /**
@@ -33,13 +25,6 @@ interface Upload{
 
     @property({attribute:true, type: String})
     search ?:string;
-
-    @property({type: Object})
-    uploads :{[name :string]:{
-        error ?:{code?:number,message:string},
-        done :boolean,
-        progress ?:number,
-    }} = {};
 
     @property()
     dragover = false;
@@ -66,58 +51,6 @@ interface Upload{
         this.fetchScenes();
     }
 
-    upload(file :File, as_scenes = false){
-        console.log("Upload File : ", file);
-        let name = file.name.split(".").slice(0,-1).join(".");
-        if(name in this.uploads){
-            Notification.show(`Can't create ${name}: already uploading`, "error", 4000);
-            return;
-        }
-    
-        const setError = ({code, message})=>{
-            Notification.show(`Can't  create ${name}: ${message}`, "error", 8000);
-            delete this.uploads[name];
-            this.uploads = {...this.uploads};
-        }
-        const setProgress = (n)=>{
-            this.uploads = {...this.uploads, [name]: {...this.uploads[name], progress: n}};
-        }
-        const setDone = ()=>{
-            this.fetchScenes().then(()=>{
-                delete this.uploads[name];
-                this.uploads = {...this.uploads};                
-            });
-        }
-
-        this.uploads = {...this.uploads, [name]: {progress:0, done: false}};
-        this.orderBy = "mtime";
-        (async ()=>{
-            let xhr = new XMLHttpRequest();
-            xhr.onload = function onUploadDone(){
-                if(299 < xhr.status){
-                    setError({code: xhr.status, message: xhr.statusText});
-                }else{
-                    Notification.show(name+" uploaded", "info");
-                    setTimeout(setDone, 0);
-                }
-            }
-    
-            xhr.upload.onprogress = function onUploadProgress(evt){
-                if(evt.lengthComputable){
-                    console.log("Progress : ", Math.floor(evt.loaded/evt.total*100));
-                    setProgress(Math.floor(evt.loaded/evt.total*100));
-                }else{
-                    setProgress(0);
-                }
-            }
-            xhr.onerror = function onUploadError(){
-                setError({code: xhr.status, message: xhr.statusText});
-            }
-    
-            xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}`);
-            xhr.send(file);
-        })();
-    }
 
     onSelectChange = (ev :Event)=>{
         let target = (ev.target as HTMLInputElement);
@@ -126,7 +59,7 @@ interface Upload{
         this.selection = selected? [...this.selection, name] : this.selection.filter(n=>n !== name);
     }
 
-    private renderScene(mode :string, scene:Scene|Upload){
+    private renderScene(mode :string, scene:Scene){
 
         return html`<scene-card cardStyle="list" 
             .mode=${mode} 
@@ -144,16 +77,12 @@ interface Upload{
         let mode = (this.user?"write":"read");
 
         let listContent = html`
-            ${(this.list?.length == 0 && Object.keys(this.uploads).length == 0)?
+            ${(this.list?.length == 0)?
                 html`<h4>No scenes available</h1>`:
-                repeat([
-                    ...Object.keys(this.uploads).map(name=>({
-                        key: name,
-                        name: `Uploading ${name}: ${this.uploads[name].progress}%`,
-                        thumb: spinnerImage,
-                    })),
-                    ...(this.list ??[]),
-                ],(i)=>(i as any).key ?? i.name , (scene)=>this.renderScene(mode, scene))
+                repeat(
+                    this.list ??[],
+                    (i)=>(i as any).key ?? i.name , (scene)=>this.renderScene(mode, scene)
+                )
             }
         `;
 
@@ -179,9 +108,9 @@ interface Upload{
                     <div class="list-tasks form-control">
                         <div class="section">
                             <h3 style="margin-top:0">${this.t("ui.newScene")}</h3>
-                            <upload-button class="btn btn-main" style="padding:8px" @change=${this.onUploadBtnChange}>
+                            <a class="btn btn-main" style="padding:8px" href="/ui/upload">
                                 ${this.t("ui.upload")}
-                            </upload-button>
+                            </a>
                             
                             <a class="btn btn-main" href="/ui/standalone/?lang=${this.language.toUpperCase()}">${this.t("info.useStandalone")}</a>
                         </div>
@@ -216,47 +145,6 @@ interface Upload{
 
 
             </div>`;
-    }
-
-    ondragenter = (ev)=>{
-        ev.preventDefault();
-    }
-    ondragleave = ()=>{
-        this.dragover = false;
-    }
-    ondragover = (ev)=>{
-        ev.preventDefault()
-        if(this.isUser) this.dragover = true;
-    }
-    ondrop = (ev)=>{
-        ev.preventDefault();
-        if(!this.isUser) return;
-
-        this.dragover = false;
-        for(let item of [...ev.dataTransfer.items]){
-            
-            let file = item.getAsFile();
-            if( !/\.glb$/i.test(file.name) || item.kind !== "file"){
-                Notification.show(`${file.name} is not valid. This method only accepts .glb files` , "error", 4000);
-                continue;
-            };
-            this.upload(file)
-        }
-    }
-
-    onUploadBtnChange = (ev:CustomEvent<{files: FileList}>)=>{
-        ev.preventDefault();
-        for(let file of [...ev.detail.files]){
-            let ext = file.name.split(".").pop().toLowerCase();
-            if(ext == "zip"){
-                this.upload(file, true);
-            }else if(ext == "glb"){
-                this.upload(file, false);
-            }else{
-                Notification.show(`${file.name} is not valid. This method only accepts .glb files` , "error", 4000);
-                continue;
-            };
-        }
     }
 
     onSearchChange = (ev)=>{

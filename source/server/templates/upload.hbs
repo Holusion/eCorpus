@@ -1,13 +1,14 @@
 <h2>{{i18n "titles.upload"}}</h2>
 
 <upload-form>
-  <form class="form-control">
+  <form class="form-control" aria-labelledby="upload-form-title">
     <section class="container">
-      <h3>{{i18n "titles.createScene"}}</h3>
+      <h3 id="upload-form-title">{{i18n "titles.createScene"}}</h3>
       <div class="form-group">
         <div class="form-item">
           <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile"}}</label>
           <input 
+              role="button"
               class="dropzone"
               id="fileUpload" 
               type="file"

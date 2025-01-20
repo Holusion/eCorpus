@@ -11,9 +11,12 @@ import sendmail from "../../utils/mails/send.js";
 export const postLogin :RequestHandler = (req, res, next)=>{
   const {sessionMaxAge} = getLocals(req);
   let userManager = getUserManager(req);
+  let {redirect} = req.query;
   let {username,password} = req.body;
   if(!username) throw new BadRequestError("username not provided");
+  else if(typeof username !="string") throw new BadRequestError("Bad username format");
   if(!password) throw new BadRequestError("password not provided");
+  else if(typeof password !="string") throw new BadRequestError("Bad password format");
   userManager.getUserByNamePassword(username, password).then(user=>{
     let safeUser = User.safe(user);
     Object.assign(
@@ -21,9 +24,13 @@ export const postLogin :RequestHandler = (req, res, next)=>{
       {expires: Date.now() + sessionMaxAge},
       safeUser
     );
-    res.status(200).send({...safeUser, code: 200, message: "OK"});
 
-  }, (e)=>{
+    if(redirect && typeof redirect === "string"){
+      return res.redirect(302, validateRedirect(req, redirect));
+    }else{
+      res.status(200).send({...safeUser, code: 200, message: "OK"});
+    }
+  }).catch((e)=>{
     if(e instanceof NotFoundError){
       next(new UnauthorizedError(`username ${username} not found`));
     }else{

@@ -17,10 +17,27 @@ interface DirElementProps extends ElementProps{
 interface FileElementProps extends ElementProps{
   size :number;
   mime :string;
+  hash :string|null;
 }
 
 
-type DavTAG = "D:href"|"D:response"|"D:propstat"|"D:href"|"D:status"|"D:prop"|"D:getlastmodified"|"D:creationdate"|"D:displayname"|"D:lockdiscovery"|"D:supportedlock"|"D:resourcetype"|"D:getcontentlength"|"D:getcontenttype"|"D:collection"
+type DavTAG = 
+  |"D:collection"
+  |"D:creationdate"
+  |"D:displayname"
+  |"D:getcontentlength"
+  |"D:getcontenttype"
+  |"D:getetag"
+  |"D:getlastmodified"
+  |"D:href"
+  |"D:lockdiscovery"
+  |"D:prop"
+  |"D:propstat"
+  |"D:resourcetype"
+  |"D:response"
+  |"D:status"
+  |"D:supportedlock"
+;
 
 type ElementList = Array<Element|TextElement>;
 class Element{
@@ -45,7 +62,6 @@ class Element{
 
 
   static fromProps(filename :string, props :FileElementProps|DirElementProps|ElementProps) :Element{
-    if(typeof props.mtime.toUTCString != "function") console.log("from props : ", filename, props);
     let infos :ElementList =  [
       {
         "type": "element",
@@ -106,6 +122,19 @@ class Element{
 
     }
 
+    if('hash' in props && props.hash){
+      infos.push({
+        "type": "element",
+        "name": "D:getetag",
+        "elements": [
+          {
+            "type": "text",
+             "text": `W/${props.hash}`
+          }
+        ]
+      })
+    }
+
     return {
       "type": "element",
       "name": "D:prop",
@@ -163,6 +192,7 @@ async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:nu
           size: f.size,
           isDirectory,
           mime: f.mime,
+          hash: f.hash,
         }
       ));
     }

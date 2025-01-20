@@ -6,6 +6,18 @@ import uid from "../../../utils/uid.js";
 import getDefaultDocument from "../../../utils/schema/default.js";
 import { BadRequestError } from "../../../utils/errors.js";
 
+const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
+type SceneLanguage = typeof sceneLanguages[number];
+function isSceneLanguage(l:any) :l is SceneLanguage|undefined{
+  return typeof l === "undefined" || sceneLanguages.indexOf(l.toUpperCase()) !== -1;
+}
+
+
+interface GetDocumentParams{
+  scene :string;
+  filepath :string;
+  language?:SceneLanguage;
+}
 
 /**
  * Creates a new default document for a scene
@@ -14,7 +26,7 @@ import { BadRequestError } from "../../../utils/errors.js";
  * @param filepath 
  * @returns 
  */
-async function getDocument(scene:string, filepath:string){
+async function getDocument({scene, filepath, language}:GetDocumentParams){
   let orig = await getDefaultDocument();
   //dumb inefficient Deep copy because we want to mutate the doc in-place
   let document = JSON.parse(JSON.stringify(orig));
@@ -27,6 +39,10 @@ async function getDocument(scene:string, filepath:string){
     "meta": 0
   } as any);
   document.scenes[0].nodes.push(document.nodes.length -1);
+
+  if(language){
+    document.setups[0].language = {language: language.toUpperCase()};
+  }
 
   document.models = [{
     "units": "m", //glTF specification says it's always meters. It's what blender do.
@@ -66,15 +82,23 @@ export default async function postScene(req :Request, res :Response){
   let vfs = getVfs(req);
   let user_id = getUserId(req);
   let {scene} = req.params;
-
+  let {language} = req.query;
+  
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
-
+  if(!isSceneLanguage(language)){
+    throw new BadRequestError(`Invalid scene language requested: ${language}`)
+  }
+  
   let scene_id = await vfs.createScene(scene, user_id);
   try{
     let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});
-    let document = await getDocument(scene, vfs.filepath(f));
+    let document = await getDocument({
+      scene,
+      filepath: vfs.filepath(f),
+      language,
+    });
     await vfs.writeDoc(JSON.stringify(document), {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
   }catch(e){
     //If written, the file will stay as a loose object but will get cleaned-up later

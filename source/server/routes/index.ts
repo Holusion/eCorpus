@@ -10,7 +10,7 @@ import UserManager from "../auth/UserManager.js";
 import { BadRequestError, HTTPError, UnauthorizedError } from "../utils/errors.js";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, canRead, canWrite, getHost, getLocals, getUserManager, isUser} from "../utils/locals.js";
+import {AppLocals, canRead, canWrite, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
 
 import openDatabase from "../vfs/helpers/db.js";
 import Vfs from "../vfs/index.js";
@@ -199,7 +199,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
         res.status(404).render("error", { 
           error,
           lang: req.acceptsLanguages(["en", "fr"]),
-          user: req.session,
+          user: getUser(req),
         });
       },
       "text/plain": ()=>{
@@ -241,7 +241,11 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       },
       "text/html": ()=>{
         // send error page
-        res.status(code).render("error", { error });
+        res.status(code).render("error", { 
+          error,
+          lang: req.acceptsLanguages(["en", "fr", "cimode"]),
+          user: getUser(req),
+        });
       },
       "text/plain": ()=>{
         res.status(code).send(error.message);

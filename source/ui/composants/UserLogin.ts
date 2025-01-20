@@ -71,7 +71,7 @@ import Notification from "./Notification";
     }
 
     private renderLogin(){
-      return html`<form id="userlogin" class="form-control form-modal" ?disabled=${this.active} @submit=${this.onLoginSubmit}>
+      return html`<form id="userlogin" aria-label="${this.t("ui.login")}" class="form-control form-modal" ?disabled=${this.active} @submit=${this.onLoginSubmit}>
         <div class="form-group">
           <div class="form-item">
             <input type="text" autocomplete="username" name="username" id="username" placeholder="${this.t("ui.username")}" required>

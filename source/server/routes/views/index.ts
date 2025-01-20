@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -26,7 +26,7 @@ routes.use("/", (req :Request, res:Response, next)=>{
   const session = getSession(req);
   const user = getUser(req);
   const {search} = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(["fr", "en"]) || "en");
+  const lang = session?.lang ?? (req.acceptsLanguages(["fr", "en", "cimode"]) || "en");
   Object.assign(res.locals, {
     lang,
     languages: [
@@ -44,8 +44,9 @@ routes.use("/", (req :Request, res:Response, next)=>{
 routes.get("/", wrap(async (req, res)=>{
   const user = getUser(req);
   if(!user || user.isDefaultUser){
-    return res.render("landing", {
+    return res.render("login", {
       title: "eCorpus Home",
+      user: null,
     });
   }
   const vfs = getVfs(req);
@@ -127,6 +128,19 @@ routes.get("/user", (req, res)=>{
     body: `<user-settings></user-settings>`,
   });
 });
+
+routes.get("/login", (req, res)=>{
+  let requester = getUser(req);
+  let {redirect} = req.query;
+  redirect = (redirect && typeof redirect === "string")? validateRedirect(req, redirect): "/ui/";
+  console.log("Redirect : ", redirect);
+  if(requester.isDefaultUser === false) return res.redirect(302, "/ui/");
+  res.render("login", {
+    title: "eCorpus Login",
+    user: null,
+    redirect,
+  });
+})
 
 routes.get("/admin", (req, res)=>{
   res.render("admin/home", {

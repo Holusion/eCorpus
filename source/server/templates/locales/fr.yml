@@ -7,6 +7,10 @@ labels:
   sceneTitle: titre de la scène
   setupLanguage: Langue de la scène
   selectFile: sélectionner un fichier
+  signin: Connexion
+  username: Nom d'utilisateur
+  password: Mot de passe
+  forgottenPassword: Mot de passe oublié?
 buttons:
   searchScene: chercher une scène
   upload: créer une scène
