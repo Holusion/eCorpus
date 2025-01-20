@@ -84,3 +84,41 @@ jobs:
           path: eCorpus
           if-no-files-found: error
           retention-days: 10
+  e2e:
+    name: Test End-to-End
+    runs-on: ubuntu-latest
+    needs: [ pack ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            source/e2e
+      - uses: actions/download-artifact@v4
+        with:
+          name: "eCorpus-${{github.ref_name}}"
+          path: build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: install dependencies
+        run: |
+          ls
+          ls build/*
+          npm ci
+          (cd build && npm ci --omit=dev)
+          (cd source/e2e && npm ci)
+          (cd source/e2e && npx playwright install  --with-deps)
+      - name: run tests
+        working-directory: source/e2e
+        env:
+          ROOT_DIR: "${{ github.workspace}}/build"
+          DIST_DIR: "${{ github.workspace}}/build/client"
+        run: npm test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: source/e2e/playwright-report/
+          retention-days: 10
