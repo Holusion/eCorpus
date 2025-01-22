@@ -1,40 +1,99 @@
 <div class="landing-page">
-    <div class="illustration">
-        <img src="/dist/images/sketch_ethesaurus.png" alt="dessin représentant l'application voyager et son utilisation dans une borne holographique"/>
-        <p id="app-lead">{{ i18n "leads.appLead" }}</p>
-        <p style="text-align:right">
-            <a href="/ui/standalone/?lang={{lang}}">{{ i18n "buttons.useStandalone" }}</a>
-        </p>
-    </div>
-    
-    <div class="user-login">
+  <div class="illustration">
+    <img src="/dist/images/sketch_ethesaurus.png"
+      alt="dessin représentant l'application voyager et son utilisation dans une borne holographique" />
+    <p id="app-lead">{{ i18n "leads.appLead" }}</p>
+    <p style="text-align:right">
+      <a href="/ui/standalone/?lang={{lang}}">{{ i18n "buttons.useStandalone" }}</a>
+    </p>
+  </div>
+
+  <div class="user-login">
+    <div class="tabs tabs-reverse">
+      <div class="tab" id="login">
         <h2>{{ i18n "nav.login" }}</h2>
-        <form id="userlogin" class="form-control form-modal" name="{{i18n "labels.signin"}}" method="POST" action="/auth/login?redirect={{#if redirect}}{{encodeURI redirect}}{{else}}{{encodeURI location}}{{/if}}" enctype="application/x-www-form-urlencoded" "on" autocapitalize="none" >
-        <div class="form-group">
-          <div class="form-item">
-            <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "labels.username"}}">
-            <label for="username">{{i18n "labels.username"}}</label>
+
+        <form id="userlogin" class="form-control form-modal" name="{{i18n " labels.signin"}}" method="POST"
+          action="/auth/login?redirect={{#if redirect}}{{encodeURI redirect}}{{else}}{{encodeURI location}}{{/if}}"
+          enctype="application/x-www-form-urlencoded"
+          autocomplete="on" autocapitalize="none"
+        >
+          <div class="form-group">
+            <div class="form-item">
+              <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "
+                labels.username"}}">
+              <label for="username">{{i18n "labels.username"}}</label>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <div class="form-item">
-            <input type="password" autocomplete="current-password" name="password" id="password" required="" placeholder="{{i18n "labels.password"}}">
-            <label for="password">{{i18n "labels.password"}}</label>
+          <div class="form-group">
+            <div class="form-item">
+              <input type="password" autocomplete="current-password" name="password" id="password" required=""
+                placeholder="{{i18n " labels.password"}}">
+              <label for="password">{{i18n "labels.password"}}</label>
+              <button id="password-toggle" aria-checked="false" role="switch" style="display:none" class="btn btn-transparent btn-addon"><ui-icon name="eye"></ui-icon></button>
+              <script>
+                (function registerPasswordVisibilityToggle(){
+                  const btn = document.querySelector("#password-toggle");
+                  if(!btn) return console.warn("Password toggle button not found");
+                  btn.onclick = function togglePasswordVisibility(e){
+                    e.preventDefault();
+                    const checked = btn.ariaChecked != "true";
+                    const input = document.querySelector(`input[name="password"]`);
+                    if(!input ) return console.warn(`Password input not found`);
+                    input.type = checked? "text" : "password";
+                    btn.ariaChecked = checked.toString();
+                  }
+                  btn.style.removeProperty("display");
+                })();
+              </script>
+            </div>
           </div>
-        </div>
-        <div>
-          {{#if validationError}}
-            <span class="text-error">{{validationError}}</span>
-          {{/if}}
-        </div>
-        <div class="form-group">
-          <div class="form-item">
-            <input type="submit" value="{{ i18n "labels.signin" }}">
+
+          <div id="login-form-error">
+            {{#if error}}
+            <span class="text-error" role="alert">{{i18n (join "errors" error separator=".")}}</span>
+            {{/if}}
           </div>
-        </div>
+
+          <div class="form-group">
+            <div class="form-item">
+              <input type="submit" value="{{ i18n " labels.signin" }}">
+            </div>
+          </div>
+        </form>
+
         <div style="text-align:right;">
-          <a style="cursor:pointer;" href="/ui/login/recover">{{ i18n "labels.forgottenPassword" }}</a>
+          <a style="cursor:pointer;" href="#passwordRecovery">{{ i18n "labels.forgottenPassword" }}</a>
         </div>
-      </form>
+      </div>
+      <div class="tab" id="passwordRecovery">
+        <h2>{{ i18n "nav.recoverPassword" }}</h2>
+        <p>{{i18n "leads.passwordRecovery"}}</p>
+        <form id="userrecover" class="form-control form-modal" name="{{i18n " labels.forgottenPassword"}}" 
+          action="/auth/login/link" method="POST"
+          enctype="application/x-www-form-urlencoded"
+          autocomplete="on" 
+        >
+          <div class="form-group">
+            <div class="form-item">
+              <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "
+                labels.username"}}">
+              <label for="username">{{i18n "labels.username"}}</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-item">
+              <input type="submit" value="{{ i18n " labels.sendLoginLink" }}">
+            </div>
+          </div>
+        </form> 
+        <div style="text-align:right;">
+          <a style="cursor:pointer;" href="#login">{{ i18n "labels.signin" }}</a>
+        </div>
+
+      </div>
     </div>
+
+  </div>
 </div>

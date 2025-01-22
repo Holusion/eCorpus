@@ -241,3 +241,16 @@ footer{
   background-color: var(--color-section);
   display:flex;
 }
+
+
+.tabs{
+  .tab{
+    display: none;
+    width: 100%;
+    
+    &:first-child:not(:has(~ .tab:target)),
+    &:target {
+      display: block;
+    }
+  }
+}

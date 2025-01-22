@@ -1,0 +1,102 @@
+<div class="main-grid">
+  <div class="grid-header form-control">
+    <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
+      <input class="search-box-input" type="search" name="match" form="search" id="model-search" placeholder="{{i18n "labels.searchPlaceholder"}}"
+        value="{{params.match}}">
+      <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit"><ui-icon
+          name="search"></ui-icon></button>
+    </div>
+    
+    <div class="form-group inline" style="margin-left:auto; padding:10px">
+      <label class="form-item">
+        {{i18n "labels.sortBy"}}
+        <select name="orderBy" autocomplete="off" style="width:auto" form="search">
+          {{>inputs/option selected=params.orderBy value="mtime" text=(i18n "fields.mtime")}}
+          {{>inputs/option selected=params.orderBy value="ctime" text=(i18n "fields.ctime")}}
+          {{>inputs/option selected=params.orderBy value="name" text=(i18n "fields.name")}}
+        </select>
+      </label>
+      <div class="form-item" style="padding-left: .5rem; font-weight: bold;">
+        <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
+        <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
+        <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
+        <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-toolbar">
+{{!-- 
+      ${(this.selection.length)?html`
+      <div class="section">
+        <h4 style="margin-top:0">${this.t("ui.tools")}</h4>
+        <a class="btn btn-main btn-icon" download href="/scenes?${
+                  this.selection.map(name=>`name=${encodeURIComponent(name)}`).join(" &") }&format=zip">
+          Download Zip
+        </a>
+      </div>`: null} --}}
+    <section style="position: sticky; top: calc(var(--nav-height) + 1rem)">
+      <form autocomplete="off" id="search" class="form-control" method="GET" action="/ui/scenes">
+        <div style="display:flex;justify-content:space-between;">
+          <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
+          <button class="btn btn-transparent btn-inline btn-changed" type="submit"><ui-icon name="search"></ui-icon></button>
+        </div>
+        <h5 class="form-section">{{i18n "fields.access"}}</h5>
+        <label class="form-item inline">
+          {{> inputs/checkbox value="read" selected=params.access }}
+          {{i18n "fields.read"}}
+        </label>
+        <label class="form-item inline">
+          {{>inputs/checkbox value="write" selected=params.access }}
+          {{i18n "fields.write"}}
+        </label>
+        <label class="form-item inline">
+          {{>inputs/checkbox value="admin" selected=params.access }}
+          {{i18n "fields.admin"}}
+        </label>
+        <h5 class="form-section">{{i18n "labels.pagination"}}</h5>
+        <label class="form-item">
+          {{i18n "fields.limit"}}
+          <input type="number" name="limit" min="1" max="100" value="{{params.limit}}">
+        </label>
+      </form>
+      <script async>
+        (function registerFormAutoSubmit(){
+          function onChange(){
+            this.form?.submit();
+          }
+          ["limit", "access", "orderBy", "orderDirection"].forEach(sel=>{
+            const els = document.querySelectorAll(`input[name="${sel}"],select[name="${sel}"]`);
+            for (const el of els){
+              if(!el) return console.warn(`Couldn't find selector matching 'input[name="${sel}"],select[name="${sel}"]'`);
+              el.addEventListener("change", onChange);
+            }
+          });
+        })()
+      </script>
+    </section>
+  </div>
+
+  <div class="grid-content list-items section" style="width:100%">
+    {{#each scenes}}
+      <scene-card 
+        card-style="grid" 
+        name="{{name}}"
+        thumb="{{thumb}}"
+        time="{{mtime}}"
+        access="{{access.user}}"
+      ></scene-card>
+    {{/each}}
+    <div style="display:flex; justify-content: space-between;margin-top: 1rem;">
+      {{#if pager.previous}}
+        <a class="btn btn-main" id="search-previous" href="{{pager.previous}}">{{i18n "buttons.previous"}}</a>
+      {{else}}
+        <div><!--placeholder--></div>
+      {{/if}}
+      {{#if pager.next }}
+        <a class="btn btn-main"id="search-next" href="{{pager.next}}">{{i18n "buttons.next"}}</a>
+      {{/if}}
+
+    </div>
+  </div>
+</div>

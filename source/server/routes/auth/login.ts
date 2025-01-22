@@ -1,22 +1,26 @@
 import { createHmac } from "crypto";
-import { Request, RequestHandler, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../auth/User.js";
-import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
+import { BadRequestError, ForbiddenError, HTTPError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
 import { AppLocals, getHost, getLocals, getSession, getUser, getUserManager, validateRedirect } from "../../utils/locals.js";
 import sendmail from "../../utils/mails/send.js";
+import { useTemplateProperties } from "../views/index.js";
+
 /**
- * 
- * @type {RequestHandler}
+ * Handler for login flow. Used for automated AND interactive login flows, which makes it a bit more complicated
+ * Due to this, it handles (most of) its own errors contrary to most handlers. 
  */
-export const postLogin :RequestHandler = (req, res, next)=>{
+export function postLogin(req :Request, res :Response, next :NextFunction){
   const {sessionMaxAge} = getLocals(req);
   let userManager = getUserManager(req);
   let {redirect} = req.query;
-  let {username,password} = req.body;
-  if(!username) throw new BadRequestError("username not provided");
+  let {username, password} = req.body;
+
+  if(!username) throw new BadRequestError("Username not provided");
   else if(typeof username !="string") throw new BadRequestError("Bad username format");
-  if(!password) throw new BadRequestError("password not provided");
+  if(!password) throw new BadRequestError("Password not provided");
   else if(typeof password !="string") throw new BadRequestError("Bad password format");
+
   userManager.getUserByNamePassword(username, password).then(user=>{
     let safeUser = User.safe(user);
     Object.assign(
@@ -24,27 +28,78 @@ export const postLogin :RequestHandler = (req, res, next)=>{
       {expires: Date.now() + sessionMaxAge},
       safeUser
     );
-
+    return safeUser;
+  }).then((safeUser)=>{
     if(redirect && typeof redirect === "string"){
       return res.redirect(302, validateRedirect(req, redirect));
     }else{
-      res.status(200).send({...safeUser, code: 200, message: "OK"});
+      res.format({
+        "application/json": ()=> {
+          res.status(200).send(safeUser);
+        },
+        "text/html": ()=>{
+          res.redirect(302, "/ui/");
+        },
+        "text/plain": ()=>{
+          res.status(200).send(`${safeUser.username} (${safeUser.uid})`);
+        },
+      });
     }
-  }).catch((e)=>{
+
+  }, (e)=>{
     if(e instanceof NotFoundError){
-      next(new UnauthorizedError(`username ${username} not found`));
-    }else{
-      next(e);
+      e = new UnauthorizedError(`Username not found`);
     }
-  });
-};
+    const code :number = e.code ?? 500;
+    const rawMessage = (e instanceof HTTPError)? e.message.slice(6): e.message;
+    res.status(code);
+
+    res.format({
+      "application/json": ()=> {
+        res.status(200).send({ code, message: `${e.name}: ${e.message}` });
+      },
+      "text/html": ()=>{
+        res.render("login", {
+          error: rawMessage,
+        });
+      },
+      "text/plain": ()=>{
+        res.status(code).send(e.message);
+      },
+    });
+  }).catch(next);
+}
 
 export async function getLogin(req :Request, res:Response){
-  let {payload, sig, redirect} = req.query;
+  let requester = getUser(req);
+  let {payload, sig, redirect:unsafeRedirect} = req.query;
   let host = getHost(req);
+
+  const redirect = unsafeRedirect? validateRedirect(req, unsafeRedirect): undefined;
+
   if(!payload && !sig){
     const session = getSession(req);
-    return res.status(200).send(User.safe(session ?? {}));
+    res.format({
+      "application/json": ()=> {
+        res.status(200).send(User.safe(session ?? {}));
+      },
+      "text/html": ()=>{
+        if(requester.isDefaultUser === false) return res.redirect(302, redirect ?? "/ui/");
+        useTemplateProperties(req, res, ()=>{
+          res.render("login", {
+            title: "eCorpus Login",
+            user: null,
+            redirect,
+          });
+
+        })
+      },
+      "text/plain": ()=>{
+        res.status(200).send(`${session?.username} (${session?.uid})`);
+      },
+    })
+    return;
+    return 
   }else if(typeof payload !== "string" || !payload || !sig){
     throw new BadRequestError(`Bad login links parameters`);
   }
@@ -75,8 +130,8 @@ export async function getLogin(req :Request, res:Response){
     {expires: Date.now() + getLocals(req).sessionMaxAge },
     User.safe(user),
   );
-  if(redirect && typeof redirect === "string"){
-    return res.redirect(302, validateRedirect(req, redirect));
+  if(redirect){
+    return res.redirect(302, redirect);
   }else{
     return res.status(200).send(User.safe((req as any).session));
   }

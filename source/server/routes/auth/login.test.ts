@@ -105,7 +105,7 @@ describe("/auth/login", function(){
     .set("Content-Type", "application/json")
     .set("Accept", "")
     .expect(400);
-    expect(res.body).to.have.property("message").match(/username not provided/);
+    expect(res.body).to.have.property("message").match(/username not provided/i);
   });
 
   it("send a proper error if password is missing", async function(){
@@ -115,7 +115,7 @@ describe("/auth/login", function(){
     .set("Content-Type", "application/json")
     .set("Accept", "")
     .expect(400);
-    expect(res.body).to.have.property("message").match(/password not provided/);
+    expect(res.body).to.have.property("message").match(/password not provided/i);
   });
 
   it("send a proper error if form is malformed", async function(){
@@ -125,7 +125,7 @@ describe("/auth/login", function(){
     .set("Content-Type", "application/json")
     .set("Accept", "")
     .expect(400);
-    expect(res.body).to.have.property("message").match(/Bad username format/);
+    expect(res.body).to.have.property("message").match(/Bad username format/i);
   });
   
   it("can logout", async function(){

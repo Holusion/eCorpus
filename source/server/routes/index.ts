@@ -17,6 +17,7 @@ import Vfs from "../vfs/index.js";
 import defaultConfig from "../utils/config.js";
 import User from "../auth/User.js";
 import Templates from "../utils/templates.js";
+import { useTemplateProperties } from "./views/index.js";
 
 
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
@@ -241,10 +242,10 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       },
       "text/html": ()=>{
         // send error page
-        res.status(code).render("error", { 
-          error,
-          lang: req.acceptsLanguages(["en", "fr", "cimode"]),
-          user: getUser(req),
+        useTemplateProperties(req, res, ()=>{
+          res.status(code).render("error", { 
+            error,
+          });
         });
       },
       "text/plain": ()=>{

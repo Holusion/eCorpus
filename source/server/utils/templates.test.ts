@@ -173,8 +173,19 @@ describe("Templates", function(){
       dir = await fs.mkdtemp(path.join(tmpdir(), "ecorpus_templates_test"));
       t = new Templates({dir, cache: false});
       await fs.mkdir(path.join(dir, "locales"));
-      await fs.writeFile(path.join(dir, "locales/fr.yml"), `---\ngreet: Bonjour Monde\n`);
-      await fs.writeFile(path.join(dir, "locales/en.yml"), `---\ngreet: Hello World\n`);
+      await fs.writeFile(path.join(dir, "locales/fr.yml"), [
+        `---`,
+        `greet: Bonjour Monde`,
+        `fallback: repli`,
+        ``
+      ].join("\n"));
+      await fs.writeFile(path.join(dir, "locales/en.yml"), [
+        `---`,
+        `greet: Hello World`,
+        `fallback: fallback`,
+        `thing: this is {{what}}`,
+        ``
+      ].join("\n"));
     });
     this.afterAll(async function(){
       await fs.rm(dir, {recursive: true});
@@ -201,6 +212,11 @@ describe("Templates", function(){
         //Otherwise path.join() throws, and we don't want that
         await expect(t.render("concat_test", {layout: null, foo: undefined})).to.eventually.equal("helloundefined");
       });
+
+      it("custom separator", async function(){
+        await fs.writeFile(path.join(dir, "concat_separator.hbs"), `{{join "hello" "world" separator=" "}}`);
+        await expect(t.render("concat_separator", {layout: null})).to.eventually.equal("hello world");
+      });
     })
 
     describe("i18n", function(){
@@ -215,6 +231,16 @@ describe("Templates", function(){
 
       it("handles \"cimode\"", async function(){
         await expect(t.render("lang_test", {lang: "cimode", layout: null})).to.eventually.equal("greet");
+      });
+
+      it("can provide a fallback key", async function(){
+        await fs.writeFile(path.join(dir, "lang_key_array.hbs"), `{{i18n "foo" "fallback"}}`);
+        await expect(t.render("lang_key_array", {lang: "fr", layout: null})).to.eventually.equal("repli");
+      });
+
+      it("can provide custom parameters", async function(){
+        await fs.writeFile(path.join(dir, "lang_hash.hbs"), `{{i18n "thing"  what=foo }}`);
+        await expect(t.render("lang_hash", {lang: "en", foo:"FOO", layout: null, })).to.eventually.equal("this is FOO");
       });
     });
 
@@ -250,7 +276,45 @@ describe("Templates", function(){
         await fs.writeFile(path.join(dir, "navlink_interpolation.hbs"), `{{#navLink (join "/foo/" target) }}Foo{{/navLink}}`);
         await expect(t.render("navlink_interpolation", {layout: null, target:"bar", location:"/"})).to.eventually.equal(`<a class="nav-link" href="/foo/bar">Foo</a>`)
       });
-    })
+    });
+
+    describe("test", function(){
+      //Barebones comparison function to add some logic to the templates
+      this.beforeAll(async function(){
+        await fs.writeFile(path.join(dir, "test_op.hbs"), `{{test a op b }}`);
+      });
+
+      ([
+        ["foo", "==", "foo", true],
+        [0, "==", 0, true],
+        ["foo", "==", "bar", false],
+        [0, "==", 1, false],
+        ["foo", "!=", "bar", true],
+        [0, "!=", 0, false],
+        [0, "<", 1, true],
+        [0, ">", 1, false],
+        [1, ">=", 1, true],
+      ] as [any, string, any, boolean][]).forEach(([a, op, b, res])=>{
+        it(`${a} ${op} ${b} => ${res}`, async function(){
+          await expect(t.render("test_op", {layout: null, a, op, b})).to.eventually.equal(res.toString());
+        });
+      });
+
+      //this helper will generally only be used as a subexpression
+      it("can be used as subexpression", async function(){
+        await fs.writeFile(path.join(dir, "test_subexpression.hbs"), `{{#if (test a "==" "foo") }}match{{else}}nomatch{{/if}}`);
+        await expect(t.render("test_subexpression", {layout: null, a: "foo"})).to.eventually.equal("match");
+        await expect(t.render("test_subexpression", {layout: null, a: "bar"})).to.eventually.equal("nomatch");
+      });
+
+      it("\"in\" special comparison", async function(){
+        await expect(t.render("test_op", {layout: null, a:"foo", op:"in", b:["foo", "bar"]})).to.eventually.equal("true");
+        await expect(t.render("test_op", {layout: null, a:"bar", op:"in", b:["foo"]})).to.eventually.equal("false");
+        //Defaults to the behaviour of === if b is not an array
+        await expect(t.render("test_op", {layout: null, a:"foo", op:"in", b:"foo"})).to.eventually.equal("true");
+        await expect(t.render("test_op", {layout: null, a:"bar", op:"in", b:"foo"})).to.eventually.equal("false");
+      })
+    });
   })
 
 
