@@ -182,6 +182,13 @@ export default class Templates{
     })));
   }
   
+  async initI18n() :Promise<TFunction>{
+    if(this.#i18n.isInitialized) return this.#i18n.t;
+    await this.#i18n.init();
+    //Add formatters here if necessary
+    return this.#i18n.t;
+  }
+
   async compile(filepath :string, options?:CompileOptions):Promise<ReturnType<typeof Handlebars.compile>>{
     if( !/\.hbs$/i.test(filepath)) filepath = filepath + ".hbs";
     const d = await fs.readFile(filepath, {encoding: "utf-8"});
@@ -208,7 +215,7 @@ export default class Templates{
    * @see https://handlebarsjs.com
    */
   async render(filepath :string, {layout, ...context}: RenderOptions={}) :Promise<string>{
-    const t = this.#i18n.isInitialized? this.#i18n.t : await this.#i18n.init();
+    const t = await this.initI18n();
     await ((this.#cacheMap )?this.#i18n.loadResources: this.#i18n.reloadResources)(context.lang);
     filepath = path.isAbsolute(filepath)? filepath : path.resolve(this.#dir, filepath);
     const html = (await this.getset(filepath))({...context}, {

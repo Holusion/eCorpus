@@ -1,0 +1,57 @@
+<div class="user-form" style="max-width:500px">
+  <h2>{{i18n "titles.userSettings"}}</h2>
+  <submit-fragment class="form-control section" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
+    <form id="user-profile" autocomplete="off" aria-labelledby="user-profile-header">
+      <div class="form-group">
+        <h3 id="user-profile-header">{{i18n "titles.userProfile"}}</h3>
+      </div>
+      <input type="hidden" name="uid" value="{{user.uid}}"/>
+      <div class="form-group">
+        <div class="form-item">
+          <label for="username">{{i18n "labels.username"}}</label>
+          <input type="text" autocomplete="username" minlength="3" name="username" id="username" placeholder="{{i18n "labels.username"}}"
+            value="{{ user.username }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-item">
+          <label for="email">{{i18n "labels.email"}}</label>
+          <input type="email" autocomplete="email" name="email" id="email" placeholder="{{i18n "labels.email"}}"
+            value="{{ user.email }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <input class="btn btn-main" style="padding:8px; width:100%" type="submit" value="{{i18n "labels.save"}}">
+      </div>
+    </form>
+  </submit-fragment>
+  
+
+  <submit-fragment class="form-control section" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
+    <form id="user-password" aria-labelledby="user-password-header">
+      <div class="form-group">
+        <h3 id="user-password-header">{{i18n "titles.changePassword"}}</h3>
+      </div>
+      <input type="hidden" name="username" id="username" value="{{user.username}}">
+      <div class="form-group">
+        <div class="form-item">
+          <label for="password">{{i18n "labels.newPassword"}}</label>
+          <input type="password" autocomplete="new-password" minlength="8" name="password" id="password"
+            placeholder="{{i18n "labels.newPassword"}}" required>
+        </div>
+        <div class="form-group">
+          <input class="btn btn-main" style="padding:8px; width:100%" type="submit" name="password-submit"
+            value="{{i18n "labels.save"}}">
+        </div>
+      </div>
+    </form>
+  </submit-fragment>
+
+  <div class="section" style="padding-top:15px; max-width:500px">
+    <h3>{{i18n "buttons.logout"}}</h3>
+    <form id="user-logout" method="POST" action="/auth/logout">
+      <input type="hidden" name="redirect" value="/ui/"/>
+      <button role="submit" style="width:100%" class="btn btn-main">{{i18n "buttons.logout"}}</button>
+    </form>
+  </div>
+</div>

@@ -52,6 +52,13 @@ describe("either() middleware", function(){
     app.get("/", either(fail, fail), h);
     await request(app).get("/").expect(401);
   });
+
+  it("is indempotent", async function(){
+    app.get("/", either(pass, fail), h);
+    const agent = request.agent(app);
+    await agent.get("/").expect(204);
+    await agent.get("/").expect(204);
+  });
 });
 
 describe("validateRedirect()", function(){

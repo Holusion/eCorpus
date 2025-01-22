@@ -54,7 +54,7 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
   validate: {trustProxy: false}
 })), wrap(sendLoginLink));
 
-router.post("/logout", postLogout);
+router.post("/logout",  useJSON, useURLEncoded, postLogout);
 
 
 router.get("/access/:scene", canRead, wrap(getPermissions));

@@ -165,14 +165,11 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
 routes.get("/user", (req, res)=>{
   const user = getUser(req);
-  console.log("Get for user : ", user);
   if(user.isDefaultUser){
-    return res.redirect(302, "/ui/");
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
-  res.render("layouts/main", {
-    layout: null,
+  res.render("user", {
     title: "eCorpus User Settings",
-    body: `<user-settings></user-settings>`,
   });
 });
 

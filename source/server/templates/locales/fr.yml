@@ -8,16 +8,21 @@ labels:
   setupLanguage: Langue de la scène
   selectFile: sélectionner un fichier
   signin: Connexion
+  save: Enregistrer
   username: Nom d'utilisateur
+  email: Email
   password: Mot de passe
+  newPassword: Nouveau mot de passe
   forgottenPassword: Mot de passe oublié?
   pagination: pagination
   searchPlaceholder: chercher une scène
   sortBy: Trier par
+  sendLoginLink: Envoyer un lien
 buttons:
   searchScene: chercher une scène
   upload: créer une scène
   useStandalone: utiliser le mode Standalone
+  logout: Déconnecter
 fields:
   name: nom
   mtime: dernière modification
@@ -50,6 +55,10 @@ titles:
   createScene: créer une nouvelle scène
   tools: outils
   search: Recherche
+  recoverPassword: Connexion sans mot de passe
+  userSettings: Paramètres utilisateur
+  userProfile: Profil
+  changePassword: Changer le mot de passe
 
 leads:
   appLead: >
@@ -59,6 +68,8 @@ leads:
   passwordRecovery: >
     Remplissez le formulaire ci-dessous avec votre nom d'utilisateur ou votre email
     et nous vous enverrons un lien de connexion directe qui vous permettra de réinitialiser votre mot de passe
+  linkSent: >
+    Un email de connexion directe a été envoyé à l'adresse associée à ce compte.
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

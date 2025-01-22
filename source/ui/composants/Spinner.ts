@@ -14,7 +14,7 @@ export default class Spinner extends LitElement{
   inline :boolean = false;
 
   render(){
-    return html`<div id="loader" class="spin-loader">
+    return html`<div id="loader" role="progressbar" class="spin-loader">
 			<span class="loader"></span>
 			<span class="load-text" id="load-text"><slot></slot></span>
     </div>`;
@@ -22,6 +22,7 @@ export default class Spinner extends LitElement{
   static readonly styles = [css`
     .spin-loader{
       position:relative;
+      height: 100%;
     }
     
     .loader {

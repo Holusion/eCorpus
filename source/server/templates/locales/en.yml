@@ -8,16 +8,21 @@ labels:
   setupLanguage: scene language
   selectFile: select a file
   signin: Sign in
+  save: Save
   username: Username
+  email: Email
   password: Password
+  newPassword: New Password
   forgottenPassword: Forgotten password
   pagination: pagination
   searchPlaceholder: search a scene
   sortBy: Sort by
+  sendLoginLink: Send a login link
 buttons:
   searchScene: search scenes
   upload: create a scene
   useStandalone: use standalone mode
+  logout: Disconnect
 fields:
   name: name
   mtime: last modification
@@ -50,8 +55,23 @@ titles:
   createScene: create a new scene
   tools: tools
   search: Search
+  recoverPassword: Passwordless Sign In
+  userSettings: User Settings
+  userProfile: User Profile
+  changePassword: Change Password
 
 leads:
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared
     with the Smithsonian Institute's Digitization Project Office
+  passwordRecovery: >
+    Fill the form below to receive an email with a direct-login link
+  linkSent: 
+    A login link has been sent to this account's email address
+
+errors:
+  generic: Unknown Error
+  "Username not provided": Username not provided
+  "Password not provided": Password not provided
+  "Bad password": Invalid password
+  "Username not found": Invalid Username

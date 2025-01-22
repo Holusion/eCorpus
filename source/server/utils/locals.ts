@@ -88,13 +88,13 @@ export function isAdministrator(req: Request, res:Response, next :NextFunction){
  * Usefull for conditional rate-limiting
  * @example either(isAdministrator, isUser, rateLimit({...}))
  */
-export function either(...handlers:RequestHandler[]) :RequestHandler{
+export function either(...handlers:Readonly<RequestHandler[]>) :RequestHandler{
   return (req, res, next)=>{
-    let mdw = handlers.shift();
+    let mdw = handlers[0];
     if(!mdw) return next(new UnauthorizedError());
     return mdw(req, res, (err)=>{
       if(!err) return next();
-      else if (err instanceof UnauthorizedError) return either(...handlers)(req, res, next);
+      else if (err instanceof UnauthorizedError) return either(...handlers.slice(1))(req, res, next);
       else return next(err);
     });
   }

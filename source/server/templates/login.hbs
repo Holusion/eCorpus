@@ -13,22 +13,21 @@
       <div class="tab" id="login">
         <h2>{{ i18n "nav.login" }}</h2>
 
-        <form id="userlogin" class="form-control form-modal" name="{{i18n " labels.signin"}}" method="POST"
+        <form id="userlogin" class="form-control form-modal" name="{{i18n "labels.signin"}}" method="POST"
           action="/auth/login?redirect={{#if redirect}}{{encodeURI redirect}}{{else}}{{encodeURI location}}{{/if}}"
           enctype="application/x-www-form-urlencoded"
           autocomplete="on" autocapitalize="none"
         >
           <div class="form-group">
             <div class="form-item">
-              <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "
-                labels.username"}}">
+              <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "labels.username"}}">
               <label for="username">{{i18n "labels.username"}}</label>
             </div>
           </div>
           <div class="form-group">
             <div class="form-item">
               <input type="password" autocomplete="current-password" name="password" id="password" required=""
-                placeholder="{{i18n " labels.password"}}">
+                placeholder="{{i18n "labels.password"}}">
               <label for="password">{{i18n "labels.password"}}</label>
               <button id="password-toggle" aria-checked="false" role="switch" style="display:none" class="btn btn-transparent btn-addon"><ui-icon name="eye"></ui-icon></button>
               <script>
@@ -57,7 +56,7 @@
 
           <div class="form-group">
             <div class="form-item">
-              <input type="submit" value="{{ i18n " labels.signin" }}">
+              <input type="submit" value="{{ i18n "labels.signin" }}">
             </div>
           </div>
         </form>
@@ -67,30 +66,71 @@
         </div>
       </div>
       <div class="tab" id="passwordRecovery">
-        <h2>{{ i18n "nav.recoverPassword" }}</h2>
-        <p>{{i18n "leads.passwordRecovery"}}</p>
-        <form id="userrecover" class="form-control form-modal" name="{{i18n " labels.forgottenPassword"}}" 
-          action="/auth/login/link" method="POST"
-          enctype="application/x-www-form-urlencoded"
+        <h2>{{ i18n "titles.recoverPassword" }}</h2>
+        <form id="userrecover" class="form-control form-modal" name="{{i18n "labels.forgottenPassword"}}"
           autocomplete="on" 
         >
+          <p>{{i18n "leads.passwordRecovery"}}</p>
           <div class="form-group">
             <div class="form-item">
-              <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "
-                labels.username"}}">
+              <input type="text" minlength="3" ="username" name="username" id="username" required="" placeholder="{{i18n "labels.username"}}">
               <label for="username">{{i18n "labels.username"}}</label>
             </div>
           </div>
 
           <div class="form-group">
             <div class="form-item">
-              <input type="submit" value="{{ i18n " labels.sendLoginLink" }}">
+              <input type="submit" value="{{ i18n "labels.sendLoginLink" }}">
             </div>
           </div>
         </form> 
         <div style="text-align:right;">
           <a style="cursor:pointer;" href="#login">{{ i18n "labels.signin" }}</a>
         </div>
+        <script>
+          (function registerPasswordRecoveryForm(){
+            const form = document.querySelector("#userrecover");
+            if(!form) return console.warn("Can't find password recovery form");
+            form.onsubmit = (ev)=>{
+              ev.preventDefault();
+
+              const username = form.username?.value;
+              if(!username) return false;
+
+              const loader = document.createElement("spin-loader");
+              loader.active = true;
+              const parent =  form.parentNode;
+              parent.replaceChild(loader, form);
+              fetch(`/auth/login/${encodeURIComponent(username)}/link`,{
+                method: "POST",
+                headers: {"Accept": "application/json"}
+              }).then(async r=>{
+                if(!r.ok){
+                  let text = await r.text();
+                  try{
+                    let json = JSON.parse(text);
+                    throw new Error(json.message ?? json);
+                  }catch(e){
+                    throw new Error(text);
+                  }
+                }
+                const result = document.createElement("p");
+                result.role = "alert";
+                result.innerText = `{{i18n "leads.linkSent"}}`;
+                parent.replaceChild(result, loader);
+              }).catch(e=>{
+                console.warn("Failed to send recovery email: ", e);
+                const result = document.createElement("p");
+                result.className = "text-error";
+                result.role = "alert";
+                result.innerText = e.message;
+                parent.replaceChild(result, loader);
+                parent.insertBefore(form, result);
+              });
+              return false;
+            }
+          })()
+        </script>
 
       </div>
     </div>
