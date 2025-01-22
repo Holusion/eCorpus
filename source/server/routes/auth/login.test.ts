@@ -215,11 +215,11 @@ describe("/auth/login", function(){
       expect(res.body).to.deep.equal({ uid: 0, username: "default", isAdministrator: false, isDefaultUser: true });
     });
     it("rejects bad user:password", async function(){
-      // Missing the "Basic " part
-      await request(this.server).get("/auth/login")
+      let res = await request(this.server).get("/auth/login")
       .auth(user.username, "badPassword")
       .expect(401);
-    })
+      expect(res.headers).not.to.have.property("set-cookie");
+    });
 
   });
   

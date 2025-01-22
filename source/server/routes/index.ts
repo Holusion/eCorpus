@@ -232,6 +232,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       && !(req.get("Accept")?.startsWith("text/html") && req.get("User-Agent")?.startsWith("Mozilla"))
       //Also don't apply it for login route because it doesn't make any sense.
       && req.path !== "/auth/login"
+      //&& !req.get("Authorization")
     ){
       res.set("WWW-Authenticate", "Basic realm=\"authenticated access\"");
     }
