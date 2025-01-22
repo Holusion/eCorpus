@@ -11,6 +11,9 @@ labels:
   username: Username
   password: Password
   forgottenPassword: Forgotten password
+  pagination: pagination
+  searchPlaceholder: search a scene
+  sortBy: Sort by
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -18,6 +21,14 @@ buttons:
 fields:
   name: name
   mtime: last modification
+  ctime: creation date
+  access: access rights
+  read: read
+  write: write
+  admin: administration
+  limit: results per page
+  ascendingOrder: ascending order
+  descendingOrder: descending order
 nav:
   tags: collection
   login: connection
@@ -38,6 +49,7 @@ titles:
   upload: upload
   createScene: create a new scene
   tools: tools
+  search: Search
 
 leads:
   appLead: >

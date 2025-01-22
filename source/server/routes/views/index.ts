@@ -1,8 +1,10 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
+import { AccessType } from "../../auth/UserManager.js";
+import ScenesVfs from "../../vfs/Scenes.js";
 
 
 
@@ -22,7 +24,7 @@ routes.use("/", (req :Request, res:Response, next)=>{
   next();
 });
 
-routes.use("/", (req :Request, res:Response, next)=>{
+export function useTemplateProperties(req :Request, res:Response, next:NextFunction){
   const session = getSession(req);
   const user = getUser(req);
   const {search} = req.query;
@@ -38,7 +40,9 @@ routes.use("/", (req :Request, res:Response, next)=>{
     search,
   })
   next();
-});
+}
+
+routes.use("/", useTemplateProperties);
 
 
 routes.get("/", wrap(async (req, res)=>{
@@ -108,13 +112,56 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/scenes", (req, res)=>{
-  res.render("layouts/main", {
-    layout: null,
+routes.get("/scenes", wrap(async (req, res)=>{
+  let host = getHost(req);
+  let vfs = getVfs(req);
+  let u = getUser(req);
+  //pre-parse query to make sure we don't pass unsatinized input to the template
+  let {
+    match,
+    access,
+    limit,
+    offset,
+    orderBy,
+    orderDirection,
+  } = req.query;
+  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+
+  const sceneParams = {
+    match: match as string,
+    orderBy: (orderBy ?? "mtime") as any,
+    orderDirection: (orderDirection?? (orderBy=="name"?"asc":"desc")) as any,
+    access: accessTypes,
+    limit: limit? parseInt(limit as string): 25,
+    offset: offset? parseInt(offset as string): 0,
+  };
+
+  
+  let scenes = (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req));
+
+  let pager = {next: undefined as any, previous: undefined as any};
+  if(sceneParams.limit === scenes.length){
+    const nextUrl = new URL(req.originalUrl, host);
+    nextUrl.searchParams.set("offset", (sceneParams.offset+sceneParams.limit).toString());
+    pager.next = nextUrl.pathname+nextUrl.search;
+  }
+  if(sceneParams.offset){
+    const prevUrl = new URL(req.originalUrl, host);
+    prevUrl.searchParams.set("offset", Math.max(0, sceneParams.offset - sceneParams.limit).toString());
+    pager.previous = prevUrl.pathname+prevUrl.search;
+  }
+
+  //Sanitize user input
+  const validatedParams = ScenesVfs._parseSceneQuery(sceneParams);
+  if(!validatedParams.access) validatedParams.access = ["read", "write", "admin"];
+  res.render("search", {
     title: "eCorpus Search",
-    body: `<corpus-list></corpus-list>`,
+    scenes,
+    params: validatedParams,
+    isSearchPage: true, //Hide the navbar's search field because we otherwise have a duplicate "match" input
+    pager,
   });
-});
+}));
 
 routes.get("/user", (req, res)=>{
   const user = getUser(req);
@@ -128,19 +175,6 @@ routes.get("/user", (req, res)=>{
     body: `<user-settings></user-settings>`,
   });
 });
-
-routes.get("/login", (req, res)=>{
-  let requester = getUser(req);
-  let {redirect} = req.query;
-  redirect = (redirect && typeof redirect === "string")? validateRedirect(req, redirect): "/ui/";
-  console.log("Redirect : ", redirect);
-  if(requester.isDefaultUser === false) return res.redirect(302, "/ui/");
-  res.render("login", {
-    title: "eCorpus Login",
-    user: null,
-    redirect,
-  });
-})
 
 routes.get("/admin", (req, res)=>{
   res.render("admin/home", {

@@ -7,19 +7,21 @@
     </div>
     <div class="spacer"></div>
     <div class="navbar">
-      <form class="form-item" style="display:flex; padding-right: 10px;display:flex;align-items: center" method="get" action="/ui/scenes/">
+      {{# unless isSearchPage }}
+      <form id="nav-search" class="form-item" style="display:flex; padding-right: 10px;display:flex;align-items: center" method="get" action="/ui/scenes/">
         <span style="height:24px;width:24px;">
           <ui-icon style="fill: var(--color-highlight);pointer-events: none;" name="search"></ui-icon>
         </span>
-        <input style="height:calc(100% - 6px);margin-left:-24px; padding-left: 24px" class="search-box-input" name="search" type="search" id="model-search" value="{{search}}">
+        <input style="height:calc(100% - 6px);margin-left:-24px; padding-left: 24px" class="search-box-input" name="match" type="search" id="model-search" value="{{params.match}}">
       </form>
+      {{/unless}}
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
       {{#if user.isAdministrator}}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
       <div class="divider"></div>
       {{#if user.isDefaultUser}}
-        {{#navLink (join "/ui/login/?redirect=" (encodeURI location)) 'title="/ui/login/"'}}{{i18n "nav.login"}}{{/navLink}}
+        {{#navLink (join "/auth/login/?redirect=" (encodeURI location)) 'title="/auth/login/"'}}{{i18n "nav.login"}}{{/navLink}}
       {{else if user.username}}
         {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}
       {{/if}}

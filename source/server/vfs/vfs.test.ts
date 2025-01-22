@@ -535,6 +535,14 @@ describe("Vfs", function(){
           expect(s[0]).to.have.property("name", "bar");
         });
 
+
+        it("can match an empty string", async function(){
+          await vfs.createScene("Hello World", user.uid);
+          await vfs.createScene("Goodbye World", user.uid);
+          let s = await vfs.getScenes(user.uid, {match: ""})
+          expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
+        });
+
       });
 
       describe("ordering", function(){

@@ -32,6 +32,8 @@ interface HandlebarsHelperContext{
   data:HandleBarsContextData;
 }
 
+type TestOperator = "in"|"=="|"==="|"!="|"<"|">"|"<="|"=<"|">="|"=>";
+
 const staticHelpers = {
   navLink(this:any, ...args :any[]){
     if(args.length < 2) return `Invalid block parameters: require at least 1 argument, received ${args.length}`;
@@ -54,19 +56,21 @@ const staticHelpers = {
     const match = exact? href === this.location : this.location?.startsWith(href);
     return `<a class="nav-link${match?" active":""}" href="${href}"${rest.length?" ":""}${rest.join(" ")}>${options.fn(this)}</a>`;
   },
-  i18n(this:any, key: string, ...args:any[]){
-    const context:HandlebarsHelperContext = args.pop();
-    if(typeof context.data.t != "function"){
+  i18n(this:any,  ...keys:any[]){
+    const {hash, data}:HandlebarsHelperContext = keys.pop();
+    if(typeof data.t != "function"){
       console.warn("No translation function in context", context);
-      return key;
-    }else if(typeof context.data.root.lang != "string"){
+      return keys[0];
+    }else if(typeof data.root.lang != "string"){
       console.warn("Language not set. Defaulting to \"en\"");
-      return context.data.t(key, {
+      return data.t(keys, {
         lng: "en",
+        ...hash,
       });
     }else{
-      return context.data.t(key, {
-        lng: context.data.root.lang,
+      return data.t(keys, {
+        lng: data.root.lang,
+        ...hash,
       });
     }
   },
@@ -77,13 +81,24 @@ const staticHelpers = {
     return encodeURI(uri);
   },
   join(this:any, ...args:any[]){
+    const {hash} = args.pop();
     function m(p:any):string|string[]{
       if(typeof p === "undefined") return "undefined";
       else if(p === null) return "null";
       else if(Array.isArray(p)) return p.map(m) as string[];
       else return p.toString();
     }
-    return args.slice(0, -1).map(m).flat().join("");
+    return args.map(m).flat().join(hash.separator ?? "");
+  },
+  test(this:any, a:any, op:TestOperator, b:any){
+    if(op == "in") return (Array.isArray(b)?b:[b]).indexOf(a) !== -1;
+    else if(op == "==") return a == b;
+    else if(op == "===") return a === b;
+    else if(op == "!=") return a != b;
+    else if(op == "<") return a < b;
+    else if(op == ">") return a > b;
+    else if(op == "<=" || op == "=<") return a <= b;
+    else if(op == "=>" || op == ">=") return a >= b;
   },
   dateString(this:any, when:Date|string, ...args:any[]){
     const context = args.pop();

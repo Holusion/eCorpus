@@ -11,6 +11,9 @@ labels:
   username: Nom d'utilisateur
   password: Mot de passe
   forgottenPassword: Mot de passe oublié?
+  pagination: pagination
+  searchPlaceholder: chercher une scène
+  sortBy: Trier par
 buttons:
   searchScene: chercher une scène
   upload: créer une scène
@@ -18,6 +21,14 @@ buttons:
 fields:
   name: nom
   mtime: dernière modification
+  ctime: date de création
+  access: droits d'accès
+  read: lecture
+  write: écriture
+  admin: administration
+  limit: résultats par page
+  ascendingOrder: ordre ascendant
+  descendingOrder: ordre descendant
 nav:
   tags: collection
   login: connexion
@@ -38,9 +49,19 @@ titles:
   upload: téléversement
   createScene: créer une nouvelle scène
   tools: outils
+  search: Recherche
 
 leads:
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion
     et utilisant un éditeur et visualisateur enrichi issu du projet DPO-Voyager
     du smithsonian institute
+  passwordRecovery: >
+    Remplissez le formulaire ci-dessous avec votre nom d'utilisateur ou votre email
+    et nous vous enverrons un lien de connexion directe qui vous permettra de réinitialiser votre mot de passe
+errors:
+  generic: Erreur inconnue
+  "Username not provided": Nom d'utilisateur non fourni
+  "Password not provided": Mot de passe non fourni
+  "Bad password": Mot de passe invalide
+  "Username not found": Nom d'utilisateur invalide

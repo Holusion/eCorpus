@@ -24,9 +24,26 @@
     width: 1px;
     background-color: var(--color-text);
   }
+
+  .form-section{
+    margin: .25rem 0 .1rem 0;
+  }
+
+
   .form-item {
     position: relative;
     box-sizing: border-box;
+
+    &.inline{
+      display:flex;
+      flex-direction: row;
+      gap: .5rem;
+      padding: 2px 0;
+      >input{
+        flex-grow: 0;
+        width: auto;
+      }
+    }
 
     > input{
       box-sizing: border-box;
@@ -40,9 +57,6 @@
       background: var(--color-element);
       background-clip: padding-box;
       border-radius: 0;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
       &:invalid:not(:placeholder-shown):not(:focus){
         outline: var(--color-error) solid 1px;
       }
@@ -54,6 +68,19 @@
         padding-right: 2.5rem;
         margin-right: -2.5rem;
       }
+
+      &[hidden]{
+        display: none;
+        +label{
+          cursor: pointer;
+          padding: 5px 2px;
+          margin: 0;
+          display: inline-block;
+        }
+        &[type="radio"]:checked + label{
+          color: var(--color-primary);
+        }
+      }
     }
     > input + .btn-addon{
       width: 2.5rem;
@@ -64,16 +91,22 @@
     > label{
       opacity: 0.7;
     }
+
   }
 
 
   &.form-modal{
     .form-item {
-
-      > input:not([type="submit"]){
+      position: relative;
+      --item-height: calc(3.5rem + 2px);
+      > input:not([type="submit"]), .btn.btn-addon {
         border: 0px solid var(--color-element);
         border-bottom-width: 3px;
-        height: calc(3.5rem + 2px);
+        height: var(--item-height);
+      }
+
+      > input:has(~ .btn.btn-addon){
+        padding-right: var(--item-height);
       }
 
       > input::placeholder{
@@ -91,7 +124,6 @@
       > input:focus:not(:disabled){
         color: var(--color-text);
         background: none;
-        border-width: 1px 1px 3px 1px;
         outline: 0;
       }
 
@@ -114,7 +146,22 @@
       input:focus ~ label, input:not(:placeholder-shown) ~label{
         opacity: .65;
         transform: scale(.85) translateY(-.5rem) translateX(.15rem);
-      } 
+      }
+
+      >.btn.btn-addon{
+        position: absolute;
+        top:0;
+        right:0;
+        width: var(--item-height);
+        height: var(--item-height);
+        min-width: auto;
+        &[aria-checked="true"]{
+          color: var(--color-secondary);
+        }
+        &:hover{
+          color: var(--color-secondary-light);
+        }
+      }
     }
 
     &[disabled] .form-item > input, .form-item > input:disabled {

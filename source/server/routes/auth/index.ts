@@ -10,6 +10,7 @@ import { postLogout } from "./logout.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
+import { useTemplateProperties } from "../views/index.js";
 
 const useJSON = bodyParser.json();
 const useURLEncoded = bodyParser.urlencoded({
@@ -37,7 +38,12 @@ router.get("/", wrap(async function(req, res){
 }));
 
 router.get("/login", wrap(getLogin));
-router.post("/login", useJSON, useURLEncoded, postLogin);
+router.post("/login", 
+  useJSON,
+  useURLEncoded,
+  useTemplateProperties,
+  postLogin,
+);
 router.get("/login/:username/link", isAdministrator, wrap(getLoginLink));
 router.post("/login/:username/link", either(isAdministrator, rateLimit({
   //Special case of real low rate-limiting for non-admin users to send emails
