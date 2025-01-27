@@ -59,6 +59,8 @@ titles:
   userSettings: User Settings
   userProfile: User Profile
   changePassword: Change Password
+tooltips:
+  showPassword: Show the password's text
 
 leads:
   appLead: >
@@ -68,7 +70,6 @@ leads:
     Fill the form below to receive an email with a direct-login link
   linkSent: 
     A login link has been sent to this account's email address
-
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

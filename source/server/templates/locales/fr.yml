@@ -59,6 +59,8 @@ titles:
   userSettings: Paramètres utilisateur
   userProfile: Profil
   changePassword: Changer le mot de passe
+tooltips:
+  showPassword: Montrer le texte du mot de passe
 
 leads:
   appLead: >
