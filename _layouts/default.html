@@ -56,18 +56,16 @@
 <body>
   <!-- Header -->
 
-  <nav id="navbar-top" class="navbar navbar-sticky" role="navigation">
+  <nav id="navbar-top" class="navbar navbar-sticky navbar-top" role="navigation">
 
     <div class="navbar-nav">
-      
-      <button type="button" class="navbar-toggle menu-btn hidden-large" data-target="#top-nav-content"></button>
-      <ul role="menu" id="top-nav-content" class="nav-group">
-        <button type="button" class="hidden">
-          <span>Toggle navigation</span>
-        </button>
-        <a href="/{{ lang }}/" class="nav-brand" aria-label="ecorpus logo">
-          eCorpus
-        </a>
+      <ul role="menu" id="top-nav-content" class="nav-group nav-collapse">
+        <li class="nav-item">
+          <button type="button" class="navbar-toggle menu-btn hidden-large" data-target="#top-nav-content" aria-label="toggle navigation"></button>
+          <a href="/{{ lang }}/" class="nav-brand" aria-label="ecorpus logo">
+            eCorpus
+          </a>
+        </li>
         {%- for item in site.data.nav -%}
         <li class="nav-item">
           <a href="/{{ lang }}/{{ item[0] }}">{{ item[1][page.lang] }}</a>

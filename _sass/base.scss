@@ -81,6 +81,7 @@ nav.navbar{
   margin: 0;
   padding: 1px 0;
   box-sizing: border-box;
+  position: relative;
   
 
 
@@ -89,10 +90,12 @@ nav.navbar{
   align-items: stretch;
   justify-content: space-between;
 
-  &#navbar-top{
+  &.navbar-top{
     padding-left: 2em;
-    background-color: $middlegrey;
-    box-shadow: 0 2px 2px 0px rgba(0, 0, 0, 0.4);
+    &, & .nav-collapse.show{
+      background-color: $middlegrey;
+      box-shadow: 0 2px 2px 0px rgba(0, 0, 0, 0.4);
+    }
     max-height: $navbar_height;
     @media screen and  (max-width: calc($main_width - 1px) ){
       padding-left:5px;
@@ -113,17 +116,28 @@ nav.navbar{
     position: sticky;
     top: 0px;
     width: 100%;
-    z-index: 1;
+    z-index: 10;
   }
 
-  .nav-group, ul{
+  .nav-collapse{
+    //collapse nav-groups on smaller screens
     @media screen and  (max-width: calc($main_width - 1px) ){
-      > .nav-item, >li{
-        display: none;
+      > .nav-item, > li{
+        &:not(:first-child){
+          display: none;
+        }
       }
       &.show{
+        position: absolute;
+        width:100%;
+        left: 0;
+        top: 0;
+        z-index: 10;
         > .nav-item, > li{
           display: list-item;
+          &:not(:first-child){
+            padding-left: 1rem;
+          }
         }
       }
     }
@@ -184,6 +198,7 @@ nav.navbar{
 .navbar-nav{
   display: flex;
   flex-direction: row;
+  z-index: 11;
 }
 
 
