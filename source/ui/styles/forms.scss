@@ -33,6 +33,8 @@
   .form-item {
     position: relative;
     box-sizing: border-box;
+    padding: 0;
+    border: none;
 
     &.inline{
       display:flex;

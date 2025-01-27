@@ -1,9 +1,9 @@
 <div class="main-grid">
   <div class="grid-header form-control">
     <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
-      <input class="search-box-input" type="search" name="match" form="search" id="model-search" placeholder="{{i18n "labels.searchPlaceholder"}}"
+      <input class="search-box-input" type="search" name="match" form="search" id="model-search" aria-label="{{i18n "titles.search"}}" placeholder="{{i18n "labels.searchPlaceholder"}}"
         value="{{params.match}}">
-      <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit"><ui-icon
+      <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
           name="search"></ui-icon></button>
     </div>
     
@@ -16,12 +16,12 @@
           {{>inputs/option selected=params.orderBy value="name" text=(i18n "fields.name")}}
         </select>
       </label>
-      <div class="form-item" style="padding-left: .5rem; font-weight: bold;">
+      <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold;">
         <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
         <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
         <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
         <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
-      </div>
+      </fieldset>
     </div>
   </div>
 
@@ -39,7 +39,7 @@
       <form autocomplete="off" id="search" class="form-control" method="GET" action="/ui/scenes">
         <div style="display:flex;justify-content:space-between;">
           <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
-          <button class="btn btn-transparent btn-inline btn-changed" type="submit"><ui-icon name="search"></ui-icon></button>
+          <button class="btn btn-transparent btn-inline btn-changed" aria-label="{{i18n "buttons.searchScene"}}" type="submit"><ui-icon name="search"></ui-icon></button>
         </div>
         <h5 class="form-section">{{i18n "fields.access"}}</h5>
         <label class="form-item inline">
