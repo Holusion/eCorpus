@@ -29,7 +29,7 @@
               <input type="password" autocomplete="current-password" name="password" id="password" required=""
                 placeholder="{{i18n "labels.password"}}">
               <label for="password">{{i18n "labels.password"}}</label>
-              <button id="password-toggle" aria-checked="false" role="switch" style="display:none" class="btn btn-transparent btn-addon"><ui-icon name="eye"></ui-icon></button>
+              <button id="password-toggle" aria-checked="false" role="switch" style="display:none" class="btn btn-transparent btn-addon" title="{{i18n "tooltips.showPassword"}}"><ui-icon name="eye"></ui-icon></button>
               <script>
                 (function registerPasswordVisibilityToggle(){
                   const btn = document.querySelector("#password-toggle");
@@ -73,8 +73,8 @@
           <p>{{i18n "leads.passwordRecovery"}}</p>
           <div class="form-group">
             <div class="form-item">
-              <input type="text" minlength="3" ="username" name="username" id="username" required="" placeholder="{{i18n "labels.username"}}">
-              <label for="username">{{i18n "labels.username"}}</label>
+              <input type="text" minlength="3" name="username" id="recover-username" required placeholder="{{i18n "labels.username"}}">
+              <label for="recover-username">{{i18n "labels.username"}}</label>
             </div>
           </div>
 
