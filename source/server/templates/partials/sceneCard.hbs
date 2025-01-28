@@ -1,0 +1,28 @@
+<div class="scene-card">
+  <a class="card-image" href="/ui/scenes/{{encodeURIComponent name}}" title="{{i18n "labels.view"}}">
+    {{#if thumb }}
+      <img src="{{thumb}}" />
+    {{else}}
+      <img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg" />
+    {{/if}}
+  </a>
+  <div class="scene-card-inner">
+    <div class="infos">
+      <a href="/ui/scenes/{{encodeURIComponent name}}"><h4 class="card-title">{{name}}</h4></a>
+      <span class="card-time">{{#if mtime}}{{dateString mtime}}{{/if}}</span>
+    </div>
+    <div class="tools">
+      {{!if a scene is shown, the user must have read access}}
+      <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/view" title="{{i18n "leads.showScene"}}">
+        <ui-icon name="eye"></ui-icon>
+        <span class="tool-text">{{i18n "labels.view"}}</span>
+      </a>
+      {{#unless (test access.user "==" "read")}}
+        <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/edit" title="{{i18n "leads.editScene"}}">
+          <ui-icon name="edit"></ui-icon>
+          <span class="tool-text">{{i18n "labels.edit"}}</span>
+        </a>
+      {{/unless}}
+    </div>
+  </div>
+</div>

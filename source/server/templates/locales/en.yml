@@ -18,11 +18,15 @@ labels:
   searchPlaceholder: search a scene
   sortBy: Sort by
   sendLoginLink: Send a login link
+  view: View
+  edit: Edit
 buttons:
   searchScene: search scenes
   upload: create a scene
   useStandalone: use standalone mode
   logout: Disconnect
+  next: "Next Page"
+  previous: "Previous Page"
 fields:
   name: name
   mtime: last modification
@@ -68,8 +72,16 @@ leads:
     with the Smithsonian Institute's Digitization Project Office
   passwordRecovery: >
     Fill the form below to receive an email with a direct-login link
-  linkSent: 
+  linkSent: >
     A login link has been sent to this account's email address
+  noScene: >
+    Looks like you don't own any scenes yet. Search public scenes made by others in this instance or create your own!
+  editScene: >
+    Modify this scene with Voyager-Story
+  showScene: >
+    Show this scene with Voyager-Explorer
+  noResults: >
+    No results. Maybe try to change your query?
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

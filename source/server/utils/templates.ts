@@ -90,7 +90,11 @@ const staticHelpers = {
     }
     return args.map(m).flat().join(hash.separator ?? "");
   },
-  test(this:any, a:any, op:TestOperator, b:any){
+  test(this:any, a:any, op:TestOperator, b:any, ...args:any[]){
+    if(typeof b === "undefined" || !args.length){
+      console.warn("Invalid number of arguments for test helper:",a,op,b);
+      return false;
+    }
     if(op == "in") return (Array.isArray(b)?b:[b]).indexOf(a) !== -1;
     else if(op == "==") return a == b;
     else if(op == "===") return a === b;

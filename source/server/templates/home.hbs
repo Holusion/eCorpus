@@ -30,29 +30,25 @@
   <div class="grid-content">
       <div class="section">
         <h3>{{i18n "titles.myScenesSection"}}</h3>
+        {{#if userScenes.length}}
         <div class="list-grid" style="position:relative; margin-top:20px">
           {{#each userScenes}}
-          <scene-card 
-            card-style="grid" 
-            name="{{name}}"
-            thumb="{{thumb}}"
-            time="{{mtime}}"
-            access="{{access.user}}"
-          ></scene-card>
+            {{> sceneCard }}
           {{/each}}
         </div>
+        {{else}}
+          <p>{{i18n "leads.noScenes"}}</p>
+          <div style="display:flex; justify-content: space-evenly">
+            <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
+            <a class="btn btn-main" href="/ui/upload/">{{i18n "buttons.upload"}}</a>
+          </div>
+        {{/if}}
       </div>
       <div class="section">
           <h3>{{i18n "titles.ctimeScenesSection"}}</h3>
           <div class="list-grid" style="position:relative;">
             {{#each recentScenes }}
-              <scene-card 
-                card-style="grid"
-                name="{{name}}"
-                thumb="{{thumb}}"
-                time="{{mtime}}"
-                access="{{access.user}}"
-              ></scene-card>
+              {{> sceneCard }}
             {{/each}}
           </div>
       </div>

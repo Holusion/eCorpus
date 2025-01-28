@@ -79,11 +79,14 @@ corpus-list, home-page {
     'toolbar content';
   
   @media screen and (max-width: 992px){
-    grid-template-columns: auto;
+    grid-template-columns: 1fr auto 1fr;
     grid-template-areas: 
-    'toolbar'
-    'header'
-    'content';
+    '. toolbar .'
+    '. header .'
+    '. content .';
+  }
+  .grid-header, .grid-toolbar, .grid-content{
+    min-width: 0;
   }
   .grid-header{
     grid-area: header;
@@ -101,28 +104,26 @@ corpus-list, home-page {
   }
 }
 
-home-page{
-
-  .list-tasks{
-    display: flex;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 5px;
-    .ui-button{
-      flex: 0 0 auto;
-    }
+.list-tasks{
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 5px;
+  .ui-button{
+    flex: 0 0 auto;
   }
-  .list-grid{
-    display:grid;
-    gap: 5px;
-    grid-template-columns: auto;
+}
 
-    @media (min-width: 610px){
-      grid-template-columns: repeat(2, 1fr);
-    }
-    @media (min-width: 1600px){
-      grid-template-columns: repeat(4, 1fr);
-    }
+.list-grid{
+  display:grid;
+  gap: 5px;
+  grid-template-columns: auto;
+
+  @media (min-width: 610px){
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 1600px){
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

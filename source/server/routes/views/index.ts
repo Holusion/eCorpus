@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect, isAdministrator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -139,7 +139,12 @@ routes.get("/scenes", wrap(async (req, res)=>{
   
   let scenes = (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req));
 
-  let pager = {next: undefined as any, previous: undefined as any};
+  let pager = {
+    from: sceneParams.offset,
+    to: sceneParams.offset + scenes.length,
+    next: undefined as any,
+    previous: undefined as any
+  };
   if(sceneParams.limit === scenes.length){
     const nextUrl = new URL(req.originalUrl, host);
     nextUrl.searchParams.set("offset", (sceneParams.offset+sceneParams.limit).toString());
@@ -172,7 +177,7 @@ routes.get("/user", (req, res)=>{
     title: "eCorpus User Settings",
   });
 });
-
+routes.use("/admin", isAdministrator);
 routes.get("/admin", (req, res)=>{
   res.render("admin/home", {
     layout: "admin",

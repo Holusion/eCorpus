@@ -18,11 +18,15 @@ labels:
   searchPlaceholder: chercher une scène
   sortBy: Trier par
   sendLoginLink: Envoyer un lien
+  view: Voir
+  edit: Editer
 buttons:
   searchScene: chercher une scène
   upload: créer une scène
   useStandalone: utiliser le mode Standalone
   logout: Déconnecter
+  next: "Page Suivante"
+  previous: "Page Précédente"
 fields:
   name: nom
   mtime: dernière modification
@@ -72,6 +76,14 @@ leads:
     et nous vous enverrons un lien de connexion directe qui vous permettra de réinitialiser votre mot de passe
   linkSent: >
     Un email de connexion directe a été envoyé à l'adresse associée à ce compte.
+  noScenes: >
+    Vous n'avez pas encore créé de scène sur cette instance. Accédez aux scènes publiques d'autres utilisateurs ou envoyez un de vos fichiers
+  editScene: >
+    Editer la scène avec Voyager-Story
+  showScene: >
+    Voir la scène avec Voyager-Explorer
+  noResults:
+    Aucun résultat. Affinez votre recherche ou revenez en arrière
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

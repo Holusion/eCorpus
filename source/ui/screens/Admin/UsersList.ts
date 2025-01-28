@@ -3,7 +3,6 @@ import { customElement, property } from 'lit/decorators.js';
 
 
 import "../../composants/Spinner";
-import "../../composants/SceneCard";
 import HttpError from "../../state/HttpError";
 import "../../composants/Icon";
 import Notification from "../../composants/Notification";
