@@ -20,13 +20,20 @@ labels:
   sendLoginLink: Envoyer un lien
   view: Voir
   edit: Editer
+  localization_one: Langue de la scène
+  localization_other: Langues de la scène
+  setupLocalization: Langue par défaut
+
 buttons:
   searchScene: chercher une scène
   upload: créer une scène
+  download: Télécharger la scène
   useStandalone: utiliser le mode Standalone
   logout: Déconnecter
   next: "Page Suivante"
   previous: "Page Précédente"
+  archive: Archiver
+  delete: Supprimer
 fields:
   name: nom
   mtime: dernière modification
@@ -82,8 +89,20 @@ leads:
     Editer la scène avec Voyager-Story
   showScene: >
     Voir la scène avec Voyager-Explorer
-  noResults:
+  noResults: >
     Aucun résultat. Affinez votre recherche ou revenez en arrière
+  archiveDelete: >
+    Archiver la scène pour la rend inaccessible, mais elle peut être restaurée par l'administrateur de cette instance
+  thumbnailFor: >
+    Image miniature pour {{what}}
+  articles_zero: "aucun article"
+  articles_one: "{{count}} article"
+  articles_other: "{{count}} articles"
+  annotations_zero: "aucune annotation"
+  annotations_one: "{{count}} annotation"
+  annotations_other: "{{count}} annotations"
+  sceneCounts: >
+    $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations, {"count": {{annotations}}}) dans cette scène
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

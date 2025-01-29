@@ -32,7 +32,7 @@ interface HandlebarsHelperContext{
   data:HandleBarsContextData;
 }
 
-type TestOperator = "in"|"=="|"==="|"!="|"<"|">"|"<="|"=<"|">="|"=>";
+type TestOperator = "in"|"=="|"==="|"!="|"<"|">"|"<="|"=<"|">="|"=>"|"&&"|"||";
 
 const staticHelpers = {
   navLink(this:any, ...args :any[]){
@@ -92,6 +92,7 @@ const staticHelpers = {
   },
   test(this:any, a:any, op:TestOperator, b:any, ...args:any[]){
     if(typeof b === "undefined" || !args.length){
+      if(a =="!") return !op;
       console.warn("Invalid number of arguments for test helper:",a,op,b);
       return false;
     }
@@ -103,6 +104,12 @@ const staticHelpers = {
     else if(op == ">") return a > b;
     else if(op == "<=" || op == "=<") return a <= b;
     else if(op == "=>" || op == ">=") return a >= b;
+    else if(op == "&&") return a && b;
+    else if(op == "||") return a || b;
+    else{
+      console.warn("Unsupported test operator: \"%s\"", op);
+      return false;
+    }
   },
   dateString(this:any, when:Date|string, ...args:any[]){
     const context = args.pop();

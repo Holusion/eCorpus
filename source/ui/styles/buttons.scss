@@ -73,6 +73,15 @@ a{
     }
   }
 
+  &.btn-danger{
+    background-color: var(--color-error);
+    &:hover:not([disabled]){
+      color: #333;
+      filter: brightness(1.2);
+      box-shadow: 2px 2px rgba(20, 20, 20, 0.3);
+    }
+  }
+
   &.btn-small{
     padding: 0 4px;
     min-width: auto;

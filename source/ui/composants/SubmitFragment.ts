@@ -1,4 +1,4 @@
-import { css, html, LitElement, PropertyValues } from "lit";
+import { css, html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import "./Spinner";
@@ -39,7 +39,7 @@ export default class SubmitFragment extends LitElement{
   active:boolean = false;
 
   @state()
-  status ?:{type:"status"|"alert", text :string};
+  status ?:{type:"status"|"alert", text :string|TemplateResult};
 
   #c?:AbortController;
 
@@ -65,7 +65,7 @@ export default class SubmitFragment extends LitElement{
   }
 
 
-  private async _do_submit(form:HTMLFormElement){
+  private async _do_submit(form:HTMLFormElement) :Promise<boolean>{
     this.#c?.abort();
     let c = this.#c = new AbortController();
     this.active = true;
@@ -78,8 +78,6 @@ export default class SubmitFragment extends LitElement{
       if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
       const encoding = this.encoding ?? form.enctype ?? form.encoding ?? "application/json";
       const body = this.encode(form, encoding);
-      console.log("BODY", body);
-      
       let res = await fetch(action, {
         method,
         body,
@@ -92,16 +90,17 @@ export default class SubmitFragment extends LitElement{
       await HttpError.okOrThrow(res);
 
       this.active = false;
-      this.status = {type:"status", text: "✓"};
+      this.status = {type:"status", text: `✓`};
 
       const t = setTimeout(()=> this.status = undefined, 5000);
       c.signal.addEventListener("abort", ()=>clearTimeout(t));
+      return true;
     }catch(e){
       console.error("Request failed : ", e);
       this.active = false;
       this.status = {type:"alert", text:e.message};
+      return false;
     }
-
   }
 
   handleSubmit = (e:SubmitEvent)=>{
@@ -112,7 +111,10 @@ export default class SubmitFragment extends LitElement{
       return;
     }
     e.preventDefault();
-    this._do_submit(form);
+    e.stopPropagation();
+    this._do_submit(form).then((success)=>{
+      if(success) this.dispatchEvent(new CustomEvent("submit", {}));
+    });
     return false;
   }
 
@@ -158,6 +160,9 @@ export default class SubmitFragment extends LitElement{
       display: block;
       text-align: center;
       color: var(--color-error);
+    }
+    .submit-success{
+      color: var(--color-success);
     }
   `;
 }

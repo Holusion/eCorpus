@@ -1,0 +1,146 @@
+
+<h1>{{scene.name}}</h1>
+
+<div class="main-grid">
+
+  <div class="grid-header">
+    <i>tags go here</i>
+  </div>
+
+  <div class="grid-toolbar">
+
+    <section aria-label="{{i18n "titles.sceneThumb"}}">
+      {{#if scene.thumb }}
+        <img class="flush" src="{{scene.thumb}}" alt="{{i18n "leads.thumbnailFor" what=scene.name }}"/>
+      {{else}}
+        <img class="flush" style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg" />
+      {{/if}}
+    </section>
+
+    <section style="display:flex;flex-direction: column; gap: 10px; align-items: stretch;">
+      {{#unless (test access.user "==" "read")}}
+        <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
+          <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
+        </a>
+      {{/unless}}
+      <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
+        <ui-icon name="eye"></ui-icon>
+        <span class="tool-text">{{i18n "labels.view"}}</span>
+      </a>
+      <a class="btn btn-main" download="{{scene.name}}.zip"
+        href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
+        <ui-icon name="save"></ui-icon>
+        <span class="tool-text">{{i18n "buttons.download"}}</span>
+      </a>
+    </section>
+  </div>
+  
+  <div class="grid-content">
+    
+    <section>
+      {{#if meta.title }}
+        <h2>{{meta.title}}</h2>
+      {{/if}}
+      <div  class="section-column">
+        <div class="col">
+          <h3>{{i18n "titles.sceneData"}}</h3>
+          {{#with meta}}
+            {{#if setup }}
+                <p>
+                  {{i18n "labels.localization" count=languages.length }}:
+                  {{#each languages}}
+                    {{#if (test @index "!=" 0)}},{{/if}}
+                    <span {{#if (test . "==" ../setup)}}class="text-success" title={{i18n "labels.setupLocalization"}}{{/if}}>{{.}}</span>
+                  {{/each}}
+                </p>
+                <p>{{intro}}</p>
+                <p>{{i18n "leads.sceneCounts" articles=articles.length annotations=annotations.length }}</p>
+            {{else}}
+              {{i18n "leads.noMetaAvailable"}}
+            {{/if}}
+          {{/with}}
+        </div>
+
+      <div class="col" id="scene-permissions-container">
+          <h3>{{i18n "titles.permissions"}}</h3>
+          <table  class="list-table compact form-control" >
+            <thead>
+              <tr>
+                <th>{{i18n "labels.username"}}</th>
+                <th>{{i18n "labels.rights"}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each permissions}}
+                <tr>
+                  {{#if (test @root.user.isDefaultUser "||" (test @root.scene.access.user "!=" "admin") ) }}
+                    <td class="text-main" title="{{i18n "label.username"}}">{{username}}</td>
+                    <td class="text-main" >{{access}}</td>
+                  {{else if (test (test username "==" @root.user.username) "&&" (test "!" @root.user.isAdministrator ))}}
+                    <td class="text-primary" title="{{i18n "label.username"}}">{{username}}</td>
+                    <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{access}}</td>
+                  {{else }}
+                    <td title="{{i18n "label.username"}}">{{username}}</td>
+                    <td class="form-control">
+                      <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH" action="/auth/access/{{encodeURIComponent @root.scene.name}}"  encoding="application/json">
+                        <form class="form-item" style="flex-grow: 1;" autocomplete="off">
+                          <input type="hidden" name="username" value="{{username}}"/>
+                          <select name="access" aria-label="{{i18n "labels.permission"}}">
+                            {{> inputs/option selected=access value="none" text=(i18n "fields.none")}}
+                            {{> inputs/option selected=access value="read" text=(i18n "fields.read")}}
+                            {{> inputs/option selected=access value="write" text=(i18n "fields.write")}}
+                            {{#unless (test username "==" "default")}}
+                              {{> inputs/option selected=access value="admin" text=(i18n "fields.admin")}}
+                            {{/unless}}
+                          </select>
+                        </form>
+                        <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
+                      </submit-fragment>
+                    </td>
+                  {{/if}}
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+          {{#if  (test scene.access.user "==" "admin")}}
+            <submit-fragment style="width:100%;margin-top: 1rem;" method="PATCH" action="/auth/access/{{encodeURIComponent @root.scene.name}}"  encoding="application/json" onsubmit="window.location.reload()">
+              <form id="addUserRights" class="form-control" style="padding:0;flex-grow: 1" autocomplete="off" name="">
+                <div class="form-group" style="padding:0;border:none;">
+                  <input type="hidden" name="access" value="read"/>
+                  <div class="form-item" style="display:flex; flex-grow: 1;">
+                    <input style="border:none;width:100%;" type="text" name="username" id="username" placeholder="{{i18n "labels.username"}}" required>
+                    <button class="btn btn-addon btn-main" style="margin-top:0" type="submit">
+                      <ui-icon name="plus"></ui-icon>
+                    </button>
+                  </div>
+                </div>
+              </form>
+              <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
+            </submit-fragment>
+          {{/if}}
+        </div>
+      </div>
+    </section>
+
+    {{#if (test scene.access.user "==" "admin")}}
+      <section>
+        <p >
+          {{i18n "leads.archiveDelete"}}
+        </p>
+        <div style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
+          <button class="btn" icon="edit">
+            <ui-icon name="trash"></ui-icon>
+            {{i18n "buttons.archive"}}
+          </button>
+          {{#if user.isAdministrator }}
+            <button class="btn btn-danger" icon="edit">
+              <ui-icon name="trash"></ui-icon>
+              {{i18n "buttons.delete"}}
+            </button>
+          {{/if}}
+        </div>
+      </section>
+    {{/if}}
+  </div>
+
+</div>

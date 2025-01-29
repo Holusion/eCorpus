@@ -1,10 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect, isAdministrator } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect, isAdministrator, getUserManager } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
 import { AccessType } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
+import scrapDoc from "../../utils/schema/scrapDoc.js";
 
 
 
@@ -24,6 +25,10 @@ routes.use("/", (req :Request, res:Response, next)=>{
   next();
 });
 
+/**
+ * Common properties for template rendering.
+ * All props required for navbar/footer rendering should be set here
+ */
 export function useTemplateProperties(req :Request, res:Response, next:NextFunction){
   const session = getSession(req);
   const user = getUser(req);
@@ -177,6 +182,7 @@ routes.get("/user", (req, res)=>{
     title: "eCorpus User Settings",
   });
 });
+
 routes.use("/admin", isAdministrator);
 routes.get("/admin", (req, res)=>{
   res.render("admin/home", {
@@ -208,14 +214,29 @@ routes.get("/admin/stats", (req, res)=>{
 
 routes.use("/scenes/:scene", canRead);
 
-routes.get("/scenes/:scene", (req, res)=>{
-  const {scene} = req.params;
-  res.render("layouts/main", {
-    layout: null,
-    title: "eCorpus Administration",
-    body: `<scene-history name="${scene}"></scene-history>`,
+routes.get("/scenes/:scene", wrap(async (req, res)=>{
+  const requester = getUser(req);
+  const vfs = getVfs(req);
+  const um = getUserManager(req);
+  const {scene:scene_name} = req.params;
+  let scene = mapScene(req, await vfs.getScene(scene_name, requester.uid));
+
+  let [permissions, meta] = await Promise.all([
+    um.getPermissions(scene.id),
+    vfs.getDoc(scene.id)
+    .then((doc)=> scrapDoc(doc?.data?JSON.parse(doc.data):undefined, res.locals))
+    .catch(e=>{
+      if(e.code !== 404) console.warn("Failed to scrap document for scene: "+scene.name, e.message);
+      return undefined;
+    }),
+  ]);
+  res.render("scene", {
+    title: `eCorpus: ${scene.name}`,
+    scene,
+    meta,
+    permissions,
   });
-});
+}));
 
 routes.get("/scenes/:scene/view", (req, res)=>{
   let {scene} = req.params;

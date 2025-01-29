@@ -1,6 +1,7 @@
 
 
 section, .section{
+  --section-padding: 1rem;
   --caret-width: 2px;
   position: relative;
   background: var(--color-section);
@@ -32,11 +33,22 @@ section, .section{
   }
 
 
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: var(--section-padding);
+  margin-bottom: var(--section-padding);
 
-  >.flush{
-    margin: 0 -1rem;
+  >.flush {
+    --flush-margin: calc(-1 * var(--section-padding));
+    display:block;
+    height: auto;
+    width: calc( 100% + 2rem);
+    margin-left: var(--flush-margin);
+    margin-right: var(--flush-margin);
+    &:first-child{
+      margin-top: var(--flush-margin);
+    }
+    &:last-child{
+      margin-bottom: var(--flush-margin);
+    }
   }
 
   h1, h2, h3, h4, h5, h6{
@@ -44,30 +56,21 @@ section, .section{
       margin-top: 0;
     }
   }
-}
-
-
-corpus-list, home-page {
-  display: block;
-  padding: 1rem;
-  @media screen and (max-width: 992px){
-    padding: 1rem 4px;
-  }
   
-  .drag-overlay{
-    position: absolute;
-    top:0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 2;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px dotted var(--color-secondary);
-    border-radius: 4px;
-    pointer-events: none;
-  }
+  
 }
 
+.section-column{
+  display: flex;
+  flex-direction: row;
+  @media screen and (max-width: 992px){
+    flex-direction: column;
+  }
+  >.col{
+    width: 50%;
+    min-width: 0;
+  }
+}
 
 .main-grid{
   display: grid;
