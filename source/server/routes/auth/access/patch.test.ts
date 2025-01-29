@@ -60,6 +60,53 @@ describe("PATCH /auth/access/:scene", function(){
     ]);
   });
 
+  it("can use access:\"none\" string to remove a user", async function(){
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(admin.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send({username: user.username, access: "none"})
+    .expect(204);
+
+
+    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      { "uid": 0, "username": "default", "access": "read" },
+      { "uid": 1, "username": "any", "access": "read" },
+    ]);
+  });
+
+  it("can use an empty string to remove a user", async function(){
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(admin.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send({username: user.username, access: ""})
+    .expect(204);
+
+    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      { "uid": 0, "username": "default", "access": "read" },
+      { "uid": 1, "username": "any", "access": "read" },
+    ]);
+  });
+
+  for(let u of ["default", "any"]){
+    for (let v of [null, "", "none"]) {
+      it(`can't remove ${u} from the access map using ${v ?? "null"}`, async function(){
+        //Calling this method with access=none for a user will remove him from the AccessMap.
+        //However calling username=any access=none DOES mean something
+        await request(this.server).patch(`/auth/access/${titleSlug}`)
+        .auth(user.username, "12345678")
+        .set("Content-Type", "application/json")
+        .send({username: u , access: v})
+        .expect(204);
+
+        expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+          { "uid": 0, "username": "default", "access": u==="default"?"none":"read" },
+          { "uid": 1, "username": "any", "access": u==="any"?"none":"read"},
+          { "uid": user.uid, "username": "bob", "access": "admin" },
+        ]);
+      });
+    }
+  }
+
   it("requires admin access", async function(){
     const body = {username: opponent.username, access: "admin"};
     await userManager.grant(titleSlug, opponent.username, "write");

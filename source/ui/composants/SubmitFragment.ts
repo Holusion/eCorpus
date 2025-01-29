@@ -26,6 +26,15 @@ export default class SubmitFragment extends LitElement{
   @property({attribute: true, type: String})
   encoding ?:"application/x-www-form-urlencoded"|"application/json";
 
+  /** Set `submit=".*"` to submit form on any change
+   * Or set this to a list of comma-separated names that should trigger a submit on change
+  */
+  @property({attribute: "submit", type: String, converter:(value, type)=> value.split(",")})
+  submit ?:string[];
+
+  /**
+   * Internal property to manage submission status
+   */
   @property({attribute: true, reflect: true, type: Boolean})
   active:boolean = false;
 
@@ -56,29 +65,46 @@ export default class SubmitFragment extends LitElement{
   }
 
 
-  private async _do_submit(form:HTMLFormElement, signal){
-    const action = this.action ?? form.action;
-    const method = this.method ?? form.method;
-    if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
-    const encoding = this.encoding ?? form.enctype ?? form.encoding ?? "application/json";
-    const body = this.encode(form, encoding);
-    console.log("BODY", body);
-    
-    let res = await fetch(action, {
-      method,
-      body,
-      signal,
-      headers: {
-        "Content-Type": encoding,
-        "Accept": "application/json",
-      }
-    });
-    await HttpError.okOrThrow(res);
-  }
-
-  onsubmit = (e:SubmitEvent)=>{
+  private async _do_submit(form:HTMLFormElement){
     this.#c?.abort();
     let c = this.#c = new AbortController();
+    this.active = true;
+    if(this.status) this.status = undefined;
+
+    try{
+
+      const action = this.action ?? form.action;
+      const method = this.method ?? form.method;
+      if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
+      const encoding = this.encoding ?? form.enctype ?? form.encoding ?? "application/json";
+      const body = this.encode(form, encoding);
+      console.log("BODY", body);
+      
+      let res = await fetch(action, {
+        method,
+        body,
+        signal: c.signal,
+        headers: {
+          "Content-Type": encoding,
+          "Accept": "application/json",
+        }
+      });
+      await HttpError.okOrThrow(res);
+
+      this.active = false;
+      this.status = {type:"status", text: "✓"};
+
+      const t = setTimeout(()=> this.status = undefined, 5000);
+      c.signal.addEventListener("abort", ()=>clearTimeout(t));
+    }catch(e){
+      console.error("Request failed : ", e);
+      this.active = false;
+      this.status = {type:"alert", text:e.message};
+    }
+
+  }
+
+  handleSubmit = (e:SubmitEvent)=>{
     let form = e.target as HTMLFormElement;
     if(!(form instanceof HTMLFormElement)){
       console.warn("Bad submit event on", form);
@@ -86,20 +112,18 @@ export default class SubmitFragment extends LitElement{
       return;
     }
     e.preventDefault();
-    this.active = true;
-    if(this.status) this.status = undefined;
-    this._do_submit(form, c.signal).then(()=>{
-      this.active = false;
-      this.status = {type:"status", text: "Submitted"};
-      const t = setTimeout(()=> this.status = undefined, 5000);
-      c.signal.addEventListener("abort", ()=>clearTimeout(t));
-    }, (e)=>{
-      console.error("Request failed : ", e);
-      this.active = false;
-      this.status = {type:"alert", text:e.message};
-    });
-
+    this._do_submit(form);
     return false;
+  }
+
+  handleChange = (e :Event)=>{
+    const target = e.target as HTMLSelectElement|HTMLInputElement;
+    if(!this.submit) return false;
+    if(this.submit.indexOf(target.name) === -1) return false;
+    if(!target.form) return console.warn("Element has no associated form : ", target);
+    e.preventDefault();
+    e.stopPropagation();
+    this._do_submit(target.form);
   }
 
   protected update(changedProperties: PropertyValues): void {
@@ -109,9 +133,9 @@ export default class SubmitFragment extends LitElement{
 
   protected render(): unknown {
     return html`
-      <slot aria-busy="${this.active?"true":"false"}" @submit=${this.onsubmit}></slot>
+      <slot aria-busy="${this.active?"true":"false"}" @submit=${this.handleSubmit} @change=${this.handleChange}></slot>
       ${this.status? html`<span role="${this.status.type}" class="submit-${this.status.type === "alert"?"error":"success"}">${this.status.text}</span>`: null}
-      ${this.active?html`<spin-loader aria-live="assertive" visible></spin-loader>`:null}
+      ${this.active?html`<slot name="loader"><spin-loader aria-live="assertive" visible></spin-loader></slot>`:null}
     `;
   }
   static styles = css`

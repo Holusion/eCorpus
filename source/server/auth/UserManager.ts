@@ -286,6 +286,11 @@ export default class UserManager {
    * patches permissions on a scene for a given user.
    * Special cases for "any" and "default" users.
    * Usernames are converted to IDs before being used.
+   * > As per [rfc7396](https://datatracker.ietf.org/doc/html/rfc7396), 
+   * > Null values in the merge patch are given special meaning to indicate the removal
+   * > of existing values in the target.
+   * 
+   * This makes this method slightly unsafe because it can easily delete "any" and "default" entries from the access map, which we very much don't want.
    * @param scene 
    * @param username 
    * @param role 
@@ -315,7 +320,8 @@ export default class UserManager {
   }
 
   /**
-   * 
+   * Get all access rights for a scene.
+   * Access to this should be externally restricted to users with READ rights over this scene
    * @see https://www.sqlite.org/json1.html#jeach for json_each documentation
    */
   async getPermissions(nameOrId :string|number) :Promise<[{uid:number, username :string, access :AccessType}]>{
