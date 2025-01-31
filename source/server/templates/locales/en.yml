@@ -5,7 +5,6 @@ lang:
 labels:
   optional: optional
   sceneTitle: scene title
-  setupLanguage: scene language
   selectFile: select a file
   signin: Sign in
   save: Save
@@ -20,6 +19,14 @@ labels:
   sendLoginLink: Send a login link
   view: View
   edit: Edit
+  localization_one: Scene language
+  localization_other: Scene languages
+  setupLocalization: Default language
+  rights: Access rights
+  permission: Authorizations
+  defaultUser: Public access
+  anyUser: Authenticated access
+  language: UI Language
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -27,17 +34,24 @@ buttons:
   logout: Disconnect
   next: "Next Page"
   previous: "Previous Page"
+  archive: Archive
+  delete: Delete
+  editTags: Edit tags
+  showTags: Cancel edition
+  history: Scene History
 fields:
   name: name
   mtime: last modification
   ctime: creation date
   access: access rights
+  none: none
   read: read
   write: write
   admin: administration
   limit: results per page
   ascendingOrder: ascending order
   descendingOrder: descending order
+  tag: tag name
 nav:
   tags: collection
   login: connection
@@ -47,7 +61,7 @@ nav:
   adminStats: statistiques
   adminArchives: archives
   reportBug: report a bug
-  documentation: projet documentation
+  documentation: project doc
   license: Apache License
 
 titles:
@@ -63,8 +77,14 @@ titles:
   userSettings: User Settings
   userProfile: User Profile
   changePassword: Change Password
+  sceneThumb: Preview image of {{what}}
+  history: Edition history
+  sceneData: Scene metadata
+  permissions: Access rights
 tooltips:
   showPassword: Show the password's text
+  permissions: >
+    Access rights management. Setting a user's permissions to "none" will revert him back to default.
 
 leads:
   appLead: >
@@ -82,6 +102,25 @@ leads:
     Show this scene with Voyager-Explorer
   noResults: >
     No results. Maybe try to change your query?
+  archiveDelete: >
+    Archiving this scene makes it unreachable but it can still be restored by your instance administrator.
+  thumbnailFor: >
+    Image miniature pour {{what}}
+  articles_zero: "no articles"
+  articles_one: "one article"
+  articles_other: "{{count}} articles"
+  annotations_zero: "no annotations"
+  annotations_one: "one annotation"
+  annotations_other: "{{count}} annotations"
+  sceneCounts: >
+    This scene has $t(leads.articles, {"count": {{articles}} }) and $t(leads.annotations, {"count": {{annotations}}})
+  noMetaAvailable: >
+    No metadata could be extracted from this scene.
+  historyEdition: |
+    This is the scene's history of changes, aggregated by day. Unfold the groups with the <span class="text-primary">+</span> icons to get more details.
+    Click on <code class="text-primary">restore to</code> to add a set of changes that will set the scene's content to what it was at this point.
+    No history entry will be deleted in this operation : changes will only be appended.
+
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

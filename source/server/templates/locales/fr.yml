@@ -5,7 +5,6 @@ lang:
 labels:
   optional: optionnel
   sceneTitle: titre de la scène
-  setupLanguage: Langue de la scène
   selectFile: sélectionner un fichier
   signin: Connexion
   save: Enregistrer
@@ -27,6 +26,7 @@ labels:
   permission: Autorisation
   defaultUser: Accès Public
   anyUser: Utilisateur Authentifié
+  language: Langue de l'interface
 
 buttons:
   searchScene: chercher une scène

@@ -175,71 +175,6 @@ section, .section{
   }
 }
 
-corpus-list{
-
-  .list-header{
-    grid-area: header;
-    display: flex;
-  }
-  .toolbar{
-    grid-area: toolbar;
-    .section{
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-  }
-
-  .list-items{
-    grid-area: content;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .search-box-input {
-    flex-grow: 1;
-    padding-right: 100px;
-    margin-right: -100px;
-    border-bottom: 1px solid var(--color-secondary-light);
-    + .btn-addon{
-      width: 100px;
-      border-bottom: 1px solid var(--color-secondary-light);
-    }
-    &:focus + .btn-addon{
-      border-bottom-color: transparent;
-    }
-
-
-  }
-  .toolbar, .list-items{
-    height: fit-content;
-  }
-
-  .list-items{
-    width: 100%;
-  }
-
-  @media (max-width: 1024px){
-    flex-direction: column;
-    .list-tasks{
-      width: 100%;
-    }    
-  }
-}
-
-
-scene-card{
-  &.card-grid{
-    padding :0;
-  }
-
-  &.card-list{
-    padding: 0.2rem;
-  }
-}
-
 .list-items{
   
   .list-item, .list-header{
@@ -275,20 +210,35 @@ scene-card{
   }
 }
 
-.users-list{
-  .ui-button:hover{
-    filter:brightness(1.5);
-  }
-  .ui-icon svg{
-    height: 1.2rem;
-  }
-}
 
 footer{
   color: var(--color-text);
-  height: 44px;
   background-color: var(--color-section);
-  display:flex;
+  height: var(--nav-height);
+  padding-right: 105px;
+  padding-left: 105px;
+  position: relative;
+
+  nav{
+    height: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  #change-locale{
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: var(--nav-height);
+  }
+
+  @media (max-width: 576px){
+    padding-left: 1rem;
+    height: auto;
+    nav{
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
 }
 
 
@@ -325,5 +275,28 @@ footer{
     >.btn-addon{
       cursor: pointer;
     }
+  }
+}
+
+@media screen and (min-width: 992px){
+  .lg-hidden{
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 992px){
+  .lg-only{
+    display: none !important;
+  }
+}
+
+@media screen and (min-width: 576px){
+  .sm-only{
+    display: none !important;
+  }
+}
+@media screen and (max-width: 576px){
+  .sm-hidden{
+    display: none !important;
   }
 }

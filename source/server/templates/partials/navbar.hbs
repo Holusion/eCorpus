@@ -2,17 +2,22 @@
   <div class="nav-content">
     <div class="brand">
       <a class="brand" href="/">
-        <img src="/dist/images/logo-full.svg" alt="Site Logo" />
+        <picture>
+          <source srcset="/dist/images/logo-sm.svg" media="(max-width: 576px)"/>
+          <img src="/dist/images/logo-full.svg" alt="Site Logo"/>
+        </picture>
       </a>
     </div>
     <div class="spacer"></div>
     <div class="navbar">
       {{# unless isSearchPage }}
-      <form id="nav-search" class="form-item" style="display:flex; padding-right: 10px;display:flex;align-items: center" method="get" action="/ui/scenes/">
-        <span style="height:24px;width:24px;">
-          <ui-icon style="fill: var(--color-highlight);pointer-events: none;" name="search"></ui-icon>
-        </span>
-        <input style="height:calc(100% - 6px);margin-left:-24px; padding-left: 24px" class="search-box-input" name="match" type="search" id="model-search" value="{{params.match}}">
+      <form id="nav-search" class="form-control " method="get" action="/ui/scenes/">
+        <div class="form-item nav-input">
+          <input class="search-box-input" name="match" type="search" id="model-search" value="{{params.match}}">
+          <button class="btn btn-addon">
+            <ui-icon style="fill: var(--color-highlight);pointer-events: none;" name="search"></ui-icon>
+          </button>
+        </div>
       </form>
       {{/unless}}
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}

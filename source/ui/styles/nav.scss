@@ -33,9 +33,6 @@ nav.navbar-nav {
 
 
   .brand {
-    display: flex;
-    height: 100%;
-    align-items: center;
     font-size: 1.1em;
     color: var(--color-secondary);
     font-family: var(--font-heading);
@@ -80,15 +77,19 @@ nav{
     height:100%;
     display: flex;
     align-items: center;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     box-sizing: border-box;
-    padding: 4px 10px;
+    @media screen and (min-width: 576px){
+      padding: 4px 10px;
+    }
+    
     margin: 3px;
     border-bottom: 3px solid transparent;
     font-size: 13px;
     transition: border 0.2s ease 0s;
 
     color: inherit;
+
 
     svg { fill: currentColor; }
     white-space: nowrap;
@@ -107,8 +108,30 @@ nav{
       }
     }
   }
-}
+  .form-control{
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: stretch;
+  }
+  .form-item.nav-input{
+    flex: 1 1 auto;
+    color: white;
+    min-width: var(--nav-height);
+    >input{
+      width:100%;
+      background: none;
+      background: var(--color-highlight);
+      border: 1px solid var(--color-highlight2);
+      border-radius: 4px;
+      padding-bottom: 0;
+      padding-top: 0;
+    }
+  }
 
-change-locale{
-  cursor: pointer;
+
+  .nav-end{
+    justify-self: flex-end;
+  }
+
 }
