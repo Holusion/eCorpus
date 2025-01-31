@@ -35,17 +35,17 @@ export default async function handlePutDocument(req :Request, res :Response){
     if(!refDocString) throw new BadRequestError(`Referenced document is not valid`);
     const refDoc = JSON.parse(refDocString);
 
-    console.log("Ref doc :", JSON.stringify(refDoc.setups![0].tours, null, 2));
-    console.log("New doc :", JSON.stringify(newDoc.setups![0].tours, null, 2));
+    //console.log("Ref doc :", JSON.stringify(refDoc.setups![0].tours, null, 2));
+    //console.log("New doc :", JSON.stringify(newDoc.setups![0].tours, null, 2));
     const docDiff = merge.diffDoc(refDoc, newDoc);
     if(Object.keys(docDiff).length == 0){
       //Nothing to do
       return res.status(204).send();
     }
 
-    console.log("Diff :", JSON.stringify(docDiff, (key, value)=> value === merge.DELETE_KEY? "*DELETED*":value, 2));
+    //console.log("Diff :", JSON.stringify(docDiff, (key, value)=> value === merge.DELETE_KEY? "*DELETED*":value, 2));
     const mergedDoc = merge.applyDoc(currentDoc, docDiff);
-    console.log("Merged doc :", JSON.stringify(mergedDoc.setups![0].tours, null, 2));
+    //console.log("Merged doc :", JSON.stringify(mergedDoc.setups![0].tours, null, 2));
     let s = JSON.stringify(mergedDoc);
     await tr.writeDoc(s, {scene: scene, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     res.status(204).send();

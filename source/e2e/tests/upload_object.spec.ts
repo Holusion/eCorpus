@@ -25,7 +25,7 @@ test("uploads and rename a glb", async ({page, request})=>{
   const link = uploads.getByRole("link", {name: name});
   await link.click();
   await expect(page).toHaveURL(`/ui/scenes/${name}`);
-  await expect(page.getByRole("heading", {name})).toBeVisible();
+  await expect(page.locator("h1")).toHaveText(name);
 
   let res = await request.get(`/scenes/${name}/scene.svx.json`);
   await expect(res).toBeOK();
@@ -58,7 +58,7 @@ test("uploads and rename a glb (force FR)", async ({page, request})=>{
   const link = uploads.getByRole("link", {name: name});
   await link.click();
   await expect(page).toHaveURL(`/ui/scenes/${name}`);
-  await expect(page.getByRole("heading", {name})).toBeVisible();
+  await expect(page.locator("h1")).toHaveText(name);
 
   let res = await request.get(`/scenes/${name}/scene.svx.json`);
   await expect(res).toBeOK();

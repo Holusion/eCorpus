@@ -25,7 +25,7 @@ test("downloads a scene archive", async ({page, request})=>{
 
   await page.goto(`/ui/scenes/${encodeURIComponent(name)}`);
   //Check if it _looks like_ the actual scene page
-  await expect(page.getByRole("heading", {name })).toBeVisible();
+  await expect(page.locator("h1")).toHaveText(name);
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole("link", {name: "Download this scene"}).click();
   const download = await downloadPromise;

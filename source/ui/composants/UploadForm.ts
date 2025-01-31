@@ -131,13 +131,14 @@ export default class UploadForm extends LitElement{
     xhr.send(file);
   }
 
-  onsubmit = (ev:SubmitEvent)=>{
+  handleSubmit = (ev:SubmitEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
     const data = new FormData(ev.target as HTMLFormElement);
 
     this.upload(data);
     (ev.target as HTMLFormElement).reset();
+    return false;
   }
 
   protected render(): unknown {
@@ -168,7 +169,7 @@ export default class UploadForm extends LitElement{
           </div>`
         })}
       </section>`: null}
-      <slot @submit=${this.onsubmit}></slot>
+      <slot @submit=${this.handleSubmit}></slot>
     `;
   }
 

@@ -39,6 +39,7 @@ buttons:
   editTags: Edit tags
   showTags: Cancel edition
   history: Scene History
+  download: Download this scene
 fields:
   name: name
   mtime: last modification

@@ -52,7 +52,7 @@ function reducePropfind(text:string) :ReducedWebDAVProps[]{
 
 
 //Authenticated as admin
-test.use({ storageState: 'playwright/.auth/admin.json' });
+test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
 
 test("uploads a scene zip", async ({page, request})=>{
   //Generate the zip file's scene
@@ -78,14 +78,14 @@ test("uploads a scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "create a new scene"});
+  const f = page.getByRole("form", {name: "titles.createScene"});
   await expect(f).toBeVisible();
-  await f.getByRole("button", {name: "select a file"}).setInputFiles({
+  await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
     mimeType: "application/zip",
     buffer: body,
   });
-  await f.getByRole("button", {name: "create a scene"}).click();
+  await f.getByRole("button", {name: "buttons.upload"}).click();
 
 
   const uploads = page.getByRole("region", {name: "uploads"});
@@ -137,14 +137,14 @@ test("uploads a multi-scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "create a new scene"});
+  const f = page.getByRole("form", {name: "titles.createScene"});
   await expect(f).toBeVisible();
-  await f.getByRole("button", {name: "select a file"}).setInputFiles({
+  await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
     mimeType: "application/zip",
     buffer: body,
   });
-  await f.getByRole("button", {name: "create a scene"}).click();
+  await f.getByRole("button", {name: "buttons.upload"}).click();
 
 
   const uploads = page.getByRole("region", {name: "uploads"});
