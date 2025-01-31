@@ -70,7 +70,51 @@ describe("PATCH /scenes/:scene", function(){
       .expect(200);
 
       expect(r.body).to.have.property("tags").to.deep.equal(["foo"])
+
+      //Also trim when comparing with existing tags
+      r = await request(this.server).patch("/scenes/foo")
+      .send({tags: [" foo"]})
+      .expect(200);
+      expect(r.body, `existing tag should be compared with the trimmed tag name`).to.have.property("tags").to.deep.equal(["foo"])
     });
+
+    it("can submit an empty value", async function(){
+      //When using form elements, it's tricky to generate a request like `{tags:["foo"]}`.
+      //So we make it `{tags:""}` when empty  or {tags:["foo", ""]}` when one value is set
+      //Through the addition of a hidden empty input field
+      let r = await request(this.server).patch("/scenes/foo")
+      .send({tags: ["foo", ""]})
+      .expect(200);
+
+      expect(r.body).to.have.property("tags").to.deep.equal(["foo"]);
+
+      //Unset the tag we just made
+      r = await request(this.server).patch("/scenes/foo")
+      .send({tags: ""})
+      .expect(200);
+
+      expect(r.body).to.have.property("tags").to.deep.equal([]);
+
+
+
+      //Set it back with two values
+      r = await request(this.server).patch("/scenes/foo")
+      .send({tags: ["foo", "bar", ""]})
+      .expect(200);
+
+      expect(r.body).to.have.property("tags").to.deep.equal(["foo", "bar"]);
+
+      //An array with only an empty string will probable never get sent but that's still tested
+      r = await request(this.server).patch("/scenes/foo")
+      .send({tags: [""]})
+      .expect(200);
+
+      expect(r.body).to.have.property("tags").to.deep.equal([])
+
+
+
+    });
+
     
   })
 

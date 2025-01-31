@@ -30,10 +30,13 @@ export default async function patchScene(req :Request, res :Response){
       }
     }
 
-    if(tags){
+    if(typeof tags === "string" || Array.isArray(tags)){
+      tags = (Array.isArray(tags)?tags: [tags]).map(t=>(typeof t === "string")?t.trim(): t).filter(t=>t);
       for(let tag of tags){
-        if (scene.tags.indexOf(tag) !== -1) continue;
-        await vfs.addTag(scene.id, tag.trim());
+        let name = tag.trim();
+        if(!name) continue;
+        else if (scene.tags.indexOf(name) !== -1) continue;
+        await vfs.addTag(scene.id, name);
       }
       for(let ex_tag of scene.tags){
         if(tags.indexOf(ex_tag) !== -1) continue;
