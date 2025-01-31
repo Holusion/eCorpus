@@ -233,9 +233,9 @@ describe("Templates", function(){
         await expect(t.render("lang_test", {lang: "cimode", layout: null})).to.eventually.equal("greet");
       });
 
-      it("can provide a fallback key", async function(){
+      it("can provide a default value", async function(){
         await fs.writeFile(path.join(dir, "lang_key_array.hbs"), `{{i18n "foo" "fallback"}}`);
-        await expect(t.render("lang_key_array", {lang: "fr", layout: null})).to.eventually.equal("repli");
+        await expect(t.render("lang_key_array", {lang: "fr", layout: null})).to.eventually.equal("fallback");
       });
 
       it("can provide custom parameters", async function(){

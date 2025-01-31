@@ -23,6 +23,10 @@ labels:
   localization_one: Langue de la scène
   localization_other: Langues de la scène
   setupLocalization: Langue par défaut
+  rights: Droits d'accès
+  permission: Autorisation
+  defaultUser: Accès Public
+  anyUser: Utilisateur Authentifié
 
 buttons:
   searchScene: chercher une scène
@@ -34,17 +38,22 @@ buttons:
   previous: "Page Précédente"
   archive: Archiver
   delete: Supprimer
+  editTags: Modifier les tags
+  showTags: Annuler l'édition
+  history: Historique
 fields:
   name: nom
   mtime: dernière modification
   ctime: date de création
   access: droits d'accès
+  none: aucun
   read: lecture
   write: écriture
   admin: administration
   limit: résultats par page
   ascendingOrder: ordre ascendant
   descendingOrder: ordre descendant
+  tag: nom de la collection
 nav:
   tags: collection
   login: connexion
@@ -70,9 +79,14 @@ titles:
   userSettings: Paramètres utilisateur
   userProfile: Profil
   changePassword: Changer le mot de passe
+  sceneThumb: Image d'aperçu pour {{what}}
+  history: Historique des modifications
+  sceneData: Métadonnées de la scène
+  permissions: Droits d'accès
 tooltips:
   showPassword: Montrer le texte du mot de passe
-
+  permissions: >
+    Gestion des droits d'accès à la scène. Pour retirer à un utilisateur ses droits paticuliers, sélectionner "aucun".
 leads:
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion
@@ -103,6 +117,11 @@ leads:
   annotations_other: "{{count}} annotations"
   sceneCounts: >
     $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations, {"count": {{annotations}}}) dans cette scène
+  noMetaAvailable: >
+    Aucune métadonnée n'a pu être extraite de cette scène
+  historyEdition: |
+    Ci-après, l'historique des modifications de la scène, groupées par jour. Dépliez les groupe à l'aide des icones <span class="text-primary">+</span> pour obtenir le détail.
+    Cliquer sur <code class="text-primary">restaurer à</code> ne supprimera pas les changements : de nouvelles entrées seront ajoutées à la date présente pour restaurer la scène dans l'état ou elle était à la date indiquée
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

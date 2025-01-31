@@ -71,7 +71,7 @@ function cleanDocument(document :Required<IDocument>) :IDocument{
  * 
  * @fixme should be simplified by exporting most of its code into separate functions, like in `fromPointers()`
  */
-export function toPointers(src :IDocument) :DerefDocument {
+export function toPointers(src :IDocument, silent:boolean=false) :DerefDocument {
   if(!src) throw new Error(`Can't dereference invalid document ${src}`);
   // Dereference self-contained collections
   const metas = src.metas?.map(mapMeta) ?? [];
@@ -81,7 +81,7 @@ export function toPointers(src :IDocument) :DerefDocument {
   
   //Dereference every node's internal properties
   const nodes = src.nodes?.map((iNode, nodeIndex)=>{
-    if(!iNode.id) console.log("Node #%d has no id : ", nodeIndex, iNode);
+    if(!iNode.id && !silent) console.log("Node #%d has no id : ", nodeIndex, iNode);
     let node :DerefNode = {
       id: iNode.id ?? nodeIndex.toString(),
       name: iNode.name  ?? uid(),

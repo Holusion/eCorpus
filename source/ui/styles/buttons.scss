@@ -127,6 +127,41 @@ a{
     }
   }
 
+  /**
+   * Special case of button used as a popover source
+   * Combines btn-transparent and btn-inline, with minor adjustments
+   */
+  &.btn-popover{
+    background-color: transparent !important;
+    display: inline-block;
+    height: 1lh;
+    position: relative;
+    color: var(--color-highlight2);
+    min-width: auto;
+    padding: 0;
+    > .ui-icon{
+      display: inline-block;
+      margin: 0;
+      height: 1lh;
+    }
+    &:hover{
+      color: var(--color-primary);
+    }
+    //The popover element
+    >[popover]:popover-open{
+      inset: unset;
+      margin: 0 1rem;
+      padding: .2rem .4rem;
+      border: 1px solid var(--color-primary);
+      border-radius: 4px;
+      color: var(--color-text);
+      background-color: var(--color-highlight2);
+
+      font-size: 1rem;
+      font-family: var(--font-body);
+    }
+  }
+
   @at-root a#{&} {
     text-decoration: none;
     white-space:nowrap;
@@ -142,7 +177,8 @@ a{
     height: 1.3em;
     fill: currentColor;
     svg{
-      height: 1.2rem;
+      height: 1rem;
+      height: 1lh;
     }
   }
 

@@ -86,9 +86,18 @@
       }
     }
     > input + .btn-addon{
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
       width: 2.5rem;
       min-width: 2.5rem;
       box-shadow: none !important;
+      padding: 0;
+      .ui-icon{
+        margin: 0;
+        height: auto;
+      }
     }
 
     > label{

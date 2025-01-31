@@ -56,23 +56,23 @@ const staticHelpers = {
     const match = exact? href === this.location : this.location?.startsWith(href);
     return `<a class="nav-link${match?" active":""}" href="${href}"${rest.length?" ":""}${rest.join(" ")}>${options.fn(this)}</a>`;
   },
-  i18n(this:any,  ...keys:any[]){
-    const {hash, data}:HandlebarsHelperContext = keys.pop();
+  i18n(this:any,  key: string, ...props:any[]){
+    const {hash, data}:HandlebarsHelperContext = props.pop();
+    const default_value :string|undefined = props.pop();
     if(typeof data.t != "function"){
       console.warn("No translation function in context", context);
-      return keys[0];
-    }else if(typeof data.root.lang != "string"){
-      console.warn("Language not set. Defaulting to \"en\"");
-      return data.t(keys, {
-        lng: "en",
-        ...hash,
-      });
-    }else{
-      return data.t(keys, {
-        lng: data.root.lang,
-        ...hash,
-      });
+      return key;
     }
+    let opts = {
+      lng: data.root.lang,
+      ...hash,
+    };
+    if(!opts.lng){
+      console.warn("Language not set. Defaulting to \"en\"");
+      opts.lng = "en";
+    }
+
+    return default_value? data.t(key, default_value, opts): data.t(key, opts);
   },
   encodeURIComponent(this:any, component:string){
     return encodeURIComponent(component);

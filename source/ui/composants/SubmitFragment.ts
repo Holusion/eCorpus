@@ -78,6 +78,7 @@ export default class SubmitFragment extends LitElement{
       if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
       const encoding = this.encoding ?? form.enctype ?? form.encoding ?? "application/json";
       const body = this.encode(form, encoding);
+
       let res = await fetch(action, {
         method,
         body,
@@ -125,7 +126,9 @@ export default class SubmitFragment extends LitElement{
     if(!target.form) return console.warn("Element has no associated form : ", target);
     e.preventDefault();
     e.stopPropagation();
-    this._do_submit(target.form);
+    this._do_submit(target.form).then((success)=>{
+      if(success) this.dispatchEvent(new CustomEvent("submit", {}));
+    });
   }
 
   protected update(changedProperties: PropertyValues): void {
@@ -148,6 +151,7 @@ export default class SubmitFragment extends LitElement{
     spin-loader{
       position: absolute;
       inset: 0;
+      z-index: 8;
     }
       
     :host([active]) ::slotted(form){

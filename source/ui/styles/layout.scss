@@ -1,4 +1,28 @@
 
+@mixin flush-column{
+  .flush{
+    margin: 0 var(--flush-margin);
+    &:first-child{
+      margin-top: var(--flush-margin);
+    }
+    &:last-child{
+      margin-bottom: var(--flush-margin);
+    }
+  }
+}
+
+@mixin flush-row{
+  .flush{
+    margin: var(--flush-margin) 0;
+    &:first-child{
+      margin-left: var(--flush-margin);
+    }
+    &:last-child{
+      margin-right: var(--flush-margin);
+    }
+  }
+}
+
 
 section, .section{
   --section-padding: 1rem;
@@ -36,20 +60,22 @@ section, .section{
   padding: var(--section-padding);
   margin-bottom: var(--section-padding);
 
-  >.flush {
+
+
+  .flush {
     --flush-margin: calc(-1 * var(--section-padding));
+
     display:block;
     height: auto;
     width: calc( 100% + 2rem);
-    margin-left: var(--flush-margin);
-    margin-right: var(--flush-margin);
-    &:first-child{
-      margin-top: var(--flush-margin);
-    }
-    &:last-child{
-      margin-bottom: var(--flush-margin);
+    
+    img{
+      display:block;
+      height: auto;
+      width: 100%;
     }
   }
+  @include flush-row();
 
   h1, h2, h3, h4, h5, h6{
     &:first-child{
@@ -62,15 +88,16 @@ section, .section{
 
 .section-column{
   display: flex;
-  flex-direction: row;
-  @media screen and (max-width: 992px){
-    flex-direction: column;
-  }
+  gap: var(--section-padding);
+  //Row or column layout is set depending on which part of the grid the columns are in
   >.col{
-    width: 50%;
+    flex: 1 1 50%;
     min-width: 0;
   }
 }
+
+
+
 
 .main-grid{
   display: grid;
@@ -88,22 +115,40 @@ section, .section{
     '. header .'
     '. content .';
   }
+
   .grid-header, .grid-toolbar, .grid-content{
     min-width: 0;
   }
+
   .grid-header{
     grid-area: header;
   }
+
   .grid-toolbar{
     grid-area: toolbar;
-    .section{
+    section, .section{
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      @include flush-column();
+    }
+
+    .section-column{
+      @media screen and (max-width: 992px) and (min-width: 576px){
+        flex-direction: row;
+        @include flush-row();
+      }
     }
   }
+
   .grid-content{
     grid-area: content;
+
+    .section-column{
+      @media screen and (max-width: 992px){
+        flex-direction: column;
+        @include flush-column();
+      }
+    }
   }
 }
 
@@ -255,6 +300,30 @@ footer{
     &:first-child:not(:has(~ .tab:target)),
     &:target {
       display: block;
+    }
+  }
+}
+
+.tags-list{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  .btn.btn-small{
+    min-width:60px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .add-tag{
+    border-radius: 4px;
+    overflow: hidden;
+    > input[type="text"]{
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    cursor: text;
+    >.btn-addon{
+      cursor: pointer;
     }
   }
 }

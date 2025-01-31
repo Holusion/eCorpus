@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect, isAdministrator, getUserManager } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect, isAdministrator, getUserManager, canAdmin } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -221,7 +221,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   const {scene:scene_name} = req.params;
   let scene = mapScene(req, await vfs.getScene(scene_name, requester.uid));
 
-  let [permissions, meta] = await Promise.all([
+  let [permissions, meta, serverTags] = await Promise.all([
     um.getPermissions(scene.id),
     vfs.getDoc(scene.id)
     .then((doc)=> scrapDoc(doc?.data?JSON.parse(doc.data):undefined, res.locals))
@@ -229,12 +229,20 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
       if(e.code !== 404) console.warn("Failed to scrap document for scene: "+scene.name, e.message);
       return undefined;
     }),
+    vfs.getTags(),
   ]);
+
+  const tagSuggestions = serverTags.filter(t=>{
+    let res = scene.tags.indexOf(t.name) === -1;
+    return res;
+  }).map(t=>t.name);
+
   res.render("scene", {
     title: `eCorpus: ${scene.name}`,
     scene,
     meta,
     permissions,
+    tagSuggestions,
   });
 }));
 
@@ -284,6 +292,18 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
     mode,
   });
 });
+
+routes.get("/scenes/:scene/history", canAdmin, wrap(async (req, res)=>{
+  let vfs = getVfs(req);
+  //scene_name is actually already validated through canAdmin
+  let {scene:scene_name} = req.params;
+  let scene = await vfs.getScene(scene_name);
+  
+  res.render("history", {
+    title: `eCorpus: History of ${scene_name}`,
+    name: scene_name,
+  })
+}))
 
 routes.get("/standalone", (req, res)=>{
   let host = getHost(req);

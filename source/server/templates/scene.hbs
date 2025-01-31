@@ -3,36 +3,91 @@
 
 <div class="main-grid">
 
-  <div class="grid-header">
-    <i>tags go here</i>
+  <div class="grid-header tabs">
+    <div id="show-tags" class="tab">
+      <div class="tags-list">
+        {{#each scene.tags}}
+            <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
+        {{/each}}
+        {{#if (test scene.access.user "==" "admin")}}
+          <span style="flex-grow: 1; text-align:right; margin-right: 1rem">
+            <a href="#edit-tags" >{{i18n "buttons.editTags"}}</a>
+          </span>
+        {{/if}}
+      </div>
+    </div>
+    {{#if (test scene.access.user "==" "admin")}}
+      <div id="edit-tags" class="tab">
+        <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
+          <form autocomplete="off" class="form-control tags-list">
+            {{#each scene.tags}}
+              <a href="/ui/tags/{{.}}" class="btn btn-main btn-small" style="gap: 1rem;">
+                {{> inputs/checkbox name="tags" selected=true value=. aria-label=. }}
+                <span>{{.}}</label>
+              </a>
+            {{/each}}
+            <label class="form-item add-tag">
+              <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange=""/>
+              <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+              <datalist id="tagSuggestions">
+                {{#each tagSuggestions }}
+                  <option value="{{.}}"/>
+                {{/each}}
+              </datalist>
+              {{!This input _has_ to have the same name as the others but we want to prevent its change event from bubbling}}
+              <script type="module">
+                (()=>{
+                  const input = document.querySelector("#new-tag");
+                  if(!input) return console.warn("no new tag input found in this document");
+                  input.addEventListener("change", (e)=>e.stopPropagation());
+                })();
+              </script>
+            </label>
+            <span style="flex-grow: 1; text-align:right; margin-right: 1rem">
+              <a href="#show-tags" >{{i18n "buttons.showTags"}}</a>
+            </span>
+          </form>
+        </submit-fragment>
+      </div>
+    {{/if}}
   </div>
 
   <div class="grid-toolbar">
 
-    <section aria-label="{{i18n "titles.sceneThumb"}}">
-      {{#if scene.thumb }}
-        <img class="flush" src="{{scene.thumb}}" alt="{{i18n "leads.thumbnailFor" what=scene.name }}"/>
-      {{else}}
-        <img class="flush" style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg" />
-      {{/if}}
+    <section class="section-column">
+      <div class="col flush">
+        {{#if scene.thumb }}
+          <img aria-label="{{i18n "titles.sceneThumb" what=scene.name }}" src="{{scene.thumb}}" alt="{{i18n "leads.thumbnailFor" what=scene.name }}"/>
+        {{else}}
+          <img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg" />
+        {{/if}}
+      </div>
+      <div class="col" style="display:flex;flex-direction: column; gap: 10px; align-items: stretch;">
+        {{#unless (test access.user "==" "read")}}
+          <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
+            <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
+          </a>
+        {{/unless}}
+        <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
+          <ui-icon name="eye"></ui-icon>
+          <span class="tool-text">{{i18n "labels.view"}}</span>
+        </a>
+        <a class="btn btn-main" download="{{scene.name}}.zip"
+          href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
+          <ui-icon name="save"></ui-icon>
+          <span class="tool-text">{{i18n "buttons.download"}}</span>
+        </a>
+
+        {{#if (test scene.access.user "==" "admin") }}
+          <a href="/ui/scenes/{{encodeURIComponent scene.name }}/history" class="btn btn-main">
+            <ui-icon name="hierarchy"></ui-icon>
+            {{i18n "buttons.history"}}
+          </a>
+        {{/if}}
+      </div>
+
     </section>
 
-    <section style="display:flex;flex-direction: column; gap: 10px; align-items: stretch;">
-      {{#unless (test access.user "==" "read")}}
-        <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
-          <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
-        </a>
-      {{/unless}}
-      <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
-        <ui-icon name="eye"></ui-icon>
-        <span class="tool-text">{{i18n "labels.view"}}</span>
-      </a>
-      <a class="btn btn-main" download="{{scene.name}}.zip"
-        href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
-        <ui-icon name="save"></ui-icon>
-        <span class="tool-text">{{i18n "buttons.download"}}</span>
-      </a>
-    </section>
   </div>
   
   <div class="grid-content">
@@ -42,55 +97,73 @@
         <h2>{{meta.title}}</h2>
       {{/if}}
       <div  class="section-column">
-        <div class="col">
+
+        <div class="col" style="display:flex; flex-direction: column;">
           <h3>{{i18n "titles.sceneData"}}</h3>
-          {{#with meta}}
-            {{#if setup }}
-                <p>
-                  {{i18n "labels.localization" count=languages.length }}:
-                  {{#each languages}}
-                    {{#if (test @index "!=" 0)}},{{/if}}
-                    <span {{#if (test . "==" ../setup)}}class="text-success" title={{i18n "labels.setupLocalization"}}{{/if}}>{{.}}</span>
-                  {{/each}}
-                </p>
-                <p>{{intro}}</p>
-                <p>{{i18n "leads.sceneCounts" articles=articles.length annotations=annotations.length }}</p>
-            {{else}}
-              {{i18n "leads.noMetaAvailable"}}
-            {{/if}}
-          {{/with}}
+          <div id="scene-meta-main" style="flex-grow: 1">
+            {{#with meta}}
+              {{#if setup }}
+                  <p>
+                    {{i18n "labels.localization" count=languages.length }}:
+                    {{#each languages}}
+                      {{#if (test @index "!=" 0)}},{{/if}}
+                      <a href="/ui/scenes/{{encodeURIComponent @root.scene.name}}/view?lang={{.}}" {{#if (test . "==" ../setup)}}class="text-success" title="{{i18n "labels.setupLocalization"}}"{{/if}}>{{.}}</a>
+                    {{/each}}
+                  </p>
+                  <p>{{intro}}</p>
+                  <p>{{i18n "leads.sceneCounts" articles=articles.length annotations=annotations.length }}</p>
+              {{else}}
+                {{i18n "leads.noMetaAvailable"}}
+              {{/if}}
+            {{/with}}
+          </div>
         </div>
 
-      <div class="col" id="scene-permissions-container">
-          <h3>{{i18n "titles.permissions"}}</h3>
+        <div class="col" id="scene-permissions-container">
+          <h3>
+            {{i18n "titles.permissions"}}
+          </h3>
           <table  class="list-table compact form-control" >
             <thead>
               <tr>
                 <th>{{i18n "labels.username"}}</th>
-                <th>{{i18n "labels.rights"}}</th>
+                <th>
+                  {{i18n "labels.rights"}}
+                  {{#> popover id="permissions-tooltip" }}{{i18n "tooltips.permissions"}}{{/popover}}
+                </th>
               </tr>
             </thead>
             <tbody>
+              {{#*inline "showName"}}
+                {{#if (test username "==" "default" )}}
+                  {{i18n "labels.defaultUser"}}
+                {{else if (test username "==" "any")}}
+                  {{i18n "labels.anyUser"}}
+                {{else}}
+                  {{username}}
+                {{/if}}
+              {{/inline}}
+
               {{#each permissions}}
                 <tr>
                   {{#if (test @root.user.isDefaultUser "||" (test @root.scene.access.user "!=" "admin") ) }}
-                    <td class="text-main" title="{{i18n "label.username"}}">{{username}}</td>
+                    <td class="text-main" title="{{i18n "label.username"}}">{{> showName}}</td>
                     <td class="text-main" >{{access}}</td>
                   {{else if (test (test username "==" @root.user.username) "&&" (test "!" @root.user.isAdministrator ))}}
-                    <td class="text-primary" title="{{i18n "label.username"}}">{{username}}</td>
+                    <td class="text-primary" title="{{i18n "labels.username"}}">{{> showName}}</td>
                     <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{access}}</td>
                   {{else }}
-                    <td title="{{i18n "label.username"}}">{{username}}</td>
+                    <td title="{{i18n "labels.username"}}">{{> showName}}</td>
                     <td class="form-control">
                       <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH" action="/auth/access/{{encodeURIComponent @root.scene.name}}"  encoding="application/json">
                         <form class="form-item" style="flex-grow: 1;" autocomplete="off">
                           <input type="hidden" name="username" value="{{username}}"/>
                           <select name="access" aria-label="{{i18n "labels.permission"}}">
-                            {{> inputs/option selected=access value="none" text=(i18n "fields.none")}}
-                            {{> inputs/option selected=access value="read" text=(i18n "fields.read")}}
-                            {{> inputs/option selected=access value="write" text=(i18n "fields.write")}}
+                            {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n "fields.none")}}
+                            {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
+                            {{> inputs/option selected=(test "write" "in" access) value="write" text=(i18n "fields.write")}}
                             {{#unless (test username "==" "default")}}
-                              {{> inputs/option selected=access value="admin" text=(i18n "fields.admin")}}
+                              {{> inputs/option selected=(test "admin" "in" access) value="admin" text=(i18n "fields.admin")}}
                             {{/unless}}
                           </select>
                         </form>

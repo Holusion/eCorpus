@@ -1,1 +1,1 @@
-<input type="checkbox" name="access"{{#if (test value "in" selected)}} checked{{/if}} value="{{value}}"/>
+<input type="checkbox" name="{{name}}"{{#if selected}} checked{{/if}} value="{{value}}" {{#if aria-label}}aria-label="{{aria-label}}"{{/if}}/>
