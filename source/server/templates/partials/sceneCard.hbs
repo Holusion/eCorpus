@@ -20,7 +20,7 @@
         <ui-icon name="eye"></ui-icon>
         <span class="tool-text">{{i18n "labels.view"}}</span>
       </a>
-      {{#unless (test access.user "==" "read")}}
+      {{#unless (test @root.access "==" "read")}}
         <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/edit" title="{{i18n "leads.editScene"}}">
           <ui-icon name="edit"></ui-icon>
           <span class="tool-text">{{i18n "labels.edit"}}</span>

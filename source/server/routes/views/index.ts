@@ -212,6 +212,8 @@ routes.get("/admin/stats", (req, res)=>{
   });
 });
 
+//Ensure no unauthorized access
+//Additionally, sets res.locals.access, required for the "scene" template
 routes.use("/scenes/:scene", canRead);
 
 routes.get("/scenes/:scene", wrap(async (req, res)=>{
@@ -236,6 +238,8 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     let res = scene.tags.indexOf(t.name) === -1;
     return res;
   }).map(t=>t.name);
+
+  console.log("Access : ", res.locals.access);
 
   res.render("scene", {
     title: `eCorpus: ${scene.name}`,
@@ -282,7 +286,7 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
   let host = getHost(req);
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
   let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-  
+
   res.render("story", {
     title: `${scene}: Story Editor`,
     layout: "viewer",

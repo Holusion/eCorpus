@@ -9,14 +9,14 @@
         {{#each scene.tags}}
             <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
         {{/each}}
-        {{#if (test scene.access.user "==" "admin")}}
+        {{#if (test access "==" "admin")}}
           <span style="flex-grow: 1; text-align:right; margin-right: 1rem">
             <a href="#edit-tags" >{{i18n "buttons.editTags"}}</a>
           </span>
         {{/if}}
       </div>
     </div>
-    {{#if (test scene.access.user "==" "admin")}}
+    {{#if (test access "==" "admin")}}
       <div id="edit-tags" class="tab">
         <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
           <form autocomplete="off" class="form-control tags-list">
@@ -63,7 +63,7 @@
         {{/if}}
       </div>
       <div class="col" style="display:flex;flex-direction: column; gap: 10px; align-items: stretch;">
-        {{#unless (test access.user "==" "read")}}
+        {{#unless (test access "==" "read")}}
           <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
             <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
           </a>
@@ -78,7 +78,7 @@
           <span class="tool-text">{{i18n "buttons.download"}}</span>
         </a>
 
-        {{#if (test scene.access.user "==" "admin") }}
+        {{#if (test access "==" "admin") }}
           <a href="/ui/scenes/{{encodeURIComponent scene.name }}/history" class="btn btn-main">
             <ui-icon name="hierarchy"></ui-icon>
             {{i18n "buttons.history"}}
@@ -146,7 +146,7 @@
 
               {{#each permissions}}
                 <tr>
-                  {{#if (test @root.user.isDefaultUser "||" (test @root.scene.access.user "!=" "admin") ) }}
+                  {{#if  (test access "!=" "admin") }}
                     <td class="text-main" title="{{i18n "label.username"}}">{{> showName}}</td>
                     <td class="text-main" >{{access}}</td>
                   {{else if (test (test username "==" @root.user.username) "&&" (test "!" @root.user.isAdministrator ))}}
@@ -175,7 +175,7 @@
               {{/each}}
             </tbody>
           </table>
-          {{#if  (test scene.access.user "==" "admin")}}
+          {{#if  (test access "==" "admin")}}
             <submit-fragment style="width:100%;margin-top: 1rem;" method="PATCH" action="/auth/access/{{encodeURIComponent @root.scene.name}}"  encoding="application/json" onsubmit="window.location.reload()">
               <form id="addUserRights" class="form-control" style="padding:0;flex-grow: 1" autocomplete="off" name="">
                 <div class="form-group" style="padding:0;border:none;">
@@ -195,23 +195,25 @@
       </div>
     </section>
 
-    {{#if (test scene.access.user "==" "admin")}}
+    {{#if (test access "==" "admin")}}
       <section>
         <p >
           {{i18n "leads.archiveDelete"}}
         </p>
-        <div style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
-          <button class="btn" icon="edit">
-            <ui-icon name="trash"></ui-icon>
-            {{i18n "buttons.archive"}}
-          </button>
-          {{#if user.isAdministrator }}
-            <button class="btn btn-danger" icon="edit">
+        <submit-fragment method="DELETE" encoding="application/json"  onsubmit="window.location.href='/ui/'">
+          <form style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
+            <button role="submit" formAction="/scenes/{{encodeURIComponent scene.name}}?archive=true" id="btn-archiveScene" class="btn" icon="edit" >
               <ui-icon name="trash"></ui-icon>
-              {{i18n "buttons.delete"}}
+              {{i18n "buttons.archive"}}
             </button>
-          {{/if}}
-        </div>
+            {{#if user.isAdministrator }}
+              <button role="submit" formAction="/scenes/{{encodeURIComponent scene.name}}?archive=false" class="btn btn-danger" icon="edit">
+                <ui-icon name="trash"></ui-icon>
+                {{i18n "buttons.delete"}}
+              </button>
+            {{/if}}
+          </form>
+        </submit-fragment>
       </section>
     {{/if}}
   </div>

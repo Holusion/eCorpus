@@ -8,12 +8,21 @@ import HttpError from "../state/HttpError";
 export default class SubmitFragment extends LitElement{
   /**
    * Route to call. Defaults to the value of `::slotted(form).action`.
+   * Order of precedence upon submission is :
+   * - this.action
+   * - submitter.formAction (auto-set to form.action if an HTMLInputElement)
+   * - form.action (defaults to `window.location.href`)
    */
   @property({attribute: true, type: String})
   action ?:string;
   /**
    * Method to call with. Default to `::slotted(form).method`
-   * Useful if method is not GET or POST
+   * Useful if method is not GET or POST.
+   * Order of precedence upon submission is :
+   * - this.method
+   * - submitter.data-formMethod (if method is not GET|POST|dialog)
+   * - submitter.formMethod
+   * - form.method
    */
   @property({attribute:true, type: String})
   method ?:string;
@@ -21,7 +30,12 @@ export default class SubmitFragment extends LitElement{
   /**
    * Content Encoding to use
    * Supports form-data or application/json 
-   * If not provided, will default to "form.enctype" or "application/json"
+   * Order of precedence upon submission is :
+   * - this.encoding
+   * - submitter.formEnctype
+   * - submitter.form.enctype
+   * - submitter.form.encoding (deprecated per-spec)
+   * - "application/json"
    */
   @property({attribute: true, type: String})
   encoding ?:"application/x-www-form-urlencoded"|"application/json";
@@ -65,20 +79,20 @@ export default class SubmitFragment extends LitElement{
   }
 
 
-  private async _do_submit(form:HTMLFormElement) :Promise<boolean>{
+  private async _do_submit(form:HTMLFormElement, submitter?:HTMLElement|HTMLButtonElement|HTMLInputElement) :Promise<boolean>{
     this.#c?.abort();
     let c = this.#c = new AbortController();
     this.active = true;
     if(this.status) this.status = undefined;
-
     try{
 
-      const action = this.action ?? form.action;
-      const method = this.method ?? form.method;
+      const action = this.action || submitter?.["formAction"] || form.action;
+      let method = this.method ?? form.method;
+      if(submitter?.dataset.formMethod) method = submitter.dataset.formMethod;
+      else if(submitter && "formMethod" in submitter && submitter.formMethod) method = submitter.formMethod;
       if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
-      const encoding = this.encoding ?? form.enctype ?? form.encoding ?? "application/json";
+      const encoding = this.encoding || submitter?.["formEnctype"] || form.enctype || form.encoding || "application/json";
       const body = this.encode(form, encoding);
-
       let res = await fetch(action, {
         method,
         body,
@@ -113,7 +127,7 @@ export default class SubmitFragment extends LitElement{
     }
     e.preventDefault();
     e.stopPropagation();
-    this._do_submit(form).then((success)=>{
+    this._do_submit(form, e.submitter).then((success)=>{
       if(success) this.dispatchEvent(new CustomEvent("submit", {}));
     });
     return false;
@@ -123,12 +137,10 @@ export default class SubmitFragment extends LitElement{
     const target = e.target as HTMLSelectElement|HTMLInputElement;
     if(!this.submit) return false;
     if(this.submit.indexOf(target.name) === -1) return false;
-    if(!target.form) return console.warn("Element has no associated form : ", target);
+    if(!target.form) return console.warn("Changed child has no associated form : ", target);
     e.preventDefault();
     e.stopPropagation();
-    this._do_submit(target.form).then((success)=>{
-      if(success) this.dispatchEvent(new CustomEvent("submit", {}));
-    });
+    target.form.requestSubmit();
   }
 
   protected update(changedProperties: PropertyValues): void {

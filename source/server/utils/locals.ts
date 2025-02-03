@@ -111,7 +111,10 @@ function _perms(check:number,req :Request, res :Response, next :NextFunction){
 
   res.set("Vary", "Cookie, Authorization");
 
-  if(isAdministrator) return next();
+  if(isAdministrator){
+    res.locals.access = "admin" as AccessType;
+    return next();
+  }
   
   let userManager = getUserManager(req);
   (res.locals.access? 

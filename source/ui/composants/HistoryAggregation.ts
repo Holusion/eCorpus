@@ -32,6 +32,11 @@ interface EntryDiff{
 }
 
 interface HistorySummary{
+  /**
+   * Unique ID of this summary. Ideally stable to optimize renders.
+   * Used to map accessibility labels
+   */
+  id:string;
   name :string|TemplateResult|TemplateResult[];
   authoredBy :string|TemplateResult|TemplateResult[];
   restorePoint :number;
@@ -78,18 +83,18 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   @property({attribute: true, type: Object })
   entries :AggregatedEntry;
 
-  @property({attribute: "aria-expanded", reflect: true})
-  ariaExpanded: "true"|"false" = "false";
+  @property({attribute: "aria-selected", reflect: true})
+  ariaSelected: "true"|"false" = "false";
 
   @state()
   diff ?:Partial<EntryDiff>;
 
   protected toggleSelect = (e?:MouseEvent)=>{
     e?.stopPropagation();
-    if(this.ariaExpanded === "true"){
-      this.ariaExpanded = "false";
+    if(this.ariaSelected === "true"){
+      this.ariaSelected = "false";
     }else{
-      this.ariaExpanded = "true";
+      this.ariaSelected = "true";
     }
   }
 
@@ -121,19 +126,19 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   }
 
   protected update(changedProperties: PropertyValues): void {
-    if(changedProperties.has("ariaExpanded") || changedProperties.has("entries")){
+    if(changedProperties.has("ariaSelected") || changedProperties.has("entries")){
       if(this.diff){
         changedProperties.set("diff", this.diff);
         this.diff = undefined;
       }
-      if(this.ariaExpanded === "true" && this.entries.length === 1){
+      if(this.ariaSelected === "true" && this.entries.length === 1){
         this.fetchDiff();
       }
     }
 
-    if(changedProperties.has("ariaExpanded")){
+    if(changedProperties.has("ariaSelected")){
 
-      if(this.ariaExpanded === "true"){
+      if(this.ariaSelected === "true"){
         this.classList.add("active");
       }else{
         this.classList.remove("active");
@@ -176,8 +181,8 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   }
 
   
-  protected renderSummary({name, restorePoint, authoredBy, from, to}:HistorySummary){
-    const selected = this.ariaExpanded === "true";
+  protected renderSummary({id, name, restorePoint, authoredBy, from, to}:HistorySummary){
+    const selected = this.ariaSelected === "true";
     
     const expand = (this.entries.length === 1)?html`
       <ui-button @click=${this.toggleSelect} class="btn btn-small btn-transparent btn-inline" text=${selected?"⌃":"⌄"}></ui-button>
@@ -225,7 +230,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   }
 
   protected renderEntry(entry:HistoryEntry){
-    const selected = this.ariaExpanded === "true";
+    const selected = this.ariaSelected === "true";
     let diff = {color:"warning", char: "~", text: this.t("ui.modified")};
     if(entry.generation == 1){
       diff = {color:"success", char: "+", text: this.t("ui.created")};
@@ -236,6 +241,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
       <span style="flex-grow:1">${entry.name+((entry.mime =="text/directory")?"/":"")}</span>
     `
     let summary = this.renderSummary({
+      id: entry.id.toString(10),
       name,
       restorePoint: entry.id,
       authoredBy: html`<span class="text-${diff.color}">${diff.text}</span> <i>${this.t("ui.by")}</i> <b>${entry.author}</b>`,
@@ -252,10 +258,10 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     if( entries.length == 1){
       return this.renderEntry(entries[0]);
     }
-    const selected = this.ariaExpanded === "true";
+    const selected = this.ariaSelected === "true";
 
     if(selected){
-      return bucketize(entries).map((bucket, index)=>html`<history-entry-aggregate id=${this.id+"-"+index.toString(10)}  aria-disabled=${index ===0? this.getAttribute("aria-disabled"): "false"} .scene=${this.scene} .entries=${bucket}></history-entry-aggregate>`);
+      return bucketize(entries).map((bucket, index)=>html`<history-entry-aggregate id=${this.id+"-"+index.toString(10)} role="treeitem" aria-disabled=${index ===0? this.getAttribute("aria-disabled"): "false"} .scene=${this.scene} .entries=${bucket}></history-entry-aggregate>`);
     }
 
 
@@ -269,6 +275,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
       }
       return m;
     },new Map<string, AggregatedEntry>());
+    let id = `${entries[0].id}-${entries[entries.length -1].id}`;
     let name = (3 < names.size)? 
       html`<span class="expandable">${lastFile.name} </span><span class="show-more" title=${this.t("info.showDetails")}  @click=${this.toggleSelect}>${this.t("info.etAl", {count:entries.length-1})}</span>`
       : html`${[...names.entries()].map(([name, matches], index, a)=>{
@@ -285,7 +292,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
       ${authors.slice(-2).join(", ")}
       <span class="show-more" title=${this.t("info.showDetails")} @click=${this.toggleSelect}>${this.t("info.etAl", {count:entries.length-2})}</span>` :
       html` <i>${this.t("ui.by")}</i> <b>${authors.join(", ")}</b>`;  
-    return  this.renderSummary({name, authoredBy, showDetails: this.toggleSelect, restorePoint: lastFile.id, from: entries.slice(-1)[0].ctime, to: lastFile.ctime})
+    return  this.renderSummary({id, name, authoredBy, showDetails: this.toggleSelect, restorePoint: lastFile.id, from: entries.slice(-1)[0].ctime, to: lastFile.ctime})
   }
 
   onRestore(id:number){
@@ -309,8 +316,8 @@ export default class HistoryAggregation extends i18n(LitElement){
 
     const handleCollapse = (ev :MouseEvent)=>{
       ev.stopPropagation();
-      for (let el of this.shadowRoot.querySelectorAll(`#day-${index.toString(10)} [aria-expanded="true"]`)){
-        el.ariaExpanded = "false";
+      for (let el of this.shadowRoot.querySelectorAll(`#day-${index.toString(10)} [aria-selected="true"]`)){
+        el.ariaSelected = "false";
       }
     }
     return html`<div class="history-day" id=${"day-"+index.toString(10)}>
@@ -318,7 +325,7 @@ export default class HistoryAggregation extends i18n(LitElement){
         • ${this.t("info.changeDay", {date: day[0].ctime.toLocaleDateString(this.language)})}
       </h4>
       <div class="history-day-content">
-        <history-entry-aggregate aria-expanded="${1 <day.length?"true":"false"}" .scene=${this.scene} .entries=${day} id=${"day-group-"+index.toString(10)} aria-disabled=${index === 0? "true":"false"}></history-entry-aggregate>
+        <history-entry-aggregate role="treeitem" aria-selected="${1 <day.length?"true":"false"}" .scene=${this.scene} .entries=${day} id=${"day-group-"+index.toString(10)} aria-disabled=${index === 0? "true":"false"}></history-entry-aggregate>
       </div>
       <span class="caret" @click=${handleCollapse}></span>
     </div>`;
@@ -340,7 +347,7 @@ export default class HistoryAggregation extends i18n(LitElement){
     }
 
     return html`
-        <div class="history-list">
+        <div role="tree" class="history-list">
           ${days.map(this.renderDay)}
         </div>
         `
