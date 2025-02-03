@@ -1,5 +1,6 @@
 
 .scene-card {
+  position: relative;
   --card-height: 70px;
   display: flex;
   width: 100%;
@@ -34,6 +35,7 @@
   .scene-card-inner{
     padding: .5rem;
     width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -49,7 +51,7 @@
     justify-content: space-between;
     align-items: baseline;
     flex-direction: column;
-    align-self: flex-start;
+    align-self: stretch;
   }
 
   .tools{
@@ -74,8 +76,15 @@
     }
   }
 
+  .card-header{
+    display: flex;
+    align-self: stretch;
+    width: 100%;
+  }
 
   .card-title{
+    flex: 1 1 auto;
+    min-width: 0;
     margin:0;
     white-space: nowrap;
     text-overflow: ellipsis;

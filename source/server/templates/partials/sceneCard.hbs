@@ -8,7 +8,10 @@
   </a>
   <div class="scene-card-inner">
     <div class="infos">
-      <a href="/ui/scenes/{{encodeURIComponent name}}"><h4 class="card-title">{{name}}</h4></a>
+      <a href="/ui/scenes/{{encodeURIComponent name}}" class="card-header">
+        <h4 class="card-title">{{name}}</h4>
+        <ui-icon name="info"></ui-icon>
+      </a>
       <span class="card-time">{{#if mtime}}{{dateString mtime}}{{/if}}</span>
     </div>
     <div class="tools">

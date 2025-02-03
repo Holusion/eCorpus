@@ -134,10 +134,13 @@ a{
   &.btn-popover{
     background-color: transparent !important;
     display: inline-block;
+    line-height: 12px;
+    vertical-align: top;
     height: 1lh;
     position: relative;
     color: var(--color-highlight2);
     min-width: auto;
+    cursor: help;
     padding: 0;
     > .ui-icon{
       display: inline-block;
@@ -149,6 +152,7 @@ a{
     }
     //The popover element
     >[popover]:popover-open{
+      line-height: initial;
       inset: unset;
       margin: 0 1rem;
       padding: .2rem .4rem;
