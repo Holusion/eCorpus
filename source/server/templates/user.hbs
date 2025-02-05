@@ -1,57 +1,96 @@
-<div class="user-form" style="max-width:500px">
-  <h2>{{i18n "titles.userSettings"}}</h2>
-  <submit-fragment class="form-control section" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
-    <form id="user-profile" autocomplete="off" aria-labelledby="user-profile-header">
-      <div class="form-group">
-        <h3 id="user-profile-header">{{i18n "titles.userProfile"}}</h3>
-      </div>
-      <input type="hidden" name="uid" value="{{user.uid}}"/>
-      <div class="form-group">
-        <div class="form-item">
-          <label for="username">{{i18n "labels.username"}}</label>
-          <input type="text" autocomplete="username" minlength="3" name="username" id="username" placeholder="{{i18n "labels.username"}}"
-            value="{{ user.username }}">
-        </div>
-      </div>
-      <div class="form-group">
-        <div class="form-item">
-          <label for="email">{{i18n "labels.email"}}</label>
-          <input type="email" autocomplete="email" name="email" id="email" placeholder="{{i18n "labels.email"}}"
-            value="{{ user.email }}">
-        </div>
-      </div>
-      <div class="form-group">
-        <input class="btn btn-main" style="padding:8px; width:100%" type="submit" value="{{i18n "labels.save"}}">
-      </div>
-    </form>
-  </submit-fragment>
-  
 
-  <submit-fragment class="form-control section" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
-    <form id="user-password" aria-labelledby="user-password-header">
-      <div class="form-group">
-        <h3 id="user-password-header">{{i18n "titles.changePassword"}}</h3>
-      </div>
-      <input type="hidden" name="username" id="username" value="{{user.username}}">
-      <div class="form-group">
-        <div class="form-item">
-          <label for="password">{{i18n "labels.newPassword"}}</label>
-          <input type="password" autocomplete="new-password" minlength="8" name="password" id="password"
-            placeholder="{{i18n "labels.newPassword"}}" required>
+<h1>{{i18n "titles.userSettings"}}</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+  <div class="user-form" style="max-width:500px; flex-grow: 1;">
+    <submit-fragment class="form-control section" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
+      <form id="user-profile" autocomplete="off" aria-labelledby="user-profile-header">
+        <div class="form-group">
+          <h3 id="user-profile-header">{{i18n "titles.userProfile"}}</h3>
+        </div>
+        <input type="hidden" name="uid" value="{{user.uid}}"/>
+        <div class="form-group">
+          <div class="form-item">
+            <label for="username">{{i18n "labels.username"}}</label>
+            <input type="text" autocomplete="username" minlength="3" name="username" id="username" placeholder="{{i18n "labels.username"}}"
+              value="{{ user.username }}">
+          </div>
         </div>
         <div class="form-group">
-          <input class="btn btn-main" style="padding:8px; width:100%" type="submit" name="password-submit"
-            value="{{i18n "labels.save"}}">
+          <div class="form-item">
+            <label for="email">{{i18n "labels.email"}}</label>
+            <input type="email" autocomplete="email" name="email" id="email" placeholder="{{i18n "labels.email"}}"
+              value="{{ user.email }}">
+          </div>
         </div>
-      </div>
-    </form>
-  </submit-fragment>
+        <div class="form-group">
+          <input class="btn btn-main" style="padding:8px; width:100%" type="submit" value="{{i18n "labels.save"}}">
+        </div>
+      </form>
+    </submit-fragment>
+    
 
-  <div class="section" style="padding-top:15px; max-width:500px">
-    <h3>{{i18n "buttons.logout"}}</h3>
-    <form id="user-logout" method="POST" action="/auth/logout">
-      <input type="hidden" name="redirect" value="/ui/"/>
-      <button role="submit" style="width:100%" class="btn btn-main">{{i18n "buttons.logout"}}</button>
-    </form>
+    <submit-fragment class="form-control section" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
+      <form id="user-password" aria-labelledby="user-password-header">
+        <div class="form-group">
+          <h3 id="user-password-header">{{i18n "titles.changePassword"}}</h3>
+        </div>
+        <input type="hidden" name="username" id="username" value="{{user.username}}">
+        <div class="form-group">
+          <div class="form-item">
+            <label for="password">{{i18n "labels.newPassword"}}</label>
+            <input type="password" autocomplete="new-password" minlength="8" name="password" id="password"
+              placeholder="{{i18n "labels.newPassword"}}" required>
+          </div>
+          <div class="form-group">
+            <input class="btn btn-main" style="padding:8px; width:100%" type="submit" name="password-submit"
+              value="{{i18n "labels.save"}}">
+          </div>
+        </div>
+      </form>
+    </submit-fragment>
+
+    <div class="section" style="padding-top:15px; max-width:500px">
+      <h3>{{i18n "buttons.logout"}}</h3>
+      <form id="user-logout" method="POST" action="/auth/logout">
+        <input type="hidden" name="redirect" value="/ui/"/>
+        <button role="submit" style="width:100%" class="btn btn-main">{{i18n "buttons.logout"}}</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="archived-scenes section" style="flex-grow: 1;">
+  <h2>{{i18n "titles.archives"}}</h2>
+    <table class="list-table">
+      <thead><tr>
+        <th class="sm-hidden">{{i18n "fields.mtime"}}</th>
+        <th>{{i18n "fields.name"}}</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+      {{#unless archives.length}}
+        <tr><td colspan=4 style="text-align: center;">{{i18n "leads.noArchives"}}</td></tr>
+      {{/unless}}
+      {{#each archives}}
+        <tr>
+          <td class="sm-hidden">{{dateString mtime}}</td>
+          <td ><a href="/ui/scenes/{{encodeURIComponent name }}">{{name}}</a></td>
+          <td>
+            <submit-fragment  action="/scenes/{{encodeURIComponent name }}" encoding="application/json" onsubmit="this.closest('tr')?.remove();">
+              <form class="form-control" style="display:flex; justify-content:end;gap:.6rem;">
+                <input type="hidden" name="archived", value="false"/>
+                <button data-formmethod="PATCH" role="submit" class="btn btn-small btn-transparent btn-inline text-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
+                  <ui-icon name="plus"></ui-icon>
+                </button>
+                <button data-formmethod="DELETE" role="submit" class="btn btn-small btn-transparent btn-inline text-error" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}" >
+                  <ui-icon name="trash"></ui-icon>
+                </button>
+              </form>
+              <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
+            </submit-fragment>
+          </td>
+        </tr>
+      {{/each}}
+      </tbody>
+    </table>
   </div>
 </div>

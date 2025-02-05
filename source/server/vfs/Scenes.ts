@@ -74,17 +74,36 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
   /**
-   * set a scene access to "none" for everyone, effectively making it hidden
+   * Archive a scene. Simply flips the "archived" boolean
    * @see UserManager.grant for a more granular setup
    */
   async archiveScene(scene :number|string){
     let r = await this.db.run(`
       UPDATE scenes 
-      SET access = json_object('0', 'none'), scene_name = scene_name || '#' || scene_id
+      SET 
+        archived = unixepoch(),
+        scene_name = scene_name || '#' || CAST(scene_id AS TEXT)
       WHERE 
-        ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene 
+        ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene
         ${typeof scene ==="number"? `AND INSTR(scene_name, '#' || scene_id) = 0`:""}
+        AND archived = 0
     `, {$scene: scene});
+    if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
+  }
+
+
+  async unarchiveScene(scene:number|string):Promise<void>
+  async unarchiveScene(scene:number|string, name:string):Promise<void>
+  async unarchiveScene(scene:number|string, name?:string):Promise<void>{
+    let r = await this.db.run(`
+      UPDATE scenes 
+      SET 
+        archived = 0,
+        scene_name = ${typeof name !== "undefined"?"$name":`SUBSTR( scene_name, 0, LENGTH(scene_name) -LENGTH(CAST(scene_id AS TEXT)) )`}
+      WHERE 
+        ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene
+        AND archived IS NOT 0
+    `, {$scene: scene, $name: name});
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
 
@@ -101,15 +120,19 @@ export default abstract class ScenesVfs extends BaseVfs{
    * Reusable fragment to check if a user has the required access level for an operation on a scene.
    * Most permission checks are done outside of this module in route middlewares,
    * but we sometimes need to check for permissions to filter list results
+   * 
+   * This does NOT check for administrator access
+   * 
    * @param user_id User_id, to detect "default" special case
    * @param accessMin Minimum expected acccess level, defaults to read
    * @returns 
    */
   static _fragUserCanAccessScene(user_id :number, accessMin:AccessType = "read"){
-    return `COALESCE(
-        json_extract(scenes.access, '$.' || $user_id),
-        ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
-        json_extract(scenes.access, '$.0')
+    return `
+      COALESCE(
+          json_extract(scenes.access, '$.' || $user_id),
+          ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
+          json_extract(scenes.access, '$.0')
       ) IN (${ AccessTypes.slice(AccessTypes.indexOf(accessMin)).map(s=>`'${s}'`).join(", ") })
     `;
   }
@@ -121,7 +144,7 @@ export default abstract class ScenesVfs extends BaseVfs{
    * Performs a type and limit check on a SceneQuery object and throws if anything is unacceptable
    * @param q 
    */
-  static _parseSceneQuery(q :SceneQuery|any):SceneQuery{
+  static _validateSceneQuery(q :Readonly<SceneQuery|any>):SceneQuery{
     //Check various parameters compliance
     if(Array.isArray(q.access)){
       let badIndex = q.access.findIndex((a:any)=>AccessTypes.indexOf(a) === -1);
@@ -147,6 +170,9 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(typeof q.orderBy !== "undefined" && (typeof q.orderBy !== "string" || ["ctime", "mtime", "name"].indexOf(q.orderBy.toLowerCase()) === -1)){
       throw new BadRequestError(`Invalid orderBy: ${q.orderBy}`);
     }
+    if(typeof q.archived !== "undefined" && typeof q.archived != "boolean"){
+      throw new BadRequestError(`Invalid archived query: ${typeof q.archived}`);
+    }
     return q;
   }
   
@@ -159,12 +185,13 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   async getScenes(user_id :number|undefined, q?:SceneQuery):Promise<Scene[]>;
   /**
-   * Get only archived scenes.
+   * Get a filtered list of scenes but bypass user_id restrictions (when running as an administrator)
    */
-  async getScenes(user_id:null, q :{access:["none"]}) :Promise<Scene[]>;
+  async getScenes(user_id:null, q :SceneQuery) :Promise<Scene[]>;
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
-    const {access, author, match, limit =10, offset = 0, orderBy="name", orderDirection="asc"}  = ScenesVfs._parseSceneQuery(q);
-    let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length;
+    
+    const {access, author, match, limit = 10, offset = 0, orderBy = "name", orderDirection = "asc", archived}  = ScenesVfs._validateSceneQuery(q);
+    let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length  || typeof archived === "boolean";
 
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
 
@@ -221,6 +248,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       thumb: string|null,
       tags: string,
       access: string,
+      archived: number,
     }[]>(`
       WITH 
         docs AS (
@@ -237,6 +265,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         scenes.scene_id AS id,
         scenes.scene_name AS name,
         scenes.ctime AS ctime,
+        scenes.archived AS archived,
         IFNULL(docs.mtime, scenes.ctime) as mtime,
         scenes.fk_author_id AS author_id,
         IFNULL((
@@ -265,6 +294,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       ${typeof author === "number"? `AND author_id = $author`:"" }
       ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
       ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
+      ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} 0`:""}
       ${likeness}
 
       GROUP BY scene_id
@@ -276,13 +306,14 @@ export default abstract class ScenesVfs extends BaseVfs{
       $limit: limit,
       $offset: offset,
       $author: author,
-    })).map(({ctime, mtime, id, access, ...m})=>({
+    })).map(({ctime, mtime, id, access, archived, ...m})=>({
       ...m,
       id,
       tags: m.tags ? JSON.parse(m.tags): [],
       access: JSON.parse(access),
       ctime: BaseVfs.toDate(ctime),
       mtime: BaseVfs.toDate(mtime),
+      archived: !!archived,
     }));
   }
 
@@ -299,11 +330,13 @@ export default abstract class ScenesVfs extends BaseVfs{
       author_id: number,
       author: string,
       access: string,
+      archived: number,
     }>(`
       SELECT 
         scene_name as name,
         scene_id as id,
         ctime,
+        archived,
         fk_author_id AS author_id,
         IFNULL((
           SELECT username FROM users WHERE user_id = fk_author_id
@@ -339,6 +372,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       access: JSON.parse(scene.access),
       ctime: BaseVfs.toDate(scene.ctime),
       mtime: BaseVfs.toDate(r?.mtime ?? scene.ctime),
+      archived: !!scene.archived,
       thumb: r?.thumb ?? null,
       tags: tags.map(t=>t.name),
     }
@@ -354,7 +388,7 @@ export default abstract class ScenesVfs extends BaseVfs{
    * @see listFiles for a list of current files.
    */
   async getSceneHistory(id :number, query:Pick<SceneQuery,"limit"|"offset"|"orderDirection"> ={}) :Promise<Array<HistoryEntry>>{
-    const {limit = 10, offset = 0, orderDirection = "desc"} = ScenesVfs._parseSceneQuery(query);
+    const {limit = 10, offset = 0, orderDirection = "desc"} = ScenesVfs._validateSceneQuery(query);
 
     const dir = orderDirection.toUpperCase() as Uppercase<typeof orderDirection>;
     let entries = await this.db.all<Omit<Stored<ItemEntry>,"mtime">[]>(`

@@ -3,54 +3,57 @@
 
 <div class="main-grid">
 
-  <div class="grid-header tabs">
-    <div id="show-tags" class="tab">
-      <div class="tags-list">
-        {{#each scene.tags}}
-            <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
-        {{/each}}
-        {{#if (test access "==" "admin")}}
-          <span style="flex-grow: 1; text-align:right; margin-right: 1rem">
-            <a href="#edit-tags" >{{i18n "buttons.editTags"}}</a>
-          </span>
-        {{/if}}
-      </div>
-    </div>
-    {{#if (test access "==" "admin")}}
-      <div id="edit-tags" class="tab">
-        <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
-          <form autocomplete="off" class="form-control tags-list">
-            {{#each scene.tags}}
-              <a href="/ui/tags/{{.}}" class="btn btn-main btn-small" style="gap: 1rem;">
-                {{> inputs/checkbox name="tags" selected=true value=. aria-label=. }}
-                <span>{{.}}</label>
-              </a>
-            {{/each}}
-            <label class="form-item add-tag">
-              <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange=""/>
-              <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
-              <datalist id="tagSuggestions">
-                {{#each tagSuggestions }}
-                  <option value="{{.}}"/>
-                {{/each}}
-              </datalist>
-              {{!This input _has_ to have the same name as the others but we want to prevent its change event from bubbling}}
-              <script type="module">
-                (()=>{
-                  const input = document.querySelector("#new-tag");
-                  if(!input) return console.warn("no new tag input found in this document");
-                  input.addEventListener("change", (e)=>e.stopPropagation());
-                })();
-              </script>
-            </label>
+  {{#unless scene.archived }}
+    <div class="grid-header tabs">
+      <div id="show-tags" class="tab">
+        <div class="tags-list">
+          {{#each scene.tags}}
+              <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
+          {{/each}}
+          {{#if (test access "==" "admin")}}
             <span style="flex-grow: 1; text-align:right; margin-right: 1rem">
-              <a href="#show-tags" >{{i18n "buttons.showTags"}}</a>
+              <a href="#edit-tags" >{{i18n "buttons.editTags"}}</a>
             </span>
-          </form>
-        </submit-fragment>
+          {{/if}}
+        </div>
       </div>
-    {{/if}}
-  </div>
+
+      {{#if (test access "==" "admin")}}
+        <div id="edit-tags" class="tab">
+          <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
+            <form autocomplete="off" class="form-control tags-list">
+              {{#each scene.tags}}
+                <a href="/ui/tags/{{.}}" class="btn btn-main btn-small" style="gap: 1rem;">
+                  {{> inputs/checkbox name="tags" selected=true value=. aria-label=. }}
+                  <span>{{.}}</label>
+                </a>
+              {{/each}}
+              <label class="form-item add-tag">
+                <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange=""/>
+                <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+                <datalist id="tagSuggestions">
+                  {{#each tagSuggestions }}
+                    <option value="{{.}}"/>
+                  {{/each}}
+                </datalist>
+                {{!This input _has_ to have the same name as the others but we want to prevent its change event from bubbling}}
+                <script type="module">
+                  (()=>{
+                    const input = document.querySelector("#new-tag");
+                    if(!input) return console.warn("no new tag input found in this document");
+                    input.addEventListener("change", (e)=>e.stopPropagation());
+                  })();
+                </script>
+              </label>
+              <span style="flex-grow: 1; text-align:right; margin-right: 1rem">
+                <a href="#show-tags" >{{i18n "buttons.showTags"}}</a>
+              </span>
+            </form>
+          </submit-fragment>
+        </div>
+      {{/if}}
+    </div>
+      {{/unless}}
 
   <div class="grid-toolbar">
 
@@ -63,27 +66,29 @@
         {{/if}}
       </div>
       <div class="col" style="display:flex;flex-direction: column; gap: 10px; align-items: stretch;">
-        {{#unless (test access "==" "read")}}
-          <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
-            <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
+        {{#unless scene.archived }}
+          {{#unless (test access "==" "read")}}
+            <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
+              <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
+            </a>
+          {{/unless}}
+          <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
+            <ui-icon name="eye"></ui-icon>
+            <span class="tool-text">{{i18n "labels.view"}}</span>
           </a>
-        {{/unless}}
-        <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
-          <ui-icon name="eye"></ui-icon>
-          <span class="tool-text">{{i18n "labels.view"}}</span>
-        </a>
-        <a class="btn btn-main" download="{{scene.name}}.zip"
-          href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
-          <ui-icon name="save"></ui-icon>
-          <span class="tool-text">{{i18n "buttons.download"}}</span>
-        </a>
+          <a class="btn btn-main" download="{{scene.name}}.zip"
+            href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
+            <ui-icon name="save"></ui-icon>
+            <span class="tool-text">{{i18n "buttons.download"}}</span>
+          </a>
 
-        {{#if (test access "==" "admin") }}
-          <a href="/ui/scenes/{{encodeURIComponent scene.name }}/history" class="btn btn-main">
-            <ui-icon name="hierarchy"></ui-icon>
-            {{i18n "buttons.history"}}
-          </a>
-        {{/if}}
+          {{#if (test access "==" "admin") }}
+            <a href="/ui/scenes/{{encodeURIComponent scene.name }}/history" class="btn btn-main">
+              <ui-icon name="hierarchy"></ui-icon>
+              {{i18n "buttons.history"}}
+            </a>
+          {{/if}}
+        {{/unless}}
       </div>
 
     </section>
@@ -147,7 +152,7 @@
               {{#each permissions}}
                 <tr>
                   {{#if  (test access "!=" "admin") }}
-                    <td class="text-main" title="{{i18n "label.username"}}">{{> showName}}</td>
+                    <td class="text-main" title="{{i18n "labels.username"}}">{{> showName}}</td>
                     <td class="text-main" >{{access}}</td>
                   {{else if (test (test username "==" @root.user.username) "&&" (test "!" @root.user.isAdministrator ))}}
                     <td class="text-primary" title="{{i18n "labels.username"}}">{{> showName}}</td>
@@ -194,26 +199,51 @@
         </div>
       </div>
     </section>
-
     {{#if (test access "==" "admin")}}
       <section>
-        <p >
-          {{i18n "leads.archiveDelete"}}
-        </p>
-        <submit-fragment method="DELETE" encoding="application/json"  onsubmit="window.location.href='/ui/'">
-          <form style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
-            <button role="submit" formAction="/scenes/{{encodeURIComponent scene.name}}?archive=true" id="btn-archiveScene" class="btn" icon="edit" >
-              <ui-icon name="trash"></ui-icon>
-              {{i18n "buttons.archive"}}
-            </button>
-            {{#if user.isAdministrator }}
-              <button role="submit" formAction="/scenes/{{encodeURIComponent scene.name}}?archive=false" class="btn btn-danger" icon="edit">
-                <ui-icon name="trash"></ui-icon>
-                {{i18n "buttons.delete"}}
+
+        {{#if scene.archived }}
+          <p >
+            {{i18n "leads.archiveRestore"}}
+          </p>
+          <submit-fragment id="submit-restore" method="PATCH" encoding="application/json"  action="/scenes/{{encodeURIComponent scene.name}}">
+            <form class="form-control" style="padding: 0 0 10px 0;display:flex;justify-content:end;align-items: stetch;">
+              <input type="hidden" name="archived" value="false"/>
+              <input id="scene-name-input" type="text" name="name" style="flex-grow: 1;background: var(--color-element);" value=""/>
+              <button role="submit" id="btn-unarchiveScene" class="btn">
+                <ui-icon name="restore"></ui-icon>
+                {{i18n "labels.restore"}}
               </button>
-            {{/if}}
-          </form>
-        </submit-fragment>
+            </form>
+          </submit-fragment>
+          <script type="module">
+            (()=>{
+              const nameInput = document.querySelector("#scene-name-input");
+              if(!nameInput) return console.warn("Can't find name input element");
+              nameInput.value = "{{scene.name}}".replace("#{{scene.id}}", "");
+
+              const formSubmit = document.querySelector("#submit-restore");
+              if(!formSubmit) return console.warn("Can't find form-submission element");
+              formSubmit.addEventListener("submit", ()=>{
+                window.location.href = `/ui/scenes/${encodeURIComponent(nameInput.value)}`;
+              });
+            })();
+            onsubmit="window.location.href= new URL('/ui/scenes/{{encodeURIComponent scene.name}}').pathname"
+
+          </script>
+        {{else}}
+          <p >
+            {{i18n "leads.archiveDelete"}}
+          </p>
+          <submit-fragment method="DELETE" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent (join scene.name "#" scene.id)}}'">
+            <form style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
+              <button role="submit" formAction="/scenes/{{encodeURIComponent scene.name}}?archive=true" id="btn-archiveScene" class="btn">
+                <ui-icon name="trash"></ui-icon>
+                {{i18n "buttons.archive"}}
+              </button>
+            </form>
+          </submit-fragment>
+        {{/if}}
       </section>
     {{/if}}
   </div>

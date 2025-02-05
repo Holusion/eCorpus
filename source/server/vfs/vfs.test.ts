@@ -31,7 +31,8 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     author_id: 0,
     thumb: null,
     tags: [],
-    access:  { any: 'read', default: 'read' }
+    access:  { any: 'read', default: 'read' },
+    archived: false,
   };
 }
 
@@ -127,65 +128,65 @@ describe("Vfs", function(){
 
   describe("validate search params", function(){
     it("accepts no parameters", function(){
-      expect(()=>ScenesVfs._parseSceneQuery({})).not.to.throw();
+      expect(()=>ScenesVfs._validateSceneQuery({})).not.to.throw();
     });
 
     it("requires limit to be a positive integer", function(){
       [null, "foo", 0.5, "0", 0, -1, 101].forEach((limit)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({limit} as any), `{limit: ${limit}}`).to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({limit} as any), `{limit: ${limit}}`).to.throw();
       });
 
       [1, 10, 100].forEach((limit)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({limit} as any)).not.to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({limit} as any)).not.to.throw();
       });
     });
 
     it("requires offset to be a positive integer", function(){
       [null, "foo", 0.5, "0", -1].forEach((offset)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({offset} as any), `{offset: ${offset}}`).to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({offset} as any), `{offset: ${offset}}`).to.throw();
       });
 
       [0, 1, 10, 100, 1000].forEach((offset)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({offset} as any)).not.to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({offset} as any)).not.to.throw();
       });
     });
 
     it("requires orderDirection to match", function(){
       ["AS", "DE", null, 0, -1, 1, "1"].forEach((orderDirection)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({orderDirection} as any), `{orderDirection: ${orderDirection}}`).to.throw("Invalid orderDirection");
+        expect(()=>ScenesVfs._validateSceneQuery({orderDirection} as any), `{orderDirection: ${orderDirection}}`).to.throw("Invalid orderDirection");
       });
       ["ASC", "DESC", "asc", "desc"].forEach((orderDirection)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({orderDirection} as any)).not.to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({orderDirection} as any)).not.to.throw();
       })
     });
 
     it("requires orderBy to match", function(){
       ["foo", 1, -1, null].forEach((orderBy)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({orderBy} as any), `{orderBy: ${orderBy}}`).to.throw(`Invalid orderBy`);
+        expect(()=>ScenesVfs._validateSceneQuery({orderBy} as any), `{orderBy: ${orderBy}}`).to.throw(`Invalid orderBy`);
       });
 
       ["ctime", "mtime", "name"].forEach((orderBy)=>{
-        expect(()=>ScenesVfs._parseSceneQuery({orderBy} as any), `{orderBy: "${orderBy}"}`).not.to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({orderBy} as any), `{orderBy: "${orderBy}"}`).not.to.throw();
       });
     });
 
     it("sanitizes access values", function(){
-      expect(()=>ScenesVfs._parseSceneQuery({access:["none", "read"] as any})).not.to.throw();
+      expect(()=>ScenesVfs._validateSceneQuery({access:["none", "read"] as any})).not.to.throw();
       [
         ["foo"],
         [undefined],
         ["read", "foo"]
       ].forEach(a=>{
-        expect(()=>ScenesVfs._parseSceneQuery({access: a as any}),`expected ${a ?? typeof a} to not be an accepted access value`).to.throw(`Bad access type requested`);
+        expect(()=>ScenesVfs._validateSceneQuery({access: a as any}),`expected ${a ?? typeof a} to not be an accepted access value`).to.throw(`Bad access type requested`);
       });
     });
 
     it("sanitizes author ids", function(){
       [ 0, 1, 100 ].forEach(a=>{
-        expect(()=>ScenesVfs._parseSceneQuery({author: a})).not.to.throw();
+        expect(()=>ScenesVfs._validateSceneQuery({author: a})).not.to.throw();
       });
       [ null, "0", "foo", -1 ].forEach(a=>{
-        expect(()=>ScenesVfs._parseSceneQuery({author: a as any}),`expected ${a ?? typeof a} to not be an accepted author value`).to.throw(`[400] Invalid author filter request: ${a}`);
+        expect(()=>ScenesVfs._validateSceneQuery({author: a as any}),`expected ${a ?? typeof a} to not be an accepted author value`).to.throw(`[400] Invalid author filter request: ${a}`);
       });
     })
   });
@@ -363,7 +364,7 @@ describe("Vfs", function(){
       });
       
 
-      it("can get only archived scenes", async function(){
+      it("can get only archived scenes (no requester)", async function(){
         await vfs.createScene("bar");
         let scene_id = await vfs.createScene("foo");
         await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
@@ -372,10 +373,33 @@ describe("Vfs", function(){
         //Two scenes total
         expect(await vfs.getScenes()).to.have.length(2);
         //Filter only scenes with access: none
-        let scenes = await vfs.getScenes(null, {access: ["none"]});
+        let scenes = await vfs.getScenes(null, {archived: true});
         console.log(JSON.stringify(scenes));
         expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
       });
+
+      it("can get an author's own archived scenes", async function(){
+        let um :UserManager= new UserManager(vfs._db);
+        let user = await um.addUser("bob", "12345678", false, "bob@example.com")
+        //Create a reference non-archived scene (shouldn't be shown)
+        await vfs.createScene("bar", user.uid);
+        //Create a scene owned by someone else
+        await vfs.createScene("baz");
+        //Create our archived scene
+        let scene_id = await vfs.createScene("foo", user.uid);
+        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        await vfs.archiveScene(scene_id);
+
+        //Three scenes total
+        expect(await vfs.getScenes()).to.have.length(3);
+        //Two "existing" scenes
+        expect(await vfs.getScenes(user.uid, {archived: false})).to.have.length(2);
+
+        //Filter only scenes with access: none
+        let scenes = await vfs.getScenes(user.uid, {archived: true});
+        console.log(JSON.stringify(scenes));
+        expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
+      })
 
       describe("with permissions", function(){
         let userManager :UserManager, user :User;
@@ -824,16 +848,9 @@ describe("Vfs", function(){
       describe("archiveScene()", function(){
         it("makes scene hidden", async function(){
           await vfs.archiveScene("foo");
-          expect(await vfs.getScenes(0)).to.have.property("length", 0);
+          expect(await vfs.getScenes(0, {archived: false})).to.have.property("length", 0);
         });
 
-        it("changes scene name and access", async function(){
-          await vfs.archiveScene(scene_id);
-          const scenes = await vfs._db.all("SELECT * FROM scenes");
-          expect(scenes).to.have.length(1);
-          expect(scenes[0]).to.have.property("scene_name", `foo#${scene_id.toString(10)}`);
-          expect(scenes[0]).to.have.property("access", '{"0":"none"}');
-        });
 
         it("can't archive twice", async function(){
           await vfs.archiveScene(scene_id);
@@ -845,11 +862,34 @@ describe("Vfs", function(){
           await expect(vfs.removeScene(scene_id)).to.be.fulfilled;
         });
         
-        it("can remove archived scene (by archived name)", async function(){
+        it("can remove archived scene (by name)", async function(){
           await vfs.archiveScene(scene_id);
-          await expect(vfs.removeScene(`foo#${scene_id.toString(10)}`)).to.be.fulfilled;
+          await expect(vfs.removeScene(`foo#${scene_id}`)).to.be.fulfilled;
         });
+
+        it("store archive time", async function(){
+          //To be used later 
+          await vfs.archiveScene(scene_id);
+          let {archived} = await vfs._db.get(`SELECT archived FROM scenes WHERE scene_id= ?`, [scene_id]);
+          expect(archived).to.be.ok;
+          let archivedDate = new Date(archived*1000);
+          expect(archivedDate.toString()).not.to.equal('Invalid Date');
+          expect(archivedDate.valueOf(), archivedDate.toUTCString()).to.be.above(new Date().valueOf() - 2000);
+          expect(archivedDate.valueOf(), archivedDate.toUTCString()).to.be.below(new Date().valueOf()+1);
+        })
       });
+
+      describe("unarchiveScene()", function(){
+        it("restores an archived scene", async function(){
+          await vfs.archiveScene(scene_id);
+          await vfs.unarchiveScene(`foo#${scene_id}`);
+          expect(await vfs.getScene("foo")).to.have.property("archived", false);
+        });
+
+        it("throws if archive doesn't exist", async function(){
+          await expect(vfs.unarchiveScene("xxx")).to.be.rejectedWith(NotFoundError);
+        })
+      })
 
       describe("createFile()", function(){
         it("can create an empty file", async function(){

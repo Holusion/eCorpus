@@ -203,6 +203,43 @@ describe("GET /scenes", function(){
       .expect("Content-Type", "application/json; charset=utf-8");
       expect(r.body.scenes).to.deep.equal(scenes);
     });
+    describe("filter authors", async function(){
+      let charlie :User;
+      this.beforeAll(async function(){
+        charlie = await this.server.locals.userManager.addUser("charlie", "12345678", false);
+        await vfs.createScene("charlie's", charlie.uid);
+      })
+
+      it("by username", async function(){
+        let r = await request(this.server).get(`/scenes?author=${charlie.username}`)
+        .auth(charlie.username, "12345678")
+        .set("Accept", "application/json")
+        .send({scenes: scenes})
+        .expect(200)
+        .expect("Content-Type", "application/json; charset=utf-8");
+        expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
+      });
+
+      it("by uid", async function(){
+        let r = await request(this.server).get(`/scenes?author=${charlie.uid}`)
+        .auth(charlie.username, "12345678")
+        .set("Accept", "application/json")
+        .send({scenes: scenes})
+        .expect(200)
+        .expect("Content-Type", "application/json; charset=utf-8");
+        expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
+      });
+
+      it("as someone else", async function(){
+        let r = await request(this.server).get(`/scenes?author=${charlie.uid}`)
+        .auth(user.username, "12345678")
+        .set("Accept", "application/json")
+        .send({scenes: scenes})
+        .expect(200)
+        .expect("Content-Type", "application/json; charset=utf-8");
+        expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
+      });
+    });
   });
 
   describe("supports pagination", function(){
@@ -240,7 +277,7 @@ describe("GET /scenes", function(){
     let scenes:number[];
     this.beforeAll(async ()=>{
       scenes = [];
-      scenes.push(await vfs.createScene(`scene_archived`));
+      scenes.push(await vfs.createScene(`scene_archived`, user.uid));
       await vfs.archiveScene("scene_archived");
       scenes.push(await vfs.createScene(`scene_live`));
     });
@@ -249,21 +286,50 @@ describe("GET /scenes", function(){
       await Promise.all(scenes.map(id=>vfs.removeScene(id)));
     });
 
-    it("can get only archived scenes", async function(){
-      let r = await request(this.server).get("/scenes?access=none")
+    it("can get only archived scenes (as an admin)", async function(){
+      let r = await request(this.server).get("/scenes?archived=true")
       .auth(admin.username, "12345678")
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
-      expect(names).to.include(`scene_archived#${scenes[0].toString(10)}`);
+      expect(names).to.include(`scene_archived#${scenes[0]}`);
     });
 
-    it
-
-    it("requires global admin rights", async function(){
-      let r = await request(this.server).get("/scenes?access=none")
+    it("can get archived scenes (as an author)", async function(){
+      let r = await request(this.server).get("/scenes?archived=true")
       .auth(user.username, "12345678")
       .expect(200);
-      expect(r.body).to.have.property("scenes").to.have.length(0);
+      let names = r.body.scenes.map((s:any)=>s.name)
+      expect(names).to.include(`scene_archived#${scenes[0]}`);
+    })
+
+    it("can get non-archived scenes", async function(){
+      //This is the default but the client may want to be explicit about it
+      //*false* values include 0 and "false"
+      let r = await request(this.server).get("/scenes?archived=false")
+      .auth(user.username, "12345678")
+      .expect(200);
+      let names = r.body.scenes.map((s:any)=>s.name)
+      expect(names).not.to.include(`scene_archived#${scenes[0]}`);
+      
+      r = await request(this.server).get("/scenes?archived=0")
+      .auth(user.username, "12345678")
+      .expect(200);
+      names = r.body.scenes.map((s:any)=>s.name)
+      expect(names).not.to.include(`scene_archived#${scenes[0]}`);
+    });
+
+    it("can get all scenes (archived and not)", async function(){
+      let r = await request(this.server).get("/scenes?archived=any")
+      .auth(user.username, "12345678")
+      .expect(200);
+      let names = r.body.scenes.map((s:any)=>s.name)
+      expect(names).to.include(`scene_archived#${scenes[0]}`);
+      expect(names).to.include(`foo`);
+    })
+
+    it("requires to be authentified", async function(){
+      await request(this.server).get("/scenes?archived=true")
+      .expect(401);
     });
 
     it("won't return archived scenes in a default query", async function(){
@@ -271,7 +337,7 @@ describe("GET /scenes", function(){
       .auth(user.username, "12345678")
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
-      expect(names).not.to.include(`scene_archived#${scenes[0].toString(10)}`);
+      expect(names).not.to.include(`scene_archived#${scenes[0]}`);
     });
 
   })

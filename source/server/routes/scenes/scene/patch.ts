@@ -14,11 +14,17 @@ import { Request, Response } from "express";
 export default async function patchScene(req :Request, res :Response){
   let user_id = getUserId(req);
   let {scene: sceneName} = req.params;
-  let {name, permissions, tags} = req.body;
+  let {name, permissions, tags, archived} = req.body;
   //Ensure all or none of the changes are comitted
   let result = await getVfs(req).isolate(async (vfs)=>{
     let scene = await vfs.getScene(sceneName, user_id);
-    if(name && name !== sceneName){
+    if(typeof archived !== "undefined"){
+      if(!JSON.parse(archived)){
+        await vfs.unarchiveScene(scene.id, name);
+      }else{
+        await vfs.archiveScene(scene.id);
+      }
+    }else if(name && name !== sceneName){
       try{
         await vfs.renameScene(scene.id, name);
       }catch(e:any){

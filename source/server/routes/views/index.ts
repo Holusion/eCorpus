@@ -6,6 +6,7 @@ import { Scene } from "../../vfs/types.js";
 import { AccessType } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import scrapDoc from "../../utils/schema/scrapDoc.js";
+import { qsToBool, qsToInt } from "../../utils/query.js";
 
 
 
@@ -63,18 +64,21 @@ routes.get("/", wrap(async (req, res)=>{
     await vfs.getScenes(user.uid,{
       limit: 10,
       orderBy: "mtime",
-      orderDirection: "desc"
+      orderDirection: "desc",
+      archived: false,
     }),
     await vfs.getScenes(user.uid,{
       limit: 4,
       orderBy: "mtime",
       orderDirection: "desc",
       author: user.uid,
+      archived: false,
     }),
     await vfs.getScenes(user.uid,{
       limit: 4,
       orderBy: "ctime",
       orderDirection: "desc",
+      archived: false,
     })
   ])).map((scenes:Scene[])=> scenes.map(mapScene.bind(null, req)));
   res.render("home", {
@@ -129,6 +133,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
     offset,
     orderBy,
     orderDirection,
+    archived,
   } = req.query;
   let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
@@ -137,10 +142,10 @@ routes.get("/scenes", wrap(async (req, res)=>{
     orderBy: (orderBy ?? "mtime") as any,
     orderDirection: (orderDirection?? (orderBy=="name"?"asc":"desc")) as any,
     access: accessTypes,
-    limit: limit? parseInt(limit as string): 25,
-    offset: offset? parseInt(offset as string): 0,
+    limit: qsToInt(limit) ?? 25,
+    offset: qsToInt(offset)?? 0,
+    archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
   };
-
   
   let scenes = (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req));
 
@@ -162,7 +167,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
   }
 
   //Sanitize user input
-  const validatedParams = ScenesVfs._parseSceneQuery(sceneParams);
+  const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
   if(!validatedParams.access) validatedParams.access = ["read", "write", "admin"];
   res.render("search", {
     title: "eCorpus Search",
@@ -173,15 +178,18 @@ routes.get("/scenes", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/user", (req, res)=>{
+routes.get("/user", wrap(async (req, res)=>{
+  const vfs = getVfs(req);
   const user = getUser(req);
+  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.uid});
   if(user.isDefaultUser){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
   res.render("user", {
     title: "eCorpus User Settings",
+    archives,
   });
-});
+}));
 
 routes.use("/admin", isAdministrator);
 routes.get("/admin", (req, res)=>{
@@ -191,12 +199,15 @@ routes.get("/admin", (req, res)=>{
   });
 });
 
-routes.get("/admin/archives", (req, res)=>{
+routes.get("/admin/archives", wrap(async (req, res)=>{
+  const vfs = getVfs(req);
+  let scenes = await vfs.getScenes(null, {archived: true, limit: 100 });
   res.render("admin/archives", {
     layout: "admin",
     title: "eCorpus Administration: Archived scenes",
+    scenes,
   });
-});
+}));
 
 routes.get("/admin/users", (req, res)=>{
   res.render("admin/users", {
@@ -239,7 +250,6 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     return res;
   }).map(t=>t.name);
 
-  console.log("Access : ", res.locals.access);
 
   res.render("scene", {
     title: `eCorpus: ${scene.name}`,

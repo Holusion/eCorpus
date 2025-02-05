@@ -20,7 +20,7 @@ export default class SubmitFragment extends LitElement{
    * Useful if method is not GET or POST.
    * Order of precedence upon submission is :
    * - this.method
-   * - submitter.data-formMethod (if method is not GET|POST|dialog)
+   * - submitter.data-formmethod (if method is not GET|POST|dialog)
    * - submitter.formMethod
    * - form.method
    */
@@ -88,11 +88,12 @@ export default class SubmitFragment extends LitElement{
 
       const action = this.action || submitter?.["formAction"] || form.action;
       let method = this.method ?? form.method;
-      if(submitter?.dataset.formMethod) method = submitter.dataset.formMethod;
+      if(submitter?.dataset.formmethod) method = submitter.dataset.formmethod;
       else if(submitter && "formMethod" in submitter && submitter.formMethod) method = submitter.formMethod;
       if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
       const encoding = this.encoding || submitter?.["formEnctype"] || form.enctype || form.encoding || "application/json";
       const body = this.encode(form, encoding);
+      //console.log("SUBMIT :", method, action, body);
       let res = await fetch(action, {
         method,
         body,

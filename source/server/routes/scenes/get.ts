@@ -6,11 +6,11 @@ import { once } from "events";
 import yazl from "yazl";
 
 import { AccessType } from "../../auth/UserManager.js";
-import { HTTPError } from "../../utils/errors.js";
-import { getVfs, getUser, getHost } from "../../utils/locals.js";
+import { getVfs, getUser, getHost, getUserManager } from "../../utils/locals.js";
 import { wrapFormat } from "../../utils/wrapAsync.js";
-import Vfs from "../../vfs/index.js";
 import { compressedMime } from "../../utils/filetypes.js";
+import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
+import { qsToBool, qsToInt } from "../../utils/query.js";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
@@ -25,6 +25,8 @@ export default async function getScenes(req :Request, res :Response){
     offset,
     orderBy,
     orderDirection,
+    archived,
+    author,
   } = req.query;
 
   let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
@@ -33,6 +35,7 @@ export default async function getScenes(req :Request, res :Response){
   if(typeof ids === "string"){
     ids = [ids];
   }
+  
   
   if(Array.isArray(ids)){
     for(let id of ids){
@@ -52,20 +55,31 @@ export default async function getScenes(req :Request, res :Response){
     scenesList.push(names);
   }
 
+  if(u.isDefaultUser && qsToBool(archived)){
+    throw new UnauthorizedError(`Access to archived content requires authentication`);
+  }
+  let author_id :number|undefined; 
+  if(author){
+    if(typeof author != "string") throw new BadRequestError(`Author must be a number (user id) or string (username)`);
+    author_id = parseInt(author);
+    if(!Number.isInteger(author_id)){
+      author_id = (await getUserManager(req).getUserByName(author)).uid;
+    }
+  }
+
   let scenes :Awaited<ReturnType<typeof vfs.getScenes>>;
   if(0 < scenesList.length){
     scenes = await Promise.all(scenesList.map(name=>vfs.getScene(name)));
   }else{
-    /**@fixme ugly hach to bypass permissions when not performing a search */
-    const requester_id = (u.isAdministrator && (!accessTypes || (accessTypes.length == 1 && accessTypes[0] == "none")) && !match)?undefined: u.uid;
-    
-    scenes = await vfs.getScenes(requester_id, {
+    scenes = await vfs.getScenes(u.uid, {
       match: match as string,
       orderBy: orderBy as any,
       orderDirection: orderDirection as any,
       access: accessTypes,
-      limit: limit? parseInt(limit as string): undefined,
-      offset: offset? parseInt(offset as string): undefined,
+      limit: qsToInt(limit),
+      offset: qsToInt(offset),
+      archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
+      author: author_id,
     });
   }
   

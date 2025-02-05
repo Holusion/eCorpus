@@ -110,12 +110,65 @@ describe("PATCH /scenes/:scene", function(){
       .expect(200);
 
       expect(r.body).to.have.property("tags").to.deep.equal([])
-
-
-
     });
 
     
+  })
+
+  describe("archive", function(){
+    it("can archive a scene", async function(){
+
+      let r = await request(this.server).patch("/scenes/foo")
+      .send({archived: true})
+      .expect(200);
+
+      expect(r.body).to.have.property("archived").to.equal(true);
+      expect(r.body).to.have.property("name").to.equal(`foo#${ids[0]}`);
+    });
+
+    it("can restore a scene", async function(){
+
+      let r = await request(this.server).patch("/scenes/foo")
+      .send({archived: true})
+      .expect(200);
+
+      r = await request(this.server).patch("/scenes/"+encodeURIComponent(`foo#${ids[0]}`))
+      .send({archived: false})
+      .expect(200);
+
+      expect(r.body).to.have.property("archived").to.equal(false);
+      expect(r.body).to.have.property("name").to.equal(`foo`);
+    });
+
+    it("can restore a scene with an explicit new name", async function(){
+
+      let r = await request(this.server).patch("/scenes/foo")
+      .send({archived: true})
+      .expect(200);
+
+      r = await request(this.server).patch("/scenes/"+encodeURIComponent(`foo#${ids[0]}`))
+      .send({archived: false, name: "some_unique_name"})
+      .expect(200);
+
+      expect(r.body).to.have.property("archived").to.equal(false);
+      expect(r.body).to.have.property("name").to.equal(`some_unique_name`);
+    });
+
+    it("can use \"false\" as false", async function(){
+      //Because forms can't really have booleans
+
+      let r = await request(this.server).patch("/scenes/foo")
+      .send({archived: true})
+      .expect(200);
+
+      r = await request(this.server).patch("/scenes/"+encodeURIComponent(`foo#${ids[0]}`))
+      .send({archived: "false"})
+      .expect(200);
+
+      expect(r.body).to.have.property("archived").to.equal(false);
+      expect(r.body).to.have.property("name").to.equal(`foo`);
+
+    })
   })
 
 });

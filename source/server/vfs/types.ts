@@ -81,6 +81,7 @@ export interface Scene extends ItemProps{
     any :AccessType,
     default :AccessType,
   };
+  archived: boolean;
 }
 
 export interface DocProps extends FileProps{
@@ -100,6 +101,11 @@ export interface SceneQuery {
   limit ?:number;
   orderBy ?:"ctime"|"mtime"|"name";
   orderDirection ?:"asc"|"desc";
+  /**
+   * Returns all scenes when unset.
+   * When `true`, return only archived scenes.
+   */
+  archived ?:boolean;
 }
 
 export interface Tag{

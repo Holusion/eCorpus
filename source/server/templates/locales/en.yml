@@ -27,6 +27,8 @@ labels:
   defaultUser: Public access
   anyUser: Authenticated access
   language: UI Language
+  delete: Delete
+  restore: Restore
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -42,6 +44,7 @@ buttons:
   download: Download this scene
 fields:
   name: name
+  author: author
   mtime: last modification
   ctime: creation date
   access: access rights
@@ -82,6 +85,7 @@ titles:
   history: Edition history
   sceneData: Scene metadata
   permissions: Access rights
+  archives: Archived Scenes
 tooltips:
   showPassword: Show the password's text
   permissions: >
@@ -105,6 +109,8 @@ leads:
     No results. Maybe try to change your query?
   archiveDelete: >
     Archiving this scene makes it unreachable but it can still be restored by your instance administrator.
+  archiveRestore: >
+    You can restore this scene using the "restore" button. This will rename the scene. 
   thumbnailFor: >
     Image miniature pour {{what}}
   articles_zero: "no articles"
@@ -121,6 +127,8 @@ leads:
     This is the scene's history of changes, aggregated by day. Unfold the groups with the <span class="text-primary">+</span> icons to get more details.
     Click on <code class="text-primary">restore to</code> to add a set of changes that will set the scene's content to what it was at this point.
     No history entry will be deleted in this operation : changes will only be appended.
+  canNotChangeSelfAccess: >
+    You can not change your own access rights to this scene. Ask an instance administrator or another user to do so.
 
 errors:
   generic: Unknown Error

@@ -27,6 +27,8 @@ labels:
   defaultUser: Accès Public
   anyUser: Utilisateur Authentifié
   language: Langue de l'interface
+  delete: Supprimer
+  restore: Restaurer
 
 buttons:
   searchScene: chercher une scène
@@ -43,6 +45,7 @@ buttons:
   history: Historique
 fields:
   name: nom
+  author: auteur
   mtime: dernière modification
   ctime: date de création
   access: droits d'accès
@@ -83,6 +86,7 @@ titles:
   history: Historique des modifications
   sceneData: Métadonnées de la scène
   permissions: Droits d'accès
+  archives: Scènes archivées
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >
@@ -107,6 +111,8 @@ leads:
     Aucun résultat. Affinez votre recherche ou revenez en arrière
   archiveDelete: >
     Archiver la scène pour la rend inaccessible, mais elle peut être restaurée par l'administrateur de cette instance
+  archiveRestore: >
+    Vous pouvez restaurer cette scène en cliquant sur le bouton ci-contre
   thumbnailFor: >
     Image miniature pour {{what}}
   articles_zero: "aucun article"
@@ -122,6 +128,8 @@ leads:
   historyEdition: |
     Ci-après, l'historique des modifications de la scène, groupées par jour. Dépliez les groupe à l'aide des icones <span class="text-primary">+</span> pour obtenir le détail.
     Cliquer sur <code class="text-primary">restaurer à</code> ne supprimera pas les changements : de nouvelles entrées seront ajoutées à la date présente pour restaurer la scène dans l'état ou elle était à la date indiquée
+  canNotChangeSelfAccess: >
+    Vous ne pouvez pas changer vos propres droits d'accès à cette scène. Si nécessaire, demandez de l'aide à un administrateur
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

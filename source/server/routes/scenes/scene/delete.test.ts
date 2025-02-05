@@ -33,7 +33,7 @@ describe("DELETE /scenes/:scene", function(){
   });
 
 
-  it("can delete a scene", async function(){
+  it("can archive a scene", async function(){
     await request(this.server).delete(`/scenes/${titleSlug}`)
     .auth(user.username, "12345678")
     .expect(204);
@@ -59,11 +59,11 @@ describe("DELETE /scenes/:scene", function(){
     .expect(401);
   });
 
-  it("can create a scene back after deletion", async function(){
+  it("can create a scene back after archival", async function(){
     await request(this.server).delete(`/scenes/${titleSlug}`)
     .auth(user.username, "12345678")
     .expect(204);
-
+    //We can create a scene with the deleted name because the archival renames it
     await request(this.server).mkcol(`/scenes/${titleSlug}`)
     .auth(user.username, "12345678")
     .expect(201);
@@ -79,9 +79,23 @@ describe("DELETE /scenes/:scene", function(){
     .expect(404);
   });
 
-  it.skip("can restore an archived scene", async function(){
-    
+  it("can restore an archived scene", async function(){
+    await request(this.server).delete(`/scenes/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .expect(204);
 
+    await request(this.server).get(`/scenes/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .expect(404);
+
+    await request(this.server).patch(`/scenes/${encodeURIComponent(titleSlug+"#"+scene_id)}`)
+    .auth(user.username, "12345678")
+    .send({archived: false})
+    .expect(200);
+
+    await request(this.server).get(`/scenes/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .expect(200);
   });
 
   it("requires superadmin to force delete", async function(){
@@ -99,12 +113,12 @@ describe("DELETE /scenes/:scene", function(){
     await expect(vfs.getScene(scene_id)).to.be.rejectedWith(NotFoundError);
   });
 
-  it("can force delete after archival", async function(){
+  it("can truly delete after archival", async function(){
     await request(this.server).delete(`/scenes/${titleSlug}`)
     .auth(admin.username, "12345678")
     .expect(204);
 
-    await request(this.server).delete(`/scenes/${titleSlug}${encodeURIComponent("#")+scene_id.toString(10)}?archive=false`)
+    await request(this.server).delete(`/scenes/${encodeURIComponent(`${titleSlug}#${scene_id.toString(10)}`)}?archive=false`)
     .auth(admin.username, "12345678")
     .expect(204);
 

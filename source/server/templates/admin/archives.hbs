@@ -1,1 +1,38 @@
-<admin-archives></admin-archives>
+
+<h1>{{i18n "titles.archives"}}</h1>
+<div class="users-list" style="position:relative;">
+  <table class="list-table">
+    <thead><tr>
+      <th class="sm-hidden">{{i18n "fields.mtime"}}</th>
+      <th>{{i18n "fields.name"}}</th>
+      <th>{{i18n "fields.author"}}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {{#unless scenes.length}}
+      <tr><td colspan=4 style="text-align: center;">{{i18n "leads.noArchives"}}</td></tr>
+    {{/unless}}
+    {{#each scenes}}
+      <tr>
+        <td class="sm-hidden">{{dateString mtime}}</td>
+        <td><a href="/ui/scenes/{{encodeURIComponent name }}">{{name}}</a></td>
+        <td>{{author}}</td>
+        <td>
+          <submit-fragment encoding="application/json" onsubmit="this.closest('tr')?.remove();">
+            <form class="form-control" style="display:flex; justify-content:end;gap:.6rem;">
+              <input type="hidden" name="archived", value="false"/>
+              <button data-formmethod="PATCH"  formaction="/scenes/{{encodeURIComponent name }}" role="submit" class="btn btn-small btn-transparent btn-inline text-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
+                <ui-icon name="restore"></ui-icon>
+              </button>
+              <button data-formmethod="DELETE" formaction="/scenes/{{encodeURIComponent name }}?archive=false" role="submit" class="btn btn-small btn-transparent btn-inline text-error" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}" >
+                <ui-icon name="trash"></ui-icon>
+              </button>
+            </form>
+            <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
+          </submit-fragment>
+        </td>
+      </tr>
+    {{/each}}
+    </tbody>
+  </table>
+</div>
