@@ -191,6 +191,22 @@ describe("Vfs", function(){
     })
   });
 
+  describe("toDate()", function(){
+    //Parse dates stored in the database
+    it("parse a date string without timezone", async function(){
+      let d = Vfs.toDate("2024-01-11 14:44:59")
+      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59Z").valueOf());
+    });
+    it("parse a GMT date", async function(){
+      let d = Vfs.toDate("2024-01-11 14:44:59Z")
+      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59Z").valueOf());
+    });
+    it("parse a local ISO8601 date", async function(){
+      let d = Vfs.toDate("2024-01-11 14:44:59+01")
+      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59+01").valueOf());
+    });
+  })
+
   describe("", function(){
     let vfs :Vfs; 
     //@ts-ignore
@@ -1031,8 +1047,8 @@ describe("Vfs", function(){
           });
           
           it("get document", async function(){
-            let doc = await vfs.writeDoc("{}", {...props, user_id: 0});
-            await expect(vfs.getFileProps({...props, archive: true, generation: doc.generation}, true)).to.eventually.deep.equal({...doc, data: "{}"});
+            let {ctime:docCtime, ...doc} = await vfs.writeDoc("{}", {...props, user_id: 0});
+            await expect(vfs.getFileProps({...props, archive: true, generation: doc.generation}, true)).to.eventually.deep.equal({...doc, ctime, data: "{}"});
           });
         });
 
