@@ -42,6 +42,8 @@ buttons:
   showTags: Cancel edition
   history: Scene History
   download: Download this scene
+  rename: Rename
+  cancel: Cancel
 fields:
   name: name
   author: author
@@ -86,6 +88,7 @@ titles:
   sceneData: Scene metadata
   permissions: Access rights
   archives: Archived Scenes
+  rename: Rename this scene
 tooltips:
   showPassword: Show the password's text
   permissions: >
@@ -129,6 +132,9 @@ leads:
     No history entry will be deleted in this operation : changes will only be appended.
   canNotChangeSelfAccess: >
     You can not change your own access rights to this scene. Ask an instance administrator or another user to do so.
+  rename: >
+    Changing a scene's name will break all existing links pointing to it.
+    Proceed with care!
 
 errors:
   generic: Unknown Error

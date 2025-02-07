@@ -4,6 +4,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import "./Spinner";
 import HttpError from "../state/HttpError";
 
+type SubmitResult = {success:false}|{success:true, data:FormData};
+
 @customElement("submit-fragment")
 export default class SubmitFragment extends LitElement{
   /**
@@ -58,8 +60,7 @@ export default class SubmitFragment extends LitElement{
   #c?:AbortController;
 
 
-  encode(f:HTMLFormElement, encoding:string):BodyInit{
-    const data = new FormData(f);
+  encode(data :FormData, encoding:string):BodyInit{
     if(encoding === "application/x-www-form-urlencoded"){
       return data;
     }
@@ -79,7 +80,7 @@ export default class SubmitFragment extends LitElement{
   }
 
 
-  private async _do_submit(form:HTMLFormElement, submitter?:HTMLElement|HTMLButtonElement|HTMLInputElement) :Promise<boolean>{
+  private async _do_submit(form:HTMLFormElement, submitter?:HTMLElement|HTMLButtonElement|HTMLInputElement) :Promise<SubmitResult>{
     this.#c?.abort();
     let c = this.#c = new AbortController();
     this.active = true;
@@ -92,11 +93,12 @@ export default class SubmitFragment extends LitElement{
       else if(submitter && "formMethod" in submitter && submitter.formMethod) method = submitter.formMethod;
       if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
       const encoding = this.encoding || submitter?.["formEnctype"] || form.enctype || form.encoding || "application/json";
-      const body = this.encode(form, encoding);
+
+      const data = new FormData(form);
       //console.log("SUBMIT :", method, action, body);
       let res = await fetch(action, {
         method,
-        body,
+        body: this.encode(data, encoding),
         signal: c.signal,
         headers: {
           "Content-Type": encoding,
@@ -110,12 +112,12 @@ export default class SubmitFragment extends LitElement{
 
       const t = setTimeout(()=> this.status = undefined, 5000);
       c.signal.addEventListener("abort", ()=>clearTimeout(t));
-      return true;
+      return {success:true, data};
     }catch(e){
       console.error("Request failed : ", e);
       this.active = false;
       this.status = {type:"alert", text:e.message};
-      return false;
+      return {success:false};
     }
   }
 
@@ -128,8 +130,8 @@ export default class SubmitFragment extends LitElement{
     }
     e.preventDefault();
     e.stopPropagation();
-    this._do_submit(form, e.submitter).then((success)=>{
-      if(success) this.dispatchEvent(new CustomEvent("submit", {}));
+    this._do_submit(form, e.submitter).then((result)=>{
+      if(result.success) this.dispatchEvent(new CustomEvent("submit", {detail: result.data}));
     });
     return false;
   }

@@ -43,6 +43,8 @@ buttons:
   editTags: Modifier les tags
   showTags: Annuler l'édition
   history: Historique
+  rename: Renommer
+  cancel: Annuler
 fields:
   name: nom
   author: auteur
@@ -87,6 +89,7 @@ titles:
   sceneData: Métadonnées de la scène
   permissions: Droits d'accès
   archives: Scènes archivées
+  rename: Renommer la scène
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >
@@ -130,6 +133,8 @@ leads:
     Cliquer sur <code class="text-primary">restaurer à</code> ne supprimera pas les changements : de nouvelles entrées seront ajoutées à la date présente pour restaurer la scène dans l'état ou elle était à la date indiquée
   canNotChangeSelfAccess: >
     Vous ne pouvez pas changer vos propres droits d'accès à cette scène. Si nécessaire, demandez de l'aide à un administrateur
+  rename: >
+    Attention: Changer le nom d'une scène cassera tous les liens qui pointent vers elle!
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

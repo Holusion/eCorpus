@@ -235,14 +235,54 @@
           <p >
             {{i18n "leads.archiveDelete"}}
           </p>
-          <submit-fragment method="DELETE" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent (join scene.name "#" scene.id)}}'">
-            <form style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
-              <button role="submit" formAction="/scenes/{{encodeURIComponent scene.name}}?archive=true" id="btn-archiveScene" class="btn">
-                <ui-icon name="trash"></ui-icon>
-                {{i18n "buttons.archive"}}
-              </button>
-            </form>
-          </submit-fragment>
+          <div style="padding: 0 0 10px 0;display:flex;justify-content:end;gap:10px;">
+
+            <dialog id="rename-scene" style="max-width:400px" onmousedown="event.target==this && this.close()">
+              <submit-fragment id="rename-scene-submit" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json">
+                <h3>{{i18n "titles.rename"}}</h3>
+                <p>{{i18n "leads.rename"}}</p>
+                <form class="form-control">
+                  <div class="form-group">
+                    <label class="form-item">
+                      {{i18n "fields.name"}}
+                      <input id="scenename" type="text" name="name" required minlength="3" value="" placeholder="{{scene.name}}" />
+                    </label>
+                  </div>
+                  <div class="form-group" style="display:flex;justify-content:end; gap: 10px">
+                    <button class="btn" type="reset" onclick="this.closest('dialog').close()">{{i18n "buttons.cancel"}}</button>
+                    <button type="submit" id="btn-renameScene" class="btn btn-main">
+                      <ui-icon name="edit"></ui-icon>
+                      {{i18n "buttons.rename"}}
+                    </button>
+                  </div>
+                </form>
+              </submit-fragment>
+              <script type="module">
+                (()=>{
+                  const submitFragment = document.querySelector("#rename-scene-submit");
+                  if(!submitFragment) return console.warn("Can't find fragment to submit scene rename form");
+                  submitFragment.addEventListener("submit", ({detail})=>{
+                    let name = detail.get("name");
+                    if(!name) return alert("Badly formatted form : no name could be found");
+                    window.location.replace(`/ui/scenes/${encodeURIComponent(name)}`);
+                  });
+                })();
+              </script>
+            </dialog>
+            <button class="btn" onclick="document.querySelector('#rename-scene').showModal()">
+              <ui-icon name="edit"></ui-icon>
+              {{i18n "buttons.rename"}}
+            </button>
+
+            <submit-fragment method="DELETE" action="/scenes/{{encodeURIComponent scene.name}}?archive=true" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent (join scene.name "#" scene.id)}}'">
+              <form>
+                <button role="submit" id="btn-archiveScene" class="btn">
+                  <ui-icon name="trash"></ui-icon>
+                  {{i18n "buttons.archive"}}
+                </button>
+              </form>
+            </submit-fragment>
+          </div>
         {{/if}}
       </section>
     {{/if}}
