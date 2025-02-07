@@ -65,15 +65,15 @@ paths:
         explode: true
         schema: {type: array, items: {$ref: "#/components/schemas/Uid"}}
         description: |
-          Scenes IDs to get. If provided, will return only those scenes.
-          Mainly useful for zip download
+          Scenes IDs to get. If provided, will return only those scenes, ignoring other query parameters.
+          Mainly useful for zip batch downloads
       - name: name
         in: query
         style: form
         explode: true
         schema: {type: array, items: {type: string}}
         description: |
-          Scene names to get. If provided, will return only those scenes, ignoring the `match` parameter
+          Scene names to get. If provided, will return only those scenes, ignoring other query parameters.
       - name: match
         in: query
         description: |
@@ -104,11 +104,17 @@ paths:
         schema:
           type: array
           items: { $ref: "#/components/schemas/AccessType"}
+      - name: author
+        in: query
+        description: |
+          Restrict results to scenes that were originally authored by this user (by uid or username)
+          You'd generally want to use `access=admin` instead
+        schema: {type: string } # @fixme Ideally, it should be oneOf string, number
       - name: limit
         in: query
         description: |
           Limit the number of returned results. A hard maximum of 100 is enforced
-          Ordering is guaranteed to stay stable when `orderBy:ctime`is used`
+          Ordering is guaranteed to stay stable when `orderBy:ctime` is used
         schema: {type: number, format: int32, minimum: 1, maximum: 100}
       - name: offset
         in: query
@@ -126,6 +132,12 @@ paths:
         schema:
           type: string
           enum: ["asc", "desc"]
+      - name: archived
+        in: query
+        description: |
+          Return all scenes, or only archived/non-archived ones.
+          Defaults to false
+        schema: {type: boolean} # @fixme ideally, oneOf boolean|"any"
       responses: 
         '200':
           description: |
@@ -274,6 +286,12 @@ paths:
                   type: string
                 permissions:
                   type: object
+                  required: []
+                  properties:
+                    default: 
+                      $ref: "#/components/schemas/AccessType"
+                    any: 
+                      $ref: "#/components/schemas/AccessType"
                   additionalProperties:
                     $ref: "#/components/schemas/AccessType" 
 

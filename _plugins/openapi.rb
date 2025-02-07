@@ -1,11 +1,16 @@
 
 def xml_comment(str)
-  return "&lt!-- #{str} -- &gt"
+  return "<!-- #{str} -->"
 end
 
 
 module Jekyll
   module OAPIFilter
+    ##
+    # Recursively resolves `$ref` keys in an OpenAPI schema.
+    # Only searches for local definitions, will not load any external file reference
+    # @param [Hash] input a fragment of an OpenAPI specification document
+    # @param [Hash] context parent OpenAPI document
     def OAPI_dereference(input, context=nil)
       if not context
         context = input
@@ -38,6 +43,9 @@ module Jekyll
       end
     end
 
+    ##
+    # Parse a parameter object (as in: operation.parameters)
+    # @see https://spec.openapis.org/oas/v3.1.0.html#parameter-object
     def OAPI_parameters(input)
       output = {"query" => [], "path" => [], "header" => [], "cookie" => []}
       return output if not input
@@ -51,7 +59,10 @@ module Jekyll
       return output
     end
 
-
+    ##
+    # Converts a JSON-Schema into a (simplified!) XML representation of the object
+    # @param [Hash] input a JSON-Schema 
+    # @see https://datatracker.ietf.org/doc/html/draft-bhutton-json-schema-00
     def OAPI_XML_schema(input, prefix="", jsonName="xml", parent=nil)
       if not input.is_a?(Hash) or not input["type"]
         Jekyll.logger.warn("Syntax Error in tag 'OAPI_XML_schema' : Not a valid schema object : #{input.inspect()}")
@@ -76,7 +87,7 @@ module Jekyll
           content += "\n#{prefix}"+OAPI_XML_schema(schema, ( prefix || "")+"  ", key, attrs)
         end if not input["properties"].nil?
       when "array"
-        return "#{OAPI_XML_schema(input["items"], ( prefix || ""), name, attrs)} #{xml_comment("array")}"
+        return "#{OAPI_XML_schema(input["items"], ( prefix || ""), name, attrs)}\n#{prefix}#{xml_comment("Array of <#{name}>")}"
       when "string"
         if input["format"] == "binary"
           content += "Buffer"
@@ -104,9 +115,13 @@ module Jekyll
 
       strAttrs = attrs.reduce(""){|str, (key, val)| str+" #{key}=\"#{val}\"" }
 
-      return "#{prefix}&lt;#{name}#{strAttrs}&gt;"+content+ if content.include?("\n") then "\n#{prefix}" else "" end +"&lt;/#{name}&gt;"
+      return "#{prefix}<#{name}#{strAttrs}>#{content}#{if content.include?("\n") then "\n#{prefix}" else "" end}</#{name}>"
     end
 
+    ##
+    # Converts a JSON-Schema into a (simplified!) TypeScript-like textual representation of the object
+    # @param [Hash] input a JSON-Schema 
+    # @see https://datatracker.ietf.org/doc/html/draft-bhutton-json-schema-00
     def OAPI_schema(input, prefix="")
       if not input.is_a?(Hash) or not input["type"]
         Jekyll.logger.warn("Syntax Error in tag 'OAPI_schema' : Not a valid schema object : #{input.inspect()}")
@@ -119,21 +134,32 @@ module Jekyll
           required = (input["required"] and input["required"].index(key) != nil)
           str = str + "\n#{prefix}  #{key}#{if required then "" else "?" end}: #{OAPI_schema(schema, ( prefix || "")+"  ")}"
         end if not input["properties"].nil?
-        return str +"\n"+prefix+"}"
+        if input["additionalProperties"]
+          props = input["additionalProperties"]
+          str = str + "\n#{prefix}  [#{props["type"]}]?: #{OAPI_schema(props, "#{prefix}  ")}"
+        end
+        return "#{str}\n#{prefix}}"
       when "array"
         return "[ #{OAPI_schema(input["items"], ( prefix || ""))} ]"
       when "string"
+        # First check if "string" is in fact a binary blob
         if input["format"] == "binary"
           return "Buffer"
         end
-        str = "\"string\""
+        # Then check for an enum type
+        if input["enum"]
+          str = input["enum"].map { |v| "\"#{v}\""} .join("|")
+        else
+          str = "\"string\""
+        end
+        # Add any useful info about the string
         if input["summary"]
           str = str + "  //#{input["summary"]}"
         elsif input["pattern"]
           str = str + "  // /#{input["pattern"]}/"
         end
         return str
-      else
+      else #default case
         str = input["type"]
         if input["format"]
           str = str + " (#{input["format"]})"

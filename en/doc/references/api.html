@@ -94,7 +94,34 @@ title: API eCorpus
                   {%if param.required %}<span class="required">required</span>{% endif %}
                 </td>
                 <td>
-                  {{param.description | markdownify}}
+                  <div>{{param.description | markdownify}}</div>
+                  {% if param.schema %}
+                    <div style="text-align: right;padding-right: 1rem;">
+                      <a href="#" class="dropdown-toggle" data-target="#{{method}}{{ path[0] | replace: '/', '-' }}-{{param.name}}" role="button"></a>
+                    </div>
+                    <div id="{{method}}{{path[0]  | replace: '/', '-'  }}-{{param.name}}" class="collapse" aria-expanded="false">
+                      <div>
+                        {% include oapi/schema.html schema=param.schema %}
+                      </div>
+                      {% if param.schema.examples %}
+                        <h5>Examples</h5>
+                        <table class="group-table">
+                          <tbody>
+                            {% for example in param.schema.examples %}
+                              <tr>
+                                <td><h6>{{example[0]}}</h6></td>
+                                <td>
+                                  <pre><code>{{example[1].value}}</code></pre>
+                                </td>
+                                <td>{{example[1].summary | markdownify}}</td>
+                              </tr>
+                            {% endfor %}
+
+                          </tbody>
+                        </table>
+                      {% endif %}
+                    </div>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}
