@@ -151,9 +151,9 @@
 
               {{#each permissions}}
                 <tr>
-                  {{#if  (test access "!=" "admin") }}
+                  {{#if  (test @root.access "!=" "admin") }}
                     <td class="text-main" title="{{i18n "labels.username"}}">{{> showName}}</td>
-                    <td class="text-main" >{{access}}</td>
+                    <td class="text-main" >{{i18n (join "fields." access) access}}</td>
                   {{else if (test (test username "==" @root.user.username) "&&" (test "!" @root.user.isAdministrator ))}}
                     <td class="text-primary" title="{{i18n "labels.username"}}">{{> showName}}</td>
                     <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{access}}</td>
