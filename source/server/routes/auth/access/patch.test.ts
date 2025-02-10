@@ -47,6 +47,81 @@ describe("PATCH /auth/access/:scene", function(){
     ]);
   });
 
+  it("can use user ids", async function(){
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send({uid: opponent.uid, access: "write"})
+    .expect(204);
+    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      { "uid": 0, "username": "default", "access": "read" },
+      { "uid": 1, "username": "any", "access": "read" },
+      { "uid": user.uid, "username": "bob", "access": "admin" },
+      { "uid": opponent.uid, "username": "oscar", "access": "write" }
+    ]);
+  });
+
+  it("can set multiple accesses at once", async function(){
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send([
+      {uid: opponent.uid, access: "write"},
+      {username: admin.username, access: "admin"},
+    ])
+    .expect(204);
+
+    let perms = await userManager.getPermissions(titleSlug);
+    expect(perms).to.have.length(5);
+    expect(perms).to.deep.include.members([
+      { "uid": 0, "username": "default", "access": "read" },
+      { "uid": 1, "username": "any", "access": "read" },
+      { "uid": user.uid, "username": "bob", "access": "admin" },
+      { "uid": admin.uid, "username": "alice", "access": "admin" },
+      { "uid": opponent.uid, "username": "oscar", "access": "write" }
+    ]);
+  });
+
+  it("uses transaction isolation", async function(){
+    //ie. will not apply part of the PATCH if something fails down the line
+    
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send([
+      {username: admin.username, access: "write"},
+      {uid: opponent.uid+1, access: "read"},
+    ])
+    .expect(404);
+    
+    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      { "uid": 0, "username": "default", "access": "read" },
+      { "uid": 1, "username": "any", "access": "read" },
+      { "uid": user.uid, "username": "bob", "access": "admin" },
+    ]);
+  });
+
+  it("uses the same data format as GET", async function(){
+    //It's generally accepted practice for PATCh requests
+    let getRes = await request(this.server).get(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Accept", "application/json")
+    .expect(200);
+
+    expect(getRes.body).to.be.ok;
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send(getRes.body)
+    .expect(204);
+
+    let getAfter = await request(this.server).get(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Accept", "application/json")
+    .expect(200);
+    expect(getAfter.body).to.deep.equal(getRes.body);
+  });
+
   it("rejects invalid access levels", async function(){
     await request(this.server).patch(`/auth/access/${titleSlug}`)
     .auth(user.username, "12345678")
@@ -58,6 +133,14 @@ describe("PATCH /auth/access/:scene", function(){
       { "uid": 1, "username": "any", "access": "read" },
       { "uid": user.uid, "username": "bob", "access": "admin" },
     ]);
+  });
+
+  it("rejects invalid usernames", async function(){
+    await request(this.server).patch(`/auth/access/${titleSlug}`)
+    .auth(user.username, "12345678")
+    .set("Content-Type", "application/json")
+    .send({username: "made-up-user", access: "read"})
+    .expect(404);
   });
 
   it("can use access:\"none\" string to remove a user", async function(){

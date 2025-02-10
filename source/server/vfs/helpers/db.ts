@@ -92,3 +92,50 @@ export default async function open({filename, forceMigration=true} :DbOptions) :
   };
   return db as Database;
 }
+
+
+export type Isolate<that, T> = (this: that, vfs :that)=> T|Promise<T>;
+
+/**
+ * Base class to centralize database handling functions.
+ * Mainly: assigning an internal "db" property and setting up an isolate function
+ */
+export class DbController{
+
+    /**
+     * Direct-access to the underlying database
+     * Shouldn't be used outside of tests
+     */
+  public get _db(){
+    return this.db;
+  }
+  constructor(protected db:Database){}
+  /**
+   * Runs a sequence of methods in isolation
+   * Every calls to Vfs.db inside of the callback will be seriualized and wrapped in a transaction
+   * 
+   * @see Database.beginTransaction
+   */
+  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>{
+    const parent = this;
+    return await this.db.beginTransaction(async function isolatedTransaction(transaction){
+      let closed = false;
+      let that = new Proxy<typeof parent>(parent, {
+        get(target, prop, receiver){
+          if(prop === "db"){
+            return transaction;
+          }else if (prop === "isOpen"){
+            return !closed;
+          }
+          return Reflect.get(target, prop, receiver);
+        }
+      });
+      try{
+        return await fn.call(that, that);
+      }finally{
+        closed = true;
+      }
+    }) as T;
+  }
+}
+  

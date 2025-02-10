@@ -1,5 +1,5 @@
 
-import open, {Database} from "./helpers/db.js";
+import open, {Database, DbController} from "./helpers/db.js";
 import path from "path";
 import { InternalError, NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
@@ -7,14 +7,12 @@ import { FileProps } from "./types.js";
 
 export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
 
-export default abstract class BaseVfs{
+export default abstract class BaseVfs extends DbController{
 
-  constructor(protected rootDir :string, protected db :Database){}
+  constructor(protected rootDir :string, db :Database){
+    super(db);
+  }
 
-  /**
-   * Shouldn't be used outside of tests
-   */
-  public get _db(){return this.db; }
   public get uploadsDir(){ return path.join(this.rootDir, "uploads"); }
   public get objectsDir(){ return path.join(this.rootDir, "objects"); }
 

@@ -7,7 +7,7 @@ import uid, { Uid } from "../utils/uid.js";
 import { BadRequestError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import User, {SafeUser, StoredUser} from "./User.js";
 
-import openDatabase, {Database, DbOptions} from "../vfs/helpers/db.js";
+import openDatabase, {Database, DbController, DbOptions} from "../vfs/helpers/db.js";
 
 
 const scrypt :(
@@ -47,9 +47,7 @@ export type AccessMap = {[id: `${number}`|string]:AccessType};
 export const any_id = 1 as const;
 export const default_id = 0 as const;
 
-export default class UserManager {
-
-  constructor(private db :Database){}
+export default class UserManager extends DbController {
 
   static async open(opts :DbOptions){
     let db = await openDatabase(opts);
@@ -291,18 +289,20 @@ export default class UserManager {
    * > of existing values in the target.
    * 
    * This makes this method slightly unsafe because it can easily delete "any" and "default" entries from the access map, which we very much don't want.
-   * @param scene 
-   * @param username 
+   * @param scene scene name or id
+   * @param user username or user_id to grant access to
    * @param role 
    */
-  async grant(scene :string, username :string, role :AccessType){
+  async grant(scene :string|number, user :string|number, role :AccessType){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
+    let sceneKey = (typeof scene === "number")?"scene_id": "scene_name";
+    let userKey =  (typeof user === "number")? "user_id":"username";
     let r = await this.db.run(`
       UPDATE scenes
       SET access = json_patch(access, json_object( CAST(user_id AS TEXT), $role))
-      FROM (SELECT user_id FROM users WHERE username = $username)
-      WHERE scene_name = $scene
-    `, {$scene: scene, $username: username, $role: role});
+      FROM (SELECT user_id FROM users WHERE ${userKey} = $user)
+      WHERE ${sceneKey} = $scene
+    `, {$scene: scene, $user: user, $role: role});
     if(!r || !r.changes) throw new NotFoundError(`Can't find matching user or scene`);
     if(1 < r.changes) throw new InternalError(`grant permissions somehow modified multiple users`);
   }
