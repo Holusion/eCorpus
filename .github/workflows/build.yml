@@ -54,7 +54,7 @@ jobs:
           --log-level :debug
       - name: Upload artifact
         if: ${{ github.ref == 'refs/heads/gh_pages' }}
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
 
   # Deployment job
   deploy:
