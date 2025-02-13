@@ -90,6 +90,8 @@ titles:
   permissions: Droits d'accès
   archives: Scènes archivées
   rename: Renommer la scène
+  testEmail: Test du système d'email de {{what}}
+  testEmailVerify: Vérifications supplémentaires
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >
@@ -135,6 +137,13 @@ leads:
     Vous ne pouvez pas changer vos propres droits d'accès à cette scène. Si nécessaire, demandez de l'aide à un administrateur
   rename: >
     Attention: Changer le nom d'une scène cassera tous les liens qui pointent vers elle!
+  testEmail: >
+    Ceci est un email de test envoyé par <a href="https://{{hostname}}/ui/">{{hostname}}</a>.
+    Si vous le recevez et qu'il n'atterit pas dans les spams, c'est que votre instance est probablement bien configurée
+  testEmailDKIM: >
+    Afin d'assurer un bon taux de succès, il peut être utile de vérifier la <a href="">signature DKIM</a> du message.<br>
+    Pour GMAIL, vous pouvez utiliser l'outil <a href="https://postmaster.google.com">Postmaster Tools</a>.
+
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

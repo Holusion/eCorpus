@@ -30,7 +30,7 @@ routes.use("/", (req :Request, res:Response, next)=>{
  * Common properties for template rendering.
  * All props required for navbar/footer rendering should be set here
  */
-export function useTemplateProperties(req :Request, res:Response, next:NextFunction){
+export function useTemplateProperties(req :Request, res:Response, next?:NextFunction){
   const session = getSession(req);
   const user = getUser(req);
   const {search} = req.query;
@@ -45,7 +45,7 @@ export function useTemplateProperties(req :Request, res:Response, next:NextFunct
     location: req.originalUrl,
     search,
   })
-  next();
+  if(next) next();
 }
 
 routes.use("/", useTemplateProperties);

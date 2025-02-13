@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import sendmail from "../../utils/mails/send.js";
 import { getLocals, getUser } from "../../utils/locals.js";
 import { BadRequestError } from "../../utils/errors.js";
+import { useTemplateProperties } from "../views/index.js";
 
 /**
  * Send a test email
@@ -14,13 +15,16 @@ export default async function handleMailtest(req :Request, res :Response){
   if(!to){
     throw new BadRequestError("No email address found for user "+ requester);
   }
+  useTemplateProperties(req, res);
+  const mail_content = await getLocals(req).templates.render(`emails/test`, {
+    brand: config.brand,
+    hostname: config.hostname,
+  });
   let out = await sendmail({
     to, 
     subject: config.brand+" test email", 
-    html: [
-    `\t<h1>${config.brand} test email</h1>`,
-    `\t<p>This is a test email sent from the admin panel of ${config.hostname}</p>`,
-  ].join("\n")});
+    html: mail_content
+  });
 
   res.status(200).send(out);
 }

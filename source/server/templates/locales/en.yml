@@ -89,6 +89,8 @@ titles:
   permissions: Access rights
   archives: Archived Scenes
   rename: Rename this scene
+  testEmail: "{{what}} email system test"
+  testEmailVerify: Additional verifications
 tooltips:
   showPassword: Show the password's text
   permissions: >
@@ -135,7 +137,12 @@ leads:
   rename: >
     Changing a scene's name will break all existing links pointing to it.
     Proceed with care!
-
+  testEmail: >
+    This is a test message from <a href="https://{{hostname}}/ui/">{{hostname}}</a>.
+    If it lands in your inbox, your email setup is probably OK.
+  testEmailDKIM: >
+    To be extra safe and prevent (most) emails being flagged as SPAM, check the DKIM signature using tools like Google's 
+    <a href="https://postmaster.google.com">Postmaster Tools</a>.
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided
