@@ -27,7 +27,7 @@ Si, nous l'avons vu dans le tutoriel précèdent, les annotations sont l'outil p
 
 Les Articles sont très pratiques pour ajouter un contenu textuel et pictural pour illustrer vos propos et enrichir sémantiquement vos scènes.
 
-Le principe de création d'un article est assez similaire à celui de la création d'annotation. Chaque article créé est lié a un modèle 3D présent dans la scène. Contrairement aux annotations, le modèle sur lequel est créé un article n'a pas d'importance. Nous vous conseillons d'ailleurs de créer tous vos articles sur un seul et même modèle pour vous y retrouver plus facilement.
+Le principe de création d'un article est assez similaire à celui de la [création d'annotation](annotation). Chaque article créé est lié a un modèle 3D présent dans la scène. Contrairement aux annotations, le modèle sur lequel est créé un article n'a pas d'importance. Nous vous conseillons d'ailleurs de créer tous vos articles sur un seul et même modèle pour vous y retrouver plus facilement.
 
 (*les modèles 3D servent ici de rangement pour vos articles !*)
 

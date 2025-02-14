@@ -1,26 +1,28 @@
 ---
-title: Using the API
+title: Using of the API
 ---
 
-## Using the API
+## Use the API
 
-eCorpus provides a comprehensive API that build on DPO-Voyager's requirements.
+eCorpus provides a comprehensive API that covers the needs of DPO Voyager while adding user management interfaces, access rights control, organization of scenes into collections, and more...
+
+<div style="display:flex;justify-content:center">
+    <a class="button" href="/en/doc/references/api">API Documentation</a>
+</div>
 
 ### Authentication
 
-For command-line authentication, use an `Authorization` header with the value `Basic <base64(username:password)>`.
+To authenticate via command line, use an `Authorization` header with the value `Basic <base64(username:password)>`.
 
-Header encoding is handled automatically by most utilities. Example with curl:
+The header encoding is handled automatically by most utilities. Example with curl:
 
 ```bash
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com/[...]
 ```
 
-Get the full [API reference](/en/doc/references/api)
+### Scenes Organisation
 
-### /scenes API
-
-File organization:
+Files orgnisation :
 
 ```
 ├── foo/
@@ -39,10 +41,15 @@ File organization:
         └── bar-FR.html
 ```
 
-So to retrieve a:
+To retrieve a model:
 
 ```bash
 curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com//scenes/foo/models/foo.glb
 ```
 
-`GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` and `PROPFIND` methods are supported, with a behaviour that should conform to [RFC4918](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}, but don't expect Class 2 or even Class 1 compliance.
+The verbs `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` and `PROPFIND` are supported, with behavior generally conforming to the [specification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}. However, please note: This is a partial implementation of the specification.
+
+
+### API REST
+
+The API REST is documented via an [OpenAPI v3.1.0](https://spec.openapis.org/oas/v3.1.0) schema, which can be downloaded here: [openapi.yml](https://raw.githubusercontent.com/Holusion/eCorpus/gh_pages//_data/openapi.yml). The API is presented in a readable format on this site at the following page: [https://ecorpus.eu/en/doc/references/api](/en/doc/references/api).

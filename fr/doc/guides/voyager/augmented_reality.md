@@ -24,8 +24,8 @@ Les systèmes d'exploitation **iOS** et **Android** demandent une implémentatio
 * [Smartphone (Android)](#smartphone-android)
     * [Mise à jour du SVX](#mise-à-jour-du-svx-1)
     * [Chargement du SVX](#chargement-du-svx-1)
-    * [Générer le USDZ](#générer-le-glb)
-    * [Importer le USDZ](#importer-le-glb)
+    * [Générer le GLB](#générer-le-glb)
+    * [Importer le GLB](#importer-le-glb)
 
 ### iPhone (iOs)
 
