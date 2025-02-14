@@ -231,11 +231,9 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       //We try to NOT send the header for browser requests because we prefer the HTML login to the browser's popup
       //Browser tends to prefer text/html and always send Mozilla/5.0 at the beginning of their user-agent
       //If someone has customized their headers, they'll get the ugly popup and live with it.
-      && !(req.get("Accept")?.startsWith("text/html") && req.get("User-Agent")?.startsWith("Mozilla"))
+      && !req.get("User-Agent")?.startsWith("Mozilla")
       //Also don't apply it for login route because it doesn't make any sense.
       && req.path !== "/auth/login"
-      
-      //&& !req.get("Authorization")
     ){
       res.set("WWW-Authenticate", "Basic realm=\"authenticated access\"");
     }

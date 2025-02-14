@@ -41,10 +41,10 @@ router.propfind("/", wrap(handlePropfind));
 router.post("/", isAdministrator, wrap(postScenes));
 
 //allow POST outside of canRead : overwrite permissions are otherwise checked
-router.post("/:scene", wrap(postScene));
+router.post("/:scene", isUser, wrap(postScene));
 
 //Allow mkcol outside of canRead check
-router.mkcol(`/:scene`, wrap(handleCreateScene));
+router.mkcol(`/:scene`, isUser, wrap(handleCreateScene));
 
 /**
  * Protect everything after this with canRead handler
