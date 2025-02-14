@@ -6,7 +6,7 @@ ARG BUILD_REF
 ################### 
 # Build source
 ###################
-FROM node:22-alpine as build
+FROM node:22-slim AS build
 RUN mkdir -p /app/dist /app/source
 WORKDIR /app
 
@@ -37,7 +37,7 @@ RUN npm run build-ui
 ################### 
 # The actual container to be published
 ###################
-FROM node:16-alpine
+FROM node:22-slim
 LABEL org.opencontainers.image.source=https://github.com/Holusion/eCorpus
 LABEL org.opencontainers.image.description="eCorpus base image"
 LABEL org.opencontainers.image.licenses=Apache
