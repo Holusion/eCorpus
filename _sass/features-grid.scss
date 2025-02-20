@@ -1,0 +1,45 @@
+@import "./variables";
+
+.features-grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto;
+  gap: 1rem;
+
+  .feature-col{
+    display: flex;
+    grid-auto-rows: auto;
+    flex-direction: column;
+    justify-content: stretch;
+    border: 1px solid #E6B900;
+    border-radius: 4px;
+
+    .feature-header{
+      margin-top: 0;
+      padding-top: .5rem;
+      background-color: $yellow;
+      height: 3rem;
+      text-align: center;
+    }
+    .feature-headline{
+      text-align: center;
+      height: 3rem;
+    }
+    .feature-list{
+      &::before{
+        content: "";
+        margin-right: 40px;
+        display: block;
+        border-top: 2px solid $yellow;
+      }
+      list-style: none;
+      ul{
+        list-style-type: "✓";
+        li::marker{
+          font-weight: bold;
+          color: $yellow;
+        }
+      }
+    }
+  }
+}
