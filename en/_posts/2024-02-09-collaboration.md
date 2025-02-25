@@ -5,14 +5,12 @@ tags: [dev]
 
 As any web-based tool, the Smithsonian Digitization Office's [Voyager Story](https://smithsonian.github.io/) editor is susceptible to being used in parallel by multiple peoples. This becomes a problem when two people are editing the same file at the same time, as the last one to save will overwrite the other's changes.
 
- Nothing natively protects against this in the original architecture, because it's not something that seems to happen in the authors' pipeline.
-
-However as we target learning environments more and more, it has become one of our most requested features.
+Nothing natively protects against this in the original architecture. However as we target learning environments more and more, it has become one of our most requested features.
 
 
-This is the first part in a series of articles describing the work done to make the Smithsonian Voyager Story editor collaborative.
+This article aims at describing the work done to make the Smithsonian Voyager Story editor collaborative.
 
-In this article we will describe the problem and the general approach we took to solve it. The next articles will describe the important technical aspects.
+We will describe the problem and the general approach we took to solve it, glossing over some important technical aspects.
 
 ## Defining our goals
 
@@ -124,7 +122,7 @@ Due to the browser's cache being very efficient, asset files are generally alrea
 
 To avoid this, we prototyped an internal cache of parsed `Object3D` that our models can reuse. This way, when a model is recreated it can reuse the cached `Object3D` instead of having to parse the file again. The renderer will detect that textures and geometries hasn't changed and will skip the transfer to the GPU.
 
-## Wrapping up
+### Wrapping up
 
 With a way to detect concurrent changes and a way to merge them, most collaboration use case would be covered. 
 
