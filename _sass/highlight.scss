@@ -1,6 +1,6 @@
 @import "./variables";
 
-.highlight{
+pre.highlight{
   padding: 1rem;
 }
 
@@ -8,9 +8,9 @@ pre code{
   overflow-x: auto;
 }
 
-/* inline code */
+	/* inline code only*/
 code.highlighter-rouge{
-	background-color: transparentize($yellow2, 0.6);
+	background-color: transparentize($yellow2, 0.4);
 }
 
 /* code blocks */
