@@ -8,12 +8,13 @@ import wrap from "../../utils/wrapAsync.js";
 
 import getScenes from "./get.js";
 import {handlePropfind} from "./propfind.js";
-import postScenes from "./post.js";
+import handlePostScenes from "./post.js";
 
 import handleDeleteScene from "./scene/delete.js";
 import handleCreateScene from "./scene/mkcol.js";
-import getScene from "./scene/get.js";
-import patchScene from "./scene/patch.js";
+import handleGetScene from "./scene/get.js";
+import handlePatchScene from "./scene/patch.js";
+import handlePostScene from "./scene/post.js";
 
 import handleDeleteFile from "./scene/files/delete/file.js";
 import handleGetDocument from "./scene/files/get/document.js";
@@ -22,7 +23,6 @@ import handleMoveFile from "./scene/files/move/file.js";
 import handlePutDocument from "./scene/files/put/document.js";
 import handlePutFile from "./scene/files/put/file.js";
 import handleCreateFolder from "./scene/files/mkcol/folder.js";
-import postScene from "./scene/post.js";
 
 
 
@@ -38,10 +38,10 @@ router.use((req, res, next)=>{
 
 router.get("/", wrap(getScenes));
 router.propfind("/", wrap(handlePropfind));
-router.post("/", isAdministrator, wrap(postScenes));
+router.post("/", isAdministrator, wrap(handlePostScenes));
 
 //allow POST outside of canRead : overwrite permissions are otherwise checked
-router.post("/:scene", isUser, wrap(postScene));
+router.post("/:scene", isUser, wrap(handlePostScene));
 
 //Allow mkcol outside of canRead check
 router.mkcol(`/:scene`, isUser, wrap(handleCreateScene));
@@ -51,9 +51,9 @@ router.mkcol(`/:scene`, isUser, wrap(handleCreateScene));
  */
 router.use("/:scene", canRead);
 
-router.get("/:scene", wrap(getScene));
+router.get("/:scene", wrap(handleGetScene));
 router.propfind("/:scene", wrap(handlePropfind));
-router.patch("/:scene", canAdmin,  bodyParser.json(), wrap(patchScene));
+router.patch("/:scene", canAdmin,  bodyParser.json(), wrap(handlePatchScene));
 router.delete("/:scene", canAdmin, wrap(handleDeleteScene));
 
 

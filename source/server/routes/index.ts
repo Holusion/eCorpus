@@ -8,16 +8,16 @@ import express, { Request, Response } from "express";
 
 import UserManager from "../auth/UserManager.js";
 import { BadRequestError, HTTPError, UnauthorizedError } from "../utils/errors.js";
+import { errorHandlerMdw, LogLevel } from "../utils/errorHandler.js";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, canRead, canWrite, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
+import {AppLocals, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
 
 import openDatabase from "../vfs/helpers/db.js";
 import Vfs from "../vfs/index.js";
 import defaultConfig from "../utils/config.js";
 import User from "../auth/User.js";
 import Templates from "../utils/templates.js";
-import { useTemplateProperties } from "./views/index.js";
 
 
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
@@ -183,7 +183,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     res.redirect(301, dest.pathname);
   }, `/api/v1 routes are deprecated. Use the new shorter naming scheme`));
 
-  const log_errors = config.verbose || debuglog("http:errors").enabled;
+  const logLevel = (config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
   const isTTY = process.stderr.isTTY;
 
   // error handling
@@ -212,50 +212,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   // istanbul ignore next
   //@ts-ignore
-  app.use((error, req, res, next) => {
-    if(log_errors) console.error(isTTY ? error : util.inspect(error, {
-      compact: 3,
-      breakLength: Infinity,
-    }).replace(/\n/g,"\\n"));
-    else if(error.code === 500 || !error.code) console.error("Request error", error.message);
-    
-    if (res.headersSent) {
-      console.warn("An error happened after headers were sent for %s : %s", req.method, req.originalUrl);
-      return next(error);
-    }
-    let code = (error instanceof HTTPError )? error.code : 500;
-
-    if(code === 401 
-      //If a user is already logged-in, there is no point in telling him to auth to access something
-      && getUser(req).isDefaultUser
-      //We try to NOT send the header for browser requests because we prefer the HTML login to the browser's popup
-      //Browser tends to prefer text/html and always send Mozilla/5.0 at the beginning of their user-agent
-      //If someone has customized their headers, they'll get the ugly popup and live with it.
-      && !req.get("User-Agent")?.startsWith("Mozilla")
-      //Also don't apply it for login route because it doesn't make any sense.
-      && req.path !== "/auth/login"
-    ){
-      res.set("WWW-Authenticate", "Basic realm=\"authenticated access\"");
-    }
-
-    res.format({
-      "application/json": ()=> {
-        res.status(code).send({ code, message: `${error.name}: ${error.message}` })
-      },
-      "text/html": ()=>{
-        // send error page
-        useTemplateProperties(req, res, ()=>{
-          res.status(code).render("error", { 
-            error,
-          });
-        });
-      },
-      "text/plain": ()=>{
-        res.status(code).send(error.message);
-      },
-      default: ()=> res.status(code).send(error.message),
-    });
-  });
+  app.use(errorHandlerMdw({isTTY, logLevel}));
 
   return app;
 }

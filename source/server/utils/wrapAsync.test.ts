@@ -4,6 +4,7 @@ import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 
 import wrap, { wrapFormat } from "./wrapAsync.js";
+import EventEmitter, { once } from "events";
 
 
 describe("wrapAsync", function(){
