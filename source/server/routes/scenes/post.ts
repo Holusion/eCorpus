@@ -51,13 +51,15 @@ export default async function postScenes(req :Request, res :Response){
     let scenes = new Map<string, Set<string>>();
 
     const onEntry = async (record :Entry) =>{
-      const pathParts = record.fileName.split("/");
+      const pathParts = record.fileName.split("/").filter(p=>!!p);
       if(pathParts[0] == "scenes") pathParts.shift();
+      if(pathParts.length === 0) return; //Skip "scenes/"
       const scene = pathParts.shift();
       const name = pathParts.join("/");
       if(!record.fileName.endsWith("/")) pathParts.pop();//Drop the file name unless it's a directory
 
       if(!scene){
+        console.log("Not matching on ", record);
         results.fail.push(`${record.fileName}: not matching pattern`);
         return
       }
