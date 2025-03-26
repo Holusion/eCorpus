@@ -1,4 +1,4 @@
-<div class="scene-card">
+<div id="scene-{{id}}" class="scene-card">
   <a class="card-image" href="/ui/scenes/{{encodeURIComponent name}}" title="{{i18n "labels.view"}}">
     {{#if thumb }}
       <img src="{{thumb}}" />
@@ -10,7 +10,7 @@
     <div class="infos">
       <a href="/ui/scenes/{{encodeURIComponent name}}" class="card-header">
         <h4 class="card-title">{{name}}</h4>
-        <ui-icon name="info"></ui-icon>
+        <sup class="card-title-sup"><ui-icon name="info"></ui-icon></sup>
       </a>
       <span class="card-time">{{#if mtime}}{{dateString mtime}}{{/if}}</span>
     </div>
@@ -28,4 +28,7 @@
       {{/unless}}
     </div>
   </div>
+  {{#if select_form }}
+  <input type="checkbox" form="{{select_form}}" name="id" value="{{id}}" style="position: absolute; top: 2px; left: 2px">
+  {{/if}}
 </div>

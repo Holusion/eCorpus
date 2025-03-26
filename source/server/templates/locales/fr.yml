@@ -19,6 +19,7 @@ labels:
   sendLoginLink: Envoyer un lien
   view: Voir
   edit: Editer
+  properties: Info
   localization_one: Langue de la scène
   localization_other: Langues de la scène
   setupLocalization: Langue par défaut
@@ -34,6 +35,7 @@ buttons:
   searchScene: chercher une scène
   upload: créer une scène
   download: Télécharger la scène
+  downloadSelection: Télécharger la sélection
   useStandalone: utiliser le mode Standalone
   logout: Déconnecter
   next: "Page Suivante"
@@ -45,6 +47,8 @@ buttons:
   history: Historique
   rename: Renommer
   cancel: Annuler
+  selectAll: Sélectionner tout
+  deselectAll: Déselectionner tout
 fields:
   name: nom
   author: auteur
@@ -112,6 +116,8 @@ leads:
     Editer la scène avec Voyager-Story
   showScene: >
     Voir la scène avec Voyager-Explorer
+  showSceneProps: >
+    Voir les propriétés de la scène
   noResults: >
     Aucun résultat. Affinez votre recherche ou revenez en arrière
   archiveDelete: >

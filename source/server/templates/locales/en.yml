@@ -19,6 +19,7 @@ labels:
   sendLoginLink: Send a login link
   view: View
   edit: Edit
+  properties: Properties
   localization_one: Scene language
   localization_other: Scene languages
   setupLocalization: Default language
@@ -42,8 +43,11 @@ buttons:
   showTags: Cancel edition
   history: Scene History
   download: Download this scene
+  downloadSelection: Download selected scenes
   rename: Rename
   cancel: Cancel
+  selectAll: Select all
+  deselectAll: Deselect all
 fields:
   name: name
   author: author
@@ -110,6 +114,8 @@ leads:
     Modify this scene with Voyager-Story
   showScene: >
     Show this scene with Voyager-Explorer
+  showSceneProps: >
+    Show scene properties
   noResults: >
     No results. Maybe try to change your query?
   archiveDelete: >

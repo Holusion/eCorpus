@@ -19,6 +19,15 @@
     box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
   }
 
+
+  &:has( > input[type="checkbox"]:checked){
+    background-color: var(--color-secondary);
+    color: white !important;
+    &:hover{
+      background-color: var(--color-secondary-light);
+      border-color: var(--color-secondary);
+    }
+  }
   .card-image{
     flex: 0 0 auto;
     >img{
@@ -83,12 +92,23 @@
   }
 
   .card-title{
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     margin:0;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    &:hover{
+      color: var(--color-secondary-light);
+    }
+  }
+
+  .card-title-sup{
+    line-height: 100%;
+    color: var(--color-highlight2);
+    &:hover{
+      color: var(--color-secondary-light);
+    }
   }
 
   .card-time{

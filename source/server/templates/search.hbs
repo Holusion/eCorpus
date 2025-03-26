@@ -26,15 +26,23 @@
   </div>
 
   <div class="grid-toolbar">
-{{!-- 
-      ${(this.selection.length)?html`
-      <div class="section">
-        <h4 style="margin-top:0">${this.t("ui.tools")}</h4>
-        <a class="btn btn-main btn-icon" download href="/scenes?${
-                  this.selection.map(name=>`name=${encodeURIComponent(name)}`).join(" &") }&format=zip">
-          Download Zip
-        </a>
-      </div>`: null} --}}
+    <scene-selection class="section" style="display: none">
+      <h3 >{{i18n "titles.tools"}}</h3>
+      <form class="form-control" id="scene-selection" >
+        <div class="form-group column">
+          <a class="btn btn-main btn-icon" download href="/scenes?limit=0&format=zip" id="selection-download">
+            {{i18n "buttons.downloadSelection"}}
+          </a>
+          <button id="selection-selectAll" class="btn btn-main btn-icon">
+            {{i18n "buttons.selectAll"}}
+          </button>
+          <button type="reset" id="selection-deselectAll" class="btn btn-main btn-icon">
+            {{i18n "buttons.deselectAll"}}
+          </button>
+        </div>
+      </form>
+
+    </scene-selection>
     <section style="position: sticky; top: calc(var(--nav-height) + 1rem)">
       <form autocomplete="off" id="search" class="form-control" method="GET" action="/ui/scenes">
         <div style="display:flex;justify-content:space-between;">
@@ -80,7 +88,7 @@
   <div class="grid-content list-items section" style="width:100%">
 
     {{#each scenes}}
-      {{>sceneCard }}
+      {{>sceneCard select_form="scene-selection" }}
     {{/each}}
     <div style="display:flex; justify-content: space-between;margin-top: 1rem;">
       {{#if pager.previous}}
