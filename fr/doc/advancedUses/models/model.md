@@ -1,6 +1,6 @@
 ---
 title: Préparer un modèle 3D
-rank: 2
+rank: 4
 ---
 
 ## Les modèles 3D pris en charge par eCorpus.
@@ -24,7 +24,22 @@ Ce format est libre, il est défini par le Consotirum Khronos. Sa documentation 
 
     * [Wavefront (.OBJ)](#a-partir-dune-numérisation-3d-en-obj)
 
-    * [Standfort PLY (.PLY)](#a-partir-dun-format-ply)
+    * [Sta
+
+    Comprendre les matériaux de son objet 3D
+
+    Tester l’import de son modèle 3D sur eCorpus
+
+    Importer son modèle sur Blender
+
+    Les spécifités des formats
+
+        STL (.stl)
+
+        Wavefront (.OBJ)
+
+        Standfort PLY (.PLY)
+ndfort PLY (.PLY)](#a-partir-dun-format-ply)
 
     * [FBX (.FBX)](#a-partir-dun-format-fbx)
 
@@ -110,9 +125,7 @@ Pour importer un modèle 3D, veuillez vous rendre dans la barre d'onglets tout e
 
 ##### Ajouter un add-on
 La procèdure est la même, quel que soit le format à importer. Si votre format de modèle 3D ne se trouve pas dans la liste, il se peut qu'un add-on soit disponible pour vous permettre de l'ajouter à la liste:
-
-* Edit> Preferences> Add-ons
-
+references
 Tapez le nom du format à importer dans la barre de recherche. Il vous suffit ensuite de cocher la case de l'add-on à ajouter.
 
 *Il se peut que Blender ne se mette pas tout de suite à jour après avoir ajouter un add-on. N'hésitez pas à fermer et rouvrir Blender pour que les changements soient pris en compte.*

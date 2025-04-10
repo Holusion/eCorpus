@@ -1,12 +1,13 @@
 ---
 title:  Développement
+rank: 10
 ---
 
 # Développement
 
 ## Mise en route
 
-Voir le [guide d'installation rapide](/fr/doc/guides/deployment).
+Voir le [guide d'installation rapide](/fr/doc/administration/deployment).
 
 Utiliser la commande : `npm run watch` pour activer la recompilation automatique.
 
@@ -60,9 +61,7 @@ Pour supprimer les éventuelles modifications locales apportées aux sous-module
 ```
 git submodule foreach --recursive git reset --hard
 ```
-
-### Synchronisation avec le dépôt d'origine
-
+Outils
 Ce dépôt est régulièrement synchronisé avec [upstream](https://github.com/Smithsonian/dpo-voyager){:target="_blank"}. Les modifications sont apportées dans une branche `master` et sont fusionnées avec la branche `upstream/master`. Il est important de garder le portage de code le plus simple possible (voir par exemple : [friendly forks management](https://github.blog/2022-05-02-friend-zone-strategies-friendly-fork-management/#git-for-windows-git){:target="_blank"}).
 
 ```

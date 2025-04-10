@@ -1,5 +1,6 @@
 ---
 title: Exigences matérielles
+rank: 2
 ---
 
 ## Exigences matérielles

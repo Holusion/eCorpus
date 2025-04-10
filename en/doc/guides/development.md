@@ -6,7 +6,7 @@ title:  Development
 
 ### Getting Started
 
-See the [quick installation guide](/fr/doc/guides/deployment).
+See the [quick installation guide](/fr/doc/administration/deployment).
 
 Use the command: `npm run watch` to enable automatic recompilation.
 

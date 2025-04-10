@@ -1,5 +1,6 @@
 ---
 title: Réalité Augmentée
+rank: 10
 ---
 
 ## Réalité augmentée
@@ -36,12 +37,12 @@ Ce module utilise l'[ARKit](https://developer.apple.com/augmented-reality/arkit/
 **Prérequis :** 
 
 - être familier avec la structure de données des scènes eCorpus. Celle-ci est héritée du [format de document SVX de la scène Voyager](https://smithsonian.github.io/dpo-voyager/document/overview/). 
-- savoir utiliser les [API](/fr/doc/guides/import_export) de eCorpus pour modifier les fichiers de la scène.
+- savoir utiliser les [API](/fr/doc/utilisationAvancee/api) de eCorpus pour modifier les fichiers de la scène.
 
 
 **Ajouter le modèle AR dans le SVX**
 
-Récupérer le SVX de la scène à partir de l'interface ou [à partir de l'API](/fr/doc/guides/import_export).
+Récupérer le SVX de la scène à partir de l'interface ou [à partir de l'API](/fr/doc/utilisationAvancee/api.md).
 
 
 Editer la section derivative pour ajouter un nouvel élement avec les informations suivantes :
@@ -113,11 +114,11 @@ Ce module utilise les fonctionnalités d'Android et des modèles 3D au format gl
 **Prérequis:**
 
 - être familier avec la structure de données des scènes eCorpus. Celle-ci est héritée du [format de document SVX de la scène Voyager](https://smithsonian.github.io/dpo-voyager/document/overview/). 
-- savoir utiliser les [API](/fr/doc/guides/import_export) de eCorpus pour modifier les fichiers de la scène.
+- savoir utiliser les [API](/fr/doc/utilisationAvancee/api) de eCorpus pour modifier les fichiers de la scène.
 
 **Ajouter le modèle AR dans le SVX**
 
-Récupérer le SVX de la scène à partir de l'interface ou [à partir de l'API](/fr/doc/guides/import_export).
+Récupérer le SVX de la scène à partir de l'interface ou [à partir de l'API](/fr/doc/utilisationAvancee/api).
 
 
 Editer la section derivative pour ajouter un nouvel élement avec les informations suivantes :

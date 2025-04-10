@@ -1,6 +1,6 @@
 ---
-title: Guide avancé sur les Matériaux 3D
-rank: 7
+title: Guide sur les matériaux 3D
+rank: 8
 ---
 
 ## Guide avancé sur les Matériaux 3D

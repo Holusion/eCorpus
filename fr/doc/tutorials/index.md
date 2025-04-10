@@ -36,8 +36,8 @@ Pour se faire, glisser simplement votre modèle en GLB dans la scène ci-dessus.
 
 ## Tutoriels
 
-* [Connexion à votre compte eCorpus](edition/compte)
-* [Importer un modèle 3D ](edition/import)
-* [Ajouter des annotations](edition/annotation)
-* [Créer des articles](edition/article)
-* [Préparer une visite guidée](edition/tours)
+* [Connexion à votre compte eCorpus](compte)
+* [Importer un modèle 3D ](import)
+* [Ajouter des annotations](annotation)
+* [Créer des articles](article)
+* [Préparer une visite guidée](tours)
