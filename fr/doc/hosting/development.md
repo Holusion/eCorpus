@@ -7,7 +7,7 @@ rank: 10
 
 ## Mise en route
 
-Voir le [guide d'installation rapide](/fr/doc/administration/deployment).
+Voir le [guide d'installation rapide](/fr/doc/hosting/deployment).
 
 Utiliser la commande : `npm run watch` pour activer la recompilation automatique.
 

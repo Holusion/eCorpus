@@ -41,6 +41,6 @@ Rendez-vous à l'adresse [localhost:8000](http://localhost:8000){:target="_blank
 
 À partir de là, vous pouvez [créer votre première scène](/fr/doc/tutorials).
 
-Si vous souhaitez éditer le code source, réferez-vous au [guide de développement](/fr/doc/administration/development).
+Si vous souhaitez éditer le code source, réferez-vous au [guide de développement](/fr/doc/hosting/development).
 
-Pour configurer votre nouvelle instance, consultez la [documentation de configuration](/fr/doc/administration/configuration).
+Pour configurer votre nouvelle instance, consultez la [documentation de configuration](/fr/doc/hosting/configuration).

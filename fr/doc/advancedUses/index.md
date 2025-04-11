@@ -7,7 +7,7 @@ rank: 0
 
 * [Introduction](models/index)
 * [Scanner et importer un modèle](models/import)
-* [Préparer un modèle 3D](models/model.md)
+* [Préparer un modèle 3D](models/model)
 * [Optimiser un modèle 3D](models/optimizing_models)
 * [Guide avancé sur les matériaux](models/materials)
 
@@ -22,7 +22,7 @@ Son expression la plus simple est que l'on peut facilement télécharger une par
 
 Il est également possible d'utiliser l'API de eCorpus pour faire les exports
  
- * [Utiliser l'API](hosting/api)
+ * [Utiliser l'API](../hosting/api)
 
 ## Gestion des utilisateurs
 
