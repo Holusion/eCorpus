@@ -29,15 +29,15 @@ Pour se faire, glisser simplement votre modèle en GLB dans la scène ci-dessus.
 
 *Attention ! Cette scène ne peut pas être sauvegardé, tout changement réalisé sera perdu.*
 
-* Si vous souhaitez en savoir plus sur l'importation des modèles sur eCorpus, veuillez vous referrer à <a href="edition/import">ce guide</a>.
+* Si vous souhaitez en savoir plus sur l'importation des modèles sur eCorpus, veuillez vous referrer à <a href="import">ce guide</a>.
 
 
 [Cliquez ici pour accèder à la scène test Standalone](https://ecorpus.fr-scv.fr/ui/standalone)
 
 ## Tutoriels
 
-* [Connexion à votre compte eCorpus](edition/compte)
-* [Importer un modèle 3D ](edition/import)
-* [Ajouter des annotations](edition/annotation)
-* [Créer des articles](edition/article)
-* [Préparer une visite guidée](edition/tours)
+* [Connexion à votre compte eCorpus](compte)
+* [Importer un modèle 3D ](import)
+* [Ajouter des annotations](annotation)
+* [Créer des articles](article)
+* [Préparer une visite guidée](tours)

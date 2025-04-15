@@ -21,11 +21,11 @@ rank: 1
 
 Pour fonctionner, un serveur eCorpus doit être mis en place. eCorpus est **décentralisé** et fonctionne sur des **instances indépendantes** les unes les autres pour garantir la pleine **souverainté des données** de chacun. **Les données restent interopérables** et peuvent être facilement échangées entre utilisateurs.
 
-* Pour **créer votre propre serveur eCorpus**, vous pouvez vous reporter à la section : <a href="../../guides/deployment.html">Installation d'un serveur eCorpus</a>.
+* Pour **créer votre propre serveur eCorpus**, vous pouvez vous reporter à la section : <a href="../hosting/deployment">Installation d'un serveur eCorpus</a>.
 
 Si votre organisation possède un serveur eCorpus, rapprochez-vous de votre référend ou un administateur pour la création de votre compte.
 
-* **Si vous êtes administateur** d'une instance eCorpus, vous pouvez consulter le tutoriel : <a href="../../references/administration/index.html">Administrer un serveur eCorpus</a>.
+* **Si vous êtes administateur** d'une instance eCorpus, vous pouvez consulter les tutoriels : <a href="../advancedUses/userAdministration">Gestion des utilisateurs</a> et <a href="../advancedUses/exportData">Export de données</a>.. 
 
 ### Connexion à votre compte
 
@@ -62,7 +62,7 @@ Une fois rendu, cliquez sur le bouton "**Choisir un fichier**". Un pop-up appara
 Enfin, nommez votre scène (ce nom sera directement visible dans l'URL, par conséquent, veuillez éviter les caractères spéciaux), sélectionner la langue par défaut de votre, et cliquer sur le bouton "**créer une scène**" pour lancer l'import de votre modèle 3D dans la base de données.
 
 
-* Seule l'extension .glb est utilisable sur l'editeur eCorpus. Pour apprendre à exporter un modèle en .glb, veuillez vous réferrer à ce guide: <a href="model">Préparer son modèle 3D</a>.
+* Seule l'extension .glb est utilisable sur l'editeur eCorpus. Pour apprendre à exporter un modèle en .glb, veuillez vous réferrer à ce guide: <a href="../advancedUses/models/model">Préparer son modèle 3D</a>.
 
 ### Récupération de mot de passe
 
@@ -91,7 +91,7 @@ Prenez contact avec l'équipe de eCorpus pour vous accompagner dans la mise en p
 
 
 ## En savoir plus
-Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="model">Préparer son modèle 3D</a>.
+Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="../advancedUses/models/model">Préparer son modèle 3D</a>.
 
 
 * [Revenir en haut de la page](#votre-compte-ecorpus)

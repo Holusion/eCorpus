@@ -1,5 +1,5 @@
 ---
-title: Importer un modèle sur eCorpus
+title: Créer une scène
 rank: 3
 ---
 
@@ -22,6 +22,7 @@ eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser d
     * [Editer sa scène](#le-bouton-editer)
     * [Administrer sa scène](#administrer-sa-scène)
 * [Les bases pour un bon paramètrage de scène](#les-bases-pour-bien-paramètrer-sa-scène-rapidement)
+    * [Aperçu rapide de l'interface de Voyager Story](#aperçu-rapide-de-linterface-de-voyager-story)
     * [Les contrôles de base](#les-contrôles-de-base)
     * [Créer une image de miniature](#créer-une-image-de-miniature)
     * [Recentrer un objet dans la scène](#centrer-son-modèle-automatiquement)
@@ -80,11 +81,11 @@ Voyons d'abord les différents status de droit que vous pouvez attribuer à chac
 
 Maintenant, concentrons nous sur les différents utilisateurs listés:
 
-* **Default**: Concerne tous les visiteurs du lien, y compris les personnes non identifiées sur la base de donnée.
+* **Accès Public**: Concerne tous les visiteurs du lien, y compris les personnes non identifiées sur la base de donnée.
 
 _Si votre scène est visible en public, nous vous conseillons de lui attribuer un droit "Lecture"_
 
-* **Any**: Concerne tous les membres ayant un compte sur votre base de donnée
+* **Utilisateur Authentifié**: Concerne tous les membres ayant un compte sur votre base de donnée
 
 Vous pouvez ajouter un nom d'utilisateur pour lui donner des droits spécifiques. Il suffit d'écrire son nom d'utilisateur exacte et de cliquer sur "**+**".
 
@@ -110,7 +111,8 @@ Télécharger votre scène eCorpus permet, par exemple:
 
 * de récupérer les modèles de votre base de donnée pour une utilisation quelquonque (impression 3D, édition du modèle, etc...);
 * de copier votre scène sur une autre base de données eCorpus;
-* de charger votre scène sur une vitrine holographique interactive.
+* de charger votre scène sur####  Aperçu rapide de l'interface de Voyager Story 
+ une vitrine holographique interactive.
 
 ##### Historique
 
@@ -128,6 +130,37 @@ Si vous avez sauvegardé une mauvaise version de votre scène, vous pouvez resta
 
 
 ### Les bases pour bien paramètrer sa scène rapidement
+
+####  Aperçu rapide de l'interface de Voyager Story 
+
+Les différentes options sont détaillée au fil des sections qui suivent.
+
+##### pour éditez votre scène
+  <div class="section">
+    <ul>
+      <li>{% include sv_button.html name="pose" icon="move" %} Positionner et redimensionner le modèle.</li>
+      <li>{% include sv_button.html name="capture" icon="camera" %} Prendre des captures d'écran et enregistrer l'état de la scène.</li>
+      <li>{% include sv_button.html name="derivatives" icon="hierarchy" %} Gérer les dérivés (différents niveaux de détail).</li>
+      <li>{% include sv_button.html name="annotations" icon="comment" %} Créer et modifier des annotations.</li>
+      <li>{% include sv_button.html name="articles" icon="file" %} Créer et éditer des articles.</li>
+      <li>{% include sv_button.html name="visites" icon="globe" %}  Créer et modifier des visites guidées.</li>
+      <li>{% include sv_button.html name="audio" icon="audio" %}  Ajouter et organiser des audios.</li>
+      <li>{% include sv_button.html name="parametres" icon="eye" %}  Éditer les paramètres de la scène.</li>
+    </ul>
+  </div>
+
+##### pour explorer votre scène
+  
+  <div class="section">
+      <ul>
+        <li>{% include sv_button.html icon="globe" %} Afficher les visites guidées.</li>
+        <li>{% include sv_button.html icon="file" %} Afficher les articles.</li>
+        <li>{% include sv_button.html icon="comment" %} Afficher les annotations.</li>
+        <li>{% include sv_button.html icon="share" %} Partager la scène.</li>
+        <li>{% include sv_button.html icon="expand" %} Mode plein écran.</li>
+        <li>{% include sv_button.html icon="tools" %} Outils et paramètres.</li>
+      </ul>
+    </div>
 
 
 ####  Les contrôles de base
@@ -202,8 +235,6 @@ Vous recentrer facilement votre modèle, il vous suffit de cliquer sur le bouton
 Il se peut que le recentrage automatique ne suffise pas à règler les problèmes de placement. Pour replacer votre modèle manuellement, il vous suffit de changer les valeurs dans les emplacements de Position. 
 
 Un tutoriel avancé sur l'édition du point de pivot de votre objet sera bientôt disponible sur la plateforme.
-
-
 
 
 ## En savoir plus

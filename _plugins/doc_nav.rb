@@ -48,7 +48,7 @@ module Jekyll
             :url => doc.url,
             :children =>(current_hash.has_key?(last_part)) ? current_hash[last_part][:children]: {},
             :visible => doc.data.has_key?("visible")? doc.data["visible"] : true
-          } if doc.data["visible"] != false
+          }# if doc.data["visible"] != false
         end
 
         return tree
@@ -62,14 +62,15 @@ module Jekyll
         url = item[:url] || ""
 
         markup = %(<li class="list-group-item content-bar--link#{is_active ? " current" : ""}">)
+      
 
-        if item[:children].empty?
+        if item[:children].empty? && item[:visible]
           markup += %(<a class="list-group-leaf" href="#{url}">#{title}</a>)
-        else
+        elsif !item[:children].empty? && item[:children].any? {|child| child[1][:visible]}
           sorted_children = item[:children].sort_by { |key, val| val.has_key?(:rank)? val[:rank] : 0 }
           child_nodes = sorted_children.map do |childKey, child|
             render_item(path+"/#{childKey}", child, active_uri)
-          end
+        end
 
           markup += %(
             <a class="dropdown-toggle" role="button" 
@@ -85,7 +86,7 @@ module Jekyll
               id="collapseList#{uid}"
             >
           )
-          if url and 0 < url.length
+          if url and 0 < url.length and item[:visible]
             markup += %(
               <li class="list-group-item content-bar--link#{url == active_uri ? " current": ""}">
                 <a href="#{url}">Introduction</a>

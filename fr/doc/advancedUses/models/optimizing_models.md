@@ -1,5 +1,6 @@
 ---
-title: Optimiser des modèles
+title: Optimiser un modèle 3D
+rank: 6
 ---
 
 ## Préparer des modèles pour Voyager / eCorpus
