@@ -146,13 +146,15 @@ export default class UploadForm extends LitElement{
       <section class="container upload-status-container" aria-label="uploads">
         ${this.uploads.map( ({id, names, progress, total, done, abort, error}) => {
           let name = names.join(", ");
-          // console.log("Render upload : ", id, names, error, done);
+          console.log("Render upload : ", id, names, error, done);
           let content = html`<progress id="progress-${name}" max="100" value=${progress}></progress>`;
           if(error){
             content = html`<span id="progress-${name}" class="text-error progress">${error.message}</span>`;
           }else if(done){
             content = html`<span id="progress-${name}" class="progress">
-              ${names.map(name=>html`<a href="/ui/scenes/${encodeURIComponent(name)}">${name}</a>`)}
+              <ul>
+              ${names.map(name=>html`<li><a href="/ui/scenes/${encodeURIComponent(name)}">${name} <ui-icon name="eye"></ui-icon></a></li>`)}
+              </ul>
             </span>`;
           }
 
@@ -162,7 +164,7 @@ export default class UploadForm extends LitElement{
           }
 
           return html`<div role="status" id="upload-${id}" class="upload-status">
-            <label for="progress-${name}">${name}</label>
+            <label class="file-uploaded" for="progress-${name}">${name}</label>
             <span> ${total?html`(<b-size b=${total}></b-size>)`:null}</span>
             ${content}
             <button class="btn btn-transparent btn-inline btn-small text-error" @click=${handleAbort}>🗙</button>
@@ -178,6 +180,22 @@ export default class UploadForm extends LitElement{
       display: flex;
       flex-direction: column;
       gap: .5rem;
+    }
+
+    .file-uploaded{
+      width: 40%
+    }
+
+    .upload-status-container ul{
+      margin: 0;
+    }
+    
+    .upload-status-container .ui-icon {
+      display: inline-block;
+      margin: 0;
+      width: 1rem;
+      fill:currentColor
+
     }
       
     .upload-status{
