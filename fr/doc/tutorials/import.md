@@ -136,18 +136,19 @@ Si vous avez sauvegardé une mauvaise version de votre scène, vous pouvez resta
 Les différentes options sont détaillée au fil des sections qui suivent.
 
 ##### pour éditez votre scène
-  <div class="section">
-    <ul>
-      <li>{% include sv_button.html name="pose" icon="move" %} Positionner et redimensionner le modèle.</li>
-      <li>{% include sv_button.html name="capture" icon="camera" %} Prendre des captures d'écran et enregistrer l'état de la scène.</li>
-      <li>{% include sv_button.html name="derivatives" icon="hierarchy" %} Gérer les dérivés (différents niveaux de détail).</li>
-      <li>{% include sv_button.html name="annotations" icon="comment" %} Créer et modifier des annotations.</li>
-      <li>{% include sv_button.html name="articles" icon="file" %} Créer et éditer des articles.</li>
-      <li>{% include sv_button.html name="visites" icon="globe" %}  Créer et modifier des visites guidées.</li>
-      <li>{% include sv_button.html name="audio" icon="audio" %}  Ajouter et organiser des audios.</li>
-      <li>{% include sv_button.html name="parametres" icon="eye" %}  Éditer les paramètres de la scène.</li>
-    </ul>
-  </div>
+
+<div class="section">
+  <ul>
+    <li>{% include sv_button.html name="pose" icon="move" %} Positionner et redimensionner le modèle.</li>
+    <li>{% include sv_button.html name="capture" icon="camera" %} Prendre des captures d'écran et enregistrer l'état de la scène.</li>
+    <li>{% include sv_button.html name="derivatives" icon="hierarchy" %} Gérer les dérivés (différents niveaux de détail).</li>
+    <li>{% include sv_button.html name="annotations" icon="comment" %} Créer et modifier des annotations.</li>
+    <li>{% include sv_button.html name="articles" icon="file" %} Créer et éditer des articles.</li>
+    <li>{% include sv_button.html name="visites" icon="globe" %}  Créer et modifier des visites guidées.</li>
+    <li>{% include sv_button.html name="parametres" icon="eye" %}  Éditer les paramètres de la scène.</li>
+  </ul>
+</div>
+
 
 ##### pour explorer votre scène
   

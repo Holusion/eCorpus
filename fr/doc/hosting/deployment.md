@@ -9,16 +9,18 @@ rank: 0
 
 Exemple de création d'une instance minimale à des fins de tests :
 
-    git clone --filter=blob:none --recurse-submodules https://github.com/Holusion/eCorpus
-    cd eCorpus
-    npm i
-    (cd source/voyager && npm i --legacy-peer-deps)
-    (cd source/server && npm i)
-    (cd source/ui && npm i)
-    npm run build-ui
-    npm run build-server
-    npm start
 
+```bash
+git clone --filter=blob:none --recurse-submodules https://github.com/Holusion/eCorpus
+cd eCorpus
+npm i
+(cd source/voyager && npm i --legacy-peer-deps)
+(cd source/server && npm i)
+(cd source/ui && npm i)
+npm run build-ui
+npm run build-server
+npm start
+```
  > Voir aussi : installation via docker
 
 Dans un navigateur, chargez [localhost:8000](http://localhost:8000){:target="_blank"}.
@@ -30,9 +32,12 @@ L'application se lance initialement en "mode ouvert", vous permettant la créati
 
 Après avoir démarré votre serveur local, ouvrez un autre terminal et exécutez la commande suivante :
 
-    curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "isAdministrator": true}' "http://localhost:8000/users"
+```bash
+curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "isAdministrator": true}' "http://localhost:8000/users"
+```
 
-Remplacez <...> par votre nom d'utilisateur, votre mot de passe et votre adresse électronique.
+> Remplacez <...> par votre nom d'utilisateur, votre mot de passe et votre adresse électronique.
+
 Par la suite, d'autres comptes pourront être créés via l'interface web.
 
 ### Aller plus loin

@@ -1,6 +1,6 @@
 ---
 title: SetUp a 3D Model
-rank: 2
+rank: 4
 ---
 
 ## 3D models supported by eCorpus

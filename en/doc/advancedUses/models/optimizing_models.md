@@ -1,5 +1,6 @@
 ---
 title: Optimising 3D models
+rank: 5
 ---
 
 ## SetUp your models for Voyager / eCorpus

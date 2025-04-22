@@ -1,5 +1,6 @@
 ---
 title:  3D Models
+rank: 2
 ---
 
 ## 3D models: basic principles
@@ -55,3 +56,9 @@ Either import as a new scene or, to update an existing scene's model :
 curl -XPUT -u <username>:<password> -d @</path/.to/file.glb> https://ecorpus.holusion.com/scenes/<scene-name>/models/<filename.glb>
 ```
 Then configure the model's derivatives (ref needed).
+
+
+
+### Shaders
+
+In practice, models have a `MeshStandardMaterial`. Its advantages and drawbacks are described in the [THREEJS documentation](https://threejs.org/docs/#api/en/materials/MeshStandardMaterial){:target="_blank"}.
