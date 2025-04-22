@@ -1,5 +1,6 @@
 ---
 title: Quick Installation
+rank: 0
 ---
 
 
@@ -53,6 +54,6 @@ After creating your first user account, navigate to [http://localhost:8000](http
 
 From there, you can [create your first scene](/en/doc/tutorials/).
 
-If you want to edit the source code, refer to the [development guide](/en/doc/guides/development). Or configure your instance by tuning the [environment variables](/en/doc/references/administration/configuration).
+If you want to edit the source code, refer to the [development guide](/en/doc/hosting/development). Or configure your instance by tuning the [environment variables](/en/doc/hosting/configuration).
 
 To use your instance in production, you might want to setup email forwarding (allows account recovery and invite links), automated backups an HTTPS reverse-proxy. You may also contact [Holusion](https://holusion.com) to buy a full-featured managed **eCorpus** instance.

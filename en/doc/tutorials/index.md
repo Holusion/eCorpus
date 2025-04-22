@@ -29,15 +29,15 @@ To do this, simply drag your GLB model into the scene above. The object will app
 
 *Attention ! This scene cannot be saved, any changes made will be lost.*
 
-* If you would like to learn more about importing models into eCorpus, please refer to <a href="edition/import">this guide</a>.
+* If you would like to learn more about importing models into eCorpus, please refer to <a href="import">this guide</a>.
 
 
 [Click here to access the Standalone test scene](https://ecorpus.fr-scv.fr/ui/standalone)
 
 ## Tutorials
 
-* [LogIn to your eCorpus Account](edition/compte)
-* [Import a 3D model ](edition/import)
-* [Add annotations](edition/annotation)
-* [Create articles](edition/article)
-* [SetUp a Guided Tour](edition/tours)
+* [Log in to your eCorpus Account](compte)
+* [Import a 3D model ](import)
+* [Add annotations](annotation)
+* [Create articles](article)
+* [Set Up a Guided Tour](tours)

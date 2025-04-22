@@ -1,5 +1,6 @@
 ---
 title: Augmented Reality
+rank: 10
 ---
 
 ## Augmented Reality
@@ -36,12 +37,12 @@ This module uses Apple's [ARKit](https://developer.apple.com/augmented-reality/a
 **Requirements :** 
 
 - be familiar with the data structure of eCorpus scenes, which is inherited from the [SVX document format of the Voyager scene](https://smithsonian.github.io/dpo-voyager/document/overview/). 
-- know how to use the eCorpus [API](/en/doc/guides/import_export) to modify the scene files.
+- know how to use the eCorpus [API](../hosting/api) to modify the scene files.
 
 
 **Add the AR model to the SVX**
 
-Get the SVX of the scene from the interface or [from the API](/en/doc/guides/import_export).
+Get the SVX of the scene from the interface or [from the API](../hosting/api).
 
 
 Edit the derivative section to add a new element with the following information:
@@ -113,11 +114,11 @@ This module uses Android features and 3D models in the glTF format (.GLB).
 **Requirements :**
 
 - be familiar with the data structure of eCorpus scenes, which is inherited from the [SVX document format of the Voyager scene](https://smithsonian.github.io/dpo-voyager/document/overview/). 
-- know how to use the eCorpus [API](/en/doc/guides/import_export) to modify the scene files.
+- know how to use the eCorpus [API](../hosting/api) to modify the scene files.
 
 **Add the AR model to the SVX**
 
-Get the SVX of the scene from the interface or [from the API](/en/doc/guides/import_export).
+Get the SVX of the scene from the interface or [from the API](../hosting/api).
 
 
 Edit the derivative section to add a new element with the following information:

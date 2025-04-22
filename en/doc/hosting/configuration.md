@@ -1,5 +1,6 @@
 ---
 title: Configure an instance
+rank: 3
 ---
 
 ## Configure an instance

@@ -1,5 +1,6 @@
 ---
 title: Hardware requirements
+rank: 2
 ---
 
 ## Hardware requirements

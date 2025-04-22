@@ -21,11 +21,11 @@ rank: 1
 
 To function, an eCorpus server must be set up. eCorpus is **decentralized** and operates on **independent** instances of each other to guarantee everyone's full **data sovereignty**. **Data remains interoperable** and can be easily exchanged between users.
 
-* To **create your own eCorpus server**, you can refer to the section: <a href="../../guides/deployment.html">Installing an eCorpus server</a>.
+* To **create your own eCorpus server**, you can refer to the section: <a href="../../hosting/deployment.html">Installing an eCorpus server</a>.
 
 If your organization has an eCorpus server, contact your advisor or an administrator to create your account.
 
-* **If you are an administrator** of an eCorpus instance, you can consult the tutorial: <a href="../../references/administration/index.html">Administer an eCorpus server</a>.
+* **If you are an administrator** of an eCorpus instance, you can consult the tutorials: <a href="../advancedUses/userAdministration">User administration</a> and <a href="../advancedUses/exportData">Exporting your data</a>.
 
 ### LogIn to your Account
 
@@ -63,7 +63,7 @@ Once there, click on the “**Choose file**” button. A pop-up will appear aski
 Finally, name your scene (this name will be directly visible in the URL, therefore, please avoid special characters), select your default language, and click on the "**create scene**" button to start importing your 3D model into the database.
 
 
-* Only the .glb extension can be used on the eCorpus editor. To learn how to export a model to .glb, please refer to this guide: <a href="model">SetUp your 3D Model</a>.
+* Only the .glb extension can be used on the eCorpus editor. To learn how to export a model to .glb, please refer to this guide: <a href="../advancedUses/models/model">SetUp your 3D Model</a>.
 
 ### Retreive your password
 
@@ -93,7 +93,7 @@ Contact the eCorpus team to help you set up a dedicated eCorpus server <hello@ec
 
 
 ## Learn More
-If you want to learn more about eCorpus features, you can visit this guide: <a href="model">SetUp your 3D Model</a>.
+If you want to learn more about eCorpus features, you can visit this guide: <a href="../advancedUses/models/model">SetUp your 3D Model</a>.
 
 
 * [Return to top of page](#your-ecorpus-account)

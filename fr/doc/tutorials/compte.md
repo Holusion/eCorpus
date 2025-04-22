@@ -25,7 +25,7 @@ Pour fonctionner, un serveur eCorpus doit être mis en place. eCorpus est **déc
 
 Si votre organisation possède un serveur eCorpus, rapprochez-vous de votre référend ou un administateur pour la création de votre compte.
 
-* **Si vous êtes administateur** d'une instance eCorpus, vous pouvez consulter les tutoriels : <a href="../advancedUses/userAdministration">Gestion des utilisateurs</a> et <a href="../advancedUses/exportData">Export de données</a>.. 
+* **Si vous êtes administateur** d'une instance eCorpus, vous pouvez consulter les tutoriels : <a href="../advancedUses/userAdministration">Gestion des utilisateurs</a> et <a href="../advancedUses/exportData">Export de données</a>. 
 
 ### Connexion à votre compte
 

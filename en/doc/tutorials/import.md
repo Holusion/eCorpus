@@ -1,5 +1,5 @@
 ---
-title: Import a 3D model to eCorpus
+title: Create a 3D scene
 rank: 3
 ---
 
@@ -130,6 +130,36 @@ If you saved the wrong version of your scene, you can restore a previous version
 
 ### The basics for setting up your scene quickly
 
+#### Quick overview of Voyager Story interface
+
+##### To edit your scene
+
+  <div class="section">
+    <ul>
+      <li>{% include sv_button.html name="pose" icon="move" %} Position and resize the model.</li>
+      <li>{% include sv_button.html name="capture" icon="camera" %} Take screenshots and save the state of the scene.</li>
+      <li>{% include sv_button.html name="derivatives" icon="hierarchy" %} Manage derivatives (different levels of detail).</li>
+      <li>{% include sv_button.html name="annotations" icon="comment" %} Create and edit annotations.</li>
+      <li>{% include sv_button.html name="articles" icon="file" %} Create and edit articles.</li>
+      <li>{% include sv_button.html name="visites" icon="globe" %} Create and edit guided tours.</li>
+      <li>{% include sv_button.html name="audio" icon="audio" %} Add and organize audio.</li>
+      <li>{% include sv_button.html name="parametres" icon="eye" %} Edit scene settings.</li>
+    </ul>
+  </div>
+
+##### To explore your scene
+
+<div class="section">
+    <ul>
+    <li>{% include sv_button.html icon="globe" %} Display tours.</li>
+    <li>{% include sv_button.html icon="file" %} Display articles.</li>
+    <li>{% include sv_button.html icon="comment" %} Display annotations.</li>
+    <li>{% include sv_button.html icon="share" %} Share the scene.</li>
+    <li>{% include sv_button.html icon="expand" %} Fullscreen mode.</li>
+    <li>{% include sv_button.html icon="tools" %} Tools and settings.</li>
+    </ul>
+</div>
+  
 
 ####  The basic Controls
 
