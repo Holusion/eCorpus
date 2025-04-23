@@ -29,7 +29,7 @@
               <input type="password" autocomplete="current-password" name="password" id="password" required=""
                 placeholder="{{i18n "labels.password"}}">
               <label for="password">{{i18n "labels.password"}}</label>
-              <button id="password-toggle" aria-checked="false" role="switch" style="display:none" class="btn btn-transparent btn-addon" title="{{i18n "tooltips.showPassword"}}"><ui-icon name="eye"></ui-icon></button>
+              <button id="password-toggle" type="button" aria-checked="false" role="switch" style="display:none" class="btn btn-transparent btn-addon" title="{{i18n "tooltips.showPassword"}}"><ui-icon name="eye"></ui-icon></button>
               <script>
                 (function registerPasswordVisibilityToggle(){
                   const btn = document.querySelector("#password-toggle");
@@ -42,7 +42,7 @@
                     input.type = checked? "text" : "password";
                     btn.ariaChecked = checked.toString();
                   }
-                  btn.style.removeProperty("display");
+                  btn.style.removeProperty("display");             
                 })();
               </script>
             </div>
