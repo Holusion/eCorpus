@@ -50,4 +50,26 @@ layout: page
 </div>
 </section>
 
+<section class="section" id="NotreDameEnVaux">
+    <h2>
+        Digitalized elements from the Cloister Museum of Notre-Dame-en-Vaux
+    </h2>
+    <p>Collection Assembled for the Cloister Museum of Notre-Dame-en-Vaux in Châlons-en-Champagne</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredameenvaux" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p> 
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
+
 
