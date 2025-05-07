@@ -24,7 +24,13 @@ Ce format est libre, il est défini par le Consotirum Khronos. Sa documentation 
 
     * [Wavefront (.OBJ)](#a-partir-dune-numérisation-3d-en-obj)
 
-    * [Sta
+    * [Stanfort (.PLY)](#a-partir-dun-format-ply)
+
+    * [Autodesk(.FBX)](#a-partir-dun-format-fbx)
+
+    * [Collada (.DAE)](#a-partir-dun-format-dae)
+
+    * [Universal Scene (.USD*)](#a-partir-dun-format-usd)
 
     Comprendre les matériaux de son objet 3D
 
