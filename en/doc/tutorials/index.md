@@ -23,11 +23,11 @@ You can use [this model to start your trial](/assets/3d/DamagedHelmet.glb).
 
 [<img src="/assets/img/doc/DamagedHelmet_Preview.jpg" width="35%" alt="Prévisualisation du modèle de Test" />](/assets/3d/DamagedHelmet.glb)
 
-Don't have an eCorpus account? Carefree ! Stand Alone mode allows you to test your 3D models without having an account on an eCorpus database:
+Don't have an eCorpus account? No problem ! Stand Alone mode allows you to test your 3D models without having an account on an eCorpus database:
 
 To do this, simply drag your GLB model into the scene above. The object will appear in the scene if the import was successful.
 
-*Attention ! This scene cannot be saved, any changes made will be lost.*
+*Be careful ! This scene cannot be saved, any changes made will be lost.*
 
 * If you would like to learn more about importing models into eCorpus, please refer to <a href="import">this guide</a>.
 
