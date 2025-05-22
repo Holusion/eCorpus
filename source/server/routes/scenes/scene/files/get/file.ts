@@ -11,7 +11,18 @@ import { BadRequestError } from "../../../../../utils/errors.js";
 export default async function handleGetFile(req :Request, res :Response){
   const vfs = getVfs(req);
   const {scene, name} = getFileParams(req);
-  let f = await vfs.getFile({ scene, name });
+  let f;
+  if(req.headers["content-type"]=='multipart/byteranges'){
+    let byteRange =  req.headers["range"]!.slice(6).split("-").map(x => parseInt(x));
+    let start = byteRange[0];
+    let end = byteRange[1];
+    f = await vfs.getFile({ scene, name, start, end})
+    res.set("Content-Length", (end - start + 1).toString());
+  }
+  else {
+    f = await vfs.getFile({ scene, name });
+    res.set("Content-Length", f.size.toString(10));
+  }
   if(!f.stream){
     throw new BadRequestError(`${name} in ${scene} appears to be a directory`);
   }
@@ -23,7 +34,6 @@ export default async function handleGetFile(req :Request, res :Response){
   }
   
   res.set("Content-Type", f.mime);
-  res.set("Content-Length", f.size.toString(10));
   res.status(200);
   try{
     await pipeline(

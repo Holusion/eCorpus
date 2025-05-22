@@ -4,7 +4,7 @@ import path from "path";
 import { NotFoundError, ConflictError, BadRequestError, InternalError } from "../utils/errors.js";
 import uid, { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { DataStream, DocProps, FileProps, GetFileParams, GetFileResult, Stored, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
+import { DataStream, DocProps, FileProps, GetFileParams, GetFileRangeParams, GetFileResult, Stored, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
@@ -271,12 +271,12 @@ export default abstract class FilesVfs extends BaseVfs{
    * /!\ don't forget to close the stream /!\
    * @see getFileProps
    */
-  async getFile(props:GetFileParams) :Promise<GetFileResult>{
+  async getFile(props:GetFileRangeParams): Promise<GetFileResult>{
     let r = await this.getFileProps(props, true);
     if(!r.hash && !r.data) throw new NotFoundError(`Trying to open deleted file : ${ r.name }`);
     if(r.hash === "directory") return r;
 
-    let handle = (typeof r.data === "string")? Readable.from([Buffer.from(r.data)]): (await this.openFile({hash: r.hash!})).createReadStream();
+    let handle = (typeof r.data === "string")? Readable.from([Buffer.from(r.data)]): (await this.openFile({hash: r.hash!})).createReadStream({start: props.start, end: props.end});
     return {
       ...r,
       stream: handle,

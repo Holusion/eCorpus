@@ -25,6 +25,11 @@ export interface GetFileParams extends CommonFileParams{
   generation ?:number;
 }
 
+export interface GetFileRangeParams extends GetFileParams{
+  /**Also return deleted files */
+  start ?: number;
+  end ?: number;
+}
 
 export interface WriteDirParams extends WriteFileParams{
   mime?:"text/directory";
