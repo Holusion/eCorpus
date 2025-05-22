@@ -1073,6 +1073,46 @@ describe("Vfs", function(){
             }
             expect(str).to.equal("Hello World\n");
           });
+          
+          it("get a range of bytes of a document with start and end", async function(){
+            // getFile can get start and end properties to read parts of a file 
+            let start = 1;
+            let end = 2;
+            let {stream} = await vfs.getFile({...props, start, end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str.length).to.equal(end-start+1);
+            expect(str).to.equal("oo");
+          });
+
+          it("get a range of bytes of a document with start and NO end", async function(){
+            // When getting only a start, getFile goes from start property to end of the file
+            let start = 1;
+            let {stream} = await vfs.getFile({...props, start});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str.length).to.equal("foo\n".length-start);
+            expect(str).to.equal("oo\n");
+          });
+
+          it("get a range of bytes of a document with NO start and end", async function(){
+            // When getting only an end, getFile goes from the start of the file to end property
+            let end = 2;
+            let {stream} = await vfs.getFile({...props, end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str.length).to.equal(end+1);
+            expect(str).to.equal("foo");
+          });
 
           it("throw 404 error if file doesn't exist", async function(){
             await expect(vfs.getFile({...props, name: "bar.html"})).to.be.rejectedWith("404");
