@@ -125,7 +125,103 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     }finally{
       vfs.getFile = orig;
     }
+  });
 
+    it("can get a range from a file", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=1-2")).get("/scenes/foo/models/foo.glb")
+    .expect(206)
+    .expect("accept-ranges", "bytes")
+    .expect("Content-range", "bytes 1-2/4")
+    .expect("Content-Length","2")
+    .expect("oo");
+  });
+
+  it("can get a range from a file with only start", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=1-")).get("/scenes/foo/models/foo.glb")
+    .expect(206)
+    .expect("accept-ranges", "bytes")
+    .expect("Content-range", "bytes 1-3/4")
+    .expect("Content-Length","3")
+    .expect("oo\n");
+  });
+
+    it("can get a suffix length from a file", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=-2")).get("/scenes/foo/models/foo.glb")
+    .expect(206)
+    .expect("accept-ranges", "bytes")
+    .expect("Content-range", "bytes 2-3/4")
+    .expect("Content-Length","2")
+    .expect("o\n");
+  });
+
+  it("can't get a range with end after the file end", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=2-10")).get("/scenes/foo/models/foo.glb")
+    .expect(416)
+    .expect("Content-range", "bytes */4");
+  });
+
+    it("can't get a range with start after the file end", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=20-100")).get("/scenes/foo/models/foo.glb")
+    .expect(416)
+    .expect("Content-range", "bytes */4");
+  });
+
+  it("can't get a range with start after the file end", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=20-100")).get("/scenes/foo/models/foo.glb")
+    .expect(416)
+    .expect("Content-range", "bytes */4");
+  });
+
+  it("Returnq BadRequest on malformed range (\"bytes=-\")", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=-")).get("/scenes/foo/models/foo.glb")
+    .expect(400);
+  });
+  
+
+  it("Returns BadRequest on empty range (\"bytes=\")", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+  
+    await (await request.agent(this.server).set("Range","bytes=")).get("/scenes/foo/models/foo.glb")
+    .expect(400);
+  });
+
+  it("Returns BadRequest on mutliple ranges", async function(){
+    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=20-100, 200-300")).get("/scenes/foo/models/foo.glb")
+    .expect(400);
   });
 
 });

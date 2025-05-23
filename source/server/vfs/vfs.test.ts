@@ -1073,18 +1073,85 @@ describe("Vfs", function(){
             }
             expect(str).to.equal("Hello World\n");
           });
-          
+
+          it("get a range of a document", async function(){
+            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            let start = 3;
+            let end = 7;
+            let {stream} = await vfs.getFile({...props,start,end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("lo W");
+          });
+
+
+          it("get a document range of a document with NO end", async function(){
+            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            let start = 3;
+            let {stream} = await vfs.getFile({...props,start});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("lo World\n");
+          });
+
+        
+          it("get a document of a document with NO start", async function(){
+            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            let end = 3;
+            let {stream} = await vfs.getFile({...props,end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("Hel");
+          });
+
+
+          it("get a document with end after end of file", async function(){
+            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            let start = 3;
+            let end = 100;
+            let {stream} = await vfs.getFile({...props,start,end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("lo World\n");
+          });
+
+          it("get a document with start after end of file", async function(){
+            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            let start = 50;            //getFile can sometimes be used to get a stream to an existing document. Its shouldn't care and do it.
+
+            let end = 100;
+            let {stream} = await vfs.getFile({...props,start,end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("");
+          });
+
           it("get a range of bytes of a document with start and end", async function(){
             // getFile can get start and end properties to read parts of a file 
             let start = 1;
-            let end = 2;
+            let end = 3;
             let {stream} = await vfs.getFile({...props, start, end});
             let str = "";
             for await (let d of stream!){
               expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
               str += d.toString("utf8");
             }
-            expect(str.length).to.equal(end-start+1);
+            expect(str.length).to.equal(end-start);
             expect(str).to.equal("oo");
           });
 
@@ -1110,9 +1177,35 @@ describe("Vfs", function(){
               expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
               str += d.toString("utf8");
             }
-            expect(str.length).to.equal(end+1);
-            expect(str).to.equal("foo");
+            expect(str.length).to.equal(end);
+            expect(str).to.equal("fo");
           });
+
+
+          it("get a range of bytes of a document with end after end of file", async function(){
+            let start = 1;
+            let end = 50;
+            let {stream} = await vfs.getFile({...props, start, end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("oo\n");
+          });
+
+          it("get a range of bytes of a document with start after end of file", async function(){
+            let start = 20;
+            let end = 50;
+            let {stream} = await vfs.getFile({...props, start, end});
+            let str = "";
+            for await (let d of stream!){
+              expect(Buffer.isBuffer(d), `chunk is a ${typeof d}. Expected a buffer`).to.be.true;
+              str += d.toString("utf8");
+            }
+            expect(str).to.equal("");
+          });
+
 
           it("throw 404 error if file doesn't exist", async function(){
             await expect(vfs.getFile({...props, name: "bar.html"})).to.be.rejectedWith("404");

@@ -37,6 +37,13 @@ export class ConflictError extends HTTPError {
     super(409, reason);
   }
 }
+
+export class RangeNotSatisfiable extends HTTPError {
+  constructor(reason :string="Range Not Satisfiable"){
+    super(416, reason);
+  }
+}
+
 export class InternalError extends HTTPError {
   constructor(reason :string="Internal Server Error"){
     super(500, reason);

@@ -2,7 +2,7 @@ import {pipeline} from "node:stream/promises";
 
 import { Request, Response } from "express";
 import { getVfs, getFileParams } from "../../../../../utils/locals.js";
-import { BadRequestError } from "../../../../../utils/errors.js";
+import { BadRequestError, RangeNotSatisfiable} from "../../../../../utils/errors.js";
 
 
 /**
@@ -11,36 +11,63 @@ import { BadRequestError } from "../../../../../utils/errors.js";
 export default async function handleGetFile(req :Request, res :Response){
   const vfs = getVfs(req);
   const {scene, name} = getFileParams(req);
-  let f;
-  if(req.headers["content-type"]=='multipart/byteranges'){
-    let byteRange =  req.headers["range"]!.slice(6).split("-").map(x => parseInt(x));
-    let start = byteRange[0];
-    let end = byteRange[1];
-    f = await vfs.getFile({ scene, name, start, end})
-    res.set("Content-Length", (end - start + 1).toString());
+  let file;
+  const fileLength =  (await vfs.getFileProps({scene, name})).size;
+  if(req.headers["range"]){
+    let byteRange =  req.headers["range"]!.slice(6).split("-");
+    let start, end;
+    if (byteRange.length > 2){
+      throw new BadRequestError(`Bad Request : Multiple ranges are not supported`);
+    }
+    if (byteRange.length == 0 || byteRange.length ==1 || (byteRange[0].length== 0 && byteRange[1].length==0)){
+      throw new BadRequestError ("Bad Request : Range with no parameters")
+    }
+    // if there is a start value
+    else if (byteRange[0].length > 0) {
+        start = parseInt(byteRange[0]);
+        end = (byteRange[1].length > 0)  ? parseInt(byteRange[1]) + 1 : fileLength;
+        if (end > fileLength){
+          res.set("Content-Range", "bytes */" + fileLength);
+          throw new RangeNotSatisfiable("Range Not Satisfiable: end after end of file")
+        }
+       }
+    // suffix - n last bytes
+    else {
+        const n = parseInt(byteRange[1]);
+        if (n > fileLength){
+          res.set("Content-Range", "bytes */" + fileLength);
+          throw new RangeNotSatisfiable("Range Not Satisfiable: Suffix-length is bigger than lenght of file")
+        }
+        start = fileLength - n;
+        end = fileLength
+    }
+    file = await vfs.getFile({scene, name, start, end})
+    res.set("Content-Length", (end - start).toString());
+    res.set("Content-Range", "bytes " + start.toString() + "-" + (end -1).toString() + "/"+ fileLength.toString())
+    res.status(206);
   }
   else {
-    f = await vfs.getFile({ scene, name });
-    res.set("Content-Length", f.size.toString(10));
+    file = await vfs.getFile({ scene, name });
+    res.set("Content-Length", file.size.toString(10));
+    res.status(200);
   }
-  if(!f.stream){
+  if(!file.stream){
     throw new BadRequestError(`${name} in ${scene} appears to be a directory`);
   }
-  res.set("ETag", `W/${f.hash}`);
-  res.set("Last-Modified", f.mtime.toUTCString());
+  res.set("ETag", `W/${file.hash}`);
+  res.set("Last-Modified", file.mtime.toUTCString());
   if(req.fresh){
-    f.stream.destroy();
+    file.stream.destroy();
     return res.status(304).send("Not Modified");
   }
-  
-  res.set("Content-Type", f.mime);
-  res.status(200);
+  res.set("Accept-Ranges", "bytes");
+  res.set("Content-Type", file.mime);
   try{
     await pipeline(
-      f.stream,
+      file.stream,
       res,
     );
   }catch(e){
     if((e as any).code != "ERR_STREAM_PREMATURE_CLOSE") throw e;
   }
-};
+}
