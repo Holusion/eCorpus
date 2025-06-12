@@ -12,14 +12,16 @@
               class="dropzone"
               id="fileUpload" 
               type="file"
+              accept=".zip,.glb"
               name="files"
+              multiple
             />
         </div>
       </div>
       <div class="form-group inline" style="gap: .5rem;" >
         <div class="form-item" style="flex: 1 1 auto;">
           <label for="sceneTitle">{{i18n "labels.sceneTitle"}} ({{i18n "labels.optional"}})</label>
-          <input id="sceneTitle" type="text" name="name">
+          <input id="sceneTitle" type="text" name="name" placeholder="IGNORED IF MULTIPLE FILES">
         </div>
         
         <div class="form-item">
