@@ -55,5 +55,5 @@ test("can't upload a zip", async function({page, userPage}){
 
   await f.getByRole("button", {name: "buttons.upload"}).click();
   
-  await expect(page.getByText("Unauthorized", {exact: true})).toBeVisible();
+  await expect(page.getByText("scene: Unauthorized", {exact: true})).toBeVisible();
 });

@@ -44,6 +44,7 @@ test("can select the model", async()=>{
 
 test("can create an annotation", async ()=>{
   await scenePage.getByRole("button", {name: "Annotations"}).click();
+  await scenePage.getByText('Cube', { exact: true }).click();
 
   await scenePage.getByRole('button', { name: 'Create' }).click();
   const vp = scenePage.viewportSize();
@@ -83,6 +84,7 @@ test("can create an annotation in a secondary language", async ()=>{
 
 test("can create an article", async ()=>{
   await scenePage.getByRole("button", {name: "Articles"}).click();
+  await scenePage.getByText('Cube', { exact: true }).click();
 
   await scenePage.getByRole('button', { name: 'Create' }).click();
 
