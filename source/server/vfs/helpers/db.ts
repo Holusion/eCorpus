@@ -1,4 +1,4 @@
-
+import timers from 'timers/promises';
 import {open as openDatabase, ISqlite, Database as IDatabase } from "sqlite";
 import sqlite from "sqlite3";
 import config from "../../utils/config.js";
@@ -8,6 +8,13 @@ import uid from "../../utils/uid.js";
 export interface DbOptions {
   filename:string;
   forceMigration ?:boolean;
+  busyTimeout?:number;
+}
+
+export interface TransactionConfig{
+  retries?:number;
+  retryTimeout?:number;
+  timeout?:number;
 }
 
 interface TransactionWork<T>{
@@ -17,7 +24,7 @@ export interface Database extends IDatabase{
   /**
    * opens a new connection to the database to perform a transaction
    */
-  beginTransaction :(<T>(work :TransactionWork<T>, commit ?:boolean)=>Promise<T>);
+  beginTransaction :(<T>(work :TransactionWork<T>, config?: TransactionConfig)=>Promise<T>);
 }
 export interface Transaction extends Database{}
 
@@ -63,28 +70,41 @@ export default async function open({filename, forceMigration=true} :DbOptions) :
   }
   
 
-  async function performTransaction<T>(this:Database|Transaction, work :TransactionWork<T>, commit :boolean=true):Promise<T>{
-    let transaction_id = uid();
-    // See : https://www.sqlite.org/lang_savepoint.html
-    if(commit) await this.run(`SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
-    try{
-      let res = await work(this);
-      if(commit) await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
-      return res;
-    }catch(e){
-      if(commit){
-        await this.run(`ROLLBACK TRANSACTION TO VFS_TRANSACTION_${transaction_id}`);
-        await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+  async function performTransaction<T>(this:Database|Transaction, work :TransactionWork<T>, {
+    retries=0,
+    retryTimeout=10+10*Math.random(),
+  }:TransactionConfig ={}):Promise<T>{
+    let work_id = uid();
+    let last_error: Error;
+    for(let i = 0; i <= retries; i++){
+      const transaction_id = `${work_id}_${i}`;
+      if(i != 0){
+        debuglog("sqlite:transactions")(`Retrying transaction ${transaction_id}`);
+        await timers.setTimeout(retryTimeout*i);
       }
-      throw e;
+      // See : https://www.sqlite.org/lang_savepoint.html
+      await this.run(`SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+      try{
+        return await work(this);
+      }catch(e:any){
+        console.log(`${transaction_id}: rollback due to ${e.code}`);
+        await this.run(`ROLLBACK TO SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+        if(e.code !== "SQLITE_BUSY")throw e;
+        last_error = e;
+      }finally{
+        console.time(`${transaction_id}: release`);
+        await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+        console.timeEnd(`${transaction_id}: release`);
+      }
     }
+    throw last_error!;
   }
 
-  (db as Database).beginTransaction = async function beginTransaction<T>(work :TransactionWork<T>, commit :boolean = true):Promise<T>{
+  (db as Database).beginTransaction = async function beginTransaction<T>(work :TransactionWork<T>, config?: TransactionConfig):Promise<T>{
     let conn = await openAndConfigure({filename: db.config.filename}) as Transaction;
     conn.beginTransaction = performTransaction.bind(conn) as any;
     try{
-      return await (performTransaction as typeof performTransaction<T>).call(conn, work, commit);
+      return await (performTransaction as typeof performTransaction<T>).call(conn, work, config);
     }finally{
       //Close will automatically rollback the transaction if it wasn't committed
       await conn.close();
@@ -116,7 +136,7 @@ export class DbController{
    * 
    * @see Database.beginTransaction
    */
-  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>{
+  public async isolate<T>(fn :Isolate<typeof this, T>, config?: TransactionConfig) :Promise<T>{
     const parent = this;
     return await this.db.beginTransaction(async function isolatedTransaction(transaction){
       let closed = false;
@@ -135,7 +155,7 @@ export class DbController{
       }finally{
         closed = true;
       }
-    }) as T;
+    }, config) as T;
   }
 }
   

@@ -179,7 +179,7 @@ export default abstract class FilesVfs extends BaseVfs{
         author_id: params.user_id,
         author: author.username,
       };
-    });
+    }, {retries: 2});
   }
 
   async getFileById(id :number) :Promise<FileProps>{
