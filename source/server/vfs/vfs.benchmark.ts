@@ -20,8 +20,6 @@ async function globalSetup(){
   await userManager.addUser("alice", "xxxxxxxx", true);
   await userManager.addUser("bob", "xxxxxxxx", false);
 
-  await enableWAL({vfs});
-  await addIndices({vfs});
   await createScenes({vfs});
 
   let file = await vfs._db.config.filename;
@@ -91,14 +89,10 @@ function timeString(start :number) :string{
 }
 
 
-/** WAL is generally disabled in dev environments but enabled in large production workloads */
-async function enableWAL(c :{vfs:Vfs}){
-  await c.vfs._db.run(`PRAGMA journal_mode = WAL`);
-}
 
 async function optimize(fn:(c :{vfs:Vfs})=>Promise<any>, c:{vfs:Vfs}){
   await fn(c);
-  await c.vfs._db.exec(`ANALYZE;`);
+  //await c.vfs._db.exec(`ANALYZE;`);
 }
 
 /** create a bunch of scenes with some documents in it */
@@ -134,17 +128,6 @@ async function createScenes(c :{vfs:Vfs}){
   }
 }
 
-/** Create custom indices */
-async function addIndices(c :{vfs: Vfs}){
-  await c.vfs._db.exec(`
-    DROP INDEX scenenames; -- auto created on UNIQUE constraint
-    
-    -- was missing from initial declaration
-    CREATE UNIQUE INDEX docs_uid ON documents(fk_scene_id, generation DESC);
-
-    CREATE INDEX files_path ON files(fk_scene_id, name);
-  `);
-}
 
 let cases :TestCase[] = [
   [`get ${size} scenes`, async (c :Context)=>{

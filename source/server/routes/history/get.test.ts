@@ -35,7 +35,7 @@ describe("GET /history/:scene", function(){
 
 
       //Ensure proper dates
-      await vfs._db.exec(`
+      await vfs._db.run(`
         UPDATE files SET ctime = datetime("${now.toISOString()}");
       `);
     });

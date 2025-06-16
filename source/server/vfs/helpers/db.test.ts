@@ -15,17 +15,17 @@ describe("Database", function(){
   let db :Database;
   this.beforeEach(async function(){
     db = await open({
-      filename: path.join(os.tmpdir(),`${(this.currentTest as any).title.replace(/[^a-zA-Z0-9]/g,"-")}-${uid(5)}.db`),
+      uri: path.join(os.tmpdir(),`${(this.currentTest as any).title.replace(/[^a-zA-Z0-9]/g,"-")}-${uid(5)}.db`),
       forceMigration: true,
     });
-    await db.exec(`
+    await db.run(`
       CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
       INSERT INTO test (name) VALUES ("foo");
     `);
   });
   this.afterEach(async function(){
     try{
-      await db.close(); //Otherwise, it leaks
+      await db.end(); //Otherwise, it leaks
 
     }catch(e){
       if(!/Database is closed/.test((e as any).message)){
@@ -39,7 +39,7 @@ describe("Database", function(){
     //Doesn't check much else
     it("over empty database", async function(){
       let config = db.config;
-      await db.close();
+      await db.end();
       //Will fail if migrations can't be reapplied
       //Also tests syntax of the "down" migration.
       db = await open({
@@ -57,7 +57,7 @@ describe("Database", function(){
       // await vfs.removeFile({scene: "foo", name: "test.json", user_id: 0});
       // await vfs.writeDoc(`{"foo": "bar"}`, {scene: "foo", user_id: user.uid, name: "test.json", mime: "application/json"});
       let config = db.config;
-      await db.close();
+      await db.end();
       //Will fail if migrations can't be reapplied
       //Also tests syntax of the "down" migration.
       db = await open({
@@ -91,11 +91,6 @@ describe("Database", function(){
     it("nested transactions reuse the same database instance", async function(){
       let count = 0;
       await expect(db.beginTransaction(async (tr)=>{
-        let _close = tr.close;
-        tr.close = async ()=>{
-          _close.call(tr);
-          count++;
-        }
         expect(tr).to.not.equal(db);
         await tr.beginTransaction(async tr2=>{
           expect(tr2).to.equal(tr);
@@ -107,7 +102,7 @@ describe("Database", function(){
   
     it("opens and makes a transaction", async function(){
       await expect(db.beginTransaction(async (tr)=>{
-        await tr.exec(`INSERT INTO test (name) VALUES ("bar")`);
+        await tr.run(`INSERT INTO test (name) VALUES ("bar")`);
         return await tr.all(`SELECT * FROM test`);
       })).to.eventually.have.property("length", 2);
       await expect(db.all(`SELECT * FROM test`)).to.eventually.have.property("length", 2);
@@ -115,8 +110,8 @@ describe("Database", function(){
   
     it("rollbacks when an error occurs", async function(){
       await expect(db.beginTransaction(async (tr)=>{
-        await tr.exec(`INSERT INTO test (name) VALUES ("bar")`);
-        await tr.exec(`INSERT INTO test (name) VALUES ("foo")`); //UNIQUE VIOLATION
+        await tr.run(`INSERT INTO test (name) VALUES ("bar")`);
+        await tr.run(`INSERT INTO test (name) VALUES ("foo")`); //UNIQUE VIOLATION
       })).to.be.rejectedWith("SQLITE_CONSTRAINT: UNIQUE");
       await expect(db.all(`SELECT * FROM test`)).to.eventually.have.property("length", 1);
     });

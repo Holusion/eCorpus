@@ -37,7 +37,7 @@ class Vfs extends BaseVfs{
       await fs.mkdir(path.join(rootDir, "uploads"), {recursive: true});
     }
     db ??= await open({
-      filename: path.join(rootDir,'database.db'),
+      uri: path.join(rootDir,'database.db'),
       forceMigration,
     });
 

@@ -1,96 +1,115 @@
-
-import {open as openDatabase, ISqlite, Database as IDatabase } from "sqlite";
-import sqlite from "sqlite3";
+import {Pool, QueryResultRow} from 'pg';
 import config from "../../utils/config.js";
 import { debuglog } from "util";
 import uid from "../../utils/uid.js";
+import Cursor from 'pg-cursor';
 
 export interface DbOptions {
-  filename:string;
+  uri:string;
   forceMigration ?:boolean;
 }
 
 interface TransactionWork<T>{
   (db :Transaction) :Promise<T>;
 }
-export interface Database extends IDatabase{
-  /**
-   * opens a new connection to the database to perform a transaction
-   */
-  beginTransaction :(<T>(work :TransactionWork<T>, commit ?:boolean)=>Promise<T>);
-}
+
 export interface Transaction extends Database{}
 
-async function openAndConfigure({filename} :DbOptions){
-  let db = await openDatabase({
-    filename,
-    driver: sqlite.Database, 
-    mode: 0
-      | sqlite.OPEN_URI
-      | sqlite.OPEN_CREATE
-      | sqlite.OPEN_READWRITE
-  });
-  await db.run("PRAGMA journal_mode = WAL");
-  await db.run("PRAGMA synchronous = normal");
-  await db.run("PRAGMA temp_store = memory");
-  await db.run(`PRAGMA mmap_size = ${100 * 1000 /*kB*/ * 1000 /*MB*/}`);
-  await db.run(`PRAGMA page_size = 32768`);
-  await db.run(`PRAGMA busy_timeout = 500`);
-  await db.run(`PRAGMA foreign_keys = ON`);
-  return db;
+export interface RunResult{
+  changes:number|null;
 }
 
-export default async function open({filename, forceMigration=true} :DbOptions) :Promise<Database> {
-  let db = await openAndConfigure({
-    filename,
-  });
-  
-  await db.run(`PRAGMA foreign_keys = OFF`);
-  await db.migrate({
-    force: forceMigration,
-    migrationsPath: config.migrations_dir,
-  });
-  await db.run(`PRAGMA foreign_keys = ON`);
-  
-  if(debuglog("sqlite:verbose").enabled)sqlite.verbose();
-  if(debuglog("sqlite:profile").enabled){
-    const log = debuglog("sqlite:profile");
-    db.on("profile",log); 
-  }
-  if(debuglog("sqlite:trace").enabled){
-    const log = debuglog("sqlite:trace");
-    db.on("trace", log); 
-  }
-  
+export interface DatabaseHandle{
+  get<T extends QueryResultRow =any>(sql: string, params?: any):Promise<T>;
+  all<T extends QueryResultRow =any>(sql: string, params?: any):Promise<T[]>;
+  run(sql: string, params?: any):Promise<RunResult>;
+  beginTransaction<T>(work:(db: DatabaseHandle)=>Promise<T>):Promise<T>;
+}
 
-  async function performTransaction<T>(this:Database|Transaction, work :TransactionWork<T>, commit :boolean=true):Promise<T>{
-    let transaction_id = uid();
-    // See : https://www.sqlite.org/lang_savepoint.html
-    if(commit) await this.run(`SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
-    try{
-      let res = await work(this);
-      if(commit) await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
-      return res;
-    }catch(e){
-      if(commit){
-        await this.run(`ROLLBACK TRANSACTION TO VFS_TRANSACTION_${transaction_id}`);
-        await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+export interface Database extends DatabaseHandle{
+  end:()=>Promise<void>
+}
+
+
+export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
+
+  let pool = new Pool({connectionString: uri});
+  
+  // await db.run(`PRAGMA foreign_keys = OFF`);
+  // await db.migrate({
+  //   force: forceMigration,
+  //   migrationsPath: config.migrations_dir,
+  // });
+  // await db.run(`PRAGMA foreign_keys = ON`);
+  
+  // if(debuglog("sqlite:verbose").enabled)sqlite.verbose();
+  // if(debuglog("sqlite:profile").enabled){
+  //   const log = debuglog("sqlite:profile");
+  //   db.on("profile",log); 
+  // }
+  // if(debuglog("sqlite:trace").enabled){
+  //   const log = debuglog("sqlite:trace");
+  //   db.on("trace", log); 
+  // }
+  
+  return {
+    async all<T extends QueryResultRow = any>(sql:string, params?: any):Promise<T[]>{
+      const {rows} = await pool.query<T, any>(sql, params);
+      return rows;
+    },
+    async get<T extends QueryResultRow = any>(sql:string, params?: any):Promise<T>{
+      const client = await pool.connect();
+      const cursor = client.query(new Cursor<T>(sql, params));
+      try{
+        return (await cursor.read(1))[0];
+      }finally{
+        await cursor.close();
+        client.release();
       }
-      throw e;
-    }
-  }
+    },
+    async run(sql: string, params?: any):Promise<RunResult>{
+      const r = await pool.query<never, any>(sql, params);
+      return {
+        changes: r.rowCount,
+      };
 
-  (db as Database).beginTransaction = async function beginTransaction<T>(work :TransactionWork<T>, commit :boolean = true):Promise<T>{
-    let conn = await openAndConfigure({filename: db.config.filename}) as Transaction;
-    conn.beginTransaction = performTransaction.bind(conn) as any;
-    try{
-      return await (performTransaction as typeof performTransaction<T>).call(conn, work, commit);
-    }finally{
-      //Close will automatically rollback the transaction if it wasn't committed
-      await conn.close();
+    },
+    async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>): Promise<T>{
+      const client = await pool.connect();
+      try{
+        return await work({
+          async all<T extends QueryResultRow = any>(sql:string, params:any):Promise<T[]>{
+            const {rows} = await client.query<T, any>(sql, params);
+            return rows;
+          },
+          async get<T extends QueryResultRow = any>(sql:string, params:any):Promise<T>{
+            const cursor = client.query(new Cursor<T>(sql, params));
+            try{
+              return (await cursor.read(1))[0];
+            }finally{
+              await cursor.close();
+            }
+          },
+          async run(sql: string, params: any):Promise<RunResult>{
+            const r = await client.query<never, any>(sql, params);
+            return {
+              changes: r.rowCount,
+            };
+      
+          },
+          async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>):Promise<T>{
+            return await work(this);
+          }
+        });
+      }finally{
+        client.release();
+      }
+
+    },
+    async end(){
+      return await pool.end();
     }
-  };
-  return db as Database;
+  } satisfies Database;
 }
 
 

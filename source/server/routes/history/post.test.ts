@@ -21,7 +21,7 @@ describe("POST /history/:scene", function(){
   async function antidate(t = Date.now()-10000){
     let ts = Math.round(t/1000);
     let d = new Date(ts*1000);
-    await vfs._db.exec(`
+    await vfs._db.run(`
       UPDATE scenes SET ctime = datetime("${d.toISOString()}") WHERE datetime("${d.toISOString()}") < ctime;
       UPDATE files SET ctime = datetime("${d.toISOString()}")  WHERE datetime("${d.toISOString()}") < ctime;
     `);
