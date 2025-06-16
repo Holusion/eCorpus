@@ -26,7 +26,7 @@ export default abstract class CleanVfs extends BaseVfs{
     let it = await fs.opendir(this.objectsDir);
     let loose = [];
     for await (let object of it){
-        let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $name`, {$name:object.name});
+        let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
         if(!row || row.count == 0 ){
             loose.push(object.name);
         }
@@ -39,10 +39,7 @@ export default abstract class CleanVfs extends BaseVfs{
   }
 
   public async optimize(){
-    await this.db.exec(`
-      PRAGMA optimize;
-      PRAGMA wal_checkpoint(PASSIVE);
-    `);
+    /** @fixme unused */ 
   }
 
   /**
@@ -64,20 +61,5 @@ export default abstract class CleanVfs extends BaseVfs{
     if(missing)console.error("found %d missing objects (can't fix)", missing);
   }
 
-  public async fillHashes(){
-    let {createHash} = await import("crypto");
-    let changes:Array<[number, string]> = [];
-    await this.db.each<{data:string, file_id: number}>(`SELECT data, file_id FROM files WHERE data IS NOT NULL AND hash IS NULL`, (err, {data, file_id})=>{
-      if(err) throw new Error(`There was an error iterating over documents  that does not have a hash :${err.message}`);
-      let hashsum = createHash("sha256");
-      hashsum.update(data);
-      changes.push([file_id, hashsum.digest("base64url")]);
-    });
-    for(let [id, hash] of changes){
-      console.log("fill-in hash for document %d", id);
-      await this.db.run("UPDATE files SET hash = $hash WHERE file_id = $id", {$hash: hash, $id: id});
-      await timers.setTimeout(Math.random()*10);
-    }
-  }
 
 }

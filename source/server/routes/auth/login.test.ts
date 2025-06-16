@@ -1,7 +1,7 @@
 
 import request from "supertest";
 import Vfs from "../../vfs/index.js";
-import User from "../../auth/User.js";
+import User, { UserLevels, UserRoles } from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import { AppLocals } from "../../utils/locals.js";
 
@@ -14,7 +14,7 @@ describe("/auth/login", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
   });
   this.afterEach(async function(){
     await cleanIntegrationContext(this);
@@ -41,7 +41,7 @@ describe("/auth/login", function(){
     await request(this.server).get("/auth/login")
     .set("Accept", "application/json")
     .expect(200)
-    .expect({uid: 0, username: "default", isAdministrator:false, isDefaultUser: true});
+    .expect({uid: 0, username: "default", level: "none"});
   });
   
   it("can get login status (connected)", async function(){
@@ -57,8 +57,7 @@ describe("/auth/login", function(){
     .expect({
       username: user.username, 
       uid: user.uid,
-      isAdministrator:false,
-      isDefaultUser:false
+      level: "create",
     });
   });
 
@@ -75,8 +74,7 @@ describe("/auth/login", function(){
     .expect({
       username: admin.username, 
       uid: admin.uid,
-      isAdministrator:true,
-      isDefaultUser:false
+      level: "admin"
     });
   });
 
@@ -144,9 +142,8 @@ describe("/auth/login", function(){
     .expect(200)
     .expect({
       uid: 0,
-      username: "default", 
-      isDefaultUser: true,
-      isAdministrator: false,
+      username: "default",
+      level: "none",
     });
   });
 
@@ -187,8 +184,7 @@ describe("/auth/login", function(){
       let res = {
         username: user.username, 
         uid: user.uid,
-        isAdministrator: false,
-        isDefaultUser: false
+        level: "create",
       };
 
       //Manually build the header
@@ -212,7 +208,7 @@ describe("/auth/login", function(){
       .set("Authorization", `${Buffer.from(`${user.username}:12345678`).toString("base64")}`)
       .expect(200); //Still answers 200, but no login data
 
-      expect(res.body).to.deep.equal({ uid: 0, username: "default", isAdministrator: false, isDefaultUser: true });
+      expect(res.body).to.deep.equal({ uid: 0, username: "default", level: "none" });
     });
     it("rejects bad user:password", async function(){
       let res = await request(this.server).get("/auth/login")

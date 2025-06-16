@@ -7,6 +7,7 @@ import { AccessType } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
+import { UserRoles } from "../../auth/User.js";
 
 
 
@@ -55,7 +56,7 @@ routes.use("/", useTemplateProperties);
 
 routes.get("/", wrap(async (req, res)=>{
   const user = getUser(req);
-  if(!user || user.isDefaultUser){
+  if(!user || user.level === "none"){
     return res.render("login", {
       title: "eCorpus Home",
       user: null,
@@ -137,7 +138,8 @@ routes.get("/scenes", wrap(async (req, res)=>{
     orderDirection,
     archived,
   } = req.query;
-  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+//  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+  let accessTypes :AccessType = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
   const sceneParams = {
     match: match as string,
@@ -170,7 +172,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
   //Sanitize user input
   const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
-  if(!validatedParams.access) validatedParams.access = ["read", "write", "admin"];
+  if(!validatedParams.access) validatedParams.access = "read";
   res.render("search", {
     title: "eCorpus Search",
     scenes,
@@ -184,7 +186,7 @@ routes.get("/user", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   let archives = await vfs.getScenes(user.uid, {archived: true, author: user.uid});
-  if(user.isDefaultUser){
+  if(UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
   res.render("user", {
@@ -211,12 +213,17 @@ routes.get("/admin/archives", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/users", (req, res)=>{
+routes.get("/admin/users", wrap(async (req, res)=>{
+  let users = await getUserManager(req).getUsers();
   res.render("admin/users", {
     layout: "admin",
     title: "eCorpus Administration: Users list",
+    start: 0,
+    end: 0 + users.length,
+    total: users.length,
+    users,
   });
-});
+}));
 
 routes.get("/admin/stats", (req, res)=>{
   res.render("admin/stats", {

@@ -233,7 +233,7 @@ export async function handlePropfind(req :Request, res:Response){
   if(scene_name){
     elements =await getSceneFiles(vfs, rootUrl, scene_name, depth);
   }else{
-    elements = await getScenes(vfs, rootUrl, depth, (u.isAdministrator? undefined: u.uid));
+    elements = await getScenes(vfs, rootUrl, depth, u.uid);
   }
   elements = elements.filter(e=>{
     //@ts-ignore

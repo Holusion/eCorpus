@@ -1,97 +1,179 @@
-
-import {open as openDatabase, ISqlite, Database as IDatabase } from "sqlite";
-import sqlite from "sqlite3";
+import {Client, ClientBase, Pool, PoolClient, QueryResultRow, types as pgtypes} from 'pg';
 import config from "../../utils/config.js";
-import { debuglog } from "util";
-import uid from "../../utils/uid.js";
+import Cursor from 'pg-cursor';
+import { migrate } from './migrations.js';
+import { debuglog } from 'node:util';
+import { expandSQLError } from './errors.js';
+
 
 export interface DbOptions {
-  filename:string;
+  uri:string;
   forceMigration ?:boolean;
 }
 
-interface TransactionWork<T>{
-  (db :Transaction) :Promise<T>;
+
+export interface RunResult{
+  changes:number|null;
 }
-export interface Database extends IDatabase{
+
+
+pgtypes.setTypeParser(20 /* BIGINT */, function parseBigInt(val){
+  return parseInt(val, 10);
+});
+
+const debug = debuglog("pg:trace");
+
+function safeDebugError(e:Error|unknown, sql: string){
+  try{
+    debug(expandSQLError(e, sql).toString());
+  }catch(e){
+    debug(`Failed to expand SQL error `, e);
+  }
+}
+
+export interface DatabaseHandle{
   /**
-   * opens a new connection to the database to perform a transaction
+   * Creates a cursor that will only fetch the first row that would be returned by the query
    */
-  beginTransaction :(<T>(work :TransactionWork<T>, commit ?:boolean)=>Promise<T>);
-}
-export interface Transaction extends Database{}
+  get<T extends QueryResultRow =any>(sql: string, params?: any[]):Promise<T>;
+  /**
+   * Query the database, return the result as an array of rows
+   */
+  all<T extends QueryResultRow =any>(sql: string, params?: any[]):Promise<T[]>;
+  /**
+   * Run a query, ignoring any results
+   */
+  run(sql: string, params?: any[]):Promise<RunResult>;
 
-async function openAndConfigure({filename} :DbOptions){
-  let db = await openDatabase({
-    filename,
-    driver: sqlite.Database, 
-    mode: 0
-      | sqlite.OPEN_URI
-      | sqlite.OPEN_CREATE
-      | sqlite.OPEN_READWRITE
-  });
-  await db.run("PRAGMA journal_mode = WAL");
-  await db.run("PRAGMA synchronous = normal");
-  await db.run("PRAGMA temp_store = memory");
-  await db.run(`PRAGMA mmap_size = ${100 * 1000 /*kB*/ * 1000 /*MB*/}`);
-  await db.run(`PRAGMA page_size = 32768`);
-  await db.run(`PRAGMA busy_timeout = 500`);
-  await db.run(`PRAGMA foreign_keys = ON`);
-  return db;
+  each<T extends QueryResultRow = any>(sql: string, params?: any[]):AsyncGenerator<T, void, void>;
+
+  /**
+   * Start a transaction. A connection will be reserved for the entire transaction's duration.
+   * Can be nested: Savepoints will be used to allow recovering from errors in nested transactions.
+   */
+  beginTransaction<T>(work:(db: DatabaseHandle)=>Promise<T>):Promise<T>;
 }
 
-export default async function open({filename, forceMigration=true} :DbOptions) :Promise<Database> {
-  let db = await openAndConfigure({
-    filename,
-  });
-  
-  await db.run(`PRAGMA foreign_keys = OFF`);
-  await db.migrate({
-    force: forceMigration,
-    migrationsPath: config.migrations_dir,
-  });
-  await db.run(`PRAGMA foreign_keys = ON`);
-  
-  if(debuglog("sqlite:verbose").enabled)sqlite.verbose();
-  if(debuglog("sqlite:profile").enabled){
-    const log = debuglog("sqlite:profile");
-    db.on("profile",log); 
-  }
-  if(debuglog("sqlite:trace").enabled){
-    const log = debuglog("sqlite:trace");
-    db.on("trace", log); 
-  }
-  
+export interface Transaction extends DatabaseHandle{}
+export interface Database extends DatabaseHandle{
+  end:()=>Promise<void>
+}
 
-  async function performTransaction<T>(this:Database|Transaction, work :TransactionWork<T>, commit :boolean=true):Promise<T>{
-    let transaction_id = uid();
-    // See : https://www.sqlite.org/lang_savepoint.html
-    if(commit) await this.run(`SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
-    try{
-      let res = await work(this);
-      if(commit) await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
-      return res;
-    }catch(e){
-      if(commit){
-        await this.run(`ROLLBACK TRANSACTION TO VFS_TRANSACTION_${transaction_id}`);
-        await this.run(`RELEASE SAVEPOINT VFS_TRANSACTION_${transaction_id}`);
+function toHandle(db:Pool|PoolClient) :Omit<DatabaseHandle, "beginTransaction">{
+  
+  return {
+    async all<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T[]>{
+      try{
+        const {rows} = await db.query<T, any>(sql, params);
+        return rows;
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
       }
-      throw e;
-    }
-  }
+    },
+    async get<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T>{
+      const client = await ((db instanceof Pool)? (db as Pool).connect(): db);
+      const cursor = client.query(new Cursor<T>(sql, params));
+      try{
+        return (await cursor.read(1))[0];
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }finally{
+        await cursor.close();
+        if((db instanceof Pool)) (client as PoolClient).release();
+      }
+    },
+    async run(sql: string, params?: any[]):Promise<RunResult>{
+      try{
+        const r = await db.query<never, any>(sql, params);
+        return {
+          changes: r.rowCount,
+        };
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }
+    },
 
-  (db as Database).beginTransaction = async function beginTransaction<T>(work :TransactionWork<T>, commit :boolean = true):Promise<T>{
-    let conn = await openAndConfigure({filename: db.config.filename}) as Transaction;
-    conn.beginTransaction = performTransaction.bind(conn) as any;
-    try{
-      return await (performTransaction as typeof performTransaction<T>).call(conn, work, commit);
-    }finally{
-      //Close will automatically rollback the transaction if it wasn't committed
-      await conn.close();
-    }
-  };
-  return db as Database;
+    async *each<T extends QueryResultRow = any>(sql:string, params:any[]):AsyncGenerator<T,void, never>{
+      const client = await ((db instanceof Pool)? (db as Pool).connect(): db);
+      const cursor = client.query(new Cursor<T>(sql, params));
+      try{
+        while(true){
+          const rows = await cursor.read(100);
+          if(rows.length == 0) break;
+          yield* rows;
+        }
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }finally{
+        await cursor.close();
+        if((db instanceof Pool)) (client as PoolClient).release();
+      }
+    },
+  }
 }
+
+
+let _id :number = 0;
+export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
+  let pool = new Pool({connectionString: uri});
+
+  pool.on("error", (err, client)=>{
+    console.error("psql client pool error :", err);
+  });
+  
+  
+  let handle = {
+    ...toHandle(pool),
+    async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>): Promise<T>{
+      const client = await pool.connect();
+      try{
+        await client.query(`BEGIN TRANSACTION`);
+        const res = await work({
+          ...toHandle(client),
+          async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>):Promise<T>{
+            const sp = `SP_${(++_id).toString(16)}`;
+            await client.query(`SAVEPOINT ${sp}`);
+            try{
+              return await work(this);
+            }catch(e){
+              try{
+                await client.query(`ROLLBACK TRANSACTION TO ${sp}`);
+              }catch(e:any){
+                console.error(new Error(`Failed to rollback transaction: `+e.message));
+              }
+              throw e;
+            }finally{
+              await client.query(`RELEASE SAVEPOINT ${sp}`);
+            }
+          }
+        });
+        await client.query(`COMMIT TRANSACTION`);
+        return res;
+      }catch(e){
+       await client.query('ROLLBACK TRANSACTION');
+       throw e;
+      }finally{
+        client.release();
+      }
+
+    },
+    async end(){
+      return await pool.end();
+    }
+  } satisfies Database;
+
+  await handle.beginTransaction(async (db)=>{
+    await migrate({db, migrations: config.migrations_dir, force: forceMigration});
+  });
+
+  return handle;
+}
+
+
 
 
 export type Isolate<that, T> = (this: that, vfs :that)=> T|Promise<T>;

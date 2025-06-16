@@ -6,10 +6,6 @@ import { test, expect } from '../fixtures';
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
-type Account = {username: string, password: string, uid: number};
-
-
-
 
 
 
@@ -101,7 +97,7 @@ test("can logout", async ({page})=>{
 
   let res = await page.request.get(`/auth/login`);
   expect(res).toBeOK();
-  expect(await res.json()).toHaveProperty("isDefaultUser", false);
+  expect(await res.json()).toHaveProperty("level", "create");
 
   await page.goto("/ui/user/");
   await page.getByRole("button", {name: "buttons.logout"}).click();
@@ -110,7 +106,7 @@ test("can logout", async ({page})=>{
 
   res = await page.request.get(`/auth/login`);
   expect(res).toBeOK();
-  expect(await res.json()).toHaveProperty("isDefaultUser", true);
+  expect(await res.json()).toHaveProperty("level", "none");
 });
 
 test("can show archived scenes", async ({page, uniqueAccount:{username}})=>{

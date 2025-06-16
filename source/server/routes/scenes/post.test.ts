@@ -5,7 +5,7 @@ import request from "supertest";
 import UserManager from "../../auth/UserManager.js";
 import { NotFoundError } from "../../utils/errors.js";
 import Vfs from "../../vfs/index.js";
-import User from "../../auth/User.js";
+import User, { UserLevels } from "../../auth/User.js";
 
 
 function binaryParser(res:request.Response, callback:(err:Error|null, data:Buffer)=>any) {
@@ -32,7 +32,7 @@ describe("POST /scenes", function(){
   });
 
   it("requires admin rights", async function(){
-    await userManager.addUser("bob", "12345678", false);
+    await userManager.addUser("bob", "12345678", "create");
     await request(this.server).post("/scenes")
     .auth("bob", "12345678")
     .send("xxx") //don't care
@@ -41,7 +41,7 @@ describe("POST /scenes", function(){
   describe("as admin", function(){
     let user :User;
     this.beforeEach(async function(){
-      user = await userManager.addUser("alice", "12345678", true);
+      user = await userManager.addUser("alice", "12345678", "admin");
       
     });
     it("can import (as returned from GET /scenes)", async function(){

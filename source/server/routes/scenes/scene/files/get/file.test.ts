@@ -5,7 +5,7 @@ import timers from "node:timers/promises";
 
 import request from "supertest";
 import UserManager from "../../../../../auth/UserManager.js";
-import User from "../../../../../auth/User.js";
+import User, { UserLevels } from "../../../../../auth/User.js";
 import Vfs from "../../../../../vfs/index.js";
 
 
@@ -20,7 +20,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
   });
   this.afterEach(async function(){
@@ -28,7 +28,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can get a public scene's file", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id,"read"); return scene_id});
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -39,16 +39,22 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can't get a private scene's file (obfuscated as 404)", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"none", "1": "none", [user.uid]: "admin"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> 
+      {userManager.setDefaultAccess(scene_id, "none");
+      userManager.setPublicAccess(scene_id, "none");
+      userManager.grant(scene_id, user.uid, "admin");
+      return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
-
     await request(this.server).get("/scenes/foo/models/foo.glb")
     .expect(404);
   });
 
   it("can get an owned scene's file", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"none", [user.uid]: "admin"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> 
+      {userManager.setPublicAccess(scene_id, "none");
+      userManager.grant(scene_id, user.uid, "admin");
+      return scene_id});
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
     let agent = request.agent(this.server);
@@ -66,7 +72,10 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("is case-sensitive", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read", [user.uid]: "admin"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> 
+      {userManager.setPublicAccess(scene_id, "read");
+      userManager.grant(scene_id, user.uid, "admin");
+      return scene_id});
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
     await vfs.writeFile(dataStream(["FOO\n"]), {scene: "foo", mime:"model/gltf-binary", name: "models/FOO.GLB", user_id: user.uid});
@@ -86,8 +95,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
   it.skip("can abort responses", async function(){
     //This test would be very useful but it has a race condition that makes it unreliable.
-    await vfs.createScene("foo", {"0":"write"});
-
+    await vfs.createScene("foo").then((scene_id)=> {userManager.setDefaultAccess(scene_id, "write"); return scene_id});
     let orig = vfs.getFile;
     let stream = (Readable.from(["hello", "world", "\n"]) as any).map((s:string)=>new Promise(r=>setTimeout(()=>r(s), 4)));
     let d = stream.destroy;
@@ -128,7 +136,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
     it("can get a range from a file", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -141,7 +149,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can get a range from a file with only start", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -154,7 +162,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
     it("can get a suffix length from a file", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -167,7 +175,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can't get a range with end after the file end", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -177,7 +185,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
     it("can't get a range with start after the file end", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -187,7 +195,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can't get a range with start after the file end", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -197,7 +205,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("Returnq BadRequest on malformed range (\"bytes=-\")", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
@@ -207,7 +215,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   
 
   it("Returns BadRequest on empty range (\"bytes=\")", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
   
@@ -216,7 +224,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   });
 
   it("Returns BadRequest on mutliple ranges", async function(){
-    let scene_id = await vfs.createScene("foo", {"0":"read"});
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 

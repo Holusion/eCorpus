@@ -30,6 +30,8 @@ labels:
   language: Langue de l'interface
   delete: Supprimer
   restore: Restaurer
+  publicAccess: Accès public
+  defaultAccess: Accès par défaut
 
 buttons:
   searchScene: chercher une scène
@@ -63,6 +65,7 @@ fields:
   ascendingOrder: ordre ascendant
   descendingOrder: ordre descendant
   tag: nom de la collection
+  removeSpecificAccess: retirer l'accès spécifique
 nav:
   tags: collection
   login: connexion
@@ -99,7 +102,8 @@ titles:
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >
-    Gestion des droits d'accès à la scène. Pour retirer à un utilisateur ses droits paticuliers, sélectionner "aucun".
+    L'accès par défaut pour les autres utilisateurs connectés ne peut pas être plus restrictif que l'accès public.
+    Les droits les plus élévés s'appliquent parmis les droits par défaut et les droits spécifiques d'un utilisateur.
 leads:
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion

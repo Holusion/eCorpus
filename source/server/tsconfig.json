@@ -14,7 +14,6 @@
     },
     "files": [
         "index.ts",
-        "vfs/vfs.benchmark.ts"
     ],
     "include": ["./**/*.ts"],
     "exclude": [

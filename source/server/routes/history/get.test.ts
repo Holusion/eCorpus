@@ -20,11 +20,10 @@ describe("GET /history/:scene", function(){
       vfs = locals.vfs;
       userManager = locals.userManager;
       user = await userManager.addUser("bob", "12345678");
-      admin = await userManager.addUser("alice", "12345678", true);
+      admin = await userManager.addUser("alice", "12345678", "admin");
       opponent = await userManager.addUser("oscar", "12345678");
 
       now = new Date();
-      now.setMilliseconds(0); //ms are rounded inside sqlite
       scene_id = await vfs.createScene("foo", user.uid);
       await Promise.all([
         vfs.writeFile(dataStream(), {scene: "foo", name:"articles/foo.txt", mime:"text/plain", user_id: user.uid}),
@@ -35,9 +34,9 @@ describe("GET /history/:scene", function(){
 
 
       //Ensure proper dates
-      await vfs._db.exec(`
-        UPDATE files SET ctime = datetime("${now.toISOString()}");
-      `);
+      await vfs._db.run(`
+        UPDATE files SET ctime = $1;
+      `, [now]);
     });
   
     this.afterAll(async function(){
@@ -99,8 +98,8 @@ describe("GET /history/:scene", function(){
     describe("requires read access", function(){
       this.beforeAll(async function(){
         await vfs.createScene("private", user.uid);
-        await userManager.grant("private", "default", "none");
-        await userManager.grant("private", "any", "none");
+        await userManager.setPublicAccess("private", "none");
+        await userManager.setDefaultAccess("private", "none");
       });
       it("(anonymous)", async function(){
         await request(this.server).get("/history/private")

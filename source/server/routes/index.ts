@@ -23,9 +23,10 @@ import Templates from "../utils/templates.js";
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
 
   await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
-  let db = await openDatabase({filename: path.join(config.files_dir, "database.db"), forceMigration: config.force_migration});
+  let db = await openDatabase({uri: config.database_uri, forceMigration: config.force_migration});
+  let uri = new URL(config.database_uri);
+  console.log(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`)
   const vfs = await Vfs.Open(config.files_dir, {db});
-
   const userManager = new UserManager(db);
 
   const templates = new Templates({dir: config.templates_dir, cache: config.node_env == "production"});
@@ -40,12 +41,6 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
     }, 6000).unref();
 
-    /** @fixme remove once all databases are migrated */
-    try{
-      await vfs.fillHashes()
-    }catch(e){
-      console.error("Failed to fill-in missing hashsums in database. Application may be unstable.");
-    }
 
     setInterval(()=>{
       vfs.optimize();

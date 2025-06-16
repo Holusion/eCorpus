@@ -14,7 +14,7 @@ export interface CommonFileParams{
 }
 
 export interface WriteFileParams extends CommonFileParams{
-  user_id: number;
+  user_id: number | null;
   /** mime is application/octet-stream if omitted */
   mime ?:string;
 }
@@ -42,13 +42,12 @@ export interface WriteDocParams extends WriteFileParams{
 export interface ItemProps{
   ctime :Date;
   mtime :Date;
-  author_id :number;
+  author_id :number | null;
   author :string;
   id :number;
   name :string;
 }
 
-export type Stored<T extends ItemProps> = Omit<T, "mtime"|"ctime"> & {mtime:string, ctime: string};
 
 /** any item stored in a scene, with a name that identifies it */
 export interface ItemEntry extends ItemProps{
@@ -81,12 +80,10 @@ export interface Scene extends ItemProps{
   /** Freeform list of attached tags for this collection */
   tags :string[];
   /** Access level. Only makes sense when in reference to a user ID */
-  access :{
-    user ?:AccessType,
-    any :AccessType,
-    default :AccessType,
-  };
-  archived: boolean;
+  access : AccessType;
+  public_access: AccessType;
+  default_access : AccessType;
+  archived: Date|null;
 }
 
 export interface DocProps extends FileProps{
@@ -99,7 +96,7 @@ export interface DocProps extends FileProps{
  */
 export interface SceneQuery {
   /** desired scene access level */
-  access ?:AccessType[];
+  access ?:AccessType;
   author ?:number;
   match ?:string;
   offset ?:number;

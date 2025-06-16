@@ -30,7 +30,7 @@ test.beforeAll(async ({browser})=>{
       username,
       email: `${username}@example.com`,
       password,
-      isAdministrator: false,
+      level: "create",
     }),
     headers:{
       "Content-Type": "application/json",
@@ -96,8 +96,6 @@ test(`can login from a private page`, async ({page, request})=>{
   res = await adminContext.request.patch(`/scenes/${sceneName}`, {
     data: {
       permissions: {
-        "default": "none",
-        "any": "none",
         [username]: "write",
       }
     }

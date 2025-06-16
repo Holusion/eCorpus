@@ -14,7 +14,7 @@ import Vfs from "../../../vfs/index.js";
 
 import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
 import UserManager from "../../../auth/UserManager.js";
-import User from "../../../auth/User.js";
+import User, { UserLevels } from "../../../auth/User.js";
 
 
 describe("POST /scenes/:scene", function(){
@@ -26,7 +26,7 @@ describe("POST /scenes/:scene", function(){
     app = this.server;
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
 
-    user = await userManager.addUser("bob", "12345678", false, "bob@example.com");
+    user = await userManager.addUser("bob", "12345678", "admin", "bob@example.com");
   });
   this.afterEach(async function(){
     await vfs.close();

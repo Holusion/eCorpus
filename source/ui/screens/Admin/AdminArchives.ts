@@ -13,11 +13,6 @@ import commonStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../
 import tableStyles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../../styles/tables.scss';
 import { showModal, showTaskModal } from '../../state/dialog';
 
-interface User {
-    uid :string;
-    username :string;
-    isAdministrator :boolean;
-}
 
 /**
  * Main UI view for the Voyager Explorer application.

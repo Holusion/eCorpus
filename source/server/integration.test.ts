@@ -3,7 +3,7 @@ import path from "path";
 
 import request from "supertest";
 import Vfs from "./vfs/index.js";
-import User from "./auth/User.js";
+import User, { UserLevels } from "./auth/User.js";
 import UserManager from "./auth/UserManager.js";
 
 import { fixturesDir } from "./__test_fixtures/fixtures.js";
@@ -13,11 +13,18 @@ import { fixturesDir } from "./__test_fixtures/fixtures.js";
 describe("Web Server Integration", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
   this.beforeEach(async function(){
-    let locals = await createIntegrationContext(this);
+    let locals
+    try{
+      locals = await createIntegrationContext(this);
+    }catch(e){
+      console.error(e);
+      throw e;
+    }
+    
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
   });
   this.afterEach(async function(){
     await cleanIntegrationContext(this);
@@ -131,40 +138,27 @@ describe("Web Server Integration", function(){
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r, JSON.stringify(r.body)).to.have.property("body").to.deep.equal([
-          {uid:0, username: "default", access: "read"},
-          {uid:1, username: "any", access: "read"},
           {uid:user.uid, username: user.username, access: "admin"},
           {uid:dave.uid, username: dave.username, access: "write"},
         ]);
       });
 
-      it("can make a model private", async function(){
-        await this.agent.patch("/auth/access/foo")
-        .send({username: "default", access: "none"})
-        .expect(204);
-
+      it("can remove a user's special permissions", async function(){
         let r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r).to.have.property("body").to.deep.equal([
-          {uid: 0, username: "default", access: "none"},
-          {uid:1, username: "any", access: "read"},
-          {uid:user.uid, username: user.username, access: "admin"}
+          {username: user.username, uid: user.uid, access: "admin"},
         ]);
-      });
 
-      it("can remove a user's special permissions", async function(){
         await this.agent.patch("/auth/access/foo")
         .send({username: user.username, access: null})
         .expect(204);
 
-        let r = await this.agent.get("/auth/access/foo")
+        r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
-        expect(r).to.have.property("body").to.deep.equal([
-          {uid: 0, username: "default", access: "read"},
-          {uid:1, username: "any", access: "read"},
-        ]);
+        expect(r).to.have.property("body").to.deep.equal([]);
 
       });
     });
