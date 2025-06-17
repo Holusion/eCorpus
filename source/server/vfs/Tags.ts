@@ -61,7 +61,7 @@ export default abstract class TagsVfs extends BaseVfs{
 
   async getTags(like ?:string):Promise<Tag[]>{
     let where :string = like?`WHERE tag_name LIKE '%' || $like || '%'` :"";
-    return await this.db.all<Tag[]>(
+    return await this.db.all<Tag>(
       `
         SELECT 
           tag_name AS name,
@@ -87,7 +87,7 @@ export default abstract class TagsVfs extends BaseVfs{
   async getTag(name :string, user_id :number):Promise<number[]>
   async getTag(name :string, user_id ?:number):Promise<number[]>{
     
-    let scenes = await this.db.all<{scene_id:number}[]>(`
+    let scenes = await this.db.all<{scene_id:number}>(`
       SELECT scene_id
       FROM 
         tags, 

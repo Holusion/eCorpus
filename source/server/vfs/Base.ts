@@ -18,8 +18,7 @@ export default abstract class BaseVfs extends DbController{
 
   /**
    * Runs a sequence of methods in isolation
-   * Every calls to Vfs.db inside of the callback will be seriualized and wrapped in a transaction
-   * 
+   * Every calls to this.db (or `transaction.db`) inside of the callback will use the same database client to allow proper transaction
    * @see Database.beginTransaction
    */
   public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>{

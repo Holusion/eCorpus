@@ -15,6 +15,7 @@ export * from "./types.js";
 
 interface VfsOptions{
   db ?:Database;
+  database_uri?:string;
   createDirs?:boolean;
   forceMigration ?:boolean;
 }
@@ -30,14 +31,15 @@ class Vfs extends BaseVfs{
     super(rootDir, db);
   }
 
-  static async Open(rootDir :string, {db, createDirs=true, forceMigration = true} :VfsOptions = {} ){
+  static async Open(rootDir :string, {db, database_uri, createDirs=true, forceMigration = true} :VfsOptions = {} ){
+    if(!db && !database_uri) throw new Error(`No DB connection method provided. Can't open VFS`);
     if(createDirs){
       await fs.mkdir(path.join(rootDir, "objects"), {recursive: true});
       await fs.rm(path.join(rootDir, "uploads"), {recursive: true, force: true});
       await fs.mkdir(path.join(rootDir, "uploads"), {recursive: true});
     }
     db ??= await open({
-      uri: path.join(rootDir,'database.db'),
+      uri: database_uri!,
       forceMigration,
     });
 
@@ -46,7 +48,7 @@ class Vfs extends BaseVfs{
   }
   
   async close(){
-    await this.db.close();
+    await this.db.end();
     this.isOpen = false;
   }
 }

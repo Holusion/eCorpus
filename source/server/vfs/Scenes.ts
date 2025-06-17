@@ -249,7 +249,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       tags: string,
       access: string,
       archived: number,
-    }[]>(`
+    }>(`
       WITH 
         docs AS (
           SELECT json_extract(data, "$.metas") AS meta, ctime AS mtime, fk_scene_id
@@ -350,7 +350,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     
     if(!scene) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     
-    let tags = await this.db.all<{name:string}[]>(`
+    let tags = await this.db.all<{name:string}>(`
       SELECT 
         tag_name AS name
       FROM tags
@@ -391,7 +391,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     const {limit = 10, offset = 0, orderDirection = "desc"} = ScenesVfs._validateSceneQuery(query);
 
     const dir = orderDirection.toUpperCase() as Uppercase<typeof orderDirection>;
-    let entries = await this.db.all<Omit<Stored<ItemEntry>,"mtime">[]>(`
+    let entries = await this.db.all<Omit<Stored<ItemEntry>,"mtime">>(`
       SELECT 
         file_id AS id,
         name,

@@ -1,56 +1,59 @@
 import {Pool, QueryResultRow} from 'pg';
 import config from "../../utils/config.js";
-import { debuglog } from "util";
-import uid from "../../utils/uid.js";
 import Cursor from 'pg-cursor';
+import { migrate } from './migrations.js';
 
 export interface DbOptions {
   uri:string;
   forceMigration ?:boolean;
 }
 
-interface TransactionWork<T>{
-  (db :Transaction) :Promise<T>;
-}
-
-export interface Transaction extends Database{}
 
 export interface RunResult{
   changes:number|null;
 }
 
 export interface DatabaseHandle{
+  /**
+   * Creates a cursor that will only fetch the first row that would be returned by the query
+   */
   get<T extends QueryResultRow =any>(sql: string, params?: any):Promise<T>;
+  /**
+   * Query the database, return the result as an array of rows
+   */
   all<T extends QueryResultRow =any>(sql: string, params?: any):Promise<T[]>;
+  /**
+   * Run a query, ignoring any results
+   */
   run(sql: string, params?: any):Promise<RunResult>;
+
+  each<T extends QueryResultRow = any>(sql: string, params?: any):AsyncGenerator<T, void, void>;
+
+  /**
+   * Start a transaction. A connection will be reserved for the entire transaction's duration.
+   * Can be nested: Savepoints will be used to allow recovering from errors in nested transactions.
+   */
   beginTransaction<T>(work:(db: DatabaseHandle)=>Promise<T>):Promise<T>;
 }
 
+export interface Transaction extends DatabaseHandle{}
 export interface Database extends DatabaseHandle{
   end:()=>Promise<void>
 }
 
-
+let _id :number = 0;
 export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
-
   let pool = new Pool({connectionString: uri});
-  
-  // await db.run(`PRAGMA foreign_keys = OFF`);
-  // await db.migrate({
-  //   force: forceMigration,
-  //   migrationsPath: config.migrations_dir,
-  // });
-  // await db.run(`PRAGMA foreign_keys = ON`);
-  
-  // if(debuglog("sqlite:verbose").enabled)sqlite.verbose();
-  // if(debuglog("sqlite:profile").enabled){
-  //   const log = debuglog("sqlite:profile");
-  //   db.on("profile",log); 
-  // }
-  // if(debuglog("sqlite:trace").enabled){
-  //   const log = debuglog("sqlite:trace");
-  //   db.on("trace", log); 
-  // }
+
+  pool.on("error", (err, client)=>{
+    console.error("psql client pool error :", err);
+  });
+  const client = await pool.connect();
+  try{
+    await migrate({db:client, migrations: config.migrations_dir, force: forceMigration});
+  }finally{
+    client.release();
+  }
   
   return {
     async all<T extends QueryResultRow = any>(sql:string, params?: any):Promise<T[]>{
@@ -72,12 +75,28 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
       return {
         changes: r.rowCount,
       };
-
     },
+
+    async *each<T extends QueryResultRow = any>(sql:string, params:any):AsyncGenerator<T,void, never>{
+      const client = await pool.connect();
+      const cursor = client.query(new Cursor<T>(sql, params));
+      try{
+        while(true){
+          const rows = await cursor.read(100);
+          if(rows.length == 0) break;
+          yield* rows;
+        }
+      }finally{
+        await cursor.close();
+        client.release();
+      }
+    },
+
     async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>): Promise<T>{
       const client = await pool.connect();
       try{
-        return await work({
+        await client.query(`BEGIN TRANSACTION`);
+        const res = await work({
           async all<T extends QueryResultRow = any>(sql:string, params:any):Promise<T[]>{
             const {rows} = await client.query<T, any>(sql, params);
             return rows;
@@ -97,10 +116,39 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
             };
       
           },
+
+          async *each<T extends QueryResultRow = any>(sql:string, params:any):AsyncGenerator<T,void, never>{
+            const cursor = client.query(new Cursor<T>(sql, params));
+            try{
+              while(true){
+                const rows = await cursor.read(100);
+                if(rows.length == 0) break;
+                yield* rows;
+
+              }
+            }finally{
+              await cursor.close();
+            }
+          },
+
           async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>):Promise<T>{
-            return await work(this);
+            const sp = `SP_${(++_id).toString(16)}`;
+            await client.query(`SAVEPOINT ${sp}`);
+            try{
+              return await work(this);
+            }catch(e){
+              await client.query(`ROLLBACK TRANSACTION TO ${sp}`);
+              throw e;
+            }finally{
+              await client.query(`RELEASE SAVEPOINT ${sp}`);
+            }
           }
         });
+        await client.query(`COMMIT TRANSACTION`);
+        return res;
+      }catch(e){
+       await client.query('ROLLBACK TRANSACTION');
+       throw e;
       }finally{
         client.release();
       }
@@ -111,6 +159,8 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
     }
   } satisfies Database;
 }
+
+
 
 
 export type Isolate<that, T> = (this: that, vfs :that)=> T|Promise<T>;

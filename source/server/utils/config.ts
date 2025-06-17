@@ -15,6 +15,7 @@ const values = {
   files_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), toPath],
   dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
   assets_dir: [undefined, toPath],
+  database_uri: ["postgresql://localhost:5432", toString],
   trust_proxy: [true, toBool],
   hostname: [hostname(), toString],
   smart_host: ["smtp://localhost", toString],

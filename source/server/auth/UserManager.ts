@@ -191,7 +191,7 @@ export default class UserManager extends DbController {
    async getUsers(safe :true) :Promise<SafeUser[]>
    async getUsers(safe :false) :Promise<User[]>
    async getUsers(safe :boolean =true){
-    return (await this.db.all<StoredUser[]>(`
+    return (await this.db.all<StoredUser>(`
       SELECT ${safe?"user_id, username, email, isAdministrator":"*"} 
       FROM users
       WHERE user_id NOT IN (0, 1)`)).map(u=>UserManager.deserialize(u));
@@ -265,7 +265,7 @@ export default class UserManager extends DbController {
       throw new BadRequestError(`Provide at least one valid value to change`);
     }
     if(params["$password"]) params["$password"] = await UserManager.formatPassword(params["$password"]);
-    let r = await this.db.get<StoredUser|undefined>(`
+    let r = await this.db.get<StoredUser>(`
       UPDATE users 
       SET ${values.join(", ")} 
       WHERE user_id = $uid
@@ -338,7 +338,7 @@ export default class UserManager extends DbController {
 
   async getKeys() :Promise<string[]>{
     return (
-      await this.db.all<Record<"key_data", Buffer>[]>(`
+      await this.db.all<Record<"key_data", Buffer>>(`
         SELECT key_data FROM keys
         ORDER BY key_id DESC
       `)

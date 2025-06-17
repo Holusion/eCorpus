@@ -320,7 +320,7 @@ export default abstract class FilesVfs extends BaseVfs{
    */
   async getFileHistory({scene, name} :GetFileParams):Promise<GetFileResult[]>{
     let is_string = typeof scene === "string";
-    let rows = await this.db.all<Stored<GetFileResult>[]>(`
+    let rows = await this.db.all<Stored<GetFileResult>>(`
       ${(is_string?`WITH scene AS (SELECT scene_id FROM scenes WHERE scene_name = $scene)`:"")}
       SELECT
         file_id as id,
@@ -412,7 +412,7 @@ export default abstract class FilesVfs extends BaseVfs{
       },
     });
 
-    this.db.each<Stored<FileProps>>(`
+    yield* this.db.each<FileProps>(`
       WITH ag AS ( 
         SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS generation
         FROM files
@@ -440,12 +440,7 @@ export default abstract class FilesVfs extends BaseVfs{
         ${((withArchives)?"":`AND hash IS NOT NULL`)}
         ${((withFolders)? "": `AND mime IS NOT 'text/directory'`)}
       ORDER BY mtime DESC, name ASC
-    `, {$scene_id: scene_id}, (err, row)=>{
-      if(err) return channel.emit("error", err);
-      channel.write(row);
-    }).then(()=> channel.end(), (e)=>channel.destroy(e));
-
-    yield* channel;
+    `, {$scene_id: scene_id});
   }
 
   async createFolder({scene, name, user_id} :WriteDirParams){

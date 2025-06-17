@@ -23,7 +23,7 @@ import Templates from "../utils/templates.js";
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
 
   await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
-  let db = await openDatabase({uri: path.join(config.files_dir, "database.db"), forceMigration: config.force_migration});
+  let db = await openDatabase({uri: config.database_uri, forceMigration: config.force_migration});
   const vfs = await Vfs.Open(config.files_dir, {db});
 
   const userManager = new UserManager(db);
