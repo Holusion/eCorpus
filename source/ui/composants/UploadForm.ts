@@ -176,10 +176,8 @@ export default class UploadForm extends i18n(LitElement){
             if(!done && !error) abort();
             else this.splice(id);
           }
-          let content = html`
-          <div role="status" id="upload-${id}" class="upload-status">
-          <progress id="progress-${filename}" max="100" value=${progress}></progress>
-          </div>`
+          let content = html`<div role="status" id="upload-${id}" class="upload-status">
+          <progress id="progress-${filename}" max="100" value=${progress}></progress>`
           if(error){
             content = html`<span id="progress-${filename}" class="text-error progress">${scenes.map((scene)=> scene.name).join(',')}: ${error.message}</span>`;
           }else if(done){
@@ -190,7 +188,9 @@ export default class UploadForm extends i18n(LitElement){
 
           return html`<div class="filename"><label for="progress-${filename}">${filename}</label></div>
             <div><span> ${total?html`(<b-size b=${total}></b-size>)`:null}</span></div>
+            <div role="status" id="upload-${id}" class="upload-status">
             ${content}
+            </div>
             <button class="btn btn-transparent btn-inline btn-small text-error" @click=${handleAbort}>🗙</button>`; 
 
         })}
