@@ -351,7 +351,7 @@ describe("Vfs", function(){
           new Date("2023-01-01"),
           new Date("2024-01-01")
         ];
-        const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: i, $time: d});
+        const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $2 WHERE file_id = $1`, [i, d]);
         let png = await vfs.writeDoc("\n", {scene: s1, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
         let jpg = await vfs.writeDoc("\n", {scene: s1, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
 
@@ -1407,7 +1407,7 @@ describe("Vfs", function(){
             new Date("2023-01-01"),
             new Date("2024-01-01")
           ];
-          const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: i, $time: d});
+          const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $2 WHERE file_id = $1`, [ i, d ]);
           let png = await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
           let jpg = await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
 

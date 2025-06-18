@@ -1,9 +1,11 @@
+import {escapeLiteral} from "pg";
 import { AccessMap, AccessType, AccessTypes } from "../auth/UserManager.js";
 import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery, Stored } from "./types.js";
+import errors from "./helpers/errors.js";
 
 
 export default abstract class ScenesVfs extends BaseVfs{
@@ -35,24 +37,24 @@ export default abstract class ScenesVfs extends BaseVfs{
         let r = await this.db.get(`
           INSERT INTO scenes (scene_name, scene_id, access, fk_author_id) 
           VALUES (
-            $scene_name,
-            $scene_id,
-            $access,
-            $author
+            $1,
+            $2,
+            $3,
+            $4
           )
           RETURNING scene_id AS scene_id;
-        `, {
-          $scene_name:name, 
-          $scene_id: uid,
-          $access: JSON.stringify(permissions),
-          $author: author_id,
-        });
+        `, [
+          name, 
+          uid,
+          JSON.stringify(permissions),
+          author_id,
+        ]);
         return r.scene_id;
-      }catch(e){
-        if((e as any).code == "SQLITE_CONSTRAINT"){
-          if(/UNIQUE.*scene_id/.test((e as any).message)){
+      }catch(e:any){
+        if(e.code == errors.unique_violation){
+          if(e.constraint == "scenes_scene_id_key"){
             continue;
-          }else if(/UNIQUE.*scene_name/.test((e as any).message)){
+          }else if(e.constraint == "scenes_scene_name_key"){
             throw new ConflictError(`A scene named ${name} already exists`);
           }else{
             throw e;
@@ -70,7 +72,7 @@ export default abstract class ScenesVfs extends BaseVfs{
    * @see archiveScene
    */
   async removeScene(scene:number|string){
-    let r = await this.db.run(`DELETE FROM scenes WHERE ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene`, {$scene:scene});
+    let r = await this.db.run(`DELETE FROM scenes WHERE ${typeof scene ==="number"? "scene_id": "scene_name"} = $1`, [scene]);
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
   /**
@@ -84,10 +86,10 @@ export default abstract class ScenesVfs extends BaseVfs{
         archived = unixepoch(),
         scene_name = scene_name || '#' || CAST(scene_id AS TEXT)
       WHERE 
-        ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene
+        ${typeof scene ==="number"? "scene_id": "scene_name"} = $1
         ${typeof scene ==="number"? `AND INSTR(scene_name, '#' || scene_id) = 0`:""}
         AND archived = 0
-    `, {$scene: scene});
+    `, [ scene ]);
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
 
@@ -99,21 +101,21 @@ export default abstract class ScenesVfs extends BaseVfs{
       UPDATE scenes 
       SET 
         archived = 0,
-        scene_name = ${typeof name !== "undefined"?"$name":`SUBSTR( scene_name, 0, LENGTH(scene_name) -LENGTH(CAST(scene_id AS TEXT)) )`}
+        scene_name = ${typeof name !== "undefined"?"$2":`SUBSTR( scene_name, 0, LENGTH(scene_name) -LENGTH(CAST(scene_id AS TEXT)) )`}
       WHERE 
-        ${typeof scene ==="number"? "scene_id": "scene_name"} = $scene
+        ${typeof scene ==="number"? "scene_id": "scene_name"} = $1
         AND archived IS NOT 0
-    `, {$scene: scene, $name: name});
+    `, [ scene, name ]);
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
 
-  async renameScene($scene_id :number, $nextName :string){
+  async renameScene(scene_id :number, nextName :string){
     let r = await this.db.run(`
       UPDATE scenes
-      SET scene_name = $nextName
-      WHERE scene_id = $scene_id
-    `, {$scene_id, $nextName});
-    if(!r?.changes) throw new NotFoundError(`no scene found with id: ${$scene_id}`);
+      SET scene_name = $2
+      WHERE scene_id = $1
+    `, [scene_id, nextName ]);
+    if(!r?.changes) throw new NotFoundError(`no scene found with id: ${scene_id}`);
   }
 
   /**
@@ -130,7 +132,7 @@ export default abstract class ScenesVfs extends BaseVfs{
   static _fragUserCanAccessScene(user_id :number, accessMin:AccessType = "read"){
     return `
       COALESCE(
-          json_extract(scenes.access, '$.' || $user_id),
+          json_extract(scenes.access, '$.' || ${escapeLiteral(user_id.toString(10))}),
           ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
           json_extract(scenes.access, '$.0')
       ) IN (${ AccessTypes.slice(AccessTypes.indexOf(accessMin)).map(s=>`'${s}'`).join(", ") })
@@ -192,30 +194,31 @@ export default abstract class ScenesVfs extends BaseVfs{
     
     const {access, author, match, limit = 10, offset = 0, orderBy = "name", orderDirection = "asc", archived}  = ScenesVfs._validateSceneQuery(q);
     let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length  || typeof archived === "boolean";
-
+    const args = [
+      (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
+      offset,
+      limit,
+      author,
+    ]
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
-
+    
     let likeness = "";
-    let mParams :Record<string, string> = {};
 
-    function addMatch(ms :string, index :number) :string{
-      let name = `$match${index}`;
-      let fname = `$fmatch${index}`; //fuzzy
-      let fm = ms;
-      if(ms.startsWith("^")) fm = fm.slice(1);
-      else if(!ms.startsWith("%")) fm = "%"+ fm;
+    function addMatch(matchString :string, index :number) :string{
+      let fuzzyMatch = matchString;
+      if(matchString.startsWith("^")) fuzzyMatch = fuzzyMatch.slice(1);
+      else if(!matchString.startsWith("%")) fuzzyMatch = "%"+ fuzzyMatch;
 
-      if(ms.endsWith("$")) fm = fm.slice(0, -1);
-      else if(!ms.endsWith("%")) fm = fm + "%";
+      if(matchString.endsWith("$")) fuzzyMatch = fuzzyMatch.slice(0, -1);
+      else if(!matchString.endsWith("%")) fuzzyMatch = fuzzyMatch + "%";
 
-      mParams[fname] = fm;
-      mParams[name] = ms;
+      const idx = args.push(fuzzyMatch, matchString) -1;
 
       let conditions = [
-        `name LIKE ${fname}`,
-        `docs.meta LIKE ${fname}`,
-        `author = ${name}`,
-        `json_extract(scenes.access, '$.' || ${name}) IN (${AccessTypes.slice(2).map(a=>`'${a}'`).join(", ")})`,
+        `name LIKE $${idx}`,
+        `docs.meta LIKE $${idx}`,
+        `author = ${idx+1}`,
+        `json_extract(scenes.access, '$.' || ${idx+1}) IN (${AccessTypes.slice(2).map(a=>`'${a}'`).join(", ")})`,
       ]
       return `${index ==0 ? " ": " AND "}( ${conditions.join(" OR ")} )`;
     }
@@ -275,7 +278,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         tags.names AS tags,
         json_object(
           ${(typeof user_id === "number" && 0 < user_id)? `
-            "user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),
+            "user", IFNULL(json_extract(scenes.access, '$.' || $1), "none"),
           ` :""}
           "any", json_extract(scenes.access, '$.1'),
           "default", json_extract(scenes.access, '$.0')
@@ -291,22 +294,16 @@ export default abstract class ScenesVfs extends BaseVfs{
           GROUP BY fk_scene_id
         ) AS tags ON tags.fk_scene_id = scene_id
       ${with_filter? "WHERE true": ""}
-      ${typeof author === "number"? `AND author_id = $author`:"" }
+      ${typeof author === "number"? `AND author_id = $4`:"" }
       ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
-      ${(access?.length)? `AND json_extract(scenes.access, '$.' || $user_id) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
+      ${(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
       ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} 0`:""}
       ${likeness}
 
       GROUP BY scene_id
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}
-      LIMIT $offset, $limit
-    `, {
-      ...mParams,
-      $user_id: (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
-      $limit: limit,
-      $offset: offset,
-      $author: author,
-    })).map(({ctime, mtime, id, access, archived, ...m})=>({
+      LIMIT $2, $3
+    `, args)).map(({ctime, mtime, id, access, archived, ...m})=>({
       ...m,
       id,
       tags: m.tags ? JSON.parse(m.tags): [],
@@ -323,6 +320,8 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
+    let args = [nameOrId];
+    if(user_id) args.push(user_id.toString(10))
     let scene = await this.db.get<{
       name: string,
       id: number,
@@ -342,11 +341,11 @@ export default abstract class ScenesVfs extends BaseVfs{
           SELECT username FROM users WHERE user_id = fk_author_id
         ), 'default') AS author,
         json_object(
-          ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $user_id), "none"),`: ``}
+          ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $2), "none"),`: ``}
           "any", json_extract(scenes.access, '$.1'),
           "default", json_extract(scenes.access, '$.0')
         ) AS access
-      FROM scenes WHERE ${key} = $value`, {$value: nameOrId, $user_id: user_id? user_id.toString(10): undefined});
+      FROM scenes WHERE ${key} = $1`, args);
     
     if(!scene) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     
@@ -354,19 +353,20 @@ export default abstract class ScenesVfs extends BaseVfs{
       SELECT 
         tag_name AS name
       FROM tags
-      WHERE tags.fk_scene_id = $scene_id
-    `, {$scene_id: scene.id});
+      WHERE tags.fk_scene_id = $1
+    `,[scene.id]);
 
     let r = await this.db.get<{mtime:string, thumb?:string}>(`
       WITH scene_files AS (
         SELECT *
         FROM current_files
-        WHERE fk_scene_id = $scene_id
+        WHERE fk_scene_id = $1
       )
       SELECT 
         (SELECT MAX(ctime) FROM scene_files) AS mtime,
         (SELECT name FROM scene_files WHERE ${ScenesVfs._fragIsThumbnail()} ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb
-    `, {$scene_id: scene.id});
+    `, [scene.id]);
+
     return {
       ...scene,
       access: JSON.parse(scene.access),
@@ -403,14 +403,14 @@ export default abstract class ScenesVfs extends BaseVfs{
         size
       FROM files
       INNER JOIN users ON author_id = user_id
-      WHERE fk_scene_id = $scene
+      WHERE fk_scene_id = $1
       ORDER BY ctime ${dir}, name ${dir}, generation ${dir}
-      LIMIT $offset, $limit
-    `, {
-      $scene: id,
-      $offset: offset,
-      $limit: limit,
-    });
+      LIMIT $2, $3
+    `, [
+      id,
+      offset,
+      limit,
+    ]);
 
     return entries.map(m=>({
       ...m,

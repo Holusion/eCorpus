@@ -13,21 +13,22 @@ export interface RunResult{
   changes:number|null;
 }
 
+
 export interface DatabaseHandle{
   /**
    * Creates a cursor that will only fetch the first row that would be returned by the query
    */
-  get<T extends QueryResultRow =any>(sql: string, params?: any):Promise<T>;
+  get<T extends QueryResultRow =any>(sql: string, params?: any[]):Promise<T>;
   /**
    * Query the database, return the result as an array of rows
    */
-  all<T extends QueryResultRow =any>(sql: string, params?: any):Promise<T[]>;
+  all<T extends QueryResultRow =any>(sql: string, params?: any[]):Promise<T[]>;
   /**
    * Run a query, ignoring any results
    */
-  run(sql: string, params?: any):Promise<RunResult>;
+  run(sql: string, params?: any[]):Promise<RunResult>;
 
-  each<T extends QueryResultRow = any>(sql: string, params?: any):AsyncGenerator<T, void, void>;
+  each<T extends QueryResultRow = any>(sql: string, params?: any[]):AsyncGenerator<T, void, void>;
 
   /**
    * Start a transaction. A connection will be reserved for the entire transaction's duration.
@@ -48,19 +49,14 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
   pool.on("error", (err, client)=>{
     console.error("psql client pool error :", err);
   });
-  const client = await pool.connect();
-  try{
-    await migrate({db:client, migrations: config.migrations_dir, force: forceMigration});
-  }finally{
-    client.release();
-  }
   
-  return {
-    async all<T extends QueryResultRow = any>(sql:string, params?: any):Promise<T[]>{
+  
+  let handle = {
+    async all<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T[]>{
       const {rows} = await pool.query<T, any>(sql, params);
       return rows;
     },
-    async get<T extends QueryResultRow = any>(sql:string, params?: any):Promise<T>{
+    async get<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T>{
       const client = await pool.connect();
       const cursor = client.query(new Cursor<T>(sql, params));
       try{
@@ -70,14 +66,14 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
         client.release();
       }
     },
-    async run(sql: string, params?: any):Promise<RunResult>{
+    async run(sql: string, params?: any[]):Promise<RunResult>{
       const r = await pool.query<never, any>(sql, params);
       return {
         changes: r.rowCount,
       };
     },
 
-    async *each<T extends QueryResultRow = any>(sql:string, params:any):AsyncGenerator<T,void, never>{
+    async *each<T extends QueryResultRow = any>(sql:string, params:any[]):AsyncGenerator<T,void, never>{
       const client = await pool.connect();
       const cursor = client.query(new Cursor<T>(sql, params));
       try{
@@ -97,11 +93,11 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
       try{
         await client.query(`BEGIN TRANSACTION`);
         const res = await work({
-          async all<T extends QueryResultRow = any>(sql:string, params:any):Promise<T[]>{
+          async all<T extends QueryResultRow = any>(sql:string, params:any[]):Promise<T[]>{
             const {rows} = await client.query<T, any>(sql, params);
             return rows;
           },
-          async get<T extends QueryResultRow = any>(sql:string, params:any):Promise<T>{
+          async get<T extends QueryResultRow = any>(sql:string, params:any[]):Promise<T>{
             const cursor = client.query(new Cursor<T>(sql, params));
             try{
               return (await cursor.read(1))[0];
@@ -109,7 +105,7 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
               await cursor.close();
             }
           },
-          async run(sql: string, params: any):Promise<RunResult>{
+          async run(sql: string, params: any[]):Promise<RunResult>{
             const r = await client.query<never, any>(sql, params);
             return {
               changes: r.rowCount,
@@ -117,7 +113,7 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
       
           },
 
-          async *each<T extends QueryResultRow = any>(sql:string, params:any):AsyncGenerator<T,void, never>{
+          async *each<T extends QueryResultRow = any>(sql:string, params:any[]):AsyncGenerator<T,void, never>{
             const cursor = client.query(new Cursor<T>(sql, params));
             try{
               while(true){
@@ -137,7 +133,11 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
             try{
               return await work(this);
             }catch(e){
-              await client.query(`ROLLBACK TRANSACTION TO ${sp}`);
+              try{
+                await client.query(`ROLLBACK TRANSACTION TO ${sp}`);
+              }catch(e:any){
+                console.error(new Error(`Failed to rollback transaction: `+e.message));
+              }
               throw e;
             }finally{
               await client.query(`RELEASE SAVEPOINT ${sp}`);
@@ -158,6 +158,12 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
       return await pool.end();
     }
   } satisfies Database;
+
+  await handle.beginTransaction(async (db)=>{
+    await migrate({db, migrations: config.migrations_dir, force: forceMigration});
+  });
+
+  return handle;
 }
 
 

@@ -1,13 +1,14 @@
 import fs from "fs/promises";
-import crypto from "crypto";
+import crypto, { randomBytes } from "crypto";
 import path from "path";
 import {promisify, callbackify} from "util";
 
 import uid, { Uid } from "../utils/uid.js";
 import { BadRequestError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
-import User, {SafeUser, StoredUser} from "./User.js";
+import User, {SafeUser, StoredUser, UserLevels} from "./User.js";
 
 import openDatabase, {Database, DbController, DbOptions} from "../vfs/helpers/db.js";
+import errors, { expandSQLError } from "../vfs/helpers/errors.js";
 
 
 const scrypt :(
@@ -74,7 +75,7 @@ export default class UserManager extends DbController {
 
   static isValid = {
     username(username :string|any){
-      return typeof username ==="string" &&/^[\w]{3,40}$/.test(username)
+      return typeof username ==="string" &&/^[-\w]{3,40}$/.test(username)
     },
     password(password:string|any){
       return typeof password ==="string" && 8 <= password.length
@@ -134,8 +135,8 @@ export default class UserManager extends DbController {
     return  new User({
       username: u.username, 
       email: u.email??undefined,
-      uid: u.user_id,
-      isAdministrator: !!u.isAdministrator,
+      uid: parseInt(u.user_id),
+      isAdministrator: u.level === UserLevels.ADMIN,
       password: u.password, 
     });
   }
@@ -145,8 +146,8 @@ export default class UserManager extends DbController {
       username,
       email,
       password,
-      user_id: uid,
-      isAdministrator: (isAdministrator?1:0),
+      user_id: uid.toString(10),
+      level: isAdministrator?UserLevels.ADMIN:UserLevels.CREATE,
     };
   }
 
@@ -158,15 +159,15 @@ export default class UserManager extends DbController {
   async write(user :User) :Promise<void>{
     let u = UserManager.serialize(user);
     await this.db.run(`
-      INSERT INTO users (user_id, username, email, password, isAdministrator)
-      VALUES ($uid, $username, $email, $password, $isAdministrator)
-    `, {
-      $uid: u.user_id,
-      $username: u.username,
-      $email: u.email ?? null,
-      $password: u.password ?? null,
-      $isAdministrator: ((u.isAdministrator)?1:0)
-    });
+      INSERT INTO users (user_id, username, email, password, level)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      u.user_id,
+      u.username,
+      u.email ?? null,
+      u.password ?? null,
+      u.level,
+    ]);
   }
 
 
@@ -179,7 +180,7 @@ export default class UserManager extends DbController {
    */
   async getUserByName(username : string) :Promise<User>{
     if(!UserManager.isValidUserName(username) && username.indexOf("@")== -1) throw new BadRequestError(`Invalid user name`);
-    let u = await this.db.get<StoredUser>(`SELECT * FROM users WHERE username = $username OR email = $username`, {$username: username});
+    let u = await this.db.get<StoredUser>(`SELECT * FROM users WHERE username = $1 OR email = $1`, [ username ]);
     if(!u) throw new NotFoundError(`no user with username ${username}`);
     return UserManager.deserialize(u);
   }
@@ -192,7 +193,7 @@ export default class UserManager extends DbController {
    async getUsers(safe :false) :Promise<User[]>
    async getUsers(safe :boolean =true){
     return (await this.db.all<StoredUser>(`
-      SELECT ${safe?"user_id, username, email, isAdministrator":"*"} 
+      SELECT ${safe?"user_id, username, email, level":"*"} 
       FROM users
       WHERE user_id NOT IN (0, 1)`)).map(u=>UserManager.deserialize(u));
   }
@@ -240,43 +241,49 @@ export default class UserManager extends DbController {
         user.uid = Uid.make();
         await this.write(user);
         break;
-      }catch(e){
-        if((e as any).code == "SQLITE_CONSTRAINT" && /UNIQUE.*user_id/.test((e as any).message)) continue;
+      }catch(e:any){
+        if(e.code == errors.unique_violation && e.constraint === "users_user_id_key") continue;
         else throw e;
       }
     }
     return user;
   }
 
-  async patchUser($uid :number, u :Partial<User>){
-    let values = [], params :Partial<Record<`\$${keyof User}`,any>> = {$uid};
+  async patchUser(uid :number, u :Partial<User>){
+    let values = [], params :any[] = [uid.toString(10)];
     let keys = ["username", "password", "email", "isAdministrator"] as Array<keyof User & keyof typeof UserManager.isValid>;
-    for(let key of keys){
+    let sqlKeys = ["username", "password", "email", "level"]as Array<keyof StoredUser>;
+    for(let i = 0; i < keys.length; i++){
+      let key = keys[i];
       let value = u[key];
       let validator = UserManager.isValid[key];
       if(typeof value === "undefined") continue;
       if(typeof validator === "function" && !validator(value)){
         throw new BadRequestError(`Bad value for ${key}: ${value}`);
       }
-      values.push(`${key} = $${key}`);
-      params[`\$${key}`] = u[key];
+      values.push(`${sqlKeys[i]} = $${params.length+1}`);
+      if(key === "password"){
+        params.push(await UserManager.formatPassword(value));
+      }else{
+        params.push(value);
+      }
     }
     if(values.length === 0){
       throw new BadRequestError(`Provide at least one valid value to change`);
     }
-    if(params["$password"]) params["$password"] = await UserManager.formatPassword(params["$password"]);
     let r = await this.db.get<StoredUser>(`
       UPDATE users 
       SET ${values.join(", ")} 
-      WHERE user_id = $uid
+      WHERE user_id = $1
       RETURNING *
     `, params);
-    if(!r) throw new NotFoundError(`Can't find user with uid : ${$uid}`);
+    if(!r) throw new NotFoundError(`Can't find user with uid : ${uid}`);
+    console.log("Returned value : ", r);
     return UserManager.deserialize(r);
   }
 
   async removeUser(uid :number){
-    let r = await this.db.run(`DELETE FROM users WHERE user_id = $uid`, {$uid:uid});
+    let r = await this.db.run(`DELETE FROM users WHERE user_id = $1`, [ uid.toString(10) ]);
     if(!r || !r.changes) throw new NotFoundError(`No user to delete with uid ${uid}`);
   }
 
@@ -295,28 +302,56 @@ export default class UserManager extends DbController {
    */
   async grant(scene :string|number, user :string|number, role :AccessType){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
-    let sceneKey = (typeof scene === "number")?"scene_id": "scene_name";
-    let userKey =  (typeof user === "number")? "user_id":"username";
-    let r = await this.db.run(`
-      UPDATE scenes
-      SET access = json_patch(access, json_object( CAST(user_id AS TEXT), $role))
-      FROM (SELECT user_id FROM users WHERE ${userKey} = $user)
-      WHERE ${sceneKey} = $scene
-    `, {$scene: scene, $user: user, $role: role});
+    let scene_id = `(${(typeof scene === "number")?`SELECT $1 AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
+    let user_id =  `(${(typeof user === "number")?`SELECT $2 AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
+    let r;
+    if(role){
+      r = await this.db.run(`
+        INSERT INTO users_acl (fk_user_id, fk_scene_id, level)
+        SELECT
+          user.user_id, scene.scene_id, $3
+        FROM
+          ${scene_id} AS scene,
+          ${user_id} AS user
+      `, [
+        (typeof scene === "number")?scene.toString(10): scene,
+        (typeof user === "number")?user.toString(10): user,
+        AccessTypes.indexOf(role)
+      ]);
+    }else{
+      r = await this.db.run(`
+        WITH 
+          ${scene_id} AS scene,
+          ${user_id} AS user
+        DELETE FROM users_acl
+        WHERE fk_scene_id = scene.scene_id, fk_user_id = user.user_id
+      `, [
+        (typeof scene === "number")?scene.toString(10): scene,
+        (typeof user === "number")?user.toString(10): user,
+      ]);
+    }
     if(!r || !r.changes) throw new NotFoundError(`Can't find matching user or scene`);
     if(1 < r.changes) throw new InternalError(`grant permissions somehow modified multiple users`);
   }
 
   async getAccessRights(scene :string, uid :number) :Promise<AccessType>{
-    return (await this.db.get(`
-      SELECT COALESCE(
-        json_extract(access, '$.' || $uid),
-        ${((0 < uid) ? `json_extract(access, '$.1'),`:"")}
-        json_extract(access, '$.0')
-      ) AS access
-      FROM scenes
-      WHERE scene_name = $scene
-    `, {$scene:scene, $uid:uid.toString(10)}))?.access ?? null;
+    try{
+      return (await this.db.get(`
+        SELECT COALESCE(
+          access -> $2,
+          ${((0 < uid) ? `access ->'1',`:"")}
+          access ->'0'
+        ) AS access
+        FROM scenes
+        WHERE scene_name = $1
+      `, [
+        scene,
+        uid.toString(10)
+      ]))?.access ?? null;
+    }catch(e){
+      console.error("getAccessRights : ", e);
+      throw e;
+    }
   }
 
   /**
@@ -326,25 +361,34 @@ export default class UserManager extends DbController {
    */
   async getPermissions(nameOrId :string|number) :Promise<[{uid:number, username :string, access :AccessType}]>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
+
     let r = await this.db.all(`
-      WITH scene AS (SELECT access FROM scenes WHERE ${key} = $value)
+      WITH scene AS (SELECT access FROM scenes WHERE ${key} = $1)
       SELECT lines.key AS uid, username, lines.value AS access
-      FROM scene, json_each(scene.access) AS lines
-      LEFT JOIN users ON lines.key = user_id
-    `, {$value: nameOrId});
+      FROM scene, jsonb_each(scene.access) AS lines
+      LEFT JOIN users ON lines.key = CAST(user_id AS TEXT)
+    `, [
+      (typeof nameOrId =="number")?nameOrId.toString(10): nameOrId,
+    ]);
     if(!r?.length) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     return r.map(l=>({...l, uid:parseInt(l.uid)})) as any;
   }
 
   async getKeys() :Promise<string[]>{
-    return (
+    const keys = (
       await this.db.all<Record<"key_data", Buffer>>(`
         SELECT key_data FROM keys
         ORDER BY key_id DESC
       `)
     ).map(r=> r.key_data.toString("base64"));
+    if(keys.length == 0){
+      keys.push(await this.addKey());
+    }
+    return keys
   }
   async addKey(){
-    await this.db.run(`INSERT INTO keys (key_data) VALUES (randomblob(16));`);
+    let key = randomBytes(16);
+    await this.db.run(`INSERT INTO keys (key_data) VALUES ($1);`, [key]);
+    return key.toString("base64");
   }
 }

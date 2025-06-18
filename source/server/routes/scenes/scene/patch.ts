@@ -2,6 +2,7 @@
 import { ConflictError } from "../../../utils/errors.js";
 import { getUserId, getUserManager, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
+import errors from "../../../vfs/helpers/errors.js";
 
 
 
@@ -28,7 +29,7 @@ export default async function patchScene(req :Request, res :Response){
       try{
         await vfs.renameScene(scene.id, name);
       }catch(e:any){
-        if(e.code == "SQLITE_CONSTRAINT" && /UNIQUE constraint failed: scenes.scene_name/.test(e.message)){
+        if(e.code == errors.unique_violation && e.constraint == "scenes_scene_name_key"){
           throw new ConflictError(`A scene named ${name} already exists`);
         }else{
           throw e;

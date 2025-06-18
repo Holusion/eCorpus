@@ -26,7 +26,7 @@ export default abstract class CleanVfs extends BaseVfs{
     let it = await fs.opendir(this.objectsDir);
     let loose = [];
     for await (let object of it){
-        let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $name`, {$name:object.name});
+        let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
         if(!row || row.count == 0 ){
             loose.push(object.name);
         }

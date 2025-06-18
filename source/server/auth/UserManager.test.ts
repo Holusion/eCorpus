@@ -6,8 +6,10 @@ import path from "path";
 import {expect} from "chai";
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import User from "./User.js";
-import openDatabase from "../vfs/helpers/db.js";
+import openDatabase, { Database } from "../vfs/helpers/db.js";
 import { Uid } from "../utils/uid.js";
+import { randomBytes } from "crypto";
+import errors from "../vfs/helpers/errors.js";
 
 describe("UserManager static methods", function(){
   describe("parsePassword()", function(){
@@ -83,24 +85,21 @@ describe("UserManager static methods", function(){
 
 describe("UserManager methods", function(){
   let userManager :UserManager;
-  this.beforeEach(async function(){
-    this.db = await openDatabase({uri:":memory:", forceMigration:true});
+  this.beforeAll(async function(){
+    this.db = await openDatabase({uri: await getUniqueDb("userManager-methods-test-"+randomBytes(2).toString("hex")), forceMigration:true});
     userManager = new UserManager(this.db);
   });
-  describe("open()", function(){
-    it("creates users.index if it doesn't exist", async function(){
-      await expect(UserManager.open({uri:":memory:", forceMigration:true})).to.be.fulfilled;
-    })
-  });
+  this.afterAll(async function(){
+    await this.db.end();
+  })
 
   describe("addUser()", function(){
     it("creates a user", async function(){
-      let user = await expect(userManager.addUser("foo", "abcdefghij")).to.be.fulfilled;
-      expect(user).to.have.property("username", "foo");
-      let users = await userManager.getUsers();
-      expect(users).to.have.length(1);
-      expect(users[0]).to.have.property("username", "foo");
-      expect(await userManager.getUserByName("foo")).to.be.ok;
+      let user = await expect(userManager.addUser("foo-creates-1", "abcdefghij")).to.be.fulfilled;
+      expect(user).to.have.property("username", "foo-creates-1");
+      let u = await userManager.getUserByName("foo-creates-1")
+      expect(u).to.be.ok;
+      expect(u).to.have.property("isAdministrator", false);
     });
     [
       "../something",
@@ -114,16 +113,15 @@ describe("UserManager methods", function(){
     });
 
     it("rejects duplicate username", async function(){
-      await expect(userManager.addUser("bob", "abcdefghij")).to.be.fulfilled;
-      await expect(userManager.addUser("bob", "abcdefghij")).to.be.rejectedWith("UNIQUE constraint failed");
+      await expect(userManager.addUser("bob-duplicate-1", "abcdefghij")).to.be.fulfilled;
+      await expect(userManager.addUser("bob-duplicate-1", "abcdefghij")).to.be.rejectedWith({code: errors.unique_violation, constraint: "users_username_key"} as any);
     })
 
     it("can handle RNG duplicates", async function(){
       let old = Uid.make;
       try{
-        let u =  await expect(userManager.addUser("bob", "abcdefghij")).to.be.fulfilled;
-        let err = await expect(userManager.write(u)).to.be.rejectedWith("UNIQUE constraint failed");
-        expect(err).to.have.property("code", "SQLITE_CONSTRAINT");
+        let u =  await expect(userManager.addUser("bob-uid-dup", "abcdefghij")).to.be.fulfilled;
+        await expect(userManager.write(u)).to.be.rejectedWith({code: errors.unique_violation, constraint: "users_user_id_key"} as any);
       }finally{
         Uid.make = old;
       }
@@ -132,10 +130,10 @@ describe("UserManager methods", function(){
 
   describe("removeUser()", function(){
     it("remove a user", async function(){
-      let u = await userManager.addUser("bob", "abcdefghij");
-      expect(await userManager.getUsers()).to.have.property("length", 1);
+      let u = await userManager.addUser("bob-remove-user-1", "abcdefghij");
+      expect((await userManager.getUsers()).find(_u=>_u.uid == u.uid)).to.be.ok;
       await userManager.removeUser(u.uid);
-      expect(await userManager.getUsers()).to.have.property("length", 0);
+      expect((await userManager.getUsers()).find(_u=>_u.uid == u.uid)).not.to.be.ok;
     });
     it("expects a valid uid", async function(){
       await expect(userManager.removeUser(10)).to.be.rejectedWith("404");
@@ -143,13 +141,13 @@ describe("UserManager methods", function(){
   })
 
   describe("patchUser", function(){
-    let u:User;
+    let u:User, _id= 1;
     this.beforeEach(async function(){
-      u = await userManager.addUser("bob", "abcdefghij");
+      u = await userManager.addUser("bob-patch-"+(++_id).toString(16).padStart(4, "0"), "abcdefghij");
     });
     [
       ["email", "foo@example.com"],
-      ["username", "bar"],
+      ["username", "bar-patch-1"],
       ["isAdministrator", true],
     ].forEach(([key, value])=>{
       it(`can change a ${key}`, async function(){
@@ -168,7 +166,7 @@ describe("UserManager methods", function(){
       await expect(userManager.patchUser(u.uid, {foo:"bar"} as any)).to.be.rejectedWith(BadRequestError);
     })
     it("throw 404 if user doesn't exist", async function(){
-      await expect(userManager.patchUser(2, {username:"bar"})).to.be.rejectedWith(NotFoundError);
+      await expect(userManager.patchUser(2, {username:"uid-doesnt-exist"})).to.be.rejectedWith(NotFoundError);
     })
     it("encodes passwords", async function(){
       let next = await userManager.patchUser(u.uid, {password: "12345678"});
@@ -177,87 +175,81 @@ describe("UserManager methods", function(){
     })
   })
 
-  describe("getUsers()", function(){
-    it("returns an empty list if folder doesn't exist", async function(){
-      expect(await userManager.getUsers()).to.deep.equal([]);
-    });
-  });
-
   describe("getUserByName()", function(){
     it("find a user", async function(){ 
-      let user = await userManager.addUser("foo", "12345678", false);
-      await expect(userManager.getUserByName("foo")).to.eventually.deep.equal(user);
+      let user = await userManager.addUser("foo-find-user-1", "12345678", false);
+      await expect(userManager.getUserByName("foo-find-user-1")).to.eventually.deep.equal(user);
     });
     it("throws if user doesn't exist", async function(){
-      await expect(userManager.getUserByName("foo")).to.be.rejectedWith(NotFoundError);
+      await expect(userManager.getUserByName("foo-find-user-2")).to.be.rejectedWith(NotFoundError);
     })
     it("finds by email", async function(){
-      let user = await userManager.addUser("foo", "12345678", false, "foo@example.com");
-      await expect(userManager.getUserByName("foo@example.com")).to.eventually.deep.equal(user);
-
-    })
+      let user = await userManager.addUser("foo-find-user-3", "12345678", false, "foo-find-user-3@example.com");
+      await expect(userManager.getUserByName("foo-find-user-3@example.com")).to.eventually.deep.equal(user);
+    });
   })
 
   describe("getUserByNamePassword()", function(){
     it("find a user", async function(){
-      let user = await userManager.addUser("foo", "12345678", false);
+      let user = await userManager.addUser("foo-by-password", "12345678", false);
       expect(user.password).to.be.ok;
-      await expect(userManager.getUserByNamePassword("foo", "12345678")).to.eventually.deep.equal(user);
+      await expect(userManager.getUserByNamePassword("foo-by-password", "12345678")).to.eventually.deep.equal(user);
     });
     it("throws if user doesn't exist", async function(){
-      await expect(userManager.getUserByNamePassword("foo", "bar")).to.be.rejectedWith(NotFoundError);
+      await expect(userManager.getUserByNamePassword("foo-by-password-2", "bar")).to.be.rejectedWith(NotFoundError);
     });
     it("throws if password doesn't match", async function(){
-      let user = await userManager.addUser("foo", "12345678", false);
-      await expect(userManager.getUserByNamePassword("foo", "bar")).to.be.rejectedWith(UnauthorizedError);
+      let user = await userManager.addUser("foo-by-password-3", "12345678", false);
+      await expect(userManager.getUserByNamePassword("foo-by-password-3", "bar")).to.be.rejectedWith(UnauthorizedError);
     });
   });
 
   describe("getAccessRights() / grant()", function(){
-    let user :User;
+    let user :User, _id=0;
+    this.beforeAll(async function(){
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name) VALUES ($1, $2)`, [Uid.make().toString(10), 'foo-grant-access-rights']);
+    })
     this.beforeEach(async function(){
-      await this.db.run(`INSERT INTO scenes (scene_name) VALUES ('foo')`);
-      user = await userManager.addUser("foo", "12345678", false);
+      user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", false);
     });
     it("can return default permissions", async function(){
-      let access = await userManager.getAccessRights("foo", user.uid);
+      let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read");
     });
     it("can set permissions for any user", async function(){
       for(let role of AccessTypes.slice(2)/*read and more */){
-        await userManager.grant("foo", "any", role);
-        let access = await userManager.getAccessRights("foo", user.uid);
+        await userManager.grant("foo-grant-access-rights", "any", role);
+        let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
         expect(access).to.equal(role);
       }
     });
     it("can set user permissions", async function(){
       for(let role of AccessTypes){
         if(!role) continue; //Skip null
-        await userManager.grant("foo", user.username, role);
-        let access = await userManager.getAccessRights("foo", user.uid);
+        await userManager.grant("foo-grant-access-rights", user.username, role);
+        let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
         expect(access).to.equal(role);
       }
     });
     it("can unset user permissions", async function(){
-      await userManager.grant("foo", user.username, null);
-      let access = await userManager.getAccessRights("foo", user.uid);
+      await userManager.grant("foo-grant-access-rights", user.username, null);
+      let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read"); // default
     });
     it("can't provide unsupported role", async function(){
-      await expect(userManager.grant("foo", user.username, "bar" as any)).to.be.rejectedWith("400");
+      await expect(userManager.grant("foo-grant-access-rights", user.username, "bar" as any)).to.be.rejectedWith("400");
     });
     it("can't provide bad username", async function(){
-      await expect(userManager.grant("foo", "oscar", "read")).to.be.rejectedWith("404");
+      await expect(userManager.grant("foo-grant-access-rights", "oscar", "read")).to.be.rejectedWith("404");
     });
   });
+
   describe("getPermissions()", async function(){
-    let user :User;
-    this.beforeEach(async function(){
-      await this.db.run(`INSERT INTO scenes (scene_name) VALUES ('foo')`);
-      user = await userManager.addUser("foo", "12345678", false);
+    this.beforeAll(async function(){
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name) VALUES ($1, $2)`, [Uid.make().toString(10), 'foo-get-permissions']);
     });
     it("get a scene permissions from name", async function(){
-      let perms = await userManager.getPermissions("foo");
+      let perms = await userManager.getPermissions("foo-get-permissions");
       expect(perms).to.deep.equal([
         { uid: 0, username: "default", access: 'read' }
       ]);

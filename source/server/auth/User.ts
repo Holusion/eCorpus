@@ -1,4 +1,11 @@
 
+export enum UserLevels{
+  USE=1,
+  CREATE=2,
+  MANAGE=3,
+  ADMIN=4,
+};
+
 export interface SafeUser{
   uid :number;
   isAdministrator ?:boolean;
@@ -8,11 +15,11 @@ export interface SafeUser{
 }
 
 export interface StoredUser{
-  user_id :number;
+  user_id :string;
   username :string;
   email :string|undefined;
   password :string|undefined;
-  isAdministrator :0|1;
+  level :UserLevels;
 }
 
 export default class User implements SafeUser {

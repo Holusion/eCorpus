@@ -10,6 +10,7 @@ import sourceMaps from "source-map-support";
 import { AppLocals } from "./utils/locals.js";
 import { Config, parse } from "./utils/config.js";
 import { randomBytes } from "node:crypto";
+import { debuglog } from "node:util";
 sourceMaps.install();
 
 chai.use(chaiAsPromised);
@@ -50,7 +51,9 @@ global.getUniqueDb = async function(name?: string){
   }finally{
     await client.end();
   }
-  return new URL(`/${encodeURIComponent(dbname)}`, db_uri).toString();;
+  let uri = new URL(`/${encodeURIComponent(dbname)}`, db_uri).toString();
+  debuglog("pg:debug")(`Created test database at ${uri}`);
+  return uri;
 }
 
 global.createIntegrationContext = async function(c :Mocha.Context, config_override :Partial<Config>={}){

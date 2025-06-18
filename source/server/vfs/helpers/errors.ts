@@ -288,3 +288,22 @@ internal_error: "XX000",
 data_corrupted: "XX001",
 index_corrupted: "XX002",
 } as const;
+
+/**
+ * rewrite an error with additional information about the statement
+ */
+export function expandSQLError(e:any, stmt: string, name?:string){
+
+  if(!e.position) return e;
+  const position = parseInt(e.position);
+  if(Number.isNaN(position)) throw e;
+  const lines_before = stmt.slice(0, position).split('\n');
+  const before = lines_before.slice(-2);
+  const after = stmt.slice(position).split('\n').shift();
+  const offset = before[before.length -1].length;
+  throw new Error([
+    `Syntax error in line ${lines_before.length} ${name?"in "+name:""}`,
+    ...before.map((l, index)=>`\t${l}${index == before.length-1?after: ""}`),
+    `\t`+((offset < e.message.length+1)?`${"^".padStart(offset," ")} ${e.message}`: `${e.message.padStart(offset - e.message.length)}^`),
+  ].join("\n"));
+}

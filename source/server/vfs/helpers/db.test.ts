@@ -16,7 +16,6 @@ describe("Database", function(){
   let db :Database, uri: string;
   this.beforeEach(async function(){
     uri = await getUniqueDb();
-    console.log("Test over : ", uri);
     db = await open({
       uri,
       forceMigration: true,
@@ -49,7 +48,6 @@ describe("Database", function(){
       // await vfs.removeFile({scene: "foo", name: "test.json", user_id: 0});
       // await vfs.writeDoc(`{"foo": "bar"}`, {scene: "foo", user_id: user.uid, name: "test.json", mime: "application/json"});
       
-      let uri = this.db_uri;
       await db.end();
       //Will fail if migrations can't be reapplied
       //Also tests syntax of the "down" migration.
@@ -83,6 +81,7 @@ describe("Database", function(){
       await expect(db.beginTransaction(async (tr)=>{
         expect(tr).to.not.equal(db);
         await tr.beginTransaction(async tr2=>{
+          count++,
           expect(tr2).to.equal(tr);
         })
       })).to.be.fulfilled;

@@ -4,28 +4,19 @@
 CREATE COLLATION ignore_accent_case (provider = icu, deterministic = false, locale = 'und-u-ks-level1');
 
 CREATE TABLE users (
-  user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  user_id BIGINT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE COLLATE ignore_accent_case CHECK(3 <= length(username)),
   email TEXT UNIQUE,
   password CHAR(133),
-  isAdministrator BOOLEAN NOT NULL DEFAULT FALSE
+  level SMALLINT NOT NULL DEFAULT 1 CHECK(1 <= level AND level <= 4)
 );
 
 CREATE INDEX usernames ON users(username);
 
 
-CREATE FUNCTION on_delete_user() RETURNS TRIGGER AS $$
-  BEGIN
-    UPDATE scenes SET access = access #- OLD.user_id WHERE (access #> OLD.user_id IS NOT NULL);
-  END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER delete_user AFTER DELETE ON users
-FOR EACH ROW EXECUTE FUNCTION on_delete_user();
-
 CREATE TABLE keys (
   key_id SERIAL PRIMARY KEY,
-  key_data CHAR(16) NOT NULL 
+  key_data BYTEA NOT NULL 
 );
 
 CREATE TABLE config (
@@ -34,26 +25,33 @@ CREATE TABLE config (
 );
 
 CREATE TABLE scenes (
-  scene_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  scene_id BIGINT PRIMARY KEY,
   scene_name TEXT NOT NULL UNIQUE,
-  ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  access JSON DEFAULT '{"0":"read"}',
-  fk_author_id INTEGER NOT NULL DEFAULT 0,
-  archived INTEGER DEFAULT 0,
+  ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fk_author_id BIGINT NOT NULL DEFAULT 0,
+  archived BOOLEAN DEFAULT FALSE,
+  visible BOOLEAN,
   FOREIGN KEY(fk_author_id) REFERENCES users(user_id) ON DELETE SET DEFAULT
 );
+
 CREATE INDEX archived_scenes ON scenes(scene_id, archived);
 
+CREATE TABLE users_acl(
+  fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  fk_scene_id BIGINT NOT NULL REFERENCES scenes(scene_id) ON DELETE CASCADE,
+  level SMALLINT NOT NULL CHECK(1 <= level AND level <= 3)
+);
+
 CREATE TABLE files (
-  file_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  file_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   name TEXT NOT NULL,
   mime TEXT NOT NULL DEFAULT 'application/octet-stream',
   generation INTEGER DEFAULT 1,
   hash VARCHAR(43),
-  ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   size INTEGER NOT NULL DEFAULT 0,
-  fk_author_id INTEGER NOT NULL,
-  fk_scene_id INTEGER NOT NULL, data TEXT DEFAULT NULL,
+  fk_author_id BIGINT NOT NULL,
+  fk_scene_id BIGINT NOT NULL, data TEXT DEFAULT NULL,
   FOREIGN KEY(fk_scene_id) REFERENCES scenes(scene_id) ON DELETE CASCADE,
   FOREIGN KEY(fk_author_id) REFERENCES users(user_id)  ON DELETE SET DEFAULT,
   UNIQUE(fk_scene_id, name, generation)
@@ -67,6 +65,7 @@ CREATE FUNCTION ensure_parent_folder_exists() RETURNS TRIGGER AS $$
     IF (SELECT COUNT(name) FROM files WHERE files.mime = 'text/directory' AND NEW.name LIKE files.name || '/%') < 1 THEN
       RAISE EXCEPTION 'ENOENT: no such directory';
     END IF;
+    RETURN NULL;
   END;
 $$ LANGUAGE plpgsql;
 
@@ -98,6 +97,7 @@ CREATE FUNCTION delete_folder_content() RETURNS TRIGGER AS $$
       files.fk_scene_id AS fk_scene_id
     FROM files
     WHERE fk_scene_id = NEW.fk_scene_id AND name LIKE NEW.name || '/%';
+    RETURN NULL;
   END
 $$ LANGUAGE plpgsql;
 
@@ -111,7 +111,7 @@ EXECUTE FUNCTION delete_folder_content();
 
 CREATE TABLE tags(
   tag_name TEXT NOT NULL COLLATE ignore_accent_case,
-  fk_scene_id INTEGER NOT NULL,
+  fk_scene_id BIGINT NOT NULL,
   FOREIGN KEY(fk_scene_id) REFERENCES scenes(scene_id) ON DELETE CASCADE,
   UNIQUE(tag_name, fk_scene_id)
 );
@@ -130,6 +130,7 @@ CREATE FUNCTION create_default_folders_for_scene() RETURNS TRIGGER AS $$
     ) VALUES
     ('articles', 'text/directory', 1, 'directory', 0 , 0, NEW.scene_id),
     ('models', 'text/directory', 1, 'directory', 0 , 0, NEW.scene_id);
+    RETURN NULL;
   END;
 $$ LANGUAGE plpgsql;
 
@@ -153,7 +154,9 @@ CREATE VIEW current_files AS
     JOIN files USING(generation, name, fk_scene_id)
 ;
 
-/* current_files(file_id,name,mime,generation,hash,ctime,size,fk_author_id,fk_scene_id,data) */;
+--we rely strongly on default id always being 0 and "any" being 1
+INSERT INTO users (user_id, username) VALUES(0, 'default');
+INSERT INTO users (user_id, username) VALUES(1, 'any');
 
 --------------------------------------------------------------------------------
 -- Down
@@ -163,17 +166,19 @@ CREATE VIEW current_files AS
 
 DROP VIEW current_files;
 
-DROP TABLE users CASCADE;
-
 DROP TABLE keys CASCADE;
 
 DROP TABLE config CASCADE;
 
-DROP TABLE scenes CASCADE;
+DROP TABLE tags CASCADE;
 
 DROP TABLE files CASCADE;
 
-DROP TABLE tags CASCADE;
+DROP TABLE scenes CASCADE;
+
+DROP TABLE users_acl CASCADE;
+
+DROP TABLE users CASCADE;
 
 
 -- drop now unused functions
