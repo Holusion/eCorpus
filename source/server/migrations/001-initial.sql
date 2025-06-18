@@ -30,7 +30,8 @@ CREATE TABLE scenes (
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fk_author_id BIGINT NOT NULL DEFAULT 0,
   archived BOOLEAN DEFAULT FALSE,
-  visible BOOLEAN,
+  public_access BOOLEAN,
+  default_access SMALLINT NOT NULL DEFAULT 1 CHECK(0 <= default_access AND default_access <= 3),
   FOREIGN KEY(fk_author_id) REFERENCES users(user_id) ON DELETE SET DEFAULT
 );
 

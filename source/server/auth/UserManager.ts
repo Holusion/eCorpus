@@ -39,6 +39,14 @@ export const AccessTypes = [
   "admin"
 ] as const;
 
+export function fromLevel(l:number):AccessType{
+  return AccessTypes[l+1];
+}
+
+export function toLevel(a:AccessType){
+  return AccessTypes.indexOf(a)-1;
+}
+
 export function isAccessType(type :any) :type is AccessType{
   return AccessTypes.indexOf(type) !== -1;
 }
@@ -308,7 +316,7 @@ export default class UserManager extends DbController {
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number")?`SELECT $1 AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
-    let level = AccessTypes.indexOf(role)-1;
+    let level = toLevel(role);
     if(0 < level){
       try{
         await this.db.run(`

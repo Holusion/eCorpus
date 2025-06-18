@@ -1,5 +1,5 @@
 import {escapeLiteral} from "pg";
-import { AccessMap, AccessType, AccessTypes } from "../auth/UserManager.js";
+import { AccessMap, AccessType, AccessTypes, fromLevel, toLevel } from "../auth/UserManager.js";
 import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
@@ -12,21 +12,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
   async createScene(name :string):Promise<number>
   async createScene(name :string, author_id :number):Promise<number>
-  async createScene(name :string, permissions:AccessMap):Promise<number>
-  async createScene(name :string, perms ?:AccessMap|number) :Promise<number>{
-    let permissions :AccessMap = (typeof perms === "object")? perms : {};
-    let author_id = 0;
-    //Always provide permissions for default user
-    permissions['0'] ??= (config.public?"read":"none");
-    permissions['1'] ??= "read";
-    //If an author_id is provided, it is an administrator
-    if(typeof perms === "number" ){
-      permissions[perms.toString(10)] = "admin";
-      author_id = perms;
-    }else if(typeof perms ==="object"){
-      let adm = Object.keys(perms).map(k=>parseInt(k)).find(n=> Number.isInteger(n) && 1 < n);
-      if(adm) author_id = adm;
-    }
+  async createScene(name :string, author_id ?:number) :Promise<number>{
 
     for(let i=0; i<3; i++){
       try{
@@ -35,7 +21,8 @@ export default abstract class ScenesVfs extends BaseVfs{
         if(name.endsWith("#"+uid.toString(10))) continue;
 
         let r = await this.db.get(`
-          INSERT INTO scenes (scene_name, scene_id, access, fk_author_id) 
+          ${author_id?`INSERT INTO users_acl (fk_user_id, fk_scene_id, level) VALUES ($4, $2, 'admin');`:""}
+          INSERT INTO scenes (scene_name, scene_id, public_access, default_access, fk_author_id) 
           VALUES (
             $1,
             $2,
@@ -46,7 +33,8 @@ export default abstract class ScenesVfs extends BaseVfs{
         `, [
           name, 
           uid,
-          JSON.stringify(permissions),
+          toLevel((config.public?"read":"none")),
+          toLevel("read"),
           author_id,
         ]);
         return r.scene_id;
@@ -218,7 +206,6 @@ export default abstract class ScenesVfs extends BaseVfs{
         `name LIKE $${idx}`,
         `docs.meta LIKE $${idx}`,
         `author = ${idx+1}`,
-        `json_extract(scenes.access, '$.' || ${idx+1}) IN (${AccessTypes.slice(2).map(a=>`'${a}'`).join(", ")})`,
       ]
       return `${index ==0 ? " ": " AND "}( ${conditions.join(" OR ")} )`;
     }
@@ -250,12 +237,14 @@ export default abstract class ScenesVfs extends BaseVfs{
       author: string,
       thumb: string|null,
       tags: string,
-      access: string,
+      user_access: number,
+      default_access: number,
+      public_access: boolean,
       archived: number,
     }>(`
       WITH 
         docs AS (
-          SELECT json_extract(data, "$.metas") AS meta, ctime AS mtime, fk_scene_id
+          SELECT data -> 'metas' AS meta, ctime AS mtime, fk_scene_id
           FROM current_files
           WHERE mime = "application/si-dpo-3d.document+json" AND data IS NOT NULL
         ),
@@ -271,18 +260,16 @@ export default abstract class ScenesVfs extends BaseVfs{
         scenes.archived AS archived,
         IFNULL(docs.mtime, scenes.ctime) as mtime,
         scenes.fk_author_id AS author_id,
-        IFNULL((
-          SELECT username FROM users WHERE scenes.fk_author_id = user_id
-        ), "default") AS author,
+        CASE scenes.fk_author_id = 0 THEN 
+          "default" 
+        ELSE
+          (SELECT username FROM users WHERE scenes.fk_author_id = user_id)
+        END AS author,
         (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
         tags.names AS tags,
-        json_object(
-          ${(typeof user_id === "number" && 0 < user_id)? `
-            "user", IFNULL(json_extract(scenes.access, '$.' || $1), "none"),
-          ` :""}
-          "any", json_extract(scenes.access, '$.1'),
-          "default", json_extract(scenes.access, '$.0')
-        ) AS access
+        COALESCE((SELECT level FROM users_acl WHERE fk_user_id = $1), scenes.default_access) AS user_access,
+        scenes.default_access AS default_access,
+        scenes.public_access AS public_access,
       
       FROM scenes
         LEFT JOIN docs ON docs.fk_scene_id = scene_id
@@ -296,18 +283,23 @@ export default abstract class ScenesVfs extends BaseVfs{
       ${with_filter? "WHERE true": ""}
       ${typeof author === "number"? `AND author_id = $4`:"" }
       ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
-      ${(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""}
+      ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
       ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} 0`:""}
       ${likeness}
 
       GROUP BY scene_id
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}
-      LIMIT $2, $3
-    `, args)).map(({ctime, mtime, id, access, archived, ...m})=>({
+      OFFSET $2
+      LIMIT $3
+    `, args)).map(({ctime, mtime, id, user_access, default_access, public_access, archived, ...m})=>({
       ...m,
       id,
       tags: m.tags ? JSON.parse(m.tags): [],
-      access: JSON.parse(access),
+      access: {
+        user: fromLevel(user_access),
+        any: fromLevel(default_access),
+        default: (public_access? "read": "none") as AccessType,
+      },
       ctime: BaseVfs.toDate(ctime),
       mtime: BaseVfs.toDate(mtime),
       archived: !!archived,
@@ -405,7 +397,8 @@ export default abstract class ScenesVfs extends BaseVfs{
       INNER JOIN users ON author_id = user_id
       WHERE fk_scene_id = $1
       ORDER BY ctime ${dir}, name ${dir}, generation ${dir}
-      LIMIT $2, $3
+      OFFSET $2
+      LIMIT $3
     `, [
       id,
       offset,

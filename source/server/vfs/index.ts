@@ -30,7 +30,8 @@ class Vfs extends BaseVfs{
   constructor(protected rootDir :string, protected db :Database){
     super(rootDir, db);
   }
-
+  static async Open(rootDir :string, opts :VfsOptions&Required<Pick<VfsOptions,"db">>):Promise<Vfs>
+  static async Open(rootDir :string, opts:VfsOptions&Required<Pick<VfsOptions,"database_uri">> ):Promise<Vfs>
   static async Open(rootDir :string, {db, database_uri, createDirs=true, forceMigration = true} :VfsOptions = {} ){
     if(!db && !database_uri) throw new Error(`No DB connection method provided. Can't open VFS`);
     if(createDirs){

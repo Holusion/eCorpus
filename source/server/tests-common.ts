@@ -23,6 +23,7 @@ declare global{
   var createIntegrationContext :(c:Mocha.Context, config_override ?:Partial<Config>)=>Promise<AppLocals>;
   var cleanIntegrationContext :(c:Mocha.Context)=>Promise<void>;
   var getUniqueDb: (name?: string)=>Promise<string>;
+  var dropDb: (uri: string)=>Promise<void>;
 }
 
 global.expect = chai.expect;
@@ -54,6 +55,17 @@ global.getUniqueDb = async function(name?: string){
   let uri = new URL(`/${encodeURIComponent(dbname)}`, db_uri).toString();
   debuglog("pg:debug")(`Created test database at ${uri}`);
   return uri;
+};
+
+global.dropDb = async function(uri: string){
+  const client = new Client({connectionString: new URL(`/postgres`, db_uri).toString()});
+  await client.connect();
+  try{
+    await client.query(`DROP DATABASE ${escapeIdentifier(new URL(uri).pathname.slice(1))}`);
+  }finally{
+    await client.end();
+  }
+  debuglog("pg:debug")(`Dropped test database at ${uri}`);
 }
 
 global.createIntegrationContext = async function(c :Mocha.Context, config_override :Partial<Config>={}){

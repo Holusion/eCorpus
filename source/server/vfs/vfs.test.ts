@@ -44,14 +44,22 @@ describe("Vfs", function(){
   this.afterEach(async function(){
     await fs.rm(this.dir, {recursive: true});
   })
-  it("opens upload directory", async function(){
-    await Vfs.Open(this.dir);
+  it("creates upload directory", async function(){
+    let vfs = await Vfs.Open(this.dir, {db: {} as any});
     await expect(fs.access(path.join(this.dir, "uploads"))).to.be.fulfilled;
   });
 
   describe("isolate", function(){
+    let vfs :Vfs;
+    this.beforeEach(async function(){
+      this.db_uri = await getUniqueDb(this.test?.title);
+      vfs = await Vfs.Open(this.dir, {database_uri: this.db_uri});
+    })
+    this.afterEach(async function(){
+      await vfs.close();
+      await dropDb(this.db_uri);
+    })
     it("can rollback on error", async function(){
-      let vfs = await Vfs.Open(this.dir);
       await expect(vfs.isolate(async (vfs)=>{
         await vfs.createScene("foo");
         await vfs.createScene("foo");
@@ -60,7 +68,6 @@ describe("Vfs", function(){
     });
 
     it("reuses a connection when nested", async function(){
-      let vfs = await Vfs.Open(this.dir);
       await expect(vfs.isolate( async (v2)=>{
         await v2.isolate(async (v3)=>{
           expect(v3._db).to.equal(v2._db);
@@ -69,7 +76,6 @@ describe("Vfs", function(){
     });
 
     it("can be nested (success)", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let scenes = await expect(vfs.isolate( async (v2)=>{
         await v2.getScenes();
         await v2.isolate(async (v3)=>{
@@ -85,7 +91,6 @@ describe("Vfs", function(){
     });
 
     it("can be nested (with caught error)", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let scenes = await expect(vfs.isolate( async (v2)=>{
         await v2.createScene("foo");
         //This isolate rolls back but since we don't propagate the error
@@ -105,7 +110,6 @@ describe("Vfs", function(){
     });
 
     it("is properly closed on success", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let _transaction:Vfs|null =null;
       await expect(vfs.isolate(async tr=>{
         _transaction = tr;
@@ -115,7 +119,6 @@ describe("Vfs", function(){
     })
 
     it("is properly closed on error", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let _transaction:Vfs|null =null;
       await expect(vfs.isolate(async tr=>{
         _transaction = tr;
@@ -208,7 +211,7 @@ describe("Vfs", function(){
   })
 
   describe("", function(){
-    let vfs :Vfs; 
+    let vfs :Vfs, database_uri:string; 
     //@ts-ignore
     const run = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.run(sql, ...params);
     //@ts-ignore
@@ -217,8 +220,13 @@ describe("Vfs", function(){
     const all = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.all(sql, ...params);
 
     this.beforeEach(async function(){
-      vfs = await Vfs.Open(this.dir);
+      database_uri = await getUniqueDb();
+      vfs = await Vfs.Open(this.dir, {database_uri});
     });
+    this.afterEach(async function(){
+      await vfs.close();
+      await dropDb(database_uri);
+    })
 
     describe("createScene()", function(){
       it("insert a new scene", async function(){
