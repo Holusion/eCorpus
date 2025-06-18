@@ -39,7 +39,8 @@ CREATE INDEX archived_scenes ON scenes(scene_id, archived);
 CREATE TABLE users_acl(
   fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   fk_scene_id BIGINT NOT NULL REFERENCES scenes(scene_id) ON DELETE CASCADE,
-  level SMALLINT NOT NULL CHECK(1 <= level AND level <= 3)
+  level SMALLINT NOT NULL CONSTRAINT valid_access_level CHECK(1 <= level AND level <= 3),
+  UNIQUE(fk_user_id, fk_scene_id)
 );
 
 CREATE TABLE files (
@@ -182,7 +183,6 @@ DROP TABLE users CASCADE;
 
 
 -- drop now unused functions
-DROP FUNCTION on_delete_user;
 DROP FUNCTION ensure_parent_folder_exists;
 DROP FUNCTION create_default_folders_for_scene;
 DROP FUNCTION delete_folder_content;

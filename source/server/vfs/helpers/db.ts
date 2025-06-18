@@ -2,6 +2,8 @@ import {Pool, QueryResultRow} from 'pg';
 import config from "../../utils/config.js";
 import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
+import { debuglog } from 'node:util';
+
 
 export interface DbOptions {
   uri:string;

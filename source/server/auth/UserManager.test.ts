@@ -207,51 +207,59 @@ describe("UserManager methods", function(){
   describe("getAccessRights() / grant()", function(){
     let user :User, _id=0;
     this.beforeAll(async function(){
-      await this.db.run(`INSERT INTO scenes (scene_id, scene_name) VALUES ($1, $2)`, [Uid.make().toString(10), 'foo-grant-access-rights']);
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, visible) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights', true]);
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, visible) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', false]);
     })
     this.beforeEach(async function(){
       user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", false);
     });
     it("can return default permissions", async function(){
+      //Return the value of scene.visible
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read");
     });
-    it("can set permissions for any user", async function(){
-      for(let role of AccessTypes.slice(2)/*read and more */){
-        await userManager.grant("foo-grant-access-rights", "any", role);
-        let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
-        expect(access).to.equal(role);
-      }
-    });
+
     it("can set user permissions", async function(){
-      for(let role of AccessTypes){
+      
+      for(let role of AccessTypes.slice().reverse()){
         if(!role) continue; //Skip null
-        await userManager.grant("foo-grant-access-rights", user.username, role);
-        let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
-        expect(access).to.equal(role);
+        await userManager.grant("foo-grant-access-rights-private", user.username, role);
+        let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
+        expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(role);
       }
     });
+
     it("can unset user permissions", async function(){
+      await userManager.grant("foo-grant-access-rights", user.username, "write");
       await userManager.grant("foo-grant-access-rights", user.username, null);
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read"); // default
     });
+
     it("can't provide unsupported role", async function(){
       await expect(userManager.grant("foo-grant-access-rights", user.username, "bar" as any)).to.be.rejectedWith("400");
     });
+
     it("can't provide bad username", async function(){
       await expect(userManager.grant("foo-grant-access-rights", "oscar", "read")).to.be.rejectedWith("404");
+    });
+
+    it("can't provide bad scene name", async function(){
+      await expect(userManager.grant("foo-grant-access-rights-xxx", user.username, "read")).to.be.rejectedWith("404");
     });
   });
 
   describe("getPermissions()", async function(){
+    let user :User
     this.beforeAll(async function(){
+      user = await userManager.addUser("get-permissions-user", "12345678", false);
       await this.db.run(`INSERT INTO scenes (scene_id, scene_name) VALUES ($1, $2)`, [Uid.make().toString(10), 'foo-get-permissions']);
+      await userManager.grant("foo-get-permissions", user.username, "write");
     });
     it("get a scene permissions from name", async function(){
       let perms = await userManager.getPermissions("foo-get-permissions");
       expect(perms).to.deep.equal([
-        { uid: 0, username: "default", access: 'read' }
+        { uid: user.uid, username: user.username, access: 'write' }
       ]);
     });
   })

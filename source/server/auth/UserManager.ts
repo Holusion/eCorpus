@@ -304,54 +304,66 @@ export default class UserManager extends DbController {
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number")?`SELECT $1 AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2 AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
-    let r;
-    if(role){
-      r = await this.db.run(`
-        INSERT INTO users_acl (fk_user_id, fk_scene_id, level)
-        SELECT
-          user.user_id, scene.scene_id, $3
-        FROM
-          ${scene_id} AS scene,
-          ${user_id} AS user
-      `, [
-        (typeof scene === "number")?scene.toString(10): scene,
-        (typeof user === "number")?user.toString(10): user,
-        AccessTypes.indexOf(role)
-      ]);
+    let level = AccessTypes.indexOf(role)-1;
+    console.log("SET PERM", scene, user, role, level);
+    if(0 < level){
+      try{
+        await this.db.run(`
+          INSERT INTO users_acl (fk_user_id, fk_scene_id, level)
+          SELECT ${user_id}, ${scene_id}, $3
+          ON CONFLICT (fk_user_id, fk_scene_id) DO UPDATE SET level = EXCLUDED.level
+        `, [
+          (typeof scene === "number")?scene.toString(10): scene,
+          (typeof user === "number")?user.toString(10): user,
+          level
+        ]);
+      }catch(e:any){
+        if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_user_id"){
+          throw new NotFoundError(`User ${user} does not exist`);
+        }else if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_scene_id"){
+          throw new NotFoundError(`Scene ${scene} does not exist`);
+        }
+        throw e;
+      }
     }else{
-      r = await this.db.run(`
-        WITH 
-          ${scene_id} AS scene,
-          ${user_id} AS user
+      console.log("REMOVE", 
+        await this.db.all(scene_id.slice(1, -1), [(typeof scene === "number")?scene.toString(10): scene]),
+        await this.db.all(user_id.slice(1, -1).replace("$2","$1"), [(typeof user === "number")?user.toString(10): user]),
+        await this.db.all(`SELECT * FROM users_acl
+        WHERE (fk_scene_id IN ${scene_id} AND fk_user_id IN ${user_id})`, [
+          (typeof scene === "number")?scene.toString(10): scene,
+          (typeof user === "number")?user.toString(10): user,
+        ])
+      );
+      let r = await this.db.run(`
         DELETE FROM users_acl
-        WHERE fk_scene_id = scene.scene_id, fk_user_id = user.user_id
+        WHERE (fk_scene_id IN ${scene_id} AND fk_user_id IN ${user_id})
       `, [
         (typeof scene === "number")?scene.toString(10): scene,
         (typeof user === "number")?user.toString(10): user,
       ]);
+      if(!r || !r.changes) throw new NotFoundError(`Can't find matching user or scene`);
+      if(1 < r.changes) throw new InternalError(`grant permissions somehow modified multiple users`);
     }
-    if(!r || !r.changes) throw new NotFoundError(`Can't find matching user or scene`);
-    if(1 < r.changes) throw new InternalError(`grant permissions somehow modified multiple users`);
   }
 
   async getAccessRights(scene :string, uid :number) :Promise<AccessType>{
-    try{
-      return (await this.db.get(`
-        SELECT COALESCE(
-          access -> $2,
-          ${((0 < uid) ? `access ->'1',`:"")}
-          access ->'0'
-        ) AS access
-        FROM scenes
-        WHERE scene_name = $1
-      `, [
-        scene,
-        uid.toString(10)
-      ]))?.access ?? null;
-    }catch(e){
-      console.error("getAccessRights : ", e);
-      throw e;
-    }
+    const res = (await this.db.get(`
+      SELECT GREATEST(
+        level,
+        CASE WHEN scenes.visible THEN 1 ELSE 0 END
+      ) AS level
+      FROM
+        scenes LEFT OUTER JOIN users_acl ON fk_scene_id = scene_id
+      WHERE
+        scene_name = $1
+    `, [
+      scene,
+    ]));
+    if(!res) throw new NotFoundError(`No scene with name ${scene}`);
+    console.log("LEVEL :", res?.level);
+    return AccessTypes[res?.level+1];
+
   }
 
   /**
@@ -359,19 +371,43 @@ export default class UserManager extends DbController {
    * Access to this should be externally restricted to users with READ rights over this scene
    * @see https://www.sqlite.org/json1.html#jeach for json_each documentation
    */
-  async getPermissions(nameOrId :string|number) :Promise<[{uid:number, username :string, access :AccessType}]>{
+  async getPermissions(nameOrId :string|number) :Promise<{uid:number, username :string, access :AccessType}[]>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
-
-    let r = await this.db.all(`
-      WITH scene AS (SELECT access FROM scenes WHERE ${key} = $1)
-      SELECT lines.key AS uid, username, lines.value AS access
-      FROM scene, jsonb_each(scene.access) AS lines
-      LEFT JOIN users ON lines.key = CAST(user_id AS TEXT)
-    `, [
-      (typeof nameOrId =="number")?nameOrId.toString(10): nameOrId,
-    ]);
-    if(!r?.length) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
-    return r.map(l=>({...l, uid:parseInt(l.uid)})) as any;
+    try{
+      let r = await this.db.all<{uid:string, username:string, level:number}>(`
+        SELECT 
+          users.user_id AS uid,
+          users.username AS username,
+          users_acl.level AS level
+        FROM 
+          scenes
+          INNER JOIN users_acl ON users_acl.fk_scene_id = scenes.scene_id
+          INNER JOIN users ON users_acl.fk_user_id = users.user_id
+        WHERE scenes.${key} = $1
+      `, [
+        (typeof nameOrId =="number")?nameOrId.toString(10): nameOrId,
+      ]);
+      if(!r?.length) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+      return r.map(l=>({
+        uid:parseInt(l.uid),
+        username:l.username,
+        access: AccessTypes[l.level+1]
+      }));
+    }catch(e){
+      console.log(expandSQLError(e, `
+        SELECT 
+          users.user_id AS uid,
+          users.username AS username,
+          users_acl.level AS access
+        FROM 
+          scenes,
+          users_acl ON users_acl.fk_scene_id = scenes.scene_id,
+          users ON users_acl.fk_user_id = users.user_id
+        WHERE scenes.${key} = $1
+      `));
+      throw e;
+    }
+    
   }
 
   async getKeys() :Promise<string[]>{
