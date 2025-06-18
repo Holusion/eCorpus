@@ -1,7 +1,7 @@
 
 import request from "supertest";
 
-import User from "../../../../../auth/User.js";
+import User, { UserLevels } from "../../../../../auth/User.js";
 import UserManager from "../../../../../auth/UserManager.js";
 import { NotFoundError } from "../../../../../utils/errors.js";
 import Vfs from "../../../../../vfs/index.js";
@@ -17,7 +17,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
     scene_id = await vfs.createScene("foo", {"0":"write", [user.uid]: "admin"});
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 

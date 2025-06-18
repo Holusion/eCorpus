@@ -9,6 +9,7 @@ import uid from "../../utils/uid.js";
 import Vfs from "../index.js";
 import UserManager from "../../auth/UserManager.js";
 import errors from "./errors.js";
+import { UserLevels } from "../../auth/User.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,7 +43,7 @@ describe("Database", function(){
     it("over dummy data", async function(){
       let vfs = new Vfs(os.tmpdir(), db);
       let users = new UserManager(db);
-      let user = await users.addUser("bob", "12345678", false);
+      let user = await users.addUser("bob", "12345678", UserLevels.CREATE);
       await vfs.createScene("foo");
       // await vfs.writeDoc("{}", {scene: "foo", user_id: 0, name: "test.json", mime: "application/json"});
       // await vfs.removeFile({scene: "foo", name: "test.json", user_id: 0});

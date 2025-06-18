@@ -3,7 +3,7 @@ import path from "path";
 
 import request from "supertest";
 import Vfs from "./vfs/index.js";
-import User from "./auth/User.js";
+import User, { UserLevels } from "./auth/User.js";
 import UserManager from "./auth/UserManager.js";
 
 import { fixturesDir } from "./__test_fixtures/fixtures.js";
@@ -17,7 +17,7 @@ describe("Web Server Integration", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
   });
   this.afterEach(async function(){
     await cleanIntegrationContext(this);

@@ -9,6 +9,8 @@ import User, {SafeUser, StoredUser, UserLevels} from "./User.js";
 
 import openDatabase, {Database, DbController, DbOptions} from "../vfs/helpers/db.js";
 import errors, { expandSQLError } from "../vfs/helpers/errors.js";
+import { isAdministrator } from "../utils/locals.js";
+import { isAsExpression } from "typescript";
 
 
 const scrypt :(
@@ -136,18 +138,18 @@ export default class UserManager extends DbController {
       username: u.username, 
       email: u.email??undefined,
       uid: parseInt(u.user_id),
-      isAdministrator: u.level === UserLevels.ADMIN,
+      level: u.level,
       password: u.password, 
     });
   }
 
-  static serialize({username, email, password, uid, isAdministrator} :User) :StoredUser{
+  static serialize({username, email, password, uid, level} :User) :StoredUser{
     return {
       username,
       email,
       password,
       user_id: uid.toString(10),
-      level: isAdministrator?UserLevels.ADMIN:UserLevels.CREATE,
+      level,
     };
   }
 
@@ -223,14 +225,14 @@ export default class UserManager extends DbController {
    * Performs any necessary checks and create a new user
    * @param password clear-text password
    */
-  async addUser(username : string, password : string, isAdministrator : boolean = false, email ?:string) : Promise<User>{ 
+  async addUser(username : string, password : string, level : UserLevels = UserLevels.CREATE, email ?:string) : Promise<User>{ 
     if(!UserManager.isValidUserName(username)) throw new Error(`Invalid username : ${username}`);
     if(password.length < 8) throw new Error(`Password too short (min. 8 char long)`);
     let user = new User({
       username, 
       password: await UserManager.formatPassword(password), 
       email: email,
-      isAdministrator, 
+      level, 
       uid: 0,
     });
 
@@ -251,22 +253,24 @@ export default class UserManager extends DbController {
 
   async patchUser(uid :number, u :Partial<User>){
     let values = [], params :any[] = [uid.toString(10)];
-    let keys = ["username", "password", "email", "isAdministrator"] as Array<keyof User & keyof typeof UserManager.isValid>;
-    let sqlKeys = ["username", "password", "email", "level"]as Array<keyof StoredUser>;
+    let keys = ["username", "password", "email", "level"]as Array<keyof Omit<User,"uid" | "isDefaultUser">>;
     for(let i = 0; i < keys.length; i++){
       let key = keys[i];
       let value = u[key];
-      let validator = UserManager.isValid[key];
       if(typeof value === "undefined") continue;
-      if(typeof validator === "function" && !validator(value)){
-        throw new BadRequestError(`Bad value for ${key}: ${value}`);
+      if (key != "level") {
+        let validator = UserManager.isValid[key];
+        if(typeof validator === "function" && !validator(value)){
+          throw new BadRequestError(`Bad value for ${key}: ${value}`);
+        }
       }
-      values.push(`${sqlKeys[i]} = $${params.length+1}`);
-      if(key === "password"){
-        params.push(await UserManager.formatPassword(value));
-      }else{
-        params.push(value);
-      }
+        values.push( key + ` = $${params.length+1}`);
+        if(key === "password"){
+          params.push(await UserManager.formatPassword(value as string));
+        }
+        else {
+          params.push(value);
+        }
     }
     if(values.length === 0){
       throw new BadRequestError(`Provide at least one valid value to change`);

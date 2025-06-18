@@ -3,7 +3,7 @@ import yauzl, { Entry, ZipFile } from "yauzl";
 
 import request from "supertest";
 import { expect } from "chai";
-import User from "../../auth/User.js";
+import User, { UserLevels } from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import Vfs from "../../vfs/index.js";
 import path from "path";
@@ -23,8 +23,8 @@ describe("GET /scenes", function(){
     userManager  = locals.userManager;
 
     
-    user = await userManager.addUser("bob", "12345678", false);
-    admin = await userManager.addUser("alice", "12345678", true);
+    user = await userManager.addUser("bob", "12345678", UserLevels.CREATE);
+    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
 
     ids = await Promise.all([
         vfs.createScene("foo"),

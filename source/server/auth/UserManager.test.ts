@@ -5,7 +5,7 @@ import path from "path";
 
 import {expect} from "chai";
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
-import User from "./User.js";
+import User, { SafeUser, StoredUser, UserLevels } from "./User.js";
 import openDatabase, { Database } from "../vfs/helpers/db.js";
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "crypto";
@@ -55,7 +55,8 @@ describe("UserManager static methods", function(){
   });
 
   describe("isValid", function(){
-    let tests :Record<keyof typeof UserManager.isValid, [string, boolean][]> = {
+//    let tests :Record<keyof typeof UserManager.isValid, [string|UserLevels, boolean][]> = {
+    let tests :Record<keyof Omit<User,"uid" | "isDefaultUser" | "level">, [string, boolean][]> = {
       username:[
         ["foo", true],
         ["x", false],
@@ -99,7 +100,7 @@ describe("UserManager methods", function(){
       expect(user).to.have.property("username", "foo-creates-1");
       let u = await userManager.getUserByName("foo-creates-1")
       expect(u).to.be.ok;
-      expect(u).to.have.property("isAdministrator", false);
+      expect(u).to.have.property("level", UserLevels.CREATE);
     });
     [
       "../something",
@@ -148,7 +149,7 @@ describe("UserManager methods", function(){
     [
       ["email", "foo@example.com"],
       ["username", "bar-patch-1"],
-      ["isAdministrator", true],
+      ["level", UserLevels.ADMIN],
     ].forEach(([key, value])=>{
       it(`can change a ${key}`, async function(){
         let updated = await userManager.patchUser(u.uid, {[key as string]: value});
@@ -177,21 +178,21 @@ describe("UserManager methods", function(){
 
   describe("getUserByName()", function(){
     it("find a user", async function(){ 
-      let user = await userManager.addUser("foo-find-user-1", "12345678", false);
+      let user = await userManager.addUser("foo-find-user-1", "12345678", UserLevels.CREATE);
       await expect(userManager.getUserByName("foo-find-user-1")).to.eventually.deep.equal(user);
     });
     it("throws if user doesn't exist", async function(){
       await expect(userManager.getUserByName("foo-find-user-2")).to.be.rejectedWith(NotFoundError);
     })
     it("finds by email", async function(){
-      let user = await userManager.addUser("foo-find-user-3", "12345678", false, "foo-find-user-3@example.com");
+      let user = await userManager.addUser("foo-find-user-3", "12345678", UserLevels.CREATE, "foo-find-user-3@example.com");
       await expect(userManager.getUserByName("foo-find-user-3@example.com")).to.eventually.deep.equal(user);
     });
   })
 
   describe("getUserByNamePassword()", function(){
     it("find a user", async function(){
-      let user = await userManager.addUser("foo-by-password", "12345678", false);
+      let user = await userManager.addUser("foo-by-password", "12345678", UserLevels.CREATE);
       expect(user.password).to.be.ok;
       await expect(userManager.getUserByNamePassword("foo-by-password", "12345678")).to.eventually.deep.equal(user);
     });
@@ -199,7 +200,7 @@ describe("UserManager methods", function(){
       await expect(userManager.getUserByNamePassword("foo-by-password-2", "bar")).to.be.rejectedWith(NotFoundError);
     });
     it("throws if password doesn't match", async function(){
-      let user = await userManager.addUser("foo-by-password-3", "12345678", false);
+      let user = await userManager.addUser("foo-by-password-3", "12345678", UserLevels.CREATE);
       await expect(userManager.getUserByNamePassword("foo-by-password-3", "bar")).to.be.rejectedWith(UnauthorizedError);
     });
   });
@@ -211,7 +212,7 @@ describe("UserManager methods", function(){
       await this.db.run(`INSERT INTO scenes (scene_id, scene_name, visible) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', false]);
     })
     this.beforeEach(async function(){
-      user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", false);
+      user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", UserLevels.CREATE);
     });
     
     it("can return default permissions", async function(){
@@ -236,7 +237,7 @@ describe("UserManager methods", function(){
     });
 
     it("returns actual user permissions", async function(){
-      let u2 = await userManager.addUser("foo-grant-otheruser", "12345678", false);
+      let u2 = await userManager.addUser("foo-grant-otheruser", "12345678", UserLevels.CREATE);
       await userManager.grant("foo-grant-access-rights", u2.uid, "write");
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read");
@@ -267,7 +268,7 @@ describe("UserManager methods", function(){
   describe("getPermissions()", async function(){
     let user :User
     this.beforeAll(async function(){
-      user = await userManager.addUser("get-permissions-user", "12345678", false);
+      user = await userManager.addUser("get-permissions-user", "12345678", UserLevels.CREATE);
       await this.db.run(`INSERT INTO scenes (scene_id, scene_name) VALUES ($1, $2)`, [Uid.make().toString(10), 'foo-get-permissions']);
       await userManager.grant("foo-get-permissions", user.username, "write");
     });

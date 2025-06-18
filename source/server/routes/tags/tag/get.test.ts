@@ -1,6 +1,6 @@
 
 import request from "supertest";
-import User from "../../../auth/User.js";
+import User, { UserLevels } from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 
@@ -15,7 +15,7 @@ describe("GET /tags/:tag", function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
     user = await userManager.addUser("bob", "12345678");
     this.server.set("trust proxy", true);
   });

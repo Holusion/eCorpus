@@ -5,7 +5,7 @@ import { expect } from "chai";
 import Vfs, { FileProps, GetFileParams, Scene, WriteFileParams } from "./index.js";
 import { Uid } from "../utils/uid.js";
 import UserManager from "../auth/UserManager.js";
-import User from "../auth/User.js";
+import User, { UserLevels } from "../auth/User.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
 import ScenesVfs from "./Scenes.js";
 import { collapseAsync } from "../utils/wrapAsync.js";
@@ -266,7 +266,7 @@ describe("Vfs", function(){
 
       it("sets scene author", async function(){
         const userManager = new UserManager(vfs._db);
-        const user = await userManager.addUser("alice", "xxxxxxxx", false);
+        const user = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
         let s = await vfs.getScene(id, user.uid);
         expect(s).to.have.property("access").to.have.property("user", "admin");
@@ -274,7 +274,7 @@ describe("Vfs", function(){
 
       it("sets custom scene permissions", async function(){
         const userManager = new UserManager(vfs._db);
-        const user = await userManager.addUser("alice", "xxxxxxxx", false);
+        const user = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         let id = await expect(vfs.createScene("foo", {"0": "none",[user.uid.toString()]:"write"})).to.be.fulfilled;
         let s = await vfs.getScene(id, user.uid);
         expect(s.access).to.deep.equal({"default": "none", "any": "read", "user": "write"});
@@ -396,7 +396,7 @@ describe("Vfs", function(){
 
       it("can get an author's own archived scenes", async function(){
         let um :UserManager= new UserManager(vfs._db);
-        let user = await um.addUser("bob", "12345678", false, "bob@example.com")
+        let user = await um.addUser("bob", "12345678", UserLevels.CREATE, "bob@example.com")
         //Create a reference non-archived scene (shouldn't be shown)
         await vfs.createScene("bar", user.uid);
         //Create a scene owned by someone else
@@ -421,7 +421,7 @@ describe("Vfs", function(){
         let userManager :UserManager, user :User;
         this.beforeEach(async function(){
           userManager = new UserManager(vfs._db);
-          user = await userManager.addUser("alice", "xxxxxxxx", false);
+          user = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         });
 
         it("can filter accessible scenes by user_id", async function(){
@@ -458,8 +458,8 @@ describe("Vfs", function(){
         let userManager :UserManager, user :User, admin :User;
         this.beforeEach(async function(){
           userManager = new UserManager(vfs._db);
-          user = await userManager.addUser("bob", "xxxxxxxx", false);
-          admin = await userManager.addUser("alice", "xxxxxxxx", true);
+          user = await userManager.addUser("bob", "xxxxxxxx", UserLevels.CREATE);
+          admin = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         });
 
         it("filters by access-level", async function(){
@@ -685,7 +685,7 @@ describe("Vfs", function(){
 
       it("removeFolder() removes all files in the folder", async function(){
         let userManager = new UserManager(vfs._db);
-        let user = await userManager.addUser("alice", "xxxxxxxx", false);
+        let user = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
         await vfs.writeFile(dataStream(), {scene: scene_id, name: "videos/foo.mp4", mime:"video/mp4", user_id: 0});
 
@@ -821,8 +821,8 @@ describe("Vfs", function(){
           let userManager :UserManager, alice :User, bob :User;
           this.beforeEach(async function(){
             let userManager = new UserManager(vfs._db);
-            alice = await userManager.addUser("alice", "12345678", true);
-            bob = await userManager.addUser("bob", "12345678", false);
+            alice = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+            bob = await userManager.addUser("bob", "12345678", UserLevels.CREATE);
           });
 
           it("return scenes with read access", async function(){
@@ -1428,7 +1428,7 @@ describe("Vfs", function(){
 
         it("get requester's access right", async function(){
           let userManager = new UserManager(vfs._db);
-          let alice = await userManager.addUser("alice", "xxxxxxxx", false);
+          let alice = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
 
           let id = await vfs.createScene("alice's", alice.uid);
           await vfs.writeDoc("{}", {scene: id, user_id: alice.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});

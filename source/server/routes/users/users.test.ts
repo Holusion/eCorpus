@@ -1,7 +1,7 @@
 
 import request from "supertest";
 
-import User from "../../auth/User.js";
+import User, { UserLevels } from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import { NotFoundError } from "../../utils/errors.js";
 import Vfs from "../../vfs/index.js";
@@ -32,7 +32,7 @@ describe("/users", function(){
     let user :User, admin :User;
     this.beforeEach(async function(){
       user = await userManager.addUser("bob", "12345678");
-      admin = await userManager.addUser("alice", "12345678", true);
+      admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
     });
 
     describe("as user", function(){
