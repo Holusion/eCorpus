@@ -51,11 +51,18 @@ describe("GET /tags/:tag", function(){
     });
 
     it("don't show private scenes", async function(){
-      let s1 = await vfs.createScene("public",  {"0": "none", "1": "read"});
+      let s1 = await vfs.createScene("public").then((scene_id)=> 
+      {userManager.grant(scene_id, 0, "none");
+      userManager.grant(scene_id, 1, "read");
+      return scene_id});
       await vfs.addTag("public", "footag");
       let s2 = await vfs.createScene("personal", user.uid);
       await vfs.addTag("personal", "footag");
-      let s3 = await vfs.createScene("private", {[admin.uid]: "admin", "0": "none", "1": "none"});
+      let s3 = await vfs.createScene("private").then((scene_id)=> 
+      {userManager.grant(scene_id, 0, "none");
+      userManager.grant(scene_id, 1, "none");
+      userManager.grant(scene_id, user.uid, "admin");
+      return scene_id});
       await vfs.addTag("private", "footag");
       
       let {body} = await this.agent.get("/tags/footag")

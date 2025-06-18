@@ -128,9 +128,9 @@ describe("GET /scenes", function(){
     let scenes:number[];
     this.beforeAll(async ()=>{
       scenes = await Promise.all([
-        vfs.createScene("read", {[`${user.uid}`]:"read"}),
-        vfs.createScene("write", {[`${user.uid}`]:"write"}),
-        await vfs.createScene("admin", {[`${user.uid}`]:"admin"}),
+        vfs.createScene("read").then((scene_id)=> {userManager.grant(scene_id, user.uid, "read"); return scene_id}), 
+        vfs.createScene("write").then((scene_id)=> {userManager.grant(scene_id, user.uid, "write"); return scene_id}), 
+        await vfs.createScene("admin").then((scene_id)=> {userManager.grant(scene_id, user.uid, "admin"); return scene_id})
       ]);
     });
 

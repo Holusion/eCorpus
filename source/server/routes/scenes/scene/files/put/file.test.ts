@@ -18,7 +18,10 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
-    scene_id = await vfs.createScene("foo", {"0":"write", [user.uid]: "admin"});
+    scene_id = await vfs.createScene("foo").then((scene_id)=> 
+      {userManager.grant(scene_id, 0, "write");
+      userManager.grant(scene_id, user.uid, "admin");
+      return scene_id});
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
   });

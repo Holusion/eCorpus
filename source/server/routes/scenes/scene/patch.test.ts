@@ -13,8 +13,8 @@ describe("PATCH /scenes/:scene", function(){
     vfs = locals.vfs;
     userManager  = locals.userManager;
     ids = await Promise.all([
-        vfs.createScene("foo", {0:"admin"}),
-        vfs.createScene("bar", {0:"admin"}),
+        vfs.createScene("foo").then((scene_id)=> {userManager.grant(scene_id, 0, "admin"); return scene_id}),
+        vfs.createScene("bar").then((scene_id)=> {userManager.grant(scene_id, 0, "admin"); return scene_id})
     ]);
   });
   
