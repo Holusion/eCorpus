@@ -213,13 +213,14 @@ describe("UserManager methods", function(){
     this.beforeEach(async function(){
       user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", false);
     });
+    
     it("can return default permissions", async function(){
       //Return the value of scene.visible
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read");
     });
 
-    it("can set user permissions", async function(){
+    it("can set user permissions by username", async function(){
       
       for(let role of AccessTypes.slice().reverse()){
         if(!role) continue; //Skip null
@@ -227,6 +228,20 @@ describe("UserManager methods", function(){
         let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
         expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(role);
       }
+    });
+    it("can set user permissions by uid", async function(){
+      await userManager.grant("foo-grant-access-rights-private", user.username, "write");
+      let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
+      expect(access, `Access level write was requested. Received ${access}`).to.equal("write");
+    });
+
+    it("returns actual user permissions", async function(){
+      let u2 = await userManager.addUser("foo-grant-otheruser", "12345678", false);
+      await userManager.grant("foo-grant-access-rights", u2.uid, "write");
+      let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
+      expect(access).to.equal("read");
+      let u2access = await userManager.getAccessRights("foo-grant-access-rights", u2.uid);
+      expect(u2access).to.equal("write");
     });
 
     it("can unset user permissions", async function(){

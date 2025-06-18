@@ -303,9 +303,8 @@ export default class UserManager extends DbController {
   async grant(scene :string|number, user :string|number, role :AccessType){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number")?`SELECT $1 AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
-    let user_id =  `(${(typeof user === "number")?`SELECT $2 AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
+    let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
     let level = AccessTypes.indexOf(role)-1;
-    console.log("SET PERM", scene, user, role, level);
     if(0 < level){
       try{
         await this.db.run(`
@@ -326,15 +325,6 @@ export default class UserManager extends DbController {
         throw e;
       }
     }else{
-      console.log("REMOVE", 
-        await this.db.all(scene_id.slice(1, -1), [(typeof scene === "number")?scene.toString(10): scene]),
-        await this.db.all(user_id.slice(1, -1).replace("$2","$1"), [(typeof user === "number")?user.toString(10): user]),
-        await this.db.all(`SELECT * FROM users_acl
-        WHERE (fk_scene_id IN ${scene_id} AND fk_user_id IN ${user_id})`, [
-          (typeof scene === "number")?scene.toString(10): scene,
-          (typeof user === "number")?user.toString(10): user,
-        ])
-      );
       let r = await this.db.run(`
         DELETE FROM users_acl
         WHERE (fk_scene_id IN ${scene_id} AND fk_user_id IN ${user_id})
@@ -354,14 +344,13 @@ export default class UserManager extends DbController {
         CASE WHEN scenes.visible THEN 1 ELSE 0 END
       ) AS level
       FROM
-        scenes LEFT OUTER JOIN users_acl ON fk_scene_id = scene_id
-      WHERE
-        scene_name = $1
+        scenes LEFT OUTER JOIN users_acl ON (fk_scene_id = scene_id AND fk_user_id = $2)
+      WHERE scene_name = $1
     `, [
       scene,
+      uid.toString(10),
     ]));
     if(!res) throw new NotFoundError(`No scene with name ${scene}`);
-    console.log("LEVEL :", res?.level);
     return AccessTypes[res?.level+1];
 
   }
