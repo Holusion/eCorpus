@@ -44,7 +44,7 @@ export function fromLevel(l:number):AccessType{
 }
 
 export function toLevel(a:AccessType){
-  return AccessTypes.indexOf(a)-1;
+  return Math.max(0, AccessTypes.indexOf(a)-1);
 }
 
 export function isAccessType(type :any) :type is AccessType{
@@ -290,7 +290,6 @@ export default class UserManager extends DbController {
       RETURNING *
     `, params);
     if(!r) throw new NotFoundError(`Can't find user with uid : ${uid}`);
-    console.log("Returned value : ", r);
     return UserManager.deserialize(r);
   }
 
@@ -395,29 +394,41 @@ export default class UserManager extends DbController {
   }
 
   async setPublicAccess(scene: string|number, role:AccessType):Promise<void>{
-    let is_id= typeof scene === "number";
+    let is_id = typeof scene === "number";
+    let level = toLevel(role)
+    if(level < 0 || 1 < level) throw new BadRequestError(`Can't set scene public access to ${role}`)
+
     let r = await this.db.run(`
       UPDATE scenes
       SET public_access = $2
-      WHERE ${(is_id)?"scene_id":"scene_name"} = $1::bigint
+      WHERE ${(is_id)?"scene_id":"scene_name"} = $1
       `, [
         scene,
-        0 < toLevel(role),
+        0 < level,
       ]);
     if(r?.changes != 1) throw new NotFoundError(`No scene found with ${(is_id)?"scene_id":"scene_name"} = ${scene}`);
+
   }
 
   async setDefaultAccess(scene: string|number, role:AccessType):Promise<void>{
     let is_id = typeof scene === "number";
-    let r = await this.db.run(`
-      UPDATE scenes
-      SET default_access = $2
-      WHERE ${is_id?"scene_id":"scene_name"} = $1::bigint
-      `, [
-        scene,
-        toLevel(role),
-      ]);
-    if(r?.changes != 1) throw new NotFoundError(`No scene found with ${is_id?"scene_id":"scene_name"} = ${scene}`);
+    try{
+      let r = await this.db.run(`
+        UPDATE scenes
+        SET default_access = $2
+        WHERE ${is_id?"scene_id":"scene_name"} = $1
+        `, [
+          scene,
+          toLevel(role),
+        ]);
+      if(r?.changes != 1) throw new NotFoundError(`No scene found with ${is_id?"scene_id":"scene_name"} = ${scene}`);
+
+    }catch(e: any){
+      if(e.code == errors.check_violation && e.constraint == "default_access_allowed_values"){
+        throw new BadRequestError(`Invalid value for scene default access : ${role}`);
+      }
+      throw e;
+    }
   }
 
   async getKeys() :Promise<string[]>{

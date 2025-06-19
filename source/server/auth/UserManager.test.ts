@@ -287,20 +287,31 @@ describe("UserManager methods", function(){
     });
 
     it("can modify public access", async function(){
-      throw new Error("Unimplemented");
+      await expect(userManager.setPublicAccess("foo-grant-access-rights", "none")).to.be.fulfilled;
+      await expect(userManager.setPublicAccess("foo-grant-access-rights", "read")).to.be.fulfilled;
     });
 
     it("can't set public access above \"read\"", async function(){
-      throw new Error("Unimplemented");
+      await expect(userManager.setPublicAccess("foo-grant-access-rights", "write")).to.be.rejectedWith("400");
+      await expect(userManager.setPublicAccess("foo-grant-access-rights", "admin")).to.be.rejectedWith("400");
+    });
+
+    it("can't provide bad scene name to setPublicAccess", async function(){
+      await expect(userManager.setPublicAccess("foo-grant-access-rights-xxx", "read")).to.be.rejectedWith("404");
     });
 
     it("can modify default access", async function(){
-      throw new Error("Unimplemented");
+      await expect(userManager.setDefaultAccess("foo-grant-access-rights", "none")).to.be.fulfilled;
+      await expect(userManager.setDefaultAccess("foo-grant-access-rights", "read")).to.be.fulfilled;
+      await expect(userManager.setDefaultAccess("foo-grant-access-rights", "write")).to.be.fulfilled;
     });
 
     it("can't set default access above \"write\"", async function(){
-      /** @fixme maybe allow manage as default access? */
-      throw new Error("Unimplemented");
+      await expect(userManager.setDefaultAccess("foo-grant-access-rights", "admin")).to.be.rejectedWith("400");
+    });
+
+    it("can't provide bad scene name to setDefaultAccess", async function(){
+      await expect(userManager.setDefaultAccess("foo-grant-access-rights-xxx", "read")).to.be.rejectedWith("404");
     });
   });
 

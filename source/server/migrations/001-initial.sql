@@ -31,7 +31,7 @@ CREATE TABLE scenes (
   fk_author_id BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
   archived BOOLEAN DEFAULT FALSE,
   public_access BOOLEAN,
-  default_access SMALLINT NOT NULL DEFAULT 1 CHECK(0 <= default_access AND default_access <= 3)
+  default_access SMALLINT NOT NULL DEFAULT 1 CONSTRAINT default_access_allowed_values CHECK(0 <= default_access AND default_access <= 2)
 );
 
 CREATE INDEX archived_scenes ON scenes(scene_id, archived);
