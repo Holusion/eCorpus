@@ -1,4 +1,4 @@
-import {Client, ClientBase, Pool, PoolClient, QueryResultRow} from 'pg';
+import {Client, ClientBase, Pool, PoolClient, QueryResultRow, types as pgtypes} from 'pg';
 import config from "../../utils/config.js";
 import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
@@ -16,6 +16,10 @@ export interface RunResult{
   changes:number|null;
 }
 
+
+pgtypes.setTypeParser(20 /* BIGINT */, function parseBigInt(val){
+  return parseInt(val, 10);
+});
 
 const debug = debuglog("pg:trace");
 
