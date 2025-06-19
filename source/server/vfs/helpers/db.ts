@@ -1,8 +1,9 @@
-import {Pool, QueryResultRow} from 'pg';
+import {Client, ClientBase, Pool, PoolClient, QueryResultRow} from 'pg';
 import config from "../../utils/config.js";
 import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
 import { debuglog } from 'node:util';
+import { expandSQLError } from './errors.js';
 
 
 export interface DbOptions {
@@ -15,6 +16,16 @@ export interface RunResult{
   changes:number|null;
 }
 
+
+const debug = debuglog("pg:trace");
+
+function safeDebugError(e:Error|unknown, sql: string){
+  try{
+    debug(expandSQLError(e, sql).toString());
+  }catch(e){
+    debug(`Failed to expand SQL error `, e);
+  }
+}
 
 export interface DatabaseHandle{
   /**
@@ -44,6 +55,64 @@ export interface Database extends DatabaseHandle{
   end:()=>Promise<void>
 }
 
+function toHandle(db:Pool|PoolClient) :Omit<DatabaseHandle, "beginTransaction">{
+  
+  return {
+    async all<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T[]>{
+      try{
+        const {rows} = await db.query<T, any>(sql, params);
+        return rows;
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }
+    },
+    async get<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T>{
+      const client = await ((db instanceof Pool)? (db as Pool).connect(): db);
+      const cursor = client.query(new Cursor<T>(sql, params));
+      try{
+        return (await cursor.read(1))[0];
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }finally{
+        await cursor.close();
+        if((db instanceof Pool)) (client as PoolClient).release();
+      }
+    },
+    async run(sql: string, params?: any[]):Promise<RunResult>{
+      try{
+        const r = await db.query<never, any>(sql, params);
+        return {
+          changes: r.rowCount,
+        };
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }
+    },
+
+    async *each<T extends QueryResultRow = any>(sql:string, params:any[]):AsyncGenerator<T,void, never>{
+      const client = await ((db instanceof Pool)? (db as Pool).connect(): db);
+      const cursor = client.query(new Cursor<T>(sql, params));
+      try{
+        while(true){
+          const rows = await cursor.read(100);
+          if(rows.length == 0) break;
+          yield* rows;
+        }
+      }catch(e){
+        safeDebugError(e, sql);
+        throw e;
+      }finally{
+        await cursor.close();
+        if((db instanceof Pool)) (client as PoolClient).release();
+      }
+    },
+  }
+}
+
+
 let _id :number = 0;
 export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
   let pool = new Pool({connectionString: uri});
@@ -54,81 +123,13 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
   
   
   let handle = {
-    async all<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T[]>{
-      const {rows} = await pool.query<T, any>(sql, params);
-      return rows;
-    },
-    async get<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T>{
-      const client = await pool.connect();
-      const cursor = client.query(new Cursor<T>(sql, params));
-      try{
-        return (await cursor.read(1))[0];
-      }finally{
-        await cursor.close();
-        client.release();
-      }
-    },
-    async run(sql: string, params?: any[]):Promise<RunResult>{
-      const r = await pool.query<never, any>(sql, params);
-      return {
-        changes: r.rowCount,
-      };
-    },
-
-    async *each<T extends QueryResultRow = any>(sql:string, params:any[]):AsyncGenerator<T,void, never>{
-      const client = await pool.connect();
-      const cursor = client.query(new Cursor<T>(sql, params));
-      try{
-        while(true){
-          const rows = await cursor.read(100);
-          if(rows.length == 0) break;
-          yield* rows;
-        }
-      }finally{
-        await cursor.close();
-        client.release();
-      }
-    },
-
+    ...toHandle(pool),
     async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>): Promise<T>{
       const client = await pool.connect();
       try{
         await client.query(`BEGIN TRANSACTION`);
         const res = await work({
-          async all<T extends QueryResultRow = any>(sql:string, params:any[]):Promise<T[]>{
-            const {rows} = await client.query<T, any>(sql, params);
-            return rows;
-          },
-          async get<T extends QueryResultRow = any>(sql:string, params:any[]):Promise<T>{
-            const cursor = client.query(new Cursor<T>(sql, params));
-            try{
-              return (await cursor.read(1))[0];
-            }finally{
-              await cursor.close();
-            }
-          },
-          async run(sql: string, params: any[]):Promise<RunResult>{
-            const r = await client.query<never, any>(sql, params);
-            return {
-              changes: r.rowCount,
-            };
-      
-          },
-
-          async *each<T extends QueryResultRow = any>(sql:string, params:any[]):AsyncGenerator<T,void, never>{
-            const cursor = client.query(new Cursor<T>(sql, params));
-            try{
-              while(true){
-                const rows = await cursor.read(100);
-                if(rows.length == 0) break;
-                yield* rows;
-
-              }
-            }finally{
-              await cursor.close();
-            }
-          },
-
+          ...toHandle(client),
           async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>):Promise<T>{
             const sp = `SP_${(++_id).toString(16)}`;
             await client.query(`SAVEPOINT ${sp}`);

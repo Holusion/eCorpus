@@ -1,4 +1,4 @@
-export default {
+const errors = {
 // Class 03 — SQL Statement Not Yet Complete
 sql_statement_not_yet_complete: "03000",
 // Class 08 — Connection Exception
@@ -289,21 +289,29 @@ data_corrupted: "XX001",
 index_corrupted: "XX002",
 } as const;
 
+const errors_lookup = new Map<(typeof errors)[keyof typeof errors], keyof typeof errors>(Object.entries(errors).map(([key, value])=>([value, key])) as any)
+
 /**
  * rewrite an error with additional information about the statement
  */
-export function expandSQLError(e:any, stmt: string, name?:string){
-
+export function expandSQLError(e:any, stmt: string, sourcename?:string): Error{
+  if(e.where){
+    return new Error(`${e.message}${e.detail?`\n\t${e.detail}`:""}\n\t${e.where.replace(/\n/g,"\n\t")}`)
+  }
   if(!e.position) return e;
   const position = parseInt(e.position);
-  if(Number.isNaN(position)) throw e;
+  if(Number.isNaN(position)) return e;
   const lines_before = stmt.slice(0, position).split('\n');
   const before = lines_before.slice(-2);
   const after = stmt.slice(position).split('\n').shift();
   const offset = before[before.length -1].length;
-  throw new Error([
-    `Syntax error in line ${lines_before.length} ${name?"in "+name:""}`,
+  const error_name = (errors_lookup.get(e.code) ?? "unknown_error").replace(/_/g, " ");
+  const pretty_name = error_name.slice(0, 1).toUpperCase() + error_name.slice(1);
+  return new Error([
+    `${pretty_name} at line ${lines_before.length} ${sourcename?"in "+sourcename:""}`,
     ...before.map((l, index)=>`\t${l}${index == before.length-1?after: ""}`),
     `\t`+((offset < e.message.length+1)?`${"^".padStart(offset," ")} ${e.message}`: `${e.message.padStart(offset - e.message.length)}^`),
   ].join("\n"));
 }
+
+export default errors;
