@@ -357,7 +357,7 @@ export default class UserManager extends DbController {
       WHERE scene_name = $1
     `, [
       scene,
-      uid.toString(10),
+      uid,
     ]));
     if(!res) throw new NotFoundError(`No scene with name ${scene}`);
     return AccessTypes[res?.level+1];

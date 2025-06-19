@@ -14,7 +14,7 @@ export interface CommonFileParams{
 }
 
 export interface WriteFileParams extends CommonFileParams{
-  user_id: number;
+  user_id: number | null;
   /** mime is application/octet-stream if omitted */
   mime ?:string;
 }
@@ -42,7 +42,7 @@ export interface WriteDocParams extends WriteFileParams{
 export interface ItemProps{
   ctime :Date;
   mtime :Date;
-  author_id :number;
+  author_id :number | null;
   author :string;
   id :number;
   name :string;

@@ -68,9 +68,7 @@ export default abstract class TagsVfs extends BaseVfs{
           tag_name AS name,
           COUNT(fk_scene_id) as size
         FROM 
-          tags,
-          scenes
-        ON fk_scene_id = scene_id
+          tags
         ${where}
         GROUP BY name
         ORDER BY name ASC
@@ -89,15 +87,20 @@ export default abstract class TagsVfs extends BaseVfs{
   async getTag(name :string, user_id ?:number):Promise<number[]>{
     
     let scenes = await this.db.all<{scene_id:number}>(`
-      SELECT scene_id
-      FROM 
-        tags, 
-        scenes
-      ON fk_scene_id = scene_id
+      SELECT scene_id 
+      FROM
+      
+      (SELECT scene_id, level, public_access, default_acess
+      
+      FROM tags 
+      LEFT JOIN scenes ON fk_scene_id = scene_id
+      LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id
       WHERE 
         tags.tag_name = $1
         ${typeof user_id === "number"?`AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
-      ORDER BY scene_name ASC
+      ORDER BY scene_name ASC)
+
+      GROUP BY scene_id
     `, [name]);
 
     return scenes.map(s=>s.scene_id);

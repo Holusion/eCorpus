@@ -134,8 +134,8 @@ export default abstract class FilesVfs extends BaseVfs{
           $4 AS data,
           $5 AS hash,
           $6 AS size,
-          IFNULL((
-            SELECT MAX(generation) FROM files WHERE fk_scene_id = scene_id AND name = $2
+          COALESCE(
+          (SELECT MAX(generation) FROM files WHERE fk_scene_id = scene_id AND name = $2
           ), 0) + 1 AS generation,
           scene_id AS fk_scene_id,
           $7 AS fk_author_id
@@ -234,7 +234,7 @@ export default abstract class FilesVfs extends BaseVfs{
         hash,
         ${withData? "data,":""}
         generation,
-        (SELECT ctime FROM files WHERE fk_scene_id = scene.scene_id AND name = $name AND generation = 1) AS ctime,
+        (SELECT ctime FROM files WHERE fk_scene_id = scene.scene_id AND name =  AND generation = 1) AS ctime,
         files.ctime AS mtime,
         mime,
         files.fk_author_id AS author_id,

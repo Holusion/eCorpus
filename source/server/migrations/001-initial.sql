@@ -29,7 +29,7 @@ CREATE TABLE scenes (
   scene_name TEXT NOT NULL UNIQUE,
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fk_author_id BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
-  archived BOOLEAN DEFAULT FALSE,
+  archived TIMESTAMPTZ DEFAULT NULL,
   public_access BOOLEAN,
   default_access SMALLINT NOT NULL DEFAULT 1 CONSTRAINT default_access_allowed_values CHECK(0 <= default_access AND default_access <= 2)
 );
@@ -52,7 +52,7 @@ CREATE TABLE files (
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   size BIGINT NOT NULL DEFAULT 0,
   fk_author_id BIGINT,
-  fk_scene_id BIGINT NOT NULL, data TEXT DEFAULT NULL,
+  fk_scene_id BIGINT NOT NULL, data JSONB DEFAULT NULL,
   FOREIGN KEY(fk_scene_id) REFERENCES scenes(scene_id) ON DELETE CASCADE,
   FOREIGN KEY(fk_author_id) REFERENCES users(user_id)  ON DELETE SET NULL,
   UNIQUE(fk_scene_id, name, generation)

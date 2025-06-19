@@ -5,7 +5,7 @@ import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery } from "./types.js";
-import errors from "./helpers/errors.js";
+import errors, { expandSQLError } from "./helpers/errors.js";
 
 
 export default abstract class ScenesVfs extends BaseVfs{
@@ -71,12 +71,12 @@ export default abstract class ScenesVfs extends BaseVfs{
     let r = await this.db.run(`
       UPDATE scenes 
       SET 
-        archived = unixepoch(),
+        archived = CURRENT_TIMESTAMP,
         scene_name = scene_name || '#' || CAST(scene_id AS TEXT)
       WHERE 
         ${typeof scene ==="number"? "scene_id": "scene_name"} = $1
-        ${typeof scene ==="number"? `AND INSTR(scene_name, '#' || scene_id) = 0`:""}
-        AND archived = 0
+        ${typeof scene ==="number"? `AND position(('#' || scene_id )IN scene_name) = 0`:""}
+        AND archived = null
     `, [ scene ]);
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
@@ -119,12 +119,19 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   static _fragUserCanAccessScene(user_id :number, accessMin:AccessType = "read"){
     return `
+    (COALESCE (level, 0 )> ${AccessTypes.indexOf(accessMin)}
+    OR  default_access > ${AccessTypes.indexOf(accessMin)}
+    OR (${AccessTypes.indexOf(accessMin)} = 1 AND public_access))
+    `;
+    //    scenes.default_access
+    // scenes.public_access 
+  /*  return `
       COALESCE(
           json_extract(scenes.access, '$.' || ${escapeLiteral(user_id.toString(10))}),
           ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
           json_extract(scenes.access, '$.0')
       ) IN (${ AccessTypes.slice(AccessTypes.indexOf(accessMin)).map(s=>`'${s}'`).join(", ") })
-    `;
+    `;*/
   }
 
   static _fragIsThumbnail(field :string = "name"){
@@ -182,12 +189,18 @@ export default abstract class ScenesVfs extends BaseVfs{
     
     const {access, author, match, limit = 10, offset = 0, orderBy = "name", orderDirection = "asc", archived}  = ScenesVfs._validateSceneQuery(q);
     let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length  || typeof archived === "boolean";
-    const args = [
+    
+    const args = author? 
+    [
       (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
       offset,
       limit,
-      author,
-    ]
+      author
+    ] : [
+      (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
+      offset,
+      limit
+    ] ;
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
     
     let likeness = "";
@@ -203,7 +216,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       const idx = args.push(fuzzyMatch, matchString) -1;
 
       let conditions = [
-        `name LIKE $${idx}`,
+        `scene_name LIKE $${idx}`,
         `docs.meta LIKE $${idx}`,
         `author = ${idx+1}`,
       ]
@@ -227,16 +240,15 @@ export default abstract class ScenesVfs extends BaseVfs{
       if(ms.length) likeness += addMatch(ms, words++);
       likeness += `)`;
     }
-
-    return (await this.db.all<{
-      id:number,
+    let result = (await this.db.all<{
+      id:string,
       name:string,
       ctime: Date,
       mtime: Date,
       author_id: number,
       author: string,
       thumb: string|null,
-      tags: string,
+      tags: string [],
       user_access: number,
       default_access: number,
       public_access: boolean,
@@ -246,7 +258,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         docs AS (
           SELECT data -> 'metas' AS meta, ctime AS mtime, fk_scene_id
           FROM current_files
-          WHERE mime = "application/si-dpo-3d.document+json" AND data IS NOT NULL
+          WHERE mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL
         ),
         thumbnails AS (
           SELECT name, ctime, fk_scene_id
@@ -258,30 +270,34 @@ export default abstract class ScenesVfs extends BaseVfs{
         scenes.scene_name AS name,
         scenes.ctime AS ctime,
         scenes.archived AS archived,
-        COALESCE(docs.mtime, scenes.ctime) as mtime,
+        MAX(COALESCE(docs.mtime, scenes.ctime)) as mtime,
         scenes.fk_author_id AS author_id,
-        CASE scenes.fk_author_id = 0 THEN 
-          "default" 
+        CASE WHEN scenes.fk_author_id = null THEN 
+          'default' 
         ELSE
           (SELECT username FROM users WHERE scenes.fk_author_id = user_id)
         END AS author,
         (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
-        tags.names AS tags,
+        array_agg(tags.tag_name) AS tags,
         COALESCE((SELECT level FROM users_acl WHERE fk_user_id = $1), scenes.default_access) AS user_access,
         scenes.default_access AS default_access,
-        scenes.public_access AS public_access,
-      
-      FROM scenes
+        scenes.public_access AS public_access
+        
+        FROM scenes
+        LEFT JOIN docs ON docs.fk_scene_id = scene_id
+        LEFT JOIN tags ON tags.fk_scene_id = scene_id
+        LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id
+     ${/*FROM scenes
         LEFT JOIN docs ON docs.fk_scene_id = scene_id
         LEFT JOIN (
           SELECT 
-            json_group_array(tag_name) AS names,
+            array_agg(tag_name) AS names,
             fk_scene_id
           FROM tags
           GROUP BY fk_scene_id
-        ) AS tags ON tags.fk_scene_id = scene_id
+        ) AS tags ON tags.fk_scene_id = scene_id*/""}
       ${with_filter? "WHERE true": ""}
-      ${typeof author === "number"? `AND author_id = $4`:"" }
+      ${typeof author === "number"? `AND fk_author_id = $4`:"" }
       ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
       ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
       ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} 0`:""}
@@ -291,10 +307,13 @@ export default abstract class ScenesVfs extends BaseVfs{
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
-    `, args)).map(({id, user_access, default_access, public_access, archived, ...m})=>({
+    `, args));
+    //console.log(result)
+    //console.log("result 0 id:" , typeof result[0].id);
+    return result.map(({id, user_access, default_access, public_access, archived, ...m})=>({
       ...m,
-      id,
-      tags: m.tags ? JSON.parse(m.tags): [],
+      id: parseInt(id),
+      tags: m.tags, //? JSON.parse(m.tags): [],
       access: {
         user: fromLevel(user_access),
         any: fromLevel(default_access),
@@ -302,6 +321,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       },
       archived: !!archived,
     }));
+  
   }
 
   /**
