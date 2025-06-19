@@ -41,5 +41,9 @@ describe("config", function(){
       expect(opts).to.have.property("root_dir", "/app");
       expect(opts).to.have.property("files_dir", "/tmp/files");
     });
+
+    it("constructs postgres connection string from default environment variables", function(){
+      throw new Error(`Unimplemented`);
+    })
   });
 });

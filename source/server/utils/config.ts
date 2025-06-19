@@ -15,7 +15,7 @@ const values = {
   files_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), toPath],
   dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
   assets_dir: [undefined, toPath],
-  database_uri: ["postgresql://localhost:5432", toString],
+  database_uri: [parsePGEnv, toString],
   trust_proxy: [true, toBool],
   hostname: [hostname(), toString],
   smart_host: ["smtp://localhost", toString],
@@ -70,6 +70,24 @@ function toBool(s:string):boolean{
  */
 function isExperimental({experimental}: {experimental: boolean}) :boolean{
   return experimental;
+}
+
+
+
+
+function parsePGEnv(){
+  const envMap :Partial<Record<keyof Omit<URL, "toString">, string>>= {
+    hostname: "PGHOST",
+    port: "PGPORT",
+    username: "PGUSER",
+    password: "PGPASSWORD",
+  }
+  const db_uri = new URL(`postgresql://localhost`);
+  for(let [key, env] of Object.entries(envMap)){
+    if(!process.env[env]) continue;
+    (db_uri as any)[key] = process.env[env];
+  }
+  return db_uri.toString();
 }
 
 /**
