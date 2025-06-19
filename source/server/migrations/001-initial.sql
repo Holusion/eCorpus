@@ -51,10 +51,10 @@ CREATE TABLE files (
   hash VARCHAR(43),
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   size INTEGER NOT NULL DEFAULT 0,
-  fk_author_id BIGINT NOT NULL,
+  fk_author_id BIGINT,
   fk_scene_id BIGINT NOT NULL, data TEXT DEFAULT NULL,
   FOREIGN KEY(fk_scene_id) REFERENCES scenes(scene_id) ON DELETE CASCADE,
-  FOREIGN KEY(fk_author_id) REFERENCES users(user_id)  ON DELETE SET DEFAULT,
+  FOREIGN KEY(fk_author_id) REFERENCES users(user_id)  ON DELETE SET NULL,
   UNIQUE(fk_scene_id, name, generation)
 );
 
@@ -129,8 +129,8 @@ CREATE FUNCTION create_default_folders_for_scene() RETURNS TRIGGER AS $$
       fk_author_id,
       fk_scene_id
     ) VALUES
-    ('articles', 'text/directory', 1, 'directory', 0 , 0, NEW.scene_id),
-    ('models', 'text/directory', 1, 'directory', 0 , 0, NEW.scene_id);
+    ('articles', 'text/directory', 1, 'directory', 0 , NEW.fk_author_id, NEW.scene_id),
+    ('models', 'text/directory', 1, 'directory', 0 , NEW.fk_author_id, NEW.scene_id);
     RETURN NULL;
   END;
 $$ LANGUAGE plpgsql;
@@ -154,10 +154,6 @@ CREATE VIEW current_files AS
     ) AS gen
     JOIN files USING(generation, name, fk_scene_id)
 ;
-
---we rely strongly on default id always being 0 and "any" being 1
-INSERT INTO users (user_id, username) VALUES(0, 'default');
-INSERT INTO users (user_id, username) VALUES(1, 'any');
 
 --------------------------------------------------------------------------------
 -- Down
