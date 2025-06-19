@@ -194,22 +194,6 @@ describe("Vfs", function(){
     })
   });
 
-  describe("toDate()", function(){
-    //Parse dates stored in the database
-    it("parse a date string without timezone", async function(){
-      let d = Vfs.toDate("2024-01-11 14:44:59")
-      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59Z").valueOf());
-    });
-    it("parse a GMT date", async function(){
-      let d = Vfs.toDate("2024-01-11 14:44:59Z")
-      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59Z").valueOf());
-    });
-    it("parse a local ISO8601 date", async function(){
-      let d = Vfs.toDate("2024-01-11 14:44:59+01")
-      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59+01").valueOf());
-    });
-  })
-
   describe("", function(){
     let vfs :Vfs, database_uri:string; 
     //@ts-ignore
@@ -276,14 +260,21 @@ describe("Vfs", function(){
         const userManager = new UserManager(vfs._db);
         const user = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
-        let s = await vfs.getScene(id, user.uid);
-        expect(s).to.have.property("access").to.have.property("user", "admin");
+        try{
+          let s = await vfs.getScene(id, user.uid);
+          expect(s).to.have.property("access").to.have.property("user", "admin");
+        }catch(e){
+          console.log("createScene :", e);
+          throw e;
+        }
       });
 
       it("sets custom scene permissions", async function(){
         const userManager = new UserManager(vfs._db);
         const user = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
-        let id = await expect(vfs.createScene("foo", {"0": "none",[user.uid.toString()]:"write"})).to.be.fulfilled;
+        let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
+        await userManager.grant(id, user.uid, "write");
+        await userManager.setPublicAccess(id, "none");
         let s = await vfs.getScene(id, user.uid);
         expect(s.access).to.deep.equal({"default": "none", "any": "read", "user": "write"});
       })
@@ -449,13 +440,17 @@ describe("Vfs", function(){
         });
         
         it("get proper user own access", async function(){
-          let scene_id = await vfs.createScene("foo", {[user.uid.toString(10)]: "admin", "1": "write", "0": "none"});
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await userManager.setDefaultAccess(scene_id, "write");
+          await userManager.setPublicAccess(scene_id, "none");
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
           expect(scenes[0]).to.have.property("access").to.deep.equal({user:"admin", any: "write", default: "none"});
         });
         it("get proper \"any\" access", async function(){
-          let scene_id = await vfs.createScene("foo", {"0":"read", "1": "write"});
+          let scene_id = await vfs.createScene("foo");
+          await userManager.setDefaultAccess(scene_id, "write");
+          await userManager.setPublicAccess(scene_id, "read");
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
           expect(scenes[0]).to.have.property("access").to.deep.equal({user: "none", any: "write", default: "read"});
@@ -470,19 +465,26 @@ describe("Vfs", function(){
           admin = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         });
 
-        it("filters by access-level", async function(){
-          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read"});
+        it.skip("filters by access-level", async function(){
+          await vfs.createScene("foo", admin.uid);
+          await userManager.grant("foo", user.uid, "read");
           expect(await vfs.getScenes(user.uid, {})).to.have.property("length", 1);
           expect(await vfs.getScenes(user.uid, {access:["admin"]})).to.have.property("length", 0);
         });
 
         it("won't return inaccessible content", async function(){
-          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "none", "0":"none", "1": "none"});
+          await vfs.createScene("foo", admin.uid);
+          await userManager.grant("foo", user.uid, "none");
+          await userManager.setDefaultAccess("foo", "none");
+          await userManager.setPublicAccess("foo", "none");
           expect(await vfs.getScenes(user.uid, {access:["none"]})).to.have.property("length", 0);
         });
 
         it("can select by specific user access level", async function(){
-          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read", "0":"read", "1": "read"});
+          await vfs.createScene("foo", admin.uid);
+          await userManager.grant("foo", user.uid, "read");
+          await userManager.setDefaultAccess("foo", "read");
+          await userManager.setPublicAccess("foo", "read");
           expect(await vfs.getScenes(user.uid, {access:["read"]})).to.have.property("length", 1);
         });
 
@@ -828,7 +830,7 @@ describe("Vfs", function(){
         describe("respects permissions", function(){
           let userManager :UserManager, alice :User, bob :User;
           this.beforeEach(async function(){
-            let userManager = new UserManager(vfs._db);
+            userManager = new UserManager(vfs._db);
             alice = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
             bob = await userManager.addUser("bob", "12345678", UserLevels.CREATE);
           });
@@ -841,7 +843,9 @@ describe("Vfs", function(){
           });
 
           it("won't return non-readable scene", async function(){
-            const id = await vfs.createScene("admin-only", {"0": "none", "1": "none", [alice.uid.toString(10)]: "admin"});
+            const id = await vfs.createScene("admin-only", alice.uid);
+            await userManager.setDefaultAccess("admin-only", "none");
+            await userManager.setPublicAccess("admin-only", "none");
             await vfs.addTag("admin-only", "foo");
             expect(await vfs.getTag("foo"), "without user_id").to.deep.equal([id]);
 

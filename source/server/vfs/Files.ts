@@ -4,7 +4,7 @@ import path from "path";
 import { NotFoundError, ConflictError, BadRequestError, InternalError } from "../utils/errors.js";
 import uid, { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { DataStream, DocProps, FileProps, GetFileParams, GetFileRangeParams, GetFileResult, Stored, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
+import { DataStream, DocProps, FileProps, GetFileParams, GetFileRangeParams, GetFileResult, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
@@ -125,7 +125,7 @@ export default abstract class FilesVfs extends BaseVfs{
     let data = ((typeof theFile === "object" && "data" in theFile && theFile.data)? theFile.data : null);
 
     return await this.db.beginTransaction<FileProps>(async tr =>{
-      let r = await tr.get<{id:number, generation: number, ctime: string}>(`
+      let r = await tr.get<{id:number, generation: number, ctime: Date}>(`
         WITH scene AS (SELECT scene_id FROM scenes WHERE ${typeof params.scene =="number"? "scene_id":"scene_name"} = $1 )
         INSERT INTO files (name, mime, data, hash, size, generation, fk_scene_id, fk_author_id)
         SELECT 
@@ -169,8 +169,8 @@ export default abstract class FilesVfs extends BaseVfs{
       return {
         generation,
         id: id,
-        ctime: BaseVfs.toDate(ctime),
-        mtime: BaseVfs.toDate(ctime),
+        ctime,
+        mtime: ctime,
         size : fileParams.size,
         hash: fileParams.hash,
         mime: params.mime ?? "application/octet-stream",
@@ -190,8 +190,8 @@ export default abstract class FilesVfs extends BaseVfs{
       data?: string,
       hash: string|null,
       generation: number,
-      ctime: string,
-      mtime: string,
+      ctime: Date,
+      mtime: Date,
       author_id: number,
       author: string,
     }>(`
@@ -214,11 +214,7 @@ export default abstract class FilesVfs extends BaseVfs{
       WHERE id = $1
     `, [ id ]);
     if(!r || !r.ctime) throw new NotFoundError(`No file found with id : ${id}`);
-    return {
-      ...r,
-      ctime: BaseVfs.toDate(r.ctime), //z specifies the string as UTC != localtime
-      mtime: BaseVfs.toDate(r.mtime),
-    };
+    return r;
   }
   /**
    * Fetch a file's properties from database
@@ -257,11 +253,7 @@ export default abstract class FilesVfs extends BaseVfs{
       generation
     ]);
     if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
-    return {
-      ...r,
-      ctime: BaseVfs.toDate(r.ctime), //z specifies the string as UTC != localtime
-      mtime: BaseVfs.toDate(r.mtime),
-    };
+    return r;
   }
 
   /** Get a file's properties and a stream to its data
@@ -319,7 +311,7 @@ export default abstract class FilesVfs extends BaseVfs{
    */
   async getFileHistory({scene, name} :GetFileParams):Promise<GetFileResult[]>{
     let is_string = typeof scene === "string";
-    let rows = await this.db.all<Stored<GetFileResult>>(`
+    let rows = await this.db.all<GetFileResult>(`
       ${(is_string?`WITH scene AS (SELECT scene_id FROM scenes WHERE scene_name = $1)`:"")}
       SELECT
         file_id as id,
@@ -339,11 +331,7 @@ export default abstract class FilesVfs extends BaseVfs{
       ORDER BY generation DESC
     `, [ scene,  name ]);
     if(!rows || !rows.length) throw new NotFoundError();
-    return rows.map( r=>({
-      ...r,
-      mtime: BaseVfs.toDate(r.ctime), //z specifies the string as UTC != localtime
-      ctime: BaseVfs.toDate(r.ctime), //z specifies the string as UTC != localtime
-    }));
+    return rows;
   }
   /**
    * a shortHand to createFile(params, {hash: null, size: 0}) that also verifies if the file actually exists
@@ -400,17 +388,6 @@ export default abstract class FilesVfs extends BaseVfs{
   listFiles(scene_id :number, opts :{withArchives:false, withFolders: false}& ListFilesOptions) :AsyncGenerator<(FileProps & {hash: string}), void, undefined>
   listFiles(scene_id :number, opts :ListFilesOptions) :AsyncGenerator<FileProps, void, undefined>
   async *listFiles(scene_id :number, {withArchives = false, withFolders = false, withData = false}: ListFilesOptions ={}) :AsyncGenerator<FileProps, void, undefined>{
-    let channel = new Transform({
-      objectMode: true,
-      transform({ctime, mtime, ...row}, encoding, callback) {
-        callback(null, {
-          ctime: BaseVfs.toDate(ctime),
-          mtime: BaseVfs.toDate(mtime),
-          ...row,
-        });
-      },
-    });
-
     yield* this.db.each<FileProps>(`
       WITH ag AS ( 
         SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS generation

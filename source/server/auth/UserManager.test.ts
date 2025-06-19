@@ -1,4 +1,4 @@
-import UserManager, { AccessTypes } from "./UserManager.js";
+import UserManager, { AccessTypes, fromLevel, toLevel } from "./UserManager.js";
 import {tmpdir} from "os";
 import fs from "fs/promises";
 import path from "path";
@@ -81,6 +81,28 @@ describe("UserManager static methods", function(){
       expect(Object.keys(UserManager.isValid).sort()).to.deep.equal((Object.keys(tests).sort()));
     });
 
+  });
+
+  describe("toLevel", function(){
+    it("converts null", function(){
+      expect(toLevel(null)).to.equal(0);
+    })
+    it("converts none", function(){
+      expect(toLevel("none")).to.equal(0);
+    });
+    it("converts admin", function(){
+      expect(toLevel("admin")).to.equal(3);
+    });
+  });
+
+  describe("fromLevel", function(){
+    it("0 -> none", function(){
+      expect(fromLevel(0)).to.equal("none");
+    });
+
+    it("3 -> admin", function(){
+      expect(fromLevel(3)).to.equal("admin");
+    });
   })
 });
 
@@ -205,11 +227,11 @@ describe("UserManager methods", function(){
     });
   });
 
-  describe("getAccessRights() / grant()", function(){
+  describe("Access rights management", function(){
     let user :User, _id=0;
     this.beforeAll(async function(){
-      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, visible) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights', true]);
-      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, visible) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', false]);
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights', true]);
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', false]);
     })
     this.beforeEach(async function(){
       user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", UserLevels.CREATE);
@@ -262,6 +284,23 @@ describe("UserManager methods", function(){
 
     it("can't provide bad scene name", async function(){
       await expect(userManager.grant("foo-grant-access-rights-xxx", user.username, "read")).to.be.rejectedWith("404");
+    });
+
+    it("can modify public access", async function(){
+      throw new Error("Unimplemented");
+    });
+
+    it("can't set public access above \"read\"", async function(){
+      throw new Error("Unimplemented");
+    });
+
+    it("can modify default access", async function(){
+      throw new Error("Unimplemented");
+    });
+
+    it("can't set default access above \"write\"", async function(){
+      /** @fixme maybe allow manage as default access? */
+      throw new Error("Unimplemented");
     });
   });
 

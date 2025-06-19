@@ -301,20 +301,18 @@ export default class UserManager extends DbController {
 
   /**
    * patches permissions on a scene for a given user.
-   * Special cases for "any" and "default" users.
    * Usernames are converted to IDs before being used.
    * > As per [rfc7396](https://datatracker.ietf.org/doc/html/rfc7396), 
    * > Null values in the merge patch are given special meaning to indicate the removal
    * > of existing values in the target.
    * 
-   * This makes this method slightly unsafe because it can easily delete "any" and "default" entries from the access map, which we very much don't want.
    * @param scene scene name or id
    * @param user username or user_id to grant access to
    * @param role 
    */
   async grant(scene :string|number, user :string|number, role :AccessType){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
-    let scene_id = `(${(typeof scene === "number")?`SELECT $1 AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
+    let scene_id = `(${(typeof scene === "number")?`SELECT $1::bigint AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
     let level = toLevel(role);
     if(0 < level){
@@ -341,8 +339,8 @@ export default class UserManager extends DbController {
         DELETE FROM users_acl
         WHERE (fk_scene_id IN ${scene_id} AND fk_user_id IN ${user_id})
       `, [
-        (typeof scene === "number")?scene.toString(10): scene,
-        (typeof user === "number")?user.toString(10): user,
+        scene,
+        user,
       ]);
       if(!r || !r.changes) throw new NotFoundError(`Can't find matching user or scene`);
       if(1 < r.changes) throw new InternalError(`grant permissions somehow modified multiple users`);
@@ -353,7 +351,7 @@ export default class UserManager extends DbController {
     const res = (await this.db.get(`
       SELECT GREATEST(
         level,
-        CASE WHEN scenes.visible THEN 1 ELSE 0 END
+        CASE WHEN scenes.public_access THEN 1 ELSE 0 END
       ) AS level
       FROM
         scenes LEFT OUTER JOIN users_acl ON (fk_scene_id = scene_id AND fk_user_id = $2)
@@ -374,41 +372,52 @@ export default class UserManager extends DbController {
    */
   async getPermissions(nameOrId :string|number) :Promise<{uid:number, username :string, access :AccessType}[]>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
-    try{
-      let r = await this.db.all<{uid:string, username:string, level:number}>(`
-        SELECT 
-          users.user_id AS uid,
-          users.username AS username,
-          users_acl.level AS level
-        FROM 
-          scenes
-          INNER JOIN users_acl ON users_acl.fk_scene_id = scenes.scene_id
-          INNER JOIN users ON users_acl.fk_user_id = users.user_id
-        WHERE scenes.${key} = $1
-      `, [
-        (typeof nameOrId =="number")?nameOrId.toString(10): nameOrId,
-      ]);
-      if(!r?.length) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
-      return r.map(l=>({
-        uid:parseInt(l.uid),
-        username:l.username,
-        access: AccessTypes[l.level+1]
-      }));
-    }catch(e){
-      console.log(expandSQLError(e, `
-        SELECT 
-          users.user_id AS uid,
-          users.username AS username,
-          users_acl.level AS access
-        FROM 
-          scenes,
-          users_acl ON users_acl.fk_scene_id = scenes.scene_id,
-          users ON users_acl.fk_user_id = users.user_id
-        WHERE scenes.${key} = $1
-      `));
-      throw e;
-    }
+    let r = await this.db.all<{uid:string, username:string, level:number}>(`
+      SELECT 
+        users.user_id AS uid,
+        users.username AS username,
+        users_acl.level AS level
+      FROM 
+        scenes
+        INNER JOIN users_acl ON users_acl.fk_scene_id = scenes.scene_id
+        INNER JOIN users ON users_acl.fk_user_id = users.user_id
+      WHERE scenes.${key} = $1
+    `, [
+      (typeof nameOrId =="number")?nameOrId.toString(10): nameOrId,
+    ]);
+    if(!r?.length) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+    return r.map(l=>({
+      uid:parseInt(l.uid),
+      username:l.username,
+      access: AccessTypes[l.level+1]
+    }));
     
+  }
+
+  async setPublicAccess(scene: string|number, role:AccessType):Promise<void>{
+    let is_id= typeof scene === "number";
+    let r = await this.db.run(`
+      UPDATE scenes
+      SET public_access = $2
+      WHERE ${(is_id)?"scene_id":"scene_name"} = $1::bigint
+      `, [
+        scene,
+        0 < toLevel(role),
+      ]);
+    if(r?.changes != 1) throw new NotFoundError(`No scene found with ${(is_id)?"scene_id":"scene_name"} = ${scene}`);
+  }
+
+  async setDefaultAccess(scene: string|number, role:AccessType):Promise<void>{
+    let is_id = typeof scene === "number";
+    let r = await this.db.run(`
+      UPDATE scenes
+      SET default_access = $2
+      WHERE ${is_id?"scene_id":"scene_name"} = $1::bigint
+      `, [
+        scene,
+        toLevel(role),
+      ]);
+    if(r?.changes != 1) throw new NotFoundError(`No scene found with ${is_id?"scene_id":"scene_name"} = ${scene}`);
   }
 
   async getKeys() :Promise<string[]>{

@@ -28,11 +28,10 @@ CREATE TABLE scenes (
   scene_id BIGINT PRIMARY KEY,
   scene_name TEXT NOT NULL UNIQUE,
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  fk_author_id BIGINT NOT NULL DEFAULT 0,
+  fk_author_id BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
   archived BOOLEAN DEFAULT FALSE,
   public_access BOOLEAN,
-  default_access SMALLINT NOT NULL DEFAULT 1 CHECK(0 <= default_access AND default_access <= 3),
-  FOREIGN KEY(fk_author_id) REFERENCES users(user_id) ON DELETE SET DEFAULT
+  default_access SMALLINT NOT NULL DEFAULT 1 CHECK(0 <= default_access AND default_access <= 3)
 );
 
 CREATE INDEX archived_scenes ON scenes(scene_id, archived);

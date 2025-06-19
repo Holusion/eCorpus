@@ -4,7 +4,7 @@ import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery, Stored } from "./types.js";
+import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery } from "./types.js";
 import errors from "./helpers/errors.js";
 
 
@@ -20,27 +20,27 @@ export default abstract class ScenesVfs extends BaseVfs{
         //Unlikely, but still: skip uid that would prevent scene archiving
         if(name.endsWith("#"+uid.toString(10))) continue;
 
-        let r = await this.db.get(`
-          ${author_id?`INSERT INTO users_acl (fk_user_id, fk_scene_id, level) VALUES ($4, $2, 'admin');`:""}
-          INSERT INTO scenes (scene_name, scene_id, public_access, default_access, fk_author_id) 
-          VALUES (
-            $1,
-            $2,
-            $3,
-            $4
-          )
-          RETURNING scene_id AS scene_id;
-        `, [
-          name, 
-          uid,
-          toLevel((config.public?"read":"none")),
-          toLevel("read"),
-          author_id,
-        ]);
-        return r.scene_id;
+        return await this.db.beginTransaction<number>(async (tr)=>{
+          let r = await tr.get<{scene_id:string}>(`
+            INSERT INTO scenes (scene_name, scene_id, public_access, default_access, fk_author_id) 
+            VALUES ( $1, $2, $3, $4, $5 )
+            RETURNING scene_id AS scene_id;
+          `, [
+            name, 
+            uid,
+            toLevel((config.public?"read":"none")),
+            toLevel("read"),
+            author_id,
+          ]);
+          if(author_id){
+            await tr.run(`INSERT INTO users_acl (fk_user_id, fk_scene_id, level) VALUES ($2, CAST($1 AS BIGINT), 3)`, [r.scene_id, author_id]);
+          }
+          return parseInt(r.scene_id);
+        });
+        
       }catch(e:any){
         if(e.code == errors.unique_violation){
-          if(e.constraint == "scenes_scene_id_key"){
+          if(e.constraint == "scenes_pkey"){
             continue;
           }else if(e.constraint == "scenes_scene_name_key"){
             throw new ConflictError(`A scene named ${name} already exists`);
@@ -128,7 +128,7 @@ export default abstract class ScenesVfs extends BaseVfs{
   }
 
   static _fragIsThumbnail(field :string = "name"){
-    return `(${field} = "scene-image-thumb.jpg" OR ${field} = "scene-image-thumb.png") AND size != 0`;
+    return `(${field} = 'scene-image-thumb.jpg' OR ${field} = 'scene-image-thumb.png') AND size != 0`;
   }
   /**
    * Performs a type and limit check on a SceneQuery object and throws if anything is unacceptable
@@ -231,8 +231,8 @@ export default abstract class ScenesVfs extends BaseVfs{
     return (await this.db.all<{
       id:number,
       name:string,
-      ctime: string,
-      mtime: string,
+      ctime: Date,
+      mtime: Date,
       author_id: number,
       author: string,
       thumb: string|null,
@@ -258,7 +258,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         scenes.scene_name AS name,
         scenes.ctime AS ctime,
         scenes.archived AS archived,
-        IFNULL(docs.mtime, scenes.ctime) as mtime,
+        COALESCE(docs.mtime, scenes.ctime) as mtime,
         scenes.fk_author_id AS author_id,
         CASE scenes.fk_author_id = 0 THEN 
           "default" 
@@ -291,7 +291,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
-    `, args)).map(({ctime, mtime, id, user_access, default_access, public_access, archived, ...m})=>({
+    `, args)).map(({id, user_access, default_access, public_access, archived, ...m})=>({
       ...m,
       id,
       tags: m.tags ? JSON.parse(m.tags): [],
@@ -300,8 +300,6 @@ export default abstract class ScenesVfs extends BaseVfs{
         any: fromLevel(default_access),
         default: (public_access? "read": "none") as AccessType,
       },
-      ctime: BaseVfs.toDate(ctime),
-      mtime: BaseVfs.toDate(mtime),
       archived: !!archived,
     }));
   }
@@ -314,14 +312,14 @@ export default abstract class ScenesVfs extends BaseVfs{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let args = [nameOrId];
     if(user_id) args.push(user_id.toString(10))
-    let scene = await this.db.get<{
+    const scene_stored = await this.db.get<{
       name: string,
       id: number,
-      ctime :string,
+      ctime :Date,
       author_id: number,
       author: string,
-      access: string,
-      archived: number,
+      access: {user?:number, any: number, default: number},
+      archived: boolean,
     }>(`
       SELECT 
         scene_name as name,
@@ -329,17 +327,37 @@ export default abstract class ScenesVfs extends BaseVfs{
         ctime,
         archived,
         fk_author_id AS author_id,
-        IFNULL((
-          SELECT username FROM users WHERE user_id = fk_author_id
-        ), 'default') AS author,
-        json_object(
-          ${(user_id)? `"user", IFNULL(json_extract(scenes.access, '$.' || $2), "none"),`: ``}
-          "any", json_extract(scenes.access, '$.1'),
-          "default", json_extract(scenes.access, '$.0')
+        COALESCE(
+          (SELECT username FROM users WHERE user_id = fk_author_id),
+          'default'
+        ) AS author,
+        json_build_object(
+          ${(user_id)? `'user'::text, COALESCE(
+            (SELECT level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = $1)),
+            0
+          ),`: ``}
+          'any'::text, default_access,
+          'default'::text, CASE WHEN public_access THEN 1 ELSE 0 END
         ) AS access
       FROM scenes WHERE ${key} = $1`, args);
     
-    if(!scene) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+    if(!scene_stored) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+
+    const scene :Omit<Scene, "tags"|"mtime"> = {
+      ...scene_stored,
+      access: {
+        any: fromLevel(scene_stored.access.any),
+        default: fromLevel(scene_stored.access.default),
+      }
+    };
+    if(!(scene.ctime instanceof Date)){
+      throw new Error("ctime not a date");
+    }else{
+      console.log("ctime is a date");
+    }
+    if("user" in scene_stored.access){
+      scene.access["user"] = fromLevel(scene_stored.access.user!);
+    }
     
     let tags = await this.db.all<{name:string}>(`
       SELECT 
@@ -348,7 +366,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       WHERE tags.fk_scene_id = $1
     `,[scene.id]);
 
-    let r = await this.db.get<{mtime:string, thumb?:string}>(`
+    let r = await this.db.get<{mtime:Date, thumb?:string}>(`
       WITH scene_files AS (
         SELECT *
         FROM current_files
@@ -361,9 +379,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     return {
       ...scene,
-      access: JSON.parse(scene.access),
-      ctime: BaseVfs.toDate(scene.ctime),
-      mtime: BaseVfs.toDate(r?.mtime ?? scene.ctime),
+      mtime: (r?.mtime ?? scene.ctime),
       archived: !!scene.archived,
       thumb: r?.thumb ?? null,
       tags: tags.map(t=>t.name),
@@ -383,7 +399,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     const {limit = 10, offset = 0, orderDirection = "desc"} = ScenesVfs._validateSceneQuery(query);
 
     const dir = orderDirection.toUpperCase() as Uppercase<typeof orderDirection>;
-    let entries = await this.db.all<Omit<Stored<ItemEntry>,"mtime">>(`
+    return await this.db.all<Omit<ItemEntry,"mtime">>(`
       SELECT 
         file_id AS id,
         name,
@@ -405,10 +421,6 @@ export default abstract class ScenesVfs extends BaseVfs{
       limit,
     ]);
 
-    return entries.map(m=>({
-      ...m,
-      ctime: BaseVfs.toDate(m.ctime),
-    }));
   }
 
 }
