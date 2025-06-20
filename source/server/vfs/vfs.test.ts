@@ -31,7 +31,7 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     author_id: null,
     thumb: null,
     tags: [],
-    access:  { user: "read", any: 'read', default: 'read' },
+    access: "read",
     archived: null,
   };
 }
@@ -333,9 +333,9 @@ describe("Vfs", function(){
 
       it("can return existing thumbnails", async function(){
         let s1 = await vfs.createScene("01");
-        await vfs.writeDoc("\n", {scene: s1, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+        await vfs.writeDoc("{}", {scene: s1, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
         let s2 = await vfs.createScene("02");
-        await vfs.writeDoc("\n", {scene: s2, user_id: null, name: "scene-image-thumb.png", mime: "image/jpeg"});
+        await vfs.writeDoc("{}", {scene: s2, user_id: null, name: "scene-image-thumb.png", mime: "image/jpeg"});
 
         let s = await vfs.getScenes(0);
         expect(s).to.have.property("length", 2);
@@ -351,8 +351,8 @@ describe("Vfs", function(){
           new Date("2024-01-01")
         ];
         const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $2 WHERE file_id = $1`, [i, d]);
-        let png = await vfs.writeDoc("\n", {scene: s1, user_id: null, name: "scene-image-thumb.png", mime: "image/png"});
-        let jpg = await vfs.writeDoc("\n", {scene: s1, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+        let png = await vfs.writeDoc("{}", {scene: s1, user_id: null, name: "scene-image-thumb.png", mime: "image/png"});
+        let jpg = await vfs.writeDoc("{}", {scene: s1, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
 
         let r = await setDate(jpg.id, times[1]);
         await setDate(png.id, times[2]);
@@ -426,10 +426,11 @@ describe("Vfs", function(){
         it("can filter accessible scenes by user_id", async function(){
           let scene_id = await vfs.createScene("foo", user.uid);
           await userManager.setPublicAccess("foo", "none");
+          await userManager.setDefaultAccess("foo", "none");
           await userManager.grant("foo", user.uid, "none");
-          await run(`UPDATE scenes SET  public_access= false`);
-          await run(`INSERT INTO users_acl (fk_scene_id, fk_user_id, level) VALUES ($1, $2, 3)`, [scene_id, user.uid]);
-          expect(await vfs.getScenes(0), `private scene shouldn't be returned to default user`).to.have.property("length", 0);
+          await run(`UPDATE scenes SET public_access = false`);
+          await run(`INSERT INTO users_acl (fk_scene_id, fk_user_id, access_level) VALUES ($1, $2, 3)`, [scene_id, user.uid]);
+          expect((await vfs.getScenes(0)), `private scene shouldn't be returned to default user`).to.have.property("length", 0);
           expect(await vfs.getScenes(user.uid), `private scene should be returned to its author`).to.have.property("length", 1);
         });
 
@@ -448,7 +449,7 @@ describe("Vfs", function(){
           await userManager.setPublicAccess(scene_id, "none");
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
-          expect(scenes[0]).to.have.property("access").to.deep.equal({user:"admin", any: "write", default: "none"});
+          expect(scenes[0]).to.have.property("access").to.equal("admin");
         });
         it("get proper \"any\" access", async function(){
           let scene_id = await vfs.createScene("foo");
@@ -456,7 +457,7 @@ describe("Vfs", function(){
           await userManager.setPublicAccess(scene_id, "read");
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
-          expect(scenes[0]).to.have.property("access").to.deep.equal({user: "none", any: "write", default: "read"});
+          expect(scenes[0]).to.have.property("access").to.equal("write");
         });
       });
 
@@ -468,19 +469,18 @@ describe("Vfs", function(){
           admin = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
         });
 
-        it.skip("filters by access-level", async function(){
+        it("filters by access-level", async function(){
           await vfs.createScene("foo", admin.uid);
           await userManager.grant("foo", user.uid, "read");
           expect(await vfs.getScenes(user.uid, {})).to.have.property("length", 1);
-          expect(await vfs.getScenes(user.uid, {access:["admin"]})).to.have.property("length", 0);
+          expect(await vfs.getScenes(user.uid, {access:"admin"})).to.have.property("length", 0);
         });
 
         it("won't return inaccessible content", async function(){
           await vfs.createScene("foo", admin.uid);
-          await userManager.grant("foo", user.uid, "none");
           await userManager.setDefaultAccess("foo", "none");
           await userManager.setPublicAccess("foo", "none");
-          expect(await vfs.getScenes(user.uid, {access:["none"]})).to.have.property("length", 0);
+          expect(await vfs.getScenes(user.uid, {access:"none"})).to.have.property("length", 0);
         });
 
         it("can select by specific user access level", async function(){
@@ -488,7 +488,7 @@ describe("Vfs", function(){
           await userManager.grant("foo", user.uid, "read");
           await userManager.setDefaultAccess("foo", "read");
           await userManager.setPublicAccess("foo", "read");
-          expect(await vfs.getScenes(user.uid, {access:["read"]})).to.have.property("length", 1);
+          expect(await vfs.getScenes(user.uid, {access:"read"})).to.have.property("length", 1);
         });
 
         it("filters by author", async function(){

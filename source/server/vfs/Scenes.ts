@@ -33,7 +33,7 @@ export default abstract class ScenesVfs extends BaseVfs{
             author_id,
           ]);
           if(author_id){
-            await tr.run(`INSERT INTO users_acl (fk_user_id, fk_scene_id, level) VALUES ($2, CAST($1 AS BIGINT), 3)`, [r.scene_id, author_id]);
+            await tr.run(`INSERT INTO users_acl (fk_user_id, fk_scene_id, access_level) VALUES ($2, CAST($1 AS BIGINT), 3)`, [r.scene_id, author_id]);
           }
           return parseInt(r.scene_id);
         });
@@ -123,7 +123,7 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   static _fragUserCanAccessScene(user_id :number, accessMin:AccessType = "read"){
     return `
-    (COALESCE (level, 0 )> ${AccessTypes.indexOf(accessMin)}
+    (COALESCE (access_level, 0 )> ${AccessTypes.indexOf(accessMin)}
     OR  default_access > ${AccessTypes.indexOf(accessMin)}
     OR (${AccessTypes.indexOf(accessMin)} = 1 AND public_access))
     `;
@@ -279,7 +279,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         COALESCE(users.username, 'default') AS author,
         (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
         COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
-        COALESCE(users_acl.level, scenes.default_access) AS user_access,
+        COALESCE(users_acl.access_level, scenes.default_access) AS user_access,
         scenes.default_access AS default_access,
         scenes.public_access AS public_access
         
@@ -300,13 +300,14 @@ export default abstract class ScenesVfs extends BaseVfs{
       ${with_filter? "WHERE true": ""}
       ${typeof author === "number"? `AND fk_author_id = $4`:"" }
       ${typeof user_id === "number"? `AND 
-          GREATEST(users_acl.level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toLevel("read")}
+          GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toLevel("read")}
       `:""}
       ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
+      ${access? `AND GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toLevel(access)}`: ""}
       ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
       ${likeness}
 
-      GROUP BY scene_id, scene_name, users.username, users_acl.level
+      GROUP BY scene_id, scene_name, users.username, users_acl.access_level
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
@@ -317,11 +318,11 @@ export default abstract class ScenesVfs extends BaseVfs{
       ...m,
       id: parseInt(id),
       tags: m.tags, //? JSON.parse(m.tags): [],
-      access: {
+      access: fromLevel( Math.max(user_access, default_access, public_access? 0 : 1))/*{
         user: fromLevel(user_access),
         any: fromLevel(default_access),
         default: (public_access? "read": "none") as AccessType,
-      },
+      }*/,
     }));
   
   }
@@ -367,15 +368,8 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     const scene :Omit<Scene, "tags"|"mtime"> = {
       ...scene_stored,
-      access: {
-        any: fromLevel(scene_stored.access.any),
-        default: fromLevel(scene_stored.access.default),
-      }
-    };
-
-    if("user" in scene_stored.access){
-      scene.access["user"] = fromLevel(scene_stored.access.user!);
-    }
+      access: fromLevel(Math.max(scene_stored.access.any,scene_stored.access.default, scene_stored.access.user?scene_stored.access.user:0))
+      };
 
     let tags = await this.db.all<{name:string}>(`
       SELECT 

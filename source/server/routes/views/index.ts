@@ -135,7 +135,8 @@ routes.get("/scenes", wrap(async (req, res)=>{
     orderDirection,
     archived,
   } = req.query;
-  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+//  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+  let accessTypes :AccessType = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
   const sceneParams = {
     match: match as string,
@@ -168,7 +169,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
   //Sanitize user input
   const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
-  if(!validatedParams.access) validatedParams.access = ["read", "write", "admin"];
+  if(!validatedParams.access) validatedParams.access = "read";
   res.render("search", {
     title: "eCorpus Search",
     scenes,

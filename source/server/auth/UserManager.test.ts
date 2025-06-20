@@ -246,6 +246,7 @@ describe("UserManager methods", function(){
     it("can set user permissions by username", async function(){
       
       for(let role of AccessTypes.slice().reverse()){
+        // we use reverse so that we do not set permission to "none" when there is no permission existing.
         if(!role) continue; //Skip null
         await userManager.grant("foo-grant-access-rights-private", user.username, role);
         let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
@@ -272,6 +273,10 @@ describe("UserManager methods", function(){
       await userManager.grant("foo-grant-access-rights", user.username, null);
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
       expect(access).to.equal("read"); // default
+    });
+
+    it("can't set permissions to none if there was no specific permissions", async function(){
+      await expect(userManager.grant("foo-grant-access-rights-private", user.username, "none")).to.be.rejectedWith("404");
     });
 
     it("can't provide unsupported role", async function(){

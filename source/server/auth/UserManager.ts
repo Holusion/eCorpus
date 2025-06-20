@@ -317,9 +317,9 @@ export default class UserManager extends DbController {
     if(0 < level){
       try{
         await this.db.run(`
-          INSERT INTO users_acl (fk_user_id, fk_scene_id, level)
+          INSERT INTO users_acl (fk_user_id, fk_scene_id, access_level)
           SELECT ${user_id}, ${scene_id}, $3
-          ON CONFLICT (fk_user_id, fk_scene_id) DO UPDATE SET level = EXCLUDED.level
+          ON CONFLICT (fk_user_id, fk_scene_id) DO UPDATE SET access_level = EXCLUDED.access_level
         `, [
           (typeof scene === "number")?scene.toString(10): scene,
           (typeof user === "number")?user.toString(10): user,
@@ -349,7 +349,7 @@ export default class UserManager extends DbController {
   async getAccessRights(scene :string, uid :number) :Promise<AccessType>{
     const res = (await this.db.get(`
       SELECT GREATEST(
-        level,
+        access_level,
         CASE WHEN scenes.public_access THEN 1 ELSE 0 END
       ) AS level
       FROM
@@ -375,7 +375,7 @@ export default class UserManager extends DbController {
       SELECT 
         users.user_id AS uid,
         users.username AS username,
-        users_acl.level AS level
+        users_acl.access_level AS level
       FROM 
         scenes
         INNER JOIN users_acl ON users_acl.fk_scene_id = scenes.scene_id

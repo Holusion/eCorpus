@@ -80,11 +80,7 @@ export interface Scene extends ItemProps{
   /** Freeform list of attached tags for this collection */
   tags :string[];
   /** Access level. Only makes sense when in reference to a user ID */
-  access :{
-    user ?:AccessType,
-    any :AccessType,
-    default :AccessType,
-  };
+  access : AccessType;
   archived: Date|null;
 }
 
@@ -98,7 +94,7 @@ export interface DocProps extends FileProps{
  */
 export interface SceneQuery {
   /** desired scene access level */
-  access ?:AccessType[];
+  access ?:AccessType;
   author ?:number;
   match ?:string;
   offset ?:number;

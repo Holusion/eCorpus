@@ -39,7 +39,7 @@ CREATE INDEX archived_scenes ON scenes(scene_id, archived);
 CREATE TABLE users_acl(
   fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   fk_scene_id BIGINT NOT NULL REFERENCES scenes(scene_id) ON DELETE CASCADE,
-  level SMALLINT NOT NULL CONSTRAINT valid_access_level CHECK(1 <= level AND level <= 3),
+  access_level SMALLINT NOT NULL CONSTRAINT valid_access_level CHECK(1 <= access_level AND access_level <= 3),
   UNIQUE(fk_user_id, fk_scene_id)
 );
 
