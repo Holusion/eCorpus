@@ -669,7 +669,7 @@ describe("Vfs", function(){
     describe("createFolder(), removeFolder(), listFolders()", function(){
       let scene_id :number;
       this.beforeEach(async function(){
-        scene_id = await vfs.createScene("foo", 0);
+        scene_id = await vfs.createScene("foo");
       })
 
       it("create a folder in a scene", async function(){
