@@ -1366,6 +1366,10 @@ describe("Vfs", function(){
             await expect(vfs.getDoc(scene_id)).to.eventually.deep.include({id});
           }
         });
+        it("reject invalid json", async function(){
+          await expect(vfs.writeDoc("{", {scene: "foo", user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).to.be.rejectedWith("invalid");
+        });
+
       });
 
       
