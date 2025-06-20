@@ -176,7 +176,7 @@ export default abstract class FilesVfs extends BaseVfs{
         mime: params.mime ?? "application/octet-stream",
         name: params.name,
         author_id: params.user_id,
-        author: author.username,
+        author: author?.username ?? "default",
       };
     });
   }

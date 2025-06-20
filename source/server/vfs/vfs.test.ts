@@ -312,8 +312,8 @@ describe("Vfs", function(){
         await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         let $doc_id = (await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
         //Force ctime
-        await run(`UPDATE scenes SET ctime = $time`, {$time: t1.toISOString()});
-        await run(`UPDATE files SET ctime = $time WHERE file_id = $doc_id`, {$time: t2.toISOString(), $doc_id});
+        await run(`UPDATE scenes SET ctime = $1`, [t1]);
+        await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [t2, $doc_id]);
         let scenes = await vfs.getScenes();
         expect(scenes).to.have.property("length", 1);
         expect(scenes[0].ctime.valueOf(), `ctime is ${scenes[0].ctime}, expected ${t1}`).to.equal(t1.valueOf());

@@ -75,9 +75,9 @@ export default abstract class ScenesVfs extends BaseVfs{
         scene_name = scene_name || '#' || CAST(scene_id AS TEXT)
       WHERE 
         ${typeof scene ==="number"? "scene_id": "scene_name"} = $1
-        ${typeof scene ==="number"? `AND position(('#' || scene_id )IN scene_name) = 0`:""}
-        AND archived = null
-    `, [ scene ]);
+        ${typeof scene ==="number"? `AND position(('#' || CAST(scene_id AS TEXT) ) IN scene_name) = 0`:""}
+        AND archived IS NULL
+    `, [ scene.toString(10) ]);
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
 
