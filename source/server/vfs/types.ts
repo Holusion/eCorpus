@@ -85,7 +85,7 @@ export interface Scene extends ItemProps{
     any :AccessType,
     default :AccessType,
   };
-  archived: boolean;
+  archived: Date|null;
 }
 
 export interface DocProps extends FileProps{

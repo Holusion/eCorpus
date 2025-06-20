@@ -216,9 +216,9 @@ export default abstract class ScenesVfs extends BaseVfs{
       const idx = args.push(fuzzyMatch, matchString) -1;
 
       let conditions = [
-        `scene_name LIKE $${idx}`,
-        `docs.meta LIKE $${idx}`,
-        `author = ${idx+1}`,
+        `scene_name ILIKE $${idx}`,
+        `docs.meta::text ILIKE $${idx}`,
+        `users.username = $${idx+1}`,
       ]
       return `${index ==0 ? " ": " AND "}( ${conditions.join(" OR ")} )`;
     }
@@ -252,7 +252,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       user_access: number,
       default_access: number,
       public_access: boolean,
-      archived: number,
+      archived: Date|null,
     }>(`
       WITH 
         docs AS (
@@ -272,21 +272,18 @@ export default abstract class ScenesVfs extends BaseVfs{
         scenes.archived AS archived,
         MAX(COALESCE(docs.mtime, scenes.ctime)) as mtime,
         scenes.fk_author_id AS author_id,
-        CASE WHEN scenes.fk_author_id = null THEN 
-          'default' 
-        ELSE
-          (SELECT username FROM users WHERE scenes.fk_author_id = user_id)
-        END AS author,
+        COALESCE(users.username, 'default') AS author,
         (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
-        array_agg(tags.tag_name) AS tags,
-        COALESCE((SELECT level FROM users_acl WHERE fk_user_id = $1), scenes.default_access) AS user_access,
+        COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
+        COALESCE(users_acl.level, scenes.default_access) AS user_access,
         scenes.default_access AS default_access,
         scenes.public_access AS public_access
         
         FROM scenes
         LEFT JOIN docs ON docs.fk_scene_id = scene_id
         LEFT JOIN tags ON tags.fk_scene_id = scene_id
-        LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id
+        LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
+        LEFT JOIN users ON scenes.fk_author_id = user_id
      ${/*FROM scenes
         LEFT JOIN docs ON docs.fk_scene_id = scene_id
         LEFT JOIN (
@@ -298,19 +295,21 @@ export default abstract class ScenesVfs extends BaseVfs{
         ) AS tags ON tags.fk_scene_id = scene_id*/""}
       ${with_filter? "WHERE true": ""}
       ${typeof author === "number"? `AND fk_author_id = $4`:"" }
-      ${typeof user_id === "number"? `AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
+      ${typeof user_id === "number"? `AND 
+          GREATEST(users_acl.level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toLevel("read")}
+      `:""}
       ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
-      ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} 0`:""}
+      ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
       ${likeness}
 
-      GROUP BY scene_id
+      GROUP BY scene_id, scene_name, users.username, users_acl.level
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
     `, args));
     //console.log(result)
     //console.log("result 0 id:" , typeof result[0].id);
-    return result.map(({id, user_access, default_access, public_access, archived, ...m})=>({
+    return result.map(({id, user_access, default_access, public_access, ...m})=>({
       ...m,
       id: parseInt(id),
       tags: m.tags, //? JSON.parse(m.tags): [],
@@ -319,7 +318,6 @@ export default abstract class ScenesVfs extends BaseVfs{
         any: fromLevel(default_access),
         default: (public_access? "read": "none") as AccessType,
       },
-      archived: !!archived,
     }));
   
   }
@@ -339,7 +337,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       author_id: number,
       author: string,
       access: {user?:number, any: number, default: number},
-      archived: boolean,
+      archived: Date|null,
     }>(`
       SELECT 
         scene_name as name,
@@ -370,15 +368,11 @@ export default abstract class ScenesVfs extends BaseVfs{
         default: fromLevel(scene_stored.access.default),
       }
     };
-    if(!(scene.ctime instanceof Date)){
-      throw new Error("ctime not a date");
-    }else{
-      console.log("ctime is a date");
-    }
+
     if("user" in scene_stored.access){
       scene.access["user"] = fromLevel(scene_stored.access.user!);
     }
-    
+
     let tags = await this.db.all<{name:string}>(`
       SELECT 
         tag_name AS name
@@ -400,7 +394,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     return {
       ...scene,
       mtime: (r?.mtime ?? scene.ctime),
-      archived: !!scene.archived,
+      archived: scene.archived,
       thumb: r?.thumb ?? null,
       tags: tags.map(t=>t.name),
     }

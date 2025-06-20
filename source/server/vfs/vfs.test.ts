@@ -31,7 +31,7 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     author_id: null,
     thumb: null,
     tags: [],
-    access:  { any: 'read', default: 'read' },
+    access:  { user: "read", any: 'read', default: 'read' },
     archived: null,
   };
 }
@@ -298,9 +298,9 @@ describe("Vfs", function(){
           if(typeof props[key] ==="undefined"){
             expect(scene, `${(scene as any)[key]}`).not.to.have.property(key);
           }else if(typeof props[key] === "function"){
-            expect(scene).to.have.property(key).instanceof(props[key]);
+            expect(scene, `scene.${key} should match expected class ${props[key].constructor.name}`).to.have.property(key).instanceof(props[key]);
           }else{
-            expect(scene).to.have.property(key).to.deep.equal(props[key]);
+            expect(scene, `scene.${key} should match expected value ${props[key]}`).to.have.property(key).to.deep.equal(props[key]);
           }
         }
       });
@@ -424,10 +424,11 @@ describe("Vfs", function(){
         });
 
         it("can filter accessible scenes by user_id", async function(){
-          await vfs.createScene("foo", user.uid);
+          let scene_id = await vfs.createScene("foo", user.uid);
           await userManager.setPublicAccess("foo", "none");
           await userManager.grant("foo", user.uid, "none");
-          await run(`UPDATE scenes SET access = json_object("0", "none", "${user.uid}", "admin")`);
+          await run(`UPDATE scenes SET  public_access= false`);
+          await run(`INSERT INTO users_acl (fk_scene_id, fk_user_id, level) VALUES ($1, $2, 3)`, [scene_id, user.uid]);
           expect(await vfs.getScenes(0), `private scene shouldn't be returned to default user`).to.have.property("length", 0);
           expect(await vfs.getScenes(user.uid), `private scene should be returned to its author`).to.have.property("length", 1);
         });
