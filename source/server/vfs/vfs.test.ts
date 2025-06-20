@@ -901,12 +901,11 @@ describe("Vfs", function(){
         it("store archive time", async function(){
           //To be used later 
           await vfs.archiveScene(scene_id);
-          let {archived} = await vfs._db.get(`SELECT archived FROM scenes WHERE scene_id= ?`, [scene_id]);
-          expect(archived).to.be.ok;
-          let archivedDate = new Date(archived*1000);
-          expect(archivedDate.toString()).not.to.equal('Invalid Date');
-          expect(archivedDate.valueOf(), archivedDate.toUTCString()).to.be.above(new Date().valueOf() - 2000);
-          expect(archivedDate.valueOf(), archivedDate.toUTCString()).to.be.below(new Date().valueOf()+1);
+          let {archived} = await vfs._db.get(`SELECT archived FROM scenes WHERE scene_id= $1`, [scene_id]);
+          expect(archived).to.be.instanceof(Date);
+          expect(archived.toString()).not.to.equal('Invalid Date');
+          expect(archived.valueOf(), archived.toUTCString()).to.be.above(new Date().valueOf() - 2000);
+          expect(archived.valueOf(), archived.toUTCString()).to.be.below(new Date().valueOf()+1);
         })
       });
 
@@ -914,7 +913,7 @@ describe("Vfs", function(){
         it("restores an archived scene", async function(){
           await vfs.archiveScene(scene_id);
           await vfs.unarchiveScene(`foo#${scene_id}`);
-          expect(await vfs.getScene("foo")).to.have.property("archived", false);
+          expect(await vfs.getScene("foo")).to.have.property("archived", null);
         });
 
         it("throws if archive doesn't exist", async function(){

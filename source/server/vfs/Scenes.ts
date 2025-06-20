@@ -85,15 +85,19 @@ export default abstract class ScenesVfs extends BaseVfs{
   async unarchiveScene(scene:number|string):Promise<void>
   async unarchiveScene(scene:number|string, name:string):Promise<void>
   async unarchiveScene(scene:number|string, name?:string):Promise<void>{
+    const args = [scene];
+    if(typeof name !== "undefined"){
+      args.push(name);
+    }
     let r = await this.db.run(`
       UPDATE scenes 
       SET 
-        archived = 0,
-        scene_name = ${typeof name !== "undefined"?"$2":`SUBSTR( scene_name, 0, LENGTH(scene_name) -LENGTH(CAST(scene_id AS TEXT)) )`}
+        archived = NULL,
+        scene_name = ${typeof name !== "undefined"?"$2":`SUBSTR( scene_name, 0, LENGTH(scene_name) - LENGTH(CAST(scene_id AS TEXT)) )`}
       WHERE 
         ${typeof scene ==="number"? "scene_id": "scene_name"} = $1
-        AND archived IS NOT 0
-    `, [ scene, name ]);
+        AND archived IS NOT NULL
+    `, args);
     if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
   }
 
