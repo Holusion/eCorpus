@@ -39,11 +39,11 @@ export const AccessTypes = [
   "admin"
 ] as const;
 
-export function fromLevel(l:number):AccessType{
+export function fromAccessLevel(l:number):AccessType{
   return AccessTypes[l+1];
 }
 
-export function toLevel(a:AccessType){
+export function toAccessLevel(a:AccessType){
   return Math.max(0, AccessTypes.indexOf(a)-1);
 }
 
@@ -313,7 +313,7 @@ export default class UserManager extends DbController {
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number")?`SELECT $1::bigint AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
-    let level = toLevel(role);
+    let level = toAccessLevel(role);
     if(0 < level){
       try{
         await this.db.run(`
@@ -395,7 +395,7 @@ export default class UserManager extends DbController {
 
   async setPublicAccess(scene: string|number, role:AccessType):Promise<void>{
     let is_id = typeof scene === "number";
-    let level = toLevel(role)
+    let level = toAccessLevel(role)
     if(level < 0 || 1 < level) throw new BadRequestError(`Can't set scene public access to ${role}`)
 
     let r = await this.db.run(`
@@ -419,7 +419,7 @@ export default class UserManager extends DbController {
         WHERE ${is_id?"scene_id":"scene_name"} = $1
         `, [
           scene,
-          toLevel(role),
+          toAccessLevel(role),
         ]);
       if(r?.changes != 1) throw new NotFoundError(`No scene found with ${is_id?"scene_id":"scene_name"} = ${scene}`);
 

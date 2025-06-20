@@ -1,4 +1,4 @@
-import UserManager, { AccessTypes, fromLevel, toLevel } from "./UserManager.js";
+import UserManager, { AccessTypes, fromAccessLevel, toAccessLevel } from "./UserManager.js";
 import {tmpdir} from "os";
 import fs from "fs/promises";
 import path from "path";
@@ -85,23 +85,23 @@ describe("UserManager static methods", function(){
 
   describe("toLevel", function(){
     it("converts null", function(){
-      expect(toLevel(null)).to.equal(0);
+      expect(toAccessLevel(null)).to.equal(0);
     })
     it("converts none", function(){
-      expect(toLevel("none")).to.equal(0);
+      expect(toAccessLevel("none")).to.equal(0);
     });
     it("converts admin", function(){
-      expect(toLevel("admin")).to.equal(3);
+      expect(toAccessLevel("admin")).to.equal(3);
     });
   });
 
   describe("fromLevel", function(){
     it("0 -> none", function(){
-      expect(fromLevel(0)).to.equal("none");
+      expect(fromAccessLevel(0)).to.equal("none");
     });
 
     it("3 -> admin", function(){
-      expect(fromLevel(3)).to.equal("admin");
+      expect(fromAccessLevel(3)).to.equal("admin");
     });
   })
 });

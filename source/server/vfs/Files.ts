@@ -411,9 +411,9 @@ export default abstract class FilesVfs extends BaseVfs{
           USING(fk_scene_id, name, generation)
         INNER JOIN users 
           ON files.fk_author_id = user_id
-      WHERE 1
+      WHERE TRUE
         ${((withArchives)?"":`AND hash IS NOT NULL`)}
-        ${((withFolders)? "": `AND mime IS NOT 'text/directory'`)}
+        ${((withFolders)? "": `AND mime != 'text/directory'`)}
       ORDER BY mtime DESC, name ASC
     `, [ scene_id ]);
   }

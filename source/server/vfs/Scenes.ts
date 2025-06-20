@@ -1,11 +1,12 @@
 import {escapeLiteral} from "pg";
-import { AccessMap, AccessType, AccessTypes, fromLevel, toLevel } from "../auth/UserManager.js";
+import { AccessMap, AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery } from "./types.js";
 import errors, { expandSQLError } from "./helpers/errors.js";
+import { UserLevels } from "../auth/User.js";
 
 
 export default abstract class ScenesVfs extends BaseVfs{
@@ -28,8 +29,8 @@ export default abstract class ScenesVfs extends BaseVfs{
           `, [
             name, 
             uid,
-            toLevel((config.public?"read":"none")),
-            toLevel("read"),
+            toAccessLevel((config.public?"read":"none")),
+            toAccessLevel("read"),
             author_id,
           ]);
           if(author_id){
@@ -110,33 +111,6 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(!r?.changes) throw new NotFoundError(`no scene found with id: ${scene_id}`);
   }
 
-  /**
-   * Reusable fragment to check if a user has the required access level for an operation on a scene.
-   * Most permission checks are done outside of this module in route middlewares,
-   * but we sometimes need to check for permissions to filter list results
-   * 
-   * This does NOT check for administrator access
-   * 
-   * @param user_id User_id, to detect "default" special case
-   * @param accessMin Minimum expected acccess level, defaults to read
-   * @returns 
-   */
-  static _fragUserCanAccessScene(user_id :number, accessMin:AccessType = "read"){
-    return `
-    (COALESCE (access_level, 0 )> ${AccessTypes.indexOf(accessMin)}
-    OR  default_access > ${AccessTypes.indexOf(accessMin)}
-    OR (${AccessTypes.indexOf(accessMin)} = 1 AND public_access))
-    `;
-    //    scenes.default_access
-    // scenes.public_access 
-  /*  return `
-      COALESCE(
-          json_extract(scenes.access, '$.' || ${escapeLiteral(user_id.toString(10))}),
-          ${(0 < user_id)? `json_extract(scenes.access, '$.1'),`:""}
-          json_extract(scenes.access, '$.0')
-      ) IN (${ AccessTypes.slice(AccessTypes.indexOf(accessMin)).map(s=>`'${s}'`).join(", ") })
-    `;*/
-  }
 
   static _fragIsThumbnail(field :string = "name"){
     return `(${field} = 'scene-image-thumb.jpg' OR ${field} = 'scene-image-thumb.png') AND size != 0`;
@@ -299,11 +273,13 @@ export default abstract class ScenesVfs extends BaseVfs{
         ) AS tags ON tags.fk_scene_id = scene_id*/""}
       ${with_filter? "WHERE true": ""}
       ${typeof author === "number"? `AND fk_author_id = $4`:"" }
-      ${typeof user_id === "number"? `AND 
-          GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toLevel("read")}
-      `:""}
+      ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
+        OR GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel("read")}
+      )`:""}
       ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
-      ${access? `AND GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toLevel(access)}`: ""}
+      ${access? `AND
+          GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel(access)}
+      `: ""}
       ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
       ${likeness}
 
@@ -318,7 +294,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       ...m,
       id: parseInt(id),
       tags: m.tags, //? JSON.parse(m.tags): [],
-      access: fromLevel( Math.max(user_access, default_access, public_access? 0 : 1))/*{
+      access: fromAccessLevel( Math.max(user_access, default_access, public_access? 0 : 1))/*{
         user: fromLevel(user_access),
         any: fromLevel(default_access),
         default: (public_access? "read": "none") as AccessType,
@@ -335,7 +311,6 @@ export default abstract class ScenesVfs extends BaseVfs{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let args = [nameOrId];
     if(user_id) args.push(user_id.toString(10));
-    console.log("getScene :", key, typeof nameOrId, nameOrId);
     const scene_stored = await this.db.get<{
       name: string,
       id: number,
@@ -368,7 +343,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     const scene :Omit<Scene, "tags"|"mtime"> = {
       ...scene_stored,
-      access: fromLevel(scene_stored.access)
+      access: fromAccessLevel(scene_stored.access)
       };
 
     let tags = await this.db.all<{name:string}>(`

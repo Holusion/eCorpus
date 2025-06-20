@@ -262,7 +262,7 @@ describe("Vfs", function(){
         let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
         try{
           let s = await vfs.getScene(id, user.uid);
-          expect(s).to.have.property("access").to.have.property("user", "admin");
+          expect(s).to.have.property("access").to.be.equal("admin");
         }catch(e){
           console.log("createScene :", e);
           throw e;
@@ -462,29 +462,46 @@ describe("Vfs", function(){
       });
 
       describe("search", async function(){
-        let userManager :UserManager, user :User, admin :User;
+        let userManager :UserManager, user :User, sceneAdmin :User, admin :User;
         this.beforeEach(async function(){
           userManager = new UserManager(vfs._db);
           user = await userManager.addUser("bob", "xxxxxxxx", UserLevels.CREATE);
-          admin = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
+          sceneAdmin = await userManager.addUser("alice", "xxxxxxxx", UserLevels.CREATE);
+          admin = await userManager.addUser("adele", "xxxxxxxx", UserLevels.ADMIN);
         });
 
         it("filters by access-level", async function(){
-          await vfs.createScene("foo", admin.uid);
+          await vfs.createScene("foo", sceneAdmin.uid);
           await userManager.grant("foo", user.uid, "read");
           expect(await vfs.getScenes(user.uid, {})).to.have.property("length", 1);
           expect(await vfs.getScenes(user.uid, {access:"admin"})).to.have.property("length", 0);
         });
 
         it("won't return inaccessible content", async function(){
-          await vfs.createScene("foo", admin.uid);
+          await vfs.createScene("foo", sceneAdmin.uid);
           await userManager.setDefaultAccess("foo", "none");
           await userManager.setPublicAccess("foo", "none");
           expect(await vfs.getScenes(user.uid, {access:"none"})).to.have.property("length", 0);
         });
 
+        it("will return everything to admin level user", async function(){       
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.setDefaultAccess("foo", "none");
+          await userManager.setPublicAccess("foo", "none");
+          expect(await vfs.getScenes(admin.uid)).to.have.property("length", 1);
+        });
+        
+        it("will return only scenes with specicfic rights to admin level user", async function(){       
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.setDefaultAccess("foo", "none");
+          await userManager.setPublicAccess("foo", "none");
+          expect(await vfs.getScenes(admin.uid, {access:"read"})).to.have.property("length", 0);
+          expect(await vfs.getScenes(admin.uid, {access:"write"})).to.have.property("length", 0);
+          expect(await vfs.getScenes(admin.uid, {access:"admin"})).to.have.property("length", 0);
+        });
+        
         it("can select by specific user access level", async function(){
-          await vfs.createScene("foo", admin.uid);
+          await vfs.createScene("foo", sceneAdmin.uid);
           await userManager.grant("foo", user.uid, "read");
           await userManager.setDefaultAccess("foo", "read");
           await userManager.setPublicAccess("foo", "read");
@@ -493,7 +510,7 @@ describe("Vfs", function(){
 
         it("filters by author", async function(){
           await vfs.createScene("User Authored", user.uid);
-          await vfs.createScene("Admin Authored", admin.uid);
+          await vfs.createScene("Scene Admin Authored", sceneAdmin.uid);
           let s = await vfs.getScenes(user.uid, {author: user.uid});
           expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
@@ -551,8 +568,8 @@ describe("Vfs", function(){
 
         it.skip("can match an editor's name", async function(){
           //This could have too much impact performance to query properly?
-          let scene_id = await vfs.createScene("foo", admin.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: admin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let scene_id = await vfs.createScene("foo", sceneAdmin.uid);
+          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
           let s = await vfs.getScenes(user.uid, {match: user.username});
           expect(s, `Matched scenes : [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 0);
@@ -573,11 +590,11 @@ describe("Vfs", function(){
             }]
           }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
-          scene_id = await vfs.createScene("foo1", admin.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: admin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          scene_id = await vfs.createScene("foo1", sceneAdmin.uid);
+          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
           scene_id = await vfs.createScene("foo2", user.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: admin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
           
           let s = await vfs.getScenes(user.uid, {match: `foo ${user.username}`});
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
@@ -1262,7 +1279,7 @@ describe("Vfs", function(){
         describe("removeFile()", function(){
           it("add an entry with state = REMOVED", async function(){
             await vfs.removeFile({...props, user_id: null});
-            let files = await all(`SELECT * FROM files WHERE name = "${props.name}"`);
+            let files = await all(`SELECT * FROM files WHERE name = '${props.name}'`);
             expect(files).to.have.property("length", 2);
             expect(files[0]).to.include({
               hash: "tbudgBSg-bHWHiHnlteNzN8TUvI80ygS9IULh4rklEw",
@@ -1643,7 +1660,7 @@ describe("Vfs", function(){
           expect(doc).to.have.property("id", id);
           expect(doc).to.have.property("ctime").instanceof(Date);
           expect(doc).to.have.property("mtime").instanceof(Date);
-          expect(doc).to.have.property("author_id", 0);
+          expect(doc).to.have.property("author_id", null);
           expect(doc).to.have.property("author", "default");
           expect(doc).to.have.property("data", "{}");
           expect(doc).to.have.property("generation", 1);

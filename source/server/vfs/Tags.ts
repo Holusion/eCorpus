@@ -1,8 +1,11 @@
+import { isatty } from "node:tty";
 import { NotFoundError } from "../utils/errors.js";
 import BaseVfs from "./Base.js";
 import errors from "./helpers/errors.js";
 import ScenesVfs from "./Scenes.js";
 import { Tag } from "./types.js";
+import { toAccessLevel } from "../auth/UserManager.js";
+import { UserLevels } from "../auth/User.js";
 
 
 export default abstract class TagsVfs extends BaseVfs{
@@ -19,7 +22,7 @@ export default abstract class TagsVfs extends BaseVfs{
     try{
       let r = await this.db.run(`
         INSERT INTO tags
-          (tag_name, fk_scene_id)
+          ( tag_name, fk_scene_id)
       SELECT $1, ${match}
       `, [
         tag.toLowerCase(),
@@ -61,7 +64,8 @@ export default abstract class TagsVfs extends BaseVfs{
   }
 
   async getTags(like ?:string):Promise<Tag[]>{
-    let where :string = like?`WHERE tag_name LIKE '%' || $1 || '%'` :"";
+    let where :string = like?`WHERE tag_name LIKE '%' || $1::text || '%'` :"";
+    let args = like ? [like] : [];
     return await this.db.all<Tag>(
       `
         SELECT 
@@ -73,7 +77,7 @@ export default abstract class TagsVfs extends BaseVfs{
         GROUP BY name
         ORDER BY name ASC
       `,
-      [ like ]
+      args
     );
   }
 
@@ -85,22 +89,25 @@ export default abstract class TagsVfs extends BaseVfs{
   /** Get all scenes that have this tag that this user can read */
   async getTag(name :string, user_id :number):Promise<number[]>
   async getTag(name :string, user_id ?:number):Promise<number[]>{
-    
+
     let scenes = await this.db.all<{scene_id:number}>(`
-      SELECT scene_id 
+      SELECT scene_id , scene_name
       FROM
       
-      (SELECT scene_id, level, public_access, default_acess
+      (SELECT scene_id, scene_name, access_level, public_access, default_access
       
       FROM tags 
       LEFT JOIN scenes ON fk_scene_id = scene_id
-      LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id
+      LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id ${typeof user_id === "number"?`AND users_acl.fk_user_id = ${user_id}`:""}
+      LEFT JOIN users ON users_acl.fk_user_id = user_id
       WHERE 
         tags.tag_name = $1
-        ${typeof user_id === "number"?`AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
-      ORDER BY scene_name ASC)
-
-      GROUP BY scene_id
+        ${typeof user_id === "number"? `AND ( level = ${UserLevels.ADMIN} OR
+          GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel("read")}
+        )`:""}
+      ) AS "scenesWithTag"
+      GROUP BY scene_id , scene_name
+      ORDER BY scene_name ASC
     `, [name]);
 
     return scenes.map(s=>s.scene_id);
