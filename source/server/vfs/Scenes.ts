@@ -260,7 +260,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     }>(`
       WITH 
         docs AS (
-          SELECT data -> 'metas' AS meta, ctime AS mtime, fk_scene_id
+          SELECT data::jsonb -> 'metas' AS meta, ctime AS mtime, fk_scene_id
           FROM current_files
           WHERE mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL
         ),
@@ -334,14 +334,15 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let args = [nameOrId];
-    if(user_id) args.push(user_id.toString(10))
+    if(user_id) args.push(user_id.toString(10));
+    console.log("getScene :", key, typeof nameOrId, nameOrId);
     const scene_stored = await this.db.get<{
       name: string,
       id: number,
       ctime :Date,
       author_id: number,
       author: string,
-      access: {user?:number, any: number, default: number},
+      access: number,
       archived: Date|null,
     }>(`
       SELECT 
@@ -354,21 +355,20 @@ export default abstract class ScenesVfs extends BaseVfs{
           (SELECT username FROM users WHERE user_id = fk_author_id),
           'default'
         ) AS author,
-        json_build_object(
-          ${(user_id)? `'user'::text, COALESCE(
-            (SELECT level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = $1)),
-            0
-          ),`: ``}
-          'any'::text, default_access,
-          'default'::text, CASE WHEN public_access THEN 1 ELSE 0 END
+        GREATEST(
+          ${(user_id)?`(SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),`: ``}
+          default_access,
+          CASE WHEN public_access THEN 1 ELSE 0 END
         ) AS access
-      FROM scenes WHERE ${key} = $1`, args);
+      FROM scenes
+      WHERE ${key} = $1
+    `, args);
     
     if(!scene_stored) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
 
     const scene :Omit<Scene, "tags"|"mtime"> = {
       ...scene_stored,
-      access: fromLevel(Math.max(scene_stored.access.any,scene_stored.access.default, scene_stored.access.user?scene_stored.access.user:0))
+      access: fromLevel(scene_stored.access)
       };
 
     let tags = await this.db.all<{name:string}>(`
@@ -422,7 +422,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         fk_author_id AS author_id,
         size
       FROM files
-      INNER JOIN users ON author_id = user_id
+      LEFT JOIN users ON fk_author_id = user_id
       WHERE fk_scene_id = $1
       ORDER BY ctime ${dir}, name ${dir}, generation ${dir}
       OFFSET $2

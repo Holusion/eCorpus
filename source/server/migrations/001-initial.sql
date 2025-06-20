@@ -53,7 +53,7 @@ CREATE TABLE files (
   size BIGINT NOT NULL DEFAULT 0,
   fk_author_id BIGINT,
   fk_scene_id BIGINT NOT NULL,
-  data JSONB DEFAULT NULL,
+  data TEXT DEFAULT NULL,
   FOREIGN KEY(fk_scene_id) REFERENCES scenes(scene_id) ON DELETE CASCADE,
   FOREIGN KEY(fk_author_id) REFERENCES users(user_id)  ON DELETE SET NULL,
   UNIQUE(fk_scene_id, name, generation)

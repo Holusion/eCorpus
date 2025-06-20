@@ -225,6 +225,11 @@ export default abstract class FilesVfs extends BaseVfs{
   async getFileProps({scene, name, archive, generation} :GetFileParams, withData :true) :Promise<FileProps>
   async getFileProps({scene, name, archive = false, generation} :GetFileParams, withData = false) :Promise<FileProps>{
     let is_string = typeof scene === "string";
+    let with_generation = typeof generation !== "undefined";
+    let args:any[] = [scene, name];
+    if(with_generation){
+      args.push(generation);
+    }
     let r = await this.db.get(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $1 )
       SELECT
@@ -234,24 +239,20 @@ export default abstract class FilesVfs extends BaseVfs{
         hash,
         ${withData? "data,":""}
         generation,
-        (SELECT ctime FROM files WHERE fk_scene_id = scene.scene_id AND name =  AND generation = 1) AS ctime,
+        (SELECT ctime FROM files WHERE (fk_scene_id = scene.scene_id AND name = $2 AND generation = 1)) AS ctime,
         files.ctime AS mtime,
         mime,
         files.fk_author_id AS author_id,
-        (SELECT username FROM users WHERE files.fk_author_id = user_id LIMIT 1) AS author
+        COALESCE((SELECT username FROM users WHERE files.fk_author_id = user_id LIMIT 1), 'default') AS author
       FROM scene  
       LEFT JOIN files ON files.fk_scene_id = scene.scene_id 
       WHERE files.name = $2
-      ${(typeof generation!== "undefined")? `
+      ${with_generation? `
         AND generation = $3
       ` : `
         ORDER BY generation DESC
         LIMIT 1`}
-    `, [
-      scene,
-      name,
-      generation
-    ]);
+    `, args);
     if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
     return r;
   }
@@ -309,10 +310,10 @@ export default abstract class FilesVfs extends BaseVfs{
    * It is ordered as last-in-first-out
    * for each entry, ctime == mtime always because files are immutable
    */
-  async getFileHistory({scene, name} :GetFileParams):Promise<GetFileResult[]>{
+  async getFileHistory({scene, name} :GetFileParams):Promise<FileProps[]>{
     let is_string = typeof scene === "string";
-    let rows = await this.db.all<GetFileResult>(`
-      ${(is_string?`WITH scene AS (SELECT scene_id FROM scenes WHERE scene_name = $1)`:"")}
+    let rows = await this.db.all<Omit<FileProps, "mtime">>(`
+      WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?`scene_name`:"scene_id")} = $1)
       SELECT
         file_id as id,
         size,
@@ -322,16 +323,14 @@ export default abstract class FilesVfs extends BaseVfs{
         files.name AS name,
         mime,
         fk_author_id AS author_id,
-        username AS author
-      FROM files 
-        INNER JOIN users ON fk_author_id = user_id
-      ${(is_string? ` INNER JOIN scene ON fk_scene_id = scene_id WHERE name = $2`
-        :"WHERE fk_scene_id = $scene AND name = $2"
-        )}
+        COALESCE(users.username, 'default') AS author
+      FROM scene
+        INNER JOIN files ON (fk_scene_id = scene.scene_id AND files.name = $2)
+        LEFT JOIN users ON fk_author_id = user_id
       ORDER BY generation DESC
     `, [ scene,  name ]);
     if(!rows || !rows.length) throw new NotFoundError();
-    return rows;
+    return rows.map(r=>({...r, mtime: new Date(r.ctime.valueOf())}));
   }
   /**
    * a shortHand to createFile(params, {hash: null, size: 0}) that also verifies if the file actually exists
