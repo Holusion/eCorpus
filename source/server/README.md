@@ -8,7 +8,7 @@
 As long as no user exist, the application launches in "open" mode. An unauthenticated request can be used to create the first user : 
 
 ```
-curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "isAdministrator": true}' "http://<hostname>:<port>/users"
+curl -XPOST -H "Content-Type: application/json" -d '{"username":"<...>", "password":"<...>", "email":"<...>", "level": "admin"}' "http://<hostname>:<port>/users"
 ```
 
 Then restart the application to enable permissions management

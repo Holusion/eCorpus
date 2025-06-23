@@ -23,7 +23,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
     sampleDocString = await fs.readFile(path.resolve(fixturesDir,"documents/01_simple.svx.json"), {encoding:"utf8"});
   });

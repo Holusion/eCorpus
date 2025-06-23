@@ -80,7 +80,7 @@ export function isAdministratorOrOpen(req: Request, res:Response, next :NextFunc
 export function isAdministrator(req: Request, res:Response, next :NextFunction){
   res.append("Cache-Control", "private");
   
-  if((req.session as User).level == UserLevels.ADMIN) next();
+  if((req.session as User).level == "admin") next();
   else next(new UnauthorizedError());
 }
 /**
@@ -105,13 +105,13 @@ export function either(...handlers:Readonly<RequestHandler[]>) :RequestHandler{
  */
 function _perms(check:number,req :Request, res :Response, next :NextFunction){
   let {scene} = req.params;
-  let {level = UserLevels.CREATE, uid = 0} = (req.session ??{})as SafeUser;
+  let {level = "create", uid = 0} = (req.session ??{})as SafeUser;
   if(!scene) throw new BadRequestError("no scene parameter in this request");
   if(check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${check}`);
 
   res.set("Vary", "Cookie, Authorization");
 
-  if(level == UserLevels.ADMIN){
+  if(level == "admin"){
     res.locals.access = "admin" as AccessType;
     return next();
   }
@@ -151,8 +151,7 @@ export function getUser(req :Request){
   return {
     username: "default",
     uid: 0,
-    level: UserLevels.CREATE,
-    isDefaultUser: (req.session?.uid? false: true),
+    level: "none",
     ...req.session,
   } as SafeUser;
 }

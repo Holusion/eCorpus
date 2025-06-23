@@ -17,7 +17,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+    admin = await userManager.addUser("alice", "12345678", "admin");
     scene_id = await vfs.createScene("foo").then((scene_id)=> 
       {userManager.grant(scene_id, 0, "write");
       userManager.grant(scene_id, user.uid, "admin");

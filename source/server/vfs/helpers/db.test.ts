@@ -43,7 +43,7 @@ describe("Database", function(){
     it("over dummy data", async function(){
       let vfs = new Vfs(os.tmpdir(), db);
       let users = new UserManager(db);
-      let user = await users.addUser("bob", "12345678", UserLevels.CREATE);
+      let user = await users.addUser("bob", "12345678", "create");
       await vfs.createScene("foo");
       // await vfs.writeDoc("{}", {scene: "foo", user_id: 0, name: "test.json", mime: "application/json"});
       // await vfs.removeFile({scene: "foo", name: "test.json", user_id: 0});

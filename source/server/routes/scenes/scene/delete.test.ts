@@ -19,7 +19,7 @@ describe("DELETE /scenes/:scene", function(){
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
     other = await userManager.addUser("oscar", "12345678");
-    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
   });
   this.afterAll(async function(){

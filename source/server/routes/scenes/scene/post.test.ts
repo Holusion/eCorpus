@@ -26,7 +26,7 @@ describe("POST /scenes/:scene", function(){
     app = this.server;
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
 
-    user = await userManager.addUser("bob", "12345678", UserLevels.CREATE, "bob@example.com");
+    user = await userManager.addUser("bob", "12345678", "admin", "bob@example.com");
   });
   this.afterEach(async function(){
     await vfs.close();

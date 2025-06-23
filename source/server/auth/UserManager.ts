@@ -5,12 +5,10 @@ import {promisify, callbackify} from "util";
 
 import uid, { Uid } from "../utils/uid.js";
 import { BadRequestError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
-import User, {SafeUser, StoredUser, UserLevels} from "./User.js";
+import User, {SafeUser, StoredUser, UserLevels, UserRole, UserRoles} from "./User.js";
 
 import openDatabase, {Database, DbController, DbOptions} from "../vfs/helpers/db.js";
 import errors, { expandSQLError } from "../vfs/helpers/errors.js";
-import { isAdministrator } from "../utils/locals.js";
-import { isAsExpression } from "typescript";
 
 
 const scrypt :(
@@ -176,7 +174,7 @@ export default class UserManager extends DbController {
       u.username,
       u.email ?? null,
       u.password ?? null,
-      u.level,
+      UserRoles.indexOf(u.level),
     ]);
   }
 
@@ -233,9 +231,10 @@ export default class UserManager extends DbController {
    * Performs any necessary checks and create a new user
    * @param password clear-text password
    */
-  async addUser(username : string, password : string, level : UserLevels = UserLevels.CREATE, email ?:string) : Promise<User>{ 
+  async addUser(username : string, password : string, level : UserRole = "create", email ?:string) : Promise<User>{ 
     if(!UserManager.isValidUserName(username)) throw new Error(`Invalid username : ${username}`);
     if(password.length < 8) throw new Error(`Password too short (min. 8 char long)`);
+    if(UserRoles.indexOf(level) === -1) throw new Error(`Invalid user role : ${level}`);
     let user = new User({
       username, 
       password: await UserManager.formatPassword(password), 
@@ -261,7 +260,7 @@ export default class UserManager extends DbController {
 
   async patchUser(uid :number, u :Partial<User>){
     let values = [], params :any[] = [uid.toString(10)];
-    let keys = ["username", "password", "email", "level"]as Array<keyof Omit<User,"uid" | "isDefaultUser">>;
+    let keys = ["username", "password", "email", "level"]as Array<keyof Omit<User,"uid">>;
     for(let i = 0; i < keys.length; i++){
       let key = keys[i];
       let value = u[key];

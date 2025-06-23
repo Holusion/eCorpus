@@ -32,7 +32,7 @@ describe("/users", function(){
     let user :User, admin :User;
     this.beforeEach(async function(){
       user = await userManager.addUser("bob", "12345678");
-      admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+      admin = await userManager.addUser("alice", "12345678", "admin");
     });
 
     describe("as user", function(){

@@ -15,7 +15,7 @@ describe("GET /tags/:tag", function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
-    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+    admin = await userManager.addUser("alice", "12345678", "admin");
     user = await userManager.addUser("bob", "12345678");
     this.server.set("trust proxy", true);
   });

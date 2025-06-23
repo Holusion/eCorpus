@@ -7,6 +7,7 @@ import { AccessType } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
+import { UserRoles } from "../../auth/User.js";
 
 
 
@@ -53,7 +54,7 @@ routes.use("/", useTemplateProperties);
 
 routes.get("/", wrap(async (req, res)=>{
   const user = getUser(req);
-  if(!user || user.isDefaultUser){
+  if(!user || user.level === "none"){
     return res.render("login", {
       title: "eCorpus Home",
       user: null,
@@ -183,7 +184,7 @@ routes.get("/user", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   let archives = await vfs.getScenes(user.uid, {archived: true, author: user.uid});
-  if(user.isDefaultUser){
+  if(UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
   res.render("user", {

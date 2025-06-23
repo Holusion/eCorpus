@@ -16,7 +16,7 @@ describe("MOVE /scenes/:name", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
     scene_id = await vfs.createScene("foo", user.uid);
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});

@@ -12,7 +12,7 @@ export async function handlePatchUser(req:Request, res :Response){
   const update = req.body;
   const {sessionMaxAge} = getLocals(req);
   const requester = getUser(req);
-  const isAdmin = requester.level == UserLevels.ADMIN;
+  const isAdmin = requester.level == "admin";
   const userManager = getUserManager(req);
 
   if(!isAdmin && typeof update.isAdministrator !== "undefined"){

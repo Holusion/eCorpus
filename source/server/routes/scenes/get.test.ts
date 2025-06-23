@@ -23,8 +23,8 @@ describe("GET /scenes", function(){
     userManager  = locals.userManager;
 
     
-    user = await userManager.addUser("bob", "12345678", UserLevels.CREATE);
-    admin = await userManager.addUser("alice", "12345678", UserLevels.ADMIN);
+    user = await userManager.addUser("bob", "12345678", "create");
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
     ids = await Promise.all([
         vfs.createScene("foo"),
