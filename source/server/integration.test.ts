@@ -13,7 +13,14 @@ import { fixturesDir } from "./__test_fixtures/fixtures.js";
 describe("Web Server Integration", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
   this.beforeEach(async function(){
-    let locals = await createIntegrationContext(this);
+    let locals
+    try{
+      locals = await createIntegrationContext(this);
+    }catch(e){
+      console.error(e);
+      throw e;
+    }
+    
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");

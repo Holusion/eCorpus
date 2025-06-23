@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 
 import { getLocals, getUser, getUserManager } from "../../../utils/locals.js";
-import User, { SafeUser } from "../../../auth/User.js";
+import User, { SafeUser, UserLevels } from "../../../auth/User.js";
 import { UnauthorizedError } from "../../../utils/errors.js";
 
 
@@ -12,7 +12,7 @@ export async function handlePatchUser(req:Request, res :Response){
   const update = req.body;
   const {sessionMaxAge} = getLocals(req);
   const requester = getUser(req);
-  const isAdmin = requester.isAdministrator;
+  const isAdmin = requester.level == UserLevels.ADMIN;
   const userManager = getUserManager(req);
 
   if(!isAdmin && typeof update.isAdministrator !== "undefined"){

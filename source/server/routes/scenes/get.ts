@@ -29,7 +29,7 @@ export default async function getScenes(req :Request, res :Response){
     author,
   } = req.query;
 
-  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+  let accessTypes :AccessType = ((Array.isArray(access))?access[0] : access) as any;
 
   let scenesList = [];
   if(typeof ids === "string"){
