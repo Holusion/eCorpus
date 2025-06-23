@@ -17,11 +17,11 @@ export interface SafeUser{
 }
 
 export interface StoredUser{
-  user_id :string;
+  user_id :number;
   username :string;
   email :string|undefined;
   password :string|undefined;
-  level :UserRole;
+  level :UserLevels;
 }
 
 export default class User implements SafeUser {

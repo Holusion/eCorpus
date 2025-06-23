@@ -143,8 +143,8 @@ export default class UserManager extends DbController {
     return  new User({
       username: u.username, 
       email: u.email??undefined,
-      uid: parseInt(u.user_id),
-      level: u.level,
+      uid: u.user_id,
+      level: UserRoles[u.level],
       password: u.password, 
     });
   }
@@ -154,8 +154,8 @@ export default class UserManager extends DbController {
       username,
       email,
       password,
-      user_id: uid.toString(10),
-      level,
+      user_id: uid,
+      level: UserRoles.indexOf(level),
     };
   }
 
@@ -174,7 +174,7 @@ export default class UserManager extends DbController {
       u.username,
       u.email ?? null,
       u.password ?? null,
-      UserRoles.indexOf(u.level),
+      u.level,
     ]);
   }
 
@@ -260,6 +260,7 @@ export default class UserManager extends DbController {
 
   async patchUser(uid :number, u :Partial<User>){
     let values = [], params :any[] = [uid.toString(10)];
+
     let keys = ["username", "password", "email", "level"]as Array<keyof Omit<User,"uid">>;
     for(let i = 0; i < keys.length; i++){
       let key = keys[i];
@@ -271,13 +272,15 @@ export default class UserManager extends DbController {
           throw new BadRequestError(`Bad value for ${key}: ${value}`);
         }
       }
-        values.push( key + ` = $${params.length+1}`);
-        if(key === "password"){
-          params.push(await UserManager.formatPassword(value as string));
-        }
-        else {
-          params.push(value);
-        }
+      values.push( key + ` = $${params.length+1}`);
+
+      if(key === "password"){
+        params.push(await UserManager.formatPassword(value as string));
+      } else if(key == "level"){
+        params.push(UserRoles.indexOf(value as any));
+      } else {
+        params.push(value);
+      }
     }
     if(values.length === 0){
       throw new BadRequestError(`Provide at least one valid value to change`);
