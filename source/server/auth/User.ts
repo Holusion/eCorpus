@@ -8,11 +8,10 @@ export enum UserLevels{
 };
 
 export const UserRoles = ["none", "use", "create", "manage", "admin"] as const;
-
+export type UserRole = typeof UserRoles[number];
 export interface SafeUser{
   uid :number;
-  level: UserLevels;
-  isDefaultUser: boolean;
+  level: UserRole;
   username :string;
   email ?:string;
 }
@@ -22,26 +21,23 @@ export interface StoredUser{
   username :string;
   email :string|undefined;
   password :string|undefined;
-  level :UserLevels;
+  level :UserRole;
 }
 
 export default class User implements SafeUser {
   uid :number;
-  level: UserLevels = UserLevels.CREATE;
+  level: UserRole = "create";
   username :string;
   email ?:string|undefined;
   password :string|undefined;
 
-  get isDefaultUser(){
-    return this.uid == 0;
-  }
 
   constructor({username, password, uid, email, level} :{
-    username:string, password?:string, uid:number, email?:string, level?: UserLevels
+    username:string, password?:string, uid:number, email?:string, level?: UserRole
   } ){
     this.username = username;
     this.password = password;
-    this.level = level || UserLevels.CREATE;
+    this.level = level || "create";
     this.uid = uid;
     this.email = email;
   }
@@ -56,8 +52,7 @@ export default class User implements SafeUser {
       uid: u.uid ?? 0,
       username: u.username ?? "default",
       email: u.email,
-      level: u.level || UserLevels.CREATE,
-      isDefaultUser: u.isDefaultUser ?? true,
+      level: u.level || "create",
     };
   }
 }
