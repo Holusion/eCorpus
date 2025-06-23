@@ -405,11 +405,11 @@ export default abstract class FilesVfs extends BaseVfs{
         files.name AS name,
         mime,
         fk_author_id AS author_id,
-        username AS author
+        COALESCE(username, 'default') AS author
       FROM ag
         INNER JOIN files 
           USING(fk_scene_id, name, generation)
-        INNER JOIN users 
+        LEFT JOIN users
           ON files.fk_author_id = user_id
       WHERE TRUE
         ${((withArchives)?"":`AND hash IS NOT NULL`)}

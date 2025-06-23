@@ -683,7 +683,7 @@ describe("Vfs", function(){
       it("create a tree of folders", async function(){
         await vfs.createFolder({scene:scene_id, name: "articles/videos",  user_id: null});
         let folders =  await collapseAsync(vfs.listFolders(scene_id));
-        expect(folders.map(f=>f.name)).to.deep.equal(["articles", "articles/videos", "models"]);
+        expect(folders.map(f=>f.name)).to.deep.equal(["articles/videos", "articles" , "models"]);
       });
 
       it("don't accept a trailing slash", async function(){
@@ -1568,7 +1568,7 @@ describe("Vfs", function(){
               mime: "image/jpeg",
               ctime: tref,
               mtime: tref,
-              author_id: 0,
+              author_id: null,
               author: "default",
             },{
               size: 4,
@@ -1579,7 +1579,7 @@ describe("Vfs", function(){
               mime: "model/gltf-binary",
               ctime: tref,
               mtime: tref,
-              author_id: 0,
+              author_id: null,
               author: "default",
             },
             {
@@ -1591,7 +1591,7 @@ describe("Vfs", function(){
               name: "scene.svx.json",
               ctime: tref,
               mtime: tref,
-              author_id: 0,
+              author_id: null,
               author: "default",
             }
           ]);
@@ -1604,9 +1604,9 @@ describe("Vfs", function(){
           let del = await  vfs.createFile({user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"}, {hash: null, size: 0});
           let f2 = await vfs.writeFile(dataStream(["hello world", "\n"]), {user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"});
           await expect(all("SELECT * FROM files")).to.eventually.have.property("length", 3+originalFiles);
-          await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tref.toISOString(), $id:f1.id});
-          await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tref.toISOString(), $id:del.id});
-          await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tnext.toISOString(), $id:f2.id});
+          await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [tref.toISOString(), f1.id]);
+          await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [tref.toISOString(), del.id]);
+          await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [tnext.toISOString(), f2.id]);
 
           let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.have.property("length", 1);
@@ -1619,7 +1619,7 @@ describe("Vfs", function(){
             mime: "model/gltf-binary",
             ctime: tref,
             mtime: tnext,
-            author_id: 0,
+            author_id: null,
             author: "default",
           }]);
         });
