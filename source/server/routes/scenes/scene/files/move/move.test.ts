@@ -36,7 +36,7 @@ describe("MOVE /scenes/:name", function(){
 
 
   it("can MOVE a file", async function(){
-    let props :WriteFileParams = {user_id: 0, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
+    let props :WriteFileParams = {user_id: null, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
     await vfs.writeFile(dataStream(), props);
     await this.agent.move("/scenes/foo/articles/hello-world.html")
     .set("Destination", "http://localhost:8000/scenes/foo/articles/goodbye-world.html")
@@ -46,14 +46,14 @@ describe("MOVE /scenes/:name", function(){
   });
 
   it("MOVE requires a proper Destination header", async function(){
-    let props :WriteFileParams = {user_id: 0, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
+    let props :WriteFileParams = {user_id: null, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
     await vfs.writeFile(dataStream(), props);
     await this.agent.move("/scenes/foo/articles/hello-world.html")
     .expect(400);
   });
 
   it("can't MOVE to another scene", async function(){
-    let props :WriteFileParams = {user_id: 0, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
+    let props :WriteFileParams = {user_id: null, scene: "foo", mime: "text/html", name:"articles/hello-world.html"};
     await vfs.createScene("bar");
     await vfs.writeFile(dataStream(), props);
     await this.agent.move("/scenes/foo/articles/hello-world.html")

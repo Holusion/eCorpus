@@ -355,6 +355,7 @@ export default class UserManager extends DbController {
     const res = (await this.db.get(`
       SELECT GREATEST(
         access_level,
+        scenes.default_access,
         CASE WHEN scenes.public_access THEN 1 ELSE 0 END
       ) AS level
       FROM

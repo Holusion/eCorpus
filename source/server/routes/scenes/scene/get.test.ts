@@ -17,8 +17,8 @@ describe("GET /scenes/:scene", function(){
         vfs.createScene("foo"),
         vfs.createScene("bar"),
     ]);
-    await Promise.all(ids.map((id=>vfs.writeDoc("{}", {scene: id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"}))));
-    await Promise.all(ids.map(id=> vfs.writeFile(dataStream(), {scene:id, name:"articles/hello-world.html", mime: "text/html", user_id: 0})))
+    await Promise.all(ids.map((id=>vfs.writeDoc("{}", {scene: id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"}))));
+    await Promise.all(ids.map(id=> vfs.writeFile(dataStream(), {scene:id, name:"articles/hello-world.html", mime: "text/html", user_id: null})))
   });
   this.afterEach(async function(){
     await cleanIntegrationContext(this);
@@ -31,7 +31,7 @@ describe("GET /scenes/:scene", function(){
     });
 
     it("is access-protected (obfuscated as 404)", async function(){
-      await userManager.grant("foo", "default", "none");
+      await userManager.setPublicAccess("foo", "none");
       await request(this.server).get("/scenes/foo")
       .expect(404);
     });
@@ -40,7 +40,7 @@ describe("GET /scenes/:scene", function(){
   describe("as application/zip", function(){
     let t = new Date("2023-05-03T13:34:26.000Z");
     this.beforeEach(async function(){
-      await vfs._db.run(`UPDATE files SET ctime = datetime("${t.toISOString()}")`);
+      await vfs._db.run(`UPDATE files SET ctime = '${t.toISOString()}'`);
     });
     it("download a zip file", async function(){
       let res = await request(this.server).get("/scenes/foo")

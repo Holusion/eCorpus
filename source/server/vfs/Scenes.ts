@@ -275,7 +275,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       ${typeof author === "number"? `AND fk_author_id = $4`:"" }
       ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
         OR GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel("read")}
-      )`:""}
+      )`:"AND scenes.public_access"}
       ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
       ${access? `AND
           GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel(access)}

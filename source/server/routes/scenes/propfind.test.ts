@@ -45,7 +45,8 @@ describe("PROPFIND /scenes", function(){
   });
     
   it("will omit private scenes", async function(){
-    await userManager.grant("foo", "default", "none");
+    await userManager.setPublicAccess("foo", "none");
+    await userManager.setDefaultAccess("foo", "none");
     let r = await request(this.server).propfind("/scenes")
     .set("Depth", "1")
     .expect(207);

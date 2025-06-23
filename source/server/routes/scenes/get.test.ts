@@ -51,7 +51,7 @@ describe("GET /scenes", function(){
   });
   
   it("can send a zip file", async function(){
-    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: 0});
+    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: null});
     let res = await request(this.server).get("/scenes")
     .set("Accept", "application/zip")
     .responseType('blob')
@@ -69,8 +69,8 @@ describe("GET /scenes", function(){
   });
   
   it("returned zip file is valid", async function(){
-    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: 0});
-    await vfs.writeFile(dataStream(["hello world \n"]), {scene: "bar", name: "articles/hello.html", user_id: 0});
+    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: null});
+    await vfs.writeFile(dataStream(["hello world \n"]), {scene: "bar", name: "articles/hello.html", user_id: null});
     
     let res = await request(this.server).get("/scenes")
     .set("Accept", "application/zip")
@@ -140,20 +140,27 @@ describe("GET /scenes", function(){
 
 
     it("search by access level", async function(){
-      let scene :any = await vfs.getScene("write", user.uid);
-      delete scene.thumb;
-
+      let writeScene :any = await vfs.getScene("write", user.uid);
+      let adminScene :any = await vfs.getScene("admin", user.uid);
+      delete writeScene.thumb;
+      delete adminScene.thumb;
       let r = await request(this.server).get(`/scenes?access=write`)
       .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
+       
       expect(r.body.scenes).to.deep.equal([
+        {...adminScene,
+          mtime: adminScene.mtime.toISOString(),
+          ctime: adminScene.ctime.toISOString()
+
+        },
         {
-          ...scene,
-          mtime: scene.mtime.toISOString(),
-          ctime: scene.ctime.toISOString()
+          ...writeScene,
+          mtime: writeScene.mtime.toISOString(),
+          ctime: writeScene.ctime.toISOString()
         },
       ]);
     });
@@ -206,7 +213,7 @@ describe("GET /scenes", function(){
     describe("filter authors", async function(){
       let charlie :User;
       this.beforeAll(async function(){
-        charlie = await this.server.locals.userManager.addUser("charlie", "12345678", false);
+        charlie = await this.server.locals.userManager.addUser("charlie", "12345678");
         await vfs.createScene("charlie's", charlie.uid);
       })
 

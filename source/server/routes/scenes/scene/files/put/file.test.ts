@@ -10,18 +10,18 @@ import Vfs from "../../../../../vfs/index.js";
 
 describe("PUT /scenes/:scene/:filename(.*)", function(){
   
-  let vfs :Vfs, userManager :UserManager, user :User, admin :User, scene_id :number;
+  let vfs :Vfs, userManager :UserManager, user :User, user2: User, admin :User, scene_id :number;
 
   this.beforeEach(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
+    user2 = await userManager.addUser("bob2", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
-    scene_id = await vfs.createScene("foo").then((scene_id)=> 
-      {userManager.grant(scene_id, 0, "write");
-      userManager.grant(scene_id, user.uid, "admin");
-      return scene_id});
+    scene_id = await vfs.createScene("foo");
+    await userManager.setDefaultAccess(scene_id, "write");
+    await userManager.grant(scene_id, user.uid, "admin"); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
   });
@@ -30,9 +30,10 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can PUT a file into a scene", async function(){
-
+    console.log("request")
     await request(this.server).put("/scenes/foo/articles/foo.html")
     .set("Content-Type", "text/plain")
+    .auth(user2.username,"12345678")
     .expect(201);
     let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo.html"});
     expect(id).to.be.a("number");
@@ -42,8 +43,8 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
       generation: 1,
       name: 'articles/foo.html',
       mime: 'text/html',
-      author_id: 0,
-      author: 'default'
+      author_id: user2.uid,
+      author: user2.username
     });
     expect(mtime).to.be.instanceof(Date);
     expect(ctime).to.be.instanceof(Date);
@@ -61,13 +62,13 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
       generation: 1,
       name: 'articles/foo',
       mime: 'text/html',
-      author_id: 0,
+      author_id: null,
       author: 'default'
     });
   });
 
   it("requires write permission", async function(){
-    await userManager.grant("foo", "default", "read");
+    await userManager.setPublicAccess("foo", "read");
 
     await request(this.server).put("/scenes/foo/articles/foo.html")
     .set("Content-Type", "text/html")
