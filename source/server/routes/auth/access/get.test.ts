@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import request from "supertest";
-import User, { UserLevels } from "../../../auth/User.js";
+import User from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 
@@ -34,8 +34,8 @@ describe("GET /auth/access/:scene", function(){
   });
 
   it("requires read access", async function(){
-    await userManager.grant(titleSlug, "default", "none");
-    await userManager.grant(titleSlug, "any", "none");
+    await userManager.setPublicAccess(titleSlug, "none");
+    await userManager.setDefaultAccess(titleSlug, "none");
     //Anonymous
     await request(this.server).get(`/auth/access/${titleSlug}`)
     .expect(404);

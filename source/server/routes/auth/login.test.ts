@@ -41,7 +41,7 @@ describe("/auth/login", function(){
     await request(this.server).get("/auth/login")
     .set("Accept", "application/json")
     .expect(200)
-    .expect({uid: null, username: "default", level: "none"});
+    .expect({uid: 0, username: "default", level: "none"});
   });
   
   it("can get login status (connected)", async function(){
@@ -57,7 +57,7 @@ describe("/auth/login", function(){
     .expect({
       username: user.username, 
       uid: user.uid,
-      level: "use",
+      level: "create",
     });
   });
 
@@ -184,7 +184,7 @@ describe("/auth/login", function(){
       let res = {
         username: user.username, 
         uid: user.uid,
-        level: "use",
+        level: "create",
       };
 
       //Manually build the header

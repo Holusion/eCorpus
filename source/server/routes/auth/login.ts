@@ -99,7 +99,6 @@ export async function getLogin(req :Request, res:Response){
       },
     })
     return;
-    return 
   }else if(typeof payload !== "string" || !payload || !sig){
     throw new BadRequestError(`Bad login links parameters`);
   }

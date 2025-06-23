@@ -323,13 +323,15 @@ export default class UserManager extends DbController {
           SELECT ${user_id}, ${scene_id}, $3
           ON CONFLICT (fk_user_id, fk_scene_id) DO UPDATE SET access_level = EXCLUDED.access_level
         `, [
-          (typeof scene === "number")?scene.toString(10): scene,
-          (typeof user === "number")?user.toString(10): user,
+          scene,
+          user,
           level
         ]);
       }catch(e:any){
         if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_user_id"){
-          throw new NotFoundError(`User ${user} does not exist`);
+          throw new NotFoundError(`User ID can't be null`);
+        }else if(e.code === errors.foreign_key_violation && e.table === "users_acl" && e.constraint === 'users_acl_fk_user_id_fkey'){
+          throw new NotFoundError(`Invalid user ID ${user}`);
         }else if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_scene_id"){
           throw new NotFoundError(`Scene ${scene} does not exist`);
         }
@@ -343,8 +345,9 @@ export default class UserManager extends DbController {
         scene,
         user,
       ]);
-      if(!r || !r.changes) throw new NotFoundError(`Can't find matching user or scene`);
-      if(1 < r.changes) throw new InternalError(`grant permissions somehow modified multiple users`);
+      if(!r || !r.changes){
+        throw new NotFoundError(`Can't find matching user or scene`);
+      }
     }
   }
 
@@ -368,7 +371,9 @@ export default class UserManager extends DbController {
 
   /**
    * Get all access rights for a scene.
-   * Access to this should be externally restricted to users with READ rights over this scene
+   * Access to this should be externally restricted to users with READ rights over this scene.
+   * 
+   * For this reason, this method is not really made safe: It won't throw a 404 if the requested scene doesn't exist.
    * @see https://www.sqlite.org/json1.html#jeach for json_each documentation
    */
   async getPermissions(nameOrId :string|number) :Promise<{uid:number, username :string, access :AccessType}[]>{
@@ -386,7 +391,6 @@ export default class UserManager extends DbController {
     `, [
       (typeof nameOrId =="number")?nameOrId.toString(10): nameOrId,
     ]);
-    if(!r?.length) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
     return r.map(l=>({
       uid:parseInt(l.uid),
       username:l.username,

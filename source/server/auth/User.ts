@@ -26,7 +26,7 @@ export interface StoredUser{
 
 export default class User implements SafeUser {
   uid :number;
-  level: UserRole = "create";
+  level: UserRole;
   username :string;
   email ?:string|undefined;
   password :string|undefined;
@@ -41,9 +41,7 @@ export default class User implements SafeUser {
     this.uid = uid;
     this.email = email;
   }
-  static createDefault(){
-    return new User({uid: 0, username: "default", password: ""});
-  }
+
     /**
    * Make a user safe for export and public use (remove password field)
    */
@@ -52,7 +50,7 @@ export default class User implements SafeUser {
       uid: u.uid ?? 0,
       username: u.username ?? "default",
       email: u.email,
-      level: u.level || "create",
+      level: u.level || "none",
     };
   }
 }
