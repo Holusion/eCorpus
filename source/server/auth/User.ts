@@ -1,10 +1,13 @@
 
 export enum UserLevels{
+  NONE=0,
   USE=1,
   CREATE=2,
   MANAGE=3,
   ADMIN=4,
 };
+
+export const UserRoles = ["none", "use", "create", "manage", "admin"] as const;
 
 export interface SafeUser{
   uid :number;
