@@ -16,15 +16,10 @@ describe("POST /history/:scene", function(){
 
   /**
    * antidate everything currently in the database to force proper ordering
-   * Ensure rounding to the nearest second
    */
-  async function antidate(t = Date.now()-10000){
-    let ts = Math.round(t/1000);
-    let d = new Date(ts*1000);
-    await vfs._db.run(`
-      UPDATE scenes SET ctime = datetime("${d.toISOString()}") WHERE datetime("${d.toISOString()}") < ctime;
-      UPDATE files SET ctime = datetime("${d.toISOString()}")  WHERE datetime("${d.toISOString()}") < ctime;
-    `);
+  async function antidate(d = new Date()){
+    await vfs._db.run(`UPDATE scenes SET ctime = $1 WHERE $1 < ctime`, [d]);
+    await vfs._db.run(`UPDATE files SET ctime = $1 WHERE $1 < ctime`, [d]);
   }
 
   this.beforeAll(async function(){
@@ -71,10 +66,11 @@ describe("POST /history/:scene", function(){
 
   it("restores other files in the scene", async function(){
     await vfs.writeDoc(`{"id": 1}`,  {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-    await antidate(); //otherwise ordering of files of different names with the same timestamp is unclear
+    await antidate(new Date(Date.now() -10000));
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
     await vfs.writeDoc(`{"id": 2}`,  {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(["world"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
+    await antidate(new Date(Date.now() -5000)); //otherwise ordering might be unstable
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")
@@ -151,11 +147,11 @@ describe("POST /history/:scene", function(){
   it("undelete a file if needed", async function(){
     let now = Date.now();
     await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-    await antidate(now -10000);
+    await antidate(new Date(now -10000));
     await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
-    await antidate(now -8000);
+    await antidate(new Date(now -8000));
     let ref = await vfs.writeDoc(`{"id": 2}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-    await antidate(now -4000);
+    await antidate(new Date(now -4000));
     await  vfs.removeFile({ name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
 
     let doc = await vfs.getFileById(ref.id);

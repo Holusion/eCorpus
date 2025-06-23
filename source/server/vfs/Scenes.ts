@@ -382,7 +382,7 @@ export default abstract class ScenesVfs extends BaseVfs{
    * 
    * @see listFiles for a list of current files.
    */
-  async getSceneHistory(id :number, query:Pick<SceneQuery,"limit"|"offset"|"orderDirection"> ={}) :Promise<Array<HistoryEntry>>{
+  async getSceneHistory(scene_id :number, query:Pick<SceneQuery,"limit"|"offset"|"orderDirection"> ={}) :Promise<Array<HistoryEntry>>{
     const {limit = 10, offset = 0, orderDirection = "desc"} = ScenesVfs._validateSceneQuery(query);
 
     const dir = orderDirection.toUpperCase() as Uppercase<typeof orderDirection>;
@@ -403,7 +403,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       OFFSET $2
       LIMIT $3
     `, [
-      id,
+      scene_id,
       offset,
       limit,
     ]);

@@ -151,7 +151,7 @@ export default abstract class FilesVfs extends BaseVfs{
         data,
         fileParams.hash,
         fileParams.size,
-        params.user_id,
+        params.user_id || null,
       ]);
       if(!r) throw new NotFoundError(`Can't find a scene named ${params.scene}`);
 
@@ -206,12 +206,12 @@ export default abstract class FilesVfs extends BaseVfs{
         first.ctime AS ctime,
         files.ctime AS mtime,
         files.fk_author_id AS author_id,
-        username AS author
+        COALESCE(username, 'default') AS author
       FROM files 
-        INNER JOIN (SELECT MIN(ctime) AS ctime, fk_scene_id, name FROM files GROUP BY fk_scene_id, name ) AS first
-          ON files.fk_scene_id = first.fk_scene_id AND files.name = first.name
-        INNER JOIN users ON files.fk_author_id = user_id
-      WHERE id = $1
+        LEFT JOIN (SELECT MIN(ctime) AS ctime, fk_scene_id, name FROM files GROUP BY fk_scene_id, name ) AS first
+          USING(fk_scene_id, name)
+        LEFT JOIN users ON files.fk_author_id = user_id
+      WHERE file_id = $1
     `, [ id ]);
     if(!r || !r.ctime) throw new NotFoundError(`No file found with id : ${id}`);
     return r;
