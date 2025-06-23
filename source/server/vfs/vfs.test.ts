@@ -1556,7 +1556,7 @@ describe("Vfs", function(){
           let f1 = await vfs.writeFile(dataStream(), {user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"});
           let f2 = await vfs.writeFile(dataStream(), {user_id: null, scene:"foo",  mime: "image/jpeg", name:"foo.jpg"});
           let d1 = await vfs.writeDoc('{}', {user_id: null, scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json"});
-          await run(`UPDATE files SET ctime = $t`, {$t:tref.toISOString()});
+          await run(`UPDATE files SET ctime = $1`, [tref.toISOString()]);
           let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.deep.equal([
             {
