@@ -43,7 +43,14 @@ describe("config", function(){
     });
 
     it("constructs postgres connection string from default environment variables", function(){
-      throw new Error(`Unimplemented`);
+      let opts = parse({
+        PGHOST: "example.com",
+        PGPORT: "9876",
+        PGUSER: "foo",
+        PGPASSWORD: "secret",
+        PGDATABASE: "my_database"
+      });
+      expect(opts).to.have.property("database_uri", "postgres://foo:secret@example.com:9876/my_database")
     })
   });
 });

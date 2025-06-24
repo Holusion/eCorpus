@@ -9,6 +9,12 @@ export enum UserLevels{
 
 export const UserRoles = ["none", "use", "create", "manage", "admin"] as const;
 export type UserRole = typeof UserRoles[number];
+
+export function isUserRole(s: string) :s is UserRole{
+  return UserRoles.indexOf(s as any) !== -1;
+}
+
+
 export interface SafeUser{
   uid :number;
   level: UserRole;

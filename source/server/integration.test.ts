@@ -138,8 +138,6 @@ describe("Web Server Integration", function(){
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r, JSON.stringify(r.body)).to.have.property("body").to.deep.equal([
-          {uid:0, username: "default", access: "read"},
-          {uid:1, username: "any", access: "read"},
           {uid:user.uid, username: user.username, access: "admin"},
           {uid:dave.uid, username: dave.username, access: "write"},
         ]);
@@ -161,17 +159,21 @@ describe("Web Server Integration", function(){
       });
 
       it("can remove a user's special permissions", async function(){
-        await this.agent.patch("/auth/access/foo")
-        .send({username: user.username, access: null})
-        .expect(204);
-
         let r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r).to.have.property("body").to.deep.equal([
-          {uid: 0, username: "default", access: "read"},
-          {uid:1, username: "any", access: "read"},
+          {username: user.username, uid: user.uid, access: "admin"},
         ]);
+
+        await this.agent.patch("/auth/access/foo")
+        .send({username: user.username, access: null})
+        .expect(204);
+
+        r = await this.agent.get("/auth/access/foo")
+        .expect(200)
+        .expect("Content-Type", "application/json; charset=utf-8");
+        expect(r).to.have.property("body").to.deep.equal([]);
 
       });
     });

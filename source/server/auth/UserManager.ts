@@ -354,16 +354,17 @@ export default class UserManager extends DbController {
   async getAccessRights(scene :string, uid :number) :Promise<AccessType>{
     const res = (await this.db.get(`
       SELECT GREATEST(
-        access_level,
-        scenes.default_access,
+        users_acl.access_level,
+        CASE WHEN (SELECT level FROM users WHERE user_id = $2) IS NOT NULL THEN scenes.default_access ELSE 0 END,
         CASE WHEN scenes.public_access THEN 1 ELSE 0 END
       ) AS level
-      FROM
-        scenes LEFT OUTER JOIN users_acl ON (fk_scene_id = scene_id AND fk_user_id = $2)
-      WHERE scene_name = $1
+      FROM 
+        scenes
+        LEFT OUTER JOIN users_acl ON (fk_scene_id = scenes.scene_id AND fk_user_id = $2)
+      WHERE (scene_name = $1)
     `, [
       scene,
-      uid,
+      uid || null,
     ]));
     if(!res) throw new NotFoundError(`No scene with name ${scene}`);
     return AccessTypes[res?.level+1];
@@ -400,7 +401,7 @@ export default class UserManager extends DbController {
     
   }
 
-  async setPublicAccess(scene: string|number, role:AccessType):Promise<void>{
+  async setPublicAccess(scene: string|number, role:"none"|"read"):Promise<void>{
     let is_id = typeof scene === "number";
     let level = toAccessLevel(role)
     if(level < 0 || 1 < level) throw new BadRequestError(`Can't set scene public access to ${role}`)
@@ -417,7 +418,7 @@ export default class UserManager extends DbController {
 
   }
 
-  async setDefaultAccess(scene: string|number, role:AccessType):Promise<void>{
+  async setDefaultAccess(scene: string|number, role:"none"|"read"|"write"):Promise<void>{
     let is_id = typeof scene === "number";
     try{
       let r = await this.db.run(`

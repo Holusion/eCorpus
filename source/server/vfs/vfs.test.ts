@@ -276,8 +276,8 @@ describe("Vfs", function(){
         await userManager.grant(id, user.uid, "write");
         await userManager.setPublicAccess(id, "none");
         let s = await vfs.getScene(id, user.uid);
-        expect(s.access).to.deep.equal({"default": "none", "any": "read", "user": "write"});
-      })
+        expect(s.access).to.deep.equal("write");
+      });
     });
 
     describe("getScenes()", function(){
@@ -491,7 +491,7 @@ describe("Vfs", function(){
           expect(await vfs.getScenes(admin.uid)).to.have.property("length", 1);
         });
         
-        it("will return only scenes with specicfic rights to admin level user", async function(){       
+        it("will return only scenes with specicfic rights to admin level user", async function(){
           await vfs.createScene("foo", sceneAdmin.uid);
           await userManager.setDefaultAccess("foo", "none");
           await userManager.setPublicAccess("foo", "none");
@@ -1478,7 +1478,8 @@ describe("Vfs", function(){
         it("performs requests for default user", async function(){
           let scene = await vfs.getScene("foo", 0);
           expect(scene).to.be.ok;
-        })
+          expect(scene).to.have.property("access").to.equal("read");
+        });
       });
 
       describe("getSceneHistory()", function(){

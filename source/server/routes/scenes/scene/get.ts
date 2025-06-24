@@ -3,10 +3,8 @@ import { Request, Response } from "express";
 import path from "path";
 import { once } from "events";
 
-import { HTTPError } from "../../../utils/errors.js";
 import { getVfs, getUserId } from "../../../utils/locals.js";
 import { wrapFormat } from "../../../utils/wrapAsync.js";
-import Vfs from "../../../vfs/index.js";
 import yazl, { ZipFile } from "yazl";
 import { compressedMime } from "../../../utils/filetypes.js";
 

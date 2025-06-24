@@ -243,11 +243,25 @@ describe("UserManager methods", function(){
       expect(access).to.equal("read");
     });
 
+    it("returns permission for anonymous access", async function(){
+      //Return the value of scene.visible
+      let access = await userManager.getAccessRights("foo-grant-access-rights-private", 0);
+      expect(access).to.equal("none");
+      access = await userManager.getAccessRights("foo-grant-access-rights-private", null as any);
+      expect(access).to.equal("none");
+    });
+
+    it("returns proper access rights if uid is invalid", async function(){
+      /** In _theory_ we wouldn't ever provide an invalid user id here but it doesn't hurt too much to check */
+      let access = await userManager.getAccessRights("foo-grant-access-rights-private", Uid.make());
+      expect(access).to.equal("none");
+    });
+
+
     it("can set user permissions by username", async function(){
       
-      for(let role of AccessTypes.slice().reverse()){
+      for(let role of AccessTypes.slice(2).reverse()){
         // we use reverse so that we do not set permission to "none" when there is no permission existing.
-        if(!role) continue; //Skip null
         await userManager.grant("foo-grant-access-rights-private", user.username, role);
         let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
         expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(role);
@@ -297,8 +311,8 @@ describe("UserManager methods", function(){
     });
 
     it("can't set public access above \"read\"", async function(){
-      await expect(userManager.setPublicAccess("foo-grant-access-rights", "write")).to.be.rejectedWith("400");
-      await expect(userManager.setPublicAccess("foo-grant-access-rights", "admin")).to.be.rejectedWith("400");
+      await expect(userManager.setPublicAccess("foo-grant-access-rights", "write" as any)).to.be.rejectedWith("400");
+      await expect(userManager.setPublicAccess("foo-grant-access-rights", "admin" as any)).to.be.rejectedWith("400");
     });
 
     it("can't provide bad scene name to setPublicAccess", async function(){
@@ -312,7 +326,7 @@ describe("UserManager methods", function(){
     });
 
     it("can't set default access above \"write\"", async function(){
-      await expect(userManager.setDefaultAccess("foo-grant-access-rights", "admin")).to.be.rejectedWith("400");
+      await expect(userManager.setDefaultAccess("foo-grant-access-rights", "admin" as any)).to.be.rejectedWith("400");
     });
 
     it("can't provide bad scene name to setDefaultAccess", async function(){

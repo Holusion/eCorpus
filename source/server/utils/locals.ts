@@ -2,7 +2,7 @@
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import {basename, dirname} from "path";
 import User, { SafeUser, UserLevels } from "../auth/User.js";
-import UserManager, { AccessType, AccessTypes } from "../auth/UserManager.js";
+import UserManager, { AccessType, AccessTypes, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
 import Templates from "./templates.js";
@@ -102,6 +102,8 @@ export function either(...handlers:Readonly<RequestHandler[]>) :RequestHandler{
 
 /**
  * Generic internal permissions check
+ * Caches result in `req.locals.access` so it's not a problem to apply a generic perms check
+ * to a group of routes then more specific ACL checks for individual handlers
  */
 function _perms(check:number,req :Request, res :Response, next :NextFunction){
   let {scene} = req.params;
@@ -122,10 +124,10 @@ function _perms(check:number,req :Request, res :Response, next :NextFunction){
     userManager.getAccessRights(scene, uid)
   ).then( access => {
     res.locals.access = access;
-    const lvl = AccessTypes.indexOf(access);
+    const lvl = toAccessLevel(access);
     if(check <= lvl){
       next();
-    } else if(req.method === "GET" || lvl <= AccessTypes.indexOf("none")){
+    } else if(req.method === "GET" || lvl <= toAccessLevel("none")){
       next(new NotFoundError(`Can't find scene ${scene}. It may be private or not exist entirely.`))
     } else {
       //User has insuficient level but can read the scene
@@ -137,15 +139,15 @@ function _perms(check:number,req :Request, res :Response, next :NextFunction){
 /**
  * Check user read access over a scene
  */
-export const canRead = _perms.bind(null, AccessTypes.indexOf("read"));
+export const canRead = _perms.bind(null, toAccessLevel("read"));
 /**
  * Check user write access over a scene
  */
-export const canWrite = _perms.bind(null, AccessTypes.indexOf("write"));
+export const canWrite = _perms.bind(null, toAccessLevel("write"));
 /**
  * Check user administrative access over a scene
  */
-export const canAdmin = _perms.bind(null, AccessTypes.indexOf("admin"));
+export const canAdmin = _perms.bind(null, toAccessLevel("admin"));
 
 export function getUser(req :Request){
   return {

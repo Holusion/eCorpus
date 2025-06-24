@@ -111,21 +111,25 @@ describe("/users", function(){
       it("can create a user", async function(){
         await this.agent.post("/users")
         .set("Content-Type", "application/json")
-        .send({username: "Carol", password: "abcdefghij", isAdministrator: false, email: "carol@foo.com"})
+        .send({username: "Carol", password: "abcdefghij", level: "use", email: "carol@foo.com"})
         .expect(201);
+
+        let carol = await userManager.getUserByName("Carol");
+        expect(carol).to.have.property("level", "use");
+        expect(carol).to.have.property("email", "carol@foo.com");
       });
   
       it("can create an admin", async function(){
         await this.agent.post("/users")
         .set("Content-Type", "application/json")
-        .send({username: "Dave", password: "abcdefghij", isAdministrator: true, email: "dave@foo.com"})
+        .send({username: "Dave", password: "abcdefghij", level: "admin", email: "dave@foo.com"})
         .expect(201);
       });
   
       it("can't provide bad data'", async function(){
         await this.agent.post("/users")
         .set("Content-Type", "application/json")
-        .send({username: "Oscar", password: "abcdefghij", isAdministrator: "foo"})
+        .send({username: "Oscar", password: "abcdefghij", level: "foo"})
         .expect(400);
       });
 
@@ -148,18 +152,13 @@ describe("/users", function(){
         let scene = await vfs.createScene("foo", user.uid);
         let doc_id = await vfs.writeDoc("{}", {scene: scene, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         expect(await userManager.getPermissions(scene)).to.deep.equal([
-          {uid: 0, username: "default", access: "read"},
-          {uid:1, username: "any", access: "read"},
           {uid: user.uid, username: user.username, access: "admin"},
         ]);
         let f = await vfs.createFile(props, {hash: "xxxxxx", size:10});
         await this.agent.delete(`/users/${user.uid}`)
         .expect(204);
         expect(await vfs.getFileProps(props)).to.have.property("author", "default");
-        expect(await userManager.getPermissions(scene)).to.deep.equal([
-          {uid: 0, username: "default", access: "read"},
-          {uid:1, username: "any", access: "read"},
-        ]);
+        expect(await userManager.getPermissions(scene)).to.deep.equal([ ]);
       });
 
       it("can patch a user", async function(){
@@ -173,10 +172,10 @@ describe("/users", function(){
 
       it("can patch a user as administrator", async function(){
         await this.agent.patch(`/users/${user.uid}`)
-        .send({isAdministrator: true})
+        .send({level: "admin"})
         .expect(200);
 
-        expect(await userManager.getUserByName(user.username)).to.have.property("isAdministrator", true);
+        expect(await userManager.getUserByName(user.username)).to.have.property("level", "admin");
       });
 
       it("can't patch himself as non-admin", async function(){

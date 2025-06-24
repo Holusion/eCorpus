@@ -24,13 +24,6 @@ describe("GET /tags/:tag", function(){
     await cleanIntegrationContext(this);
   });
 
-  it("requires authentication", async function(){
-    let s1 = await vfs.createScene("foo");
-    await vfs.addTag("foo", "footag");
-    await request(this.server).get("/tags/footag")
-    .expect(401);
-  });
-
   describe("as user", function(){
     this.beforeEach(async function(){
       this.agent = request.agent(this.server);
@@ -51,24 +44,33 @@ describe("GET /tags/:tag", function(){
     });
 
     it("don't show private scenes", async function(){
-      let s1 = await vfs.createScene("public").then((scene_id)=> 
-      {userManager.grant(scene_id, 0, "none");
-      userManager.grant(scene_id, 1, "read");
-      return scene_id});
+      let s1 = await vfs.createScene("public")
+      await userManager.setPublicAccess(s1, "read");
+      await userManager.setDefaultAccess(s1, "read");
+
       await vfs.addTag("public", "footag");
+
       let s2 = await vfs.createScene("personal", user.uid);
+      await userManager.setPublicAccess(s2, "none")
+
       await vfs.addTag("personal", "footag");
-      let s3 = await vfs.createScene("private").then((scene_id)=> 
-      {userManager.grant(scene_id, 0, "none");
-      userManager.grant(scene_id, 1, "none");
-      userManager.grant(scene_id, user.uid, "admin");
-      return scene_id});
+
+      let s3 = await vfs.createScene("private", admin.uid)
+      await userManager.setPublicAccess(s3, "none");
+      await userManager.setDefaultAccess(s3, "none");
+
       await vfs.addTag("private", "footag");
-      
-      let {body} = await this.agent.get("/tags/footag")
+
+      //Anonymous request
+      let res = await request(this.server).get("/tags/footag")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(body).to.have.property("length", 2);
+      expect(res.body.map((s:any)=>s.name)).to.deep.equal(["public"]);
+
+      res = await this.agent.get("/tags/footag")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(res.body.map((s:any)=>s.name)).to.have.members(["public", "personal"]);
     });
 
     it("gets absolute URLs for thumbnails", async function(){

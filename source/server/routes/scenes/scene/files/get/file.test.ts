@@ -95,7 +95,7 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
   it.skip("can abort responses", async function(){
     //This test would be very useful but it has a race condition that makes it unreliable.
-    await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "write"); return scene_id});
+    await vfs.createScene("foo").then((scene_id)=> {userManager.setDefaultAccess(scene_id, "write"); return scene_id});
     let orig = vfs.getFile;
     let stream = (Readable.from(["hello", "world", "\n"]) as any).map((s:string)=>new Promise(r=>setTimeout(()=>r(s), 4)));
     let d = stream.destroy;

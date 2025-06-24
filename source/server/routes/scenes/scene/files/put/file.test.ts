@@ -30,7 +30,6 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   });
 
   it("can PUT a file into a scene", async function(){
-    console.log("request")
     await request(this.server).put("/scenes/foo/articles/foo.html")
     .set("Content-Type", "text/plain")
     .auth(user2.username,"12345678")
@@ -53,6 +52,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   it("can put an extensionless file with proper headers", async function(){
 
     await request(this.server).put("/scenes/foo/articles/foo")
+    .auth(user.username, "12345678")
     .set("Content-Type", "text/html")
     .expect(201);
     let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo"});
@@ -62,8 +62,8 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
       generation: 1,
       name: 'articles/foo',
       mime: 'text/html',
-      author_id: null,
-      author: 'default'
+      author_id: user.uid,
+      author: user.username,
     });
   });
 
