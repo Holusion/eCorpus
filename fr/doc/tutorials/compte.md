@@ -5,6 +5,8 @@ rank: 1
 
 ## Votre compte eCorpus
 
+Ce guide vous décrira pas à pas comment vous connecter pour la première fois sur votre base de donnée eCorpus, et vous expliquera les principales fonctionnalités lié à votre compte utilisateur.
+
 <iframe src="https://pod.univ-lille.fr/video/40132-connexion-sur-une-base-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Connexion sur une base eCorpus" ></iframe>    
   
 ### Sommaire
@@ -12,8 +14,8 @@ rank: 1
 * [URL et accès à votre base de donnée](#url-et-accès-à-votre-base-de-donnée)
 * [Connexion à votre Compte](#connexion-à-votre-compte)
 * [Votre Compte eCorpus](#votre-compte-ecorpus-1)
-    * [Charger un modèle 3D sur votre compte eCorpus](#charger-un-modèle-3d-sur-votre-compte-ecorpus)
     * [Récupération de mot de passe](#récupération-de-mot-de-passe)
+    * [Charger un modèle 3D sur votre compte eCorpus](#charger-un-modèle-3d-sur-votre-compte-ecorpus)
 * [Contact](#tester-ecorpus)
 * [En savoir plus](#en-savoir-plus)
 
@@ -44,6 +46,25 @@ Vous remarquerez que votre nom d'utilisateur s'affiche tout en haut à droite de
 
 ## Votre compte eCorpus
 
+### Récupération de mot de passe
+
+En cas d'oublie de mot de passe, vous pouvez demander à tout moment un nouveau lien de connexion en cliquant sur "mot de passe oublié" en bas à droite de l'onglet prévu pour y rentrer vos identifiants.
+<img src="/assets/img/doc/Account_Connect_04.jpg" width ="400" alt="illustration connexion" />
+
+
+Une fois cliqué, il vous suffira de rentrer, soit votre identifiant eCorpus, soit l'adresse email associée à votre compte, pour qu'un nouveau formulaire vous soit automatiquement envoyé par mail. 
+
+
+* **En cas de perte de mot de passe, n'oubliez de changer ce-dernier**
+
+Pour **changer votre mot de passe**, ils vous suffit d'aller dans vos paramètres utilisateurs, en cliquant sur votre nom d'utilisateur en haut à droite de la page.
+<img src="/assets/img/doc/Account_Connect_03.jpg" width ="800"  alt="illustration connexion"/>
+
+
+Sur cette page, il vous est possible de changer votre nom d'utilisateur, l'adresse email associé à votre compte, ainsi que votre mot de passe.
+
+Vous trouverez également un bouton pour vous **déconnecter** en bas de page.
+
 ### Charger un modèle 3D sur votre compte eCorpus
 
 #### Comment générer et mettre en ligne votre modèle 3D
@@ -64,24 +85,6 @@ Enfin, nommez votre scène (ce nom sera directement visible dans l'URL, par cons
 
 * Seule l'extension .glb est utilisable sur l'editeur eCorpus. Pour apprendre à exporter un modèle en .glb, veuillez vous réferrer à ce guide: <a href="../advancedUses/models/model">Préparer son modèle 3D</a>.
 
-### Récupération de mot de passe
-
-En cas d'oublie de mot de passe, vous pouvez demander à tout moment un nouveau lien de connexion en cliquant sur "mot de passe oublié" en bas à droite de l'onglet prévu pour y rentrer vos identifiants.
-<img src="/assets/img/doc/Account_Connect_04.jpg" width ="400" alt="illustration connexion" />
-
-
-Une fois cliqué, il vous suffira de rentrer, soit votre identifiant eCorpus, soit l'adresse email associée à votre compte, pour qu'un nouveau formulaire vous soit automatiquement envoyé par mail. 
-
-
-* **En cas de perte de mot de passe, n'oubliez de changer ce-dernier**
-
-Pour se faire, ils vous suffit d'aller dans vos paramètres utilisateurs, en cliquant sur votre nom d'utilisateur en haut à droite de la page.
-<img src="/assets/img/doc/Account_Connect_03.jpg" width ="800"  alt="illustration connexion"/>
-
-
-Sur cette page, il vous est possible de changer votre nom d'utilisateur, l'adresse email associé à votre compte, ainsi que votre mot de passe.
-
-Vous trouverez également un bouton pour vous **déconnecter** en bas de page.
 
 ## Tester eCorpus
 

@@ -35,7 +35,7 @@ Gérer le moteur d'annotation, ajouter du contenu, les organiser et les animer.
 eCorpus est très pratique pour **enrichir sémantiquement** sa scène 3D. Pour ce faire, voyons d'abord comment fonctionne le système d'annotation.
 
 
-Si des annotation ont été ajoutées dans une scène 3D, un **icône annontation** sera visible dans le visualisateur 3D. Il vous suffit alors de cliquer sur cet icône pour faire apparaître ou disparaître les annotations.
+Si des annotation ont été ajoutées dans une scène 3D, un **icône annotation** sera visible dans le visualisateur 3D. Il vous suffit alors de cliquer sur cet icône pour faire apparaître ou disparaître les annotations.
 
 
 _Notez que chaque annotation est lié a un modèle 3D. Il ne peut donc pas y avoir d'annotation "dans le vide"._
