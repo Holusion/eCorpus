@@ -39,7 +39,7 @@ curl -XPOST -H "Content-Type: application/json" \
     "username":"<...>", 
     "password":"<...>",
     "email":"<...>",
-    "isAdministrator": true
+    "level": "admin"
 }' "http://localhost:8000/users"
 ```
 

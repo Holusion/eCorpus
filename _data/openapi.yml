@@ -415,7 +415,7 @@ paths:
                 username: {type: "string", example: "jdupont" }
                 email: {type: "string", example: "jdupont@example.com" }
                 password: {type: "string", example: "p@ssw0rd" }
-                isAdministrator: {type: "boolean"}
+                level:  { $ref: "#/components/schemas/AccessRole"}
       responses:
         '201':
           description: user created successfully
@@ -631,8 +631,7 @@ components:
         uid: {$ref: "#/components/schemas/Uid"}
         username: {type: "string", example: "alice" }
         email: {type: string, example: "alice@example.com" }
-        isAdministrator: {type: "boolean"}
-        isDefaultUser: {type: "boolean"}
+        level:  { $ref: "#/components/schemas/AccessRole"}
     Uid: 
       type: "string"
       pattern: '^\d+$'
@@ -643,6 +642,9 @@ components:
     AccessType:
       type: string
       enum: ["none", "read", "write", "admin"]
+    AccessRole:
+      type: string
+      enum: ["use", "create", "manage", "admin"]
     Etag:
       description: |
         unique string describing the resource state, generally used for caching. A base64url sha256 hash sum is generally used but the exact format's stability shouldn't be relied-upon.
