@@ -211,12 +211,16 @@ routes.get("/admin/archives", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/users", (req, res)=>{
+routes.get("/admin/users", wrap(async (req, res)=>{
+  let users = await getUserManager(req).getUsers();
   res.render("admin/users", {
     layout: "admin",
     title: "eCorpus Administration: Users list",
+    start: 0,
+    end: 0 + users.length,
+    users,
   });
-});
+}));
 
 routes.get("/admin/stats", (req, res)=>{
   res.render("admin/stats", {
