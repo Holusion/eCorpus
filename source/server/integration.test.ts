@@ -143,21 +143,6 @@ describe("Web Server Integration", function(){
         ]);
       });
 
-      it("can make a model private", async function(){
-        await this.agent.patch("/auth/access/foo")
-        .send({username: "default", access: "none"})
-        .expect(204);
-
-        let r = await this.agent.get("/auth/access/foo")
-        .expect(200)
-        .expect("Content-Type", "application/json; charset=utf-8");
-        expect(r).to.have.property("body").to.deep.equal([
-          {uid: 0, username: "default", access: "none"},
-          {uid:1, username: "any", access: "read"},
-          {uid:user.uid, username: user.username, access: "admin"}
-        ]);
-      });
-
       it("can remove a user's special permissions", async function(){
         let r = await this.agent.get("/auth/access/foo")
         .expect(200)

@@ -230,8 +230,8 @@ describe("UserManager methods", function(){
   describe("Access rights management", function(){
     let user :User, _id=0;
     this.beforeAll(async function(){
-      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights', true]);
-      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', false]);
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights', 1]);
+      await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', 0]);
     })
     this.beforeEach(async function(){
       user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", "create");
@@ -320,6 +320,7 @@ describe("UserManager methods", function(){
     });
 
     it("can modify default access", async function(){
+      await userManager.setPublicAccess("foo-grant-access-rights", "none");
       await expect(userManager.setDefaultAccess("foo-grant-access-rights", "none")).to.be.fulfilled;
       await expect(userManager.setDefaultAccess("foo-grant-access-rights", "read")).to.be.fulfilled;
       await expect(userManager.setDefaultAccess("foo-grant-access-rights", "write")).to.be.fulfilled;

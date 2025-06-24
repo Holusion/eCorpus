@@ -2,7 +2,7 @@
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import {basename, dirname} from "path";
 import User, { SafeUser, UserLevels } from "../auth/User.js";
-import UserManager, { AccessType, AccessTypes, toAccessLevel } from "../auth/UserManager.js";
+import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
 import Templates from "./templates.js";
@@ -131,7 +131,7 @@ function _perms(check:number,req :Request, res :Response, next :NextFunction){
       next(new NotFoundError(`Can't find scene ${scene}. It may be private or not exist entirely.`))
     } else {
       //User has insuficient level but can read the scene
-      next(new UnauthorizedError(`user does not have ${AccessTypes[check]} rights on ${scene}`));
+      next(new UnauthorizedError(`user does not have ${fromAccessLevel(check)} rights on ${scene}`));
     }
   }, next);
 }

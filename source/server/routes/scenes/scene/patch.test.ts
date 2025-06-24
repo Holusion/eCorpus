@@ -191,4 +191,78 @@ describe("PATCH /scenes/:scene", function(){
     })
   })
 
+  it("can set public access", async function () {
+    await request(this.server).patch(`/scenes/foo`)
+    .auth(sceneAdminUser.username, "xxxxxxxx")
+    .send({public_access: "none"})
+    .expect(200);
+
+    let scene = await vfs.getScene("foo");
+    expect(scene).to.have.property("public_access", "none");
+  
+    await request(this.server).patch(`/scenes/foo`)
+    .auth(sceneAdminUser.username, "xxxxxxxx")
+    .send({public_access: "read"})
+    .expect(200);
+    
+    scene = await vfs.getScene("foo");
+    expect(scene).to.have.property("public_access", "read");
+  
+  })
+  describe("set default access", function(){
+
+    this.beforeEach(async function(){
+        await request(this.server).patch(`/scenes/foo`)
+       .auth(sceneAdminUser.username, "xxxxxxxx")
+       .send({default_access: "none", public_access: "none"})
+       .expect(200);
+    });
+
+    it("can set default access to none", async function () {
+      await request(this.server).get("/scenes/foo")
+      .auth(user.username, "xxxxxxxx")
+      .expect(404);
+    })
+
+    it("can set default access to read lkzu_xfdjkryd", async function () {
+      await request(this.server).patch(`/scenes/foo`)
+      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .send({default_access: "read"})
+      .expect(200);
+      console.log("set to read");
+
+      await request(this.server).get("/scenes/foo")
+      .auth(user.username, "xxxxxxxx")
+      .expect(200);
+
+      await request(this.server).put("/scenes/foo/articles/foo.html")
+      .set("Content-Type", "text/plain")
+      .auth(user.username,"xxxxxxxx")
+      .expect(401);
+
+      await request(this.server).patch("/scenes/foo")
+      .auth(user.username, "xxxxxxxx")
+      .send({name: "foofoo"})
+      .expect(401);
+    })
+
+    it("can set default access to write", async function () {
+      await request(this.server).patch(`/scenes/foo`)
+      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .send({default_access: "write"})
+      .expect(200);
+
+      await request(this.server).put("/scenes/foo/articles/foo.html")
+      .set("Content-Type", "text/plain")
+      .auth(user.username,"xxxxxxxx")
+      .expect(201);
+
+      await request(this.server).patch("/scenes/foo")
+      .auth(user.username, "xxxxxxxx")
+      .send({name: "foofoo"})
+      .expect(401);
+    })
+
+  })
+
 });

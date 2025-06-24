@@ -14,7 +14,6 @@ import { compressedMime } from "../../../utils/filetypes.js";
 export default async function getScene(req :Request, res :Response){
   let vfs = getVfs(req);
   let {scene} = req.params;
-  let {id, mtime} = await vfs.getScene(scene);
   await wrapFormat(res, {
     "application/json": async ()=>{
       let requester = getUserId(req);
@@ -22,8 +21,8 @@ export default async function getScene(req :Request, res :Response){
       res.status(200).send(data);
     },
     "application/zip": async ()=>{
+      let {id, mtime} = await vfs.getScene(scene);
       
-
       res.status(200);
       let zip = new yazl.ZipFile();
       zip.outputStream.pipe(res, {end: true});

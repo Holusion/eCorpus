@@ -81,6 +81,8 @@ export interface Scene extends ItemProps{
   tags :string[];
   /** Access level. Only makes sense when in reference to a user ID */
   access : AccessType;
+  public_access: AccessType;
+  default_access : AccessType;
   archived: Date|null;
 }
 

@@ -356,7 +356,7 @@ export default class UserManager extends DbController {
       SELECT GREATEST(
         users_acl.access_level,
         CASE WHEN (SELECT level FROM users WHERE user_id = $2) IS NOT NULL THEN scenes.default_access ELSE 0 END,
-        CASE WHEN scenes.public_access THEN 1 ELSE 0 END
+        scenes.public_access
       ) AS level
       FROM 
         scenes
@@ -405,15 +405,14 @@ export default class UserManager extends DbController {
     let is_id = typeof scene === "number";
     let level = toAccessLevel(role)
     if(level < 0 || 1 < level) throw new BadRequestError(`Can't set scene public access to ${role}`)
-
     let r = await this.db.run(`
       UPDATE scenes
       SET public_access = $2
       WHERE ${(is_id)?"scene_id":"scene_name"} = $1
       `, [
         scene,
-        0 < level,
-      ]);
+        level,
+      ]);    
     if(r?.changes != 1) throw new NotFoundError(`No scene found with ${(is_id)?"scene_id":"scene_name"} = ${scene}`);
 
   }

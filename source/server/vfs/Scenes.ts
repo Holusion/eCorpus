@@ -229,7 +229,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       tags: string [],
       user_access: number,
       default_access: number,
-      public_access: boolean,
+      public_access: number,
       archived: Date|null,
     }>(`
       WITH 
@@ -262,23 +262,13 @@ export default abstract class ScenesVfs extends BaseVfs{
         LEFT JOIN tags ON tags.fk_scene_id = scene_id
         LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
         LEFT JOIN users ON scenes.fk_author_id = user_id
-     ${/*FROM scenes
-        LEFT JOIN docs ON docs.fk_scene_id = scene_id
-        LEFT JOIN (
-          SELECT 
-            array_agg(tag_name) AS names,
-            fk_scene_id
-          FROM tags
-          GROUP BY fk_scene_id
-        ) AS tags ON tags.fk_scene_id = scene_id*/""}
       ${with_filter? "WHERE true": ""}
       ${typeof author === "number"? `AND fk_author_id = $4`:"" }
       ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
-        OR GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel("read")}
-      )`:"AND scenes.public_access"}
-      ${/*(access?.length)? `AND json_extract(scenes.access, '$.' || $1) IN (${ access.map(s=>`'${s}'`).join(", ") })`:""*/ ""}
+        OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
+      )`:"AND scenes.public_access > 0"}
       ${access? `AND
-          GREATEST(users_acl.access_level, scenes.default_access, CASE WHEN scenes.public_access THEN 1 ELSE 0 END) >= ${toAccessLevel(access)}
+          GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel(access)}
       `: ""}
       ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
       ${likeness}
@@ -288,17 +278,14 @@ export default abstract class ScenesVfs extends BaseVfs{
       OFFSET $2
       LIMIT $3
     `, args));
-    //console.log(result)
-    //console.log("result 0 id:" , typeof result[0].id);
+
     return result.map(({id, user_access, default_access, public_access, ...m})=>({
       ...m,
       id: parseInt(id),
-      tags: m.tags, //? JSON.parse(m.tags): [],
-      access: fromAccessLevel( Math.max(user_access, default_access, public_access? 0 : 1))/*{
-        user: fromLevel(user_access),
-        any: fromLevel(default_access),
-        default: (public_access? "read": "none") as AccessType,
-      }*/,
+      tags: m.tags,
+      access: fromAccessLevel( Math.max(user_access, default_access, public_access)),
+      public_access: fromAccessLevel(public_access),
+      default_access: fromAccessLevel(default_access),
     }));
   
   }
@@ -312,7 +299,7 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let args = [nameOrId];
-    if(user_id) args.push(user_id.toString(10));
+    if(typeof user_id != "undefined") args.push(user_id.toString(10));
     const scene_stored = await this.db.get<{
       name: string,
       id: number,
@@ -320,6 +307,8 @@ export default abstract class ScenesVfs extends BaseVfs{
       author_id: number,
       author: string,
       access: number,
+      default_access: number,
+      public_access: number,
       archived: Date|null,
     }>(`
       SELECT 
@@ -332,20 +321,30 @@ export default abstract class ScenesVfs extends BaseVfs{
           (SELECT username FROM users WHERE user_id = fk_author_id),
           'default'
         ) AS author,
+        default_access,
+        public_access,
         GREATEST(
-          ${(user_id)?`(SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),`: ``}
-          default_access,
-          CASE WHEN public_access THEN 1 ELSE 0 END
-        ) AS access
+          ${(typeof user_id != "undefined")?`(SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
+          CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN scenes.default_access ELSE 0 END,
+          `: ``}
+          public_access
+        ) AS access 
       FROM scenes
-      WHERE ${key} = $1
+      WHERE (${key} = $1
+      ${(typeof user_id != "undefined")?`AND GREATEST ( (SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
+          CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN scenes.default_access ELSE 0 END,
+          public_access) > 0
+          `: ``}
+    )
     `, args);
-    
+
     if(!scene_stored) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
 
     const scene :Omit<Scene, "tags"|"mtime"> = {
       ...scene_stored,
-      access: fromAccessLevel(scene_stored.access)
+      access: fromAccessLevel(scene_stored.access),
+      public_access: fromAccessLevel(scene_stored.public_access),
+      default_access: fromAccessLevel(scene_stored.default_access),
       };
 
     let tags = await this.db.all<{name:string}>(`

@@ -30,7 +30,7 @@ CREATE TABLE scenes (
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fk_author_id BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
   archived TIMESTAMPTZ DEFAULT NULL,
-  public_access BOOLEAN,
+  public_access SMALLINT NOT NULL DEFAULT 1 CONSTRAINT public_access_allowed_values CHECK(0 <= public_access AND public_access <= 1 AND public_access <= default_access),
   default_access SMALLINT NOT NULL DEFAULT 1 CONSTRAINT default_access_allowed_values CHECK(0 <= default_access AND default_access <= 2)
 );
 

@@ -103,7 +103,7 @@ export default abstract class TagsVfs extends BaseVfs{
           GREATEST(
             users_acl.access_level, 
             CASE WHEN users.level IS NOT NULL THEN scenes.default_access ELSE 0 END,
-            CASE WHEN scenes.public_access THEN 1 ELSE 0 END
+            public_access
           ) >= ${toAccessLevel("read")}
         )`:""} 
       )
