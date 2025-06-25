@@ -31,7 +31,7 @@ describe("/users", function(){
   describe("normal operations", function(){
     let user :User, admin :User;
     this.beforeEach(async function(){
-      user = await userManager.addUser("bob", "12345678");
+      user = await userManager.addUser("bob", "12345678", "create", "bob@example.com");
       admin = await userManager.addUser("alice", "12345678", "admin");
     });
 
@@ -73,9 +73,9 @@ describe("/users", function(){
         expect(userManager.getUserByName(user.username)).to.rejectedWith(NotFoundError);
       });
       
-      it("can't patch himself administrator", async function(){
+      it("can't patch his level", async function(){
         await this.agent.patch(`/users/${user.uid}`)
-        .send({isAdministrator: true})
+        .send({level: "manage"})
         .expect(401);
 
         expect(await userManager.getUserByName(user.username)).to.deep.equal(user);
@@ -84,6 +84,22 @@ describe("/users", function(){
       it("can't fetch user list", async function(){
         await this.agent.get("/users")
         .expect(401);
+      });
+
+      it("can't provide a bad patch key", async function(){
+        await this.agent.patch(`/users/${user.uid}`)
+        .send({foo: "bar"})
+        .expect(400);
+
+        expect(await userManager.getUserByName(user.username)).to.deep.equal(user);
+      });
+
+      it("can apply a no-op", async function(){
+        let res = await this.agent.patch(`/users/${user.uid}`)
+        .send(User.safe(user))
+        .expect(200);
+        expect(res.body).to.deep.equal(User.safe(user));
+        expect(await userManager.getUserByName(user.username)).to.deep.equal(user);
       });
     });
 
@@ -124,6 +140,20 @@ describe("/users", function(){
         .set("Content-Type", "application/json")
         .send({username: "Dave", password: "abcdefghij", level: "admin", email: "dave@foo.com"})
         .expect(201);
+      });
+  
+      it("redirects if created from the user interface form", async function(){
+        await this.agent.post("/users")
+        .set("Referrer", "http://localhost:8000/ui/admin/users")
+        .set("Accept", "text/html")
+        .set("Content-Type", "application/json")
+        .send({username: "Carol", password: "abcdefghij", level: "use", email: "carol@foo.com"})
+        .expect(303)
+        .expect("Location", "http://localhost:8000/ui/admin/users");
+
+        let carol = await userManager.getUserByName("Carol");
+        expect(carol).to.have.property("level", "use");
+        expect(carol).to.have.property("email", "carol@foo.com");
       });
   
       it("can't provide bad data'", async function(){
@@ -168,19 +198,28 @@ describe("/users", function(){
 
         expect(await userManager.getUserByName("foo")).to.be.ok;
         expect(userManager.getUserByName(user.username)).to.rejectedWith(NotFoundError);
+
+        //An admin patching a user shouldn't have its session data changed
+        //So we check we are still properly logged-in
+        let res = await this.agent.get("/auth/login")
+        .expect(200);
+        expect(res.body).to.have.property("username", admin.username);
       });
 
-      it("can patch a user as administrator", async function(){
-        await this.agent.patch(`/users/${user.uid}`)
+      it("can patch a user to admin level", async function(){
+        let res = await this.agent.patch(`/users/${user.uid}`)
         .send({level: "admin"})
         .expect(200);
 
+        expect(res.body).to.have.property("level", "admin");
+        expect(res.body).to.have.property("username", user.username);
         expect(await userManager.getUserByName(user.username)).to.have.property("level", "admin");
+
       });
 
-      it("can't patch himself as non-admin", async function(){
+      it("can't downgrade himself", async function(){
         await this.agent.patch(`/users/${admin.uid}`)
-        .send({isAdministrator: false})
+        .send({level: "manage"})
         .expect(401);
       });
     });

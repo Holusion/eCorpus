@@ -31,7 +31,7 @@ router.get("/", isAdministrator, wrap(async (req, res)=>{
   res.status(200).send(users);
 }));
 
-router.post("/", isAdministratorOrOpen, bodyParser.json(), wrap(postUser));
+router.post("/", isAdministratorOrOpen, bodyParser.json(), bodyParser.urlencoded({extended: false}), wrap(postUser));
 router.delete("/:uid", isAdministrator, wrap(handleDeleteUser));
 router.patch("/:uid", bodyParser.json(), wrap(handlePatchUser));
 
