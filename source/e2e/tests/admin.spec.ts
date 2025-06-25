@@ -37,7 +37,7 @@ test("can force-delete archived scenes", async ({page, request})=>{
   res = await request.get(`/scenes?archived=any&match=${name}`);
   let body = await res.json();
   expect(body.scenes).toHaveLength(1);
-  expect(body.scenes[0]).toHaveProperty("archived", true);
+  expect(new Date(body.scenes[0].archived).toString()).not.toEqual("Invalid Date");
 
   //There can be any number of archived scenes shown here that leaks from other tests
   //But we expect "our" scene to be there and that's what we are looking for
@@ -73,7 +73,7 @@ test("can restore archived scenes", async ({page, request})=>{
   res = await request.get(`/scenes?archived=any&match=${name}`);
   let body = await res.json();
   expect(body.scenes).toHaveLength(1);
-  expect(body.scenes[0]).toHaveProperty("archived", true);
+  expect(new Date(body.scenes[0].archived).toString()).not.toEqual("Invalid Date");
 
   //There can be any number of archived scenes shown here that leaks from other tests
   //But we expect "our" scene to be there and that's what we are looking for
@@ -90,5 +90,5 @@ test("can restore archived scenes", async ({page, request})=>{
   res = await request.get(`/scenes?archived=any&match=${name}`);
   body = await res.json();
   expect(body.scenes).toHaveLength(1);
-  expect(body.scenes[0]).toHaveProperty("archived", false);
+  expect(body.scenes[0]).toHaveProperty("archived", null);
 });
