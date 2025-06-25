@@ -161,6 +161,7 @@ a{
     }
     //The popover element
     >[popover]:popover-open{
+      position:relative;
       line-height: initial;
       inset: unset;
       margin: 0 1rem;
@@ -172,6 +173,8 @@ a{
 
       font-size: 1rem;
       font-family: var(--font-body);
+      top: anchor(bottom);
+      left: anchor(left);
     }
   }
 

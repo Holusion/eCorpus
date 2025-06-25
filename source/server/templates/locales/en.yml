@@ -30,6 +30,8 @@ labels:
   language: UI Language
   delete: Delete
   restore: Restore
+  publicAccess: Public access
+  defaultAccess: Default access
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -62,6 +64,7 @@ fields:
   ascendingOrder: ascending order
   descendingOrder: descending order
   tag: tag name
+  removeSpecificAccess: remove specific access
 nav:
   tags: collection
   login: connection
@@ -98,8 +101,8 @@ titles:
 tooltips:
   showPassword: Show the password's text
   permissions: >
-    Access rights management. Setting a user's permissions to "none" will revert him back to default.
-
+    The default access for connected users can not be more restrictive than the public access.
+    The wider rights of default access rights and specific user rights applies.
 leads:
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared
