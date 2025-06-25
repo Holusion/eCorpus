@@ -218,6 +218,7 @@ routes.get("/admin/users", wrap(async (req, res)=>{
     title: "eCorpus Administration: Users list",
     start: 0,
     end: 0 + users.length,
+    total: users.length,
     users,
   });
 }));

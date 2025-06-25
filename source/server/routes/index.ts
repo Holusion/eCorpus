@@ -24,8 +24,9 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
   let db = await openDatabase({uri: config.database_uri, forceMigration: config.force_migration});
+  let uri = new URL(config.database_uri);
+  console.log(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`)
   const vfs = await Vfs.Open(config.files_dir, {db});
-
   const userManager = new UserManager(db);
 
   const templates = new Templates({dir: config.templates_dir, cache: config.node_env == "production"});
