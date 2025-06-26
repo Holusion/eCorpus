@@ -82,9 +82,7 @@ eCorpus crée automatiquement des transitions entre les différentes étapes. La
 
 ## En savoir plus
 
-Vous venez à bout des tutoriels vous apprenant les bases d'eCorpus, félicitations !
-
-Les possibilités qu'offrent eCorpus sont nombreuses, et n'ont pas toutes été citées. Une catégorie de guides avancés vous attendent pour en découvrir encore plus.
+Pour finaliser la médiation de votre scène en y ajoutant une narration immersive, vous pouvez vous rendre sur ce dernier guide de base: [Ajouter de l'Audio](audio)
 
 Apprenez-en plus sur les possibilités de visites guidées en suivant ce guide avancé: GUIDE A VENIR
 
