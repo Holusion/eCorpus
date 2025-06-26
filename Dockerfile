@@ -1,7 +1,4 @@
 
-ARG PORT
-ARG PUBLIC
-ARG BUILD_REF
 
 ################### 
 # Build source
@@ -42,6 +39,9 @@ LABEL org.opencontainers.image.source=https://github.com/Holusion/eCorpus
 LABEL org.opencontainers.image.description="eCorpus base image"
 LABEL org.opencontainers.image.licenses=Apache
 
+ARG PORT
+ARG PUBLIC
+ARG BUILD_REF
 
 ENV PUBLIC=${PUBLIC:-false}
 ENV PORT=${PORT:-8000}
