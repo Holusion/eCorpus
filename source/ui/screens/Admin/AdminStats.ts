@@ -3,7 +3,6 @@ import { customElement, property } from 'lit/decorators.js';
 
 
 
-import "./UsersList";
 import i18n from "../../state/translate";
 
 import Notification from "../../composants/Notification";
