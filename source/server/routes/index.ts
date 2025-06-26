@@ -20,12 +20,14 @@ import User from "../auth/User.js";
 import Templates from "../utils/templates.js";
 
 
+const debug = debuglog("pg:connect");
+
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
 
   await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
   let db = await openDatabase({uri: config.database_uri, forceMigration: config.force_migration});
   let uri = new URL(config.database_uri);
-  console.log(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`)
+  debug(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`)
   const vfs = await Vfs.Open(config.files_dir, {db});
   const userManager = new UserManager(db);
 
