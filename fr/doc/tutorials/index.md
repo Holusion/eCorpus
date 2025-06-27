@@ -41,3 +41,4 @@ Pour se faire, glisser simplement votre modèle en GLB dans la scène ci-dessus.
 * [Ajouter des annotations](annotation)
 * [Créer des articles](article)
 * [Préparer une visite guidée](tours)
+* [Préparer une narration audio](audio)
