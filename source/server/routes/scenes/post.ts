@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import { createReadStream } from "fs";
 import path from "path";
-
+import { text } from 'stream/consumers';
 import { Request, Response } from "express";
 import yauzl, { Entry, ZipFile } from "yauzl";
 
@@ -104,7 +104,13 @@ export default async function postScenes(req :Request, res :Response){
       }else{
         //Add the file
         let rs = await openZipEntry(record);
-        await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime: getMimeType(name)});
+        let mime = getMimeType(name);
+        if (mime.startsWith('text/')){
+          await vfs.writeDoc(await text(rs), {user_id: requester.uid, scene, name, mime});
+        }
+        else {
+          await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime});
+        }
       }
       
       results.ok.push(`${scene}/${name}`);

@@ -77,4 +77,23 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
     await expect(vfs.getFileProps({scene: "foo", name:"articles/foo.html"})).to.be.rejectedWith(NotFoundError);
   });
 
+  it("can write article data into the database", async function(){
+
+    await request(this.server).put("/scenes/foo/articles/foo")
+    .auth(user.username, "12345678")
+    .set("Content-Type", "text/html")
+    .send("<h1>New Article</h1>")
+    .expect(201);
+    let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo"},true);
+    expect(file).to.deep.equal({
+      size: 20,
+      hash: '2bsBMDkdCMe3_5A_qv5p2Q3hIenv1289pWLQwlB8bNo',
+      generation: 1,
+      name: 'articles/foo',
+      mime: 'text/html',
+      data: '<h1>New Article</h1>',
+      author_id: user.uid,
+      author: user.username,
+    });
+  });
 });
