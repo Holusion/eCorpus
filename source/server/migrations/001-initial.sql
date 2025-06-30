@@ -153,7 +153,7 @@ CREATE VIEW current_files AS
       FROM files
       GROUP BY name, fk_scene_id
     ) AS gen
-    JOIN files USING(generation, name, fk_scene_id)
+    JOIN files USING(generation, fk_scene_id, name)
 ;
 
 --------------------------------------------------------------------------------

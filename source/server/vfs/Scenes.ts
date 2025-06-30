@@ -180,44 +180,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       limit
     ] ;
     const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
-    
-    let likeness = "";
 
-    function addMatch(matchString :string, index :number) :string{
-      let fuzzyMatch = matchString;
-      if(matchString.startsWith("^")) fuzzyMatch = fuzzyMatch.slice(1);
-      else if(!matchString.startsWith("%")) fuzzyMatch = "%"+ fuzzyMatch;
-
-      if(matchString.endsWith("$")) fuzzyMatch = fuzzyMatch.slice(0, -1);
-      else if(!matchString.endsWith("%")) fuzzyMatch = fuzzyMatch + "%";
-
-      const idx = args.push(fuzzyMatch, matchString) -1;
-
-      let conditions = [
-        `scene_name ILIKE $${idx}`,
-        `docs.meta::text ILIKE $${idx}`,
-        `users.username = $${idx+1}`,
-      ]
-      return `${index ==0 ? " ": " AND "}( ${conditions.join(" OR ")} )`;
-    }
-
-
-    if(match){
-      let words = 0;
-      likeness = `AND (`;
-      let quoted = false;
-      let ms = "";
-      [...match].forEach(c=>{
-        if(c == '"')    quoted = !quoted;
-        else if(c != " " || quoted) ms += c;
-        else{
-          likeness += addMatch(ms, words++);
-          ms = "";
-        }
-      });
-      if(ms.length) likeness += addMatch(ms, words++);
-      likeness += `)`;
-    }
     let result = (await this.db.all<{
       id:string,
       name:string,
@@ -231,10 +194,10 @@ export default abstract class ScenesVfs extends BaseVfs{
       default_access: number,
       public_access: number,
       archived: Date|null,
-    }>(`
-      WITH 
+    }>(
+      `WITH 
         docs AS (
-          SELECT data::jsonb -> 'metas' AS meta, ctime AS mtime, fk_scene_id
+          SELECT ctime AS mtime, fk_scene_id
           FROM current_files
           WHERE mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL
         ),
@@ -243,41 +206,50 @@ export default abstract class ScenesVfs extends BaseVfs{
           FROM current_files
           WHERE ${ScenesVfs._fragIsThumbnail()}
         )
-      SELECT 
-        scenes.scene_id AS id,
-        scenes.scene_name AS name,
-        scenes.ctime AS ctime,
-        scenes.archived AS archived,
-        MAX(COALESCE(docs.mtime, scenes.ctime)) as mtime,
-        scenes.fk_author_id AS author_id,
-        COALESCE(users.username, 'default') AS author,
-        (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
-        COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
-        COALESCE(users_acl.access_level, scenes.default_access) AS user_access,
-        scenes.default_access AS default_access,
-        scenes.public_access AS public_access
+      SELECT *
+      FROM ( 
+        SELECT 
+          scenes.scene_id AS id,
+          scenes.scene_name AS name,
+          scenes.ctime AS ctime,
+          scenes.archived AS archived,
+          MAX(COALESCE(docs.mtime, scenes.ctime)) as mtime,
+          scenes.fk_author_id AS author_id,
+          COALESCE(users.username, 'default') AS author,
+          (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
+          COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
+          COALESCE( users_acl.access_level, scenes.default_access) AS user_access,
+          scenes.default_access AS default_access,
+          scenes.public_access AS public_access,
+          MAX(ts_rank(ts_terms, to_tsquery(language::regconfig, '${match}'))) AS rank
         
-        FROM scenes
-        LEFT JOIN docs ON docs.fk_scene_id = scene_id
-        LEFT JOIN tags ON tags.fk_scene_id = scene_id
-        LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
-        LEFT JOIN users ON scenes.fk_author_id = user_id
-      ${with_filter? "WHERE true": ""}
-      ${typeof author === "number"? `AND fk_author_id = $4`:"" }
-      ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
-        OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
-      )`:"AND scenes.public_access > 0"}
-      ${access? `AND
-          GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel(access)}
-      `: ""}
-      ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
-      ${likeness}
-
-      GROUP BY scene_id, scene_name, users.username, users_acl.access_level
-      ORDER BY ${sortString} ${orderDirection.toUpperCase()}
+        FROM 
+          scenes
+          LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
+          LEFT JOIN docs ON docs.fk_scene_id = scene_id
+          LEFT JOIN users ON scenes.fk_author_id = user_id
+          LEFT JOIN tags ON tags.fk_scene_id = scene_id
+          INNER JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = scenes.scene_id)
+          ${with_filter? "WHERE true": ""}
+          ${typeof author === "number"? `AND fk_author_id = $4`:"" }
+          ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
+            OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
+            )`:"AND scenes.public_access > 0"}
+          ${access? `AND
+            GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel(access)}
+            `: ""}
+          ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
+          
+        GROUP BY id, scene_name, username, access_level
+        )  as filtered_scenes
+      WHERE rank > 0
+      ORDER BY rank DESC
+      -- ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
-    `, args));
+      `
+      
+  , args));
 
     return result.map(({id, user_access, default_access, public_access, ...m})=>({
       ...m,
