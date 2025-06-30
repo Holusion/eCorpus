@@ -66,7 +66,7 @@ scene: "NoceDeCana_Puzzle"
     <p>
         This approach has demonstrated the potential of digital technology in research and heritage enhancement. Far from replacing or counterfeiting the irretrievably lost parts of the works, this process makes it possible to present and iterate reconstruction hypotheses that could ultimately advance scholarship and open new avenues for cultural mediation.
     </p>
-    <a href="https://ecorpus.eu/fr/collections/">Discover the digital collection of reconstructed stone works from the Notre-Dame-en-Vaux cloister</a>
+    <a href="../../../collections#NotreDameEnVaux">Discover the digital collection of reconstructed stone works from the Notre-Dame-en-Vaux cloister</a>
 <section class="section">
     <h3>Creating a True Lapidary Puzzle Through a Fragmentation Hypothesis</h3>
     <p>

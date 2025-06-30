@@ -6,7 +6,7 @@ scene: "NoceDeCana_Puzzle"
 ---
 
 <p>
-<b>Connue pour sa collègiale inscrite au Patrimoine de l'UNESCO, Notre-Dame-en-Vaux</b> l'est également pour sa collection de sculptures médievales exceptionnelles. Mises au jour par Sylvia et Léon Pressouyre entre 1963 et 1976, ces vestiges d'un ancien cloître aujourd'hui disparu témoigne de la transition entre l'art roman et l'art gothique au XIIe siècle. Objet d'un ambitieux chantier numérique pour sa rénovation, le Musée du cloître de Notre-Dame-en-Vaux propose à sa réouverture une base eCorpus enrichie d'une nouvelle collection, dans laquelle vous pourrez admirer des reconstitution inédite des pièces les plus iconiques des chefs d'oeuvres de Châlons-en-Champagne.</p>
+<b>Connue pour sa collègiale inscrite au Patrimoine de l'UNESCO, Notre-Dame-en-Vaux</b> l'est également pour sa collection de sculptures médievales exceptionnelles. Mises au jour par Sylvia et Léon Pressouyre entre 1963 et 1976, ces vestiges d'un ancien cloître aujourd'hui disparu témoigne de la transition entre l'art roman et l'art gothique au XIIe siècle. Objet d'un ambitieux chantier numérique pour sa rénovation, le Musée du cloître de Notre-Dame-en-Vaux propose à sa réouverture une base eCorpus enrichie d'une nouvelle collection, dans laquelle vous pourrez admirer des reconstitutions inédites des pièces les plus iconiques des chefs d'oeuvres de Châlons-en-Champagne.</p>
 
 
 <img style="object-position: 70% 0;" src="/assets/img/post/chalons_tablette.jpg" class="fluid"
@@ -47,17 +47,17 @@ scene: "NoceDeCana_Puzzle"
         Discrets et compacts, ces dispositifs permettent à tous ceux qui le souhaitent de découvrir plus en détails les statues qu’ils ont sous leurs yeux, mettant en avant des secrets et anecdotes iconographiques qu’un public non avertis pourrait avoir manqué.
     </p>
     <p>
-        Complémentaire aux oeuvres qu'il dévoile, ce format de cartel numérique offre une totale autonomie aux visiteurs moins adeptes des visites guidées traditionnelles. Les annotations et articles rédigés par l'équipe du musée offre des mises en avant de détails ainsi que des éléments de comparaisons avec des scultpures comtemporaines.
+        Complémentaire aux oeuvres qu'il dévoile, ce format de cartel numérique offre une totale autonomie aux visiteurs moins adeptes des visites guidées traditionnelles. Les annotations et articles rédigés par l'équipe du musée offrent des mises en avant de détails ainsi que des éléments de comparaisons avec des scultpures comtemporaines.
     </p>
     <p> 
         Ce faisant, ce système permet une meilleure accessibilité à la compréhension des oeuvres, à la fois guide et support visuel pour les animateurs et guides conférenciers.
     </p>
     <p>
-        Valoriser ce fond de sculpture prend tout son sens dans l'histoire moderne de Châlons-en-Champagne. Très fortement touché par les dégradations révolutionnaires, les sculptures du cloître de Notre-Dame-en-Vaux comptent parmis les seules survivantes d'un art religieux monumental médiéval dans cette région.
+        Valoriser ce fond de sculptures prend tout son sens dans l'histoire moderne de Châlons-en-Champagne. Très fortement touché par les dégradations révolutionnaires, les sculptures du cloître de Notre-Dame-en-Vaux comptent parmis les seules survivantes d'un art religieux monumental médiéval dans cette région.
     </p>
     <h4>Utiliser une base de données afin de réaliser des reconstitutions numériques</h4>
       <p>
-        <b>Les Pressouyre ont beaucoup oeuvrés pour redonner vie aux statue-colonnes du cloître</b>. Le travail fournit pour redonner une forme compréhensible à ces statues est remarquable. D'abord ressortit de terre, ces-derniers ont été triés, repertoriés et finalement assembler avec de la <span style="text-decoration: underline dotted; cursor: help;" title="Mortier à base de plâtre utilisé dans la restauration lapidaire"><b>métaline</b></span> pour leur redonner leur forme d'origine. 
+        <b>Les Pressouyre ont beaucoup oeuvré pour redonner vie aux statue-colonnes du cloître</b>. Le travail fournit pour redonner une forme compréhensible à ces statues est remarquable. D'abord ressortit de terre, ces-derniers ont été triés, repertoriés et finalement assembler avec de la <span style="text-decoration: underline dotted; cursor: help;" title="Mortier à base de plâtre utilisé dans la restauration lapidaire"><b>métaline</b></span> pour leur redonner leur forme d'origine. 
     </p>
     <p>
         Pour autant, les statue-colonnes restent très endomagées et lacunaires. Les avancées technologiques permettent, via la manipulation de reproduction 3D dans un espace numérique, d'aller plus loin dans cette démarche, en proposant des hypothèses de reconstitutions virtuelles très avancées. Ce système permet également un haut taux d’itérations dans les hypothèses de reconstitution, l’artiste n’étant plus limité en place ni en quantité de matériau utilisable.
@@ -68,12 +68,12 @@ scene: "NoceDeCana_Puzzle"
     <p>
         Cette démarche a pu démontrer les possibilités qu'offre le numérique dans le monde de la recherche et de la mise en valeur du patrimoine. Loin de remplacer ou contrefaire ces parties d'oeuvre à jamais perdue, ce procédé permet de présenter et d'itérer des hypothèses de reconstitutions qui pourraient, à terme, faire avancer la réflexion et ouvrir de nouvelles portes pour la médiation culturelle.
     </p>
-    <a href="https://ecorpus.eu/fr/collections/">Découvrir la Collection numérique des oeuvres lapidaires reconstituées du cloître de Notre-Dame-en-Vaux</a>
+    <a href="../../../collections#NotreDameEnVaux">Découvrir la Collection numérique des oeuvres lapidaires reconstituées du cloître de Notre-Dame-en-Vaux</a>
 
 <section class="section">
     <h3>La réalisation d'un véritable Puzzle lapidaire via une hypothèse de fragmentation</h3>
     <p>
-        <b>Pour les archéologues, la reconstitution des statues-colonnes n'est pas une mince affaires</b>. Aujourd'hui confronté au résultat final, il est dur de s'imaginer la quantité de travail minitieux nécessaires pour remonter une oeuvre dont les fragments épars sont retrouvé souvent à des mètres et des années de distance les uns des autres.
+        <b>Pour les archéologues, la reconstitution des statue-colonnes n'est pas une mince affaire</b>. Aujourd'hui confronté au résultat final, il est dur de s'imaginer la quantité de travail minitieux nécessaires pour remonter une oeuvre dont les fragments épars sont retrouvés souvent à des mètres et des années de distance les uns des autres.
     </p> 
     <p>
         Le couple Pressouyre, aidé d'amateurs d'histoire locale auront mis plus de 10ans à fouiller systèmétiquement le terrain de l'ancien cloître en profitant d'une part d'une politique publique de récupération de ces terrains pour en refaire un espace publique, mais aussi en réalisant des fouilles dans les maisons et les bâtiments du presbytère, creusant sur près de deux mètres de profondeur sous le niveau actuel du sol pour dénicher tous les fragments enfouis.
@@ -85,7 +85,7 @@ scene: "NoceDeCana_Puzzle"
     Dans la lignée des hypothèses de reconstitutions par anastylose, le musée a témoigné de sa volonté de rendre ce travail à nouveau visible en faisant apparaitre certaines statue-colonnes sous forme fragmentaire, telles que découvertes par les Pressouyre, sans pour autant alterer le réassemblage effectué par ces-derniers.
     </p>
     <p>
-    La modélisation de l'iconique statue-colonne représentant les Noces de Cana a été utilisé à titre de démonstrastion. Les fragments lapidaires étant désormais scellés dans de la métaline, il est pour le moment impossible de savoir à quoi ils ressemblent exactement. L'utilisation de photos d'archives et l'étude des notes de Pressouyre ont été indispensables pour la réalisation des cette proposition de fragmentation. Le maillage créée artificiellement a été dépeint en bleu pour montrer l'incertitude concernant la véritable forme de ces pièces.
+    La modélisation de l'iconique statue-colonne représentant les Noces de Cana a été utilisé à titre de démonstrastion. Les fragments lapidaires étant désormais scellés dans de la métaline, il est pour le moment impossible de savoir à quoi ils ressemblent exactement. L'utilisation de photos d'archives et l'étude des notes de Pressouyre ont été indispensables pour la réalisation des cette proposition de fragmentation. Le maillage créé artificiellement a été dépeint en bleu pour montrer l'incertitude concernant la véritable forme de ces pièces.
     </p>
     <p>
     <a href="https://ecorpus.holusion.com/ui/scenes/NoceDeCana_Puzzle/view">Pour visualiser la scène eCorpus présentant la fragmentation des Noces de Cana</a>
