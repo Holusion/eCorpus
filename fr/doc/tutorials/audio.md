@@ -49,7 +49,7 @@ La préparation des pistes se fait donc en fonction de la mise en scène souhait
 
 De nombreuses solutions sont disponibles concernant la création et l'édition de pistes audio. Vous êtes tout à fait libre de choisir la plus adaptée à vos besoins, du moment que le fichier exporté soit dans le format .mp3. 
 
-Pour ceux à la recherche d'un **logiciel d'édition audio libre et gratuit**, nous recommandons <a href="https://audacity.fr/">Audacity</a>. Un guide apprenant les bases du logiciel sera prochainement présenté dans les guides <a href="/fr/doc/advancedUses/index">d'Utilisations avancées</a>. 
+Pour ceux à la recherche d'un **logiciel d'édition audio libre et gratuit**, nous recommandons <a href="https://audacity.fr.softonic.com/">Audacity</a>. Un guide apprenant les bases du logiciel sera prochainement présenté dans les guides <a href="/fr/doc/advancedUses/index">d'Utilisations avancées</a>. 
 
 ### Ajouter et créer des pistes audio dans une scène eCorpus
 
