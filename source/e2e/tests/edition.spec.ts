@@ -14,6 +14,10 @@ let scenePage: Page;
 
 const name = randomUUID();
 
+/*
+ * Tests in this suite are sequential : expect all side effects to propagate to following tests
+ */
+
 test.beforeAll(async ({request, browser})=>{
   //Create a scene in **FRENCH** to make sure the is no DEFAULT_LANGUAGE creep
   let res = await request.post(`/scenes/${encodeURIComponent(name)}?language=FR`,{
@@ -74,7 +78,12 @@ test("can switch to english to edit the article", async ()=>{
 
 test("can save the scene", async ()=>{
   await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption("5")// 5 is French
-  await scenePage.getByRole('button', { name: 'Sauvegarder' }).click();
+  let mce = scenePage.locator('sv-article-editor').getByRole('application').locator("iframe").contentFrame();
+  await expect(mce.getByRole("heading")).toHaveText("Nouvel Article");
+
+  // Interface is still in english even if active language is in french. See rc-53
+  //This locator should target role = "navigation" when this gets implemented
+  await scenePage.locator("sv-task-bar").getByRole('button', { name: 'Save' }).click();
   // @fixme catch notification
   await expect(scenePage.getByText("Successfully uploaded file")).toBeVisible({timeout: 500});
 });
