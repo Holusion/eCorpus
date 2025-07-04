@@ -71,9 +71,6 @@ RETURN jsonb_build_object(
 END
 $$ LANGUAGE 'plpgsql';
 
-
-
--- trigger when the scene file or an article is updated : call update_search_terms
 CREATE OR REPLACE FUNCTION update_search_terms(BIGINT) RETURNS VOID AS $$
 BEGIN
   WITH 
@@ -91,7 +88,7 @@ BEGIN
     setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT annotation_titles ->> language_string, ' '), '')), 'B') ||
     setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT annotation_leads ->> language_string, ' '),  '')), 'C') ||
     setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT tours_titles ->> language_string, ' '), '')), 'B') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT tours_leads ->> language_string, ' '),  '')), 'C')  as weighted_vectors
+    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT tours_leads ->> language_string, ' '),  '')), 'C')  as ts_terms
 
   FROM --fixme: explicit cross joins to make this more readable?
     scene
@@ -106,22 +103,42 @@ BEGIN
     LEFT JOIN (SELECT data, name FROM current_files WHERE fk_scene_id = $1) as articles ON TRUE
     WHERE articles.name = articles_uris ->> language_string
   GROUP BY scene_id, language, language_string, meta
+  ON CONFLICT (fk_scene_id,language) DO UPDATE SET ts_terms = EXCLUDED.ts_terms
 ;
-
 END
 $$ LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION update_scene_meta(BIGINT, JSONB) RETURNS VOID AS $$
-BEGIN
-  UPDATE scenes
-  SET meta = parse_svx_scene($2)
-  WHERE scene_id = $1;
-  
-  PERFORM update_search_terms($1);
+CREATE OR REPLACE FUNCTION update_scene_meta() RETURNS TRIGGER AS $$
+BEGIN -- suprimme meta si data est nul, article mis à jour
+  RAISE WARNING 'update_scene_meta - start %' , NEW.name;
+  IF ( NEW.mime = 'application/si-dpo-3d.document+json' ) THEN
+    IF NEW.data IS NULL THEN 
+      RAISE WARNING 'update_scene_meta - data is null';
+      UPDATE scenes
+      SET meta = NULL
+      WHERE scene_id = NEW.fk_scene_id;
+    ELSE
+      RAISE WARNING 'update_scene_meta - data is NOT null';
+      UPDATE scenes
+      SET meta = parse_svx_scene(NEW.data::jsonb)
+      WHERE scene_id = NEW.fk_scene_id;
+    END IF;
+  END IF;
+  PERFORM update_search_terms(NEW.fk_scene_id);
+  RAISE WARNING 'update_scene_meta';
+  RETURN NULL;
 END
 $$ LANGUAGE 'plpgsql';
 
+
+-- trigger when the scene file or an article is updated : call update_search_terms
+CREATE OR REPLACE TRIGGER update_search_terms_on_file_update AFTER INSERT ON files
+FOR EACH ROW 
+WHEN (NEW.mime = 'application/si-dpo-3d.document+json' 
+ OR NEW.mime LIKE 'text/%' 
+)  
+EXECUTE FUNCTION update_scene_meta();
 
 -- ensure indexes are up to date
 -- ANALYZE;
@@ -131,23 +148,23 @@ $$ LANGUAGE 'plpgsql';
 -- SET auto_explain.log_analyze = ON;        -- log execution times, too? (expensive!)
 
 
-\timing on
+-- \timing on
 
-SELECT COUNT(scene_id) 
-FROM 
-  ( 
-    SELECT scenes.scene_id, current_files.data
-    FROM
-      scenes
-      INNER JOIN current_files ON (fk_scene_id = scene_id AND name = 'scene.svx.json')
-    WHERE scenes.archived IS NULL AND data IS NOT NULL
-    LIMIT 5
-  ) as scenes
-  CROSS JOIN LATERAL update_scene_meta(scene_id, data::jsonb)
-;
+-- SELECT COUNT(scene_id) 
+-- FROM 
+--   ( 
+--     SELECT scenes.scene_id, current_files.data
+--     FROM
+--       scenes
+--       INNER JOIN current_files ON (fk_scene_id = scene_id AND name = 'scene.svx.json')
+--     WHERE scenes.archived IS NULL AND data IS NOT NULL
+--     LIMIT 5
+--   ) as scenes
+--   CROSS JOIN LATERAL update_scene_meta(scene_id, data::jsonb)
+-- ;
 
 
-\timing off
+-- \timing off
 -- SET auto_explain.log_nested_statements = OFF; 
 
 
