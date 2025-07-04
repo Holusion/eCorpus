@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 
 import { getMimeType, getContentType } from "../../../../../utils/filetypes.js";
 import { getVfs, getUserId, getFileParams } from "../../../../../utils/locals.js";
+import { text } from "stream/consumers";
 
 
 
@@ -12,6 +13,11 @@ export default async function handlePutFile(req :Request, res :Response){
   //If content-type can be inferred from the file's extension it's always better than the header
   // In particular because of https://github.com/Smithsonian/dpo-voyager/issues/202
   let mime = getContentType(req);
-  let r = await vfs.writeFile(req, {user_id, scene, name, mime });
+  let r; 
+  if (mime.startsWith('text/')){
+    r = await vfs.writeDoc(await text(req), {user_id, scene, name, mime });
+  } else {
+    r = await vfs.writeFile(req, {user_id, scene, name, mime });
+  }
   res.status((r.generation === 1)?201:200).send("Created");
 };

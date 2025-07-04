@@ -1,7 +1,11 @@
+import { isatty } from "node:tty";
 import { NotFoundError } from "../utils/errors.js";
 import BaseVfs from "./Base.js";
+import errors from "./helpers/errors.js";
 import ScenesVfs from "./Scenes.js";
 import { Tag } from "./types.js";
+import { toAccessLevel } from "../auth/UserManager.js";
+import { UserLevels } from "../auth/User.js";
 
 
 export default abstract class TagsVfs extends BaseVfs{
@@ -14,21 +18,21 @@ export default abstract class TagsVfs extends BaseVfs{
   async addTag(scene_name :string, tag :string) :Promise<boolean>;
   async addTag(scene_id :number, tag :string) :Promise<boolean>;
   async addTag(scene :string|number, tag :string) :Promise<boolean>{
-    let match = ((typeof scene ==="number")?'$scene':`scene_id FROM scenes WHERE scene_name = $scene`);
+    let match = ((typeof scene ==="number")?'$2':`scene_id FROM scenes WHERE scene_name = $2`);
     try{
       let r = await this.db.run(`
         INSERT INTO tags
-          (tag_name, fk_scene_id)
-      SELECT $tag, ${match}
-      `, {
-        $tag: tag.toLowerCase(),
-        $scene: scene
-      });
+          ( tag_name, fk_scene_id)
+      SELECT $1, ${match}
+      `, [
+        tag.toLowerCase(),
+        scene
+      ]);
       if(!r.changes) throw new NotFoundError(`Can't find scene matching ${scene}`);
     }catch(e:any){
-      if(e.code === "SQLITE_CONSTRAINT" && /FOREIGN KEY/.test(e.message)){
+      if(e.code == errors.foreign_key_violation){
         throw new NotFoundError(`Can't find scene matching ${scene}`);
-      }else if(e.code === "SQLITE_CONSTRAINT" && /UNIQUE constraint/.test(e.message)){
+      }else if(e.code == errors.unique_violation){
         return false;
       }
       throw e;
@@ -42,39 +46,38 @@ export default abstract class TagsVfs extends BaseVfs{
   async removeTag(scene_name :string, tag :string): Promise<boolean>;
   async removeTag(scene_id :number, tag: string): Promise<boolean>;
   async removeTag(scene :number|string, tag :string):Promise<boolean>{
-    let match = ((typeof scene === "number")?`fk_scene_id = $scene`: `
+    let match = ((typeof scene === "number")?`fk_scene_id = $2`: `
       fk_scene_id IN (
         SELECT scene_id
         FROM scenes
-        WHERE scene_name = $scene
+        WHERE scene_name = $2
       )
     `);
     let r = await this.db.run(`
       DELETE FROM tags
-      WHERE tag_name = $tag AND ${match}
-    `, {
-      $tag: tag,
-      $scene: scene
-    });
+      WHERE tag_name = $1 AND ${match}
+    `, [
+      tag,
+      scene
+    ]);
     return !!r.changes;
   }
 
   async getTags(like ?:string):Promise<Tag[]>{
-    let where :string = like?`WHERE tag_name LIKE '%' || $like || '%'` :"";
-    return await this.db.all<Tag[]>(
+    let where :string = like?`WHERE tag_name LIKE '%' || $1::text || '%'` :"";
+    let args = like ? [like] : [];
+    return await this.db.all<Tag>(
       `
         SELECT 
           tag_name AS name,
           COUNT(fk_scene_id) as size
         FROM 
-          tags,
-          scenes
-        ON fk_scene_id = scene_id
+          tags
         ${where}
         GROUP BY name
         ORDER BY name ASC
       `,
-      {$like: like}
+      args
     );
   }
 
@@ -86,18 +89,27 @@ export default abstract class TagsVfs extends BaseVfs{
   /** Get all scenes that have this tag that this user can read */
   async getTag(name :string, user_id :number):Promise<number[]>
   async getTag(name :string, user_id ?:number):Promise<number[]>{
-    
-    let scenes = await this.db.all<{scene_id:number}[]>(`
-      SELECT scene_id
-      FROM 
-        tags, 
-        scenes
-      ON fk_scene_id = scene_id
-      WHERE 
-        tags.tag_name = $name
-        ${typeof user_id === "number"?`AND ${ScenesVfs._fragUserCanAccessScene(user_id, "read")}`:""}
+
+    let scenes = await this.db.all<{scene_id:number}>(`
+      SELECT scene_id , scene_name
+      FROM tags 
+      LEFT JOIN scenes ON fk_scene_id = scene_id
+      LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id ${typeof user_id === "number"?`AND users_acl.fk_user_id = ${user_id}`:""}
+      LEFT JOIN users ON users_acl.fk_user_id = user_id
+      WHERE (
+        tags.tag_name = $1
+        ${typeof user_id === "number"? `AND ( 
+          users.level = ${UserLevels.ADMIN} OR
+          GREATEST(
+            users_acl.access_level, 
+            CASE WHEN users.level IS NOT NULL THEN scenes.default_access ELSE 0 END,
+            public_access
+          ) >= ${toAccessLevel("read")}
+        )`:""} 
+      )
+      GROUP BY scene_id , scene_name
       ORDER BY scene_name ASC
-    `, {$name: name, $user_id: user_id?.toString(10)});
+    `, [name]);
 
     return scenes.map(s=>s.scene_id);
   }

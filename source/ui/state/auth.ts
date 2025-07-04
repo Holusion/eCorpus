@@ -10,9 +10,8 @@ type Constructor<T = {}> = new (...args: any[]) => T;
 export interface UserSession{
   uid :number;
   username :string;
-  email :string;
-  isAdministrator :boolean;
-  isDefaultUser: boolean;
+  email ?:string;
+  level: "none"|"use"|"create"|"admin";
 }
 
 export function setSession(s ?:UserSession){

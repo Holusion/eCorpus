@@ -1,0 +1,31 @@
+name: eCorpus
+services:
+  postgres:
+    image: postgres:17
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: postgres #change if it is ever susceptible to be externally accessible
+    healthcheck:
+      test: pg_isready -U postgres -d postgres
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URI: postgres://postgres:postgres@postgres:5432/postgres
+
+volumes:
+  postgres_data:

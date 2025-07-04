@@ -7,6 +7,8 @@ const fixtures = path.resolve(import.meta.dirname, "./__test_fixtures");
 
 export type CreateSceneOptions = {
   permissions?: Record<string,null|"none"|"read"|"write">,
+  default_access?: "none"|"read",
+  public_access?: "none"|"read"|"write",
   autoDelete?:boolean,
 }
 
@@ -43,7 +45,7 @@ export const test = base.extend<TestFixture>({
     const ctx = await browser.newContext({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
     const request = ctx.request;
     const names :string[] = [];
-    await use(async ({permissions, autoDelete=true} :CreateSceneOptions={})=>{
+    await use(async ({permissions, public_access, default_access, autoDelete=true} :CreateSceneOptions={})=>{
         const name = randomUUID();
         if(autoDelete) names.push(name);
         let res = await request.post(`/scenes/${encodeURIComponent(name)}`, {
@@ -52,9 +54,11 @@ export const test = base.extend<TestFixture>({
         });
         await expect(res).toBeOK();
         //Set expected permissions
-        if(permissions){
+        if(permissions || public_access || default_access){
           res = await request.patch(`/scenes/${encodeURIComponent(name)}`, {
             data: {
+              public_access,
+              default_access,
               permissions: permissions
             }
           });
@@ -74,7 +78,7 @@ export const test = base.extend<TestFixture>({
           username,
           email: `${username}@example.com`,
           password,
-          isAdministrator: false,
+          level: "create",
         }),
         headers:{
           "Content-Type": "application/json",

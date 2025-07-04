@@ -1,7 +1,8 @@
 
-import { ConflictError } from "../../../utils/errors.js";
+import { BadRequestError, ConflictError } from "../../../utils/errors.js";
 import { getUserId, getUserManager, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
+import errors from "../../../vfs/helpers/errors.js";
 
 
 
@@ -14,7 +15,10 @@ import { Request, Response } from "express";
 export default async function patchScene(req :Request, res :Response){
   let user_id = getUserId(req);
   let {scene: sceneName} = req.params;
-  let {name, permissions, tags, archived} = req.body;
+  let {name, permissions, tags, archived, public_access, default_access, ...remainings} = req.body;
+  if (Object.keys(remainings).length!=0){
+    throw new BadRequestError("Unknowns keys: " + Object.keys(remainings).toString() );
+  }
   //Ensure all or none of the changes are comitted
   let result = await getVfs(req).isolate(async (vfs)=>{
     let scene = await vfs.getScene(sceneName, user_id);
@@ -28,7 +32,7 @@ export default async function patchScene(req :Request, res :Response){
       try{
         await vfs.renameScene(scene.id, name);
       }catch(e:any){
-        if(e.code == "SQLITE_CONSTRAINT" && /UNIQUE constraint failed: scenes.scene_name/.test(e.message)){
+        if(e.code == errors.unique_violation && e.constraint == "scenes_scene_name_key"){
           throw new ConflictError(`A scene named ${name} already exists`);
         }else{
           throw e;
@@ -58,6 +62,17 @@ export default async function patchScene(req :Request, res :Response){
       }
     }
 
+    if(public_access){
+      let userManager = getUserManager(req);
+      let {scene} = req.params;
+      await userManager.setPublicAccess(scene, public_access);
+    }
+
+    if(default_access){
+      let userManager = getUserManager(req);
+      let {scene} = req.params;
+      await userManager.setDefaultAccess(scene, default_access);
+    }
 
     return await vfs.getScene(scene.id, user_id);
   });

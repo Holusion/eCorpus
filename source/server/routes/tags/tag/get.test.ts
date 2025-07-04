@@ -1,6 +1,6 @@
 
 import request from "supertest";
-import User from "../../../auth/User.js";
+import User, { UserLevels } from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 
@@ -15,20 +15,13 @@ describe("GET /tags/:tag", function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
     user = await userManager.addUser("bob", "12345678");
     this.server.set("trust proxy", true);
   });
 
   this.afterEach(async function(){
     await cleanIntegrationContext(this);
-  });
-
-  it("requires authentication", async function(){
-    let s1 = await vfs.createScene("foo");
-    await vfs.addTag("foo", "footag");
-    await request(this.server).get("/tags/footag")
-    .expect(401);
   });
 
   describe("as user", function(){
@@ -51,17 +44,33 @@ describe("GET /tags/:tag", function(){
     });
 
     it("don't show private scenes", async function(){
-      let s1 = await vfs.createScene("public",  {"0": "none", "1": "read"});
+      let s1 = await vfs.createScene("public")
+      await userManager.setPublicAccess(s1, "read");
+      await userManager.setDefaultAccess(s1, "read");
+
       await vfs.addTag("public", "footag");
+
       let s2 = await vfs.createScene("personal", user.uid);
+      await userManager.setPublicAccess(s2, "none")
+
       await vfs.addTag("personal", "footag");
-      let s3 = await vfs.createScene("private", {[admin.uid]: "admin", "0": "none", "1": "none"});
+
+      let s3 = await vfs.createScene("private", admin.uid)
+      await userManager.setPublicAccess(s3, "none");
+      await userManager.setDefaultAccess(s3, "none");
+
       await vfs.addTag("private", "footag");
-      
-      let {body} = await this.agent.get("/tags/footag")
+
+      //Anonymous request
+      let res = await request(this.server).get("/tags/footag")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(body).to.have.property("length", 2);
+      expect(res.body.map((s:any)=>s.name)).to.deep.equal(["public"]);
+
+      res = await this.agent.get("/tags/footag")
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+      expect(res.body.map((s:any)=>s.name)).to.have.members(["public", "personal"]);
     });
 
     it("gets absolute URLs for thumbnails", async function(){

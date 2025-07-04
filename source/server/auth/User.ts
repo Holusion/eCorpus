@@ -1,8 +1,23 @@
 
+export enum UserLevels{
+  NONE=0,
+  USE=1,
+  CREATE=2,
+  MANAGE=3,
+  ADMIN=4,
+};
+
+export const UserRoles = ["none", "use", "create", "manage", "admin"] as const;
+export type UserRole = typeof UserRoles[number];
+
+export function isUserRole(s: string) :s is UserRole{
+  return UserRoles.indexOf(s as any) !== -1;
+}
+
+
 export interface SafeUser{
   uid :number;
-  isAdministrator ?:boolean;
-  isDefaultUser ?:boolean;
+  level: UserRole;
   username :string;
   email ?:string;
 }
@@ -12,32 +27,27 @@ export interface StoredUser{
   username :string;
   email :string|undefined;
   password :string|undefined;
-  isAdministrator :0|1;
+  level :UserLevels;
 }
 
 export default class User implements SafeUser {
   uid :number;
-  isAdministrator ?:boolean = false;
+  level: UserRole;
   username :string;
   email ?:string|undefined;
   password :string|undefined;
 
-  get isDefaultUser(){
-    return this.uid == 0;
-  }
 
-  constructor({username, password, uid, email, isAdministrator} :{
-    username:string, password?:string, uid:number, email?:string, isAdministrator?:boolean
+  constructor({username, password, uid, email, level} :{
+    username:string, password?:string, uid:number, email?:string, level?: UserRole
   } ){
     this.username = username;
     this.password = password;
-    this.isAdministrator = !!isAdministrator;
+    this.level = level || "create";
     this.uid = uid;
     this.email = email;
   }
-  static createDefault(){
-    return new User({uid: 0, username: "default", password: ""});
-  }
+
     /**
    * Make a user safe for export and public use (remove password field)
    */
@@ -46,8 +56,7 @@ export default class User implements SafeUser {
       uid: u.uid ?? 0,
       username: u.username ?? "default",
       email: u.email,
-      isAdministrator: !!u.isAdministrator,
-      isDefaultUser: u.isDefaultUser ?? true,
+      level: u.level || "none",
     };
   }
 }

@@ -21,11 +21,11 @@
       </form>
       {{/unless}}
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
-      {{#if user.isAdministrator}}
+      {{#if (test user.level "==" "admin")}}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
       <div class="divider"></div>
-      {{#if user.isDefaultUser}}
+      {{#if (test user.level "==" "none")}}
         {{#navLink (join "/auth/login/?redirect=" (encodeURI location)) 'title="/auth/login/"'}}{{i18n "nav.login"}}{{/navLink}}
       {{else if user.username}}
         {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}

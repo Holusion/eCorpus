@@ -2,7 +2,7 @@ import { randomBytes } from "crypto";
 import request from "supertest";
 import { expect } from "chai";
 
-import User from "../../../auth/User.js";
+import User, { UserLevels } from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 
@@ -16,7 +16,7 @@ describe("MKCOL /scenes/:scene", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
   });
   this.afterAll(async function(){

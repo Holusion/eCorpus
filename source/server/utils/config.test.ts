@@ -41,5 +41,16 @@ describe("config", function(){
       expect(opts).to.have.property("root_dir", "/app");
       expect(opts).to.have.property("files_dir", "/tmp/files");
     });
+
+    it("constructs postgres connection string from default environment variables", function(){
+      let opts = parse({
+        PGHOST: "example.com",
+        PGPORT: "9876",
+        PGUSER: "foo",
+        PGPASSWORD: "secret",
+        PGDATABASE: "my_database"
+      });
+      expect(opts).to.have.property("database_uri", "postgres://foo:secret@example.com:9876/my_database")
+    })
   });
 });
