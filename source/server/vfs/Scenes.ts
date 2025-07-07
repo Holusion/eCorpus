@@ -207,7 +207,6 @@ export default abstract class ScenesVfs extends BaseVfs{
           WHERE ${ScenesVfs._fragIsThumbnail()}
         )
       SELECT *
-
       FROM ( 
         SELECT 
           scenes.scene_id AS id,
@@ -221,7 +220,8 @@ export default abstract class ScenesVfs extends BaseVfs{
           COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
           COALESCE( users_acl.access_level, scenes.default_access) AS user_access,
           scenes.default_access AS default_access,
-          scenes.public_access AS public_access
+          scenes.public_access AS public_access,
+          MAX(ts_rank(ts_terms, to_tsquery(language::regconfig, '${match}'))) AS rank
         
         FROM 
           scenes
@@ -229,6 +229,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           LEFT JOIN docs ON docs.fk_scene_id = scene_id
           LEFT JOIN users ON scenes.fk_author_id = user_id
           LEFT JOIN tags ON tags.fk_scene_id = scene_id
+          INNER JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = scenes.scene_id)
           ${with_filter? "WHERE true": ""}
           ${typeof author === "number"? `AND fk_author_id = $4`:"" }
           ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
@@ -239,9 +240,10 @@ export default abstract class ScenesVfs extends BaseVfs{
             `: ""}
           ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
           
-          GROUP BY id, scene_name, username, access_level
+        GROUP BY id, scene_name, username, access_level
         )  as filtered_scenes
-      INNER JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = filtered_scenes.id)
+      WHERE rank > 0
+      ORDER BY rank DESC
       -- ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
