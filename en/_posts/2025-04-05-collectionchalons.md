@@ -3,14 +3,17 @@ title: Discover the Digital Reconstructions of the Column Statues of Notre-Dame-
 tags: [education]
 server: "https://ecorpus.holusion.com"
 scene: "NoceDeCana_Puzzle"
+excerpt: "Known for its collegiate church listed as a UNESCO World Heritage Site, Notre-Dame-en-Vaux is also renowned for its exceptional collection of medieval sculptures. Brought to light by Sylvia and Léon Pressouyre between 1963 and 1976, these remnants of a former cloister, now disappeared, bear witness to the transition between Romanesque and Gothic art in the 12th century. As part of an ambitious digital restoration project, the Cloister Museum of Notre-Dame-en-Vaux is reopening with an enriched eCorpus database featuring a new collection, where you can admire unprecedented reconstructions of the most iconic pieces among the masterpieces of Châlons-en-Champagne."
 ---
-
 <p>
 <b>Known for its collegiate church listed as a UNESCO World Heritage Site, Notre-Dame-en-Vaux</b> is also renowned for its exceptional collection of medieval sculptures. Brought to light by Sylvia and Léon Pressouyre between 1963 and 1976, these remnants of a former cloister, now disappeared, bear witness to the transition between Romanesque and Gothic art in the 12th century. As part of an ambitious digital restoration project, the Cloister Museum of Notre-Dame-en-Vaux is reopening with an enriched eCorpus database featuring a new collection, where you can admire unprecedented reconstructions of the most iconic pieces among the masterpieces of Châlons-en-Champagne.
 </p>
 
+
 <img style="object-position: 70% 0;" src="/assets/img/post/chalons_tablette.jpg" class="fluid"
     alt="View of a tablet displaying an eCorpus scene in the Notre-Dame-en-Vaux Museum">
+
+
 
 <section class="section">
     <div class="section">
@@ -67,6 +70,8 @@ scene: "NoceDeCana_Puzzle"
         This approach has demonstrated the potential of digital technology in research and heritage enhancement. Far from replacing or counterfeiting the irretrievably lost parts of the works, this process makes it possible to present and iterate reconstruction hypotheses that could ultimately advance scholarship and open new avenues for cultural mediation.
     </p>
     <a href="../../../collections#NotreDameEnVaux">Discover the digital collection of reconstructed stone works from the Notre-Dame-en-Vaux cloister</a>
+</section>
+
 <section class="section">
     <h3>Creating a True Lapidary Puzzle Through a Fragmentation Hypothesis</h3>
     <p>
@@ -90,6 +95,8 @@ scene: "NoceDeCana_Puzzle"
     {% include voyager.html server=page.server embed=page.scene class="h-100 larg100" %}
 
     </p>
+
+</section>
 <section class="section">
     <h3>Conclusion</h3>
     <p>
@@ -109,7 +116,7 @@ scene: "NoceDeCana_Puzzle"
         <table>
             <tbody>
             <tr>
-            <th colspan="3">The teams of the museums of Châlons-en-Champagne</th>
+            <th colspan="2">The teams of the museums of Châlons-en-Champagne</th>
             </tr>
                 <tr>
                     <td>Clémentine Lemire</td>
@@ -128,7 +135,7 @@ scene: "NoceDeCana_Puzzle"
                     <td>Mediator</td>
                 </tr>
                 <tr>
-                    <th colspan="3">INHA Pense: In Search of the Lost Cloister</th>
+                    <th colspan="2">INHA Pense: In Search of the Lost Cloister</th>
                 </tr>
                 <tr>
                     <td>Isabelle Périchaud</td>
@@ -139,7 +146,7 @@ scene: "NoceDeCana_Puzzle"
                     <td>Research Engineer</td>
                 </tr>
                 <tr>
-                <th colspan="3">Holusion</th>
+                <th colspan="">Holusion</th>
                 </tr>
                 <tr>
                     <td>Thibault Guillaumont</td>
@@ -154,7 +161,7 @@ scene: "NoceDeCana_Puzzle"
                     <td>Development of Digital Tools</td>
                 </tr>
             <tr>
-            <th colspan="3">Scientific Advisory Board</th>
+            <th colspan="2">Scientific Advisory Board</th>
             </tr>
                 <tr>
                     <td>Elise Bailleul</td>

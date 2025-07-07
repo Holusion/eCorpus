@@ -69,6 +69,7 @@ scene: "NoceDeCana_Puzzle"
         Cette démarche a pu démontrer les possibilités qu'offre le numérique dans le monde de la recherche et de la mise en valeur du patrimoine. Loin de remplacer ou contrefaire ces parties d'oeuvre à jamais perdue, ce procédé permet de présenter et d'itérer des hypothèses de reconstitutions qui pourraient, à terme, faire avancer la réflexion et ouvrir de nouvelles portes pour la médiation culturelle.
     </p>
     <a href="../../../collections#NotreDameEnVaux">Découvrir la Collection numérique des oeuvres lapidaires reconstituées du cloître de Notre-Dame-en-Vaux</a>
+</section>
 
 <section class="section">
     <h3>La réalisation d'un véritable Puzzle lapidaire via une hypothèse de fragmentation</h3>
@@ -93,6 +94,8 @@ scene: "NoceDeCana_Puzzle"
     {% include voyager.html server=page.server embed=page.scene class="h-100 larg100" %}
 
     </p>
+
+</section>
 <section class="section">
     <h3>Conclusion</h3>
     <p>
@@ -112,7 +115,7 @@ scene: "NoceDeCana_Puzzle"
         <table>
             <tbody>
             <tr>
-            <th colspan="3">Les équipes des musées de Châlons-en-Champagne</th>
+            <th colspan="2">Les équipes des musées de Châlons-en-Champagne</th>
             </tr>
                 <tr>
                     <td>Clémentine Lemire</td>
@@ -131,7 +134,7 @@ scene: "NoceDeCana_Puzzle"
                     <td>Médiatrice</td>
                 </tr>
                 <tr>
-                    <th colspan="3">INHA Pense : à la recherche du cloître perdu</th>
+                    <th colspan="2">INHA Pense : à la recherche du cloître perdu</th>
                 </tr>
                 <tr>
                     <td>Isabelle Périchaud</td>
@@ -142,7 +145,7 @@ scene: "NoceDeCana_Puzzle"
                     <td>Ingénieur de recherche</td>
                 </tr>
                 <tr>
-                <th colspan="3">Holusion</th>
+                <th colspan="2">Holusion</th>
                 </tr>
                 <tr>
                     <td>Thibault Guillaumont</td>
@@ -157,7 +160,7 @@ scene: "NoceDeCana_Puzzle"
                     <td>Développement des outils numériques</td>
                 </tr>
             <tr>
-            <th colspan="3">Conseil scientifique</th>
+            <th colspan="2">Conseil scientifique</th>
             </tr>
                 <tr>
                     <td>Elise Bailleul</td>
