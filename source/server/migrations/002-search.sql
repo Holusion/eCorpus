@@ -3,21 +3,13 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS scenes_search_terms (
-  fk_scene_id BIGINT REFERENCES scenes(scene_id),
+  fk_scene_id BIGINT REFERENCES scenes(scene_id) ON DELETE CASCADE,
   language regconfig NOT NULL,
   ts_terms tsvector,
   UNIQUE(fk_scene_id, language)
 );
 
 CREATE INDEX scenes_search_idx ON scenes_search_terms USING GIN (ts_terms);
-
--- aggregates tsvectors with the built-in concat function (backing the || operation)
-CREATE AGGREGATE tsvector_agg (
-  BASETYPE = pg_catalog.tsvector,
-  SFUNC = pg_catalog.tsvector_concat,
-  STYPE = pg_catalog.tsvector,
-  INITCOND = ''
-);
 
 -- create search configurations that maps voyager language names to a dictionary
 CREATE TEXT SEARCH CONFIGURATION public.EN (COPY = pg_catalog.english);
@@ -27,7 +19,7 @@ CREATE TEXT SEARCH CONFIGURATION public.NL (COPY = pg_catalog.dutch);
 CREATE TEXT SEARCH CONFIGURATION public.FR (COPY = pg_catalog.french);
 
 -- cast language codes to regconfig but instead of raising an error, default to 'simple' if dict does not exist 
-CREATE OR REPLACE FUNCTION cast_to_regconfig(text) RETURNS regconfig AS $$
+CREATE  FUNCTION cast_to_regconfig(text) RETURNS regconfig AS $$
 begin
     return cast($1 as regconfig);
 exception
@@ -40,7 +32,7 @@ $$ language 'plpgsql' IMMUTABLE;
 ALTER TABLE scenes ADD column meta JSONB;
 
 
-CREATE OR REPLACE FUNCTION parse_svx_scene(JSONB) RETURNS JSONB AS $$
+CREATE  FUNCTION parse_svx_scene(JSONB) RETURNS JSONB AS $$
 BEGIN
 RETURN jsonb_build_object(
       'titles', scene_titles,
@@ -71,101 +63,96 @@ RETURN jsonb_build_object(
 END
 $$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION update_search_terms(BIGINT) RETURNS VOID AS $$
+CREATE  FUNCTION update_search_terms(BIGINT) RETURNS VOID AS $$
 BEGIN
-  WITH 
-    scene AS (SELECT meta, scene_id FROM scenes WHERE scene_id = $1)
+
+  WITH --
+    scene AS (SELECT meta, scene_name, scene_id FROM scenes  WHERE scene_id =  $1),
+    articles AS (SELECT value as article FROM scene, jsonb_array_elements(scene.meta -> 'articles')),
+    annotations AS (SELECT value as annotation  FROM scene, jsonb_array_elements(scene.meta -> 'annotations')),
+    tours AS (SELECT value as tour  FROM scene, jsonb_array_elements(scene.meta -> 'tours'))
   INSERT INTO scenes_search_terms
   SELECT
     scene.scene_id,
     language,
+    setweight(to_tsvector(language, scene_name), 'A') ||
     setweight(to_tsvector(language, COALESCE((meta->'titles'-> language_string)::text , '')), 'A') ||
     setweight(to_tsvector(language, COALESCE((meta->'intros'-> language_string)::text , '')), 'B') ||
     setweight(to_tsvector(language, COALESCE((meta->'copyright'-> language_string)::text , '')), 'B')||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT articles_titles ->> language_string, ' '), '')), 'B') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT articles_leads ->> language_string, ' '), '')), 'C') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT articles.data, ' ') , '')), 'C') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT annotation_titles ->> language_string, ' '), '')), 'B') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT annotation_leads ->> language_string, ' '),  '')), 'C') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT tours_titles ->> language_string, ' '), '')), 'B') ||
-    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT tours_leads ->> language_string, ' '),  '')), 'C')  as ts_terms
+    setweight(to_tsvector(language, COALESCE(
+      (SELECT string_agg(article -> 'titles' ->> language_string, ' ') FROM articles)
+    , '')), 'B') ||
+    setweight(to_tsvector(language, COALESCE(
+      (SELECT string_agg(article -> 'leads' ->> language_string, ' ') FROM articles)
+    , '')), 'C') ||
+    setweight(to_tsvector(language, COALESCE(
+      (SELECT string_agg(annotation -> 'titles' ->> language_string, ' ') FROM annotations)
+    , '')), 'B') ||
+    setweight(to_tsvector(language, COALESCE(
+      (SELECT string_agg(annotation -> 'leads' ->> language_string, ' ') FROM annotations)
+    , '')), 'C') ||
+    setweight(to_tsvector(language, COALESCE(
+      (SELECT string_agg(tour -> 'titles' ->> language_string, ' ') FROM tours)
+    , '')), 'B') ||
+    setweight(to_tsvector(language, COALESCE(
+      (SELECT string_agg(tour -> 'leads' ->> language_string, ' ') FROM tours)
+    , '')), 'C') ||
+    setweight(to_tsvector(language, COALESCE( string_agg(DISTINCT articles_text.data, ' ') , '')), 'C')
+    as ts_terms
 
-  FROM --fixme: explicit cross joins to make this more readable?
+  FROM
     scene
-    CROSS JOIN LATERAL (SELECT language_string, cast_to_regconfig(language_string) as language FROM jsonb_array_elements_text(meta->'languages') as language_string) as lang,
-    jsonb_path_query(meta, 'lax $.articles[*].titles') as articles_titles,
-    jsonb_path_query(meta, 'lax $.articles[*].leads') as articles_leads,
-    jsonb_path_query(meta, 'lax $.articles[*].uris') as articles_uris,
-    jsonb_path_query(meta, 'lax $.annotations[*].titles') as annotation_titles,
-    jsonb_path_query(meta, 'lax $.annotations[*].leads') as annotation_leads,
-    jsonb_path_query(meta, 'lax $.tours[*].titles') as tours_titles,
-    jsonb_path_query(meta, 'lax $.tours[*].leads') as tours_leads
-    LEFT JOIN (SELECT data, name FROM current_files WHERE fk_scene_id = $1) as articles ON TRUE
-    WHERE articles.name = articles_uris ->> language_string
-  GROUP BY scene_id, language, language_string, meta
+    CROSS JOIN LATERAL (
+      SELECT language_string, cast_to_regconfig(language_string) as language 
+      FROM jsonb_array_elements_text(meta->'languages') as language_string
+      WHERE language_string IS NOT NULL
+    ) as lang
+    INNER JOIN current_files as articles_text ON (fk_scene_id = scene.scene_id AND data IS NOT NULL AND mime SIMILAR TO 'text/(plain|html)')
+  
+  GROUP BY scene.scene_id, scene.scene_name, scene.meta, language, language_string
   ON CONFLICT (fk_scene_id,language) DO UPDATE SET ts_terms = EXCLUDED.ts_terms
-;
+  ;
 END
 $$ LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION update_scene_meta() RETURNS TRIGGER AS $$
-BEGIN -- suprimme meta si data est nul, article mis à jour
-  RAISE WARNING 'update_scene_meta - start %' , NEW.name;
+CREATE FUNCTION update_scene_meta() RETURNS TRIGGER AS $$
+BEGIN
   IF ( NEW.mime = 'application/si-dpo-3d.document+json' ) THEN
     IF NEW.data IS NULL THEN 
-      RAISE WARNING 'update_scene_meta - data is null';
       UPDATE scenes
       SET meta = NULL
       WHERE scene_id = NEW.fk_scene_id;
     ELSE
-      RAISE WARNING 'update_scene_meta - data is NOT null';
       UPDATE scenes
       SET meta = parse_svx_scene(NEW.data::jsonb)
       WHERE scene_id = NEW.fk_scene_id;
     END IF;
   END IF;
   PERFORM update_search_terms(NEW.fk_scene_id);
-  RAISE WARNING 'update_scene_meta';
   RETURN NULL;
 END
 $$ LANGUAGE 'plpgsql';
 
 
 -- trigger when the scene file or an article is updated : call update_search_terms
-CREATE OR REPLACE TRIGGER update_search_terms_on_file_update AFTER INSERT ON files
+CREATE CONSTRAINT TRIGGER update_search_terms_on_file_update
+AFTER INSERT ON files
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW 
-WHEN (NEW.mime = 'application/si-dpo-3d.document+json' 
- OR NEW.mime LIKE 'text/%' 
-)  
+WHEN (NEW.name = 'scene.svx.json'
+ OR NEW.mime = 'text/plain' OR NEW.mime = 'text/html' 
+)
 EXECUTE FUNCTION update_scene_meta();
 
--- ensure indexes are up to date
--- ANALYZE;
--- LOAD 'auto_explain';
--- SET auto_explain.log_nested_statements = ON; 
--- SET auto_explain.log_min_duration = 1;       -- exclude very fast queries taking < 1 ms
--- SET auto_explain.log_analyze = ON;        -- log execution times, too? (expensive!)
 
+-- Retroactively update all existing scenes to add meta
+UPDATE scenes 
+SET meta = parse_svx_scene(documents.data::jsonb)
+FROM current_files as documents WHERE (fk_scene_id = scene_id AND name = 'scene.svx.json' AND data IS NOT NULL);
 
--- \timing on
+-- Fill-in search_terms table
 
--- SELECT COUNT(scene_id) 
--- FROM 
---   ( 
---     SELECT scenes.scene_id, current_files.data
---     FROM
---       scenes
---       INNER JOIN current_files ON (fk_scene_id = scene_id AND name = 'scene.svx.json')
---     WHERE scenes.archived IS NULL AND data IS NOT NULL
---     LIMIT 5
---   ) as scenes
---   CROSS JOIN LATERAL update_scene_meta(scene_id, data::jsonb)
--- ;
-
-
--- \timing off
--- SET auto_explain.log_nested_statements = OFF; 
 
 
 --------------------------------------------------------------------------------
@@ -180,8 +167,10 @@ DROP TEXT SEARCH CONFIGURATION public.FR;
 DROP INDEX scenes_search_idx;
 DROP TABLE scenes_search_terms;
 
-DROP AGGREGATE tsvector_agg(VARIADIC "tsvector");
+DROP TRIGGER IF EXISTS update_search_terms_on_file_update ON files CASCADE;
+
 DROP FUNCTION parse_svx_scene;
+DROP FUNCTION update_scene_meta;
 DROP FUNCTION update_search_terms;
 DROP FUNCTION cast_to_regconfig;
 
