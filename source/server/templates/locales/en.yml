@@ -55,6 +55,7 @@ fields:
   author: author
   mtime: last modification
   ctime: creation date
+  rank: relevance
   access: access rights
   none: none
   read: read
@@ -111,7 +112,7 @@ leads:
     Fill the form below to receive an email with a direct-login link
   linkSent: >
     A login link has been sent to this account's email address
-  noScene: >
+  noScenes: >
     Looks like you don't own any scenes yet. Search public scenes made by others in this instance or create your own!
   editScene: >
     Modify this scene with Voyager-Story

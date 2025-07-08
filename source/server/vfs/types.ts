@@ -101,7 +101,7 @@ export interface SceneQuery {
   match ?:string;
   offset ?:number;
   limit ?:number;
-  orderBy ?:"ctime"|"mtime"|"name";
+  orderBy ?:"ctime"|"mtime"|"name"|"rank";
   orderDirection ?:"asc"|"desc";
   /**
    * Returns all scenes when unset.

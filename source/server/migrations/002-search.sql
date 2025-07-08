@@ -44,8 +44,8 @@ RETURN jsonb_build_object(
       'languages', array_agg( DISTINCT languages)
     )
   FROM
-    jsonb_path_query($1, 'lax $.metas[1].collection.titles') as scene_titles
-    FULL JOIN jsonb_path_query($1, 'lax $.metas[1].collection.intros') as scene_intros ON TRUE
+    jsonb_path_query($1, ('lax $.metas[' || COALESCE($1->'scenes'->>'meta','0') || '].collection.titles')::jsonpath) as scene_titles
+    FULL JOIN jsonb_path_query($1, ('lax $.metas[' || COALESCE($1->'scenes'->>'meta','0') || '].collection.intros')::jsonpath) as scene_intros ON TRUE 
     FULL JOIN jsonb_path_query($1, 'lax $.assets.copyright') as scene_copyright ON TRUE
     FULL JOIN jsonb_path_query($1, 'lax $.models[*].annotations[*]') AS annotations ON TRUE
     FULL JOIN jsonb_path_query($1, 'lax $.metas[*].articles[*]') as articles ON TRUE
@@ -107,7 +107,7 @@ BEGIN
       FROM jsonb_array_elements_text(meta->'languages') as language_string
       WHERE language_string IS NOT NULL
     ) as lang
-    INNER JOIN current_files as articles_text ON (fk_scene_id = scene.scene_id AND data IS NOT NULL AND mime SIMILAR TO 'text/(plain|html)')
+    LEFT JOIN current_files as articles_text ON (fk_scene_id = scene.scene_id AND data IS NOT NULL AND mime SIMILAR TO 'text/(plain|html)')
   
   GROUP BY scene.scene_id, scene.scene_name, scene.meta, language, language_string
   ON CONFLICT (fk_scene_id,language) DO UPDATE SET ts_terms = EXCLUDED.ts_terms

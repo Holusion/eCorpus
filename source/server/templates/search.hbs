@@ -11,9 +11,10 @@
       <label class="form-item">
         {{i18n "labels.sortBy"}}
         <select name="orderBy" autocomplete="off" style="width:auto" form="search">
-          {{>inputs/option selected=params.orderBy value="mtime" text=(i18n "fields.mtime")}}
-          {{>inputs/option selected=params.orderBy value="ctime" text=(i18n "fields.ctime")}}
-          {{>inputs/option selected=params.orderBy value="name" text=(i18n "fields.name")}}
+          {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
+          {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
+          {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
+          {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
         </select>
       </label>
       <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold;">

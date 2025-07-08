@@ -141,7 +141,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
   const sceneParams = {
     match: match as string,
-    orderBy: (orderBy ?? "mtime") as any,
+    orderBy: (orderBy ?? (match ? "rank" : "mtime")) as any,
     orderDirection: (orderDirection?? (orderBy=="name"?"asc":"desc")) as any,
     access: accessTypes,
     limit: qsToInt(limit) ?? 25,

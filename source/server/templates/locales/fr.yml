@@ -56,6 +56,7 @@ fields:
   author: auteur
   mtime: dernière modification
   ctime: date de création
+  rank: pertinence
   access: droits d'accès
   none: aucun
   read: lecture
