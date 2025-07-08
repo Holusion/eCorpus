@@ -121,11 +121,10 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   static _validateSceneQuery(q :Readonly<SceneQuery|any>):SceneQuery{
     //Check various parameters compliance
-    if(Array.isArray(q.access)){
-      let badIndex = q.access.findIndex((a:any)=>AccessTypes.indexOf(a) === -1);
-      if(badIndex !== -1) throw new BadRequestError(`Bad access type requested : ${q.access[badIndex]}`);
+    if (typeof q.access !== "undefined" && (typeof q.access !== "string" || ["read", "write", "admin", "none"].indexOf(q.access.toLowerCase()) === -1)){
+      throw new BadRequestError(`Invalid access type requested : ${q.access}`);
     }
-    if(typeof q.author !== "undefined" && (!Number.isInteger(q.author) || q.author < 0)){
+    if(typeof q.author !== "undefined" &&  typeof q.author != "string"){
       throw new BadRequestError(`Invalid author filter request: ${q.author}`);
     }
 
@@ -142,7 +141,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(typeof q.orderDirection !== "undefined" && (typeof q.orderDirection !== "string" || ["asc", "desc"].indexOf(q.orderDirection.toLowerCase()) === -1)){
       throw new BadRequestError(`Invalid orderDirection: ${q.orderDirection}`);
     }
-    if(typeof q.orderBy !== "undefined" && (typeof q.orderBy !== "string" || ["ctime", "mtime", "name"].indexOf(q.orderBy.toLowerCase()) === -1)){
+    if(typeof q.orderBy !== "undefined" && (typeof q.orderBy !== "string" || ["ctime", "mtime", "name", "rank"].indexOf(q.orderBy.toLowerCase()) === -1)){
       throw new BadRequestError(`Invalid orderBy: ${q.orderBy}`);
     }
     if(typeof q.archived !== "undefined" && typeof q.archived != "boolean"){
@@ -166,20 +165,22 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
     
     const {access, author, match, limit = 10, offset = 0, orderBy = "name", orderDirection = "asc", archived}  = ScenesVfs._validateSceneQuery(q);
-    let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length  || typeof archived === "boolean";
-    
+    let with_filter = typeof user_id === "number" || match || typeof author === "string" || access?.length  || typeof archived === "boolean";
+
     const args = author? 
     [
       (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
       offset,
       limit,
+      match,
       author
     ] : [
       (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
       offset,
-      limit
+      limit,
+      match
     ] ;
-    const sortString = (orderBy == "name")? "LOWER(scene_name)": orderBy;
+    const sortString = (orderBy == "name")? "LOWER(name)": orderBy;
 
     let result = (await this.db.all<{
       id:string,
@@ -221,7 +222,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           COALESCE( users_acl.access_level, scenes.default_access) AS user_access,
           scenes.default_access AS default_access,
           scenes.public_access AS public_access,
-          MAX(ts_rank(ts_terms, to_tsquery(language::regconfig, '${match}'))) AS rank
+          MAX(ts_rank(ts_terms, websearch_to_tsquery(language::regconfig, $4))) AS rank
         
         FROM 
           scenes
@@ -229,9 +230,9 @@ export default abstract class ScenesVfs extends BaseVfs{
           LEFT JOIN docs ON docs.fk_scene_id = scene_id
           LEFT JOIN users ON scenes.fk_author_id = user_id
           LEFT JOIN tags ON tags.fk_scene_id = scene_id
-          INNER JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = scenes.scene_id)
+          LEFT JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = scenes.scene_id)
           ${with_filter? "WHERE true": ""}
-          ${typeof author === "number"? `AND fk_author_id = $4`:"" }
+          ${typeof author === "string"? `AND users.username = $5`:"" }
           ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
             OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
             )`:"AND scenes.public_access > 0"}
@@ -242,9 +243,8 @@ export default abstract class ScenesVfs extends BaseVfs{
           
         GROUP BY id, scene_name, username, access_level
         )  as filtered_scenes
-      WHERE rank > 0
-      ORDER BY rank DESC
-      -- ORDER BY ${sortString} ${orderDirection.toUpperCase()}
+      ${match? `WHERE rank > 0.00001`:""}
+      ORDER BY ${sortString} ${orderDirection.toUpperCase()}
       OFFSET $2
       LIMIT $3
       `

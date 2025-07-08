@@ -97,11 +97,11 @@ export interface DocProps extends FileProps{
 export interface SceneQuery {
   /** desired scene access level */
   access ?:AccessType;
-  author ?:number;
+  author ?:string;
   match ?:string;
   offset ?:number;
   limit ?:number;
-  orderBy ?:"ctime"|"mtime"|"name";
+  orderBy ?:"ctime"|"mtime"|"name"|"rank";
   orderDirection ?:"asc"|"desc";
   /**
    * Returns all scenes when unset.

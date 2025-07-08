@@ -3,7 +3,7 @@ import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrato
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
-import { AccessType } from "../../auth/UserManager.js";
+import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
@@ -74,7 +74,7 @@ routes.get("/", wrap(async (req, res)=>{
       limit: 4,
       orderBy: "mtime",
       orderDirection: "desc",
-      author: user.uid,
+      author: user.username,
       archived: false,
     }),
     await vfs.getScenes(user.uid,{
@@ -137,18 +137,21 @@ routes.get("/scenes", wrap(async (req, res)=>{
     orderBy,
     orderDirection,
     archived,
+    author,
   } = req.query;
-//  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
-  let accessTypes :AccessType = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
+  if ((! access )|| access == "none"){
+    access = undefined;
+  }
   const sceneParams = {
     match: match as string,
-    orderBy: (orderBy ?? "mtime") as any,
+    orderBy: (orderBy ?? (match ? "rank" : "mtime")) as any,
     orderDirection: (orderDirection?? (orderBy=="name"?"asc":"desc")) as any,
-    access: accessTypes,
+    access: access as any,
     limit: qsToInt(limit) ?? 25,
     offset: qsToInt(offset)?? 0,
     archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
+    author: author as string,
   };
   
   let scenes = (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req));
@@ -172,7 +175,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
   //Sanitize user input
   const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
-  if(!validatedParams.access) validatedParams.access = "read";
+  if((!validatedParams.access) && u.level != "admin") validatedParams.access = "read";
   res.render("search", {
     title: "eCorpus Search",
     scenes,
@@ -185,7 +188,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 routes.get("/user", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
-  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.uid});
+  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
   if(UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }

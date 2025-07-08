@@ -80,7 +80,7 @@ export default async function getScenes(req :Request, res :Response){
       limit: qsToInt(limit),
       offset: qsToInt(offset),
       archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
-      author: author_id,
+      author: author,
     });
   }
   

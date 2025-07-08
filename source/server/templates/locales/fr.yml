@@ -56,16 +56,19 @@ fields:
   author: auteur
   mtime: dernière modification
   ctime: date de création
+  rank: pertinence
   access: droits d'accès
   none: aucun
   read: lecture
   write: écriture
   admin: administration
-  limit: résultats par page
+  limit: Résultats par page
   ascendingOrder: ordre ascendant
   descendingOrder: ordre descendant
   tag: nom de la collection
   removeSpecificAccess: retirer l'accès spécifique
+  showOnlyMyScenes: Seulement mes scènes
+  myAccess: "Droit d'accès en :"
 nav:
   tags: collection
   login: connexion
@@ -85,7 +88,7 @@ titles:
   ctimeScenesSection: scènes ajoutées récemment
   upload: téléversement
   createScene: créer une nouvelle scène
-  tools: outils
+  tools: Outils
   search: Recherche
   recoverPassword: Connexion sans mot de passe
   userSettings: Paramètres utilisateur
