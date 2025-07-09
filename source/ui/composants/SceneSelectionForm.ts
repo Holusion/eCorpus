@@ -17,6 +17,11 @@ export default class SceneSelection extends LitElement{
     if(!dlink) return console.error(`Form has no download button`, form); 
 
     const updateButtons = ()=>{
+      if (this.selection.length==0){
+        dlink.setAttribute("disabled", "");
+      } else {
+        dlink.removeAttribute("disabled");
+      }
       if(!dlink) return console.error("No download link found in children");
       const t = new URL(dlink.href);
       t.searchParams.delete("id");
@@ -77,13 +82,6 @@ export default class SceneSelection extends LitElement{
       if(!(child instanceof HTMLFormElement)) continue;
       this.registerForm(child);
     }
-  }
-
-  protected update(changedProperties: PropertyValues): void {
-    if(changedProperties.has("selection")){
-      this.style.display = (this.selection.length == 0)? "none": "";
-    }
-    super.update(changedProperties);
   }
 
   protected render(){

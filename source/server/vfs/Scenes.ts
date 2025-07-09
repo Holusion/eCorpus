@@ -121,11 +121,10 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   static _validateSceneQuery(q :Readonly<SceneQuery|any>):SceneQuery{
     //Check various parameters compliance
-    if(Array.isArray(q.access)){
-      let badIndex = q.access.findIndex((a:any)=>AccessTypes.indexOf(a) === -1);
-      if(badIndex !== -1) throw new BadRequestError(`Bad access type requested : ${q.access[badIndex]}`);
+    if (typeof q.access !== "undefined" && (typeof q.access !== "string" || ["read", "write", "admin", "none"].indexOf(q.access.toLowerCase()) === -1)){
+      throw new BadRequestError(`Invalid access type requested : ${q.access}`);
     }
-    if(typeof q.author !== "undefined" && (!Number.isInteger(q.author) || q.author < 0)){
+    if(typeof q.author !== "undefined" &&  typeof q.author != "string"){
       throw new BadRequestError(`Invalid author filter request: ${q.author}`);
     }
 
@@ -166,8 +165,8 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
     
     const {access, author, match, limit = 10, offset = 0, orderBy = "name", orderDirection = "asc", archived}  = ScenesVfs._validateSceneQuery(q);
-    let with_filter = typeof user_id === "number" || match || typeof author === "number" || access?.length  || typeof archived === "boolean";
-    
+    let with_filter = typeof user_id === "number" || match || typeof author === "string" || access?.length  || typeof archived === "boolean";
+
     const args = author? 
     [
       (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
@@ -233,7 +232,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           LEFT JOIN tags ON tags.fk_scene_id = scene_id
           LEFT JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = scenes.scene_id)
           ${with_filter? "WHERE true": ""}
-          ${typeof author === "number"? `AND fk_author_id = $5`:"" }
+          ${typeof author === "string"? `AND users.username = $5`:"" }
           ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
             OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
             )`:"AND scenes.public_access > 0"}
