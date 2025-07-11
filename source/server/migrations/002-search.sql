@@ -32,41 +32,87 @@ $$ language 'plpgsql' IMMUTABLE;
 ALTER TABLE scenes ADD column meta JSONB;
 
 
-CREATE  FUNCTION parse_svx_scene(JSONB) RETURNS JSONB AS $$
+CREATE OR REPLACE FUNCTION parse_svx_scene(JSONB) RETURNS JSONB 
+STABLE RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS $$
+DECLARE
+  meta_idx integer;
+  scene_meta jsonb;
+  scene_titles jsonb;
+  scene_tours jsonb[];
+  scene_annotations jsonb[];
+  scene_articles jsonb[];
+  scene_languages text[];
 BEGIN
-RETURN jsonb_build_object(
-      'titles', scene_titles,
-      'intros', scene_intros,
-      'copyright', scene_copyright,
-      'articles', array_agg(DISTINCT jsonb_build_object('titles', articles -> 'titles', 'leads', articles->'leads', 'uris', articles->'uris')),
-      'annotations', array_agg(DISTINCT jsonb_build_object('titles', annotations -> 'titles', 'leads', annotations->'leads')),
-      'tours', array_agg(DISTINCT jsonb_build_object('titles', tours -> 'titles', 'leads', tours->'leads')),
-      'languages', array_agg( DISTINCT languages)
-    )
-  FROM
-    jsonb_path_query($1, ('lax $.metas[' || COALESCE($1->'scenes'->>'meta','0') || '].collection.titles')::jsonpath) as scene_titles
-    FULL JOIN jsonb_path_query($1, ('lax $.metas[' || COALESCE($1->'scenes'->>'meta','0') || '].collection.intros')::jsonpath) as scene_intros ON TRUE 
-    FULL JOIN jsonb_path_query($1, 'lax $.assets.copyright') as scene_copyright ON TRUE
-    FULL JOIN jsonb_path_query($1, 'lax $.models[*].annotations[*]') AS annotations ON TRUE
-    FULL JOIN jsonb_path_query($1, 'lax $.metas[*].articles[*]') as articles ON TRUE
-    FULL JOIN jsonb_path_query($1, 'lax $.setups[*].tours[*]') as tours ON TRUE
-    LEFT JOIN LATERAL jsonb_object_keys(
-      coalesce(annotations->'titles', '{}'::jsonb) ||
-      coalesce(annotations->'leads', '{}'::jsonb) ||
-      coalesce(articles->'titles', '{}'::jsonb) ||
-      coalesce(articles->'leads', '{}'::jsonb) ||
-      coalesce(scene_titles, '{}'::jsonb)
-    ) AS languages ON TRUE
 
-  GROUP BY scene_titles, scene_intros, scene_copyright
+  meta_idx = COALESCE(CAST($1->'scenes'->'meta' AS integer), 0);
+  scene_meta = $1 -> 'metas' -> meta_idx;
+  scene_titles = coalesce(scene_meta -> 'collection' -> 'titles', '{}'::jsonb);
+
+
+  SELECT array_agg( jsonb_strip_nulls( jsonb_build_object(
+    'titles', tour->'titles',
+    'leads', tour->'leads'
+  )))
+  INTO STRICT scene_tours
+  FROM
+    jsonb_array_elements($1 -> 'setups') AS setup,
+    jsonb_array_elements(setup -> 'tours') AS tour
   ;
+
+
+  SELECT array_agg( jsonb_strip_nulls( jsonb_build_object(
+    'titles', annotation->'titles',
+    'leads', annotation->'leads'
+  )))
+  INTO STRICT scene_annotations
+  FROM
+    jsonb_array_elements($1 -> 'models') AS model,
+    jsonb_array_elements(model -> 'annotations') AS annotation
+  ;
+
+  SELECT array_agg( jsonb_strip_nulls( jsonb_build_object(
+    'titles', article->'titles',
+    'leads', article->'leads',
+    'uris', article->'uris'
+  )))
+  INTO STRICT scene_articles
+  FROM 
+    jsonb_array_elements($1 -> 'metas') AS meta,
+    jsonb_array_elements(meta -> 'articles') AS article
+  ;
+
+  SELECT array_agg(DISTINCT keys.object_keys)
+  INTO STRICT scene_languages
+  FROM
+    unnest( scene_annotations || scene_articles ) as maps
+    CROSS JOIN LATERAL (
+      SELECT jsonb_object_keys(maps -> 'titles') AS object_keys
+      UNION
+      SELECT jsonb_object_keys(maps -> 'leads') AS object_keys
+      UNION
+      SELECT jsonb_object_keys(scene_titles) AS object_keys
+    ) as keys
+  ;
+
+  RETURN jsonb_strip_nulls( jsonb_build_object(
+    'titles', scene_titles,
+    'intros', scene_meta -> 'collection' -> 'intros',
+    'copyright', $1 -> 'assets' ->> 'copyright',
+    'articles', scene_articles,
+    'annotations', scene_annotations,
+    'tours', scene_tours,
+    'languages', COALESCE(scene_languages, ARRAY[]::text[]),
+    'primary_language', $1 -> 'setups' -> 0 -> 'language' ->> 'language'
+  ));
 END
 $$ LANGUAGE 'plpgsql';
 
 CREATE  FUNCTION update_search_terms(BIGINT) RETURNS VOID AS $$
 BEGIN
 
-  WITH --
+  WITH
     scene AS (SELECT meta, scene_name, scene_id FROM scenes  WHERE scene_id =  $1),
     articles AS (SELECT value as article FROM scene, jsonb_array_elements(scene.meta -> 'articles')),
     annotations AS (SELECT value as annotation  FROM scene, jsonb_array_elements(scene.meta -> 'annotations')),
