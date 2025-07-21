@@ -36,7 +36,6 @@ async function getDocument({scene, filepath, language}:GetDocumentParams){
     "id": uid(),
     "name": mesh?.name ?? scene,
     "model": 0,
-    "meta": 0
   } as any);
   document.scenes[0].nodes.push(document.nodes.length -1);
 
@@ -69,7 +68,9 @@ async function getDocument({scene, filepath, language}:GetDocumentParams){
         "FR": scene,
       }
     },
-  }]
+  }];
+  document.scenes[document.scene].meta = 0;
+
   return document
 }
 
