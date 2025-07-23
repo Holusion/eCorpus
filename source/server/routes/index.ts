@@ -17,7 +17,7 @@ import openDatabase from "../vfs/helpers/db.js";
 import Vfs from "../vfs/index.js";
 import defaultConfig from "../utils/config.js";
 import User from "../auth/User.js";
-import Templates from "../utils/templates.js";
+import Templates, { locales } from "../utils/templates.js";
 
 
 const debug = debuglog("pg:connect");
@@ -197,7 +197,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       "text/html": ()=>{
         res.status(404).render("error", { 
           error,
-          lang: req.acceptsLanguages(["en", "fr"]),
+          lang: req.acceptsLanguages(locales),
           user: getUser(req),
         });
       },

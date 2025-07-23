@@ -5,7 +5,7 @@ import User, { SafeUser, UserLevels } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
-import Templates from "./templates.js";
+import Templates, { AcceptedLocales } from "./templates.js";
 import { Config } from "./config.js";
 
 export interface AppLocals extends Record<string, any>{
@@ -25,7 +25,7 @@ export function getLocals(req :Request){
 export interface SessionData extends SafeUser{
   /** Expire date, in ms since epoch */
   expires?: number;
-  lang?: "fr"|"en";
+  lang?: AcceptedLocales;
 }
 
 export function getSession(req :Request){

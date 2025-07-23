@@ -47,28 +47,28 @@ export default abstract class FilesVfs extends BaseVfs{
     dataStream :DataStream, 
     params :WriteFileParams
   ) :Promise<FileProps>{
+    let file_name = (new Date()).toISOString()+"_"+uid(6);
+    let tmpfile = path.join(this.uploadsDir, file_name);
+    let handle = await fs.open(tmpfile, constants.O_RDWR|constants.O_CREAT|constants.O_EXCL);
+    let hashsum = createHash("sha256");
+    let size = 0;
+    try{
+      let ws = handle.createWriteStream();
+      await pipeline(
+        dataStream,
+        new Transform({
+          transform(chunk, encoding, callback){
+            hashsum.update(chunk);
+            size += chunk.length;
+            callback(null, chunk);
+          }
+        }),
+        ws,
+      );
+      let hash = hashsum.digest("base64url");
+      let destfile = path.join(this.objectsDir, hash);
 
-    return this.createFile(params, async ({id})=>{
-      let file_name = Uid.toString(id)+"_"+uid(6);
-      let tmpfile = path.join(this.uploadsDir, file_name);
-      let handle = await fs.open(tmpfile, constants.O_RDWR|constants.O_CREAT|constants.O_EXCL);
-      let hashsum = createHash("sha256");
-      let size = 0;
-      try{
-        let ws = handle.createWriteStream();
-        await pipeline(
-          dataStream,
-          new Transform({
-            transform(chunk, encoding, callback){
-              hashsum.update(chunk);
-              size += chunk.length;
-              callback(null, chunk);
-            }
-          }),
-          ws,
-        );
-        let hash = hashsum.digest("base64url");
-        let destfile = path.join(this.objectsDir, hash);
+      return await this.createFile(params, async ({id})=>{
         try{
           // It's always possible for the transaction to fail afterwards, creating a loose object
           // However it's not possible to safely clean it up without race conditions over any other row that may be referencing it
@@ -77,18 +77,12 @@ export default abstract class FilesVfs extends BaseVfs{
           if((e as any).code != "EEXIST") throw e;
           //If a file with the same hash exists, we presume it's the same file and don't overwrite it.
         }
-        await fs.unlink(tmpfile);
         return {hash, size};
-      }catch(e){
-         //istanbul ignore next
-         await fs.rm(tmpfile, {force: true}).catch(e=>console.error("Error while trying to remove tmpfile : ", e));
-         //istanbul ignore next
-         throw e; //Transaction will rollback
-      }finally{
-        await handle.close();
-      }
-    });
-    
+      });
+    }finally{
+      await handle.close();
+      await fs.unlink(tmpfile).catch(e=>console.error("Error while trying to remove tmpfile : ", e));
+    }
   }
 
 
@@ -126,7 +120,9 @@ export default abstract class FilesVfs extends BaseVfs{
 
     return await this.db.beginTransaction<FileProps>(async tr =>{
       let r = await tr.get<{id:number, generation: number, ctime: Date}>(`
-        WITH scene AS (SELECT scene_id FROM scenes WHERE ${typeof params.scene =="number"? "scene_id":"scene_name"} = $1 )
+        WITH 
+          scene AS (SELECT scene_id FROM scenes WHERE ${typeof params.scene =="number"? "scene_id":"scene_name"} = $1 ),
+          previous AS (SELECT FOR UPDATE MAX(generation) AS generation FROM files WHERE fk_scene_id = scene_id AND name = $2)
         INSERT INTO files (name, mime, data, hash, size, generation, fk_scene_id, fk_author_id)
         SELECT 
           $2 AS name,
@@ -134,12 +130,11 @@ export default abstract class FilesVfs extends BaseVfs{
           $4 AS data,
           $5 AS hash,
           $6 AS size,
-          COALESCE(
-          (SELECT MAX(generation) FROM files WHERE fk_scene_id = scene_id AND name = $2
-          ), 0) + 1 AS generation,
+          COALESCE(  previous.generation
+          , 0) + 1 AS generation,
           scene_id AS fk_scene_id,
           $7 AS fk_author_id
-        FROM scene
+        FROM scene, previous
         RETURNING 
           file_id as id,
           generation, 

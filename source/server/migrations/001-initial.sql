@@ -8,7 +8,10 @@ CREATE TABLE users (
   username TEXT NOT NULL UNIQUE COLLATE ignore_accent_case CHECK(3 <= length(username)),
   email TEXT UNIQUE,
   password CHAR(133),
-  level SMALLINT NOT NULL DEFAULT 1 CHECK(1 <= level AND level <= 4)
+  level SMALLINT NOT NULL DEFAULT 1 CHECK(1 <= level AND level <= 4),
+  first_name TEXT,
+  last_name TEXT,
+  uri TEXT
 );
 
 CREATE INDEX usernames ON users(username);
@@ -47,7 +50,7 @@ CREATE TABLE files (
   file_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   name TEXT NOT NULL,
   mime TEXT NOT NULL DEFAULT 'application/octet-stream',
-  generation INTEGER DEFAULT 1,
+  generation INTEGER NOT NULL DEFAULT 1,
   hash VARCHAR(43),
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   size BIGINT NOT NULL DEFAULT 0,
@@ -140,27 +143,79 @@ CREATE TRIGGER create_scene_default_folders AFTER INSERT ON scenes
 FOR EACH ROW
 EXECUTE FUNCTION create_default_folders_for_scene();
 
+-- designed for internal use only, to compute current_files faster
+CREATE TABLE current_generations(
+  fk_scene_id BIGINT NOT NULL, -- not REFERENCES because triggers on files will keep track of this
+  name TEXT NOT NULL,
+  generation INTEGER NOT NULL,
+  PRIMARY KEY (fk_scene_id, name),
+  FOREIGN KEY (fk_scene_id, name, generation) REFERENCES files(fk_scene_id, name, generation) ON DELETE CASCADE
+);
+
+-- since fk_scene_id is not a FOREIGN KEY
+-- CREATE INDEX generations_scene_ids ON current_generations(fk_scene_id);
+
+CREATE FUNCTION update_current_generation() RETURNS TRIGGER AS $$
+  BEGIN
+    INSERT INTO current_generations (
+      fk_scene_id,
+      name,
+      generation
+    ) 
+    VALUES (NEW.fk_scene_id, NEW.name, NEW.generation)
+    ON CONFLICT (fk_scene_id, name) DO UPDATE SET generation = EXCLUDED.generation;
+    RETURN NULL;
+  END
+$$ LANGUAGE plpgsql;
+
+-- files has just been created so it's a noop ipso facto
+-- However we keep it here for reference if we ever need to backfill generations
+INSERT INTO current_generations (
+    fk_scene_id,
+    name,
+    generation
+  ) 
+SELECT 
+  fk_scene_id,
+  name,
+  last.generation
+FROM (
+  SELECT fk_scene_id, name, MAX(generation) as generation 
+  FROM files
+  GROUP BY fk_scene_id, name) AS last
+INNER JOIN files USING(fk_scene_id, name, generation);
+
+
+-- delete contents of a folder when it is deleted
+CREATE TRIGGER on_file_insert AFTER INSERT ON files
+FOR EACH ROW 
+EXECUTE FUNCTION update_current_generation();
+
 
 CREATE VIEW current_files AS
-  SELECT 
-    files.*
-  FROM 
-    (
-      SELECT
-        MAX(generation) as generation,
-        name,
-        fk_scene_id
-      FROM files
-      GROUP BY name, fk_scene_id
-    ) AS gen
-    JOIN files USING(generation, fk_scene_id, name)
+  SELECT
+    files.file_id,
+    files.name,
+    files.mime,
+    current_generations.generation,
+    files.ctime,
+    files.hash,
+    files.size,
+    files.data,
+    files.fk_author_id,
+    files.fk_scene_id
+  FROM current_generations 
+  INNER JOIN files USING(fk_scene_id, name, generation)
 ;
+
 
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
 
 -- triggers and indexes are dropped when tables are dropped 
+
+DROP TABLE current_generations;
 
 DROP VIEW current_files;
 
@@ -183,5 +238,7 @@ DROP TABLE users CASCADE;
 DROP FUNCTION ensure_parent_folder_exists;
 DROP FUNCTION create_default_folders_for_scene;
 DROP FUNCTION delete_folder_content;
+
+DROP FUNCTION on_file_insert;
 
 DROP COLLATION ignore_accent_case;

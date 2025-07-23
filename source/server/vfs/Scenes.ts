@@ -7,6 +7,7 @@ import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery } from "./types.js";
 import errors, { expandSQLError } from "./helpers/errors.js";
 import { UserLevels } from "../auth/User.js";
+import { dicts } from "../utils/templates.js";
 
 
 export default abstract class ScenesVfs extends BaseVfs{
@@ -165,21 +166,56 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
     
     const {access, author, match, limit = 10, offset = 0, orderBy = (q.match? "rank" : "mtime"), orderDirection = (q.orderBy =="name"?"asc": "desc"), archived}  = ScenesVfs._validateSceneQuery(q);
-    let with_filter = typeof user_id === "number" || match || typeof author === "string" || access?.length  || typeof archived === "boolean";
 
-    const args = author? 
-    [
-      (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
+    let args :any[] = [ //Be careful with this, as arguments index are statically defined in the query
+      user_id,
       offset,
       limit,
-      match,
-      author
-    ] : [
-      (user_id? user_id.toString(10) : (access?.length? "0": undefined)),
-      offset,
-      limit,
-      match
-    ] ;
+    ];
+
+    let whereClause = `WHERE `;
+    if(typeof user_id == "number"){
+      whereClause += `(
+        (SELECT level FROM users WHERE user_id = $1 ) = ${UserLevels.ADMIN}
+        OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
+      )`
+    }else{
+      whereClause += "scenes.public_access > 0";
+    }
+
+    if(typeof author == "string"){
+      let idx = args.push(author);
+      whereClause+= ` AND users.username = $${idx}`;
+    }
+
+    if(typeof access != "undefined"){
+      let idx = args.push(toAccessLevel(access));
+      whereClause += ` AND GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= $${idx}`;
+    }
+
+    if(typeof archived === "boolean"){
+      whereClause +=` AND archived ${archived?"IS NOT":"IS"} NULL`;
+    }
+
+    let fromScenes = "scenes";
+    let withMatch = !!(typeof match === "string" && match.length);
+    if(withMatch){
+      let idx = args.push(match);
+      let list_idx = args.push(dicts);
+      fromScenes = `(
+        SELECT 
+          fk_scene_id,
+          MAX(ts_rank(ts_terms, websearch_to_tsquery(language::regconfig, $${idx}))) as rank
+        FROM 
+          (SELECT cast_to_regconfig(language) AS language FROM unnest($${list_idx}::text[]) as t(language)) AS static_languages
+          INNER JOIN scenes_search_terms USING(language)
+        WHERE ts_terms @@ websearch_to_tsquery(static_languages.language, $${idx})
+        GROUP BY fk_scene_id
+      ) as matching_scenes
+      INNER JOIN scenes ON fk_scene_id = scene_id`;
+    }
+
+
     const sortString = (orderBy == "name")? "LOWER(name)": orderBy;
 
     let result = (await this.db.all<{
@@ -196,59 +232,37 @@ export default abstract class ScenesVfs extends BaseVfs{
       public_access: number,
       archived: Date|null,
     }>(
-      `WITH 
-        docs AS (
-          SELECT ctime AS mtime, fk_scene_id
-          FROM current_files
-          WHERE mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL
-        ),
-        thumbnails AS (
-          SELECT name, ctime, fk_scene_id
-          FROM current_files
-          WHERE ${ScenesVfs._fragIsThumbnail()}
-        )
+      `
       SELECT id, name, ctime, archived, mtime, author_id, author, thumb, tags, user_access, default_access, public_access
-      FROM ( 
-        SELECT 
+      FROM (
+        SELECT
+          ${withMatch? "MAX(rank) as rank," : ""}
           scenes.scene_id AS id,
           scenes.scene_name AS name,
           scenes.ctime AS ctime,
           scenes.archived AS archived,
-          MAX(COALESCE(docs.mtime, scenes.ctime)) as mtime,
+          MAX(COALESCE(documents.ctime, scenes.ctime)) as mtime,
           scenes.fk_author_id AS author_id,
           COALESCE(users.username, 'default') AS author,
-          (SELECT name FROM thumbnails WHERE fk_scene_id = scene_id ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
+          (SELECT name FROM current_files WHERE fk_scene_id = scenes.scene_id AND (${ScenesVfs._fragIsThumbnail()}) ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
           COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
           COALESCE( users_acl.access_level, scenes.default_access) AS user_access,
           scenes.default_access AS default_access,
-          scenes.public_access AS public_access,
-          MAX(ts_rank(ts_terms, websearch_to_tsquery(language::regconfig, $4))) AS rank
-        
+          scenes.public_access AS public_access
         FROM 
-          scenes
+          ${fromScenes}
           LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
-          LEFT JOIN docs ON docs.fk_scene_id = scene_id
+          LEFT JOIN current_files as documents ON (documents.fk_scene_id = scene_id AND mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL)
           LEFT JOIN users ON scenes.fk_author_id = user_id
           LEFT JOIN tags ON tags.fk_scene_id = scene_id
-          LEFT JOIN scenes_search_terms ON (scenes_search_terms.fk_scene_id = scenes.scene_id)
-          ${with_filter? "WHERE true": ""}
-          ${typeof author === "string"? `AND users.username = $5`:"" }
-          ${typeof user_id === "number"? `AND ( (SELECT level FROM users WHERE user_id=${user_id} ) = ${UserLevels.ADMIN}
-            OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
-            )`:"AND scenes.public_access > 0"}
-          ${access? `AND
-            GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel(access)}
-            `: ""}
-          ${typeof archived === "boolean"? `AND archived ${archived?"IS NOT":"IS"} NULL`:""}
-          
+        ${whereClause}
         GROUP BY id, scene_name, username, access_level
-        )  as filtered_scenes
+        )  as matched_scenes
       ${match? `WHERE rank > 0.00001`:""}
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}, name ASC
       OFFSET $2
       LIMIT $3
       `
-      
   , args));
 
     return result.map(({id, user_access, default_access, public_access, ...m})=>({
