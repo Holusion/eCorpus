@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, validateRedirect, isAdministrator, getUserManager, canAdmin } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -32,6 +32,7 @@ routes.use("/", (req :Request, res:Response, next)=>{
  */
 export function useTemplateProperties(req :Request, res:Response, next?:NextFunction){
   const session = getSession(req);
+  const {config} = getLocals(req);
   const user = getUser(req);
   const {search} = req.query;
   const lang = session?.lang ?? (req.acceptsLanguages(["fr", "en", "cimode"]) || "en");
@@ -44,7 +45,8 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
     user: user,
     location: req.originalUrl,
     search,
-  })
+    brand: config.brand,
+  });
   if(next) next();
 }
 

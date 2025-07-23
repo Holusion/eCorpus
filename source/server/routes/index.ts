@@ -156,6 +156,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   app.use("/users", (await import("./users/index.js")).default);
   app.use("/tags", (await import("./tags/index.js")).default);
   
+  app.get("/opensearch.xml", (await import("./opensearch.js")).renderOpenSearch);
 
   /**
    * Redirects for previous routes under /api/v1 prefix
