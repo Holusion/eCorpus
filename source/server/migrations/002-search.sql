@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS scenes_search_terms (
 );
 
 CREATE INDEX scenes_search_idx ON scenes_search_terms USING GIN (ts_terms);
-
+CREATE INDEX scenes_search_languages ON scenes_search_terms(language);
 -- create search configurations that maps voyager language names to a dictionary
 CREATE TEXT SEARCH CONFIGURATION public.EN (COPY = pg_catalog.english);
 CREATE TEXT SEARCH CONFIGURATION public.ES (COPY = pg_catalog.spanish);
@@ -19,9 +19,9 @@ CREATE TEXT SEARCH CONFIGURATION public.NL (COPY = pg_catalog.dutch);
 CREATE TEXT SEARCH CONFIGURATION public.FR (COPY = pg_catalog.french);
 
 -- cast language codes to regconfig but instead of raising an error, default to 'simple' if dict does not exist 
-CREATE  FUNCTION cast_to_regconfig(text) RETURNS regconfig AS $$
+CREATE FUNCTION cast_to_regconfig(text) RETURNS regconfig AS $$
 begin
-    return cast($1 as regconfig);
+    return cast(UPPER($1) as regconfig);
 exception
     when undefined_object then
         return 'simple'::regconfig;

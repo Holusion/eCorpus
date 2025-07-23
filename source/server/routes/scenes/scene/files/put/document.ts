@@ -1,12 +1,11 @@
-import {inspect} from "util";
-import path from "path";
+import {debuglog} from 'util';
 import { Request, Response } from "express";
 
 import * as merge from "../../../../../utils/merge/index.js";
 import { BadRequestError } from "../../../../../utils/errors.js";
 import { getLocals, getUserId, getVfs } from "../../../../../utils/locals.js";
 
-
+const debug = debuglog("http:body");
 /**
  * Special handler for svx files to disallow the upload of invalid JSON.
  * @todo Should check against the official json schema using ajv
@@ -20,8 +19,10 @@ export default async function handlePutDocument(req :Request, res :Response){
   const refId = newDoc?.asset?.id;
   if(typeof refId !== "undefined") delete newDoc.asset.id; //Don't write this to DB
 
-  if(typeof newDoc !== "object"|| !Object.keys(newDoc).length) throw new BadRequestError(`Invalid json document`);
-
+  if(typeof newDoc !== "object"|| !Object.keys(newDoc).length){
+    debug("Bad JSON body:", JSON.stringify(newDoc, null, 2));
+    throw new BadRequestError(`Invalid json document`);
+  }
   if(!refId || !config.enable_document_merge){
     await getVfs(req).writeDoc(JSON.stringify(newDoc), {scene: scene, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     return res.status(204).send();

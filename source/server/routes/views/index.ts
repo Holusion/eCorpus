@@ -8,6 +8,7 @@ import ScenesVfs from "../../vfs/Scenes.js";
 import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { UserRoles } from "../../auth/User.js";
+import { locales } from "../../utils/templates.js";
 
 
 
@@ -35,7 +36,7 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
   const session = getSession(req);
   const user = getUser(req);
   const {search} = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(["fr", "en", "cimode"]) || "en");
+  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
   Object.assign(res.locals, {
     lang,
     languages: [
