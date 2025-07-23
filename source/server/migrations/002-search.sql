@@ -40,6 +40,7 @@ DECLARE
   meta_idx integer;
   scene_meta jsonb;
   scene_titles jsonb;
+  scene_intros jsonb;
   scene_tours jsonb[];
   scene_annotations jsonb[];
   scene_articles jsonb[];
@@ -49,6 +50,7 @@ BEGIN
   meta_idx = COALESCE(CAST($1->'scenes'->'meta' AS integer), 0);
   scene_meta = $1 -> 'metas' -> meta_idx;
   scene_titles = coalesce(scene_meta -> 'collection' -> 'titles', '{}'::jsonb);
+  scene_intros = coalesce(scene_meta -> 'collection' -> 'intros', '{}'::jsonb);
 
 
   SELECT array_agg( jsonb_strip_nulls( jsonb_build_object(
@@ -83,23 +85,26 @@ BEGIN
     jsonb_array_elements(meta -> 'articles') AS article
   ;
 
-  SELECT array_agg(DISTINCT keys.object_keys)
+  SELECT array_agg(DISTINCT object_keys)
   INTO STRICT scene_languages
   FROM
-    unnest( scene_annotations || scene_articles ) as maps
-    CROSS JOIN LATERAL (
-      SELECT jsonb_object_keys(maps -> 'titles') AS object_keys
-      UNION
-      SELECT jsonb_object_keys(maps -> 'leads') AS object_keys
-      UNION
-      SELECT jsonb_object_keys(scene_titles) AS object_keys
-    ) as keys
+    (( SELECT keys.object_keys FROM
+      unnest( scene_annotations || scene_articles || scene_tours ) as maps
+      CROSS JOIN LATERAL (
+        SELECT jsonb_object_keys(maps -> 'titles') AS object_keys
+        UNION
+        SELECT jsonb_object_keys(maps -> 'leads') AS object_keys
+      )  AS keys
+    ) 
+    UNION SELECT jsonb_object_keys(scene_titles) AS object_keys
+    UNION SELECT jsonb_object_keys(scene_intros) AS object_keys)
+    AS object_keys
   ;
 
   RETURN jsonb_strip_nulls( jsonb_build_object(
     'titles', scene_titles,
-    'intros', scene_meta -> 'collection' -> 'intros',
-    'copyright', $1 -> 'assets' ->> 'copyright',
+    'intros', scene_intros,
+    'copyright', $1 -> 'asset' ->> 'copyright',
     'articles', scene_articles,
     'annotations', scene_annotations,
     'tours', scene_tours,
@@ -124,7 +129,7 @@ BEGIN
     setweight(to_tsvector(language, scene_name), 'A') ||
     setweight(to_tsvector(language, COALESCE((meta->'titles'-> language_string)::text , '')), 'A') ||
     setweight(to_tsvector(language, COALESCE((meta->'intros'-> language_string)::text , '')), 'B') ||
-    setweight(to_tsvector(language, COALESCE((meta->'copyright'-> language_string)::text , '')), 'B')||
+    setweight(to_tsvector(language, COALESCE((meta->'copyright')::text , '')), 'B')||
     setweight(to_tsvector(language, COALESCE(
       (SELECT string_agg(article -> 'titles' ->> language_string, ' ') FROM articles)
     , '')), 'B') ||

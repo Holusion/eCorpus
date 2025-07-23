@@ -164,7 +164,7 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScenes(user_id:null, q :SceneQuery) :Promise<Scene[]>;
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
     
-    const {access, author, match, limit = 10, offset = 0, orderBy = "name", orderDirection = "asc", archived}  = ScenesVfs._validateSceneQuery(q);
+    const {access, author, match, limit = 10, offset = 0, orderBy = (q.match? "rank" : "mtime"), orderDirection = (q.orderBy =="name"?"asc": "desc"), archived}  = ScenesVfs._validateSceneQuery(q);
     let with_filter = typeof user_id === "number" || match || typeof author === "string" || access?.length  || typeof archived === "boolean";
 
     const args = author? 
@@ -207,7 +207,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           FROM current_files
           WHERE ${ScenesVfs._fragIsThumbnail()}
         )
-      SELECT *
+      SELECT id, name, ctime, archived, mtime, author_id, author, thumb, tags, user_access, default_access, public_access
       FROM ( 
         SELECT 
           scenes.scene_id AS id,
