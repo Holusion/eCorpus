@@ -44,7 +44,7 @@ db_uri.password = process.env["PGPASSWORD"]?? "";
 
 
 global.getUniqueDb = async function(name?: string){
-  const dbname = name? name.replace(/[^\w]/g, "_"): `eCorpus_test_${randomBytes(4).toString("hex")}`;
+  const dbname = name? name.replace(/[^\w]/g, "_")+"_"+randomBytes(2).toString("hex"): `eCorpus_test_${randomBytes(4).toString("hex")}`;
   const client = new Client({connectionString: new URL(`/postgres`, db_uri).toString()});
   await client.connect();
   try{
