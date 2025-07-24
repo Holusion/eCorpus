@@ -88,16 +88,17 @@ BEGIN
   SELECT array_agg(DISTINCT object_keys)
   INTO STRICT scene_languages
   FROM
-    (( SELECT object_keys FROM
+    (( SELECT keys.object_keys FROM
       unnest( scene_annotations || scene_articles || scene_tours ) as maps
       CROSS JOIN LATERAL (
         SELECT jsonb_object_keys(maps -> 'titles') AS object_keys
         UNION
         SELECT jsonb_object_keys(maps -> 'leads') AS object_keys
-      ) 
+      )  AS keys
     ) 
     UNION SELECT jsonb_object_keys(scene_titles) AS object_keys
     UNION SELECT jsonb_object_keys(scene_intros) AS object_keys)
+    AS object_keys
   ;
 
   RETURN jsonb_strip_nulls( jsonb_build_object(
