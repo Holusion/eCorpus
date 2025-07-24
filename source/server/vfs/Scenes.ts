@@ -244,7 +244,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         GROUP BY id, scene_name, username, access_level
         )  as filtered_scenes
       ${match? `WHERE rank > 0.00001`:""}
-      ORDER BY ${sortString} ${orderDirection.toUpperCase()}
+      ORDER BY ${sortString} ${orderDirection.toUpperCase()}, name ASC
       OFFSET $2
       LIMIT $3
       `
