@@ -1,0 +1,54 @@
+name: Test
+on:
+  push:
+    branches:
+      - '**'
+      - '!gh_pages'
+    paths:
+      - 'source/voyager/source/client/schema/**'
+      - 'source/server/util/schema/**'
+jobs:
+  check_interfaces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16
+          cache: 'npm'
+      
+      - name: install dependencies
+        run: |
+          npm i typescript
+      - name: create tsconfig
+        run: |
+          cat <<_EOF > tsconfig.json
+          {
+            "compilerOptions": {
+              "target": "es2017",
+              "module": "es2015",
+              "noEmit": true,
+              "esModuleInterop": true,
+              "moduleResolution": "node",
+              "baseUrl": "..",
+              "paths": {
+                "@ff/core/*": [ "./source/voyager/libs/ff-core/source/*" ],
+              }
+            },
+              "include":["compare.ts"]
+          }
+          _EOF
+      - name: create compare file
+        run: |
+          cat <<_EOF > compare.ts
+          import type {IMeta as VoyagerMeta} from "./source/voyager/source/client/schema/meta.js";
+          import {IMeta as ServerMeta} from "./source/server/utils/schema/meta.js";
+
+          const stest = {} as Record<keyof ServerMeta, any> satisfies Record<keyof VoyagerMeta, any>;
+          const vtest = {} as Record<keyof Required<VoyagerMeta>, any> satisfies Record<keyof ServerMeta, any>;
+          _EOF
+      - name: run static analysis
+        run: |
+          npx tsc -b .
