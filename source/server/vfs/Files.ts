@@ -121,8 +121,18 @@ export default abstract class FilesVfs extends BaseVfs{
     return await this.db.beginTransaction<FileProps>(async tr =>{
       let r = await tr.get<{id:number, generation: number, ctime: Date}>(`
         WITH 
-          scene AS (SELECT scene_id FROM scenes WHERE ${typeof params.scene =="number"? "scene_id":"scene_name"} = $1 ),
-          previous AS (SELECT FOR UPDATE MAX(generation) AS generation FROM files WHERE fk_scene_id = scene_id AND name = $2)
+          cte_scene AS MATERIALIZED (
+            SELECT scene_id
+            FROM scenes
+            WHERE ${typeof params.scene =="number"? "scene_id":"scene_name"} = $1
+          ),
+          cte_current_file AS (
+            SELECT generation, fk_scene_id AS scene_id
+            FROM cte_scene
+            INNER JOIN current_generations ON fk_scene_id = cte_scene.scene_id
+            WHERE name = $2
+            FOR UPDATE
+          )
         INSERT INTO files (name, mime, data, hash, size, generation, fk_scene_id, fk_author_id)
         SELECT 
           $2 AS name,
@@ -130,14 +140,15 @@ export default abstract class FilesVfs extends BaseVfs{
           $4 AS data,
           $5 AS hash,
           $6 AS size,
-          COALESCE(  previous.generation
+          COALESCE(  generation
           , 0) + 1 AS generation,
-          scene_id AS fk_scene_id,
+          cte_scene.scene_id AS fk_scene_id,
           $7 AS fk_author_id
-        FROM scene, previous
+        FROM cte_scene
+        LEFT JOIN cte_current_file USING(scene_id)
         RETURNING 
           file_id as id,
-          generation, 
+          generation,
           ctime
       `, [
         params.scene,
@@ -148,14 +159,14 @@ export default abstract class FilesVfs extends BaseVfs{
         fileParams.size,
         params.user_id || null,
       ]);
-      if(!r) throw new NotFoundError(`Can't find a scene named ${params.scene}`);
+      if(!r) throw new NotFoundError(`Can't find a scene ${typeof params.scene === "number"?"with id": "named"} ${params.scene}`);
 
-      let {id, generation, ctime} = r;
+      let {id: newfile_id, generation, ctime} = r;
       
       if(typeof theFile === "function"){
-        fileParams = await theFile({id, tr});
+        fileParams = await theFile({id: newfile_id, tr});
         if(fileParams?.hash || fileParams?.size){
-          let setHash = await tr.run(`UPDATE files SET hash = $1, size = $2 WHERE file_id = $3`, [fileParams.hash, fileParams.size, id]);
+          let setHash = await tr.run(`UPDATE files SET hash = $1, size = $2 WHERE file_id = $3`, [fileParams.hash, fileParams.size, newfile_id]);
           if(setHash.changes != 1) throw new InternalError(`Failed to update file hash`);
         }
       }
@@ -163,7 +174,7 @@ export default abstract class FilesVfs extends BaseVfs{
       let author = await tr.get(`SELECT username FROM users WHERE user_id = $1`,[params.user_id]);
       return {
         generation,
-        id: id,
+        id: newfile_id,
         ctime,
         mtime: ctime,
         size : fileParams.size,
