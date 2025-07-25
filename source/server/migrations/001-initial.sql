@@ -152,9 +152,6 @@ CREATE TABLE current_generations(
   FOREIGN KEY (fk_scene_id, name, generation) REFERENCES files(fk_scene_id, name, generation) ON DELETE CASCADE
 );
 
--- since fk_scene_id is not a FOREIGN KEY
--- CREATE INDEX generations_scene_ids ON current_generations(fk_scene_id);
-
 CREATE FUNCTION update_current_generation() RETURNS TRIGGER AS $$
   BEGIN
     INSERT INTO current_generations (
