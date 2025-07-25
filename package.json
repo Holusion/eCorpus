@@ -18,8 +18,10 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "eslint": "^9.31.0",
     "nodemon": "^3.1.9",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.38.0",
     "webpack": "^5.88.1",
     "webpack-cli": "^4.9.2"
   },
