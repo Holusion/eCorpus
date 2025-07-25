@@ -112,6 +112,28 @@ jobs:
     name: Test End-to-End
     runs-on: ubuntu-latest
     needs: [ pack ]
+
+    services:
+      postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 1s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGPASSWORD: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
     steps:
       - uses: actions/checkout@v4
         with:
