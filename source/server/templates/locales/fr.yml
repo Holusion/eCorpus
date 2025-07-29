@@ -32,6 +32,7 @@ labels:
   restore: Restaurer
   publicAccess: Accès public
   defaultAccess: Accès par défaut
+  copyright: "Copyright :"
 
 buttons:
   searchScene: chercher une scène
@@ -133,6 +134,9 @@ leads:
     Vous pouvez restaurer cette scène en cliquant sur le bouton ci-contre
   thumbnailFor: >
     Image miniature pour {{what}}
+  tours_zero: "aucune visite guidée"
+  tours_one: "{{count}} visite guidée"
+  tours_other: "{{count}} visites guidées"
   articles_zero: "aucun article"
   articles_one: "{{count}} article"
   articles_other: "{{count}} articles"
@@ -140,7 +144,7 @@ leads:
   annotations_one: "{{count}} annotation"
   annotations_other: "{{count}} annotations"
   sceneCounts: >
-    $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations, {"count": {{annotations}}}) dans cette scène
+    $t(leads.tours, {"count":{{tours}} }), $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations, {"count": {{annotations}}}) dans cette scène
   noMetaAvailable: >
     Aucune métadonnée n'a pu être extraite de cette scène
   historyEdition: |
