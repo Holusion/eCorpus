@@ -2,6 +2,8 @@ import { Request } from "express";
 import {ReadStream} from "fs";
 import {Readable} from "stream";
 import { AccessType } from "../auth/UserManager.js";
+import { Dictionary } from "../utils/schema/types.js";
+import { TLanguageType } from "../utils/schema/common.js";
 
 
 export type DataStream = Readable|ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;
@@ -84,6 +86,19 @@ export interface Scene extends ItemProps{
   public_access: AccessType;
   default_access : AccessType;
   archived: Date|null;
+}
+
+export interface SceneMeta{
+  titles?:Dictionary<string>;
+  intros?:Dictionary<string>;
+  copyright?:string;
+  articles?: {uris: Dictionary<string>, leads: Dictionary<string>, titles: Dictionary<string>}[];
+  annotation?: {titles: Dictionary<string>, leads: Dictionary<string>};
+  tours?: {titles: Dictionary<string>, leads: Dictionary<string>};
+  languages?:string[];
+  primary_language?: string;
+  primary_title?: string;
+  primary_intro?: string;
 }
 
 export interface DocProps extends FileProps{
