@@ -1,7 +1,10 @@
 import { INode } from "../../schema/document.js";
 import { DerefNode, SOURCE_INDEX } from "./types.js";
 
-
+/**
+ * changes a snapshot target by replacing indices with ids where possible
+ * @returns 
+ */
 export function mapTarget(target :string, nodes :DerefNode[]){
   const [root, indexString, ...propPath] = target.split("/");
   const index = parseInt(indexString);
@@ -34,8 +37,15 @@ export function unmapTarget(target :string, nodes :INode[]){
   }
 
   let index :number|undefined;
-  const nodeIndex = nodes.findIndex(n=>n.id === id);
-  if(nodeIndex === -1) throw new Error(`can't find node with id : ${id} (in ${target})`);
+  let nodeIndex: number;
+  
+  if(id.startsWith("#")){
+    nodeIndex = parseInt(id.slice(1));
+    if(!Number.isInteger(nodeIndex) || (typeof nodes[nodeIndex] === "undefined")) throw new Error(`Invalid node index : ${id.slice(1)}`);
+  }else{
+    nodeIndex = nodes.findIndex(n=>n.id === id);
+    if(nodeIndex === -1) throw new Error(`can't find node with id : ${id} (in ${target})`);
+  }
   
   if(root == "node"){
     index = nodeIndex;
@@ -44,7 +54,6 @@ export function unmapTarget(target :string, nodes :INode[]){
   } if(root == "light"){
     index = nodes[nodeIndex].light;
   }
-
   if(typeof index !== "number") throw new Error(`Invalid pathMap: ${target} does not point to a valid ${root} reference`);
   return `${root}/${index}/${propPath.join("/")}`;
 }

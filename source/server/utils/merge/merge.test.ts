@@ -88,11 +88,11 @@ describe("merge documents", function(){
 
       const exp = JSON.parse(JSON.stringify(next));
       const d = diffDoc(doc, next);
-      console.log("Diff :", JSON.stringify(d, null, 2));
+      //console.log("Diff :", JSON.stringify(d, null, 2));
 
       const result = applyDoc(doc, d);
 
-      console.log("Merged doc :", JSON.stringify(result.setups![0].tours, null, 2));
+      //console.log("Merged doc :", JSON.stringify(result.setups![0].tours, null, 2));
       expect(result).to.deep.equal(exp);
     });
 

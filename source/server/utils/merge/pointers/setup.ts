@@ -17,8 +17,10 @@ export function appendSetup(document :Required<IDocument>, {tours: toursMap, sna
   
   if(snapshots){
     const targetStrings = Object.keys(snapshots.targets)
-      .map(k=> Object.keys(snapshots.targets[k]).map(prop=>`${k}/${prop}`))
+      .map(k => Object.entries(snapshots.targets[k]).map(([prop, index])=>({value:`${k}/${prop}`, index})))
       .flat()
+      .sort((a, b)=>a.index - b.index)
+      .map(e=>e.value);
     const targets = targetStrings.map(t=>unmapTarget(t, document.nodes));
     iSetup.snapshots = {
       ...snapshots,
@@ -40,27 +42,25 @@ export function mapSetup({tours, snapshots, ...iSetup} :ISetup, nodes :DerefNode
     ...iSetup,
     tours: (tours?.length ? toIdMap(tours.map(t=>({
       ...t,
-      id:t.id??uid(),
       steps: toIdMap(t.steps)
     }))) : undefined) as IdMap<DerefTour & {id:string}>,
     snapshots: undefined as any as DerefSnapshots,
   }
   
   if(snapshots){
-    //Nest targets into objects to ease deep merge by node ID
     const targetNames = snapshots.targets.map(t=>mapTarget(t, nodes))
-    const targets = targetNames.reduce((targets, t)=>{
+    const targets = targetNames.reduce((targets, t, index)=>{
       const [root, id, ...propPath] = t.split("/");
       targets[`${root}/${id}`] ??= {};
-      targets[`${root}/${id}`][propPath.join("/")] = true;
+      targets[`${root}/${id}`][propPath.join("/")] = index;
       return targets;
-    }, {} as Record<string, Record<string, true>>);
+    }, {} as Record<string, Record<string, number>>);
 
 
     const states :DerefState[] = []
     for(let state of snapshots?.states??[]){
       if(state.values.length != targetNames.length){
-        throw new Error(`Invalid snapshot states length ${state.values.length} != ${targets.length}`);
+        throw new Error(`Invalid snapshot states length ${state.values.length} != ${targetNames.length}`);
       }
       
       const values = {} as Record<string, any>;
