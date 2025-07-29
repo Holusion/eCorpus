@@ -368,16 +368,27 @@ describe("GET /scenes", function(){
       it("Title and meta title are the first results", function () {
         expect(searchResult.slice(0,2).map(scene=>scene.name))
         .to.have.members(["Fizzbuzzpop","Meta titles"]);
+        expect(searchResult[0].name).to.be.equal("Fizzbuzzpop");
+        expect(searchResult[1].name).to.be.equal("Meta titles");
       });
 
       it("Intro, copyright,  article, tour and annotation titles are after title and meta titles",  function () {
         expect(searchResult.slice(2,7).map(scene=>scene.name))
         .to.have.members(["Meta intros","Copyright","Article title", "Annotation title", "Tour title"]);
+        expect(searchResult[2].name).to.be.equal("Annotation title");
+        expect(searchResult[3].name).to.be.equal("Article title");
+        expect(searchResult[4].name).to.be.equal("Copyright");
+        expect(searchResult[5].name).to.be.equal("Meta intros");
+        expect(searchResult[6].name).to.be.equal("Tour title");
       });
 
       it("Text, article, tour and annotation leads are the last results",  async function () {
         expect(searchResult.slice(7,11).map(scene=>scene.name))
         .to.have.members(["Article text","Article leads","Annotation leads", "Tour leads"]);
+        expect(searchResult[7].name).to.be.equal("Annotation leads");
+        expect(searchResult[8].name).to.be.equal("Article leads");
+        expect(searchResult[9].name).to.be.equal("Article text");
+        expect(searchResult[10].name).to.be.equal("Tour leads");
 
       });
     });
