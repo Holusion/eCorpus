@@ -4,7 +4,7 @@ import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneQuery } from "./types.js";
+import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneMeta, SceneQuery } from "./types.js";
 import errors, { expandSQLError } from "./helpers/errors.js";
 import { UserLevels } from "../auth/User.js";
 import { dicts } from "../utils/templates.js";
@@ -397,4 +397,19 @@ export default abstract class ScenesVfs extends BaseVfs{
 
   }
 
+  async getSceneMeta(scene_name: string): Promise<SceneMeta>{
+      const meta = (await this.db.get(`
+      SELECT meta
+      FROM scenes
+      WHERE scene_name = $1
+    `, [scene_name]) as any).meta;    
+        return meta? {...meta,
+          primary_title: (meta.primary_language? (meta.titles ? meta.titles[meta.primary_language]:""):""),
+          primary_intro: (meta.primary_language? (meta.intros ? meta.intros[meta.primary_language]:""):""),
+          tours: (meta.tours? meta.tours:[]),
+          annotation: (meta.annotation? meta.annotation:[]),
+          articles: (meta.articles? meta.articles:[]),
+        }:
+          {}
+  }
 }

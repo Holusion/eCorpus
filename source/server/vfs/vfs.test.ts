@@ -9,6 +9,7 @@ import User, { UserLevels } from "../auth/User.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
 import ScenesVfs from "./Scenes.js";
 import { collapseAsync } from "../utils/wrapAsync.js";
+import getScene from "../routes/scenes/scene/get.js";
 
 async function *dataStream(src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){
@@ -1658,6 +1659,74 @@ describe("Vfs", function(){
           ]);
         });
       });
+      
+      describe("getSceneMeta()", function() {
+        it("can get default meta (0) data", async function(){
+          await vfs.writeDoc( JSON.stringify({
+            metas: [
+              {collection:
+                {titles: {
+                  "EN": "English title",
+                  "FR": "French title"
+                }}
+              }
+            ]
+          })
+          , {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          const meta = await vfs.getSceneMeta("foo");
+          expect(meta.titles).to.be.deep.equal({
+                  "EN": "English title",
+                  "FR": "French title"
+                })
+        }); 
+        
+        it("can get non-default meta data", async function(){
+           await vfs.writeDoc( JSON.stringify({
+            scenes: [{meta: 1}],
+            metas: [
+              {},
+              {collection:
+                {titles: {
+                  "EN": "English title",
+                  "FR": "French title"
+                }}
+              }
+            ]
+          })
+          , {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          const meta = await vfs.getSceneMeta("foo");
+          expect(meta.titles).to.deep.equal({
+                  "EN": "English title",
+                  "FR": "French title"
+                })
+        }); 
+
+        it("can get primary title and intros", async function(){
+           await vfs.writeDoc( JSON.stringify(
+            {
+            scenes: [{meta: 1}],
+            setups: [ {language: {language: "FR"}}],
+             metas: [
+              {},
+              {collection:
+                {titles: {
+                  "EN": "English title",
+                  "FR": "French title"
+                },
+                intros: {
+                  "EN": "English intro",
+                  "FR": "French intro"
+                }}
+              }]
+           })         
+          , {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          const meta = await vfs.getSceneMeta("foo");
+          expect(meta.primary_title).to.equal("French title");
+          expect(meta.primary_intro).to.equal("French intro");
+        }); 
+        
+      });
+
 
       describe("listFiles()", function(){
         let tref = new Date("2022-12-08T10:49:46.196Z");

@@ -47,7 +47,7 @@ DECLARE
   scene_languages text[];
 BEGIN
 
-  meta_idx = COALESCE(CAST($1->'scenes'->'meta' AS integer), 0);
+  meta_idx = COALESCE(CAST($1->'scenes'-> 0 -> 'meta' AS integer), 0);
   scene_meta = $1 -> 'metas' -> meta_idx;
   scene_titles = coalesce(scene_meta -> 'collection' -> 'titles', '{}'::jsonb);
   scene_intros = coalesce(scene_meta -> 'collection' -> 'intros', '{}'::jsonb);
