@@ -249,12 +249,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
 
   let [permissions, meta, serverTags] = await Promise.all([
     um.getPermissions(scene.id),
-    vfs.getDoc(scene.id)
-    .then((doc)=> scrapDoc(doc?.data?JSON.parse(doc.data):undefined, res.locals))
-    .catch(e=>{
-      if(e.code !== 404) console.warn("Failed to scrap document for scene: "+scene.name, e.message);
-      return undefined;
-    }),
+    vfs.getSceneMeta(scene_name),
     vfs.getTags(),
   ]);
 
@@ -263,9 +258,22 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     return res;
   }).map(t=>t.name);
 
+  let displayedTitle = meta.primary_title;
+  let displayedIntro = meta.primary_intro;
+  const language = getSession(req)?.lang;
+  if (language !== undefined){
+      if(meta.titles && language.toUpperCase() in meta.titles){
+        displayedTitle = meta.titles[language.toUpperCase()];
+      }
+      if(meta.intros && language in meta.intros){
+        displayedIntro = meta.intros[language.toUpperCase()];
+      }
+  }
 
   res.render("scene", {
     title: `eCorpus: ${scene.name}`,
+    displayedTitle,
+    displayedIntro,
     scene,
     meta,
     permissions,

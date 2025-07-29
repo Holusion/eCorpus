@@ -98,8 +98,8 @@
   <div class="grid-content">
     
     <section>
-      {{#if meta.title }}
-        <h2>{{meta.title}}</h2>
+      {{#if displayedTitle}}
+        <h2>{{displayedTitle}}</h2>
       {{/if}}
       <div  class="section-column">
 
@@ -107,20 +107,25 @@
           <h3>{{i18n "titles.sceneData"}}</h3>
           <div id="scene-meta-main" style="flex-grow: 1">
             {{#with meta}}
-              {{#if setup }}
+              {{#if primary_language}}
                   <p>
                     {{i18n "labels.localization" count=languages.length }}:
                     {{#each languages}}
                       {{#if (test @index "!=" 0)}},{{/if}}
-                      <a href="/ui/scenes/{{encodeURIComponent @root.scene.name}}/view?lang={{.}}" {{#if (test . "==" ../setup)}}class="text-success" title="{{i18n "labels.setupLocalization"}}"{{/if}}>{{.}}</a>
+                      <a href="/ui/scenes/{{encodeURIComponent @root.scene.name}}/view?lang={{.}}" {{#if (test . "==" ../primary_language)}}class="text-success" title="{{i18n "labels.setupLocalization"}}"{{/if}}>{{.}}</a>
                     {{/each}}
                   </p>
-                  <p>{{intro}}</p>
-                  <p>{{i18n "leads.sceneCounts" articles=articles.length annotations=annotations.length }}</p>
+                  <p>{{i18n "leads.sceneCounts" tours=tours.length articles=articles.length annotations=annotations.length }}</p>
               {{else}}
                 {{i18n "leads.noMetaAvailable"}}
               {{/if}}
             {{/with}}
+            
+            <p>{{displayedIntro}}</p>
+            {{#if meta.copyright}}
+              <p>{{i18n "labels.copyright"}} {{meta.copyright}}</p>
+            {{/if}}
+
           </div>
         </div>
         

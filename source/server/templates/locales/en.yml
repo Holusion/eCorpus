@@ -32,6 +32,7 @@ labels:
   restore: Restore
   publicAccess: Public access
   defaultAccess: Default access
+  copyright: "Copyright:"
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -130,6 +131,9 @@ leads:
     You can restore this scene using the "restore" button. This will rename the scene. 
   thumbnailFor: >
     Image miniature pour {{what}}
+  tours_zero: "no tours"
+  tours_one: "one tour"
+  tours_other: "{{count}} tours"
   articles_zero: "no articles"
   articles_one: "one article"
   articles_other: "{{count}} articles"
@@ -137,7 +141,7 @@ leads:
   annotations_one: "one annotation"
   annotations_other: "{{count}} annotations"
   sceneCounts: >
-    This scene has $t(leads.articles, {"count": {{articles}} }) and $t(leads.annotations, {"count": {{annotations}}})
+    This scene has $t(leads.tours, {"count": {{tours}} }), $t(leads.articles, {"count": {{articles}} }) and $t(leads.annotations, {"count": {{annotations}}})
   noMetaAvailable: >
     No metadata could be extracted from this scene.
   historyEdition: |
