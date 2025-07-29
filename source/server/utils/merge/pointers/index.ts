@@ -1,14 +1,13 @@
-
 import { ICamera, IDocument, ILight, INode, IScene } from "../../schema/document.js";
 import { IMeta } from "../../schema/meta.js";
 import { IModel } from "../../schema/model.js";
 import { ISetup } from "../../schema/setup.js";
-import uid from "../../uid.js";
 import { mapMeta } from "./meta.js";
 import { mapModel } from "./model.js";
-import { appendScene } from "./scene.js";
+import { appendScene, mapScene } from "./scene.js";
 import { mapSetup } from "./setup.js";
-import { DerefDocument, DerefMeta, DerefNode, DerefScene, DerefSetup, SOURCE_INDEX } from "./types.js";
+import { DerefDocument, DerefScene } from "./types.js";
+import { mapNodes } from './node.js';
 
 
 
@@ -71,95 +70,23 @@ function cleanDocument(document :Required<IDocument>) :IDocument{
  * 
  * @fixme should be simplified by exporting most of its code into separate functions, like in `fromPointers()`
  */
-export function toPointers(src :IDocument, silent:boolean=false) :DerefDocument {
+export function toPointers(src :Readonly<IDocument>) :DerefDocument {
   if(!src) throw new Error(`Can't dereference invalid document ${src}`);
   // Dereference self-contained collections
   const metas = src.metas?.map(mapMeta) ?? [];
   const models = src.models?.map(mapModel)?? [];
 
   // nodes and scenes mapping couldn't be made side-effect-free because they map to other collections
-  
-  //Dereference every node's internal properties
-  const nodes = src.nodes?.map((iNode, nodeIndex)=>{
-    if(!iNode.id && !silent) console.log("Node #%d has no id : ", nodeIndex, iNode);
-    let node :DerefNode = {
-      id: iNode.id ?? nodeIndex.toString(),
-      name: iNode.name  ?? uid(),
-      matrix: iNode.matrix,
-      translation: iNode.translation,
-      rotation: iNode.rotation,
-      scale: iNode.scale,
-    };
+  const nodes = src.nodes? mapNodes(src.nodes, {metas, models, cameras: src.cameras, lights: src.lights}):undefined;
 
-    if(typeof iNode.meta === "number"){
-      node.meta = metas[iNode.meta];
-      if(!node.meta) throw new Error(`Invalid meta index ${iNode.meta} in node #${nodeIndex}`);
-    }
-
-    if(typeof iNode.model === "number"){
-      node.model = models[iNode.model];
-      if(!node.model) throw new Error(`Invalid model index ${iNode.model} in node #${nodeIndex}`);
-    }
-
-    if(typeof iNode.camera === "number"){
-      let ptr = src.cameras?.[iNode.camera];
-      if(!ptr) throw new Error(`Invalid camera index ${iNode.camera} in node #${nodeIndex}`);
-      node.camera = {...ptr, [SOURCE_INDEX]: iNode.camera};
-    }
-
-    if(typeof iNode.light === "number"){
-      let ptr = src.lights?.[iNode.light];
-      if(!ptr) throw new Error(`Invalid light index ${iNode.light} in node #${nodeIndex}`);
-      node.light = {...ptr, [SOURCE_INDEX]: iNode.light};
-    }
-
-    //node.children will be assigned later, because children might not have been dereferenced yet
-
-    return node;
-  });
-  //Dereference node children.
-  //We don't need recursion because doc.nodes is a flat list
-  nodes?.forEach((node, nodeIndex)=>{
-    const indices = (src.nodes as INode[])[nodeIndex].children;
-    if(!indices) return;
-    node.children = indices.reduce((children, idx)=>{
-      let node = nodes[idx];
-      return {...children, [node.id]: node}
-    }, {});
-  });
-
-
-
+  const setups = src.setups?.map(s=>mapSetup(s, nodes ??[])) ?? [];
 
   if(!Array.isArray(src.scenes) || !src.scenes.length) throw new Error("Document has no valid scene");
   if(typeof src.scene != "number"|| !src.scenes[src.scene]) throw new Error(`Document's scene #${src.scene} is invalid`);
   const iScene = src.scenes[src.scene];
 
-  const scene :DerefScene = {
-    name: iScene.name,
-    units: iScene.units,
-    nodes: {},
-  }
+  const scene :DerefScene = mapScene(iScene, {nodes, metas, setups});
 
-  if(iScene.nodes?.length){
-    scene.nodes = iScene.nodes.reduce((children, idx)=>{
-      const node = nodes?.[idx]
-      if(!node) throw new Error(`Invalid node index ${idx} in scene #${src.scene}`);
-      return {...children, [node.id]: node};
-    }, {});
-  }
-
-
-  if(typeof iScene.meta == "number"){
-    if(!src.metas || !src.metas[iScene.meta]) throw new Error(`Invalid meta #${iScene.meta} in scene #${src.scene}`)
-    scene.meta = metas[iScene.meta];
-  }
-
-  const setups = src.setups?.map(s=>mapSetup(s, nodes ??[])) ?? [];
-  if(typeof iScene.setup == "number"){
-    if(!src.setups || !src.setups[iScene.setup]) throw new Error(`Invalid setup #${iScene.setup} in scene #${src.scene}`)
-    scene.setup = setups[iScene.setup];
-  }
 
   return {
     asset: src.asset,

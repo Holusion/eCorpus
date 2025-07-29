@@ -29,7 +29,9 @@ export default function wrap(handler :AsyncRequestHandler):RequestHandler {
  * Additionally, allows the use of req.query.format for unambiguous cases
  */
 export async function wrapFormat(res :Response, handlers :Record<string,()=>Promise<any>|any>) :Promise<any>{
+  const handler_entries = Object.entries(handlers);
   let p :()=>Promise<void>;
+
   let {format} = res.req.query;
   if(format == "zip" && handlers["application/zip"]){
     res.set("Content-Type", "application/zip");
@@ -42,12 +44,15 @@ export async function wrapFormat(res :Response, handlers :Record<string,()=>Prom
     return await handlers["text/plain"]();
   }
   
-  res.format(Object.entries(handlers).reduce((h, [type, handler])=>{
+  res.format(handler_entries.reduce((h, [type, handler])=>{
     return {...h, [type]:()=>{
       p = handler;
     }}
   }, {}));
   //@ts-ignore (we know p will be assigned in res.format)
+  if(!p){
+    return Promise.resolve();
+  }
   return await p();
 }
 

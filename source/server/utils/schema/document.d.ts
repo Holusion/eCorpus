@@ -22,6 +22,7 @@ import { IMeta } from "./meta.js";
 import { IModel } from "./model.js";
 import { ISetup } from "./setup.js";
 
+
 ////////////////////////////////////////////////////////////////////////////////
 
 export { EUnitType, TUnitType, Vector3, Quaternion, Matrix4, ColorRGB };
@@ -43,7 +44,7 @@ export interface IDocument
     metas?: IMeta[];
     models?: IModel[];
     setups?: ISetup[];
-}
+};
 
 /**
  * Information about the document, such as its type, version, copyright and generator.
@@ -62,7 +63,8 @@ export interface IScene
     nodes?: Index[];
     setup?: Index;
     meta?: Index;
-    units: TUnitType;
+    /** units is marked as required in Voyager's IScene interface but in practice it's optional in the json-schema */
+    units?: TUnitType;
 }
 
 /**

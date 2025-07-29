@@ -3,8 +3,9 @@ import path from "path";
 import { fileURLToPath } from 'url';
 
 import { fromPointers, toPointers } from "./index.js";
-import { IDocument } from '../../schema/document.js';
-import { DerefNode, SOURCE_INDEX } from './types.js';
+import { IDocument, IScene } from '../../schema/document.js';
+import { DerefNode, DerefScene, SOURCE_INDEX } from './types.js';
+import uid from '../../uid.js';
 
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -43,14 +44,6 @@ describe("(de)reference pointers", function(){
       }]);
     });
 
-    it("auto-fills a scene's units", function(){
-      //Units is supposedly required but might be missing
-      const deref = {asset: baseDoc.asset, scene:{
-        name: "My Scene",
-        nodes: [],
-      }};
-      expect((fromPointers(deref as any).scenes as any)[0]).to.have.property("units", "cm");
-    });
 
     it("builds nodes reference arrays", function(){
       const deref = {
@@ -225,7 +218,7 @@ describe("(de)reference pointers", function(){
       expect(deref.asset).to.deep.equal(doc.asset);
       //use JSON.parse(JSON.stringify()) to remove undefined values
       expect(JSON.parse(JSON.stringify(deref.scene))).to.deep.equal({"nodes":{
-        "0": {"id":"0","name":"Lights","children":{"1": {"id":"1","name":"L1","light":{"type":"ambient"}}}}
+        "#0": {"name":"Lights","children":{"#1": {"name":"L1","light":{"type":"ambient"}}}}
       }});
     });
 
@@ -291,8 +284,33 @@ describe("(de)reference pointers", function(){
 
     });
     
-    it.skip("dereferences node's model", function(){
+    it("dereferences node's model", function(){
+      const doc = {
+        ...baseDoc,
+        nodes: [{
+          id: "63llEWWkWimp",
+          name: "Model",
+          model: 0
+        }],
+        scenes:[{
+          nodes: [0]
+        }],
+        models: [
+            {
+              name: "My Model",
+              derivatives: [
+                {
+                  usage: "Web3D",
+                  quality: "High",
+                  assets: []
+                }
+              ],
+            },
+          ],
+      };
 
+      const deref:any = toPointers(doc as any);
+      expect((deref.scene as DerefScene).nodes["63llEWWkWimp"].model).to.have.property("name", "My Model");
     });
 
     it("keeps a scene's name and units", function(){
@@ -341,7 +359,7 @@ describe("(de)reference pointers", function(){
       "camera/light/model/meta".split("/").forEach(key=>{
         it(`if node has invalid ${key} index`, function(){
           const doc = {...baseDoc, scenes:[{nodes:[0]}], nodes:[{name: key.toUpperCase(), [key]: 0}]};
-          expect(()=> toPointers(doc  as any)).to.throw(`Invalid ${key} index 0 in node #0`);
+          expect(()=> toPointers(doc  as any)).to.throw(`in node 0 Invalid ${key} index 0`);
         });
       })
 
@@ -363,8 +381,84 @@ describe("(de)reference pointers", function(){
   describe("is reversible", function(){
     const paths:Record<string, string> = [
       "01_simple.svx.json",
-  ].reduce((paths, file)=>({...paths, [file]: path.resolve(thisDir, "../../../__test_fixtures/documents/"+file)}),{});
+    ].reduce((paths, file)=>({...paths, [file]: path.resolve(thisDir, "../../../__test_fixtures/documents/"+file)}),{});
 
+    it("keeps meta indexes", function(){
+      //in voyager code, the scene's meta is always serialized after any children
+      //So we want to ensure consistent behaviour here
+      let doc = {
+        asset: baseDoc.asset,
+        scene: 0,
+        scenes: [{units: "cm", nodes:[0], meta: 1}],
+        nodes: [
+          {id: uid(), meta: 0},
+        ],
+        metas: [
+          {srcIndex: 0} as any,
+          {srcIndex: 1} as any,
+        ]
+      } satisfies IDocument;
+      expect(fromPointers(toPointers(doc))).to.have.deep.property("metas",[
+        {srcIndex: 0},
+        {srcIndex: 1},
+      ]);
+    });
+
+    it("don't skip unknown properties", function(){
+      const doc:any = {
+        asset: {
+          foo: "bar",
+        },
+        scene: 0,
+        scenes: [{
+          units: "m",
+          foo: "bar",
+          meta: 1,
+          setup: 0,
+          nodes: [0],
+        }],
+        nodes: [
+          {
+            id: "6QGcz2oiUAk2",
+            name: "6QGcz2oiUAk2",
+            meta:0,
+            foo: "bar",
+            model: 0,
+            light: 0,
+            camera: 0,
+          }
+        ],
+        setups: [
+          {foo: "bar"}
+        ],
+        metas: [
+          {foo: "bar"},
+          {foo: "bar"},
+        ],
+        models: [
+          {
+            derivatives: [
+              {
+                usage: "Web3D",
+                quality: "High",
+                foo: "bar",
+                assets: []
+              }
+            ],
+            foo: "bar"
+          },
+        ],
+        lights: [
+          {foo: "bar"},
+        ],
+        cameras: [
+          {foo: "bar"},
+        ]
+      };
+
+      const redoc:any = fromPointers(toPointers(doc));
+      expect(redoc).to.deep.equal(doc);
+    })
 
     describe("01_simple.svx.json", function(){
       let docString :string, doc :IDocument;
@@ -380,7 +474,7 @@ describe("(de)reference pointers", function(){
         expect(deref).to.be.ok;
         expect(Object.keys(deref)).to.deep.equal(["asset", "scene"]);
         expect(deref.asset).to.deep.equal(doc.asset);
-        expect(Object.keys(deref.scene)).to.deep.equal(["name", "units", "nodes", "setup"]);
+        expect(Object.keys(deref.scene)).to.deep.equal(["units", "nodes", "setup"]);
         expect(Object.keys(deref.scene.nodes)).to.have.property("length", 3);
         expect(deref.scene.nodes["ot9vj20DZ6Y5"]).to.have.property("meta").to.deep.equal({collection: {titles:{EN: "Meta Title"}}});
       });
@@ -400,7 +494,7 @@ describe("(de)reference pointers", function(){
       it("dereferencing is indempotent", async function(){
         const deref = toPointers(doc);
         const redoc = fromPointers(deref);
-        console.log(JSON.stringify(redoc, null, 2));
+        //console.log(JSON.stringify(redoc, null, 2));
         expect(redoc).to.deep.equal(doc);
       });
 
@@ -413,7 +507,9 @@ describe("(de)reference pointers", function(){
           if(previous_string) expect(redoc_string).to.equal(previous_string);
           previous_string = redoc_string;
         }
-      })
-    })
+      });
+
+    });
+
   });
 })

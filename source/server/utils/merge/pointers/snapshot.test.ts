@@ -10,7 +10,7 @@ describe("mapTarget()", function(){
       "scenes/0/setup/viewer/annotationsVisible",
       "scenes/0/setup/reader/position",
     ].forEach((t)=>{
-      expect(mapTarget(t, [])).to.equal(t);
+      expect(mapTarget(t, [])).to.deep.equal(t);
     });
   });
 

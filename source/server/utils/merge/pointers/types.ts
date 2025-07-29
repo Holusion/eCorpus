@@ -1,10 +1,9 @@
 
-import { IDocumentAsset, ICamera, ILight, Matrix4, Quaternion, Vector3 } from "../../schema/document.js";
-import { IArticle, IAudioClip, IImage, IMeta } from "../../schema/meta.js";
-import { IAnnotation, IAsset, IDerivative, IModel, TUnitType } from "../../schema/model.js";
-import { ISetup, ITour, ITourStep } from "../../schema/setup.js";
-import { Dictionary, Index } from "../../schema/types.js";
-import uid from "../../uid.js";
+import type { IDocumentAsset, ICamera, ILight, Matrix4, Quaternion, Vector3 } from "../../schema/document.js";
+import type { IAction, IArticle, IAudioClip, IImage, IMeta } from "../../schema/meta.js";
+import type { IAnnotation, IAsset, IDerivative, IModel, TUnitType } from "../../schema/model.js";
+import type { ISetup, ITour, ITourStep } from "../../schema/setup.js";
+import type { Dictionary } from "../../schema/types.js";
 
 
 /**
@@ -13,7 +12,7 @@ import uid from "../../uid.js";
  */
 export const SOURCE_INDEX :"_SOURCE_INDEX" = Symbol("_SOURCE_INDEX") as any;
 
-export interface Indexed{
+export type Indexed<T> = T &{
   [SOURCE_INDEX]: number;
 }
 /**
@@ -25,12 +24,12 @@ export interface Indexed{
  * @param index 
  * @returns 
  */
-export function withIndex<T extends {}>(obj :T, index: number):Indexed&T{
+export function withIndex<T extends {}>(obj :T, index: number):Indexed<T>{
   return Object.defineProperty<T>(obj, SOURCE_INDEX, {
     configurable: true, //May be deleted
     enumerable: true,
     value: index
-  }) as Indexed&T;
+  }) as Indexed<T>;
 }
 
 /**
@@ -56,14 +55,18 @@ export interface DerefScene{
   nodes: IdMap<DerefNode>;
   setup?: DerefSetup;
   meta?: DerefMeta;
-  units: TUnitType;
+  units?: TUnitType;
 }
 
 /**
  * INode where all indexed references were replaced by pointers to the actual objects.
  */
 export interface DerefNode {
-  id: string; //ID is optional because it does not exist on old scenes
+  /**
+   * ID is optional because it does not exist on old scenes
+   * In practice, it should be required for mapping to work properly
+   */
+  id?: string; 
   name?: string;
   children?: IdMap<DerefNode>;
 
@@ -108,14 +111,16 @@ export interface DerefState{
  */
 export interface DerefSnapshots{
   features: string[];
-  targets :Record<string, Record<string, true>>;
+  targets :Record<string, Record<string, number>>;
   states: IdMap<DerefState>;
 }
 
-export interface DerefMeta extends Omit<IMeta, "images"|"articles"|"audio"|"leadArticle"> {    
+
+export interface DerefMeta extends Omit<IMeta, "images"|"articles"|"audio"|"leadArticle"|"actions"> {    
   images?: UriMap<IImage>;
   articles?: IdMap<IArticle>;
   audio?: IdMap<IAudioClip>;
+  actions?: IdMap<IAction>;
   leadArticle?: string;
 }
 
@@ -128,15 +133,15 @@ export interface DerefSetup extends Omit<ISetup,"tours"|"snapshots">{
     snapshots?: DerefSnapshots;
 }
 
-export interface DerefModel extends Indexed, Omit<IModel,"derivatives"|"annotations">{
+export interface DerefModel extends Indexed<Omit<IModel,"derivatives"|"annotations">>{
   [SOURCE_INDEX]: number;
   derivatives: AbstractMap<DerefDerivative>;
   annotations?: IdMap<IAnnotation>;
 }
 
-export type DerefLight = Indexed & ILight;
+export type DerefLight = Indexed<ILight>;
 
-export type DerefCamera = Indexed & ICamera;
+export type DerefCamera = Indexed<ICamera>;
 
 export interface DerefDerivative extends Omit<IDerivative, "assets">{
     assets: UriMap<IAsset>;
@@ -146,18 +151,18 @@ export interface DerefDerivative extends Omit<IDerivative, "assets">{
 // Maps are replacing arrays of identified nodes with a map-by-id
 
 export type AbstractMap<T> = {
-  [id: string]: Indexed & T;
+  [id: string]: Indexed<T>;
 }
 
 
-type MappableType = {id:string} | {uri:string} | {name?:string};
+export type MappableType = {id?:string} | {uri:string} | {name?:string};
 
 export type IdMap<T extends MappableType> = AbstractMap<T>;
 
 export function toIdMap<T extends MappableType>(arr :T[]) :IdMap<T>{
   const map = {} as IdMap<T>;
   for(let [index, item] of arr.entries()){
-    const id :string = (item as any).id || (item as any).uri || (item as any).name || uid();
+    const id :string = (item as any).id || (item as any).uri || (item as any).name || "#"+index;
     map[id] = withIndex(item, index);
   }
   return map;
@@ -191,9 +196,9 @@ export function fromMap<T>(map :AbstractMap<T>):T[]{
 }
 
 /** Sort an array of symbol-indexed items to restore their initial order */
-export function restoreIndex<T>(src: Array<T & Indexed>):Array<T>{
-  return src.sort((a, b)=>a[SOURCE_INDEX] -b[SOURCE_INDEX]).map((item: T & Indexed)=>{
-    delete (item as T & Partial<Indexed>)[SOURCE_INDEX];
+export function restoreIndex<T>(src: Array<Indexed<T>>):Array<T>{
+  return src.sort((a, b)=>a[SOURCE_INDEX] -b[SOURCE_INDEX]).map((item: Indexed<T>)=>{
+    delete (item as Partial<Indexed<T>>)[SOURCE_INDEX];
     return item as T;
   });
 }

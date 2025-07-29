@@ -27,7 +27,7 @@ export default function scrapDoc(doc:IDocument|any, settings:ScrapSettings) :Scr
   let userLang = settings?.lang?.toUpperCase() ?? "EN";
   if(!doc || typeof doc !== "object") return {articles: [], annotations: [], languages: []};
   //Dereferencing here is not required but it makes the whole algorithm more concise and helps test our code in more diverse situations
-  let deref = toPointers(doc, true);
+  let deref = toPointers(doc);
 
   let collections = [
     deref.scene.meta?.collection,
