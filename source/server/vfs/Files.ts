@@ -187,7 +187,7 @@ export default abstract class FilesVfs extends BaseVfs{
     });
   }
 
-  async getFileById(id :number) :Promise<FileProps>{
+  async getFileById(id :number) :Promise<FileProps&{scene_id:number}>{
     let r = await this.db.get<{
       id: number,
       name: string,
@@ -200,6 +200,7 @@ export default abstract class FilesVfs extends BaseVfs{
       mtime: Date,
       author_id: number,
       author: string,
+      scene_id: number,
     }>(`
       SELECT
         file_id AS id,
@@ -212,7 +213,8 @@ export default abstract class FilesVfs extends BaseVfs{
         first.ctime AS ctime,
         files.ctime AS mtime,
         files.fk_author_id AS author_id,
-        COALESCE(username, 'default') AS author
+        COALESCE(username, 'default') AS author,
+        fk_scene_id AS scene_id
       FROM files 
         LEFT JOIN (SELECT MIN(ctime) AS ctime, fk_scene_id, name FROM files GROUP BY fk_scene_id, name ) AS first
           USING(fk_scene_id, name)
@@ -227,9 +229,9 @@ export default abstract class FilesVfs extends BaseVfs{
    * This function is growing out of control, having to manage disk vs doc stored files, mtime aggregation, etc...
    * The whole thing might become a performance bottleneck one day.
    */
-  async getFileProps({scene, name, archive, generation} :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
-  async getFileProps({scene, name, archive, generation} :GetFileParams, withData :true) :Promise<FileProps>
-  async getFileProps({scene, name, archive = false, generation} :GetFileParams, withData = false) :Promise<FileProps>{
+  async getFileProps({scene, name, archive, generation, lock} :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
+  async getFileProps({scene, name, archive, generation, lock} :GetFileParams, withData :true) :Promise<FileProps>
+  async getFileProps({scene, name, archive = false, generation, lock} :GetFileParams, withData = false) :Promise<FileProps>{
     let is_string = typeof scene === "string";
     let with_generation = typeof generation !== "undefined";
     let args:any[] = [scene, name];
@@ -258,6 +260,7 @@ export default abstract class FilesVfs extends BaseVfs{
       ` : `
         ORDER BY generation DESC
         LIMIT 1`}
+      ${lock?"FOR UPDATE":""}
     `, args);
     if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
     return r;
@@ -297,8 +300,8 @@ export default abstract class FilesVfs extends BaseVfs{
   /**
    * Shorthand to get latest doc of a scene. Ensure data is properly stored
    */
-  async getDoc(scene :string|number) :Promise<DocProps>{
-    let r = await this.getFileProps({scene, name: "scene.svx.json"}, true);
+  async getDoc(scene :string|number, lock=false) :Promise<DocProps>{
+    let r = await this.getFileProps({scene, name: "scene.svx.json", lock}, true);
     if(!r.data)  throw new BadRequestError(`Not a valid document: ${ r.name }`);
     if(Buffer.isBuffer(r.data)) r.data = r.data.toString("utf8");
     
