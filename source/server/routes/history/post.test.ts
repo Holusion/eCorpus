@@ -89,7 +89,7 @@ describe("POST /history/:scene", function(){
     let id = (await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
     await antidate();
     await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
-    let ref = await vfs.getFileById(id);
+    let {scene_id:_, ...ref} = await vfs.getFileById(id);
     
     let res = await request(this.server).post(`/history/${titleSlug}`)
     .auth("bob", "12345678")

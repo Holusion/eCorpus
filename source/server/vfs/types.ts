@@ -25,6 +25,8 @@ export interface GetFileParams extends CommonFileParams{
   /**Also return deleted files */
   archive ?:boolean;
   generation ?:number;
+  //SELECT FOR UPDATE, use only within a transaction
+  lock?: boolean;
 }
 
 export interface GetFileRangeParams extends GetFileParams{
