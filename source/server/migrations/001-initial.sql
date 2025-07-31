@@ -115,7 +115,7 @@ EXECUTE FUNCTION delete_folder_content();
 
 
 CREATE TABLE tags(
-  tag_name TEXT NOT NULL,
+  tag_name TEXT NOT NULL COLLATE ignore_accent_case,
   fk_scene_id BIGINT NOT NULL,
   FOREIGN KEY(fk_scene_id) REFERENCES scenes(scene_id) ON DELETE CASCADE,
   UNIQUE(tag_name, fk_scene_id)
