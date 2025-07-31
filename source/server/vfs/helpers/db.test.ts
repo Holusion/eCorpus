@@ -1,15 +1,11 @@
-import fs from "fs/promises";
 import os from "os";
-import timers from "timers/promises";
 import { expect } from "chai";
 import open, { Database } from "./db.js";
 import path from "path";
 import { fileURLToPath } from 'url';
-import uid from "../../utils/uid.js";
 import Vfs from "../index.js";
 import UserManager from "../../auth/UserManager.js";
 import errors from "./errors.js";
-import { UserLevels } from "../../auth/User.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
