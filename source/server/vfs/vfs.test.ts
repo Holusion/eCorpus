@@ -892,24 +892,28 @@ describe("Vfs", function(){
           //When scene doesn't exist
           await expect(vfs.removeTag(scene_id+1, "foo")).to.eventually.equal(false);
         });
-
-        it("force lower case ascii characters", async function(){
-          await expect(vfs.addTag(scene_id, "Foo")).to.eventually.equal(true);
-          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(false);
-          expect(await vfs.getTags()).to.deep.equal([{name: "foo", size: 1}]);
+        it("store case and accents", async function(){
+          await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
+          expect(await vfs.getTags()).to.deep.equal([{name: "Électricité", size: 1}]);
         });
 
-        it("force lower case for non-ascii characters", async function(){
+        it("collate case and accents (same scene)", async function(){
           await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
           await expect(vfs.addTag(scene_id, "électricité")).to.eventually.equal(false);
-          expect(await vfs.getTags()).to.deep.equal([{name: "électricité", size: 1}]);
+          await expect(vfs.addTag(scene_id, "electricite")).to.eventually.equal(false);
+
+          expect(await vfs.getTags()).to.deep.equal([{name: "Électricité", size: 1}]);
         });
 
-        it("force lower case for non-latin characters", async function(){
-          await expect(vfs.addTag(scene_id, "ΑΒΓΔΕ")).to.eventually.equal(true);
-          await expect(vfs.addTag(scene_id, "αβγδε")).to.eventually.equal(false);
-          expect(await vfs.getTags()).to.deep.equal([{name: "αβγδε", size: 1}]);
-        });
+        it("collate case and accents (multiple scenes)", async function(){
+          let s2 = await vfs.createScene("tags-collate-s2");
+          let s3 = await vfs.createScene("tags-collate-s3");
+          await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
+          await expect(vfs.addTag(s2, "électricité")).to.eventually.equal(true);
+          await expect(vfs.addTag(s3, "electricite")).to.eventually.equal(true);
+
+          expect(await vfs.getTags()).to.deep.equal([{name: "Électricité", size: 3}]);
+        })
       });
 
 
@@ -933,7 +937,14 @@ describe("Vfs", function(){
           await vfs.addTag(scene_id, `tag_foo`);
           await vfs.addTag(scene_id, `foo_tag`);
           await vfs.addTag(scene_id, `tag_bar`);
+
           expect(await vfs.getTags("foo")).to.deep.equal([
+            {name:"foo_tag", size: 1},
+            {name: "tag_foo", size: 1},
+          ]);
+
+          //Match should be case-insensitive
+          expect(await vfs.getTags("Foo")).to.deep.equal([
             {name:"foo_tag", size: 1},
             {name: "tag_foo", size: 1},
           ]);

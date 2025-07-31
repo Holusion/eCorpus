@@ -18,14 +18,23 @@ export default abstract class TagsVfs extends BaseVfs{
   async addTag(scene_name :string, tag :string) :Promise<boolean>;
   async addTag(scene_id :number, tag :string) :Promise<boolean>;
   async addTag(scene :string|number, tag :string) :Promise<boolean>{
-    let match = ((typeof scene ==="number")?'$2':`scene_id FROM scenes WHERE scene_name = $2`);
+    let match = ((typeof scene ==="number")?'SELECT $2::bigint AS scene_id':`SELECT scene_id FROM scenes WHERE scene_name = $2`);
     try{
       let r = await this.db.run(`
+        WITH 
+          scene AS (${match}),
+          tag AS (
+            SELECT tag_name FROM tags WHERE tag_name = $1 COLLATE ignore_accent_case
+            UNION ALL
+            SELECT $1 AS tag_name
+            LIMIT 1
+          )
         INSERT INTO tags
-          ( tag_name, fk_scene_id)
-      SELECT $1, ${match}
+          (tag_name, fk_scene_id)
+        SELECT  tag_name, scene_id
+        FROM scene, tag
       `, [
-        tag.toLowerCase(),
+        tag,
         scene
       ]);
       if(!r.changes) throw new NotFoundError(`Can't find scene matching ${scene}`);
@@ -64,7 +73,7 @@ export default abstract class TagsVfs extends BaseVfs{
   }
 
   async getTags(like ?:string):Promise<Tag[]>{
-    let where :string = like?`WHERE tag_name LIKE '%' || $1::text || '%'` :"";
+    let where :string = like?`WHERE tag_name ~* $1::text COLLATE "default"` :"";
     let args = like ? [like] : [];
     return await this.db.all<Tag>(
       `
