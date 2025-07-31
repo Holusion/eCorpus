@@ -390,7 +390,6 @@ describe("Vfs", function(){
         expect(await vfs.getScenes()).to.have.length(2);
         //Filter only scenes with access: none
         let scenes = await vfs.getScenes(null, {archived: true});
-        console.log(JSON.stringify(scenes));
         expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
       });
 
@@ -413,7 +412,6 @@ describe("Vfs", function(){
 
         //Filter only scenes with access: none
         let scenes = await vfs.getScenes(user.uid, {archived: true});
-        console.log(JSON.stringify(scenes));
         expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
       })
 
