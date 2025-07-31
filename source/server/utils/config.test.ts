@@ -51,6 +51,14 @@ describe("config", function(){
         PGDATABASE: "my_database"
       });
       expect(opts).to.have.property("database_uri", "postgres://foo:secret@example.com:9876/my_database")
-    })
+    });
+
+    it("uses unix socket if no password is provided", function(){
+      //the reasoning is that no sane person would run passwordless postgres on localhost ?
+       let opts = parse({
+        PGDATABASE: "my_database"
+      });
+      expect(opts).to.have.property("database_uri", "socket:///var/run/postgresql/?db=my_database")
+    });
   });
 });

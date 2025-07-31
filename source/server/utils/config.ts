@@ -76,14 +76,19 @@ function isExperimental({experimental}: {experimental: boolean}) :boolean{
 
 
 function parsePGEnv(_config:Partial<Config>, env :NodeJS.ProcessEnv ){
-  const envMap :Partial<Record<keyof Omit<URL, "toString">, string>>= {
+  const envMap = {
     hostname: "PGHOST",
     port: "PGPORT",
     username: "PGUSER",
     password: "PGPASSWORD",
     pathname: "PGDATABASE",
+  } as const satisfies Partial<Record<keyof Omit<URL, "toString">, string>>;
+
+  if(!env[envMap.hostname] && !env[envMap.password!]){
+    return `socket:///var/run/postgresql/${env[envMap.pathname]? `?db=${env[envMap.pathname]}`:""}`;
   }
-  const db_uri = new URL(`postgres://localhost`);
+
+  const db_uri = new URL(`postgres://localhost:5432/${process.env["USER"]}`);
   for(let [key, name] of Object.entries(envMap)){
     if(!env[name]) continue;
     (db_uri as any)[key] = env[name];
