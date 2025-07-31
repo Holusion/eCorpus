@@ -59,7 +59,7 @@ export interface Database extends DatabaseHandle{
   end:()=>Promise<void>
 }
 
-function toHandle(db:Pool|PoolClient) :Omit<DatabaseHandle, "beginTransaction">{
+export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "beginTransaction">{
   
   return {
     async all<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T[]>{
@@ -166,9 +166,12 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
     }
   } satisfies Database;
 
-  await handle.beginTransaction(async (db)=>{
-    await migrate({db, migrations: config.migrations_dir, force: forceMigration});
-  });
+  let client = await pool.connect();
+  try{
+    await migrate({db:client, migrations: config.migrations_dir, force: forceMigration});
+  }finally{
+    client.release()
+  }
 
   return handle;
 }
