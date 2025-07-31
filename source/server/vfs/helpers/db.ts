@@ -1,4 +1,4 @@
-import {Client, ClientBase, Pool, PoolClient, QueryResultRow, types as pgtypes} from 'pg';
+import {Client, ClientBase, Pool, PoolClient, PoolConfig, QueryResultRow, types as pgtypes} from 'pg';
 import config from "../../utils/config.js";
 import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
@@ -119,6 +119,7 @@ export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "begin
 
 let _id :number = 0;
 export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
+  debug("connect to database at : "+ uri)
   let pool = new Pool({connectionString: uri});
 
   pool.on("error", (err, client)=>{
@@ -166,7 +167,24 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
     }
   } satisfies Database;
 
-  let client = await pool.connect();
+  let client :PoolClient;
+  try{
+    client = await pool.connect();
+  }catch(e:any){
+    if(debug.enabled && Array.isArray(e.errors)){
+      e.errors.forEach((err:any)=> debug(err));
+    }
+    if(e.code === "ECONNREFUSED"){
+      let safeUri = new URL(uri);
+      if(safeUri.username) safeUri.username = "***";
+      if(safeUri.password) safeUri.password = "***";
+      //Database name is not considered sensitive information
+      throw new Error(`database connect ECONNREFUSED at : ${safeUri}`);
+    }
+    //Pool can throw an AggregateError that has an errors array property
+    throw new Error(`Failed to connect to database: ${e.errors? e.errors.map((e:any)=>e.message).join("\n"): e.message}`);
+  }
+  
   try{
     await migrate({db:client, migrations: config.migrations_dir, force: forceMigration});
   }finally{
