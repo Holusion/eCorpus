@@ -4,7 +4,7 @@
 import QueryString from "qs";
 import { BadRequestError } from "./errors.js";
 
-type QsValue =  string | string[] | QueryString.ParsedQs | QueryString.ParsedQs[] | undefined;
+type QsValue =  string | QueryString.ParsedQs |  (string | QueryString.ParsedQs)[] | undefined;
 
 /**
  * Parse common string values to boolean. If value is undefined, return undefined
