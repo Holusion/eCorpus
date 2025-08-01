@@ -162,7 +162,7 @@ export default class Templates{
       missingKeyHandler(lngs, ns, key, fallbackValue, updateMissing, options) {
         console.log(`i18n Missing key in ${lngs.join(", ")}: ${key} (default to ${fallbackValue})`);
       },
-    }).use(Backend);
+    }).use(Backend as any);
 
     this.#hbs.registerHelper(staticHelpers);
     if(opts.cache){
