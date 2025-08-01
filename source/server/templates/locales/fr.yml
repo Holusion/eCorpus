@@ -16,6 +16,7 @@ labels:
   pagination: pagination
   searchPlaceholder: chercher une scène
   sortBy: Trier par
+  loginLink: Copier un lien de connexion
   sendLoginLink: Envoyer un lien
   view: Voir
   edit: Editer
@@ -33,6 +34,13 @@ labels:
   publicAccess: Accès public
   defaultAccess: Accès par défaut
   copyright: "Copyright :"
+  role: Role
+  close: Fermer
+  createUser: Créer un utilisateur
+  lastModified: Dernière modification
+  totalScenesCount: Nombre total de scènes
+  totalFilesCount: Nombre total de fichiers
+  totalDiskUsage: Espace disque total
 
 buttons:
   searchScene: chercher une scène
@@ -52,6 +60,8 @@ buttons:
   cancel: Annuler
   selectAll: Sélectionner tout
   deselectAll: Déselectionner tout
+  submit: Envoyer
+  createUser: Créer
 fields:
   name: nom
   author: auteur
@@ -70,6 +80,11 @@ fields:
   removeSpecificAccess: retirer l'accès spécifique
   showOnlyMyScenes: Seulement mes scènes
   myAccess: "Droit d'accès en :"
+  userRoles:
+    use: Utilisateur
+    create: Créateur
+    manage: Editeur
+    admin: Administrateur
 nav:
   tags: collection
   login: connexion
@@ -103,6 +118,11 @@ titles:
   rename: Renommer la scène
   testEmail: Test du système d'email de {{what}}
   testEmailVerify: Vérifications supplémentaires
+  userManager: Gestion des utilisateurs
+  adminHome: Interface d'administration
+  serverStatistics: Statistiques de l'instance
+  filesStatistics: Données
+  modifiedToday: Scènes modifiées aujourd'hui
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >
@@ -160,7 +180,9 @@ leads:
   testEmailDKIM: >
     Afin d'assurer un bon taux de succès, il peut être utile de vérifier la <a href="">signature DKIM</a> du message.<br>
     Pour GMAIL, vous pouvez utiliser l'outil <a href="https://postmaster.google.com">Postmaster Tools</a>.
-
+  sendTestEmail: Envoyer un email de test
+  usersList: Utilisateurs {{start}}-{{end}}/{{total}}
+  noArchives: Pas de scènes archivées
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

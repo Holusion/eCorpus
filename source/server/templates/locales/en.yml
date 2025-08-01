@@ -16,6 +16,7 @@ labels:
   pagination: pagination
   searchPlaceholder: search a scene
   sortBy: Sort by
+  loginLink: Copy direct login link
   sendLoginLink: Send a login link
   view: View
   edit: Edit
@@ -33,6 +34,13 @@ labels:
   publicAccess: Public access
   defaultAccess: Default access
   copyright: "Copyright:"
+  role: Role
+  close: Close
+  createUser: Create a user
+  lastModified: "Last modified"
+  totalScenesCount: Total scenes count
+  totalFilesCount: Total files count
+  totalDiskUsage: Total disk usage
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -51,6 +59,8 @@ buttons:
   cancel: Cancel
   selectAll: Select all
   deselectAll: Deselect all
+  submit: Send
+  createUser: Create
 fields:
   name: name
   author: author
@@ -69,6 +79,11 @@ fields:
   removeSpecificAccess: remove specific access
   showOnlyMyScenes: Only my scenes
   myAccess: "Access rights:"
+  userRoles:
+    use: User
+    create: Creator
+    manage: Editor
+    admin: Administrator
 nav:
   tags: collection
   login: connection
@@ -102,6 +117,11 @@ titles:
   rename: Rename this scene
   testEmail: "{{what}} email system test"
   testEmailVerify: Additional verifications
+  userManager: Users management
+  adminHome: Administration Interface
+  serverStatistics: Instance Statistics
+  filesStatistics: Data statistics
+  modifiedToday: Scenes modified today
 tooltips:
   showPassword: Show the password's text
   permissions: >
@@ -159,6 +179,9 @@ leads:
   testEmailDKIM: >
     To be extra safe and prevent (most) emails being flagged as SPAM, check the DKIM signature using tools like Google's 
     <a href="https://postmaster.google.com">Postmaster Tools</a>.
+  sendTestEmail: Send a test email
+  usersList: Users {{start}}-{{end}}/{{total}}
+  noArchives: No archived scenes
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided
