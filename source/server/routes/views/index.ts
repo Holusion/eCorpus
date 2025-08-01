@@ -229,12 +229,14 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/stats", (req, res)=>{
+routes.get("/admin/stats", wrap(async (req, res)=>{
+  const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
     title: "eCorpus Administration: Instance Statistics",
+    stats,
   });
-});
+}));
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template

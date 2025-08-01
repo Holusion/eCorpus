@@ -1,1 +1,23 @@
-<admin-stats></admin-stats>
+<div style="max-width:1200px; margin: auto;">
+  <h1>{{i18n "titles.serverStatistics"}}</h1>
+  <div class="section">
+    <h3>{{i18n "titles.filesStatistics"}}</h3>
+    <table>
+      <tbody>
+        <tr>
+          <td>{{i18n "labels.lastModified"}}</td>
+          <td>{{dateString stats.usage.mtime}}</td>
+        </tr>
+        <tr>
+          <td>{{i18n "labels.totalScenesCount"}}</td>
+          <td>{{stats.data.scenes}}</td>
+        </tr>
+        <tr>
+          <td>{{i18n "labels.totalDiskUsage"}}</td>
+          <td> <b-size i b="{{stats.data.size}}"></b-size></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

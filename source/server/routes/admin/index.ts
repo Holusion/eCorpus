@@ -6,6 +6,7 @@ import wrap from "../../utils/wrapAsync.js";
 import handleGetStats from "./stats/index.js";
 import handleMailtest from "./mailtest.js";
 import handleGetConfig from "./config/get.js";
+import bodyParser from "body-parser";
 
 
 const router = Router();
@@ -23,6 +24,6 @@ router.use((req, res, next)=>{
 
 router.get("/stats", isAdministrator, wrap(handleGetStats));
 router.get("/config", isAdministrator, wrap(handleGetConfig));
-router.post("/mailtest", isAdministrator, wrap(handleMailtest));
+router.post("/mailtest", isAdministrator, bodyParser.json(), wrap(handleMailtest));
 
 export default router;
