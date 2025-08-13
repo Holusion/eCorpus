@@ -1,7 +1,7 @@
 
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import {basename, dirname} from "path";
-import User, { SafeUser, UserLevels } from "../auth/User.js";
+import User, { isUserAtLeast, SafeUser } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
@@ -83,6 +83,17 @@ export function isAdministrator(req: Request, res:Response, next :NextFunction){
   if((req.session as User).level == "admin") next();
   else next(new UnauthorizedError());
 }
+
+/**
+ * Checks if user.isCreator is true
+ * Not the same thing as canWrite() that checks if the user has write rights over a scene
+ */
+export function isCreator(req: Request, res:Response, next :NextFunction){
+  res.append("Cache-Control", "private");
+  if ( isUserAtLeast((req.session as User), "create") ) next();
+  else next(new UnauthorizedError());
+}
+
 /**
  * Wraps middlewares to find if at least one passes
  * Usefull for conditional rate-limiting
