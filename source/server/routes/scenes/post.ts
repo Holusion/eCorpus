@@ -5,13 +5,14 @@ import { text } from 'stream/consumers';
 import { Request, Response } from "express";
 import yauzl, { Entry, ZipFile } from "yauzl";
 
-import { BadRequestError, HTTPError } from "../../utils/errors.js";
+import { BadRequestError, HTTPError, UnauthorizedError } from "../../utils/errors.js";
 import { getMimeType } from "../../utils/filetypes.js";
-import { getVfs, getUser } from "../../utils/locals.js";
+import { getVfs, getUser, isCreator, getUserManager } from "../../utils/locals.js";
 import uid, { Uid } from "../../utils/uid.js";
 import { once } from "events";
 import { Readable } from "stream";
 import { finished, pipeline } from "stream/promises";
+import { isUserAtLeast } from "../../auth/User.js";
 
 
 interface ImportResults {
@@ -23,6 +24,7 @@ interface ImportResults {
 export default async function postScenes(req :Request, res :Response){
   let vfs = getVfs(req);
   let requester = getUser(req);
+  let userManager = getUserManager(req);
   
   if(req.is("multipart") || req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`Form data is not supported on this route. Provide a raw Zip attachment`);
@@ -36,8 +38,8 @@ export default async function postScenes(req :Request, res :Response){
     for await (let data of req){
       await handle.write(data);
     }
-  }catch(e){
-    await fs.rm(tmpfile, {force: true}).catch(e=>{});
+  } catch (e) {
+    await fs.rm(tmpfile, { force: true }).catch(e => { });
     throw e;
   }
   finally{
@@ -66,68 +68,96 @@ export default async function postScenes(req :Request, res :Response){
       if(!scenes.has(scene)){
         //Create the scene
         try{
-          await vfs.createScene(scene, requester.uid);
-          results.ok.push(scene);
+          if (isUserAtLeast(requester, "create")) {
+            await vfs.createScene(scene, requester.uid);
+            results.ok.push(scene);
+          }
         }catch(e){
           if((e as HTTPError).code != 409) throw e;
           //409 == Scene already exist, it's OK.
         }
         scenes.set(scene, new Set());
       }
-      if(!name) return;
-      let folders = scenes.get(scene)!;
-      let dirpath = "";
-      while(pathParts.length){
-        dirpath = path.join(dirpath, pathParts.shift()!);
-        if(folders.has(dirpath)) continue;
-        folders.add(dirpath);
-        try{
-          await vfs.createFolder({scene, name: dirpath, user_id: requester.uid});
-          results.ok.push(`${scene}/${dirpath}/`);
-        }catch(e){
-          if((e as HTTPError).code != 409) throw e;
-          //409 == Folder already exist, it's OK.
+      if (!results.fail.includes(scene)) {
+        if (!results.ok.includes(scene)) {
+          try {
+            let rights = await userManager.getAccessRights(scene, requester.uid);
+            if ((rights != "write" && rights != "admin") && requester.level != "admin") {
+              results.fail.push(scene)
+              throw new UnauthorizedError("User does not have writting rights on the scene");
+            } else {
+              results.ok.push(scene);
+            }
+          }
+          catch (e) {
+            // If the scene is not found, the actual error is that the user cannot create it
+            if ((e as HTTPError).code == 404) {
+              results.fail.push(scene);
+              throw new UnauthorizedError("User cannot create a scene");
+            }
+            else throw e;
+          }
         }
-      }
 
-      if(/\/$/.test(record.fileName)){
-        // Is a directory. Do nothing, handled above.
-      }else if(name.endsWith(".svx.json")){
-        let data = Buffer.alloc(record.uncompressedSize), size = 0;
-        let rs = await openZipEntry(record);
-        rs.on("data", (chunk)=>{
-          chunk.copy(data, size);
-          size += chunk.length;
-        });
-        await finished(rs);
-        await vfs.writeDoc(data, {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
-      }else{
-        //Add the file
-        let rs = await openZipEntry(record);
-        let mime = getMimeType(name);
-        if (mime.startsWith('text/')){
-          await vfs.writeDoc(await text(rs), {user_id: requester.uid, scene, name, mime});
+        if (!name) return;
+        let folders = scenes.get(scene)!;
+        let dirpath = "";
+        while(pathParts.length){
+          dirpath = path.join(dirpath, pathParts.shift()!);
+          if(folders.has(dirpath)) continue;
+          folders.add(dirpath);
+          try{
+            await vfs.createFolder({scene, name: dirpath, user_id: requester.uid});
+            results.ok.push(`${scene}/${dirpath}/`);
+          }catch(e){
+            if((e as HTTPError).code != 409) throw e;
+            //409 == Folder already exist, it's OK.
+          }
         }
-        else {
-          await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime});
+
+        if(/\/$/.test(record.fileName)){
+          // Is a directory. Do nothing, handled above.
+        }else if(name.endsWith(".svx.json")){
+          let data = Buffer.alloc(record.uncompressedSize), size = 0;
+          let rs = await openZipEntry(record);
+          rs.on("data", (chunk)=>{
+            chunk.copy(data, size);
+            size += chunk.length;
+          });
+          await finished(rs);
+          await vfs.writeDoc(data, {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
+        }else{
+          //Add the file
+          let rs = await openZipEntry(record);
+          let mime = getMimeType(name);
+          if (mime.startsWith('text/')){
+            await vfs.writeDoc(await text(rs), {user_id: requester.uid, scene, name, mime});
+          }
+          else {
+            await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime});
+          }
         }
+        
+        results.ok.push(`${scene}/${name}`);
       }
-      
-      results.ok.push(`${scene}/${name}`);
     };
 
     zip.on("entry", (record)=>{
       onEntry(record).then(()=>{
         zip.readEntry()
       }, (e)=>{
-        console.log("unzip error :", e);
-        results.fail.push(`Unzip error : ${e.message}`);
-        zip.close();
+        if ((e as HTTPError).code != 401) { // Unauthorised errors have already been pushed
+          results.fail.push(`Unzip error : ${e.message}`);
+          zip.close();
+        } else {
+        // If the error is unauthorised, maybe other scenes in the zip are ok
+          zip.readEntry();
+        }
       });
     });
     zip.readEntry();
     await once(zip, "close");
   }).finally(() => fs.rm(tmpfile, {force: true}));
 
-  res.status(results.fail.length? 500:200).send(results);
+  res.status((results.ok.length > 0) ? 200 : 500).send(results);
 };

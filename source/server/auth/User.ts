@@ -14,6 +14,9 @@ export function isUserRole(s: string) :s is UserRole{
   return UserRoles.indexOf(s as any) !== -1;
 }
 
+export function isUserAtLeast(user: SafeUser, role: UserRole) {
+  return UserRoles.indexOf(user.level) >= UserRoles.indexOf(role);
+}
 
 export interface SafeUser{
   uid :number;
