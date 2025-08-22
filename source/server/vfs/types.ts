@@ -95,7 +95,7 @@ export interface SceneMeta{
   intros?:Dictionary<string>;
   copyright?:string;
   articles?: {uris: Dictionary<string>, leads: Dictionary<string>, titles: Dictionary<string>}[];
-  annotation?: {titles: Dictionary<string>, leads: Dictionary<string>};
+  annotations?: {titles: Dictionary<string>, leads: Dictionary<string>};
   tours?: {titles: Dictionary<string>, leads: Dictionary<string>};
   languages?:string[];
   primary_language?: string;

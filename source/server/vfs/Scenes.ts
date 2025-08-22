@@ -407,7 +407,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           primary_title: (meta.primary_language? (meta.titles ? meta.titles[meta.primary_language]:""):""),
           primary_intro: (meta.primary_language? (meta.intros ? meta.intros[meta.primary_language]:""):""),
           tours: (meta.tours? meta.tours:[]),
-          annotation: (meta.annotation? meta.annotation:[]),
+          annotations: (meta.annotations? meta.annotations:[]),
           articles: (meta.articles? meta.articles:[]),
         }:
           {}
