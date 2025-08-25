@@ -170,7 +170,7 @@ a{
       border-radius: 4px;
       color: var(--color-text);
       background-color: var(--color-highlight2);
-
+      max-width: max(20%, 30rem);
       font-size: 1rem;
       font-family: var(--font-body);
       top: anchor(bottom);

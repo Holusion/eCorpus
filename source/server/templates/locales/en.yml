@@ -6,6 +6,7 @@ labels:
   optional: optional
   sceneTitle: scene title
   selectFile: select a file
+  selectFile_s: select one or several files 
   signin: Sign in
   save: Save
   username: Username
@@ -104,6 +105,7 @@ titles:
   ctimeScenesSection: Recently added scenes
   upload: upload
   createScene: create a new scene
+  createOrUpdateScene: Create or update a scene
   tools: Tools
   search: Search
   recoverPassword: Passwordless Sign In

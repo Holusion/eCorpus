@@ -3,10 +3,12 @@
 <upload-form>
   <form class="form-control" aria-labelledby="upload-form-title">
     <section class="container">
-      <h3 id="upload-form-title">{{i18n "titles.createScene"}}</h3>
+      <h3 id="upload-form-title">{{i18n "titles.createOrUpdateScene"}}                  
+        {{#> popover id="upload-tooltip" type="button" }}{{i18n "tooltips.upload"}}{{/popover}}
+        </h3>
       <div class="form-group">
         <div class="form-item">
-          <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile"}}</label>
+          <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile_s"}} (glb, zip)</label>
           <input 
               role="button"
               class="dropzone"
