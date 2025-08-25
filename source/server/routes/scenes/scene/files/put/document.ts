@@ -29,7 +29,7 @@ export default async function handlePutDocument(req :Request, res :Response){
     return res.status(204).send();
   }
 
-  await getVfs(req).isolate(async function applyStructuredMerge(tr):Promise<void>{
+  let code = await getVfs(req).isolate(async function applyStructuredMerge(tr):Promise<204|205>{
     let {id: scene} = await tr.getScene(sceneName);
     // perform a diff of the document with the reference one
     const {data: currentDocString, id: currentDocId, generation: currentDocGeneration} = await tr.getDoc(scene, true);
@@ -52,12 +52,14 @@ export default async function handlePutDocument(req :Request, res :Response){
     if(Object.keys(docDiff).length == 0){
       debugmerge("detected identical documents");
       //Nothing to do
-      return;
+      return 204;
     }
 
     //console.log("Diff :", JSON.stringify(docDiff, (key, value)=> value === merge.DELETE_KEY? "*DELETED*":value, 2));
     if(refId == currentDocId){
+      //Simple overwrite
       await tr.writeDoc(JSON.stringify(newDoc), {scene, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+      return 205; //Reset Content
     }else{
       const mergedDoc = merge.applyDoc(currentDoc, docDiff);
       let s = JSON.stringify(mergedDoc);
@@ -66,7 +68,8 @@ export default async function handlePutDocument(req :Request, res :Response){
         debugmerge(`performed a three point merge from ${currentDocId} to ${id}`);
         debugmerge(`Using diff: ${docDiff}`);
       }
+      return 204;
     }
   });
-  res.status(204).send();
+  res.status(code).send();
 };
