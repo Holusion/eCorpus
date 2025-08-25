@@ -6,6 +6,7 @@ labels:
   optional: optionnel
   sceneTitle: titre de la scène
   selectFile: sélectionner un fichier
+  selectFile_s: sélectionner un ou plusieurs fichiers
   signin: Connexion
   save: Enregistrer
   username: Nom d'utilisateur
@@ -105,6 +106,7 @@ titles:
   ctimeScenesSection: scènes ajoutées récemment
   upload: téléversement
   createScene: créer une nouvelle scène
+  createOrUpdateScene: Créer ou mettre à jour une scène
   tools: Outils
   search: Recherche
   recoverPassword: Connexion sans mot de passe
@@ -129,6 +131,11 @@ tooltips:
   permissions: >
     L'accès par défaut pour les autres utilisateurs connectés ne peut pas être plus restrictif que l'accès public.
     Les droits les plus élévés s'appliquent parmis les droits par défaut et les droits spécifiques d'un utilisateur.
+  upload: >
+    Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
+    En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
+    Le titre ne sera pris en compte que si un seul glb est importé à la fois.
+    Pour renommer les scènes importées sous forme de zip, utilisez la page de scène. 
 leads:
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion
@@ -165,7 +172,7 @@ leads:
   annotations_one: "{{count}} annotation"
   annotations_other: "{{count}} annotations"
   sceneCounts: >
-    $t(leads.tours, {"count":{{tours}} }), $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations, {"count": {{annotations}}}) dans cette scène
+    $t(leads.tours, {"count":{{tours}} }), $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations,{"count": {{annotations}} }) dans cette scène
   noMetaAvailable: >
     Aucune métadonnée n'a pu être extraite de cette scène
   historyEdition: |
