@@ -11,7 +11,7 @@ interface UploadOperation{
   id: string;
   filename: string;
   //An array to be able to show a list of imported scenes in case of zip uploads
-  scenes: {name: string, status?: "ok"|"fail"}[];
+  scenes: { name: string, status?: "ok" | "fail", error?: string }[];
   error ?:{code?:number, message:string};
   done :boolean;
   total ?:number;
@@ -42,10 +42,10 @@ export default class UploadForm extends i18n(LitElement){
    * @param name scene name that uniquely identifies the operation
    * @param changes partial object to merge into operation
    */
-  splice(id: string, changes ?:Partial<UploadOperation>){
-    this.uploads = this.uploads.map(current =>{
-      if(current.id !== id) return current;
-      else if (changes && current) return {...current, ...changes};
+  splice(id: string, changes?: Partial<UploadOperation>) {
+    this.uploads = this.uploads.map(current => {
+      if (current.id !== id) return current;
+      else if (changes && current) return { ...current, ...changes };
       else return undefined;
     }).filter(u=>!!u);
   }
@@ -99,15 +99,18 @@ export default class UploadForm extends i18n(LitElement){
 
 
     xhr.onload = ()=>{
-      if(299 < xhr.status) return setError({code: xhr.status, message: xhr.statusText});
-      console.log("DONE");
-      if(as_scenes){
-        try{
-          console.log (JSON.parse(xhr.responseText) as {ok:string[], fail: string[]});
-          let response = JSON.parse(xhr.responseText) as {ok:string[], fail: string[]};
-          let scenes: {name: string; status?: "ok" | "fail";}[]= Array.from(new Set(response.ok.map(name=> name.split("/")[0]))).map((name)=> {return {name: name, status:"ok"}});
-          let failedScenes: {name: string; status?: "ok" | "fail";}[] = Array.from(new Set(response.fail.map(name=> name.split("/")[0]))).map((name) => {return {name: name, status: "fail"}});
-          this.splice(id, {done: true, scenes: [...scenes, ...failedScenes]});
+      if (299 < xhr.status) {
+        const fail_response = JSON.parse(xhr.responseText) as { message?: string, failed_scenes?: { [id: string]: string } };
+        const failedScenes: { name: string; status?: "ok" | "fail"; error?: string }[] = Array.from(new Set(Object.keys(fail_response.failed_scenes).map(name => name.split("/")[0]))).map((name) => { return { name: name, status: "fail", error: fail_response.failed_scenes[name]}});
+        this.splice(id, { done: true, scenes: failedScenes });
+        return setError({ code: xhr.status, message: fail_response.message ? fail_response.message : xhr.statusText });
+      }
+
+      if (as_scenes) {
+        try {
+          let response = JSON.parse(xhr.responseText) as { ok: string[]};
+          let scenes: { name: string; status?: "ok" | "fail"; }[] = Array.from(new Set(response.ok.map(name => name.split("/")[0]))).map((name) => { return { name: name, status: "ok" } });
+          this.splice(id, {done: true, scenes: scenes });
         } catch(e){
           console.log("error", e);
           setError({ message: e.message})
@@ -127,7 +130,7 @@ export default class UploadForm extends i18n(LitElement){
 
     xhr.onerror = function onUploadError(ev){
       console.log("XHR Error", ev);
-        setError({code: xhr.status, message: xhr.statusText});
+      setError({ code: xhr.status, message: xhr.response.message ? xhr.response.message : xhr.statusText });
     }
 
     xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}?language=${language}`);
@@ -146,9 +149,8 @@ export default class UploadForm extends i18n(LitElement){
     return false;
   }
 
-    protected renderSceneBox(id, name, status) {
-      console.log (id, name, status);
-      return status=="ok" ? html`
+  protected renderSceneBox(id, name, status, error?:string) {
+    return status=="ok" ? html`
         <a href="/ui/scenes/${encodeURI(name)}" class="card-header">
          <ui-icon name="list"></ui-icon><span> ${name}</span>
         </a>
@@ -161,9 +163,9 @@ export default class UploadForm extends i18n(LitElement){
         </a>
       </a>` :
       html`<span class="text-error error-message progress">
-      ${name} failed. Probably due to a scene already existing with the same name as the glb uploaded
+      ${name} failed. ${error ? error : ""}
       </span>`;
-    }
+  }
 
 
   protected render(): unknown {
@@ -178,13 +180,19 @@ export default class UploadForm extends i18n(LitElement){
           }
           let content = html`<div role="status" id="upload-${id}" class="upload-status">
           <progress id="progress-${filename}" max="100" value=${progress}></progress>`
-          if(error){
-            content = html`<span id="progress-${filename}" class="text-error progress">${scenes.map((scene)=> scene.name).join(',')}: ${error.message}</span>`;
-          }else if(done){
-            content = 
-            html`<div class="scenes-container">${scenes.map(scene => this.renderSceneBox(id, scene.name, scene.status || (error? "fail":"ok")))}
+      if (error) {
+        if (scenes.length > 0) {
+          content = html`${error.code!=401? html`<span id='progress-${filename}' class='text-error progress'>${scenes.map((scene) => scene.name).join(',')}: ${error.message}</span>`: ""}
+          <div class="scenes-container">${scenes.map(scene => this.renderSceneBox(id, scene.name, scene.status || (error ? "fail" : "ok"), scene.error))}
             </div>`
-          }
+        } else {
+          content = html`<span id="progress-${filename}" class="text-error progress">${scenes.map((scene) => scene.name).join(',')}: ${error.message}</span>`;
+        }
+      }else if(done){
+        content = 
+          html`<div class="scenes-container">${scenes.map(scene => this.renderSceneBox(id, scene.name, scene.status || (error ? "fail" : "ok"), scene.error))}
+            </div>`
+      }
 
           return html`<div class="filename"><label for="progress-${filename}">${filename}</label></div>
             <div><span> ${total?html`(<b-size b=${total}></b-size>)`:null}</span></div>
@@ -193,7 +201,7 @@ export default class UploadForm extends i18n(LitElement){
             </div>
             <button class="btn btn-transparent btn-inline btn-small text-error" @click=${handleAbort}>🗙</button>`; 
 
-        })}
+    })}
       </section>`: null}
     `;
   }

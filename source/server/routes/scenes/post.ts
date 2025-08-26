@@ -13,10 +13,11 @@ import { once } from "events";
 import { Readable } from "stream";
 import { finished, pipeline } from "stream/promises";
 import { isUserAtLeast } from "../../auth/User.js";
+import { Dictionary } from "../../utils/schema/types.js";
 
 
 interface ImportResults {
-  fail:string[];
+  fail:Dictionary<string>;
   ok:string[];
 }
 
@@ -32,7 +33,8 @@ export default async function postScenes(req :Request, res :Response){
 
   let file_name = uid(12)+".zip";
   let tmpfile = path.join(vfs.uploadsDir, file_name);
-  let results :ImportResults = {fail:[], ok:[]};
+  let results: ImportResults = {fail:{}, ok:[]};
+  let zipError: Error;
   let handle = await fs.open(tmpfile, "wx+");
   try{
     for await (let data of req){
@@ -61,8 +63,7 @@ export default async function postScenes(req :Request, res :Response){
       if(!record.fileName.endsWith("/")) pathParts.pop();//Drop the file name unless it's a directory
 
       if(!scene){
-        console.log("Not matching on ", record);
-        results.fail.push(`${record.fileName}: not matching pattern`);
+        results.fail[`${record.fileName}`] = "not matching pattern";
         return
       }
       if(!scenes.has(scene)){
@@ -78,12 +79,12 @@ export default async function postScenes(req :Request, res :Response){
         }
         scenes.set(scene, new Set());
       }
-      if (!results.fail.includes(scene)) {
+      if ((Object.keys(results.fail) && !Object.keys(results.fail).includes(scene)) || (Object.keys(results.fail).length == 0)) {
         if (!results.ok.includes(scene)) {
           try {
             let rights = await userManager.getAccessRights(scene, requester.uid);
             if ((rights != "write" && rights != "admin") && requester.level != "admin") {
-              results.fail.push(scene)
+              results.fail[scene] = "User does not have writting rights on the scene";
               throw new UnauthorizedError("User does not have writting rights on the scene");
             } else {
               results.ok.push(scene);
@@ -92,7 +93,7 @@ export default async function postScenes(req :Request, res :Response){
           catch (e) {
             // If the scene is not found, the actual error is that the user cannot create it
             if ((e as HTTPError).code == 404) {
-              results.fail.push(scene);
+              results.fail[scene] = "User cannot create a scene";
               throw new UnauthorizedError("User cannot create a scene");
             }
             else throw e;
@@ -146,18 +147,25 @@ export default async function postScenes(req :Request, res :Response){
       onEntry(record).then(()=>{
         zip.readEntry()
       }, (e)=>{
-        if ((e as HTTPError).code != 401) { // Unauthorised errors have already been pushed
-          results.fail.push(`Unzip error : ${e.message}`);
-          zip.close();
-        } else {
-        // If the error is unauthorised, maybe other scenes in the zip are ok
+        if ((e as HTTPError).code == 401) {   // If the error is unauthorised, we keep checking the rest of the scenes
           zip.readEntry();
+        }
+        else {
+          zip.close();
+          zipError=e;
         }
       });
     });
     zip.readEntry();
     await once(zip, "close");
-  }).finally(() => fs.rm(tmpfile, {force: true}));
+    // If one or several files have raised unauthorised errors, we send the unauthorized http error after going through the whole zip to check for all errors 
+    if (Object.keys(results.fail).length > 0 || zipError) {
+      res.status(zipError? ((zipError as HTTPError).code? (zipError as HTTPError).code : 500) : 401)
+        .send({failed_scenes: results.fail, message: zipError? zipError.message:""});
+    }
+  }).finally(() => fs.rm(tmpfile, { force: true }));
 
-  res.status((results.ok.length > 0) ? 200 : 500).send(results);
+  if (Object.keys(results.fail).length == 0) {
+    res.status(200).send({ok : results.ok});
+  }
 };
