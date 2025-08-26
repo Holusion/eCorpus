@@ -1,6 +1,6 @@
 {
   "name": "e-corpus",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "3D model database and content management system with integrated annotations and stories 3D editor",
   "scripts": {
     "start": "cd source/server/ && ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start",
