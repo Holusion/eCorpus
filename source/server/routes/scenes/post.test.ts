@@ -98,7 +98,6 @@ describe("POST /scenes", function(){
       .expect(200);
   
       expect(res.body).to.be.an("object");
-      expect(res.body.fail).to.deep.equal([]);
       expect(res.body.ok).to.deep.equal([
         'foo',
         'foo/articles/hello.html',
@@ -154,15 +153,15 @@ describe("POST /scenes", function(){
         .auth("alice", "12345678")
         .set("Content-Type", "application/zip")
         .send(zip.body)
-        .expect(500);
-      expect(res.body.fail).not.to.be.empty;
-      expect(res.body.fail).to.deep.equal(["foo"]);
+        .expect(401);
+      expect(res.body.failed_scenes).not.to.be.empty;
+      expect(res.body.failed_scenes).to.deep.equal({ foo: 'User does not have writting rights on the scene' });
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
     });
 
-    it("Can have partial sucess on importing a zip", async function () {
+    it("Fails on importing a zip with one or more scene with errors", async function () {
       let user2 = await userManager.addUser("ulysse", "12345678", "use");
       await vfs.createScene("foo", user2.uid); // Works because checks to allow the creation of scene are done on the API routes, not on the vfs. 
       await vfs.writeDoc(`{"id":1}`, { scene: "foo", user_id: user2.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json" });
@@ -190,9 +189,9 @@ describe("POST /scenes", function(){
         .auth("alice", "12345678")
         .set("Content-Type", "application/zip")
         .send(zip.body)
-        .expect(200);
-      expect(res.body.fail).not.to.be.empty;
-      expect(res.body.fail).to.deep.equal(["foo"]);
+        .expect(401);
+      expect(res.body.failed_scenes).not.to.be.empty;
+      expect(res.body.failed_scenes).to.deep.equal({foo: "User does not have writting rights on the scene"});
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
@@ -238,7 +237,6 @@ describe("POST /scenes", function(){
           .set("Content-Type", "application/zip")
           .send(zip.body)
           .expect(200);
-        expect(res.body.fail).to.be.empty;
 
         await expect(vfs.getScene("foo"), `scene "foo" should now exist`).to.be.fulfilled.to.be.ok;
         await expect(vfs.getScene("bar"), `scene "bar" should now exist`).to.be.fulfilled.to.be.ok;
@@ -271,7 +269,6 @@ describe("POST /scenes", function(){
           .expect(200);
 
         expect(res.body).to.be.an("object");
-        expect(res.body.fail).to.deep.equal([]);
         expect(res.body.ok).to.deep.equal([
           'foo',
           'foo/articles/hello.html',
@@ -327,9 +324,9 @@ describe("POST /scenes", function(){
         .auth("ulysse", "12345678")
         .set("Content-Type", "application/zip")
         .send(zip.body)
-        .expect(500);
-      expect(res.body.fail).not.to.be.empty;
-      expect(res.body.fail).to.deep.equal(["foo"]);
+        .expect(401);
+      expect(res.body.failed_scenes).not.to.be.empty;
+      expect(res.body.failed_scenes).to.deep.equal({foo: "User cannot create a scene"});
 
       await expect(vfs.getScene("foo")).to.be.rejectedWith(NotFoundError);
     });
@@ -356,15 +353,15 @@ describe("POST /scenes", function(){
         .auth("ulysse", "12345678")
         .set("Content-Type", "application/zip")
         .send(zip.body)
-        .expect(500);
-      expect(res.body.fail).not.to.be.empty;
-      expect(res.body.fail).to.deep.equal(["foo"]);
+        .expect(401);
+      expect(res.body.failed_scenes).not.to.be.empty;
+      expect(res.body.failed_scenes).to.deep.equal({foo: 'User does not have writting rights on the scene'});
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
     });
 
-    it("Can have partial sucess on importing a zip", async function () {
+    it("Fails on importing a zip with one or more scene with errors", async function () {
       let user2 = await userManager.addUser("alice", "12345678", "use");
       await vfs.createScene("foo", user2.uid); // Works because checks to allow the creation of scene are done on the API routes, not on the vfs. 
       await vfs.writeDoc(`{"id":1}`, { scene: "foo", user_id: user2.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json" });
@@ -392,9 +389,9 @@ describe("POST /scenes", function(){
         .auth("ulysse", "12345678")
         .set("Content-Type", "application/zip")
         .send(zip.body)
-        .expect(200);
-      expect(res.body.fail).not.to.be.empty;
-      expect(res.body.fail).to.deep.equal(["foo"]);
+        .expect(401);
+      expect(res.body.failed_scenes).not.to.be.empty;
+      expect(res.body.failed_scenes).to.deep.equal({foo: "User does not have writting rights on the scene"});
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
@@ -433,8 +430,6 @@ describe("POST /scenes", function(){
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(200);
-      expect(res.body.fail).to.be.empty;
-      expect(res.body.fail).to.deep.equal([]);
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       expect(await vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.have.property("hash", fileHash);
