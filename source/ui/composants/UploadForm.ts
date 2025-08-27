@@ -101,8 +101,10 @@ export default class UploadForm extends i18n(LitElement){
     xhr.onload = ()=>{
       if (299 < xhr.status) {
         const fail_response = JSON.parse(xhr.responseText) as { message?: string, failed_scenes?: { [id: string]: string } };
-        const failedScenes: { name: string; status?: "ok" | "fail"; error?: string }[] = Array.from(new Set(Object.keys(fail_response.failed_scenes).map(name => name.split("/")[0]))).map((name) => { return { name: name, status: "fail", error: fail_response.failed_scenes[name]}});
-        this.splice(id, { done: true, scenes: failedScenes });
+        if (fail_response.failed_scenes) {
+          const failedScenes: { name: string; status?: "ok" | "fail"; error?: string }[] = Array.from(new Set(Object.keys(fail_response.failed_scenes).map(name => name.split("/")[0]))).map((name) => { return { name: name, status: "fail", error: fail_response.failed_scenes[name] } });
+          this.splice(id, { done: true, scenes: failedScenes });
+        }
         return setError({ code: xhr.status, message: fail_response.message ? fail_response.message : xhr.statusText });
       }
 
@@ -182,7 +184,7 @@ export default class UploadForm extends i18n(LitElement){
           <progress id="progress-${filename}" max="100" value=${progress}></progress>`
       if (error) {
         if (scenes.length > 0) {
-          content = html`${error.code!=401? html`<span id='progress-${filename}' class='text-error progress'>${scenes.map((scene) => scene.name).join(',')}: ${error.message}</span>`: ""}
+          content = html`<span id='progress-${filename}' class='text-error progress'>${scenes.map((scene) => scene.name).join(',')}: ${error.message}</span>
           <div class="scenes-container">${scenes.map(scene => this.renderSceneBox(id, scene.name, scene.status || (error ? "fail" : "ok"), scene.error))}
             </div>`
         } else {

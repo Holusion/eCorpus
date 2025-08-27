@@ -13,10 +13,10 @@ test("uploads and rename a glb", async ({page, request})=>{
   await page.goto("/ui/upload");
   //We are forced to use the rename otherwise we'd have a name collision
   const name = randomUUID();
-  const f = page.getByRole("form", {name: "create a new scene"});
+  const f = page.getByRole("form", {name: "create or update a scene"});
   await expect(f).toBeVisible();
   await expect(f.getByRole("combobox", {name: "language"})).toHaveValue("en");
-  await f.getByRole("button", {name: "select a file"}).setInputFiles(path.join(fixtures, "cube.glb"));
+  await f.getByRole("button", {name: "files"}).setInputFiles(path.join(fixtures, "cube.glb"));
   await f.getByRole("textbox", {name: "scene title"}).fill(name)
   await f.getByRole("button", {name: "create a scene"}).click();
 
@@ -46,11 +46,11 @@ test("uploads and rename a glb (force FR)", async ({page, request})=>{
   //We are forced to use the rename otherwise we'd have a name collision
   const name = randomUUID();
   const uploads = page.getByRole("region", {name: "uploads"});
-  const f = page.getByRole("form", {name: "create a new scene"});
+  const f = page.getByRole("form", {name: "create or update a scene"});
   await expect(f).toBeVisible();
   await expect(uploads).not.toBeVisible();
   await f.getByRole("combobox", {name: "language"}).selectOption("fr");
-  await f.getByRole("button", {name: "select a file"}).setInputFiles(path.join(fixtures, "cube.glb"));
+  await f.getByRole("button", {name: "files"}).setInputFiles(path.join(fixtures, "cube.glb"));
   await f.getByRole("textbox", {name: "scene title"}).fill(name)
   await f.getByRole("button", {name: "create a scene"}).click();
 
@@ -78,7 +78,7 @@ test("uploads and rename a glb (force FR)", async ({page, request})=>{
 test("upload many glb", async ({page, request})=>{
   await page.goto("/ui/upload");
   //We are forced to use the rename otherwise we'd have a name collision
-  const f = page.getByRole("form", {name: "create a new scene"});
+  const f = page.getByRole("form", {name: "create or update a scene"});
   await expect(f).toBeVisible();
   await expect(f.getByRole("combobox", {name: "language"})).toHaveValue("en");
 
@@ -100,7 +100,7 @@ test("upload many glb", async ({page, request})=>{
   }
 
 
-  await f.getByRole("button", {name: "select a file"}).setInputFiles(files);
+  await f.getByRole("button", {name: "files"}).setInputFiles(files);
   await f.getByRole("button", {name: "create a scene"}).click();
 
   const uploads = page.getByRole("region", {name: "uploads"});

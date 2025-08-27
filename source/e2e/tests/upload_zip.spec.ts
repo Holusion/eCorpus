@@ -78,7 +78,7 @@ test("uploads a scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "titles.createScene"});
+  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
   await expect(f).toBeVisible();
   await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
@@ -137,7 +137,7 @@ test("uploads a multi-scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "titles.createScene"});
+  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
   await expect(f).toBeVisible();
   await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
