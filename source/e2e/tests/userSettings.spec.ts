@@ -141,6 +141,5 @@ test("can show archived scenes", async ({page, uniqueAccount:{username}})=>{
   res = await page.request.get(`/scenes?archived=false&author=${username}`);
   await expect(res).toBeOK();
   body = await res.json();
-  console.log(name, body);
   expect(body.scenes).toHaveLength(1);
 });
