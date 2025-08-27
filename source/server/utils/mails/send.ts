@@ -36,7 +36,7 @@ export default async function send(
 ) :ReturnType<typeof transporter.sendMail>{
 
   const info = await transporter.sendMail({
-    from: "noreply@"+config.hostname,
+    from: config.contact_email,
     ...message,
   });
 

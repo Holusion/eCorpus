@@ -18,6 +18,7 @@ const values = {
   database_uri: [parsePGEnv, toString],
   trust_proxy: [true, toBool],
   hostname: [hostname(), toString],
+  contact_email: [({hostname}:{hostname: string})=> "noreply@"+hostname, toString],
   smart_host: ["smtp://localhost", toString],
   verbose: [false, toBool],
   build_ref: ["unknown", toString],
