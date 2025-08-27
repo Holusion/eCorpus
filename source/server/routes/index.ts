@@ -8,7 +8,7 @@ import express, { Request, Response } from "express";
 
 import UserManager from "../auth/UserManager.js";
 import { BadRequestError, HTTPError, UnauthorizedError } from "../utils/errors.js";
-import { errorHandlerMdw, LogLevel } from "../utils/errorHandler.js";
+import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { mkdir } from "fs/promises";
 
 import {AppLocals, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
@@ -158,28 +158,8 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   const isTTY = process.stderr.isTTY;
 
   // error handling
-  //This should be last as it will match everything
-  app.use((req, res)=>{
-    //We don't just throw an error to be able to differentiate between
-    //internally-thrown 404 and routes that doesn't exist in logs
-    const error = { code:404, message: `Not Found`, reason: `No route was defined that could match "${req.method} ${req.originalUrl}"`}
-    res.format({
-      "application/json": ()=> {
-        res.status(404).send(error)
-      },
-      "text/html": ()=>{
-        res.status(404).render("error", { 
-          error,
-          lang: req.acceptsLanguages(locales),
-          user: getUser(req),
-        });
-      },
-      "text/plain": ()=>{
-        res.status(404).send(error.message);
-      },
-      default: ()=> res.status(404).send(error.message),
-    });
-  });
+  //404: Not Found handler This should be last as it will match everything
+  app.use(notFoundHandlerMdw());
 
   // istanbul ignore next
   //@ts-ignore

@@ -2,6 +2,8 @@ import util from "node:util";
 import { Request, Response, NextFunction } from "express";
 import { useTemplateProperties } from "../routes/views/index.js";
 import { HTTPError } from "./errors.js";
+import { getUser } from "./locals.js";
+import { locales } from "./templates.js";
 
 
 export enum LogLevel{
@@ -19,20 +21,23 @@ interface ErrorHandlerOptions{
   logLevel: number;
 }
 
+
 /** uses util.inspect with compact settings to print manageable stack traces */
+/* c8 ignore start */
 function compactError(error:Error):string{
   return util.inspect(error, {
     compact: 3,
     breakLength: Infinity,
   }).replace(/\n/g,"\\n")
 }
+/* c8 ignore end */
 
 
 export function errorHandlerMdw({
   isTTY,
   logLevel = LogLevel.InternalError,
 }: ErrorHandlerOptions){
-  return (error:HTTPError|Error, req:Request, res:Response, next:NextFunction) => {
+  return function errorHandler(error:HTTPError|Error, req:Request, res:Response, next:NextFunction){
 
     if (res.headersSent) {
       req.socket.destroy();
@@ -41,6 +46,7 @@ export function errorHandlerMdw({
     }
     
     if(LogLevel.Verbose <= logLevel) {
+      /* c8 ignore next */
       console.error((isTTY ? error : compactError(error)));
     }else if(LogLevel.InternalError <= logLevel && (!("code" in error) || error.code === 500)){
       console.error("Internal error", error.message);
@@ -76,7 +82,32 @@ export function errorHandlerMdw({
       "text/plain": ()=>{
         res.status(code).send(error.message);
       },
-      default: ()=> res.status(code).send(error.message),
+      default: ()=> res.status(code).set("Content-Type", "text/plain; charset=utf-8").send(error.message),
+    });
+  }
+}
+
+
+export function notFoundHandlerMdw(){
+  return function notFoundHandler(req:Request, res:Response){
+    //We don't just throw an error to be able to differentiate between
+    //internally-thrown 404 and routes that doesn't exist in logs
+    const error = { code:404, message: `Not Found`, reason: `No route was defined that could match "${req.method} ${req.originalUrl}"`}
+    res.format({
+      "application/json": ()=> {
+        res.status(404).send(error)
+      },
+      "text/html": ()=>{
+        res.status(404).render("error", { 
+          error,
+          lang: req.acceptsLanguages(locales),
+          user: getUser(req),
+        });
+      },
+      "text/plain": ()=>{
+        res.status(404).send(error.message);
+      },
+      default: ()=> res.status(404).set("Content-Type", "text/plain; charset=utf-8").send(error.message),
     });
   }
 }
