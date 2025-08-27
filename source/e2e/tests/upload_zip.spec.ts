@@ -152,6 +152,7 @@ test("uploads a multi-scene zip", async ({page, request})=>{
     await expect(uploads).toBeVisible();
     //Don't check for actual progress bar visibility because that could be too quick to register
     const link = uploads.getByRole("link", {name: name});
+    await expect(link).toBeVisible();
   }
 
   await Promise.all(names.map(async (name)=>{
