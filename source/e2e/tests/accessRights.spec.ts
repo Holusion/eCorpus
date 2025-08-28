@@ -17,7 +17,7 @@ test("can't create a new scene", async function({page, request}){
   const name = randomUUID();
   
   await page.goto("/ui/upload/");
-  const f = page.getByRole("form", {name: "titles.createScene"});
+  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
   await expect(f).toBeVisible();
   await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles(path.join(fixtures, "cube.glb"));
   await f.getByRole("textbox", {name: "labels.sceneTitle"}).fill(name);
@@ -45,7 +45,7 @@ test("can't upload a zip", async function({page, userPage}){
 
   let body = await res.body();
   await page.goto("/ui/upload/");
-  const f = page.getByRole("form", {name: "titles.createScene"});
+  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
   await expect(f).toBeVisible();
   await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
@@ -55,5 +55,5 @@ test("can't upload a zip", async function({page, userPage}){
 
   await f.getByRole("button", {name: "buttons.upload"}).click();
   
-  await expect(page.getByText("Unauthorized", {exact: true})).toBeVisible();
+  await expect(page.getByText("scene: Error: [401] Unauthorized", {exact: true})).toBeVisible();
 });

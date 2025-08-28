@@ -8,7 +8,7 @@ import express, { Request, Response } from "express";
 
 import UserManager from "../auth/UserManager.js";
 import { BadRequestError, HTTPError, UnauthorizedError } from "../utils/errors.js";
-import { errorHandlerMdw, LogLevel } from "../utils/errorHandler.js";
+import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { mkdir } from "fs/promises";
 
 import {AppLocals, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
@@ -17,15 +17,18 @@ import openDatabase from "../vfs/helpers/db.js";
 import Vfs from "../vfs/index.js";
 import defaultConfig from "../utils/config.js";
 import User from "../auth/User.js";
-import Templates from "../utils/templates.js";
+import Templates, { locales } from "../utils/templates.js";
 
+
+const debug = debuglog("pg:connect");
 
 export default async function createServer(config = defaultConfig) :Promise<express.Application>{
 
   await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
-  let db = await openDatabase({filename: path.join(config.files_dir, "database.db"), forceMigration: config.force_migration});
+  let db = await openDatabase({uri: config.database_uri, forceMigration: config.force_migration});
+  let uri = new URL(config.database_uri);
+  debug(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`)
   const vfs = await Vfs.Open(config.files_dir, {db});
-
   const userManager = new UserManager(db);
 
   const templates = new Templates({dir: config.templates_dir, cache: config.node_env == "production"});
@@ -40,12 +43,6 @@ export default async function createServer(config = defaultConfig) :Promise<expr
       vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
     }, 6000).unref();
 
-    /** @fixme remove once all databases are migrated */
-    try{
-      await vfs.fillHashes()
-    }catch(e){
-      console.error("Failed to fill-in missing hashsums in database. Application may be unstable.");
-    }
 
     setInterval(()=>{
       vfs.optimize();
@@ -155,61 +152,14 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   app.use("/scenes", (await import("./scenes/index.js")).default);
   app.use("/users", (await import("./users/index.js")).default);
   app.use("/tags", (await import("./tags/index.js")).default);
-  
   app.get("/opensearch.xml", (await import("./opensearch.js")).renderOpenSearch);
-
-  /**
-   * Redirects for previous routes under /api/v1 prefix
-   * @fixme remove on next major release
-   */
-  app.use("/api/v1/:pathname(*)", util.deprecate((req :Request, res :Response, next)=>{
-    const host = getHost(req);
-    // Signal deprecation using the non-standard Deprecation header
-    // https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-deprecation-header
-    res.set("Deprecation", "@"+Math.round(new Date("2024-07-08T00:00:00.000Z").getTime()/1000).toString());
-    //Expected sunset date, approximately
-    res.set("Sunset", 'Wed, 01 Jan 2025 00:00:00 GMT');
-    let pathname = req.params.pathname;
-    if(/^\/log(?:in|out)/.test(pathname)){
-      pathname = "/auth"+pathname;
-    }else if(pathname.endsWith("history")){
-      pathname = "/history"+pathname.replace("/scenes", "").replace("/history", "");
-    }else if(pathname.endsWith("/permissions")){
-      pathname = "/auth/access"+pathname.replace("/scenes", "").replace("/permissions", "");
-    }
-    const dest = new URL(pathname, host.origin);
-    if(dest.origin != host.origin){
-      throw new BadRequestError();
-    }
-    res.redirect(301, dest.pathname);
-  }, `/api/v1 routes are deprecated. Use the new shorter naming scheme`));
-
+  
   const logLevel = (config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
   const isTTY = process.stderr.isTTY;
 
   // error handling
-  //This should be last as it will match everything
-  app.use((req, res)=>{
-    //We don't just throw an error to be able to differentiate between
-    //internally-thrown 404 and routes that doesn't exist in logs
-    const error = { code:404, message: `Not Found`, reason: `No route was defined that could match "${req.method} ${req.originalUrl}"`}
-    res.format({
-      "application/json": ()=> {
-        res.status(404).send(error)
-      },
-      "text/html": ()=>{
-        res.status(404).render("error", { 
-          error,
-          lang: req.acceptsLanguages(["en", "fr"]),
-          user: getUser(req),
-        });
-      },
-      "text/plain": ()=>{
-        res.status(404).send(error.message);
-      },
-      default: ()=> res.status(404).send(error.message),
-    });
-  });
+  //404: Not Found handler This should be last as it will match everything
+  app.use(notFoundHandlerMdw());
 
   // istanbul ignore next
   //@ts-ignore

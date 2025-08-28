@@ -41,5 +41,24 @@ describe("config", function(){
       expect(opts).to.have.property("root_dir", "/app");
       expect(opts).to.have.property("files_dir", "/tmp/files");
     });
+
+    it("constructs postgres connection string from default environment variables", function(){
+      let opts = parse({
+        PGHOST: "example.com",
+        PGPORT: "9876",
+        PGUSER: "foo",
+        PGPASSWORD: "secret",
+        PGDATABASE: "my_database"
+      });
+      expect(opts).to.have.property("database_uri", "postgres://foo:secret@example.com:9876/my_database")
+    });
+
+    it("uses unix socket if no password is provided", function(){
+      //the reasoning is that no sane person would run passwordless postgres on localhost ?
+       let opts = parse({
+        PGDATABASE: "my_database"
+      });
+      expect(opts).to.have.property("database_uri", "socket:///var/run/postgresql/?db=my_database")
+    });
   });
 });

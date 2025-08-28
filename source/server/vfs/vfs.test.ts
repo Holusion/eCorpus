@@ -5,10 +5,11 @@ import { expect } from "chai";
 import Vfs, { FileProps, GetFileParams, Scene, WriteFileParams } from "./index.js";
 import { Uid } from "../utils/uid.js";
 import UserManager from "../auth/UserManager.js";
-import User from "../auth/User.js";
+import User, { UserLevels } from "../auth/User.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
 import ScenesVfs from "./Scenes.js";
 import { collapseAsync } from "../utils/wrapAsync.js";
+import getScene from "../routes/scenes/scene/get.js";
 
 async function *dataStream(src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){
@@ -28,11 +29,13 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     id: id,
     name: "foo",
     author: "default",
-    author_id: 0,
+    author_id: null,
     thumb: null,
     tags: [],
-    access:  { any: 'read', default: 'read' },
-    archived: false,
+    access: "read",
+    public_access: "read",
+    default_access: "read",
+    archived: null,
   };
 }
 
@@ -44,14 +47,22 @@ describe("Vfs", function(){
   this.afterEach(async function(){
     await fs.rm(this.dir, {recursive: true});
   })
-  it("opens upload directory", async function(){
-    await Vfs.Open(this.dir);
+  it("creates upload directory", async function(){
+    let vfs = await Vfs.Open(this.dir, {db: {} as any});
     await expect(fs.access(path.join(this.dir, "uploads"))).to.be.fulfilled;
   });
 
   describe("isolate", function(){
+    let vfs :Vfs;
+    this.beforeEach(async function(){
+      this.db_uri = await getUniqueDb(this.test?.title);
+      vfs = await Vfs.Open(this.dir, {database_uri: this.db_uri});
+    })
+    this.afterEach(async function(){
+      await vfs.close();
+      await dropDb(this.db_uri);
+    })
     it("can rollback on error", async function(){
-      let vfs = await Vfs.Open(this.dir);
       await expect(vfs.isolate(async (vfs)=>{
         await vfs.createScene("foo");
         await vfs.createScene("foo");
@@ -60,7 +71,6 @@ describe("Vfs", function(){
     });
 
     it("reuses a connection when nested", async function(){
-      let vfs = await Vfs.Open(this.dir);
       await expect(vfs.isolate( async (v2)=>{
         await v2.isolate(async (v3)=>{
           expect(v3._db).to.equal(v2._db);
@@ -69,7 +79,6 @@ describe("Vfs", function(){
     });
 
     it("can be nested (success)", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let scenes = await expect(vfs.isolate( async (v2)=>{
         await v2.getScenes();
         await v2.isolate(async (v3)=>{
@@ -85,7 +94,6 @@ describe("Vfs", function(){
     });
 
     it("can be nested (with caught error)", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let scenes = await expect(vfs.isolate( async (v2)=>{
         await v2.createScene("foo");
         //This isolate rolls back but since we don't propagate the error
@@ -105,7 +113,6 @@ describe("Vfs", function(){
     });
 
     it("is properly closed on success", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let _transaction:Vfs|null =null;
       await expect(vfs.isolate(async tr=>{
         _transaction = tr;
@@ -115,7 +122,6 @@ describe("Vfs", function(){
     })
 
     it("is properly closed on error", async function(){
-      let vfs = await Vfs.Open(this.dir);
       let _transaction:Vfs|null =null;
       await expect(vfs.isolate(async tr=>{
         _transaction = tr;
@@ -171,44 +177,29 @@ describe("Vfs", function(){
     });
 
     it("sanitizes access values", function(){
-      expect(()=>ScenesVfs._validateSceneQuery({access:["none", "read"] as any})).not.to.throw();
-      [
-        ["foo"],
-        [undefined],
-        ["read", "foo"]
-      ].forEach(a=>{
-        expect(()=>ScenesVfs._validateSceneQuery({access: a as any}),`expected ${a ?? typeof a} to not be an accepted access value`).to.throw(`Bad access type requested`);
+      ["read","write","admin","none"]
+      .forEach( a => {
+        expect(()=>ScenesVfs._validateSceneQuery({access: a as any}),`expected ${a ?? typeof a} to be an accepted access value`).not.to.throw();
+      });
+
+      ["foo",true, 1]
+      .forEach ( a=> {
+        expect(()=>ScenesVfs._validateSceneQuery({access: a as any}),`expected ${a ?? typeof a} to not be an accepted access value`).to.throw(`Invalid access type requested : ${a.toString()}`);
       });
     });
 
-    it("sanitizes author ids", function(){
-      [ 0, 1, 100 ].forEach(a=>{
+    it("sanitizes authors username", function(){
+      [ "Jane" ].forEach(a=>{
         expect(()=>ScenesVfs._validateSceneQuery({author: a})).not.to.throw();
       });
-      [ null, "0", "foo", -1 ].forEach(a=>{
+      [ null, 0].forEach(a=>{
         expect(()=>ScenesVfs._validateSceneQuery({author: a as any}),`expected ${a ?? typeof a} to not be an accepted author value`).to.throw(`[400] Invalid author filter request: ${a}`);
       });
     })
   });
 
-  describe("toDate()", function(){
-    //Parse dates stored in the database
-    it("parse a date string without timezone", async function(){
-      let d = Vfs.toDate("2024-01-11 14:44:59")
-      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59Z").valueOf());
-    });
-    it("parse a GMT date", async function(){
-      let d = Vfs.toDate("2024-01-11 14:44:59Z")
-      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59Z").valueOf());
-    });
-    it("parse a local ISO8601 date", async function(){
-      let d = Vfs.toDate("2024-01-11 14:44:59+01")
-      expect(d.valueOf()).to.equal(new Date("2024-01-11 14:44:59+01").valueOf());
-    });
-  })
-
   describe("", function(){
-    let vfs :Vfs; 
+    let vfs :Vfs, database_uri:string; 
     //@ts-ignore
     const run = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.run(sql, ...params);
     //@ts-ignore
@@ -217,8 +208,13 @@ describe("Vfs", function(){
     const all = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.all(sql, ...params);
 
     this.beforeEach(async function(){
-      vfs = await Vfs.Open(this.dir);
+      database_uri = await getUniqueDb();
+      vfs = await Vfs.Open(this.dir, {database_uri});
     });
+    this.afterEach(async function(){
+      await vfs.close();
+      await dropDb(database_uri);
+    })
 
     describe("createScene()", function(){
       it("insert a new scene", async function(){
@@ -266,19 +262,26 @@ describe("Vfs", function(){
 
       it("sets scene author", async function(){
         const userManager = new UserManager(vfs._db);
-        const user = await userManager.addUser("alice", "xxxxxxxx", false);
+        const user = await userManager.addUser("alice", "xxxxxxxx", "create");
         let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
-        let s = await vfs.getScene(id, user.uid);
-        expect(s).to.have.property("access").to.have.property("user", "admin");
+        try{
+          let s = await vfs.getScene(id, user.uid);
+          expect(s).to.have.property("access").to.be.equal("admin");
+        }catch(e){
+          console.log("createScene :", e);
+          throw e;
+        }
       });
 
       it("sets custom scene permissions", async function(){
         const userManager = new UserManager(vfs._db);
-        const user = await userManager.addUser("alice", "xxxxxxxx", false);
-        let id = await expect(vfs.createScene("foo", {"0": "none",[user.uid.toString()]:"write"})).to.be.fulfilled;
+        const user = await userManager.addUser("alice", "xxxxxxxx", "create");
+        let id = await expect(vfs.createScene("foo", user.uid)).to.be.fulfilled;
+        await userManager.grant(id, user.uid, "write");
+        await userManager.setPublicAccess(id, "none");
         let s = await vfs.getScene(id, user.uid);
-        expect(s.access).to.deep.equal({"default": "none", "any": "read", "user": "write"});
-      })
+        expect(s.access).to.deep.equal("write");
+      });
     });
 
     describe("getScenes()", function(){
@@ -299,9 +302,9 @@ describe("Vfs", function(){
           if(typeof props[key] ==="undefined"){
             expect(scene, `${(scene as any)[key]}`).not.to.have.property(key);
           }else if(typeof props[key] === "function"){
-            expect(scene).to.have.property(key).instanceof(props[key]);
+            expect(scene, `scene.${key} should match expected class ${props[key].constructor.name}`).to.have.property(key).instanceof(props[key]);
           }else{
-            expect(scene).to.have.property(key).to.deep.equal(props[key]);
+            expect(scene, `scene.${key} should match expected value ${props[key]}`).to.have.property(key).to.deep.equal(props[key]);
           }
         }
       });
@@ -310,11 +313,11 @@ describe("Vfs", function(){
         let t2 = new Date();
         let t1 = new Date(Date.now()-100000);
         let scene_id = await vfs.createScene("foo");
-        await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-        let $doc_id = (await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
+        await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        let $doc_id = (await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
         //Force ctime
-        await run(`UPDATE scenes SET ctime = $time`, {$time: t1.toISOString()});
-        await run(`UPDATE files SET ctime = $time WHERE file_id = $doc_id`, {$time: t2.toISOString(), $doc_id});
+        await run(`UPDATE scenes SET ctime = $1`, [t1]);
+        await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [t2, $doc_id]);
         let scenes = await vfs.getScenes();
         expect(scenes).to.have.property("length", 1);
         expect(scenes[0].ctime.valueOf(), `ctime is ${scenes[0].ctime}, expected ${t1}`).to.equal(t1.valueOf());
@@ -327,21 +330,21 @@ describe("Vfs", function(){
           vfs.createScene("aa"),
           vfs.createScene("Ab"),
         ]);
-        let scenes = await vfs.getScenes();
+        let scenes = await vfs.getScenes(null, {orderBy: "name"});
         let names = scenes.map(s=>s.name);
         expect(names).to.deep.equal(["a1", "aa", "Ab"]);
       });
 
       it("can return existing thumbnails", async function(){
         let s1 = await vfs.createScene("01");
-        await vfs.writeDoc("\n", {scene: s1, user_id:0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+        await vfs.writeDoc("{}", {scene: s1, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
         let s2 = await vfs.createScene("02");
-        await vfs.writeDoc("\n", {scene: s2, user_id:0, name: "scene-image-thumb.png", mime: "image/jpeg"});
+        await vfs.writeDoc("{}", {scene: s2, user_id: null, name: "scene-image-thumb.png", mime: "image/jpeg"});
 
         let s = await vfs.getScenes(0);
         expect(s).to.have.property("length", 2);
-        expect(s[0]).to.have.property("thumb", "scene-image-thumb.jpg");
-        expect(s[1]).to.have.property("thumb", "scene-image-thumb.png");
+        expect(s[0]).to.have.property("thumb", "scene-image-thumb.png");
+        expect(s[1]).to.have.property("thumb", "scene-image-thumb.jpg");
       });
 
       it("returns the last-saved thumbnail", async function(){
@@ -351,9 +354,9 @@ describe("Vfs", function(){
           new Date("2023-01-01"),
           new Date("2024-01-01")
         ];
-        const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: i, $time: d});
-        let png = await vfs.writeDoc("\n", {scene: s1, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
-        let jpg = await vfs.writeDoc("\n", {scene: s1, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+        const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $2 WHERE file_id = $1`, [i, d]);
+        let png = await vfs.writeDoc("{}", {scene: s1, user_id: null, name: "scene-image-thumb.png", mime: "image/png"});
+        let jpg = await vfs.writeDoc("{}", {scene: s1, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
 
         let r = await setDate(jpg.id, times[1]);
         await setDate(png.id, times[2]);
@@ -373,7 +376,7 @@ describe("Vfs", function(){
 
       it("can get archived scenes", async function(){
         let scene_id = await vfs.createScene("foo");
-        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         await vfs.archiveScene(scene_id);
         let scenes = await vfs.getScenes();
         expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
@@ -383,7 +386,7 @@ describe("Vfs", function(){
       it("can get only archived scenes (no requester)", async function(){
         await vfs.createScene("bar");
         let scene_id = await vfs.createScene("foo");
-        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         await vfs.archiveScene(scene_id);
 
         //Two scenes total
@@ -395,14 +398,14 @@ describe("Vfs", function(){
 
       it("can get an author's own archived scenes", async function(){
         let um :UserManager= new UserManager(vfs._db);
-        let user = await um.addUser("bob", "12345678", false, "bob@example.com")
+        let user = await um.addUser("bob", "12345678", "create", "bob@example.com")
         //Create a reference non-archived scene (shouldn't be shown)
         await vfs.createScene("bar", user.uid);
         //Create a scene owned by someone else
         await vfs.createScene("baz");
         //Create our archived scene
         let scene_id = await vfs.createScene("foo", user.uid);
-        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         await vfs.archiveScene(scene_id);
 
         //Three scenes total
@@ -419,13 +422,17 @@ describe("Vfs", function(){
         let userManager :UserManager, user :User;
         this.beforeEach(async function(){
           userManager = new UserManager(vfs._db);
-          user = await userManager.addUser("alice", "xxxxxxxx", false);
+          user = await userManager.addUser("alice", "xxxxxxxx", "create");
         });
 
         it("can filter accessible scenes by user_id", async function(){
-          await vfs.createScene("foo", user.uid);
-          await run(`UPDATE scenes SET access = json_object("0", "none", "${user.uid}", "admin")`);
-          expect(await vfs.getScenes(0), `private scene shouldn't be returned to default user`).to.have.property("length", 0);
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await userManager.setPublicAccess("foo", "none");
+          await userManager.setDefaultAccess("foo", "none");
+          await userManager.grant("foo", user.uid, "none");
+          await run(`UPDATE scenes SET public_access = 0`);
+          await run(`INSERT INTO users_acl (fk_scene_id, fk_user_id, access_level) VALUES ($1, $2, 3)`, [scene_id, user.uid]);
+          expect((await vfs.getScenes(0)), `private scene shouldn't be returned to default user`).to.have.property("length", 0);
           expect(await vfs.getScenes(user.uid), `private scene should be returned to its author`).to.have.property("length", 1);
         });
 
@@ -439,62 +446,92 @@ describe("Vfs", function(){
         });
         
         it("get proper user own access", async function(){
-          let scene_id = await vfs.createScene("foo", {[user.uid.toString(10)]: "admin", "1": "write", "0": "none"});
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await userManager.setDefaultAccess(scene_id, "write");
+          await userManager.setPublicAccess(scene_id, "none");
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
-          expect(scenes[0]).to.have.property("access").to.deep.equal({user:"admin", any: "write", default: "none"});
+          expect(scenes[0]).to.have.property("access").to.equal("admin");
         });
         it("get proper \"any\" access", async function(){
-          let scene_id = await vfs.createScene("foo", {"0":"read", "1": "write"});
+          let scene_id = await vfs.createScene("foo");
+          await userManager.setDefaultAccess(scene_id, "write");
+          await userManager.setPublicAccess(scene_id, "read");
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
-          expect(scenes[0]).to.have.property("access").to.deep.equal({user: "none", any: "write", default: "read"});
+          expect(scenes[0]).to.have.property("access").to.equal("write");
         });
       });
 
       describe("search", async function(){
-        let userManager :UserManager, user :User, admin :User;
+        let userManager :UserManager, user :User, sceneAdmin :User, admin :User;
         this.beforeEach(async function(){
           userManager = new UserManager(vfs._db);
-          user = await userManager.addUser("bob", "xxxxxxxx", false);
-          admin = await userManager.addUser("alice", "xxxxxxxx", true);
+          user = await userManager.addUser("bob", "xxxxxxxx", "create");
+          sceneAdmin = await userManager.addUser("alice", "xxxxxxxx", "create");
+          admin = await userManager.addUser("adele", "xxxxxxxx", "admin");
         });
 
         it("filters by access-level", async function(){
-          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read"});
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.grant("foo", user.uid, "read");
           expect(await vfs.getScenes(user.uid, {})).to.have.property("length", 1);
-          expect(await vfs.getScenes(user.uid, {access:["admin"]})).to.have.property("length", 0);
+          expect(await vfs.getScenes(user.uid, {access:"admin"})).to.have.property("length", 0);
         });
 
         it("won't return inaccessible content", async function(){
-          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "none", "0":"none", "1": "none"});
-          expect(await vfs.getScenes(user.uid, {access:["none"]})).to.have.property("length", 0);
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.setPublicAccess("foo", "none");
+          await userManager.setDefaultAccess("foo", "none");
+          expect(await vfs.getScenes(user.uid, {access:"none"})).to.have.property("length", 0);
         });
 
+        it("will return everything to admin level user", async function(){       
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.setPublicAccess("foo", "none");
+          await userManager.setDefaultAccess("foo", "none");
+          expect(await vfs.getScenes(admin.uid)).to.have.property("length", 1);
+        });
+        
+        it("will return only scenes with specicfic rights to admin level user", async function(){
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.setPublicAccess("foo", "none");
+          await userManager.setDefaultAccess("foo", "none");
+          expect(await vfs.getScenes(admin.uid, {access:"read"})).to.have.property("length", 0);
+          expect(await vfs.getScenes(admin.uid, {access:"write"})).to.have.property("length", 0);
+          expect(await vfs.getScenes(admin.uid, {access:"admin"})).to.have.property("length", 0);
+        });
+        
         it("can select by specific user access level", async function(){
-          await vfs.createScene("foo", {[`${admin.uid}`]: "admin", [`${user.uid}`]: "read", "0":"read", "1": "read"});
-          expect(await vfs.getScenes(user.uid, {access:["read"]})).to.have.property("length", 1);
+          await vfs.createScene("foo", sceneAdmin.uid);
+          await userManager.grant("foo", user.uid, "read");
+          await userManager.setPublicAccess("foo", "read");
+          await userManager.setDefaultAccess("foo", "read");
+          expect(await vfs.getScenes(user.uid, {access:"read"})).to.have.property("length", 1);
         });
 
         it("filters by author", async function(){
           await vfs.createScene("User Authored", user.uid);
-          await vfs.createScene("Admin Authored", admin.uid);
-          let s = await vfs.getScenes(user.uid, {author: user.uid});
+          await vfs.createScene("Scene Admin Authored", sceneAdmin.uid);
+          let s = await vfs.getScenes(user.uid, {author: user.username});
           expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
 
         it("filters by name match", async function(){
-          await vfs.createScene("Hello World", user.uid);
-          await vfs.createScene("Goodbye World", user.uid);
+          let hello_scene_id = await vfs.createScene("Hello World", user.uid);
+          await vfs.writeDoc(JSON.stringify( {
+            metas: [{collection:{
+              titles:{EN: "", FR: ""}
+          }}]}
+          ), {scene: hello_scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let goodbye_scene_id = await vfs.createScene("Goodbye World", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{collection:{
+              titles:{EN: "", FR: ""}
+          }}]}
+          ), {scene: goodbye_scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
           let s = await vfs.getScenes(user.uid, {match: "Hello"})
           expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-        });
-
-        it("Can have wildcards in name match", async function(){
-          await vfs.createScene("Hello World", user.uid);
-          await vfs.createScene("Goodbye World", user.uid);
-          let s = await vfs.getScenes(user.uid, {match: "He%o"})
-          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
 
         it("can match a document's meta title", async function(){
@@ -504,7 +541,71 @@ describe("Vfs", function(){
               titles:{EN: "Hello World", FR: "Bonjour, monde"}
             }}]
           }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          let s = await vfs.getScenes(user.uid, {match: "He%o"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match a document's intros", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{collection:{
+              intros:{EN: "Hello World", FR: "Bonjour, monde"}
+            }}]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match a document's copyright", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{collection:{
+              titles:{EN: " ", FR: " "}
+            }}],
+            asset: {copyright: "Hello World"}
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match a document's article title", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{
+              articles:[
+                {titles:{EN: "Hello"}}
+              ]
+            }]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+        it("can match a document's annotation title", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            models: [{
+              annotations:[
+                {titles:{EN: "Hello"}}
+              ]
+            }]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+          it("can match a document's tour title", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            setups: [{
+              tours:[
+                {titles:{EN: "Hello"}}
+              ]
+            }]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
 
@@ -517,36 +618,64 @@ describe("Vfs", function(){
               ]
             }]
           }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          let s = await vfs.getScenes(user.uid, {match: "He%o"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
+
+        it("can match a document's annotation leads", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            models: [{
+              annotations:[
+                {leads:{EN: "Hello"}}
+              ]
+            }]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+          it("can match a document's tour leads", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc(JSON.stringify({
+            setups: [{
+              tours:[
+                {leads:{EN: "Hello"}}
+              ]
+            }]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
+
+        it("can match a document's article text", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await vfs.writeDoc("Hello\n", {scene: scene_id, mime: "text/html", name: "articles/foo.html", user_id: user.uid});
+          await vfs.writeDoc(JSON.stringify({
+            metas: [{
+              articles:[{
+                titles: {EN: " ", FR: ""},
+                uris: {EN: "articles/foo.html", FR: "articles/foo.html"}
+              }]
+            }]
+          }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "Hello"});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
+
 
         it("is case-insensitive", async function(){
-          await vfs.createScene("Hello World", user.uid);
-          let s = await vfs.getScenes(user.uid, {match: "hello"})
+          const scene = await vfs.createScene("Hello World", user.uid);
+          await vfs.writeDoc(JSON.stringify( {
+            metas: [{collection:{
+              titles:{EN: "", FR: ""}
+          }}]}
+          ), {scene: scene, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let s = await vfs.getScenes(user.uid, {match: "hello"})         
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
 
-        it("can match the author's name", async function(){
-          let scene_id = await vfs.createScene("foo", user.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          let s = await vfs.getScenes(user.uid, {match: user.username});
-          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-        });
-
-        it.skip("can match an editor's name", async function(){
-          //This could have too much impact performance to query properly?
-          let scene_id = await vfs.createScene("foo", admin.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: admin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-
-          let s = await vfs.getScenes(user.uid, {match: user.username});
-          expect(s, `Matched scenes : [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 0);
-          
-          await vfs.writeDoc(JSON.stringify({scene: 0}), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          
-          s = await vfs.getScenes(user.uid, {match: user.username});
-          expect(s, `Matched scenes : [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-        });
 
         it("can search against multiple search terms", async function(){
           let scene_id = await vfs.createScene("bar", user.uid);
@@ -558,15 +687,29 @@ describe("Vfs", function(){
             }]
           }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
-          scene_id = await vfs.createScene("foo1", admin.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: admin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          scene_id = await vfs.createScene("foo 1", sceneAdmin.uid);
+          await vfs.writeDoc(JSON.stringify( {
+            metas: [{collection:{
+              titles:{EN: "", FR: ""}
+          }}]}
+          ), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
-          scene_id = await vfs.createScene("foo2", user.uid);
-          await vfs.writeDoc(JSON.stringify({}), {scene: scene_id, user_id: admin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          scene_id = await vfs.createScene("foo 2", user.uid);
+          await vfs.writeDoc(JSON.stringify( {
+            metas: [{collection:{
+              titles:{EN: "fizz", FR: ""}
+          }}]}
+          ), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
           
-          let s = await vfs.getScenes(user.uid, {match: `foo ${user.username}`});
+          let s = await vfs.getScenes(user.uid, {match: `foo fizz`});
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          expect(s[0]).to.have.property("name", "foo2");
+          expect(s[0]).to.have.property("name", "foo 2");
+          
+          s = await vfs.getScenes(user.uid, {match: `foo OR fizz`});
+          expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
+          expect(s[0]).to.have.property("name", "foo 2");
+          expect(s[1]).to.have.property("name", "foo 1");
+
 
           s = await vfs.getScenes(user.uid, {match: `Hello User`});
           expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
@@ -580,9 +723,8 @@ describe("Vfs", function(){
           let s = await vfs.getScenes(user.uid, {match: ""})
           expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
         });
-
       });
-
+        
       describe("ordering", function(){
         it("rejects bad orderBy key", async function(){
           await expect(vfs.getScenes(0, {orderBy: "bad" as any})).to.be.rejectedWith("Invalid orderBy: bad");
@@ -620,12 +762,12 @@ describe("Vfs", function(){
           }
           let res = await vfs.getScenes(0, {limit: 1, offset: 0})
           expect(res).to.have.property("length", 1);
-          expect(res[0]).to.have.property("name", "scene_0");
+          expect(res[0]).to.have.property("name", "scene_9");
 
           res = await vfs.getScenes(0, {limit: 2, offset: 2})
           expect(res).to.have.property("length", 2);
-          expect(res[0]).to.have.property("name", "scene_2");
-          expect(res[1]).to.have.property("name", "scene_3");
+          expect(res[0]).to.have.property("name", "scene_7");
+          expect(res[1]).to.have.property("name", "scene_6");
         });
 
         it("limits LIMIT to 100", async function(){
@@ -637,11 +779,11 @@ describe("Vfs", function(){
     describe("createFolder(), removeFolder(), listFolders()", function(){
       let scene_id :number;
       this.beforeEach(async function(){
-        scene_id = await vfs.createScene("foo", 0);
+        scene_id = await vfs.createScene("foo");
       })
 
       it("create a folder in a scene", async function(){
-        await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
+        await vfs.createFolder({scene:scene_id, name: "videos", user_id: null});
         let folders =  await collapseAsync(vfs.listFolders(scene_id));
         //order is by mtime descending, name ascending so we can't rely on it
         expect(folders.map(f=>f.name)).to.have.members(["articles", "models", "videos"]);
@@ -649,43 +791,43 @@ describe("Vfs", function(){
       });
 
       it("create a tree of folders", async function(){
-        await vfs.createFolder({scene:scene_id, name: "articles/videos",  user_id: 0});
+        await vfs.createFolder({scene:scene_id, name: "articles/videos",  user_id: null});
         let folders =  await collapseAsync(vfs.listFolders(scene_id));
-        expect(folders.map(f=>f.name)).to.deep.equal(["articles", "articles/videos", "models"]);
+        expect(folders.map(f=>f.name)).to.deep.equal(["articles/videos", "articles" , "models"]);
       });
 
       it("don't accept a trailing slash", async function(){
-        await expect(vfs.createFolder({scene:scene_id, name: "videos/", user_id: 0})).to.be.rejectedWith(BadRequestError);
+        await expect(vfs.createFolder({scene:scene_id, name: "videos/", user_id: null})).to.be.rejectedWith(BadRequestError);
       });
 
       it("don't accept absolute paths", async function(){
-        await expect(vfs.createFolder({scene:scene_id, name: "/videos", user_id: 0})).to.be.rejectedWith(BadRequestError);
+        await expect(vfs.createFolder({scene:scene_id, name: "/videos", user_id: null})).to.be.rejectedWith(BadRequestError);
       });
 
       it("throws an error if folder exists", async function(){
-        await vfs.createFolder({scene: scene_id, name: "videos",  user_id: 0});
-        await expect( vfs.createFolder({scene: scene_id, name: "videos",  user_id: 0}) ).to.be.rejectedWith(ConflictError);
+        await vfs.createFolder({scene: scene_id, name: "videos",  user_id: null});
+        await expect( vfs.createFolder({scene: scene_id, name: "videos",  user_id: null}) ).to.be.rejectedWith(ConflictError);
       });
 
       it("throws an error if folder doesn't exist", async function(){
-        await expect(vfs.removeFolder({scene: scene_id, name: "videos", user_id: 0})).to.be.rejectedWith(NotFoundError);
+        await expect(vfs.removeFolder({scene: scene_id, name: "videos", user_id: null})).to.be.rejectedWith(NotFoundError);
       });
 
       it("remove a scene's folder", async function(){
-        await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
-        await vfs.removeFolder({scene: scene_id, name: "videos", user_id: 0});
+        await vfs.createFolder({scene:scene_id, name: "videos", user_id: null});
+        await vfs.removeFolder({scene: scene_id, name: "videos", user_id: null});
         let folders = await collapseAsync(vfs.listFolders(scene_id));
         expect(folders.map(f=>f.name)).to.deep.equal(["articles", "models"]);
-        await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
+        await vfs.createFolder({scene:scene_id, name: "videos", user_id: null});
         folders = await collapseAsync(vfs.listFolders(scene_id));
         expect(folders.map(f=>f.name).sort()).to.deep.equal(["videos", "models", "articles"].sort());
       });
 
       it("removeFolder() removes all files in the folder", async function(){
         let userManager = new UserManager(vfs._db);
-        let user = await userManager.addUser("alice", "xxxxxxxx", false);
-        await vfs.createFolder({scene:scene_id, name: "videos", user_id: 0});
-        await vfs.writeFile(dataStream(), {scene: scene_id, name: "videos/foo.mp4", mime:"video/mp4", user_id: 0});
+        let user = await userManager.addUser("alice", "xxxxxxxx", "create");
+        await vfs.createFolder({scene:scene_id, name: "videos", user_id: null});
+        await vfs.writeFile(dataStream(), {scene: scene_id, name: "videos/foo.mp4", mime:"video/mp4", user_id: null});
 
         await vfs.removeFolder({scene: scene_id, name: "videos", user_id: user.uid });
 
@@ -750,24 +892,28 @@ describe("Vfs", function(){
           //When scene doesn't exist
           await expect(vfs.removeTag(scene_id+1, "foo")).to.eventually.equal(false);
         });
-
-        it("force lower case ascii characters", async function(){
-          await expect(vfs.addTag(scene_id, "Foo")).to.eventually.equal(true);
-          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(false);
-          expect(await vfs.getTags()).to.deep.equal([{name: "foo", size: 1}]);
+        it("store case and accents", async function(){
+          await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
+          expect(await vfs.getTags()).to.deep.equal([{name: "Électricité", size: 1}]);
         });
 
-        it("force lower case for non-ascii characters", async function(){
+        it("collate case and accents (same scene)", async function(){
           await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
           await expect(vfs.addTag(scene_id, "électricité")).to.eventually.equal(false);
-          expect(await vfs.getTags()).to.deep.equal([{name: "électricité", size: 1}]);
+          await expect(vfs.addTag(scene_id, "electricite")).to.eventually.equal(false);
+
+          expect(await vfs.getTags()).to.deep.equal([{name: "Électricité", size: 1}]);
         });
 
-        it("force lower case for non-latin characters", async function(){
-          await expect(vfs.addTag(scene_id, "ΑΒΓΔΕ")).to.eventually.equal(true);
-          await expect(vfs.addTag(scene_id, "αβγδε")).to.eventually.equal(false);
-          expect(await vfs.getTags()).to.deep.equal([{name: "αβγδε", size: 1}]);
-        });
+        it("collate case and accents (multiple scenes)", async function(){
+          let s2 = await vfs.createScene("tags-collate-s2");
+          let s3 = await vfs.createScene("tags-collate-s3");
+          await expect(vfs.addTag(scene_id, "Électricité")).to.eventually.equal(true);
+          await expect(vfs.addTag(s2, "électricité")).to.eventually.equal(true);
+          await expect(vfs.addTag(s3, "electricite")).to.eventually.equal(true);
+
+          expect(await vfs.getTags()).to.deep.equal([{name: "Électricité", size: 3}]);
+        })
       });
 
 
@@ -791,7 +937,14 @@ describe("Vfs", function(){
           await vfs.addTag(scene_id, `tag_foo`);
           await vfs.addTag(scene_id, `foo_tag`);
           await vfs.addTag(scene_id, `tag_bar`);
+
           expect(await vfs.getTags("foo")).to.deep.equal([
+            {name:"foo_tag", size: 1},
+            {name: "tag_foo", size: 1},
+          ]);
+
+          //Match should be case-insensitive
+          expect(await vfs.getTags("Foo")).to.deep.equal([
             {name:"foo_tag", size: 1},
             {name: "tag_foo", size: 1},
           ]);
@@ -818,9 +971,9 @@ describe("Vfs", function(){
         describe("respects permissions", function(){
           let userManager :UserManager, alice :User, bob :User;
           this.beforeEach(async function(){
-            let userManager = new UserManager(vfs._db);
-            alice = await userManager.addUser("alice", "12345678", true);
-            bob = await userManager.addUser("bob", "12345678", false);
+            userManager = new UserManager(vfs._db);
+            alice = await userManager.addUser("alice", "12345678", "admin");
+            bob = await userManager.addUser("bob", "12345678", "create");
           });
 
           it("return scenes with read access", async function(){
@@ -831,7 +984,9 @@ describe("Vfs", function(){
           });
 
           it("won't return non-readable scene", async function(){
-            const id = await vfs.createScene("admin-only", {"0": "none", "1": "none", [alice.uid.toString(10)]: "admin"});
+            const id = await vfs.createScene("admin-only", alice.uid);
+            await userManager.setPublicAccess("admin-only", "none");
+            await userManager.setDefaultAccess("admin-only", "none");
             await vfs.addTag("admin-only", "foo");
             expect(await vfs.getTag("foo"), "without user_id").to.deep.equal([id]);
 
@@ -884,12 +1039,11 @@ describe("Vfs", function(){
         it("store archive time", async function(){
           //To be used later 
           await vfs.archiveScene(scene_id);
-          let {archived} = await vfs._db.get(`SELECT archived FROM scenes WHERE scene_id= ?`, [scene_id]);
-          expect(archived).to.be.ok;
-          let archivedDate = new Date(archived*1000);
-          expect(archivedDate.toString()).not.to.equal('Invalid Date');
-          expect(archivedDate.valueOf(), archivedDate.toUTCString()).to.be.above(new Date().valueOf() - 2000);
-          expect(archivedDate.valueOf(), archivedDate.toUTCString()).to.be.below(new Date().valueOf()+1);
+          let {archived} = await vfs._db.get(`SELECT archived FROM scenes WHERE scene_id= $1`, [scene_id]);
+          expect(archived).to.be.instanceof(Date);
+          expect(archived.toString()).not.to.equal('Invalid Date');
+          expect(archived.valueOf(), archived.toUTCString()).to.be.above(new Date().valueOf() - 2000);
+          expect(archived.valueOf(), archived.toUTCString()).to.be.below(new Date().valueOf()+1);
         })
       });
 
@@ -897,7 +1051,7 @@ describe("Vfs", function(){
         it("restores an archived scene", async function(){
           await vfs.archiveScene(scene_id);
           await vfs.unarchiveScene(`foo#${scene_id}`);
-          expect(await vfs.getScene("foo")).to.have.property("archived", false);
+          expect(await vfs.getScene("foo")).to.have.property("archived", null);
         });
 
         it("throws if archive doesn't exist", async function(){
@@ -907,24 +1061,24 @@ describe("Vfs", function(){
 
       describe("createFile()", function(){
         it("can create an empty file", async function(){
-          let r = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0}, {hash: null, size: 0});
+          let r = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null}, {hash: null, size: 0});
           expect(r).to.have.property("id");
           expect(r).to.have.property("generation", 1);
           expect(r).to.have.property("hash", null);
         });
 
         it("can create a dummy file", async function(){
-          let r = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0}, {hash: "xxxxxx", size: 150});
+          let r = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null}, {hash: "xxxxxx", size: 150});
         })
 
         it("autoincrements generation", async function(){
-          await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0}, {hash: "xxxxxx", size: 150});
-          let r = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0}, {hash: "yyyyy", size: 150});
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null}, {hash: "xxxxxx", size: 150});
+          let r = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null}, {hash: "yyyyy", size: 150});
           expect(r).to.have.property("generation", 2);
         })
         it("can copy a file", async function(){
-          let foo = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0}, {hash: "xxxxxx", size: 150});
-          let bar = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/bar.txt", user_id: 0}, {hash: "xxxxxx", size: 150});
+          let foo = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null}, {hash: "xxxxxx", size: 150});
+          let bar = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/bar.txt", user_id: null}, {hash: "xxxxxx", size: 150});
           expect(bar).to.have.property("id").not.equal(foo.id);
           expect(bar).to.have.property("generation", 1);
           expect(bar).to.have.property("hash", foo.hash);
@@ -934,7 +1088,7 @@ describe("Vfs", function(){
       })
       describe("writeFile()", function(){
         it("can upload a file (relative)", async function(){
-          let r = await vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0});
+          let r = await vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null});
           expect(r).to.have.property("id").a("number");
           expect(r).to.have.property("generation", 1);
           await expect(fs.access(path.join(this.dir, "objects", r.hash as any)), "can't access object file").to.be.fulfilled;
@@ -943,7 +1097,7 @@ describe("Vfs", function(){
 
         it("can upload a file (absolute)", async function(){
           let r = await expect(
-            vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0})
+            vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null})
           ).to.be.fulfilled;
           expect(r).to.have.property("generation", 1);
           expect(r).to.have.property("id").a("number");
@@ -952,20 +1106,20 @@ describe("Vfs", function(){
           await expect(empty(this.uploads));
         });
         it("gets proper generation", async function(){
-          await vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0});
+          await vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null});
           for(let i=2; i < 5; i++){
-            let foo = await vfs.writeFile(dataStream(["bar","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0});
+            let foo = await vfs.writeFile(dataStream(["bar","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null});
             expect(foo).to.have.property("generation", i);
           }
-          let bar = await vfs.writeFile(dataStream(["bar","\n"]), {scene: "foo", mime: "text/html", name: "articles/bar.txt", user_id: 0});
+          let bar = await vfs.writeFile(dataStream(["bar","\n"]), {scene: "foo", mime: "text/html", name: "articles/bar.txt", user_id: null});
           expect(bar).to.have.property("generation", 1);
         });
         it("can upload over an existing file", async function(){
           await expect(
-            vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0})
+            vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null})
           ).to.eventually.have.property("generation", 1);
           let r = await expect(
-            vfs.writeFile(dataStream(["bar","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0})
+            vfs.writeFile(dataStream(["bar","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null})
           ).to.be.fulfilled;
 
           expect(r).to.have.property("generation", 2);
@@ -978,7 +1132,7 @@ describe("Vfs", function(){
             yield Promise.resolve(Buffer.from("foo"));
             yield Promise.reject(new Error("CONNRESET"));
           }
-          await expect(vfs.writeFile(badStream(), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: 0})).to.be.rejectedWith("CONNRESET");
+          await expect(vfs.writeFile(badStream(), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null})).to.be.rejectedWith("CONNRESET");
           await expect(fs.access(path.join(this.dir, "foo.txt")), "can't access foo.txt").to.be.rejectedWith("ENOENT");
           await expect(empty(this.uploads));
         });
@@ -990,7 +1144,7 @@ describe("Vfs", function(){
         let r:FileProps, ctime :Date;
         let props :GetFileParams = {scene: "foo", name: "articles/foo.txt"};
         this.beforeEach(async function(){
-          r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, mime: "text/html", user_id: 0} );
+          r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, mime: "text/html", user_id: null} );
           ctime = r.ctime;
         });
         describe("getFileProps", function(){
@@ -1007,8 +1161,8 @@ describe("Vfs", function(){
           })
           it("get proper mtime and ctime", async function(){
             let mtime = new Date(Math.floor(Date.now())+100*1000);
-            let r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: 0});
-            r = await expect(run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: r.id, $time: mtime.toISOString()})).to.be.fulfilled;
+            let r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: null});
+            r = await expect(run(`UPDATE files SET ctime = $2 WHERE file_id = $1`, [ r.id, mtime.toISOString()])).to.be.fulfilled;
             expect(r).to.have.property("changes", 1);
             r = await expect(vfs.getFileProps(props)).to.be.fulfilled;
             expect(r.ctime.valueOf()).to.equal(ctime.valueOf());
@@ -1025,27 +1179,27 @@ describe("Vfs", function(){
           });
 
           it("get archived file", async function(){
-            let id = await vfs.removeFile({...props, user_id: 0});
+            let id = await vfs.removeFile({...props, user_id: null});
             await expect(vfs.getFileProps(props), `File with id ${id} shouldn't be returned`).to.be.rejectedWith("[404]");
             await expect(vfs.getFileProps({...props, archive: true})).to.eventually.have.property("id", id);
           });
 
           it("get by generation", async function(){
-            let r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: 0});
+            let r = await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: null});
             expect(r).to.have.property("generation", 2);
             await expect(vfs.getFileProps({...props, generation: 2})).to.eventually.have.property("generation", 2);
             await expect(vfs.getFileProps({...props, generation: 1})).to.eventually.have.property("generation", 1);
           });
 
           it("get archived by generation", async function(){
-            await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: 0});
-            let id = await vfs.removeFile({...props, user_id: 0});
+            await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: null});
+            let id = await vfs.removeFile({...props, user_id: null});
             await expect(vfs.getFileProps({...props, archive: true, generation: 3})).to.eventually.have.property("id", id);
             await expect(vfs.getFileProps({...props, archive: true, generation: 3}, true)).to.eventually.have.property("id", id);
           });
           
           it("get document", async function(){
-            let {ctime:docCtime, ...doc} = await vfs.writeDoc("{}", {...props, user_id: 0});
+            let {ctime:docCtime, ...doc} = await vfs.writeDoc("{}", {...props, user_id: null});
             await expect(vfs.getFileProps({...props, archive: true, generation: doc.generation}, true)).to.eventually.deep.equal({...doc, ctime, data: "{}"});
           });
         });
@@ -1062,7 +1216,7 @@ describe("Vfs", function(){
 
           it("get a document", async function(){
             //getFile can sometimes be used to get a stream to an existing document. Its shouldn't care and do it.
-            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null});
             let {stream} = await vfs.getFile(props);
             let str = "";
             for await (let d of stream!){
@@ -1073,7 +1227,7 @@ describe("Vfs", function(){
           });
 
           it("get a range of a document", async function(){
-            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null});
             let start = 3;
             let end = 7;
             let {stream} = await vfs.getFile({...props,start,end});
@@ -1087,7 +1241,7 @@ describe("Vfs", function(){
 
 
           it("get a document range of a document with NO end", async function(){
-            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null});
             let start = 3;
             let {stream} = await vfs.getFile({...props,start});
             let str = "";
@@ -1100,7 +1254,7 @@ describe("Vfs", function(){
 
         
           it("get a document of a document with NO start", async function(){
-            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null});
             let end = 3;
             let {stream} = await vfs.getFile({...props,end});
             let str = "";
@@ -1113,7 +1267,7 @@ describe("Vfs", function(){
 
 
           it("get a document with end after end of file", async function(){
-            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null});
             let start = 3;
             let end = 100;
             let {stream} = await vfs.getFile({...props,start,end});
@@ -1126,7 +1280,7 @@ describe("Vfs", function(){
           });
 
           it("get a document with start after end of file", async function(){
-            await vfs.writeDoc("Hello World\n", {...props, user_id: 0});
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null});
             let start = 50;            //getFile can sometimes be used to get a stream to an existing document. Its shouldn't care and do it.
 
             let end = 100;
@@ -1218,9 +1372,9 @@ describe("Vfs", function(){
   
         describe("getFileHistory()", function(){
           it("get previous versions of a file", async function(){
-            let r2 = await vfs.writeFile(dataStream(["foo2","\n"]), {...props, user_id: 0} );
-            let r3 = await vfs.writeFile(dataStream(["foo3","\n"]), {...props, user_id: 0} );
-            await vfs.writeFile(dataStream(["bar","\n"]), {...props, name:"bar", user_id: 0} ); //another file
+            let r2 = await vfs.writeFile(dataStream(["foo2","\n"]), {...props, user_id: null} );
+            let r3 = await vfs.writeFile(dataStream(["foo3","\n"]), {...props, user_id: null} );
+            await vfs.writeFile(dataStream(["bar","\n"]), {...props, name:"bar", user_id: null} ); //another file
             let versions = await vfs.getFileHistory(props);
             let fileProps = await vfs.getFileProps(props);
             //Expect reverse order
@@ -1245,8 +1399,8 @@ describe("Vfs", function(){
 
         describe("removeFile()", function(){
           it("add an entry with state = REMOVED", async function(){
-            await vfs.removeFile({...props, user_id: 0});
-            let files = await all(`SELECT * FROM files WHERE name = "${props.name}"`);
+            await vfs.removeFile({...props, user_id: null});
+            let files = await all(`SELECT * FROM files WHERE name = '${props.name}'`);
             expect(files).to.have.property("length", 2);
             expect(files[0]).to.include({
               hash: "tbudgBSg-bHWHiHnlteNzN8TUvI80ygS9IULh4rklEw",
@@ -1258,30 +1412,30 @@ describe("Vfs", function(){
             });
           });
           it("requires the file to actually exist", async function(){
-            await expect(vfs.removeFile({...props, name: "bar.txt", user_id: 0})).to.be.rejectedWith("404");
+            await expect(vfs.removeFile({...props, name: "bar.txt", user_id: null})).to.be.rejectedWith("404");
           });
           it("require file to be in active state", async function(){
-            await expect(vfs.removeFile({...props, user_id: 0})).to.be.fulfilled,
-            await expect(vfs.removeFile({...props, user_id: 0})).to.be.rejectedWith("already deleted");
+            await expect(vfs.removeFile({...props, user_id: null})).to.be.fulfilled,
+            await expect(vfs.removeFile({...props, user_id: null})).to.be.rejectedWith("already deleted");
           });
         });
   
         describe("renameFile()", function(){
   
           it("rename a file", async function(){
-            await vfs.renameFile({...props, user_id: 0}, "bar.txt");
+            await vfs.renameFile({...props, user_id: null}, "bar.txt");
             await expect(vfs.getFileProps(props), "old file should not be reported anymore").to.be.rejectedWith("404");
             let file = await expect(vfs.getFileProps({...props, name: "bar.txt"})).to.be.fulfilled;
             expect(file).to.have.property("mime", "text/html");
           });
           
           it("throw 404 error if file doesn't exist", async function(){
-            await expect(vfs.renameFile({...props, user_id: 0, name: "bar.html"}, "baz.html")).to.be.rejectedWith("404");
+            await expect(vfs.renameFile({...props, user_id: null, name: "bar.html"}, "baz.html")).to.be.rejectedWith("404");
           });
   
           it("file can be created back after rename", async function(){
-            await vfs.renameFile({...props, user_id: 0}, "bar.txt");
-            await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: 0} );
+            await vfs.renameFile({...props, user_id: null}, "bar.txt");
+            await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: null} );
             await expect(vfs.getFileProps({...props, name: "bar.txt"})).to.be.fulfilled;
             //Check if it doesn't mess with the history
             let hist = await vfs.getFileHistory(props);
@@ -1292,9 +1446,9 @@ describe("Vfs", function(){
             ]);
           });
           it("can move to a deleted file", async function(){
-            await vfs.renameFile({...props, user_id: 0}, "bar.txt");
+            await vfs.renameFile({...props, user_id: null}, "bar.txt");
             //move it back in place after it was deleted
-            await vfs.renameFile({...props, name: "bar.txt", user_id: 0}, props.name);
+            await vfs.renameFile({...props, name: "bar.txt", user_id: null}, props.name);
             let hist = await vfs.getFileHistory(props);
             expect(hist.map(f=>`${f.name}#${f.generation}: ${f.hash}`)).to.deep.equal([
               `articles/foo.txt#3: tbudgBSg-bHWHiHnlteNzN8TUvI80ygS9IULh4rklEw`,
@@ -1304,13 +1458,13 @@ describe("Vfs", function(){
             await expect(vfs.getFile({...props, name: "bar.txt"})).to.be.rejectedWith(NotFoundError);
           });
           it("can move in a folder", async function(){
-            await vfs.renameFile({...props, user_id: 0}, "articles/bar.txt");
+            await vfs.renameFile({...props, user_id: null}, "articles/bar.txt");
             await expect(vfs.getFileProps(props)).to.be.rejectedWith(NotFoundError);
             expect(await vfs.getFileProps({...props, name: "articles/bar.txt"})).to.have.property("hash", "tbudgBSg-bHWHiHnlteNzN8TUvI80ygS9IULh4rklEw");
           });
 
           it("can move a document", async function(){
-            const props =  {scene: scene_id, user_id: 0, name:"foo.json", mime: "application/json"};
+            const props =  {scene: scene_id, user_id: null, name:"foo.json", mime: "application/json"};
             let doc = await vfs.writeDoc("{}",props);
             expect(doc).to.have.property("hash").ok;
             await expect(vfs.renameFile(props, "bar.json")).to.be.fulfilled; 
@@ -1322,21 +1476,22 @@ describe("Vfs", function(){
 
       describe("writeDoc()", function(){
         it("insert a new document using scene_id", async function(){
-          await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          await expect(all(`SELECT * FROM files WHERE name = "scene.svx.json"`)).to.eventually.have.property("length", 1);
+          await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          await expect(all(`SELECT * FROM files WHERE name = 'scene.svx.json'`)).to.eventually.have.property("length", 1);
         })
         it("insert a new document using scene_name", async function(){
-          await vfs.writeDoc("{}", {scene: "foo", user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          await expect(all(`SELECT * FROM files  WHERE name = "scene.svx.json"`)).to.eventually.have.property("length", 1);
+          await vfs.writeDoc("{}", {scene: "foo", user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          await expect(all(`SELECT * FROM files  WHERE name = 'scene.svx.json'`)).to.eventually.have.property("length", 1);
         })
         it("requires a scene to exist", async function(){
-          await expect(vfs.writeDoc("{}", {scene: 125 /*arbitrary non-existent scene id */, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).to.be.rejectedWith("404");
+          await expect(vfs.writeDoc("{}", {scene: 125 /*arbitrary non-existent scene id */, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).to.be.rejectedWith("404");
           await expect(all(`SELECT * FROM files WHERE fk_scene_id = 125`)).to.eventually.have.property("length", 0);
         });
         it("can provide an author", async function(){
-          let {user_id} = await get(`INSERT INTO users ( username ) VALUES ("alice") RETURNING printf("%x", user_id) AS user_id`);
+          let user_id = Uid.make();
+          await get(`INSERT INTO users ( user_id, username ) VALUES ($1, 'alice')`, [user_id]);
           await expect(vfs.writeDoc("{}",  {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).to.be.fulfilled;
-          let files = await all(`SELECT data, printf("%x", fk_author_id) as fk_author_id FROM files WHERE name = "scene.svx.json"`);
+          let files = await all(`SELECT data, fk_author_id AS fk_author_id FROM files WHERE name = 'scene.svx.json'`);
           expect(files).to.have.length(1);
           expect(files[0]).to.deep.equal({
             data: "{}",
@@ -1345,16 +1500,24 @@ describe("Vfs", function(){
         });
         it("updates scene's current doc", async function(){
           for(let i = 1; i<=3; i++){
-            let id = (await vfs.writeDoc(`{"i":${i}}`, {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
+            let id = (await vfs.writeDoc(`{"i":${i}}`, {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
             await expect(vfs.getDoc(scene_id)).to.eventually.deep.include({id});
           }
         });
+
+        it("reports byte size, not character size", async function(){
+          let str = `{"id":"你好"}`;
+          expect(str.length).not.to.equal(Buffer.byteLength(str));
+          const doc = await vfs.writeDoc(str, {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          expect(doc).to.have.property("size", Buffer.byteLength(str));
+        })
+
       });
 
       
       describe("getScene()", function(){
         this.beforeEach(async function(){
-          await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
         });
 
         it("throw an error if not found", async function(){
@@ -1388,13 +1551,13 @@ describe("Vfs", function(){
         });
 
         it("get a scene's thumbnail if it exist (jpg)", async function(){
-          await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+          await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
           let s = await vfs.getScene(scene_id);
           expect(s).to.have.property("thumb", "scene-image-thumb.jpg");
         });
 
         it("get a scene's thumbnail if it exist (png)", async function(){
-          await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
+          await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene-image-thumb.png", mime: "image/png"});
           let s = await vfs.getScene(scene_id);
           expect(s).to.have.property("thumb", "scene-image-thumb.png");
         });
@@ -1405,9 +1568,9 @@ describe("Vfs", function(){
             new Date("2023-01-01"),
             new Date("2024-01-01")
           ];
-          const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $time WHERE file_id = $id`, {$id: i, $time: d});
-          let png = await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.png", mime: "image/png"});
-          let jpg = await vfs.writeDoc("\n", {scene: scene_id, user_id: 0, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+          const setDate = (i:number, d:Date)=>vfs._db.run(`UPDATE files SET ctime = $2 WHERE file_id = $1`, [ i, d ]);
+          let png = await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene-image-thumb.png", mime: "image/png"});
+          let jpg = await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
 
           let r = await setDate(jpg.id, times[1]);
           await setDate(png.id, times[2]);
@@ -1426,28 +1589,31 @@ describe("Vfs", function(){
 
         it("get requester's access right", async function(){
           let userManager = new UserManager(vfs._db);
-          let alice = await userManager.addUser("alice", "xxxxxxxx", false);
+          let alice = await userManager.addUser("alice", "xxxxxxxx", "create");
 
           let id = await vfs.createScene("alice's", alice.uid);
           await vfs.writeDoc("{}", {scene: id, user_id: alice.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
           let scene = await vfs.getScene("alice's", alice.uid);
-          expect(scene).to.have.property("access").to.have.property("user").to.equal("admin");
+          expect(scene).to.have.property("access").to.equal("admin");
         });
         it("performs requests for default user", async function(){
           let scene = await vfs.getScene("foo", 0);
           expect(scene).to.be.ok;
-        })
+          expect(scene).to.have.property("access").to.equal("read");
+        });
       });
 
       describe("getSceneHistory()", function(){
         let default_folders = 2
         describe("get an ordered history", function(){
           this.beforeEach(async function(){
-            let fileProps :WriteFileParams = {user_id: 0, scene:scene_id, mime: "model/gltf-binary", name:"models/foo.glb"}
+            let fileProps :WriteFileParams = {user_id: null, scene:scene_id, mime: "model/gltf-binary", name:"models/foo.glb"}
             await vfs.writeFile(dataStream(), fileProps);
-            await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
             await vfs.writeFile(dataStream(), fileProps);
-            await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            //Ensure all ctime are equal to prevent ordering issues
+            await vfs._db.run(`UPDATE files SET ctime = $1 WHERE fk_scene_id = $2`, [new Date(), scene_id]);
           });
 
           it("all events", async function(){
@@ -1486,19 +1652,9 @@ describe("Vfs", function(){
           });
         });
 
-        it("reports proper size for data strings", async function(){
-          //By default sqlite counts string length as char length and not byte length
-          let str = `{"id":"你好"}`;
-          expect(str.length).not.to.equal(Buffer.byteLength(str));
-          await vfs.writeDoc(str, {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-          let history = await vfs.getSceneHistory(scene_id);
-          expect(history).to.have.property("length", 1+ default_folders);
-          expect(history.find(f=>f.name == "scene.svx.json")).to.have.property("size", Buffer.byteLength(str));
-        });
-
         it("supports pagination", async function(){
           for(let i=0; i < 20; i++){
-            await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
           }
 
           let history = await vfs.getSceneHistory(scene_id, {limit: 2, offset: 0});
@@ -1514,15 +1670,83 @@ describe("Vfs", function(){
           ]);
         });
       });
+      
+      describe("getSceneMeta()", function() {
+        it("can get default meta (0) data", async function(){
+          await vfs.writeDoc( JSON.stringify({
+            metas: [
+              {collection:
+                {titles: {
+                  "EN": "English title",
+                  "FR": "French title"
+                }}
+              }
+            ]
+          })
+          , {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          const meta = await vfs.getSceneMeta("foo");
+          expect(meta.titles).to.be.deep.equal({
+                  "EN": "English title",
+                  "FR": "French title"
+                })
+        }); 
+        
+        it("can get non-default meta data", async function(){
+           await vfs.writeDoc( JSON.stringify({
+            scenes: [{meta: 1}],
+            metas: [
+              {},
+              {collection:
+                {titles: {
+                  "EN": "English title",
+                  "FR": "French title"
+                }}
+              }
+            ]
+          })
+          , {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          const meta = await vfs.getSceneMeta("foo");
+          expect(meta.titles).to.deep.equal({
+                  "EN": "English title",
+                  "FR": "French title"
+                })
+        }); 
+
+        it("can get primary title and intros", async function(){
+           await vfs.writeDoc( JSON.stringify(
+            {
+            scenes: [{meta: 1}],
+            setups: [ {language: {language: "FR"}}],
+             metas: [
+              {},
+              {collection:
+                {titles: {
+                  "EN": "English title",
+                  "FR": "French title"
+                },
+                intros: {
+                  "EN": "English intro",
+                  "FR": "French intro"
+                }}
+              }]
+           })         
+          , {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          const meta = await vfs.getSceneMeta("foo");
+          expect(meta.primary_title).to.equal("French title");
+          expect(meta.primary_intro).to.equal("French intro");
+        }); 
+        
+      });
+
 
       describe("listFiles()", function(){
         let tref = new Date("2022-12-08T10:49:46.196Z");
 
         it("Get files created for a scene", async function(){
-          let f1 = await vfs.writeFile(dataStream(), {user_id: 0, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"});
-          let f2 = await vfs.writeFile(dataStream(), {user_id: 0, scene:"foo",  mime: "image/jpeg", name:"foo.jpg"});
-          let d1 = await vfs.writeDoc('{}', {user_id: 0, scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json"});
-          await run(`UPDATE files SET ctime = $t`, {$t:tref.toISOString()});
+          let f1 = await vfs.writeFile(dataStream(), {user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"});
+          let f2 = await vfs.writeFile(dataStream(), {user_id: null, scene:"foo",  mime: "image/jpeg", name:"foo.jpg"});
+          let d1 = await vfs.writeDoc('{}', {user_id: null, scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json"});
+          await run(`UPDATE files SET ctime = $1`, [tref.toISOString()]);
           let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.deep.equal([
             {
@@ -1534,7 +1758,7 @@ describe("Vfs", function(){
               mime: "image/jpeg",
               ctime: tref,
               mtime: tref,
-              author_id: 0,
+              author_id: null,
               author: "default",
             },{
               size: 4,
@@ -1545,7 +1769,7 @@ describe("Vfs", function(){
               mime: "model/gltf-binary",
               ctime: tref,
               mtime: tref,
-              author_id: 0,
+              author_id: null,
               author: "default",
             },
             {
@@ -1557,7 +1781,7 @@ describe("Vfs", function(){
               name: "scene.svx.json",
               ctime: tref,
               mtime: tref,
-              author_id: 0,
+              author_id: null,
               author: "default",
             }
           ]);
@@ -1566,13 +1790,13 @@ describe("Vfs", function(){
         it("Groups files versions", async function(){
           let tnext = new Date(tref.getTime()+8000);
           let originalFiles = (await all("SELECT * FROM files")).length
-          let f1 = await vfs.writeFile(dataStream(["foo", "\n"]), {user_id: 0, scene:"foo",  mime: "model/gltf-binary", name:"models/foo.glb"});
-          let del = await  vfs.createFile({user_id: 0, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"}, {hash: null, size: 0});
-          let f2 = await vfs.writeFile(dataStream(["hello world", "\n"]), {user_id: 0, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"});
+          let f1 = await vfs.writeFile(dataStream(["foo", "\n"]), {user_id: null, scene:"foo",  mime: "model/gltf-binary", name:"models/foo.glb"});
+          let del = await  vfs.createFile({user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"}, {hash: null, size: 0});
+          let f2 = await vfs.writeFile(dataStream(["hello world", "\n"]), {user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"});
           await expect(all("SELECT * FROM files")).to.eventually.have.property("length", 3+originalFiles);
-          await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tref.toISOString(), $id:f1.id});
-          await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tref.toISOString(), $id:del.id});
-          await run(`UPDATE files SET ctime = $t WHERE file_id = $id`, {$t:tnext.toISOString(), $id:f2.id});
+          await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [tref.toISOString(), f1.id]);
+          await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [tref.toISOString(), del.id]);
+          await run(`UPDATE files SET ctime = $1 WHERE file_id = $2`, [tnext.toISOString(), f2.id]);
 
           let files = await collapseAsync(vfs.listFiles(scene_id));
           expect(files).to.have.property("length", 1);
@@ -1585,13 +1809,13 @@ describe("Vfs", function(){
             mime: "model/gltf-binary",
             ctime: tref,
             mtime: tnext,
-            author_id: 0,
+            author_id: null,
             author: "default",
           }]);
         });
 
         it("returns only files that are not removed", async function(){
-          let props :WriteFileParams = {user_id: 0, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"}
+          let props :WriteFileParams = {user_id: null, scene:"foo", mime: "model/gltf-binary", name:"models/foo.glb"}
           let f1 = await vfs.writeFile(dataStream(), props);
           await vfs.removeFile(props);
           let files = await collapseAsync(vfs.listFiles(scene_id));
@@ -1599,8 +1823,8 @@ describe("Vfs", function(){
         });
 
         it("can get a list of archived files", async function(){
-          await vfs.writeFile(dataStream(["foo", "\n"]), {user_id: 0, scene: scene_id, mime: "text/html", name:"articles/hello.txt"});
-          let del = await  vfs.createFile({user_id: 0, scene: scene_id, name:"articles/hello.txt"}, {hash: null, size: 0});
+          await vfs.writeFile(dataStream(["foo", "\n"]), {user_id: null, scene: scene_id, mime: "text/html", name:"articles/hello.txt"});
+          let del = await  vfs.createFile({user_id: null, scene: scene_id, name:"articles/hello.txt"}, {hash: null, size: 0});
 
           let files = await collapseAsync(vfs.listFiles(scene_id, {withArchives: true}));
           expect(files).to.have.property("length", 1);
@@ -1609,7 +1833,7 @@ describe("Vfs", function(){
         });
 
         it("can get file data", async function(){
-          await vfs.writeDoc(`{"foo":"bar"}`, {user_id: 0, scene: scene_id, mime: "text/html", name: "foo.txt"});
+          await vfs.writeDoc(`{"foo":"bar"}`, {user_id: null, scene: scene_id, mime: "text/html", name: "foo.txt"});
           let files = await collapseAsync(vfs.listFiles(scene_id, {withData: true}));
           expect(files).to.have.property("length", 1);
           expect(files[0]).to.have.property("data", `{"foo":"bar"}`);
@@ -1621,12 +1845,12 @@ describe("Vfs", function(){
           await expect(vfs.getDoc(scene_id)).to.be.rejectedWith("[404]");
         });
         it("fetch currently active document", async function(){
-          let id = (await vfs.writeDoc("{}", {scene: scene_id, user_id: 0, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
+          let id = (await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
           let doc = await expect(vfs.getDoc(scene_id)).to.be.fulfilled;
           expect(doc).to.have.property("id", id);
           expect(doc).to.have.property("ctime").instanceof(Date);
           expect(doc).to.have.property("mtime").instanceof(Date);
-          expect(doc).to.have.property("author_id", 0);
+          expect(doc).to.have.property("author_id", null);
           expect(doc).to.have.property("author", "default");
           expect(doc).to.have.property("data", "{}");
           expect(doc).to.have.property("generation", 1);

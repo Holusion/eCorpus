@@ -11,6 +11,7 @@ import { wrapFormat } from "../../utils/wrapAsync.js";
 import { compressedMime } from "../../utils/filetypes.js";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
+import { UserRoles } from "../../auth/User.js";
 
 export default async function getScenes(req :Request, res :Response){
   let vfs = getVfs(req);
@@ -29,7 +30,7 @@ export default async function getScenes(req :Request, res :Response){
     author,
   } = req.query;
 
-  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
+  let accessTypes :AccessType = ((Array.isArray(access))?access[0] : access) as any;
 
   let scenesList = [];
   if(typeof ids === "string"){
@@ -55,7 +56,7 @@ export default async function getScenes(req :Request, res :Response){
     scenesList.push(names);
   }
 
-  if(u.isDefaultUser && qsToBool(archived)){
+  if(UserRoles.indexOf(u.level) < 1 && qsToBool(archived)){
     throw new UnauthorizedError(`Access to archived content requires authentication`);
   }
   let author_id :number|undefined; 
@@ -79,7 +80,7 @@ export default async function getScenes(req :Request, res :Response){
       limit: qsToInt(limit),
       offset: qsToInt(offset),
       archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
-      author: author_id,
+      author: author,
     });
   }
   

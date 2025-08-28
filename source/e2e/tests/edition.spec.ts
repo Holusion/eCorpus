@@ -2,7 +2,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import type { Page } from "@playwright/test";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
@@ -44,6 +45,7 @@ test("can select the model", async()=>{
 
 test("can create an annotation", async ()=>{
   await scenePage.getByRole("button", {name: "Annotations"}).click();
+  await scenePage.getByText('Cube', { exact: true }).click();
 
   await scenePage.getByRole('button', { name: 'Create' }).click();
   const vp = scenePage.viewportSize();
@@ -83,6 +85,7 @@ test("can create an annotation in a secondary language", async ()=>{
 
 test("can create an article", async ()=>{
   await scenePage.getByRole("button", {name: "Articles"}).click();
+  await scenePage.getByText('Cube', { exact: true }).click();
 
   await scenePage.getByRole('button', { name: 'Create' }).click();
 

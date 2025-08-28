@@ -3,10 +3,8 @@ import { Request, Response } from "express";
 import path from "path";
 import { once } from "events";
 
-import { HTTPError } from "../../../utils/errors.js";
 import { getVfs, getUserId } from "../../../utils/locals.js";
 import { wrapFormat } from "../../../utils/wrapAsync.js";
-import Vfs from "../../../vfs/index.js";
 import yazl, { ZipFile } from "yazl";
 import { compressedMime } from "../../../utils/filetypes.js";
 
@@ -16,7 +14,6 @@ import { compressedMime } from "../../../utils/filetypes.js";
 export default async function getScene(req :Request, res :Response){
   let vfs = getVfs(req);
   let {scene} = req.params;
-  let {id, mtime} = await vfs.getScene(scene);
   await wrapFormat(res, {
     "application/json": async ()=>{
       let requester = getUserId(req);
@@ -24,8 +21,8 @@ export default async function getScene(req :Request, res :Response){
       res.status(200).send(data);
     },
     "application/zip": async ()=>{
+      let {id, mtime} = await vfs.getScene(scene);
       
-
       res.status(200);
       let zip = new yazl.ZipFile();
       zip.outputStream.pipe(res, {end: true});

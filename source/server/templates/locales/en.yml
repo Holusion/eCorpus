@@ -6,6 +6,7 @@ labels:
   optional: optional
   sceneTitle: scene title
   selectFile: select a file
+  selectFile_s: select one or several files 
   signin: Sign in
   save: Save
   username: Username
@@ -15,7 +16,9 @@ labels:
   forgottenPassword: Forgotten password
   pagination: pagination
   searchPlaceholder: search a scene
+  ignoredIfMultipleScenes: ignored if multiple scenes are created at the same time
   sortBy: Sort by
+  loginLink: Copy direct login link
   sendLoginLink: Send a login link
   view: View
   edit: Edit
@@ -30,6 +33,16 @@ labels:
   language: UI Language
   delete: Delete
   restore: Restore
+  publicAccess: Public access
+  defaultAccess: Default access
+  copyright: "Copyright:"
+  role: Role
+  close: Close
+  createUser: Create a user
+  lastModified: "Last modified"
+  totalScenesCount: Total scenes count
+  totalFilesCount: Total files count
+  totalDiskUsage: Total disk usage
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -48,20 +61,31 @@ buttons:
   cancel: Cancel
   selectAll: Select all
   deselectAll: Deselect all
+  submit: Send
+  createUser: Create
 fields:
   name: name
   author: author
   mtime: last modification
   ctime: creation date
+  rank: relevance
   access: access rights
   none: none
   read: read
   write: write
   admin: administration
-  limit: results per page
+  limit: Results per page
   ascendingOrder: ascending order
   descendingOrder: descending order
   tag: tag name
+  removeSpecificAccess: remove specific access
+  showOnlyMyScenes: Only my scenes
+  myAccess: "Access rights:"
+  userRoles:
+    use: User
+    create: Creator
+    manage: Editor
+    admin: Administrator
 nav:
   tags: collection
   login: connection
@@ -81,7 +105,8 @@ titles:
   ctimeScenesSection: Recently added scenes
   upload: upload
   createScene: create a new scene
-  tools: tools
+  createOrUpdateScene: Create or update a scene
+  tools: Tools
   search: Search
   recoverPassword: Passwordless Sign In
   userSettings: User Settings
@@ -95,11 +120,16 @@ titles:
   rename: Rename this scene
   testEmail: "{{what}} email system test"
   testEmailVerify: Additional verifications
+  userManager: Users management
+  adminHome: Administration Interface
+  serverStatistics: Instance Statistics
+  filesStatistics: Data statistics
+  modifiedToday: Scenes modified today
 tooltips:
   showPassword: Show the password's text
   permissions: >
-    Access rights management. Setting a user's permissions to "none" will revert him back to default.
-
+    The default access for connected users can not be more restrictive than the public access.
+    The wider rights of default access rights and specific user rights applies.
 leads:
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared
@@ -108,7 +138,7 @@ leads:
     Fill the form below to receive an email with a direct-login link
   linkSent: >
     A login link has been sent to this account's email address
-  noScene: >
+  noScenes: >
     Looks like you don't own any scenes yet. Search public scenes made by others in this instance or create your own!
   editScene: >
     Modify this scene with Voyager-Story
@@ -124,6 +154,9 @@ leads:
     You can restore this scene using the "restore" button. This will rename the scene. 
   thumbnailFor: >
     Image miniature pour {{what}}
+  tours_zero: "no tours"
+  tours_one: "one tour"
+  tours_other: "{{count}} tours"
   articles_zero: "no articles"
   articles_one: "one article"
   articles_other: "{{count}} articles"
@@ -131,7 +164,7 @@ leads:
   annotations_one: "one annotation"
   annotations_other: "{{count}} annotations"
   sceneCounts: >
-    This scene has $t(leads.articles, {"count": {{articles}} }) and $t(leads.annotations, {"count": {{annotations}}})
+    This scene has $t(leads.tours, {"count": {{tours}} }), $t(leads.articles, {"count": {{articles}} }) and $t(leads.annotations, {"count": {{annotations}}})
   noMetaAvailable: >
     No metadata could be extracted from this scene.
   historyEdition: |
@@ -149,6 +182,9 @@ leads:
   testEmailDKIM: >
     To be extra safe and prevent (most) emails being flagged as SPAM, check the DKIM signature using tools like Google's 
     <a href="https://postmaster.google.com">Postmaster Tools</a>.
+  sendTestEmail: Send a test email
+  usersList: Users {{start}}-{{end}}/{{total}}
+  noArchives: No archived scenes
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

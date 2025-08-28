@@ -11,16 +11,29 @@ import { useTemplateProperties } from "../views/index.js";
  */
 export default async function handleMailtest(req :Request, res :Response){
   const {config} = getLocals(req);
-  const {username :requester, email:to} = getUser(req);
+  let {to} = req.body ?? {};
+  const {username :requester, email} = getUser(req);
   if(!to){
-    throw new BadRequestError("No email address found for user "+ requester);
+    if(email){
+      to = email
+    }else{
+      throw new BadRequestError("No email address found for user "+ requester);
+    }
   }
+
   useTemplateProperties(req, res);
   const mail_content = await getLocals(req).templates.render(`emails/test`, {
     layout: null,
     brand: config.brand,
     hostname: config.hostname,
   });
+
+  //Special case to not send the email when testing
+  if(to.endsWith("@example.com")){
+    res.status(200).send({message: mail_content});
+    return;
+  }
+
   let out = await sendmail({
     to, 
     subject: config.brand+" test email", 

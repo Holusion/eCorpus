@@ -117,12 +117,21 @@ a{
 
   &.btn-transparent{
     background-color: transparent !important;
+    &:hover:not([disabled]){
+      box-shadow: none !important;
+    }
     &.btn-primary{
       color: var(--color-primary);
       &:hover:not([disabled]){
         text-decoration: underline;
         color: var(--color-primary-light);
-        box-shadow: none;
+      }
+    }
+    &.btn-danger {
+      color: var(--color-error);
+      &:hover:not([disabled]){
+        color: var(--color-error);
+        filter: saturate(0.4);
       }
     }
   }
@@ -152,6 +161,7 @@ a{
     }
     //The popover element
     >[popover]:popover-open{
+      position:relative;
       line-height: initial;
       inset: unset;
       margin: 0 1rem;
@@ -160,9 +170,11 @@ a{
       border-radius: 4px;
       color: var(--color-text);
       background-color: var(--color-highlight2);
-
+      max-width: max(20%, 30rem);
       font-size: 1rem;
       font-family: var(--font-body);
+      top: anchor(bottom);
+      left: anchor(left);
     }
   }
 

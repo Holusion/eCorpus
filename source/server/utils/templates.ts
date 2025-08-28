@@ -5,6 +5,11 @@ import { HTTPError, InternalError, NotFoundError } from "./errors.js";
 import i18next, { i18n, TFunction } from "i18next";
 import Backend from "i18next-fs-backend";
 
+export const dicts = ["fr", "en"] as const;
+export const locales = [...dicts, "cimode"];
+export type AcceptedLocales = typeof dicts[number]| "cimode";
+
+
 interface TemplateConstructorOptions{
   dir: string;
   cache?: boolean;
@@ -17,7 +22,7 @@ interface RenderOptions{
 
 interface EmailOptions extends RenderOptions{
   layout?: "email"|string;
-  lang?: "fr"|"en";
+  lang?: AcceptedLocales;
 }
 
 interface HandleBarsContextData{

@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, canWrite, isAdministrator, isUser } from "../../utils/locals.js";
+import { canAdmin, canRead, canWrite, isCreator, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 
@@ -38,13 +38,14 @@ router.use((req, res, next)=>{
 
 router.get("/", wrap(getScenes));
 router.propfind("/", wrap(handlePropfind));
-router.post("/", isAdministrator, wrap(handlePostScenes));
+// additional checks are used in postScenes to allow people to overrite scenes they have write access on
+  router.post("/", isUser, wrap(handlePostScenes));
 
 //allow POST outside of canRead : overwrite permissions are otherwise checked
-router.post("/:scene", isUser, wrap(handlePostScene));
+router.post("/:scene", isCreator, wrap(handlePostScene));
 
 //Allow mkcol outside of canRead check
-router.mkcol(`/:scene`, isUser, wrap(handleCreateScene));
+router.mkcol(`/:scene`, isCreator, wrap(handleCreateScene));
 
 /**
  * Protect everything after this with canRead handler

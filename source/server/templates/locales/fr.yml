@@ -6,6 +6,7 @@ labels:
   optional: optionnel
   sceneTitle: titre de la scène
   selectFile: sélectionner un fichier
+  selectFile_s: sélectionner un ou plusieurs fichiers
   signin: Connexion
   save: Enregistrer
   username: Nom d'utilisateur
@@ -15,7 +16,9 @@ labels:
   forgottenPassword: Mot de passe oublié?
   pagination: pagination
   searchPlaceholder: chercher une scène
+  ignoredIfMultipleScenes: ignoré si plusieurs scènes sont créées simultanément
   sortBy: Trier par
+  loginLink: Copier un lien de connexion
   sendLoginLink: Envoyer un lien
   view: Voir
   edit: Editer
@@ -30,6 +33,16 @@ labels:
   language: Langue de l'interface
   delete: Supprimer
   restore: Restaurer
+  publicAccess: Accès public
+  defaultAccess: Accès par défaut
+  copyright: "Copyright :"
+  role: Role
+  close: Fermer
+  createUser: Créer un utilisateur
+  lastModified: Dernière modification
+  totalScenesCount: Nombre total de scènes
+  totalFilesCount: Nombre total de fichiers
+  totalDiskUsage: Espace disque total
 
 buttons:
   searchScene: chercher une scène
@@ -49,20 +62,31 @@ buttons:
   cancel: Annuler
   selectAll: Sélectionner tout
   deselectAll: Déselectionner tout
+  submit: Envoyer
+  createUser: Créer
 fields:
   name: nom
   author: auteur
   mtime: dernière modification
   ctime: date de création
+  rank: pertinence
   access: droits d'accès
   none: aucun
   read: lecture
   write: écriture
   admin: administration
-  limit: résultats par page
+  limit: Résultats par page
   ascendingOrder: ordre ascendant
   descendingOrder: ordre descendant
   tag: nom de la collection
+  removeSpecificAccess: retirer l'accès spécifique
+  showOnlyMyScenes: Seulement mes scènes
+  myAccess: "Droit d'accès en :"
+  userRoles:
+    use: Utilisateur
+    create: Créateur
+    manage: Editeur
+    admin: Administrateur
 nav:
   tags: collection
   login: connexion
@@ -82,7 +106,8 @@ titles:
   ctimeScenesSection: scènes ajoutées récemment
   upload: téléversement
   createScene: créer une nouvelle scène
-  tools: outils
+  createOrUpdateScene: Créer ou mettre à jour une scène
+  tools: Outils
   search: Recherche
   recoverPassword: Connexion sans mot de passe
   userSettings: Paramètres utilisateur
@@ -96,10 +121,21 @@ titles:
   rename: Renommer la scène
   testEmail: Test du système d'email de {{what}}
   testEmailVerify: Vérifications supplémentaires
+  userManager: Gestion des utilisateurs
+  adminHome: Interface d'administration
+  serverStatistics: Statistiques de l'instance
+  filesStatistics: Données
+  modifiedToday: Scènes modifiées aujourd'hui
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >
-    Gestion des droits d'accès à la scène. Pour retirer à un utilisateur ses droits paticuliers, sélectionner "aucun".
+    L'accès par défaut pour les autres utilisateurs connectés ne peut pas être plus restrictif que l'accès public.
+    Les droits les plus élévés s'appliquent parmis les droits par défaut et les droits spécifiques d'un utilisateur.
+  upload: >
+    Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
+    En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
+    Le titre ne sera pris en compte que si un seul glb est importé à la fois.
+    Pour renommer les scènes importées sous forme de zip, utilisez la page de scène. 
 leads:
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion
@@ -126,6 +162,9 @@ leads:
     Vous pouvez restaurer cette scène en cliquant sur le bouton ci-contre
   thumbnailFor: >
     Image miniature pour {{what}}
+  tours_zero: "aucune visite guidée"
+  tours_one: "{{count}} visite guidée"
+  tours_other: "{{count}} visites guidées"
   articles_zero: "aucun article"
   articles_one: "{{count}} article"
   articles_other: "{{count}} articles"
@@ -133,7 +172,7 @@ leads:
   annotations_one: "{{count}} annotation"
   annotations_other: "{{count}} annotations"
   sceneCounts: >
-    $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations, {"count": {{annotations}}}) dans cette scène
+    $t(leads.tours, {"count":{{tours}} }), $t(leads.articles, {"count": {{articles}} }) et $t(leads.annotations,{"count": {{annotations}} }) dans cette scène
   noMetaAvailable: >
     Aucune métadonnée n'a pu être extraite de cette scène
   historyEdition: |
@@ -149,7 +188,9 @@ leads:
   testEmailDKIM: >
     Afin d'assurer un bon taux de succès, il peut être utile de vérifier la <a href="">signature DKIM</a> du message.<br>
     Pour GMAIL, vous pouvez utiliser l'outil <a href="https://postmaster.google.com">Postmaster Tools</a>.
-
+  sendTestEmail: Envoyer un email de test
+  usersList: Utilisateurs {{start}}-{{end}}/{{total}}
+  noArchives: Pas de scènes archivées
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

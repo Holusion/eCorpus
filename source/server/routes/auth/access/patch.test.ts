@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import request from "supertest";
-import User from "../../../auth/User.js";
+import User, { UserLevels } from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 
@@ -19,7 +19,7 @@ describe("PATCH /auth/access/:scene", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
     opponent = await userManager.addUser("oscar", "12345678");
   });
 
@@ -40,8 +40,6 @@ describe("PATCH /auth/access/:scene", function(){
     .send({username: opponent.username, access: "write"})
     .expect(204);
     expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
       { "uid": user.uid, "username": "bob", "access": "admin" },
       { "uid": opponent.uid, "username": "oscar", "access": "write" }
     ]);
@@ -54,8 +52,6 @@ describe("PATCH /auth/access/:scene", function(){
     .send({uid: opponent.uid, access: "write"})
     .expect(204);
     expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
       { "uid": user.uid, "username": "bob", "access": "admin" },
       { "uid": opponent.uid, "username": "oscar", "access": "write" }
     ]);
@@ -72,10 +68,8 @@ describe("PATCH /auth/access/:scene", function(){
     .expect(204);
 
     let perms = await userManager.getPermissions(titleSlug);
-    expect(perms).to.have.length(5);
+    expect(perms).to.have.length(3);
     expect(perms).to.deep.include.members([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
       { "uid": user.uid, "username": "bob", "access": "admin" },
       { "uid": admin.uid, "username": "alice", "access": "admin" },
       { "uid": opponent.uid, "username": "oscar", "access": "write" }
@@ -95,8 +89,6 @@ describe("PATCH /auth/access/:scene", function(){
     .expect(404);
     
     expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
       { "uid": user.uid, "username": "bob", "access": "admin" },
     ]);
   });
@@ -129,8 +121,6 @@ describe("PATCH /auth/access/:scene", function(){
     .send({username: opponent.username, access: "xxx"})
     .expect(400);
     expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
       { "uid": user.uid, "username": "bob", "access": "admin" },
     ]);
   });
@@ -150,11 +140,7 @@ describe("PATCH /auth/access/:scene", function(){
     .send({username: user.username, access: "none"})
     .expect(204);
 
-
-    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
-    ]);
+    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([ ]);
   });
 
   it("can use an empty string to remove a user", async function(){
@@ -164,31 +150,8 @@ describe("PATCH /auth/access/:scene", function(){
     .send({username: user.username, access: ""})
     .expect(204);
 
-    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-      { "uid": 0, "username": "default", "access": "read" },
-      { "uid": 1, "username": "any", "access": "read" },
-    ]);
+    expect(await userManager.getPermissions(titleSlug)).to.deep.equal([ ]);
   });
-
-  for(let u of ["default", "any"]){
-    for (let v of [null, "", "none"]) {
-      it(`can't remove ${u} from the access map using ${v ?? "null"}`, async function(){
-        //Calling this method with access=none for a user will remove him from the AccessMap.
-        //However calling username=any access=none DOES mean something
-        await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
-        .set("Content-Type", "application/json")
-        .send({username: u , access: v})
-        .expect(204);
-
-        expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
-          { "uid": 0, "username": "default", "access": u==="default"?"none":"read" },
-          { "uid": 1, "username": "any", "access": u==="any"?"none":"read"},
-          { "uid": user.uid, "username": "bob", "access": "admin" },
-        ]);
-      });
-    }
-  }
 
   it("requires admin access", async function(){
     const body = {username: opponent.username, access: "admin"};

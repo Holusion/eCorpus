@@ -63,7 +63,7 @@ export async function postSceneHistory(req :Request, res :Response){
           mime: prev.mime,
         });
       }else if(name==="scene.svx.json"){
-        throw new BadRequestError("Deleting a scene's document entirely is forbidden");
+        throw new BadRequestError("Can't delete a scene's document");
       }else{
         await vfs.createFile({
           scene: scene.id,

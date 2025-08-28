@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 
 import request from "supertest";
 
-import User from "../../../../../auth/User.js";
+import User, { UserLevels } from "../../../../../auth/User.js";
 import UserManager from "../../../../../auth/UserManager.js";
 import uid from "../../../../../utils/uid.js";
 import Vfs from "../../../../../vfs/index.js";
@@ -23,7 +23,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
     sampleDocString = await fs.readFile(path.resolve(fixturesDir,"documents/01_simple.svx.json"), {encoding:"utf8"});
   });

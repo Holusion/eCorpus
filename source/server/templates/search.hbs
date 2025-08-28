@@ -11,9 +11,10 @@
       <label class="form-item">
         {{i18n "labels.sortBy"}}
         <select name="orderBy" autocomplete="off" style="width:auto" form="search">
-          {{>inputs/option selected=params.orderBy value="mtime" text=(i18n "fields.mtime")}}
-          {{>inputs/option selected=params.orderBy value="ctime" text=(i18n "fields.ctime")}}
-          {{>inputs/option selected=params.orderBy value="name" text=(i18n "fields.name")}}
+          {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
+          {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
+          {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
+          {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
         </select>
       </label>
       <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold;">
@@ -26,63 +27,70 @@
   </div>
 
   <div class="grid-toolbar">
-    <scene-selection class="section" style="display: none">
-      <h3 >{{i18n "titles.tools"}}</h3>
-      <form class="form-control" id="scene-selection" >
-        <div class="form-group column">
-          <a class="btn btn-main btn-icon" download href="/scenes?limit=0&format=zip" id="selection-download">
-            {{i18n "buttons.downloadSelection"}}
-          </a>
-          <button id="selection-selectAll" class="btn btn-main btn-icon">
-            {{i18n "buttons.selectAll"}}
-          </button>
-          <button type="reset" id="selection-deselectAll" class="btn btn-main btn-icon">
-            {{i18n "buttons.deselectAll"}}
-          </button>
-        </div>
-      </form>
-
-    </scene-selection>
-    <section style="position: sticky; top: calc(var(--nav-height) + 1rem)">
-      <form autocomplete="off" id="search" class="form-control" method="GET" action="/ui/scenes">
-        <div style="display:flex;justify-content:space-between;">
-          <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
-          <button class="btn btn-transparent btn-inline btn-changed" aria-label="{{i18n "buttons.searchScene"}}" type="submit"><ui-icon name="search"></ui-icon></button>
-        </div>
-        <h5 class="form-section">{{i18n "fields.access"}}</h5>
-        <label class="form-item inline">
-          {{> inputs/checkbox name="access" value="read" selected=(test "read" "in" params.access) }}
-          {{i18n "fields.read"}}
-        </label>
-        <label class="form-item inline">
-          {{>inputs/checkbox name="access" value="write" selected=(test "write" "in" params.access) }}
-          {{i18n "fields.write"}}
-        </label>
-        <label class="form-item inline">
-          {{>inputs/checkbox name="access" value="admin" selected=(test "admin" "in" params.access) }}
-          {{i18n "fields.admin"}}
-        </label>
-        <h5 class="form-section">{{i18n "labels.pagination"}}</h5>
-        <label class="form-item">
-          {{i18n "fields.limit"}}
-          <input type="number" name="limit" min="1" max="100" value="{{params.limit}}">
-        </label>
-      </form>
-      <script async>
-        (function registerFormAutoSubmit(){
-          function onChange(){
-            this.form?.submit();
-          }
-          ["limit", "access", "orderBy", "orderDirection"].forEach(sel=>{
-            const els = document.querySelectorAll(`input[name="${sel}"],select[name="${sel}"]`);
-            for (const el of els){
-              if(!el) return console.warn(`Couldn't find selector matching 'input[name="${sel}"],select[name="${sel}"]'`);
-              el.addEventListener("change", onChange);
+    <div style="position: sticky; top: calc(var(--nav-height) + 1rem)">
+      <section>
+        <form autocomplete="off" id="search" class="form-control column" method="GET" action="/ui/scenes">
+          <div style="display:flex;justify-content:space-between;">
+            <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
+          </div>
+  
+          {{!-- <h5 class="form-section">{{i18n "fields.myScenesOnly"}}</h5> --}}
+  
+          <label class="form-item form-checkbox">
+            <input  name="author" class="form-checkbox" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
+            <span>{{i18n "fields.showOnlyMyScenes"}}</span>
+          </label>
+  
+          <label class="form-item">{{i18n "fields.myAccess"}}
+          <select name="access" autocomplete="off" style="width:auto" form="search">
+            {{#if (test user.level "==" "admin")}}
+            {{>inputs/option selected=(test params.access "==" "") text="..."}}
+            
+            {{/if}}
+            {{>inputs/option selected=(test params.access "==" "read") value="read" text=(i18n "fields.read")}}
+            {{>inputs/option selected=(test params.access "==" "write") value="write" text=(i18n "fields.write")}}
+            {{>inputs/option selected=(test params.access "==" "admin") value="admin" text=(i18n "fields.admin")}}
+          </select>
+          </label>
+         
+          <label class="form-item">
+            {{i18n "fields.limit"}}
+            <input type="number" name="limit" min="1" max="100" value="{{params.limit}}">
+          </label>
+        </form>
+        <script async>
+          (function registerFormAutoSubmit(){
+            function onChange(){
+              this.form?.submit();
             }
-          });
-        })()
-      </script>
-    </section>
+            ["limit", "access", "orderBy", "orderDirection", "author"].forEach(sel=>{
+              const els = document.querySelectorAll(`input[name="${sel}"],select[name="${sel}"]`);
+              for (const el of els){
+                if(!el) return console.warn(`Couldn't find selector matching 'input[name="${sel}"],select[name="${sel}"]'`);
+                el.addEventListener("change", onChange);
+              }
+            });
+          })()
+        </script>
+      </section>
+  
+      <scene-selection class="section" style="">
+        <h3 >{{i18n "titles.tools"}}</h3>
+        <form class="form-control" id="scene-selection" >
+          <div class="form-group column">
+            <a class="btn btn-main btn-icon" download href="/scenes?limit=0&format=zip" id="selection-download" disabled>
+              {{i18n "buttons.downloadSelection"}}
+            </a>
+            <button id="selection-selectAll" class="btn btn-main btn-icon">
+              {{i18n "buttons.selectAll"}}
+            </button>
+            <button type="reset" id="selection-deselectAll" class="btn btn-main btn-icon">
+              {{i18n "buttons.deselectAll"}}
+            </button>
+          </div>
+        </form>
+      </scene-selection>
+    </div>
   </div>
 
   <div class="grid-content list-items section" style="width:100%">

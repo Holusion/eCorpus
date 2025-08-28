@@ -3,10 +3,12 @@ import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrato
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
-import { AccessType } from "../../auth/UserManager.js";
+import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
+import { UserRoles } from "../../auth/User.js";
+import { locales } from "../../utils/templates.js";
 
 
 
@@ -35,7 +37,7 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
   const {config} = getLocals(req);
   const user = getUser(req);
   const {search} = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(["fr", "en", "cimode"]) || "en");
+  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
   Object.assign(res.locals, {
     lang,
     languages: [
@@ -55,7 +57,7 @@ routes.use("/", useTemplateProperties);
 
 routes.get("/", wrap(async (req, res)=>{
   const user = getUser(req);
-  if(!user || user.isDefaultUser){
+  if(!user || user.level === "none"){
     return res.render("login", {
       title: "eCorpus Home",
       user: null,
@@ -73,7 +75,7 @@ routes.get("/", wrap(async (req, res)=>{
       limit: 4,
       orderBy: "mtime",
       orderDirection: "desc",
-      author: user.uid,
+      author: user.username,
       archived: false,
     }),
     await vfs.getScenes(user.uid,{
@@ -136,17 +138,21 @@ routes.get("/scenes", wrap(async (req, res)=>{
     orderBy,
     orderDirection,
     archived,
+    author,
   } = req.query;
-  let accessTypes :AccessType[] = ((Array.isArray(access))?access : (access?[access]:undefined)) as any;
 
+  if ((! access )|| access == "none"){
+    access = undefined;
+  }
   const sceneParams = {
     match: match as string,
-    orderBy: (orderBy ?? "mtime") as any,
+    orderBy: (orderBy ?? (match ? "rank" : "mtime")) as any,
     orderDirection: (orderDirection?? (orderBy=="name"?"asc":"desc")) as any,
-    access: accessTypes,
+    access: access as any,
     limit: qsToInt(limit) ?? 25,
     offset: qsToInt(offset)?? 0,
     archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
+    author: author as string,
   };
   
   let scenes = (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req));
@@ -170,7 +176,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
   //Sanitize user input
   const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
-  if(!validatedParams.access) validatedParams.access = ["read", "write", "admin"];
+  if((!validatedParams.access) && u.level != "admin") validatedParams.access = "read";
   res.render("search", {
     title: "eCorpus Search",
     scenes,
@@ -183,8 +189,8 @@ routes.get("/scenes", wrap(async (req, res)=>{
 routes.get("/user", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
-  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.uid});
-  if(user.isDefaultUser){
+  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
+  if(UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
   res.render("user", {
@@ -211,19 +217,26 @@ routes.get("/admin/archives", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/users", (req, res)=>{
+routes.get("/admin/users", wrap(async (req, res)=>{
+  let users = await getUserManager(req).getUsers();
   res.render("admin/users", {
     layout: "admin",
     title: "eCorpus Administration: Users list",
+    start: 0,
+    end: 0 + users.length,
+    total: users.length,
+    users,
   });
-});
+}));
 
-routes.get("/admin/stats", (req, res)=>{
+routes.get("/admin/stats", wrap(async (req, res)=>{
+  const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
     title: "eCorpus Administration: Instance Statistics",
+    stats,
   });
-});
+}));
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template
@@ -238,12 +251,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
 
   let [permissions, meta, serverTags] = await Promise.all([
     um.getPermissions(scene.id),
-    vfs.getDoc(scene.id)
-    .then((doc)=> scrapDoc(doc?.data?JSON.parse(doc.data):undefined, res.locals))
-    .catch(e=>{
-      if(e.code !== 404) console.warn("Failed to scrap document for scene: "+scene.name, e.message);
-      return undefined;
-    }),
+    vfs.getSceneMeta(scene_name),
     vfs.getTags(),
   ]);
 
@@ -252,9 +260,22 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     return res;
   }).map(t=>t.name);
 
+  let displayedTitle = meta.primary_title;
+  let displayedIntro = meta.primary_intro;
+  const language = getSession(req)?.lang;
+  if (language !== undefined){
+      if(meta.titles && language.toUpperCase() in meta.titles){
+        displayedTitle = meta.titles[language.toUpperCase()];
+      }
+      if(meta.intros && language in meta.intros){
+        displayedIntro = meta.intros[language.toUpperCase()];
+      }
+  }
 
   res.render("scene", {
     title: `eCorpus: ${scene.name}`,
+    displayedTitle,
+    displayedIntro,
     scene,
     meta,
     permissions,

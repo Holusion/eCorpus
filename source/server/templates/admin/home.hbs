@@ -1,2 +1,14 @@
-<admin-home></admin-home>
-    
+<h1>{{i18n "titles.adminHome"}}</h1>
+
+<div>
+  <h3>{{i18n "titles.tools"}}</h3>
+  <h4>{{i18n "leads.sendTestEmail"}}</h4>
+  <submit-fragment class="form-control" action="/admin/mailtest" method="POST" encoding="application/json">
+    <form class="form-control">
+      <div class="form-group inline">
+        <input name="to" placeholder="recipient email" value="{{user.email}}">
+        <button role="submit" class="btn">Send</button>
+      </div>
+    </form>
+  </submit-fragment>
+</div>

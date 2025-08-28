@@ -19,7 +19,7 @@ describe("GET /auth/access/:scene", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
-    admin = await userManager.addUser("alice", "12345678", true);
+    admin = await userManager.addUser("alice", "12345678", "admin");
     opponent = await userManager.addUser("oscar", "12345678");
   });
 
@@ -34,8 +34,8 @@ describe("GET /auth/access/:scene", function(){
   });
 
   it("requires read access", async function(){
-    await userManager.grant(titleSlug, "default", "none");
-    await userManager.grant(titleSlug, "any", "none");
+    await userManager.setPublicAccess(titleSlug, "none");
+    await userManager.setDefaultAccess(titleSlug, "none");
     //Anonymous
     await request(this.server).get(`/auth/access/${titleSlug}`)
     .expect(404);

@@ -3,9 +3,9 @@ import yauzl, { Entry, ZipFile } from "yauzl";
 
 import request from "supertest";
 import { expect } from "chai";
-import User from "../../auth/User.js";
+import User, { UserLevels } from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
-import Vfs from "../../vfs/index.js";
+import Vfs, { Scene } from "../../vfs/index.js";
 import path from "path";
 import { tmpdir } from "os";
 import { execFile } from "child_process";
@@ -23,8 +23,8 @@ describe("GET /scenes", function(){
     userManager  = locals.userManager;
 
     
-    user = await userManager.addUser("bob", "12345678", false);
-    admin = await userManager.addUser("alice", "12345678", true);
+    user = await userManager.addUser("bob", "12345678", "create");
+    admin = await userManager.addUser("alice", "12345678", "admin");
 
     ids = await Promise.all([
         vfs.createScene("foo"),
@@ -51,7 +51,7 @@ describe("GET /scenes", function(){
   });
   
   it("can send a zip file", async function(){
-    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: 0});
+    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: null});
     let res = await request(this.server).get("/scenes")
     .set("Accept", "application/zip")
     .responseType('blob')
@@ -69,8 +69,8 @@ describe("GET /scenes", function(){
   });
   
   it("returned zip file is valid", async function(){
-    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: 0});
-    await vfs.writeFile(dataStream(["hello world \n"]), {scene: "bar", name: "articles/hello.html", user_id: 0});
+    await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: null});
+    await vfs.writeFile(dataStream(["hello world \n"]), {scene: "bar", name: "articles/hello.html", user_id: null});
     
     let res = await request(this.server).get("/scenes")
     .set("Accept", "application/zip")
@@ -128,10 +128,18 @@ describe("GET /scenes", function(){
     let scenes:number[];
     this.beforeAll(async ()=>{
       scenes = await Promise.all([
-        vfs.createScene("read", {[`${user.uid}`]:"read"}),
-        vfs.createScene("write", {[`${user.uid}`]:"write"}),
-        await vfs.createScene("admin", {[`${user.uid}`]:"admin"}),
-      ]);
+        vfs.createScene("read").then((scene_id)=> {userManager.grant(scene_id, user.uid, "read"); return scene_id}),       
+        vfs.createScene("write").then((scene_id)=> {userManager.grant(scene_id, user.uid, "write"); return scene_id}), 
+        await vfs.createScene("admin").then((scene_id)=> {userManager.grant(scene_id, user.uid, "admin"); return scene_id})
+      ])
+      await Promise.all(scenes.map( async (scene) => {
+        await vfs.writeDoc(JSON.stringify( {
+            metas: [{collection:{
+              titles:{EN: "", FR: ""}
+          }}]
+        }), {scene: scene, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"}
+      );
+    }));
     });
 
     this.afterAll(async function(){
@@ -140,20 +148,27 @@ describe("GET /scenes", function(){
 
 
     it("search by access level", async function(){
-      let scene :any = await vfs.getScene("write", user.uid);
-      delete scene.thumb;
-
+      let writeScene :any = await vfs.getScene("write", user.uid);
+      let adminScene :any = await vfs.getScene("admin", user.uid);
+      delete writeScene.thumb;
+      delete adminScene.thumb;
       let r = await request(this.server).get(`/scenes?access=write`)
       .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
+       
       expect(r.body.scenes).to.deep.equal([
+        {...adminScene,
+          mtime: adminScene.mtime.toISOString(),
+          ctime: adminScene.ctime.toISOString()
+
+        },
         {
-          ...scene,
-          mtime: scene.mtime.toISOString(),
-          ctime: scene.ctime.toISOString()
+          ...writeScene,
+          mtime: writeScene.mtime.toISOString(),
+          ctime: writeScene.ctime.toISOString()
         },
       ]);
     });
@@ -172,6 +187,7 @@ describe("GET /scenes", function(){
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
+      // depends on the default order, which is currently based on modification time
       expect(r.body.scenes).to.deep.equal([
         {
           ...s2,
@@ -187,26 +203,23 @@ describe("GET /scenes", function(){
     })
 
     it("search by name match", async function(){
-      let scenes = (await Promise.all([
-        vfs.getScene("read", user.uid),
-        vfs.getScene("write", user.uid),
-      ])).map(({thumb, mtime, ctime, ...s})=>({
-        ...s,
-        mtime: mtime.toISOString(),
-        ctime: ctime.toISOString()
-      }));
-      let r = await request(this.server).get(`/scenes?match=e`)
+      let scene = await vfs.getScene("read", user.uid);
+      delete scene.thumb;
+      let r = await request(this.server).get(`/scenes?match=read`)
       .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .send({scenes: scenes})
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
-      expect(r.body.scenes).to.deep.equal(scenes);
+      expect(r.body.scenes.length).to.equal(1);
+      expect(r.body.scenes[0]).to.deep.equal({...scene, 
+          mtime: scene.mtime.toISOString(),
+          ctime: scene.ctime.toISOString()});
     });
     describe("filter authors", async function(){
       let charlie :User;
       this.beforeAll(async function(){
-        charlie = await this.server.locals.userManager.addUser("charlie", "12345678", false);
+        charlie = await this.server.locals.userManager.addUser("charlie", "12345678");
         await vfs.createScene("charlie's", charlie.uid);
       })
 
@@ -220,24 +233,163 @@ describe("GET /scenes", function(){
         expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
       });
 
-      it("by uid", async function(){
-        let r = await request(this.server).get(`/scenes?author=${charlie.uid}`)
-        .auth(charlie.username, "12345678")
-        .set("Accept", "application/json")
-        .send({scenes: scenes})
-        .expect(200)
-        .expect("Content-Type", "application/json; charset=utf-8");
-        expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
-      });
-
       it("as someone else", async function(){
-        let r = await request(this.server).get(`/scenes?author=${charlie.uid}`)
+        let r = await request(this.server).get(`/scenes?author=${charlie.username}`)
         .auth(user.username, "12345678")
         .set("Accept", "application/json")
         .send({scenes: scenes})
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
+      });
+    });
+    
+    describe("results order", function(){
+      let scenes: number[];
+      let searchResult: Scene[];
+
+      this.beforeAll(async ()=> {
+        scenes=[];
+
+        scenes.push(await vfs.createScene("Fizzbuzzpop", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {collection:
+              {titles:{EN: " ", FR: " "}}
+            }
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+        scenes.push(await vfs.createScene("Meta titles", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {collection:
+              {titles:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            }
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+       
+        scenes.push(await vfs.createScene("Meta intros", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {collection:
+              {intros:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            }
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        
+        scenes.push(await vfs.createScene("Copyright", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {collection:
+              {titles:{EN: " ", FR: " "}}
+            }
+          ],
+          asset: {copyright: "Fizzbuzzpop"}
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        
+        scenes.push(await vfs.createScene("Article title", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {articles:[
+              {titles:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            ]}
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        
+        scenes.push(await vfs.createScene("Annotation title", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          models: [
+            {annotations:[
+              {titles:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            ]}
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        
+        scenes.push(await vfs.createScene("Tour title", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          setups: [
+            {tours:[
+              {titles:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            ]}
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+        
+        scenes.push(await vfs.createScene("Article leads", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {articles:[
+              {leads:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            ]}
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+        scenes.push(await vfs.createScene("Annotation leads", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          models: [
+            {annotations:[
+              {leads:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            ]}
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+        scenes.push(await vfs.createScene("Tour leads", user.uid));
+        await vfs.writeDoc(JSON.stringify({
+          setups: [
+            {tours:[
+              {leads:{EN: "Fizzbuzzpop", FR: "Fizzbuzzpop"}}
+            ]}
+          ]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+       
+        const articleTextScene = await vfs.createScene("Article text", user.uid)
+        scenes.push(articleTextScene);
+        await vfs.writeDoc("Fizzbuzzpop\n", {scene: articleTextScene, mime: "text/html", name: "articles/foo.html", user_id: user.uid});
+        await vfs.writeDoc(JSON.stringify({
+          metas: [
+            {articles:[{
+              titles: {EN: "", FR: ""},
+              uris: {EN: "articles/foo.html", FR: "articles/foo.html"}
+            }]}
+          ]
+        }), {scene: articleTextScene, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+        searchResult = await vfs.getScenes(user.uid, {match: "Fizzbuzzpop", limit: 2*scenes.length})      
+      })
+  
+      this.afterAll(async function(){
+        await Promise.all(scenes.map(id=>vfs.removeScene(id)));
+      });
+
+      it("All scenes are found", function () {
+        expect(searchResult.length).to.be.equal(scenes.length);
+      })
+
+      it("Title and meta title are the first results", function () {
+        expect(searchResult.slice(0,2).map(scene=>scene.name))
+        .to.have.members(["Fizzbuzzpop","Meta titles"]);
+        expect(searchResult[0].name).to.be.equal("Fizzbuzzpop");
+        expect(searchResult[1].name).to.be.equal("Meta titles");
+      });
+
+      it("Intro, copyright,  article, tour and annotation titles are after title and meta titles",  function () {
+        expect(searchResult.slice(2,7).map(scene=>scene.name))
+        .to.have.members(["Meta intros","Copyright","Article title", "Annotation title", "Tour title"]);
+        expect(searchResult[2].name).to.be.equal("Annotation title");
+        expect(searchResult[3].name).to.be.equal("Article title");
+        expect(searchResult[4].name).to.be.equal("Copyright");
+        expect(searchResult[5].name).to.be.equal("Meta intros");
+        expect(searchResult[6].name).to.be.equal("Tour title");
+      });
+
+      it("Text, article, tour and annotation leads are the last results",  async function () {
+        expect(searchResult.slice(7,11).map(scene=>scene.name))
+        .to.have.members(["Article text","Article leads","Annotation leads", "Tour leads"]);
+        expect(searchResult[7].name).to.be.equal("Annotation leads");
+        expect(searchResult[8].name).to.be.equal("Article leads");
+        expect(searchResult[9].name).to.be.equal("Article text");
+        expect(searchResult[10].name).to.be.equal("Tour leads");
+
       });
     });
   });
@@ -248,6 +400,11 @@ describe("GET /scenes", function(){
     this.beforeAll(async ()=>{
       for(let i = 0; i < 110; i++){
         scenes.push(await vfs.createScene(`scene_${i.toString(10).padStart(3, "0")}`));
+        await vfs.writeDoc(JSON.stringify( {
+            metas: [{collection:{
+              titles:{EN: "", FR: ""}
+          }}]
+        }), {scene: scenes[scenes.length -1], user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
       }
     });
     

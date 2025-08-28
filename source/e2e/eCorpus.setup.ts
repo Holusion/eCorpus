@@ -16,7 +16,7 @@ setup("create superAdmin account", async ({request})=>{
       username: "testAdmin",
       email: "testAdmin@example.com",
       password: "12345678",
-      isAdministrator: true,
+      level: "admin",
     }),
     headers:{
       "Content-Type": "application/json",
@@ -47,7 +47,7 @@ setup('authenticate as admin', async ({ request }) => {
       username,
       email: `${username}@example.com`,
       password,
-      isAdministrator: true,
+      level: "admin",
     }),
     headers:{
       "Content-Type": "application/json",
@@ -74,7 +74,7 @@ setup("authenticate as user", async ({request})=>{
       username,
       email: `${username}@example.com`,
       password,
-      isAdministrator: false,
+      level: "create",
     }),
     headers:{
       "Content-Type": "application/json",

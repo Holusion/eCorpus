@@ -84,7 +84,7 @@ test("read-only view", async ({page, createScene})=>{
 
 
 test("404 view", async ({page, createScene})=>{
-  let name = await createScene({permissions: {default: "none"}});
+  let name = await createScene({public_access: "none"});
   for (let p of ["", "edit", "view", "history"]) {
     let res= await page.goto(`/ui/scenes/${encodeURIComponent(name)}/${p}`);
     expect(res?.status()).toEqual(404);

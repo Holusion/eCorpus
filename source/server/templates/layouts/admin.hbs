@@ -10,7 +10,7 @@
   <body>
   {{> navbar }}
   <main class="admin-panel">
-    <nav>
+    <nav class="admin-nav">
       {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.adminRecap"}}{{/navLink}}
       {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.adminUsers"}}{{/navLink}}
       {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> {{i18n "nav.adminStats"}}{{/navLink}}
@@ -59,9 +59,11 @@
         flex-direction: column;
       }
       .admin-panel nav{
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-self: stretch;
         justify-content: center;
         margin-top:0;
-        border-bottom: 1px solid #103040;
       }
     }
   </style>

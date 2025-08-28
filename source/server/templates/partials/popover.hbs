@@ -1,6 +1,6 @@
-<button class="btn btn-popover" popovertarget="{{id}}">
+<button class="btn btn-popover" popovertarget="{{id}}" id="anchor-{{id}}" type="button">
   <ui-icon name="prompt" ></ui-icon>
-  <div id="{{id}}" popover="auto">
+  <div id="{{id}}" popover="auto"  anchor="anchor-{{id}}">
     {{> @partial-block }}
   </div>
 </button>

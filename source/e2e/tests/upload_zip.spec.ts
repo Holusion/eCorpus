@@ -78,7 +78,7 @@ test("uploads a scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "titles.createScene"});
+  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
   await expect(f).toBeVisible();
   await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
@@ -137,7 +137,7 @@ test("uploads a multi-scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "titles.createScene"});
+  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
   await expect(f).toBeVisible();
   await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
     name: "scene.zip",
@@ -152,6 +152,7 @@ test("uploads a multi-scene zip", async ({page, request})=>{
     await expect(uploads).toBeVisible();
     //Don't check for actual progress bar visibility because that could be too quick to register
     const link = uploads.getByRole("link", {name: name});
+    await expect(link).toBeVisible();
   }
 
   await Promise.all(names.map(async (name)=>{

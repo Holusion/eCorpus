@@ -2,6 +2,8 @@ import { Request } from "express";
 import {ReadStream} from "fs";
 import {Readable} from "stream";
 import { AccessType } from "../auth/UserManager.js";
+import { Dictionary } from "../utils/schema/types.js";
+import { TLanguageType } from "../utils/schema/common.js";
 
 
 export type DataStream = Readable|ReadStream|AsyncGenerator<Buffer|Uint8Array>|Request;
@@ -14,7 +16,7 @@ export interface CommonFileParams{
 }
 
 export interface WriteFileParams extends CommonFileParams{
-  user_id: number;
+  user_id: number | null;
   /** mime is application/octet-stream if omitted */
   mime ?:string;
 }
@@ -23,6 +25,8 @@ export interface GetFileParams extends CommonFileParams{
   /**Also return deleted files */
   archive ?:boolean;
   generation ?:number;
+  //SELECT FOR UPDATE, use only within a transaction
+  lock?: boolean;
 }
 
 export interface GetFileRangeParams extends GetFileParams{
@@ -42,13 +46,12 @@ export interface WriteDocParams extends WriteFileParams{
 export interface ItemProps{
   ctime :Date;
   mtime :Date;
-  author_id :number;
+  author_id :number | null;
   author :string;
   id :number;
   name :string;
 }
 
-export type Stored<T extends ItemProps> = Omit<T, "mtime"|"ctime"> & {mtime:string, ctime: string};
 
 /** any item stored in a scene, with a name that identifies it */
 export interface ItemEntry extends ItemProps{
@@ -81,12 +84,23 @@ export interface Scene extends ItemProps{
   /** Freeform list of attached tags for this collection */
   tags :string[];
   /** Access level. Only makes sense when in reference to a user ID */
-  access :{
-    user ?:AccessType,
-    any :AccessType,
-    default :AccessType,
-  };
-  archived: boolean;
+  access : AccessType;
+  public_access: AccessType;
+  default_access : AccessType;
+  archived: Date|null;
+}
+
+export interface SceneMeta{
+  titles?:Dictionary<string>;
+  intros?:Dictionary<string>;
+  copyright?:string;
+  articles?: {uris: Dictionary<string>, leads: Dictionary<string>, titles: Dictionary<string>}[];
+  annotations?: {titles: Dictionary<string>, leads: Dictionary<string>};
+  tours?: {titles: Dictionary<string>, leads: Dictionary<string>};
+  languages?:string[];
+  primary_language?: string;
+  primary_title?: string;
+  primary_intro?: string;
 }
 
 export interface DocProps extends FileProps{
@@ -99,12 +113,12 @@ export interface DocProps extends FileProps{
  */
 export interface SceneQuery {
   /** desired scene access level */
-  access ?:AccessType[];
-  author ?:number;
+  access ?:AccessType;
+  author ?:string;
   match ?:string;
   offset ?:number;
   limit ?:number;
-  orderBy ?:"ctime"|"mtime"|"name";
+  orderBy ?:"ctime"|"mtime"|"name"|"rank";
   orderDirection ?:"asc"|"desc";
   /**
    * Returns all scenes when unset.
