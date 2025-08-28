@@ -1,5 +1,6 @@
 import path from "node:path";
-import { expect, Page, test as base } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
+import type { Page } from "@playwright/test";
 import { randomBytes, randomUUID } from 'node:crypto';
 
 
