@@ -152,7 +152,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   app.use("/scenes", (await import("./scenes/index.js")).default);
   app.use("/users", (await import("./users/index.js")).default);
   app.use("/tags", (await import("./tags/index.js")).default);
-  app.get("/opensearch.xml", (await import("./opensearch.js")).renderOpenSearch);
+  app.use("/services", (await import("./services/index.js")).default);
   
   const logLevel = (config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
   const isTTY = process.stderr.isTTY;

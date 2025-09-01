@@ -15,7 +15,10 @@
 
 <link rel="icon" type="image/png" href="/dist/favicon.png" sizes="32x32"/>
 <link rel="shortcut icon" type="image/svg+xml" href="/dist/favicon.svg"/>
-<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="{{brand}}">
+<link rel="search" type="application/opensearchdescription+xml" href="{{root_url}}services/opensearch.xml" title="{{brand}}">
+{{#if scene }}
+<link rel="alternate" type="application/json+oembed" href="{{root_url}}services/oembed?url={{encodeURIComponent canonical}}&format=json"/>
+{{/if}}
 
 <style>
   body{

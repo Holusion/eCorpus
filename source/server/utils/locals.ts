@@ -32,10 +32,13 @@ export function getSession(req :Request){
   return req.session as SessionData|null|undefined;
 }
 
-export function canonical(req :Request, ref :string) :URL{
+export function canonical(req :Request) :URL
+export function canonical(req :Request, ref :string) :URL
+export function canonical(req :Request, ref ?:string) :URL{
   let host = getHost(req);
-  return new URL(ref, host);
+  return new URL(ref ?? req.path, host);
 }
+
 /**
  * @throws {InternalError} if app.locals.userManager is not defined for this request
  */
