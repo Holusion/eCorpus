@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "description": "3D model database and content management system with integrated annotations and stories 3D editor",
   "scripts": {
-    "start": "cd source/server/ && ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start",
-    "test": "cd source/server/ && npm test",
-    "build-ui": "cd source/ui && webpack --mode=production",
+    "start": "ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start -w source/server",
+    "test": "npm test -w source/server",
+    "build-ui": "npm run build -w source/ui",
     "build-server": "tsc -b source/server",
     "watch-server": "tsc -b source/server --watch",
-    "watch-ui": "cd source/ui && webpack --watch --mode=development",
+    "watch-ui": "npm run watch -w source/ui",
     "watch": "NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon npm start\""
   },
   "author": "Holusion <contact@holusion.com>",
@@ -34,5 +34,11 @@
       "source/server/dist",
       "source/server/migrations"
     ]
-  }
+  },
+  "workspaces": [
+    "source/server",
+    "source/ui",
+    "source/e2e",
+    "source/voyager"
+  ]
 }
