@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -48,6 +48,8 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
     location: req.originalUrl,
     search,
     brand: config.brand,
+    canonical: canonical(req).toString(),
+    root_url: canonical(req, "/").toString(),
   });
   if(next) next();
 }

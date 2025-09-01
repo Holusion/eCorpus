@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getHost, getLocals } from "../utils/locals.js";
+import { getHost, getLocals } from "../../utils/locals.js";
 import { createHash } from "node:crypto";
 
 interface OpenSearchParameters{
