@@ -9,7 +9,9 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: holusion/e-corpus
   DEPLOY_HOST: ecorpus.holusion.com
-
+permissions:
+  contents: read
+  packages: write
 concurrency: 
   group: publish-${{ github.ref }}
   cancel-in-progress: true

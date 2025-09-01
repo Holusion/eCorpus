@@ -4,6 +4,8 @@ on:
     branches:
       - '**'
       - '!gh_pages'
+permissions:
+  contents: read
 concurrency: 
   group: build-${{ github.ref }}
   cancel-in-progress: true
