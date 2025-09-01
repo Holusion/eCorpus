@@ -9,12 +9,7 @@
     "build-server": "tsc -b source/server",
     "watch-server": "tsc -b source/server --watch",
     "watch-ui": "cd source/ui && webpack --watch --mode=development",
-<<<<<<< HEAD
     "watch": "NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon npm start\""
-=======
-    "watch": "NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon  npm start\"",
-    "postinstall": "cd source/voyager && test -f package.json && npm i"
->>>>>>> 3ba2976c (use workspaces to simplify installation)
   },
   "author": "Holusion <contact@holusion.com>",
   "license": "Apache-2.0",
