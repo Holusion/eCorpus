@@ -351,22 +351,24 @@ export default class UserManager extends DbController {
     }
   }
 
-  async getAccessRights(scene :string, uid :number) :Promise<AccessType>{
+  async getAccessRights(scene :string | number, uid :number) :Promise<AccessType>{
     const res = (await this.db.get(`
       SELECT GREATEST(
         users_acl.access_level,
         CASE WHEN (SELECT level FROM users WHERE user_id = $2) IS NOT NULL THEN scenes.default_access ELSE 0 END,
         scenes.public_access
       ) AS level
-      FROM 
-        scenes
-        LEFT OUTER JOIN users_acl ON (fk_scene_id = scenes.scene_id AND fk_user_id = $2)
-      WHERE (scene_name = $1)
+      FROM \
+        scenes\
+        LEFT OUTER JOIN users_acl ON (fk_scene_id = scenes.scene_id AND fk_user_id = $2) \
+      WHERE ${typeof scene ==="number"? 
+          "fk_scene_id = $1"
+        : "scene_name = $1" }
     `, [
       scene,
       uid || null,
     ]));
-    if(!res) throw new NotFoundError(`No scene with name ${scene}`);
+    if(!res) throw new NotFoundError(`No scene with ${typeof scene ==="number"? "id ${scene}": "name ${scene}"}`);
     return AccessTypes[res?.level+1];
 
   }

@@ -28,6 +28,13 @@
       gap: 5px;
 
     }
+    .row{
+      display:flex;
+      align-items: stretch;
+      flex-direction: row;
+      gap: 5px;
+
+    }
   }
 
   .ui-button{
