@@ -43,6 +43,9 @@ labels:
   totalScenesCount: Total scenes count
   totalFilesCount: Total files count
   totalDiskUsage: Total disk usage
+  buildId: Build ID
+  databaseSchema: Database schema version
+
 buttons:
   searchScene: search scenes
   upload: create a scene
@@ -125,6 +128,8 @@ titles:
   serverStatistics: Instance Statistics
   filesStatistics: Data statistics
   modifiedToday: Scenes modified today
+  buildRef: Current version
+
 tooltips:
   showPassword: Show the password's text
   permissions: >

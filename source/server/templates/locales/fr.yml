@@ -43,6 +43,8 @@ labels:
   totalScenesCount: Nombre total de scènes
   totalFilesCount: Nombre total de fichiers
   totalDiskUsage: Espace disque total
+  buildId: Build ID
+  databaseSchema: Version du schéma de la base de données
 
 buttons:
   searchScene: chercher une scène
@@ -126,6 +128,8 @@ titles:
   serverStatistics: Statistiques de l'instance
   filesStatistics: Données
   modifiedToday: Scènes modifiées aujourd'hui
+  buildRef: Version actuelle
+
 tooltips:
   showPassword: Montrer le texte du mot de passe
   permissions: >

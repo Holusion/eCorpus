@@ -1,6 +1,7 @@
 
 import os from "os";
 import BaseVfs from "./Base.js";
+import config from "../utils/config.js";
 
 interface ServerStats{
   usage: {
@@ -14,6 +15,10 @@ interface ServerStats{
     freemem :number,
     load :[number, number, number],
     cores :number
+  },
+  build: {
+    ref: string|"unknown",
+    migration_id: string,
   }
 }
 
@@ -34,7 +39,7 @@ export default abstract class StatsVfs extends BaseVfs{
     
     let {scenes} = await this.db.get(`SELECT COUNT(scene_name) AS scenes FROM scenes`);
 
-
+    let {id: migration_id} = await this.db.get("SELECT MAX(id) AS id FROM migrations");
     return {
       usage: {mtime},
       data: {size, scenes},
@@ -42,6 +47,10 @@ export default abstract class StatsVfs extends BaseVfs{
         freemem: os.freemem(),
         load: os.loadavg() as ServerStats["process"]["load"],
         cores: os.cpus().length
+      },
+      build: {
+        ref: config.build_ref,
+        migration_id: migration_id.toString(10).padStart(3, "0"),
       }
     };
   }

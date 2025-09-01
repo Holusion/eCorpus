@@ -1,22 +1,82 @@
 <div style="max-width:1200px; margin: auto;">
   <h1>{{i18n "titles.serverStatistics"}}</h1>
-  <div class="section">
-    <h3>{{i18n "titles.filesStatistics"}}</h3>
+  <div class="stats-table">
+    <style>
+
+      .stats-table table{
+        width: 100%;
+        padding-right: 1rem;
+        tbody{
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          grid-auto-rows: auto;
+        }
+        tr{
+          display: grid;
+          grid-column: 2 / span 2;
+          grid-template-columns: subgrid;
+          
+          &:has( > th){
+            grid-column: 1 / span 3;
+          }
+
+          th {
+            text-align: left;
+          }
+
+          td{
+            border: 1px solid transparent;
+            padding: .2rem;
+            &:first-of-type:not(:last-of-type){
+              text-align: right;
+              padding-right: 1rem;
+            }
+          }
+          
+          &:hover{
+            > td{
+              border-bottom-color: var(--color-highlight2);
+              &:first-of-type:not(:last-of-type){
+                color: var(--color-primary);
+              }
+            }
+          }
+        }
+      }
+    </style>
+
+    <span></span>
     <table>
-      <tbody>
-        <tr>
-          <td>{{i18n "labels.lastModified"}}</td>
-          <td>{{dateString stats.usage.mtime}}</td>
-        </tr>
-        <tr>
-          <td>{{i18n "labels.totalScenesCount"}}</td>
-          <td>{{stats.data.scenes}}</td>
-        </tr>
-        <tr>
-          <td>{{i18n "labels.totalDiskUsage"}}</td>
-          <td> <b-size i b="{{stats.data.size}}"></b-size></td>
-        </tr>
-      </tbody>
+      <tr>
+        <th>
+          <h2>{{i18n "titles.buildRef" }}</h2>
+        </th>
+      </tr>
+      <tr>
+        <td>{{i18n "labels.buildId"}}</td>
+        <td>{{#if stats.build.ref }}{{stats.build.ref}}{{else}}dev{{/if}}</td>
+      </tr>
+      <tr>
+        <td>{{i18n "labels.databaseSchema"}}</td>
+        <td>{{stats.build.migration_id}}</td>
+      </tr>
+      <tr>
+        <th>
+          <h2>{{i18n "titles.filesStatistics"}}</h2>
+        </th>
+      </tr>
+      <tr>
+        <td>{{i18n "labels.lastModified"}}</td>
+        <td>{{dateString stats.usage.mtime}}</td>
+      </tr>
+      <tr>
+        <td>{{i18n "labels.totalScenesCount"}}</td>
+        <td>{{stats.data.scenes}}</td>
+      </tr>
+      <tr>
+        <td>{{i18n "labels.totalDiskUsage"}}</td>
+        <td> <b-size i b="{{stats.data.size}}"></b-size></td>
+      </tr>
     </table>
   </div>
 
