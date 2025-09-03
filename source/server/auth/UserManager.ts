@@ -368,7 +368,7 @@ export default class UserManager extends DbController {
       scene,
       uid || null,
     ]));
-    if(!res) throw new NotFoundError(`No scene with ${typeof scene ==="number"? "id ${scene}": "name ${scene}"}`);
+    if(!res) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
     return AccessTypes[res?.level+1];
 
   }
