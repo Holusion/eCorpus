@@ -201,6 +201,7 @@ export async function sendLoginLink(req :Request, res :Response){
 
   let lang = "fr";
   const mail_content = await getLocals(req).templates.render(`emails/connection_${lang}`, {
+    layout: null,
     name: user.username,
     lang: "fr",
     url: link.toString()

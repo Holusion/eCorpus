@@ -2,7 +2,21 @@
 <h1>eCorpus - connection link</h1>
 <p>Hi <b>{{name}}</b>,</p>
 <p>Click the link below to connect automatically:</p>
+<p align="center">
+  <a class="btn" href="{{url}}">Login</a>
+</p>
+<p>This link stays valid for 30 days. If it doesn't work, paste this in your browser address bar:</p>
 <p><a href="{{url}}">{{url}}</a></p>
-<p>This link stays valid for 30 days</p>
 <p>You might want to change your password in user settings to be able to reconnect in the future</p>
 <p>Have a great day!</p>
+
+<style>
+  .btn{
+    color: white;
+    background: #E6B900;
+    display: block;
+    padding: .75rem;
+    font-size:large;
+    text-decoration: none!important;
+  }
+</style>
