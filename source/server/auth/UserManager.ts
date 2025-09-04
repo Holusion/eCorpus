@@ -353,22 +353,32 @@ export default class UserManager extends DbController {
 
   async getAccessRights(scene :string | number, uid :number) :Promise<AccessType>{
     const res = (await this.db.get(`
-      SELECT GREATEST(
+      SELECT max(level) as level
+      FROM
+      (SELECT GREATEST(
         users_acl.access_level,
-        CASE WHEN (SELECT level FROM users WHERE user_id = $2) IS NOT NULL THEN scenes.default_access ELSE 0 END,
-        scenes.public_access
+        CASE 
+          WHEN (SELECT level FROM users WHERE user_id = $2) IS NOT NULL THEN scenes.default_access 
+          ELSE 0 END,
+        scenes.public_access,
+        user_is_admin_level.level
       ) AS level
-      FROM \
-        scenes\
-        LEFT OUTER JOIN users_acl ON (fk_scene_id = scenes.scene_id AND fk_user_id = $2) \
+      FROM
+        scenes
+        LEFT JOIN (        
+          SELECT CASE level WHEN ${UserLevels.ADMIN} THEN ${toAccessLevel("admin")} ELSE NULL END AS level
+          FROM users
+          WHERE user_id = $2
+        ) AS user_is_admin_level ON TRUE
+        LEFT OUTER JOIN users_acl ON (fk_scene_id = scenes.scene_id AND fk_user_id = $2)
       WHERE ${typeof scene ==="number"? 
-          "fk_scene_id = $1"
+          "scene_id = $1"
         : "scene_name = $1" }
-    `, [
+      ) AS levels`, [
       scene,
       uid || null,
     ]));
-    if(!res) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
+    if(!res || !res.level) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
     return AccessTypes[res?.level+1];
 
   }

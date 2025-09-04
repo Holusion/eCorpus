@@ -57,24 +57,27 @@ export default class SceneSelection extends LitElement{
     addTagg?.addEventListener("click", (ev: MouseEvent) => {
       ev.preventDefault();
       if (tagName.value.length > 0) {
-        const body: { name: string, scene: number }[] = this.selection.map(
-          (scene) => { return { name: tagName.value, scene: scene, action: "create" } });
-        let xhr = new XMLHttpRequest();
-        xhr.onerror = function onError(ev) {
-          console.log("XHR Error", ev);
-          Notification.show(`Tag could not be added`, "error", 4000);
-        }
-        xhr.onload = function onLoad(ev) {
-          if (xhr.status < 300) {
+        const body: { name: string, scene: number, action: "create" | "delete" }[] = this.selection.map(
+          (scene) => { return { name: tagName.value, scene: parseInt(scene), action: "create" } });
+        const req = new Request("../../tags", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+          }
+        })
+        window.fetch(req).then((response) => {
+          if (!response.ok) {
+            Notification.show(`Tag could not be added. ${(response.json())}`, "error", 4000);
+          } else {
             Notification.show(`Tag ${tagName.value} was added`, "success", 4000);
             tagName.value = "";
-          } else {
-            Notification.show(`Tag could not be added. ${JSON.parse(xhr.response).message}`, "error", 4000);
           }
+        }).catch((e) => {
+          console.log("Error", e);
+          Notification.show(`Tag could not be added.`, "error", 4000);
         }
-        xhr.open('PATCH', `/tags`);
-        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        xhr.send(JSON.stringify(body));
+        )
       }
     })
 
@@ -83,24 +86,27 @@ export default class SceneSelection extends LitElement{
       ev.preventDefault();
       if (tagName.value.length > 0) {
 
-        const body: { name: string, scene: number }[] = this.selection.map(
-          (scene) => { return { name: tagName.value, scene: scene, action: "delete" } });
-        let xhr = new XMLHttpRequest();
-        xhr.onerror = function onError(ev) {
-          console.log("XHR Error", ev);
-          Notification.show(`Tag could not be removed.`, "error", 4000);
-        }
-        xhr.onload = function onLoad(ev) {
-          if (xhr.status < 300) {
-            Notification.show(`Tag ${tagName.value} was removed`, "success", 4000);
-            tagName.value = "";
-          } else {
-            Notification.show(`Tag could not be removed. ${JSON.parse(xhr.response).message}`, "error", 4000);
+        const body: { name: string, scene: number, action: "create" | "delete" }[] = this.selection.map(
+          (scene) => { return { name: tagName.value, scene: parseInt(scene), action: "delete" } });
+         const req = new Request("../../tags", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
           }
+        })
+        window.fetch(req).then((response) => {
+          if (!response.ok) {
+            Notification.show(`Tag could not be deleted. ${(response.json())}`, "error", 4000);
+          } else {
+            Notification.show(`Tag ${tagName.value} was deleted`, "success", 4000);
+            tagName.value = "";
+          }
+        }).catch((e) => {
+          console.log("Error", e);
+          Notification.show(`Tag could not be deleted.`, "error", 4000);
         }
-        xhr.open('PATCH', `/tags`);
-        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        xhr.send(JSON.stringify(body));
+        )
       }
     })
 

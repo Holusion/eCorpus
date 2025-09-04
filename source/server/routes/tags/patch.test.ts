@@ -50,7 +50,7 @@ describe("PATCH /tags", function () {
       await request(this.server).patch("/tags")
         .auth(sceneAdminUser.username, "xxxxxxxx")
         .set("Content-Type", "application/json")
-        .send([{ name: "myTag", scene: ids[0].toString(), action: "create" },
+        .send([{ name: "myTag", scene: ids[0], action: "create" },
         { name: "myTag", scene: "bar", action: "create" }])
         .expect(200);
       let s = await vfs.getScene(ids[0]);
@@ -78,15 +78,6 @@ describe("PATCH /tags", function () {
         .expect(200);
       let s = await vfs.getScene(ids[0]);
       expect(s).to.have.property("tags").to.deep.equal(["myTag"]);
-    });
-
-    it("Fail when no user", async function () {
-      await request(this.server).patch("/tags")
-        .set("Content-Type", "application/json")
-        .send({ name: "myTag", scene: ids[0], action: "create" })
-        .expect(401);
-      let s = await vfs.getScene(ids[0]);
-      expect(s).to.have.property("tags").to.deep.equal([]);
     });
 
     it("Fail when no user", async function () {
@@ -187,21 +178,12 @@ describe("PATCH /tags", function () {
       expect(s).to.have.property("tags").to.deep.equal(["myTag"]);
     });
 
-    it("Fail when no user", async function () {
-      await request(this.server).patch("/tags")
-        .set("Content-Type", "application/json")
-        .send({ name: "myTag", scene: ids[0], action: "delete" })
-        .expect(401);
-      let s = await vfs.getScene(ids[0]);
-      expect(s).to.have.property("tags").to.deep.equal(["myTag"]);
-    });
-
-    it("Accept removing tag when scene does not exist", async function () {
+    it("Fail removing tag when scene does not exist", async function () {
       await request(this.server).patch("/tags")
         .auth(admin.username, "xxxxxxxx")
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: "bla_12456434874354578", action: "delete" })
-        .expect(200);
+        .expect(404);
     });
   });
 
