@@ -45,7 +45,7 @@ ARG BUILD_REF
 
 ENV PUBLIC=${PUBLIC:-false}
 ENV PORT=${PORT:-8000}
-ENV BUILD_REF=${BUILD_REF:-unknown}
+ENV BUILD_REF=${BUILD_REF}
 
 ENV NODE_ENV=production
 
@@ -65,4 +65,4 @@ COPY --from=build /app/source/server/dist /app/server
 VOLUME [ "/app/files" ]
 EXPOSE ${PORT}
 
-CMD node --disable-proto=delete server/index.js
+CMD [ "node", "--disable-proto=delete", "server/index.js" ]
