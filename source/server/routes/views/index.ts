@@ -157,7 +157,10 @@ routes.get("/scenes", wrap(async (req, res)=>{
     author: author as string,
   };
   
-  let scenes = (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req));
+  let [scenes, serverTags] =  await Promise.all([
+    (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req)),
+    vfs.getTags(),
+  ]);
 
   let pager = {
     from: sceneParams.offset,
@@ -185,6 +188,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
     params: validatedParams,
     isSearchPage: true, //Hide the navbar's search field because we otherwise have a duplicate "match" input
     pager,
+    tagSuggestions: serverTags.map(t=>t.name)
   });
 }));
 

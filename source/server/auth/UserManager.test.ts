@@ -228,10 +228,11 @@ describe("UserManager methods", function(){
   });
 
   describe("Access rights management", function(){
-    let user :User, _id=0;
+    let user: User, admin: User, _id = 0;
     this.beforeAll(async function(){
       await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights', 1]);
       await this.db.run(`INSERT INTO scenes (scene_id, scene_name, public_access) VALUES ($1, $2, $3)`, [Uid.make().toString(10), 'foo-grant-access-rights-private', 0]);
+      admin = await userManager.addUser("adele", "12345678", "admin");
     })
     this.beforeEach(async function(){
       user = await userManager.addUser("foo-grant-"+(++_id).toString(16).padStart(4, "0"), "12345678", "create");
@@ -243,18 +244,15 @@ describe("UserManager methods", function(){
       expect(access).to.equal("read");
     });
 
-    it("returns permission for anonymous access", async function(){
+    it("returns Not Found for anonymous access", async function () {
       //Return the value of scene.visible
-      let access = await userManager.getAccessRights("foo-grant-access-rights-private", 0);
-      expect(access).to.equal("none");
-      access = await userManager.getAccessRights("foo-grant-access-rights-private", null as any);
-      expect(access).to.equal("none");
+      await expect(userManager.getAccessRights("foo-grant-access-rights-private", 0)).to.be.rejectedWith(NotFoundError);
+      await expect(userManager.getAccessRights("foo-grant-access-rights-private", null as any)).to.be.rejectedWith(NotFoundError);
     });
 
-    it("returns proper access rights if uid is invalid", async function(){
+    it("returns Not Found if uid is invalid", async function () {
       /** In _theory_ we wouldn't ever provide an invalid user id here but it doesn't hurt too much to check */
-      let access = await userManager.getAccessRights("foo-grant-access-rights-private", Uid.make());
-      expect(access).to.equal("none");
+      await expect(userManager.getAccessRights("foo-grant-access-rights-private", Uid.make())).to.be.rejectedWith(NotFoundError);
     });
 
 
@@ -289,7 +287,17 @@ describe("UserManager methods", function(){
       expect(access).to.equal("read"); // default
     });
 
-    it("can't set permissions to none if there was no specific permissions", async function(){
+    it("admin level user scene access is admin", async function () {
+      let access = await userManager.getAccessRights("foo-grant-access-rights-private", admin.uid);
+      expect(access).to.equal("admin"); 
+    })
+
+
+    it("admin get Not Found when accessing non existing scene", async function () {
+      await expect(userManager.getAccessRights("foo-grant-access-rights-private-56046475470876706", admin.uid)).to.be.rejectedWith(NotFoundError);
+    })
+
+    it("can't set permissions to none if there was no specific permissions", async function () {
       await expect(userManager.grant("foo-grant-access-rights-private", user.username, "none")).to.be.rejectedWith("404");
     });
 

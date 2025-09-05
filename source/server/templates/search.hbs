@@ -87,6 +87,16 @@
             <button type="reset" id="selection-deselectAll" class="btn btn-main btn-icon">
               {{i18n "buttons.deselectAll"}}
             </button>
+            <div class="row">
+              <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
+              <button id="add-tag" type="button" class="btn btn-main btn-addon" style="min-width:40px;"><ui-icon name="plus"></ui-icon></button>
+              <button id="remove-tag" type="button" class="btn btn-main btn-addon" style="min-width:40px"><ui-icon name="minus"></ui-icon></button>
+              <datalist id="tagSuggestions">
+                {{#each tagSuggestions }}
+                <option value="{{.}}" />
+                {{/each}}
+              </datalist>
+            </div>
           </div>
         </form>
       </scene-selection>

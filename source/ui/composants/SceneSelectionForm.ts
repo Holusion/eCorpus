@@ -1,5 +1,6 @@
 import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
 import { customElement, property, queryAssignedElements, state } from "lit/decorators.js";
+import Notification from "./Notification";
 
 
 @customElement("scene-selection")
@@ -14,6 +15,9 @@ export default class SceneSelection extends LitElement{
     const selectAll = form.querySelector("#selection-selectAll");
     const deselectAll = form.querySelector("#selection-deselectAll");
     const dlink = form.querySelector<HTMLAnchorElement>("#selection-download");
+    const tagName = form.querySelector("#tag-name") as HTMLInputElement;
+    const addTagg = form.querySelector("#add-tag");
+    const removeTag = form.querySelector("#remove-tag");
     if(!dlink) return console.error(`Form has no download button`, form); 
 
     const updateButtons = ()=>{
@@ -49,6 +53,63 @@ export default class SceneSelection extends LitElement{
       this.selection = [];
       updateButtons();
     });
+
+    addTagg?.addEventListener("click", (ev: MouseEvent) => {
+      ev.preventDefault();
+      if (tagName.value.length > 0) {
+        const body: { name: string, scene: number, action: "create" | "delete" }[] = this.selection.map(
+          (scene) => { return { name: tagName.value, scene: parseInt(scene), action: "create" } });
+        const req = new Request("../../tags", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+          }
+        })
+        window.fetch(req).then((response) => {
+          if (!response.ok) {
+            Notification.show(`Tag could not be added. ${(response.json())}`, "error", 4000);
+          } else {
+            Notification.show(`Tag ${tagName.value} was added`, "success", 4000);
+            tagName.value = "";
+          }
+        }).catch((e) => {
+          console.log("Error", e);
+          Notification.show(`Tag could not be added.`, "error", 4000);
+        }
+        )
+      }
+    })
+
+
+    removeTag?.addEventListener("click", (ev: MouseEvent) => {
+      ev.preventDefault();
+      if (tagName.value.length > 0) {
+
+        const body: { name: string, scene: number, action: "create" | "delete" }[] = this.selection.map(
+          (scene) => { return { name: tagName.value, scene: parseInt(scene), action: "delete" } });
+         const req = new Request("../../tags", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+          }
+        })
+        window.fetch(req).then((response) => {
+          if (!response.ok) {
+            Notification.show(`Tag could not be deleted. ${(response.json())}`, "error", 4000);
+          } else {
+            Notification.show(`Tag ${tagName.value} was deleted`, "success", 4000);
+            tagName.value = "";
+          }
+        }).catch((e) => {
+          console.log("Error", e);
+          Notification.show(`Tag could not be deleted.`, "error", 4000);
+        }
+        )
+      }
+    })
+
 
     let selection = new Set<string>();
     for(let i = 0; i < form.length; i++){
