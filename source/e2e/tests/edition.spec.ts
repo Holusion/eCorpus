@@ -113,5 +113,5 @@ test("can save the scene", async ()=>{
   //This locator should target role = "navigation" when this gets implemented
   await scenePage.locator("sv-task-bar").getByRole('button', { name: 'Save' }).click();
   // @fixme catch notification
-  await expect(scenePage.getByText("Successfully uploaded file")).toBeVisible({timeout: 500});
+  await expect(scenePage.getByText("Successfully uploaded file to")).toBeVisible({timeout: 1400});
 });

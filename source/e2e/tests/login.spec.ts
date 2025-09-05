@@ -117,3 +117,17 @@ test(`can login from a private page`, async ({page, request})=>{
   await expect(page.getByRole("heading", {name: sceneName})).toBeVisible();
   await expect(page.getByText('VScene', {exact: true})).toBeVisible();
 });
+
+
+test(`can login with an authenticated link`, async ({page, request})=>{
+  let res = await adminContext.request.get(`/auth/login/${username}/link`);
+  await expect(res).toBeOK();
+  let authLink = await res.text();
+
+  await page.setContent(`<!DOCTYPE html><html><body>
+    <a href="${authLink}">connect link</a>
+  </body></html>`)
+  await page.getByRole("link").click();
+  let userSettingsLink = page.getByRole("link", {name: username}); 
+  await expect(userSettingsLink).toBeVisible();
+});
