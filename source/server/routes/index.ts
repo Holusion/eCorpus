@@ -65,7 +65,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     keys: await userManager.getKeys(),
     // Cookie Options
     maxAge: (app.locals as AppLocals).sessionMaxAge,
-    sameSite: "strict"
+    sameSite: "lax"
   }));
 
   app.use("/", (req, res, next)=>{
@@ -112,7 +112,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   
   /* istanbul ignore next */
-  if (config.verbose) {
+  if (config.verbose ||debuglog("http:requests").enabled) {
     let {default: morgan} = await import("morgan"); 
     //Requests logging is enabled only in dev mode as a proxy would handle it in production
     app.use(morgan(process.stdout.isTTY?"dev": "tiny", {
