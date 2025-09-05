@@ -1,6 +1,6 @@
 import os from "os";
 import { expect } from "chai";
-import open, { Database } from "./db.js";
+import open, { Database, DbController } from "./db.js";
 import path from "path";
 import { fileURLToPath } from 'url';
 import Vfs from "../index.js";
@@ -150,4 +150,67 @@ describe("Database", function(){
     });
     
   })
+});
+
+
+describe("DbController", function(){
+    let db :Database, uri: string;
+    this.beforeEach(async function(){
+      uri = await getUniqueDb();
+      db = await open({
+        uri,
+        forceMigration: true,
+      });
+    });
+
+    this.afterEach(async function(){
+      await db?.end(); //Otherwise it leaks
+    });
+
+    describe("multi-controller isolate", function(){
+      let c1 :DbController, c2: DbController;
+
+      this.beforeEach(async function(){
+        await db.run("CREATE TABLE test (value TEXT)");
+        await db.run("INSERT INTO test VALUES ('foo')")
+        c1 = new DbController(db);
+        c2 = new DbController(db);
+      })
+
+      it("test failure mode", async function(){
+        let values_c1:number, values_c2: number;
+        //Check if our test case reliably fails when isolate doesn't work as intended
+        await c1.isolate(async (t1)=>{
+          //This will not be visible outside of the transaction before comitted
+          await t1._db.run("INSERT INTO test VALUES ('bar')")
+          values_c1 = (await t1._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count; 
+          values_c2 = (await c2._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count; 
+        });
+        expect(values_c1!, "added value should be visible in the transaction").to.equal(2);
+        expect(values_c2!, "added value should not be visible for non-isolated controllers").to.equal(1);
+      });
+
+      it("test nested isolation", async function(){
+        let values_t1:number, values_t2: number, values_c1: number;
+        //Check if our test case reliably fails when isolate doesn't work as intended
+        await c1.isolate(async (t1)=>{
+          await c2.isolate(t1, async (t2)=>{
+            //This will not be visible in the transaction
+            await t1._db.run("INSERT INTO test VALUES ('bar')");
+            await t2._db.run("INSERT INTO test VALUES ('baz')");
+            values_t1 = (await t1._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count; 
+            values_t2 = (await t2._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count;
+            values_c1 = (await c1._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count;
+
+            await t2._db.run("INSERT INTO test VALUES ('bazz')");
+          })
+        });
+        expect(values_t1!, "added value should be visible in the transaction").to.equal(3);
+        expect(values_t2!, "added value should be visible in the transaction").to.equal(3);
+        expect(values_c1!, "added value should not be visible outside of the transaction").to.equal(1);
+        expect((await db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count, "after transaction, all values should exist").to.equal(4);
+      });
+    })
+
+
 });

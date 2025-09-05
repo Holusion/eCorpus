@@ -16,33 +16,6 @@ export default abstract class BaseVfs extends DbController{
   public get uploadsDir(){ return path.join(this.rootDir, "uploads"); }
   public get objectsDir(){ return path.join(this.rootDir, "objects"); }
 
-  /**
-   * Runs a sequence of methods in isolation
-   * Every calls to this.db (or `transaction.db`) inside of the callback will use the same database client to allow proper transaction
-   * @see Database.beginTransaction
-   */
-  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>{
-    const parent = this;
-    return await this.db.beginTransaction(async function isolatedTransaction(transaction){
-      let closed = false;
-      let that = new Proxy<typeof parent>(parent, {
-        get(target, prop, receiver){
-          if(prop === "db"){
-            return transaction;
-          }else if (prop === "isOpen"){
-            return !closed;
-          }
-          return Reflect.get(target, prop, receiver);
-        }
-      });
-      try{
-        return await fn.call(that, that);
-      }finally{
-        closed = true;
-      }
-    }) as T;
-  }
-  
   public filepath(f :FileProps|string|{hash:string}){
     if(typeof f ==="string"){
       return path.join(this.objectsDir, f);

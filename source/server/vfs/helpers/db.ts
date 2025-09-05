@@ -213,15 +213,29 @@ export class DbController{
     return this.db;
   }
   constructor(protected db:Database){}
+
+  
   /**
    * Runs a sequence of methods in isolation
-   * Every calls to Vfs.db inside of the callback will be seriualized and wrapped in a transaction
+   * Every calls to Vfs.db inside of the callback will be wrapped in a transaction
    * 
+   * Can be combined through multiple DbController instances. For example: 
+   * ```javascript
+   * vfs.isolate(async vfs =>{
+   *  return userManager.isolate(vfs, async (userManager)=>{
+   *    //Here both `userManager` and `vfs` will execute queries within the explicit transaction
+   *  })
+   * })
    * @see Database.beginTransaction
    */
-  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>{
+  public async isolate<T>(controller: DbController, fn :Isolate<typeof this, T>) :Promise<T>
+  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>
+  public async isolate<T>(fnOrController :DbController|Isolate<typeof this, T>, fnParam?:Isolate<typeof this, T>) :Promise<T>{
+    const controller = (typeof fnOrController == "object" && typeof fnParam !== "undefined")? fnOrController : this;
+    const fn = (typeof fnParam === "undefined" && typeof fnOrController === "function")? fnOrController: fnParam;
+    if(!fn) throw new Error(`Can't call undefined isolate workload`);
     const parent = this;
-    return await this.db.beginTransaction(async function isolatedTransaction(transaction){
+    return await controller.db.beginTransaction(async function isolatedTransaction(transaction){
       let closed = false;
       let that = new Proxy<typeof parent>(parent, {
         get(target, prop, receiver){
@@ -241,4 +255,3 @@ export class DbController{
     }) as T;
   }
 }
-  
