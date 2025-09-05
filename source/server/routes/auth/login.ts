@@ -31,7 +31,7 @@ export function postLogin(req :Request, res :Response, next :NextFunction){
     return safeUser;
   }).then((safeUser)=>{
     if(redirect && typeof redirect === "string"){
-      return res.redirect(302, validateRedirect(req, redirect));
+      return res.redirect(302, validateRedirect(req, redirect).toString());
     }else{
       res.format({
         "application/json": ()=> {
@@ -72,114 +72,134 @@ export function postLogin(req :Request, res :Response, next :NextFunction){
 
 export async function getLogin(req :Request, res:Response){
   let requester = getUser(req);
-  let {payload, sig, redirect:unsafeRedirect} = req.query;
+  let { redirect:unsafeRedirect} = req.query;
   let host = getHost(req);
 
   const redirect = unsafeRedirect? validateRedirect(req, unsafeRedirect): undefined;
+  const session = getSession(req);
+  res.format({
+    "application/json": ()=> {
+      res.status(200).send(User.safe(session ?? {}));
+    },
+    "text/html": ()=>{
+      if(requester.level !== "none") return res.redirect(302, redirect ?redirect.pathname: "/ui/");
+      useTemplateProperties(req, res, ()=>{
+        res.render("login", {
+          title: "eCorpus Login",
+          user: null,
+          redirect,
+        });
+      });
+    },
+    "text/plain": ()=>{
+      res.status(200).send(`${session?.username} (${session?.uid})`);
+    },
+  });
+};
 
-  if(!payload && !sig){
-    const session = getSession(req);
-    res.format({
-      "application/json": ()=> {
-        res.status(200).send(User.safe(session ?? {}));
-      },
-      "text/html": ()=>{
-        if(requester.level !== "none") return res.redirect(302, redirect ?? "/ui/");
-        useTemplateProperties(req, res, ()=>{
-          res.render("login", {
-            title: "eCorpus Login",
-            user: null,
-            redirect,
-          });
 
-        })
-      },
-      "text/plain": ()=>{
-        res.status(200).send(`${session?.username} (${session?.uid})`);
-      },
-    })
-    return;
-  }else if(typeof payload !== "string" || !payload || !sig){
-    throw new BadRequestError(`Bad login links parameters`);
-  }
+export async function getLoginPayload(req: Request, res: Response){
+  const {payload} = req.params;
 
   let userManager = getUserManager(req);
 
   let keys = (await userManager.getKeys());
 
-  if(!keys.some((key)=>{
-    return createHmac("sha512", key).update(payload as string).digest("base64url") === sig;
-  })){
-    throw new ForbiddenError();
-  }
+  const params = parseLoginPayload(keys, payload);
+  //Even though redirect should come from the signet JSON payload, we still should validate it, just in case...
+  const redirect = validateRedirect(req, params.redirect ?? "/ui/");
 
+  //Verify data is valid. First, expiration date
+  if(!params.expires || !Number.isInteger(params.expires)) throw new BadRequestError("Bad token payload");
+  else if(params.expires < Date.now()) throw new ForbiddenError("Token expired");
+  //Then verify the user has not been deleted or renamed
   let user;
   try{
-    let s = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
-    user = await userManager.getUserByName(s.username);
-    if(user.uid != s.uid) throw new Error("uid mismatch");
-    if(!s.expires || !Number.isInteger(s.expires)) throw new BadRequestError("Bad token payload");
-    else if(s.expires < Date.now()) throw new ForbiddenError("Token expired");
+    user = await userManager.getUserByName(params.username);
+    if(user.uid != params.uid) throw new Error("uid mismatch");
   }catch(e){
-    console.log((e as any).message);
     throw new BadRequestError(`Failed to parse login payload`);
   }
+
+  //Assign user sessing accordingly
   Object.assign(
     (req as any).session as any,
     {expires: Date.now() + getLocals(req).sessionMaxAge },
     User.safe(user),
   );
-  if(redirect){
-    return res.redirect(302, redirect);
-  }else{
-    return res.status(200).send(User.safe((req as any).session));
-  }
-};
 
-
-function makeLoginLink(user :User, key :string, expiresIn :number){
-  let expires = new Date(Date.now()+ expiresIn);
-  let params = Buffer.from(JSON.stringify({
-    uid: user.uid.toString(10),
-    username: user.username,
-    expires: expires.valueOf(),
-  })).toString("base64url");
-
-  let sig = createHmac("sha512", key).update(params).digest("base64url");
-
-  return {
-    params,
-    expires,
-    sig,
-  };
+  return res.redirect(302, redirect.toString());
 }
 
-function makeRedirect(opts:ReturnType<typeof makeLoginLink>, redirect :URL) :URL{
-  let url = new URL("/auth/login", redirect.toString());
-  url.searchParams.set("payload", opts.params);
-  url.searchParams.set("sig", opts.sig);
-  url.searchParams.set("redirect", redirect.pathname);
+
+interface LoginParams {
+  uid: number;
+  username: string;
+  expires :number;
+  redirect?:string;
+}
+
+/**
+ * Makes an authenticated link with embedded redirect
+ * @param key 
+ * @param param1 
+ * @param redirect 
+ * @returns 
+ */
+export function makeRedirect(key:string, {user, expiresIn, redirect}:{user:Pick<User,"uid"|"username">, expiresIn:number, redirect :URL}) :URL{
+  let expires = new Date(Date.now()+ expiresIn).valueOf();
+  let url = new URL(`/auth/payload/${formatLoginPayload(key, {uid: user.uid, username: user.username, expires, redirect: redirect.pathname})}`, redirect);
   return url;
 }
 
+/**
+ * Parse a formatted login payload. Verify its signature and return the original parameter object
+ * Will throw {@link BadRequestError} if payload is invalid, or {@link ForbiddenError} if signature doesn't match
+ * @param payload 
+ */
+export function parseLoginPayload(keys: string[], payload: string) :LoginParams{
+  const parts = payload.split(".");
+  if(parts.length != 2){
+    throw new BadRequestError(`Bad login links parameters`);
+  }
+  const [sig, data] = parts;
+  if(!data || !sig){
+    throw new BadRequestError(`Bad login links parameters`);
+  }
+  if(!keys.some((key)=>{
+    return createHmac("sha512", key).update(data).digest("base64url") === sig;
+  })){
+    throw new ForbiddenError("payload doesn't match signature");
+  }
+  return JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));
+}
+
+/**
+ * 
+ * @param key 
+ * @param params 
+ * @returns "<base64url-encoded signature>.<base64url-encoded parameters>""
+ */
+export function formatLoginPayload(key: string, params:Readonly<LoginParams>): string{
+  const data = Buffer.from(JSON.stringify(params)).toString("base64url");
+  const sig = createHmac("sha512", key).update(data).digest("base64url");
+  return `${sig}.${data}`;
+}
 
 export async function getLoginLink(req :Request, res :Response){
   let {sessionMaxAge} = getLocals(req);
   let {username} = req.params;
+  let {redirect:unsafeRedirect} = req.query
   let userManager = getUserManager(req);
   let user = await userManager.getUserByName(username);
   let key = (await userManager.getKeys())[0];
+  const redirect = validateRedirect(req, ((typeof unsafeRedirect === "string")?unsafeRedirect:"/ui/"));
 
-  let payload = makeLoginLink(user, key, sessionMaxAge);
   res.format({
     "text/plain":()=>{
-      let rootUrl = getHost(req);
-      res.status(200).send(makeRedirect(payload, rootUrl).toString());
-    },
-    "application/json":()=>{
-      res.status(200).send(payload);
+      res.status(200).send(makeRedirect(key, {user, expiresIn: sessionMaxAge, redirect}).toString());
     }
-  })
+  });
 }
 
 
@@ -193,10 +213,9 @@ export async function sendLoginLink(req :Request, res :Response){
     throw new BadRequestError(`Requested user has no registered email`);
   }
   let key = (await userManager.getKeys())[0];
-  let payload = makeLoginLink(user, key, sessionMaxAge);
   let link = makeRedirect(
-    payload, 
-    getHost(req)
+    key,
+    {user, expiresIn: sessionMaxAge, redirect: getHost(req)}, 
   );
 
   let lang = "fr";

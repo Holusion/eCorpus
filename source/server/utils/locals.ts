@@ -200,12 +200,12 @@ export function getHost(req :Request) :URL{
  * Validates if a requested redirect URL would be within the current origin
  * Also make the URL canonical (http://example.com/foo)
  */
-export function validateRedirect(req :Request, redirect :string|any):string{
+export function validateRedirect(req :Request, redirect :string|any): URL{
   let host = getHost(req);
   try{
     let target = new URL(redirect, host);
     if(target.origin !== host.origin) throw new BadRequestError(`Redirect origin mismatch`);
-    return target.toString();
+    return target;
   }catch(e){
     throw new BadRequestError(`Bad Redirect parameter`);
   }
