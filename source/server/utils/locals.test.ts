@@ -68,7 +68,7 @@ describe("validateRedirect()", function(){
     app.get("/", (req, res, next)=>{
       try{
         let r = validateRedirect(req, req.query.redirect as any);
-        res.status(302).set("Location", r).send(r);
+        res.status(302).set("Location", r.toString()).send(r.toString());
       }catch(e:any){
         res.status(500).send(e.message);
       }

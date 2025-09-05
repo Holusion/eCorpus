@@ -4,6 +4,8 @@ import Vfs from "../../vfs/index.js";
 import User, { UserLevels, UserRoles } from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import { AppLocals } from "../../utils/locals.js";
+import { formatLoginPayload, makeRedirect, parseLoginPayload } from "./login.js";
+import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
 
 
 
@@ -220,14 +222,12 @@ describe("/auth/login", function(){
   });
   
   describe("Login links", function(){
+    
     it("rejects bad login links", async function(){
-      await request(this.server).get("/auth/login?payload=foo")
-      .expect(400);
-      await request(this.server).get("/auth/login?sig=bar")
+      await request(this.server).get("/auth/payload/foo")
       .expect(400);
 
-
-      await request(this.server).get("/auth/login?payload=foo&sig=bar")
+      await request(this.server).get("/auth/payload/foo.bar")
       .expect(403);
     });
 
@@ -261,30 +261,16 @@ describe("/auth/login", function(){
       expect(res.body).to.have.property("username", user.username);
     });
 
-    it("obtains a valid login link (application/json)", async function(){
-      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
-      .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
-      .set("Accept", "application/json")
-      .expect(200)
-      .expect("Content-Type", "application/json; charset=utf-8");
+    it("requires admin rights", async function(){
+      await request(this.server).get(`/auth/login/${user.username}/link`)
+      .expect(401);
 
-      expect(res.body).to.have.property("params").a("string");
-      expect(res.body).to.have.property("expires").a("string");
-      expect(res.body).to.have.property("sig").a("string");
-      
-      await request(this.server).get(`/auth/login?payload=${encodeURIComponent(res.body.params)}&sig=${res.body.sig}`)
-      .expect(200)
-      .expect("Set-Cookie", /session=/);
-    });
-
-    it("requires authorization", async function(){
-      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
-      .set("Accept", "text/plain")
+      await request(this.server).get(`/auth/login/${user.username}/link`)
+      .auth(user.username, "12345678")
       .expect(401);
     });
 
-    it("validates redirection URL", async function(){
-      const maxAge = this.server.locals.sessionMaxAge;
+    it("accepts custom redirect URL", async function(){
       let res = await request(this.server).get(`/auth/login/${user.username}/link`)
       .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
       .set("Accept", "text/plain")
@@ -293,12 +279,67 @@ describe("/auth/login", function(){
 
       expect(res.text).to.match(/^http:/);
       let url = new URL(res.text);
-      expect(url.searchParams.has("redirect")).to.be.true;
-      url.searchParams.set("redirect", "https://example.com")
 
-      const agent = request.agent(this.server);
-      res = await agent.get(url.pathname+url.search)
-      .expect(400);
-    });
+    })
   });
 });
+
+
+describe("formatLoginPayload() / parseLoginPayload()", function(){
+  it("can parse a formatted login payload", function(){
+    const key = "some random string";
+    const params = {
+      uid: 128,
+      username: "foo",
+      expires: Date.now(),
+    };
+    const payload = formatLoginPayload(key, params);
+    expect(parseLoginPayload([key], payload)).to.deep.equal(params);
+  });
+
+  it("can use any key from a list to parse parameters", function(){
+    const keys = ["some random string", "some other string", "another string"];
+    const params = {
+      uid: 128,
+      username: "foo",
+      expires: Date.now(),
+    };
+    keys.forEach((key, index)=>{
+      const payload = formatLoginPayload(key, params);
+      expect(parseLoginPayload(keys, payload), `using key #${index}`).to.deep.equal(params);
+    });
+  });
+
+  it("throws if signature doesn't match", function(){
+    const params = {
+      uid: 128,
+      username: "foo",
+      expires: Date.now(),
+    };
+    const payload = formatLoginPayload("some key", params);
+    expect(()=>parseLoginPayload(["another key"], payload)).to.throw(ForbiddenError);
+
+    const tamperedPayload = payload.split(".")[0]+"."+Buffer.from(JSON.stringify({...params, uid: 129})).toString("base64url")
+    expect(()=>parseLoginPayload(["some key"], tamperedPayload)).to.throw(ForbiddenError);
+  });
+
+  it("throws if payload is malformed", function(){
+    expect(()=>parseLoginPayload(["some key"], "some-invalid-string")).to.throw(BadRequestError);
+  })
+});
+
+describe("makeRedirect()", function(){
+  it("crafts an authenticated redirect payload", function(){
+    const url = makeRedirect("some key", {user:{uid: 128, username: "alice"}, expiresIn: 5000, redirect: new URL("http://example.com/foo/")});
+    const payload = url.pathname.split("/").pop()!;
+    expect(payload).to.be.ok;
+    const [sig, data] = payload.split(".");
+    expect(sig).to.be.ok;
+    expect(data).to.be.ok;
+    const params = JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));
+    expect(params).to.have.property("uid", 128);
+    expect(params).to.have.property("username", "alice");
+    expect(params).to.have.property("expires").a("number").above(Date.now());
+    expect(params).to.have.property("redirect").a("string");
+  });
+})

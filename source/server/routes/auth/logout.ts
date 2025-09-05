@@ -8,7 +8,7 @@ export const postLogout :RequestHandler = (req, res, next)=>{
   req.session = null;
   if(unsafeRedirect){
     try{
-      res.redirect(302, validateRedirect(req, unsafeRedirect));
+      res.redirect(302, validateRedirect(req, unsafeRedirect).toString());
     }catch(e){
       next(e);
     }

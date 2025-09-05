@@ -5,7 +5,7 @@ import bodyParser from "body-parser";
 
 import { canAdmin, canRead, either, isAdministrator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
-import { getLogin, getLoginLink, sendLoginLink, postLogin } from "./login.js";
+import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
@@ -36,6 +36,8 @@ router.use("/", (req, res, next)=>{
 router.get("/", wrap(async function(req, res){
   return res.status(200).send(User.safe((req as any).session as any));
 }));
+
+router.get("/payload/:payload", wrap(getLoginPayload));
 
 router.get("/login", wrap(getLogin));
 router.post("/login", 
