@@ -11,4 +11,61 @@
       </div>
     </form>
   </submit-fragment>
+  <h4>{{i18n "titles.previewEmail"}}</h4>
+  <form id="preview-email-form" class="form-control" autocomplete="off">
+    <div class="form-group inline">
+      <div class="form-item">
+        <label>Username</label>
+        <input name="username" placeholder="recipient username" value="{{user.username}}">
+      </div>
+      <div class="form-item" >
+        <label>Template</label>
+        <select name="name">
+          {{> inputs/option selected=(test "fr" "==" @root.lang) value="connection_fr" text="connection_fr"}}
+          {{> inputs/option selected=(test "en" "==" @root.lang) value="connection_en" text="connection_en"}}
+          {{> inputs/option selected=(test "en" "==" @root.lang) value="test" text="test"}}
+          
+        </select>
+      </div>
+      <div class="form-item" >
+        <label>Theme</label>
+        <select name="colorScheme">
+          <option selected value="light">Light</option>
+          <option value="dark"> Dark</option>
+        </select>
+      </div>
+      <button role="submit" class="btn">Fetch</button>
+    </div>
+  </form>
+  <script type="module">
+    const f = document.querySelector("#preview-email-form");
+    if(!f) console.error("Couldn't find email preview form");
+
+
+    function onSubmitPreviewEmail(ev){
+      ev.preventDefault();
+      let data = new FormData(ev.target);
+
+      const box = document.createElement("dialog");
+      Object.assign(box.style, {
+        maxWidth: "428px",
+        width: `min(80vw, 428px)`,
+        height: "60vh",
+        colorScheme: `only ${data.get("colorScheme")}`,
+      });
+      box.onmousedown= function(){ event.target==this && this.close()};
+      box.onclose = function(){
+        box.parentElement.removeChild(box);
+      }
+      
+      console.log("Name: ", ev.target)
+      box.innerHTML = `<iframe allowTransparency="true" style="width:100%; height: calc(100% - 10px); border: 0px" src="/admin/mail/render/${data.get("name")}?username=${data.get("username")}"></iframe>`;
+      f.insertAdjacentElement('afterend', box);
+      box.showModal();
+      
+      return false;
+    }
+
+    f.addEventListener("submit", onSubmitPreviewEmail);
+  </script>
 </div>
