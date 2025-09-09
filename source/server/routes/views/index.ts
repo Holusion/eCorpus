@@ -115,9 +115,9 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const requester = getUser(req);
   const {tag} = req.params;
-  const ids = await vfs.getTag(tag);
+  const ids = await vfs.getTag(tag, requester ? requester.uid : null);
   const scenes = await Promise.all(ids.map(async id=>{
-      let scene =  await vfs.getScene(id, requester? requester.uid: undefined);
+      let scene =  await vfs.getScene(id,  requester ? requester.uid : null);
       return mapScene(req, scene);
     }))
   res.render("tag", {
@@ -215,7 +215,8 @@ routes.get("/admin", (req, res)=>{
 
 routes.get("/admin/archives", wrap(async (req, res)=>{
   const vfs = getVfs(req);
-  let scenes = await vfs.getScenes(null, {archived: true, limit: 100 });
+  const user = getUser(req);
+  let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
   res.render("admin/archives", {
     layout: "admin",
     title: "eCorpus Administration: Archived scenes",
