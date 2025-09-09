@@ -117,7 +117,7 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   const {tag} = req.params;
   const ids = await vfs.getTag(tag);
   const scenes = await Promise.all(ids.map(async id=>{
-      let scene =  await vfs.getScene(id, requester.uid);
+      let scene =  await vfs.getScene(id, requester? requester.uid: undefined);
       return mapScene(req, scene);
     }))
   res.render("tag", {
@@ -158,7 +158,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
   };
   
   let [scenes, serverTags] =  await Promise.all([
-    (await vfs.getScenes(u.uid, sceneParams)).map(mapScene.bind(null, req)),
+    (await vfs.getScenes(u? u.uid:undefined, sceneParams)).map(mapScene.bind(null, req)),
     vfs.getTags(),
   ]);
 
@@ -181,7 +181,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
 
   //Sanitize user input
   const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
-  if((!validatedParams.access) && u.level != "admin") validatedParams.access = "read";
+  if((!validatedParams.access) && (u? u.level != "admin": true)) validatedParams.access = "read";
   res.render("search", {
     title: "eCorpus Search",
     scenes,
@@ -195,10 +195,10 @@ routes.get("/scenes", wrap(async (req, res)=>{
 routes.get("/user", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
-  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
-  if(UserRoles.indexOf(user.level) < 1){
+  if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
+  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
   res.render("user", {
     title: "eCorpus User Settings",
     archives,
@@ -253,7 +253,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const um = getUserManager(req);
   const {scene:scene_name} = req.params;
-  let scene = mapScene(req, await vfs.getScene(scene_name, requester.uid));
+  let scene = mapScene(req, await vfs.getScene(scene_name, requester? requester.uid: undefined));
 
   let [permissions, meta, serverTags] = await Promise.all([
     um.getPermissions(scene.id),

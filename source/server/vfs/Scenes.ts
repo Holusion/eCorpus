@@ -1,7 +1,7 @@
 import {escapeLiteral} from "pg";
 import { AccessMap, AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import config from "../utils/config.js";
-import { BadRequestError, ConflictError,  NotFoundError } from "../utils/errors.js";
+import { BadRequestError, ConflictError,  NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneMeta, SceneQuery } from "./types.js";
@@ -158,7 +158,7 @@ export default abstract class ScenesVfs extends BaseVfs{
   /**
    * Get all scenes for <user_id>, filtering results with structured queries when called with filters
    */
-  async getScenes(user_id :number|undefined, q?:SceneQuery):Promise<Scene[]>;
+  async getScenes(user_id :number|undefined|null, q?:SceneQuery):Promise<Scene[]>;
   /**
    * Get a filtered list of scenes but bypass user_id restrictions (when running as an administrator)
    */
@@ -194,6 +194,9 @@ export default abstract class ScenesVfs extends BaseVfs{
     }
 
     if(typeof archived === "boolean"){
+      if (archived && typeof user_id != "number"){
+        throw new UnauthorizedError("Accessing archived scenes requires being authenticated")
+      }
       whereClause +=` AND archived ${archived?"IS NOT":"IS"} NULL`;
     }
 
@@ -282,10 +285,10 @@ export default abstract class ScenesVfs extends BaseVfs{
    * 
    * `user_id` is not verified in this request. It should be validated beforehand to supply only valid user ids
    */
-  async getScene(nameOrId :string|number, user_id?:number) :Promise<Scene>{
+  async getScene(nameOrId :string|number, user_id?:number|null) :Promise<Scene>{
     let key = ((typeof nameOrId =="number")? "scene_id":"scene_name");
     let args = [nameOrId];
-    if(typeof user_id != "undefined") args.push(user_id.toString(10));
+    if(typeof user_id == "number") args.push(user_id.toString(10));
     const scene_stored = await this.db.get<{
       name: string,
       id: number,
@@ -310,14 +313,14 @@ export default abstract class ScenesVfs extends BaseVfs{
         default_access,
         public_access,
         GREATEST(
-          ${(typeof user_id != "undefined")?`(SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
+          ${(typeof user_id == "number")?`(SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
           CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN scenes.default_access ELSE 0 END,
           `: ``}
           public_access
         ) AS access 
       FROM scenes
       WHERE (${key} = $1
-      ${(typeof user_id != "undefined")?`AND GREATEST ( (SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
+      ${(typeof user_id == "number")?`AND GREATEST ( (SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
           CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN scenes.default_access ELSE 0 END,
           public_access) > 0
           `: ``}

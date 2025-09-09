@@ -96,8 +96,8 @@ export default abstract class TagsVfs extends BaseVfs{
    */
   async getTag(name :string):Promise<number[]>
   /** Get all scenes that have this tag that this user can read */
-  async getTag(name :string, user_id :number):Promise<number[]>
-  async getTag(name :string, user_id ?:number):Promise<number[]>{
+  async getTag(name :string, user_id :number | null):Promise<number[]>
+  async getTag(name :string, user_id ?:number | null):Promise<number[]>{
 
     let scenes = await this.db.all<{scene_id:number}>(`
       SELECT scene_id , scene_name
@@ -114,7 +114,7 @@ export default abstract class TagsVfs extends BaseVfs{
             CASE WHEN users.level IS NOT NULL THEN scenes.default_access ELSE 0 END,
             public_access
           ) >= ${toAccessLevel("read")}
-        )`:""} 
+        )`: `AND public_access >= ${toAccessLevel("read")}`} 
       )
       GROUP BY scene_id , scene_name
       ORDER BY scene_name ASC

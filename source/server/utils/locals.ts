@@ -121,7 +121,7 @@ export function either(...handlers:Readonly<RequestHandler[]>) :RequestHandler{
  */
 function _perms(check:number,req :Request, res :Response, next :NextFunction){
   let {scene} = req.params;
-  let {level = "create", uid = 0} = (req.session ??{})as SafeUser;
+  let {level = "create", uid = null} = (req.session ??{})as SafeUser;
   if(!scene) throw new BadRequestError("no scene parameter in this request");
   if(check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${check}`);
 
@@ -164,16 +164,13 @@ export const canWrite = _perms.bind(null, toAccessLevel("write"));
 export const canAdmin = _perms.bind(null, toAccessLevel("admin"));
 
 export function getUser(req :Request){
-  return {
-    username: "default",
-    uid: 0,
-    level: "none",
-    ...req.session,
-  } as SafeUser;
+  return (req.session && req.session.username && req.session.uid && req.session.level) ?
+   req.session as SafeUser : null;
 }
 
 export function getUserId(req :Request){
-  return getUser(req).uid;
+  const user =  getUser(req);
+  return user? user.uid : null;
 }
 
 export function getFileParams(req :Request):GetFileParams{

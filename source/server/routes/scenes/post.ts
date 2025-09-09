@@ -24,7 +24,8 @@ interface ImportResults {
 
 export default async function postScenes(req :Request, res :Response){
   let vfs = getVfs(req);
-  let requester = getUser(req);
+  const requester = getUser(req);
+  if (requester === null){ throw new UnauthorizedError("No identified user")}
   let userManager = getUserManager(req);
   
   if(req.is("multipart") || req.is("application/x-www-form-urlencoded")){

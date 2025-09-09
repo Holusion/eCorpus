@@ -27,8 +27,8 @@ export default async function patchTags(req: Request, res: Response) {
   await userManager.isolate(async userManager => {
     for (let { name, scene, action } of patch) {
       // action equals "action" OR "delete"
-      let rights = await userManager.getAccessRights(scene, requester.uid);
-      if (rights == "write" || rights == "admin" || requester.level == "admin") {
+      let rights = await userManager.getAccessRights(scene, requester ? requester.uid: null);
+      if (rights == "write" || rights == "admin" || (requester && requester.level == "admin")) {
         action == "create" ? await vfs.addTag(scene, name) : await vfs.removeTag(scene, name);
       } else {
         if (rights == "none") {

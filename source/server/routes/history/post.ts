@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 
-import { BadRequestError } from "../../utils/errors.js";
-import { getUser, getVfs } from "../../utils/locals.js";
+import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
+import { getUserId, getVfs } from "../../utils/locals.js";
 import { HistoryEntry, ItemEntry } from "../../vfs/index.js";
 
 
@@ -17,7 +17,8 @@ import { HistoryEntry, ItemEntry } from "../../vfs/index.js";
 export async function postSceneHistory(req :Request, res :Response){
   // Keep in mind history is in reverse-natural order, with newest files coming first.
   // This makes everything "backward" from natural order
-  let requester = getUser(req);
+  let requesterId = getUserId(req);
+  if (requesterId == null) { throw new UnauthorizedError("History restoration requires an identified user")}
   let {scene:sceneName} = req.params;
   let {name, generation, id } = req.body;
   /**keep a reference to the name and generation of the files that are to be undone */
@@ -68,7 +69,7 @@ export async function postSceneHistory(req :Request, res :Response){
         await vfs.createFile({
           scene: scene.id,
           name: name,
-          user_id: requester.uid,
+          user_id: requesterId,
         }, {
           hash: null,
           size: 0,
