@@ -13,7 +13,7 @@ include voyager.html embed=item-id
 
 <div class="{{itemClass}}">
     <div class="ecorpus_container">
-      <voyager-explorer id="{{include.embed}}" root='{{root}}/' lang="{{page.lang}}" document='scene.svx.json'></voyager-explorer>
+      <voyager-explorer id="{{include.embed}}" resourceRoot="{{include.server}}/dist/" root='{{root}}/' lang="{{page.lang}}" document='scene.svx.json'></voyager-explorer>
       <script src="{{include.server}}/dist/js/voyager-explorer.js"></script>
       </div>
   </div>
