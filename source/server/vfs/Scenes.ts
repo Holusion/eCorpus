@@ -314,14 +314,24 @@ export default abstract class ScenesVfs extends BaseVfs{
         public_access,
         GREATEST(
           ${(typeof user_id == "number")?`(SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
-          CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN scenes.default_access ELSE 0 END,
+          CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN 
+            (CASE WHEN (SELECT level FROM users WHERE user_id = ${user_id}) = ${UserLevels.ADMIN} 
+            THEN ${toAccessLevel("admin")}
+            ELSE scenes.default_access
+            END)
+          ELSE 0 END,
           `: ``}
           public_access
         ) AS access 
       FROM scenes
       WHERE (${key} = $1
       ${(typeof user_id == "number")?`AND GREATEST ( (SELECT access_level FROM users_acl WHERE (fk_user_id = $${args.length} AND fk_scene_id = scenes.scene_id)),
-          CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN scenes.default_access ELSE 0 END,
+          CASE WHEN EXISTS(SELECT * FROM users WHERE user_id = ${user_id}) THEN 
+            (CASE WHEN (SELECT level FROM users WHERE user_id = ${user_id}) = ${UserLevels.ADMIN} 
+            THEN ${toAccessLevel("admin")}
+            ELSE scenes.default_access
+            END)
+          ELSE 0 END,
           public_access) > 0
           `: ``}
     )
