@@ -4,7 +4,7 @@ import { parse_glb } from "../../../utils/glTF.js";
 import { getVfs, getUserId } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
 import getDefaultDocument from "../../../utils/schema/default.js";
-import { BadRequestError } from "../../../utils/errors.js";
+import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
@@ -90,6 +90,9 @@ export default async function postScene(req :Request, res :Response){
   }
   if(!isSceneLanguage(language)){
     throw new BadRequestError(`Invalid scene language requested: ${language}`)
+  }
+  if(!user_id){
+    throw new UnauthorizedError("Requires authenticated user");
   }
   
   let scene_id = await vfs.createScene(scene, user_id);

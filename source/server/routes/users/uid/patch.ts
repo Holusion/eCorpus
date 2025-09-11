@@ -13,19 +13,21 @@ export async function handlePatchUser(req:Request, res :Response){
   const {sessionMaxAge} = getLocals(req);
   const targetUid = parseInt(uidString, 10);
   const requester = getUser(req);
-  const isAdmin = requester.level == "admin";
+  const level = requester ? requester.level : "none";
+  const isAdmin = (level == "admin");
+  const isTargetUid = requester? requester.uid === targetUid : false;
   const userManager = getUserManager(req);
 
-  if(!isAdmin && typeof update.level !== "undefined" && update.level !== requester.level){
+  if(!isAdmin && typeof update.level !== "undefined" && update.level !== level){
     throw new UnauthorizedError(`Only administrators can change user levels`);
-  }else if(isAdmin && requester.uid === targetUid && typeof update.level !== "undefined" && update.level !== requester.level){
+  }else if(isAdmin && isTargetUid && typeof update.level !== "undefined" && update.level !== level){
     throw new UnauthorizedError(`Administrators can't demote themselves`);
-  }else if(!isAdmin && targetUid !== requester.uid){
+  }else if(!isAdmin && !isTargetUid){
     throw new UnauthorizedError(`Can't change user ${uidString}`);
   }
 
   let u = await userManager.patchUser(targetUid, update);
-  if(targetUid == requester.uid){
+  if(isTargetUid){
     Object.assign(
       req.session as SafeUser,
       {expires: Date.now() + sessionMaxAge},

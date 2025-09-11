@@ -35,6 +35,15 @@ describe("GET /scenes/:scene", function(){
       await request(this.server).get("/scenes/foo")
       .expect(404);
     });
+
+    it("Admin can access any scene", async function(){
+      const adminUser = await userManager.addUser("adele","12345678","admin")
+      await userManager.setPublicAccess("foo", "none");
+      await userManager.setDefaultAccess("foo", "none");
+      await request(this.server).get("/scenes/foo")
+      .auth(adminUser.username, "12345678")
+      .expect(200);
+    });
   });
 
   describe("as application/zip", function(){

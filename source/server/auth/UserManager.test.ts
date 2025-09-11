@@ -244,9 +244,15 @@ describe("UserManager methods", function(){
       expect(access).to.equal("read");
     });
 
-    it("returns Not Found for anonymous access", async function () {
+    it("returns read for allowed anonymous access", async function () {
       //Return the value of scene.visible
-      await expect(userManager.getAccessRights("foo-grant-access-rights-private", 0)).to.be.rejectedWith(NotFoundError);
+      await expect(await userManager.getAccessRights("foo-grant-access-rights", undefined)).to.equal("read");
+      await expect(await userManager.getAccessRights("foo-grant-access-rights", null as any)).to.equal("read");
+    });
+
+    it("returns Not Found for forbidden anonymous access", async function () {
+      //Return the value of scene.visible
+      await expect(userManager.getAccessRights("foo-grant-access-rights-private", undefined)).to.be.rejectedWith(NotFoundError);
       await expect(userManager.getAccessRights("foo-grant-access-rights-private", null as any)).to.be.rejectedWith(NotFoundError);
     });
 

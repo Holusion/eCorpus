@@ -25,7 +25,7 @@
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
       <div class="divider"></div>
-      {{#if (test user.level "==" "none")}}
+      {{#if (test user "==" null)}}
         {{#navLink (join "/auth/login/?redirect=" (encodeURI location)) 'title="/auth/login/"'}}{{i18n "nav.login"}}{{/navLink}}
       {{else if user.username}}
         {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}

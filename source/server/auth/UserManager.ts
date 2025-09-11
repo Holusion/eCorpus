@@ -351,8 +351,8 @@ export default class UserManager extends DbController {
     }
   }
 
-  async getAccessRights(scene :string | number, uid :number) :Promise<AccessType>{
-    const res = (await this.db.get(`
+  async getAccessRights(scene :string | number, uid :number | undefined | null) :Promise<AccessType>{
+    const res = await this.db.get( typeof uid == "number" ? `
       SELECT max(level) as level
       FROM
       (SELECT GREATEST(
@@ -374,10 +374,14 @@ export default class UserManager extends DbController {
       WHERE ${typeof scene ==="number"? 
           "scene_id = $1"
         : "scene_name = $1" }
-      ) AS levels`, [
-      scene,
-      uid || null,
-    ]));
+      ) AS levels` : 
+       // Request when no uid :
+      `SELECT public_access as level
+      FROM scenes
+      WHERE ${typeof scene ==="number"? 
+        "scene_id = $1" : "scene_name = $1" }`
+      , uid ? [scene, uid] : [scene]
+    );
     if(!res || !res.level) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
     return AccessTypes[res?.level+1];
 

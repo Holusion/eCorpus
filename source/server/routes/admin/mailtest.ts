@@ -12,12 +12,12 @@ import { useTemplateProperties } from "../views/index.js";
 export default async function handleMailtest(req :Request, res :Response){
   const {config} = getLocals(req);
   let {to} = req.body ?? {};
-  const {username :requester, email} = getUser(req);
-  if(!to){
-    if(email){
-      to = email
+  const user = getUser(req);
+  if( user && !to){
+    if(user.email){
+      to = user.email
     }else{
-      throw new BadRequestError("No email address found for user "+ requester);
+      throw new BadRequestError("No email address found for user "+ user.username);
     }
   }
 

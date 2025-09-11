@@ -56,7 +56,7 @@ export default async function getScenes(req :Request, res :Response){
     scenesList.push(names);
   }
 
-  if(UserRoles.indexOf(u.level) < 1 && qsToBool(archived)){
+  if(u && UserRoles.indexOf(u.level) < 1 && qsToBool(archived)){
     throw new UnauthorizedError(`Access to archived content requires authentication`);
   }
   let author_id :number|undefined; 
@@ -72,7 +72,7 @@ export default async function getScenes(req :Request, res :Response){
   if(0 < scenesList.length){
     scenes = await Promise.all(scenesList.map(name=>vfs.getScene(name)));
   }else{
-    scenes = await vfs.getScenes(u.uid, {
+    scenes = await vfs.getScenes(u? u.uid: undefined, {
       match: match as string,
       orderBy: orderBy as any,
       orderDirection: orderDirection as any,

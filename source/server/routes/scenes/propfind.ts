@@ -1,7 +1,7 @@
 import { Request, RequestHandler, Response } from "express";
 import xml from 'xml-js';
 import path from "path";
-import { AppLocals, getHost, getLocals, getUser } from "../../utils/locals.js";
+import { getHost, getLocals, getUserId } from "../../utils/locals.js";
 import Vfs, { FileProps, ItemProps } from "../../vfs/index.js";
 
 interface ElementProps{
@@ -200,7 +200,7 @@ async function getSceneFiles(vfs:Vfs, rootUrl:URL, scene_name:string, recurse:nu
   return elements;
 }
 
-async function getScenes(vfs :Vfs, rootUrl:URL, recurse :number, user_id ?:number):Promise<ElementList>{
+async function getScenes(vfs :Vfs, rootUrl:URL, recurse :number, user_id ?:number|null):Promise<ElementList>{
   let scenes = await vfs.getScenes(user_id);
   let elements = (await Promise.all(scenes.map(m=> getSceneFiles(vfs, rootUrl, m.name, recurse-1)))).flat();
   let stats = {
@@ -220,7 +220,7 @@ async function getScenes(vfs :Vfs, rootUrl:URL, recurse :number, user_id ?:numbe
  * It works a bit backward by always fetching everything from the root, as deep as needed, then filtering out what isn't required when requesting subfolders
  */
 export async function handlePropfind(req :Request, res:Response){
-  let u = getUser(req);
+  let uid = getUserId(req);
   const {scene:scene_name} = req.params;
   const {vfs} = getLocals(req);
   let recurse = parseInt(req.get("Depth")??"-1");
@@ -233,7 +233,7 @@ export async function handlePropfind(req :Request, res:Response){
   if(scene_name){
     elements =await getSceneFiles(vfs, rootUrl, scene_name, depth);
   }else{
-    elements = await getScenes(vfs, rootUrl, depth, u.uid);
+    elements = await getScenes(vfs, rootUrl, depth, uid);
   }
   elements = elements.filter(e=>{
     //@ts-ignore

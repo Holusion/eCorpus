@@ -6,7 +6,7 @@ import Vfs, { FileProps, GetFileParams, Scene, WriteFileParams } from "./index.j
 import { Uid } from "../utils/uid.js";
 import UserManager from "../auth/UserManager.js";
 import User, { UserLevels } from "../auth/User.js";
-import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
+import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import ScenesVfs from "./Scenes.js";
 import { collapseAsync } from "../utils/wrapAsync.js";
 import getScene from "../routes/scenes/scene/get.js";
@@ -383,7 +383,7 @@ describe("Vfs", function(){
       });
       
 
-      it("can get only archived scenes (no requester)", async function(){
+      it("Can't get archived scenes without being authenticated", async function(){
         await vfs.createScene("bar");
         let scene_id = await vfs.createScene("foo");
         await vfs.writeDoc(JSON.stringify({foo: "bar"}), {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
@@ -392,8 +392,7 @@ describe("Vfs", function(){
         //Two scenes total
         expect(await vfs.getScenes()).to.have.length(2);
         //Filter only scenes with access: none
-        let scenes = await vfs.getScenes(null, {archived: true});
-        expect(scenes.map(({name})=>({name}))).to.deep.equal([{name: `foo#${scene_id}`}]);
+        await expect(vfs.getScenes(null, {archived: true})).to.be.rejectedWith(UnauthorizedError);
       });
 
       it("can get an author's own archived scenes", async function(){
@@ -460,6 +459,14 @@ describe("Vfs", function(){
           let scenes = await vfs.getScenes(user.uid);
           expect(scenes).to.have.property("length", 1);
           expect(scenes[0]).to.have.property("access").to.equal("write");
+        });
+        
+        it("Do not show non-public scene when there is no requester", async function(){
+          let scene_id = await vfs.createScene("foo", user.uid);
+          await userManager.setDefaultAccess(scene_id, "write");
+          await userManager.setPublicAccess(scene_id, "none");
+          let scenes = await vfs.getScenes();
+          expect(scenes).to.have.property("length", 0);
         });
       });
 
@@ -988,7 +995,7 @@ describe("Vfs", function(){
             await userManager.setPublicAccess("admin-only", "none");
             await userManager.setDefaultAccess("admin-only", "none");
             await vfs.addTag("admin-only", "foo");
-            expect(await vfs.getTag("foo"), "without user_id").to.deep.equal([id]);
+            expect(await vfs.getTag("foo"), "without user_id").to.deep.equal([]);
 
             expect(await vfs.getTag("foo", alice.uid), "with admin user_id").to.deep.equal([id]);
 
