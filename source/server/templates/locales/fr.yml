@@ -129,6 +129,7 @@ titles:
   filesStatistics: Données
   modifiedToday: Scènes modifiées aujourd'hui
   buildRef: Version actuelle
+  previewEmail: Voir les templates d'emails
 
 tooltips:
   showPassword: Montrer le texte du mot de passe

@@ -4,9 +4,10 @@ import { Router } from "express";
 import { isAdministrator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import handleGetStats from "./stats/index.js";
-import handleMailtest from "./mailtest.js";
+import handleMailtest from "./mail/sendtest.js";
 import handleGetConfig from "./config/get.js";
 import bodyParser from "body-parser";
+import handleRenderMail from "./mail/render.js";
 
 
 const router = Router();
@@ -24,6 +25,8 @@ router.use((req, res, next)=>{
 
 router.get("/stats", isAdministrator, wrap(handleGetStats));
 router.get("/config", isAdministrator, wrap(handleGetConfig));
-router.post("/mailtest", isAdministrator, bodyParser.json(), wrap(handleMailtest));
+
+router.post("/mail/test", isAdministrator, bodyParser.json(), wrap(handleMailtest));
+router.get("/mail/render/:name", isAdministrator, bodyParser.json(), wrap(handleRenderMail));
 
 export default router;

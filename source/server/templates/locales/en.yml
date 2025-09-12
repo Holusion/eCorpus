@@ -129,6 +129,7 @@ titles:
   filesStatistics: Data statistics
   modifiedToday: Scenes modified today
   buildRef: Current version
+  previewEmail: Preview email templates
 
 tooltips:
   showPassword: Show the password's text
