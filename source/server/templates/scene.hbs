@@ -128,16 +128,20 @@
 
           </div>
         </div>
-        
-        {{#if (test @root.user.username "!=" "default")}}
-          <div class="col" id="scene-permissions-container">
+
+        {{#if @root.user}}
+        <div class="col" id="scene-permissions-container">
           <h3>
             {{i18n "titles.permissions"}}
           </h3>
-          <table  class="list-table compact form-control" >
+          <table class="list-table compact form-control">
+            <colgroup>
+          <col span="1" style="width: 50%;">
+          <col span="1" style="width: 50%;">
+            </colgroup>
             <thead>
               <tr>
-                <th>{{i18n "labels.username"}}</th>
+                <th>{{i18n "labels.group"}}</th>
                 <th>
                   {{i18n "labels.rights"}}
                   {{#> popover id="permissions-tooltip" }}{{i18n "tooltips.permissions"}}{{/popover}}
@@ -146,13 +150,11 @@
             </thead>
             <tbody>
               {{#*inline "showName"}}
-                {{#if (test username "==" "default" )}}
-                  {{i18n "labels.defaultUser"}}
-                {{else if (test username "==" "any")}}
-                  {{i18n "labels.anyUser"}}
-                {{else}}
-                  {{username}}
-                {{/if}}
+              {{#if username}}
+              {{username}}
+              {{else}}
+              {{groupName}}
+              {{/if}}
               {{/inline}}
                           
                           
@@ -207,52 +209,133 @@
                    {{/if}}
                </tr>            
 
-              {{#each permissions}}
-                <tr>
-                  {{#if (test @root.access "!=" "admin") }}
-                    <td class="text-main" title="{{i18n "labels.username"}}">{{username}}</td>
-                    <td class="text-main" >{{i18n (join "fields." access) access}} </td>
-                  {{else if (test (test username "==" @root.user.username) "&&" (test "!" (test @root.user.level "==" "admin")))}}
-                    <td class="text-primary" title="{{i18n "labels.username"}}">{{> showName}}</td>
-                    <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{i18n (join "fields." access) access}}</td>
-                  {{else }}
-                    <td title="{{i18n "labels.username"}}">{{> showName}}</td>
-                    <td class="form-control">
-                      <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH" action="/auth/access/{{encodeURIComponent @root.scene.name}}"  encoding="application/json" onsubmit="window.location.reload()">
-                        <form class="form-item" style="flex-grow: 1;" autocomplete="off">
-                          <input type="hidden" name="username" value="{{username}}"/>
-                          <select name="access" aria-label="{{i18n "labels.permission"}}">
-                            {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n "fields.removeSpecificAccess")}}
-                            {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
-                            {{> inputs/option selected=(test "write" "in" access) value="write" text=(i18n "fields.write")}}
-                            {{> inputs/option selected=(test "admin" "in" access) value="admin" text=(i18n "fields.admin")}}
-                          </select>
-                        </form>
-                        <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
-                      </submit-fragment>
-                    </td>
-                  {{/if}}
-                </tr>
+              {{#each groupPermissions}}
+              <tr>
+                {{#if (test @root.access "!=" "admin") }}
+                <td class="text-main" title="{{i18n "labels.username"}}">{{groupName}}</td>
+                <td class="text-main">{{i18n (join "fields." access) access}} </td>
+                {{else if (test (test username "==" @root.user.username) "&&" (test "!" (test @root.user.level "=="
+                "admin")))}}
+                <td class="text-primary" title="{{i18n "labels.username"}}">{{groupName}}</td>
+                <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{i18n (join "fields." access)
+                  access}}</td>
+                {{else }}
+                <td title="{{i18n "labels.username"}}">{{groupName}}</td>
+                <td class="form-control">
+                  <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
+                    action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
+                    onsubmit="window.location.reload()">
+                    <form class="form-item" style="flex-grow: 1;" autocomplete="off">
+                      <input type="hidden" name="username" value="{{username}}" />
+                      <select name="access" aria-label="{{i18n "labels.permission"}}">
+                        {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n
+                        "fields.removeSpecificAccess")}}
+                        {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
+                        {{> inputs/option selected=(test "write" "in" access) value="write" text=(i18n "fields.write")}}
+                        {{> inputs/option selected=(test "admin" "in" access) value="admin" text=(i18n "fields.admin")}}
+                      </select>
+                    </form>
+                    <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
+                      progress</progress>
+                  </submit-fragment>
+                </td>
+                {{/if}}
+              </tr>
               {{/each}}
+              {{#if (test access "==" "admin")}}
+              <tr>
+                <td colspan="2">
+                  <submit-fragment class="form-control" id="scene_submit_fragment"
+                    style="display:flex;flex-direction: column-reverse;" submit="access" method="PATCH"
+                    action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
+                    onsubmit="window.location.reload()">
+                    <form class="form-group" style="flex-grow: 1;" autocomplete="off">
+                      <div class="form-item, row" style="align-items: stretch">
+                        <input name="groupName" placeholder="{{i18n "labels.group"}}" required style="flex-grow: 1"/>
+                        <select name="access" aria-label="{{i18n "labels.permission"}}" style="flex-grow: 1">
+                          <option disabled selected value> -- select an option -- </option>
+                          {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
+                          {{> inputs/option selected=false value="write" text=(i18n "fields.write")}}
+                          {{> inputs/option selected=false value="admin" text=(i18n "fields.admin")}}
+                        </select>
+                      </div>
+                    </form>
+                    <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
+                      progress</progress>
+                  </submit-fragment>
+                </td>
+              </tr>
+              {{/if}}
+
+
+              <tr>
+                <th>{{i18n "labels.username"}}</th>
+                <th>
+                  {{i18n "labels.rights"}}
+                  {{#> popover id="permissions-tooltip" }}{{i18n "tooltips.permissions"}}{{/popover}}
+                </th>
+              </tr>
+
+              {{#each userPermissions}}
+              <tr>
+                {{#if (test @root.access "!=" "admin") }}
+                <td class="text-main" title="{{i18n "labels.username"}}">{{username}}</td>
+                <td class="text-main">{{i18n (join "fields." access) access}} </td>
+                {{else if (test (test username "==" @root.user.username) "&&" (test "!" (test @root.user.level "=="
+                "admin")))}}
+                <td class="text-primary" title="{{i18n "labels.username"}}">{{> showName}}</td>
+                <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{i18n (join "fields." access)
+                  access}}</td>
+                {{else }}
+                <td title="{{i18n "labels.username"}}">{{> showName}}</td>
+                <td class="form-control">
+                  <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
+                    action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
+                    onsubmit="window.location.reload()">
+                    <form class="form-item" style="flex-grow: 1;" autocomplete="off">
+                      <input type="hidden" name="username" value="{{username}}" />
+                      <select name="access" aria-label="{{i18n "labels.permission"}}">
+                        {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n
+                        "fields.removeSpecificAccess")}}
+                        {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
+                        {{> inputs/option selected=(test "write" "in" access) value="write" text=(i18n "fields.write")}}
+                        {{> inputs/option selected=(test "admin" "in" access) value="admin" text=(i18n "fields.admin")}}
+                      </select>
+                    </form>
+                    <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
+                      progress</progress>
+                  </submit-fragment>
+                </td>
+                {{/if}}
+              </tr>
+              {{/each}}
+              {{#if (test access "==" "admin")}}
+              <tr>
+                <td colspan="2">
+                  <submit-fragment class="form-control" id="scene_submit_fragment"
+                    style="display:flex;flex-direction: column-reverse;" submit="access" method="PATCH"
+                    action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
+                    onsubmit="window.location.reload()">
+                    <form class="form-group" style="flex-grow: 1;" autocomplete="off">
+                      <div class="form-item, row" style="align-items: stretch">
+                        <input name="username" placeholder="{{i18n "labels.username"}}" required style="flex-grow: 1"/>
+                        <select name="access" aria-label="{{i18n "labels.permission"}}" style="flex-grow: 1">
+                          <option disabled selected value> -- select an option -- </option>
+                          {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
+                          {{> inputs/option selected=false value="write" text=(i18n "fields.write")}}
+                          {{> inputs/option selected=false value="admin" text=(i18n "fields.admin")}}
+                        </select>
+                      </div>
+                    </form>
+                    <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
+                      progress</progress>
+                  </submit-fragment>
+                </td>
+              </tr>
+              {{/if}}
             </tbody>
           </table>
-          {{#if  (test access "==" "admin")}}
-            <submit-fragment style="width:100%;margin-top: 1rem;" method="PATCH" action="/auth/access/{{encodeURIComponent @root.scene.name}}"  encoding="application/json" onsubmit="window.location.reload()">
-              <form id="addUserRights" class="form-control" style="padding:0;flex-grow: 1" autocomplete="off" name="">
-                <div class="form-group" style="padding:0;border:none;">
-                  <input type="hidden" name="access" value="read"/>
-                  <div class="form-item" style="display:flex; flex-grow: 1;">
-                    <input style="border:none;width:100%;" type="text" name="username" id="username" placeholder="{{i18n "labels.username"}}" required>
-                    <button class="btn btn-addon btn-main" style="margin-top:0" type="submit">
-                      <ui-icon name="plus"></ui-icon>
-                    </button>
-                  </div>
-                </div>
-              </form>
-              <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
-            </submit-fragment>
-          {{/if}}
-          </div>
+        </div>
         {{/if}}
       </div>
     </section>

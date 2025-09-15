@@ -10,6 +10,10 @@ labels:
   signin: Sign in
   save: Save
   username: Username
+  group: Group
+  groupMembers: Group Members
+  newGroup: New group
+  deletingAGroupIsPermanent: Deleting a group is permanent
   email: Email
   password: Password
   newPassword: New Password
@@ -125,6 +129,7 @@ titles:
   testEmail: "{{what}} email system test"
   testEmailVerify: Additional verifications
   userManager: Users management
+  groupManager: Groups management
   adminHome: Administration Interface
   serverStatistics: Instance Statistics
   filesStatistics: Data statistics
@@ -191,6 +196,7 @@ leads:
     <a href="https://postmaster.google.com">Postmaster Tools</a>.
   sendTestEmail: Send a test email
   usersList: Users {{start}}-{{end}}/{{total}}
+  groupsList: Groups {{start}}-{{end}}/{{total}}
   noArchives: No archived scenes
 errors:
   generic: Unknown Error

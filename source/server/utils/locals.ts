@@ -57,10 +57,16 @@ export function getFileDir(req :Request) :string{
 
 export function isUser(req: Request, res:Response, next :NextFunction){
   res.append("Cache-Control", "private");
-  
   if((req.session as User).uid ) next();
   else next(new UnauthorizedError());
 }
+
+export function isUserAndCanRead(req: Request, res:Response, next :NextFunction){  
+  res.append("Cache-Control", "private");
+  if((req.session as User).uid ) canRead(req, res, next);
+  else next(new UnauthorizedError());
+}
+
 
 /**
  * Special case to allow user creation if no user exists in the database
@@ -94,6 +100,29 @@ export function isAdministrator(req: Request, res:Response, next :NextFunction){
 export function isCreator(req: Request, res:Response, next :NextFunction){
   res.append("Cache-Control", "private");
   if ( isUserAtLeast((req.session as User), "create") ) next();
+  else next(new UnauthorizedError());
+}
+
+/**
+ * Checks if user.isCreator is true
+ * Not the same thing as canWrite() that checks if the user has write rights over a scene
+ */
+export function isManage(req: Request, res:Response, next :NextFunction){
+  res.append("Cache-Control", "private");
+  if ( isUserAtLeast((req.session as User), "manage") ) next();
+  else next(new UnauthorizedError());
+}
+
+/**
+ * Checks if user is a member of a group or is at least Manage
+ */
+export async function isMemberOrManage(req: Request, res:Response, next :NextFunction){
+  res.append("Cache-Control", "private");
+  let userManager = getUserManager(req);
+  let user = getUser(req)
+  let {group} = req.params;
+  const canSeeGroup = user && (await userManager.isMemberOfGroup(user.uid, group) || isUserAtLeast(user, "manage"));
+  if(canSeeGroup) next();
   else next(new UnauthorizedError());
 }
 
