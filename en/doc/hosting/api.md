@@ -8,7 +8,7 @@ rank: 4
 eCorpus provides a comprehensive API that covers the needs of DPO Voyager while adding user management interfaces, access rights control, organization of scenes into collections, and more...
 
 <div style="display:flex;justify-content:center">
-    <a class="button" href="/en/doc/hosting/api">API Documentation</a>
+    <a class="button" href="/en/doc/hosting/apiDoc">API Documentation</a>
 </div>
 
 ### Authentication

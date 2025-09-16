@@ -442,8 +442,6 @@ paths:
       operationId: getAuth
       description: |
         get login data using the current authentication 
-
-        Also used for login links with a `payload` query string
       responses:
         '200':
           description: The user's data. If called without authentication, will return a default user.
@@ -476,16 +474,28 @@ paths:
     get:
       tags: [auth]
       operationId: getAuthLink
-      description: get a login link for this user
+      description: get a login link for this user. Usage requires administrator rights
     post:
       tags: [auth]
       operationId: postAuthLink
-      description: generate and send a login link for this user
+      description: generate and send an email containing an authenticated login link for this user. Rate-limited to 1/minute
   /auth/logout:
     post:
       tags: [auth]
       operationId: postLogout
       description: delete this request's credentials
+  /auth/payload/{payload}:
+    parameters:
+      - name: payload
+        in: path
+        required: true
+        schema: {type: "string"}
+        description: base64-encoded payload data
+    get:
+      tags: [auth]
+      operationId: getLoginPayload
+      description: provide an authenticated payload to automate the login process
+
   /auth/access/{scene}:
     parameters:
       - $ref: '#/components/parameters/scene'
@@ -606,7 +616,7 @@ components:
   schemas:
     Scene: 
       type: object
-      required: ["ctime", "mtime", "author_id", "author", "id", "access"]
+      required: ["ctime", "mtime", "author_id", "author", "id", "access", "public_access", "default_access"]
       properties:
         ctime: {type: "string", format: "date-time"}
         mtime: {type: "string", format: "date-time"}
@@ -615,24 +625,18 @@ components:
         id:  { $ref: "#/components/schemas/Uid"}
         name: {type: "string"}
         thumb: {type: "string", desciption: "URI to the scene's thumbnail representation if it exists"}
-        access: {
-          type: object,
-          required: ["any", "default"],
-          properties: {
-            default: { $ref: "#/components/schemas/AccessType" },
-            any: { $ref: "#/components/schemas/AccessType" },
-            user: { $ref: "#/components/schemas/AccessType" },
-          }
-        }
+        access: {$ref: "#/components/schemas/AccessType" }
+        public_access:  {$ref: "#/components/schemas/AccessType" }
+        default_access:  {$ref: "#/components/schemas/AccessType" }
+
     User:
       type: object
-      required: ["uid", "username", "isAdministrator", "idDefaultUser"]
+      required: ["uid", "username", "level"]
       properties:
         uid: {$ref: "#/components/schemas/Uid"}
         username: {type: "string", example: "alice" }
         email: {type: string, example: "alice@example.com" }
-        isAdministrator: {type: "boolean"}
-        isDefaultUser: {type: "boolean"}
+        level: {type: string, enum: ["none", "use", "create", "manage", "admin"]}
     Uid: 
       type: "string"
       pattern: '^\d+$'
