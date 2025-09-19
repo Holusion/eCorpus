@@ -1,4 +1,4 @@
-import { LitElement, TemplateResult, html, render } from 'lit';
+import { LitElement, TemplateResult, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 import Notification from "../composants/Notification";
@@ -10,11 +10,8 @@ import "../composants/HistoryAggregation";
 
 import i18n from "../state/translate";
 import { withUser } from "../state/auth";
-import { navigate } from "../state/router";
-import { AccessType, AccessTypes, Scene } from "../state/withScenes";
-import HttpError from "../state/HttpError";
+import { AccessType } from "../state/withScenes";
 import { HistoryEntry, HistoryEntryJSON } from "../composants/HistoryAggregation";
-import { createDialog, showFormModal, showTaskModal } from '../state/dialog';
 
 
 
@@ -52,7 +49,7 @@ interface AccessRights{
   createRenderRoot() {
       return this;
   }
-    
+
   public connectedCallback(): void {
       super.connectedCallback();
       this.fetchHistory();

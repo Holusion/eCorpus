@@ -111,7 +111,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
       this.diff = await r.json();
     }).catch(e=>{
       if(e.name === "AbortError") return;
-      console.error(e);
+      console.error("Diff request failed: ", e.message);
       this.diff = {diff: `Error failing diff : ${e.message}`}
     });
   }
@@ -167,14 +167,14 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     
     return html`<div class="history-entry-diff-block">
       <p>
-        ${(src.size !=0 && src.size != dst.size)?  html`
+        ${(src?.size && src.size != dst.size)?  html`
           Size changed from
           <span class="text-info"><b-size b=${src.size}></b-size></span>
           to
           <span class="text-info"><b-size b=${dst.size}></b-size></span>
           .
         ` : null}
-        ${(new Date(src.ctime).valueOf() != 0)? html`Previous version was saved on <span class="text-info">${new Date(src.ctime).toLocaleString(this.language)}</span>`:null}
+        ${(src?.ctime && new Date(src.ctime).valueOf() != 0)? html`Previous version was saved on <span class="text-info">${new Date(src.ctime).toLocaleString(this.language)}</span>`:null}
       </p>
       ${diffBlock}
     </div>`;
@@ -183,7 +183,6 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   
   protected renderSummary({id, name, restorePoint, authoredBy, from, to}:HistorySummary){
     const selected = this.ariaSelected === "true";
-    
     const expand = (this.entries.length === 1)?html`
       <ui-button @click=${this.toggleSelect} class="btn btn-small btn-transparent btn-inline" text=${selected?"⌃":"⌄"}></ui-button>
     `: html`
@@ -196,7 +195,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     </div>`: null;
     
     const longAction = selected && this.entries.length === 1
-    const action = html`<div style="display: flex;justify-content: end;">
+    const action = html`<div class="history-actions" style="display: flex;justify-content: end;">
       <ui-button
         style="margin-top:-1px"
         class="btn btn-primary ${(longAction)?"btn-outline":"btn-small btn-transparent hover-only"} btn-rollback"
@@ -207,6 +206,9 @@ export class HistoryEntryAggregate extends i18n(LitElement){
         }}
         icon="restore"
       ></ui-button>
+      <a href="history/${restorePoint}/view" @click=${(e)=>e.stopPropagation()} title="${this.t("info.viewAtThisPoint")}" class="btn btn-secondary btn-small btn-transparent btn-inline">
+        <ui-icon name="eye"></ui-icon>
+      </a>
     </div>`;
 
     const toDate = (to.valueOf() != from.valueOf())? html` - <span style="opacity:0.75; font-size: 90%; font-family: monospace">${to.toLocaleTimeString(this.language)}</span>`: null;
@@ -414,8 +416,10 @@ export default class HistoryAggregation extends i18n(LitElement){
 
         &[aria-disabled="true"] {
           border-top-color: transparent !important;
-          > .history-point .btn-rollback {
+          > .history-point .history-actions .btn {
             opacity: 0 !important;
+            pointer-events: none;
+            cursor: auto;
           }
         }
 

@@ -4,7 +4,7 @@ import path from "path";
 import { NotFoundError, ConflictError, BadRequestError, InternalError } from "../utils/errors.js";
 import uid, { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { DataStream, DocProps, FileProps, GetFileParams, GetFileRangeParams, GetFileResult, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
+import { CommonFileParams, DataStream, DocProps, FileProps, GetFileParams, GetFileRangeParams, GetFileResult, WriteDirParams, WriteDocParams, WriteFileParams } from "./types.js";
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
@@ -96,7 +96,7 @@ export default abstract class FilesVfs extends BaseVfs{
     let b = Buffer.isBuffer(data)? data: Buffer.from(data);
     let text = typeof data === "string"? data: b.toString("utf-8");
     let hashsum = createHash("sha256");
-    hashsum.update(b);
+    hashsum.update(b as any);
     let hash = hashsum.digest("base64url");
     let size = b.length;
     return await this.createFile(props, {data: text, size, hash});
@@ -224,45 +224,81 @@ export default abstract class FilesVfs extends BaseVfs{
     if(!r || !r.ctime) throw new NotFoundError(`No file found with id : ${id}`);
     return r;
   }
+
+
+  static _fragFileProps({table="files", nameIndex, withData}: {table: string, nameIndex:number, withData:boolean}){
+    return `${table}.file_id AS id,
+      ${table}.name AS name,
+      ${table}.size AS size,
+      ${table}.hash AS hash,
+      ${withData? "data,":""}
+      ${table}.generation AS generation,
+      (SELECT ctime FROM files AS allFiles WHERE (allFiles.fk_scene_id = ${table}.fk_scene_id AND allFiles.name = $${nameIndex} AND allFiles.generation = 1)) AS ctime,
+      ${table}.ctime AS mtime,
+      ${table}.mime AS mime,
+      ${table}.fk_author_id AS author_id,
+      COALESCE((SELECT username FROM users WHERE  user_id = ${table}.fk_author_id LIMIT 1), 'default') AS author
+    `;
+  }
   /**
    * Fetch a file's properties from database
    * This function is growing out of control, having to manage disk vs doc stored files, mtime aggregation, etc...
-   * The whole thing might become a performance bottleneck one day.
+   * It might become a performance bottleneck one day.
+   * We may want to have separate methods for "getCurrentFile" and "getArchiveFile" or something
    */
-  async getFileProps({scene, name, archive, generation, lock} :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
-  async getFileProps({scene, name, archive, generation, lock} :GetFileParams, withData :true) :Promise<FileProps>
+  async getFileProps(params :GetFileParams, withData?:false) :Promise<Omit<FileProps, "data">>
+  async getFileProps(params :GetFileParams, withData :true) :Promise<FileProps>
   async getFileProps({scene, name, archive = false, generation, lock} :GetFileParams, withData = false) :Promise<FileProps>{
     let is_string = typeof scene === "string";
-    let with_generation = typeof generation !== "undefined";
     let args:any[] = [scene, name];
-    if(with_generation){
+    let withGeneration = typeof generation !== "undefined"
+
+    if(withGeneration){
       args.push(generation);
     }
+    /** @fixme inner join? */
     let r = await this.db.get(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $1 )
       SELECT
-        file_id AS id,
-        files.name AS name,
-        size,
-        hash,
-        ${withData? "data,":""}
-        generation,
-        (SELECT ctime FROM files WHERE (fk_scene_id = scene.scene_id AND name = $2 AND generation = 1)) AS ctime,
-        files.ctime AS mtime,
-        mime,
-        files.fk_author_id AS author_id,
-        COALESCE((SELECT username FROM users WHERE files.fk_author_id = user_id LIMIT 1), 'default') AS author
-      FROM scene  
+        ${FilesVfs._fragFileProps({withData, table: "files", nameIndex: 2})}
+      FROM scene
       LEFT JOIN files ON files.fk_scene_id = scene.scene_id 
       WHERE files.name = $2
-      ${with_generation? `
+      ${withGeneration? `
         AND generation = $3
       ` : `
         ORDER BY generation DESC
-        LIMIT 1`}
+        LIMIT 1
+      `}
       ${lock?"FOR UPDATE":""}
     `, args);
     if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
+    return r;
+  }
+
+  async getFileBefore({scene, name, before}: CommonFileParams&{before: number, scene: number}):Promise<FileProps>{
+    let r = await this.db.get(`
+      WITH ref AS (SELECT fk_scene_id, file_id, name, ctime, generation FROM files WHERE file_id = $3 AND fk_scene_id = $1)
+      SELECT
+        ${FilesVfs._fragFileProps({withData: true, table: "files", nameIndex: 2})}
+      FROM ref INNER JOIN files USING(fk_scene_id) 
+      WHERE files.name = $2
+            AND (
+              files.ctime < ref.ctime
+              OR files.ctime = ref.ctime AND (
+                (files.name = ref.name AND files.generation <= ref.generation)
+                OR (files.name != ref.name AND files.file_id <= ref.file_id)
+                OR files.file_id = ref.file_id
+              )
+            )
+      ORDER BY generation DESC
+      LIMIT 1
+    `, [
+      scene,
+      name,
+      before
+    ]);
+    if(!r || !r.ctime || (!r.hash)) throw new NotFoundError(`${path.join(scene.toString(), name)}`);
     return r;
   }
 

@@ -1,5 +1,5 @@
 
-<voyager-explorer resourceroot="/dist/" dracoRoot="/dist/js/draco/" root="/scenes/{{scene}}/" referrer="{{referrer}}"></voyager-explorer>
+<voyager-explorer resourceroot="/dist/" dracoRoot="/dist/js/draco/" root="{{#if scenePath}}{{scenePath}}{{else}}/scenes/{{scene}}/{{/if}}" referrer="{{referrer}}"></voyager-explorer>
 <script type="text/javascript" src="/dist/js/voyager-explorer.js"></script>
 {{#if script }}<script type="text/javascript">
   {{{script}}}

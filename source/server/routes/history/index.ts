@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import { postSceneHistory } from "./post.js";
 import getSceneHistory from "./get.js";
 import handleGetDiff from "./diff/get.js";
+import { handleShowFile } from "./show/get.js";
 
 const router = Router();
 
@@ -28,5 +29,7 @@ router.post("/:scene", canAdmin, bodyParser.json(), wrap(postSceneHistory));
 
 router.get("/:scene/:id/diff", wrap(handleGetDiff));
 router.get("/:scene/:id/diff/:from", wrap(handleGetDiff));
+
+router.get("/:scene/:id/show/:name(*)", wrap(handleShowFile));
 
 export default router;

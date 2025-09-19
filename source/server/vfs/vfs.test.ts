@@ -2,7 +2,7 @@ import fs, { constants } from "fs/promises";
 import path from "path";
 import {tmpdir} from "os";
 import { expect } from "chai";
-import Vfs, { FileProps, GetFileParams, Scene, WriteFileParams } from "./index.js";
+import Vfs, { CommonFileParams, FileProps, GetFileParams, Scene, WriteFileParams } from "./index.js";
 import { Uid } from "../utils/uid.js";
 import UserManager from "../auth/UserManager.js";
 import User, { UserLevels } from "../auth/User.js";
@@ -10,6 +10,7 @@ import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from
 import ScenesVfs from "./Scenes.js";
 import { collapseAsync } from "../utils/wrapAsync.js";
 import getScene from "../routes/scenes/scene/get.js";
+import { randomBytes } from "crypto";
 
 async function *dataStream(src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){
@@ -1253,6 +1254,55 @@ describe("Vfs", function(){
           it("get document", async function(){
             let {ctime:docCtime, ...doc} = await vfs.writeDoc("{}", {...props, user_id: null});
             await expect(vfs.getFileProps({...props, archive: true, generation: doc.generation}, true)).to.eventually.deep.equal({...doc, ctime, data: "{}"});
+          });
+
+
+        });
+
+        describe("getFileBefore()", function(){
+
+          it("a file is \"before\" another", async function (){
+            //Source file
+            let {id:expectedId} = r;
+            let {id: refId} = await vfs.writeDoc("", {scene: scene_id, name: "reference.txt", mime: "text/html", user_id: null});
+            expect(refId).to.be.a("number");
+
+            //Ensure a matching file exists AFTER our reference
+            await vfs.writeDoc("", {...props, user_id: null});
+
+            let f = await vfs.getFileBefore({...props, before: refId, scene: scene_id});
+            expect(f).to.have.property("id", expectedId);
+          });
+
+          it("a file is \"before\" itself", async function (){
+            //Ensure a matching file exists AFTER our reference
+            await vfs.writeDoc("", {...props, user_id: null});
+
+            let f = await vfs.getFileBefore({...props, before: r.id, scene: scene_id});
+            expect(f).to.have.property("id", r.id);
+          });
+
+          it("throws an error if reference file doesn't exist", async function(){
+            await expect(vfs.getFileBefore({...props, before: -1, scene: scene_id})).to.be.rejectedWith(NotFoundError);
+          });
+
+          it("throws an error if referenced file is from another scene", async function(){
+            let name = randomBytes(6).toString("base64url");
+            await vfs.createScene(name);
+            let {id} = await vfs.writeDoc("", {name: "foo.txt", scene: name, mime: "text/plain", user_id: null});
+            await expect(vfs.getFileBefore({...props, before: id, scene: scene_id})).to.be.rejectedWith(NotFoundError);
+          });
+
+          it("throws if a a file was removed at the reference point", async function(){
+            await vfs.removeFile({...props, user_id: null});
+
+            //The reference point
+            let {id: refId} = await vfs.writeDoc("", {scene: scene_id, name: "reference.txt", mime: "text/html", user_id: null});
+            expect(refId).to.be.a("number");
+
+            await vfs.writeDoc("foo", {...props, user_id: null});
+
+            await expect(vfs.getFileBefore({...props, before: refId, scene: scene_id})).to.be.rejectedWith(NotFoundError);
           });
         });
 
