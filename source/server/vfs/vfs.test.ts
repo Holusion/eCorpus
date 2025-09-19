@@ -792,6 +792,7 @@ describe("Vfs", function(){
 
       it("create a folder in a scene", async function(){
         await vfs.createFolder({scene:scene_id, name: "videos", user_id: null});
+        await vfs.writeDoc("foo", {scene: scene_id, name: "videos/foo.txt", user_id: null});
         let folders =  await collapseAsync(vfs.listFolders(scene_id));
         //order is by mtime descending, name ascending so we can't rely on it
         expect(folders.map(f=>f.name)).to.have.members(["articles", "models", "videos"]);
@@ -1138,7 +1139,18 @@ describe("Vfs", function(){
           expect(bar).to.have.property("size", foo.size);
         });
 
-      })
+        it("can use custom callbacks", async function(){
+          let foo = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null}, ()=>Promise.resolve({hash: null, size: 150}));
+          expect(foo).to.have.property("hash", null);
+          expect(foo).to.have.property("size", 150);
+          
+          let bar = await vfs.createFile( {scene: "foo", mime: "text/html", name: "articles/bar.txt", user_id: null}, ()=>Promise.resolve({hash: "xxxxxx", size: 0}));
+          expect(bar).to.have.property("hash", "xxxxxx");
+          expect(bar).to.have.property("size", 0);
+        });
+
+      });
+
       describe("writeFile()", function(){
         it("can upload a file (relative)", async function(){
           let r = await vfs.writeFile(dataStream(["foo","\n"]), {scene: "foo", mime: "text/html", name: "articles/foo.txt", user_id: null});
@@ -1465,10 +1477,36 @@ describe("Vfs", function(){
             await expect(vfs.getFile({...props, name: "bar.html"})).to.be.rejectedWith("404");
           });
 
+          it("throw 404 error if file was deleted", async function(){
+            await vfs.removeFile({...props, user_id: null});
+            await expect(vfs.getFile(props)).to.be.rejectedWith("404");
+          });
+
           it("won't try to open a folder, just returns props", async function(){
             let file = await expect(vfs.getFile({scene: props.scene, name: "articles"})).to.be.fulfilled;
             expect(file).to.have.property("mime", "text/directory");
             expect(file).to.not.have.property("stream");
+          });
+        });
+
+        describe("getFileById()", function(){
+          it("gets file props using its id", async function(){
+            const {scene_id:stored_scene_id, data, ...file} = await vfs.getFileById(r.id);
+            expect(file).to.deep.equal(r);
+            expect(data).to.be.null;
+            expect(stored_scene_id).to.equal(scene_id);
+          });
+
+          it("gets a document's data using its id", async function(){
+            let doc = await vfs.writeDoc("Hello!", {...props, user_id: null});
+            const {scene_id:stored_scene_id, data, ...file} = await vfs.getFileById(doc.id);
+            expect(file.id).to.equal(doc.id);
+            expect(data).to.equal("Hello!");
+            expect(stored_scene_id).to.equal(scene_id);
+          });
+
+          it("throws 404 if id doesn't map to a file", async function(){
+            await expect(vfs.getFileById(-1)).to.be.rejectedWith(NotFoundError);
           });
         });
   
@@ -1523,18 +1561,27 @@ describe("Vfs", function(){
         });
   
         describe("renameFile()", function(){
-  
+
           it("rename a file", async function(){
             await vfs.renameFile({...props, user_id: null}, "bar.txt");
             await expect(vfs.getFileProps(props), "old file should not be reported anymore").to.be.rejectedWith("404");
             let file = await expect(vfs.getFileProps({...props, name: "bar.txt"})).to.be.fulfilled;
             expect(file).to.have.property("mime", "text/html");
           });
+
+          it("throw 404 error if scene doesn't exist", async function(){
+            await expect(vfs.renameFile({...props, user_id: null, scene: "bar"}, "bar.txt")).to.be.rejectedWith("404");
+          });
           
           it("throw 404 error if file doesn't exist", async function(){
             await expect(vfs.renameFile({...props, user_id: null, name: "bar.html"}, "baz.html")).to.be.rejectedWith("404");
           });
-  
+
+          it("throw 409 error if destination file already exist", async function(){
+            await vfs.writeDoc("Hello World\n", {...props, user_id: null, name: "baz.txt"});
+            await expect(vfs.renameFile({...props, user_id: null}, "baz.txt")).to.be.rejectedWith("409");
+          });
+
           it("file can be created back after rename", async function(){
             await vfs.renameFile({...props, user_id: null}, "bar.txt");
             await vfs.writeFile(dataStream(["foo","\n"]), {...props, user_id: null} );
@@ -1946,6 +1993,18 @@ describe("Vfs", function(){
         it("throw if not found", async function(){
           await expect(vfs.getDoc(scene_id)).to.be.rejectedWith("[404]");
         });
+
+        it("get document data as a string", async function(){
+          await vfs.writeDoc(Buffer.from("{}"), {scene: scene_id, user_id: null, name: "scene.svx.json",  mime: "application/si-dpo-3d.document+json"});
+          let doc =  await vfs.getDoc(scene_id);
+          expect(doc).to.have.property("data").a("string");
+        });
+
+        it("throws if file is not a document", async function(){
+          await vfs.writeFile(dataStream(["{}"]), {scene: scene_id, user_id: null, name: "scene.svx.json",  mime: "application/si-dpo-3d.document+json"});
+          await expect(vfs.getDoc(scene_id)).to.be.rejectedWith(BadRequestError);
+        })
+
         it("fetch currently active document", async function(){
           let id = (await vfs.writeDoc("{}", {scene: scene_id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).id;
           let doc = await expect(vfs.getDoc(scene_id)).to.be.fulfilled;

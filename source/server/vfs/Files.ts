@@ -187,6 +187,22 @@ export default abstract class FilesVfs extends BaseVfs{
     });
   }
 
+
+  static _fragFileProps({table="files", withData}: {table: string, withData:boolean}){
+    return `${table}.file_id AS id,
+      ${table}.name AS name,
+      ${table}.size AS size,
+      ${table}.hash AS hash,
+      ${withData? "data,":""}
+      ${table}.generation AS generation,
+      (SELECT ctime FROM files AS allFiles WHERE (allFiles.fk_scene_id = ${table}.fk_scene_id AND allFiles.name = ${table}.name AND allFiles.generation = 1)) AS ctime,
+      ${table}.ctime AS mtime,
+      ${table}.mime AS mime,
+      ${table}.fk_author_id AS author_id,
+      COALESCE((SELECT username FROM users WHERE  user_id = ${table}.fk_author_id LIMIT 1), 'default') AS author
+    `;
+  }
+
   async getFileById(id :number) :Promise<FileProps&{scene_id:number}>{
     let r = await this.db.get<{
       id: number,
@@ -203,43 +219,15 @@ export default abstract class FilesVfs extends BaseVfs{
       scene_id: number,
     }>(`
       SELECT
-        file_id AS id,
-        files.name AS name,
-        mime,
-        size,
-        data,
-        hash,
-        generation,
-        first.ctime AS ctime,
-        files.ctime AS mtime,
-        files.fk_author_id AS author_id,
-        COALESCE(username, 'default') AS author,
-        fk_scene_id AS scene_id
-      FROM files 
-        LEFT JOIN (SELECT MIN(ctime) AS ctime, fk_scene_id, name FROM files GROUP BY fk_scene_id, name ) AS first
-          USING(fk_scene_id, name)
-        LEFT JOIN users ON files.fk_author_id = user_id
+        fk_scene_id AS scene_id,
+        ${FilesVfs._fragFileProps({table: "files", withData: true})}
+      FROM files
       WHERE file_id = $1
     `, [ id ]);
     if(!r || !r.ctime) throw new NotFoundError(`No file found with id : ${id}`);
     return r;
   }
 
-
-  static _fragFileProps({table="files", nameIndex, withData}: {table: string, nameIndex:number, withData:boolean}){
-    return `${table}.file_id AS id,
-      ${table}.name AS name,
-      ${table}.size AS size,
-      ${table}.hash AS hash,
-      ${withData? "data,":""}
-      ${table}.generation AS generation,
-      (SELECT ctime FROM files AS allFiles WHERE (allFiles.fk_scene_id = ${table}.fk_scene_id AND allFiles.name = $${nameIndex} AND allFiles.generation = 1)) AS ctime,
-      ${table}.ctime AS mtime,
-      ${table}.mime AS mime,
-      ${table}.fk_author_id AS author_id,
-      COALESCE((SELECT username FROM users WHERE  user_id = ${table}.fk_author_id LIMIT 1), 'default') AS author
-    `;
-  }
   /**
    * Fetch a file's properties from database
    * This function is growing out of control, having to manage disk vs doc stored files, mtime aggregation, etc...
@@ -260,7 +248,7 @@ export default abstract class FilesVfs extends BaseVfs{
     let r = await this.db.get(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $1 )
       SELECT
-        ${FilesVfs._fragFileProps({withData, table: "files", nameIndex: 2})}
+        ${FilesVfs._fragFileProps({withData, table: "files"})}
       FROM scene
       LEFT JOIN files ON files.fk_scene_id = scene.scene_id 
       WHERE files.name = $2
@@ -280,7 +268,7 @@ export default abstract class FilesVfs extends BaseVfs{
     let r = await this.db.get(`
       WITH ref AS (SELECT fk_scene_id, file_id, name, ctime, generation FROM files WHERE file_id = $3 AND fk_scene_id = $1)
       SELECT
-        ${FilesVfs._fragFileProps({withData: true, table: "files", nameIndex: 2})}
+        ${FilesVfs._fragFileProps({withData: true, table: "files"})}
       FROM ref INNER JOIN files USING(fk_scene_id) 
       WHERE files.name = $2
             AND (
@@ -310,7 +298,6 @@ export default abstract class FilesVfs extends BaseVfs{
    */
   async getFile(props:GetFileRangeParams): Promise<GetFileResult>{
     let r = await this.getFileProps(props, true);
-    if(!r.hash && !r.data) throw new NotFoundError(`Trying to open deleted file : ${ r.name }`);
     if(r.hash === "directory") return r;
 
     let handle :Readable;
@@ -339,7 +326,6 @@ export default abstract class FilesVfs extends BaseVfs{
   async getDoc(scene :string|number, lock=false) :Promise<DocProps>{
     let r = await this.getFileProps({scene, name: "scene.svx.json", lock}, true);
     if(!r.data)  throw new BadRequestError(`Not a valid document: ${ r.name }`);
-    if(Buffer.isBuffer(r.data)) r.data = r.data.toString("utf8");
     
     return r as DocProps;
   }
@@ -422,6 +408,7 @@ export default abstract class FilesVfs extends BaseVfs{
       let destFile = await tr.getFileProps({...props, name: nextName, archive: true})
       .catch(e=>{
         if(e.code == 404) return  {generation:0, hash:null};
+        /* c8 ignore next - getFileProps should only ever throw 404 errors */
         throw e;
       });
       if(destFile.hash){
@@ -430,8 +417,6 @@ export default abstract class FilesVfs extends BaseVfs{
 
       await tr.createFile(props, {hash: null, size: 0});
       let f = await tr.createFile({ ...props, mime:thisFile.mime, name: nextName}, thisFile);
-
-      if(!f?.id)  throw new NotFoundError(`can't create renamed file`);
       return f.id;
     });
   }
