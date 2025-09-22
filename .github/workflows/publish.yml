@@ -5,6 +5,8 @@ on:
       - "main"
     tags:        
       - 'v*.*.*'
+  pull_request:
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: holusion/e-corpus

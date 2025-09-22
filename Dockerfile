@@ -8,13 +8,8 @@ RUN mkdir -p /app/dist /app/source
 WORKDIR /app
 
 COPY source/server/package*.json /app/source/server/
-RUN (cd /app/source/server && npm ci)
-
 COPY source/voyager/package*.json /app/source/voyager/
-RUN (cd /app/source/voyager && npm ci --legacy-peer-deps)
-
 COPY source/ui/package*.json /app/source/ui/
-RUN (cd /app/source/ui && npm ci)
 
 COPY ./package*.json /app/
 RUN npm ci
