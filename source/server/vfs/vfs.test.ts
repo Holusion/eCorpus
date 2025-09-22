@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+import fs, { constants } from "fs/promises";
 import path from "path";
 import {tmpdir} from "os";
 import { expect } from "chai";
@@ -1863,6 +1863,30 @@ describe("Vfs", function(){
           expect(doc).to.have.property("generation", 1);
         });
       });
+
+      describe("cleanLooseObjects()", function(){
+        it("remove old dangling blobs", async function(){
+          let file = await vfs.writeFile(dataStream(["Hello World\n"]), {scene: scene_id, name: "foo.txt", mime: "text/plain", user_id: null});
+          //lie about the file's mtime: it is old enough
+          await fs.utimes(vfs.filepath(file), new Date(Date.now() - 3600*1000*2), new Date(Date.now()- 3600*1000*3));
+          await vfs.removeScene(scene_id);
+          //Blob should still be here
+          await expect(fs.access(vfs.filepath(file as any), constants.R_OK)).to.be.fulfilled;
+          let report = await vfs.cleanLooseObjects();
+          expect(report).to.equal(`Cleaned 1 loose object`);
+          await expect(fs.access(vfs.filepath(file as any), constants.R_OK)).to.be.rejectedWith("ENOENT");
+        });
+      });
+
+      describe("checkForMissingObjects()", function(){
+        it("reports missing blobs", async function(){
+          let file = await vfs.writeFile(dataStream(["Hello World\n"]), {scene: scene_id, name: "foo.txt", mime: "text/plain", user_id: null});
+          //force: false, so it throws if file is not here
+          await expect(fs.rm(vfs.getPath(file as any), {force: false})).to.be.fulfilled;
+          let report = await vfs.checkForMissingObjects();
+          expect(report).to.equal("File 0qhPS4tlCTfsj3PNi-LHSt1akRumTfJ0WO2CKdqASiY can't be read on disk (can't fix). Some data have been lost!")
+        });
+      })
     });
   });
 });

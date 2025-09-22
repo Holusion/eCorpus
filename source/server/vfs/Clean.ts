@@ -16,22 +16,19 @@ export default abstract class CleanVfs extends BaseVfs{
    * A reasonable delay is added where necessary to ensure the server can continue running properly
    * Delays are randomized to prevent too much contention when starting multiple instances on the same server
    */
-  public async clean(){
-    let cleanups = [
-      this.cleanLooseObjects,
-      this.checkForMissingObjects,
-    ];
-      await timers.setTimeout(randomInt(100));
-    for (let fn of cleanups){
-      await fn.call(this as any as Vfs);
-      await timers.setTimeout(randomInt(100, 500));
-    }
+  public async clean(this:Vfs){
+    await timers.setTimeout(randomInt(100));
+    let result = this.cleanLooseObjects();
+    if(result) console.log(result);
+    result = this.checkForMissingObjects();
+    if(result) console.error(result);
   }
 
   /**
-   * @fixme this method is known to be slightly unsafe because it _could_ clean an object that is unreferenced when scanning but become referenced before it is removed.
+   * @warning this method has a race condition where it _could_ clean an object that is unreferenced when scanning but become referenced in the meantime.
+   *          This is however deemed unlikely in common usage because it only happens when scenes are deleted (not archived)
    */
-  protected async cleanLooseObjects(this:Vfs){
+  public async cleanLooseObjects(this:Vfs) :Promise<string|void>{
     let it = await fs.opendir(this.objectsDir);
     let loose = [];
     for await (let object of it){
@@ -39,17 +36,18 @@ export default abstract class CleanVfs extends BaseVfs{
       let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
       if(!row || row.count == 0 ){
         //try to prevent race conditions by ensuring file is old enough
-        const stat = await fs.stat(this.getPath({hash: row.hash}));
+        const stat = await fs.stat(this.getPath({hash: object.name}));
         if(stat.mtime.valueOf() < Date.now() - 3600){
           loose.push(object.name);
         }
       }
     }
-    //Loose objects are OK : wan may delete scenes which will remove all history
-    if(loose.length)console.log("Cleaning %d loose objects", loose.length);
+    //Loose objects are OK : wan may delete scenes which will remove all history but not the referenced blobs
     for(let object of loose){
       fs.unlink(this.filepath(object));
     }
+    if(!loose.length) return;
+    else return `Cleaned ${loose.length} loose object${1 < loose.length? "s":""}`;
   }
 
   public async optimize(){
@@ -59,21 +57,25 @@ export default abstract class CleanVfs extends BaseVfs{
 
   /**
    * Utility function used mainly for debugging to check if some objects are referenced but not present on disk
+   * It would be very concerning if it started to find results in production deployments.
    */
-  protected async checkForMissingObjects(){
+  public async checkForMissingObjects(){
 
-    let missing = 0;
+    let missing :Array<string> = [];
     for await (let object of this.db.each<{hash: string}>(`SELECT DISTINCT hash AS hash FROM files WHERE data IS NULL`)){
       if(object.hash === "directory" || object.hash === null) continue;
       try{
         await fs.access(this.filepath(object), constants.R_OK)
       }catch(e){
-        missing++;
-        console.error(`File ${object.hash} can not be read on disk`);
+        missing.push(object.hash);
       }
       await timers.setTimeout(1);
     }
-    if(missing)console.error("found %d missing objects (can't fix)", missing);
+    if(!missing.length) return;
+    else if(missing.length < 3){
+      let plural = 1 <missing.length?"s":"";
+      return `File${plural} ${missing.join(", ")} can't be read on disk (can't fix). Some data have been lost!`;
+    }else return `found ${missing.length} missing objects (can't fix). Some data may have been lost!`;
   }
 
 
