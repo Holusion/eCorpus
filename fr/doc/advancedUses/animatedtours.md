@@ -1,5 +1,5 @@
 ---
-title: Comment réaliser des animations via les Visites Guidées
+title: Visites Guidées animées
 description: Apprendre à animer des scènettes sur une scène eCorpus via la fonctionnalité de Visite Guidée
 rank: 9
 ---
@@ -17,58 +17,62 @@ WIP[Insérer une vidéo de présentation ici]
 
 ### Sommaire
 
-* [TBD](#)
+* [Les différentes possibilités de médiations](#les-différentes-possibilités-de-médiations-offertes-par-les-visites-guidées)
+    * [Exemples de mises en scène](#exemples-de-mises-en-scène)
+* [Ce qu'il faut savoir](#ce-quil-faut-savoir)
+    * [Comprendre les transitions de translation d'objet](#un-peu-plus-dexplications-sur-les-translations)
+    * [Décomposer son modèle en plusieurs parties](#décomposer-son-modèle-en-plusieurs-parties)
+    * [Mieux comprendre les Derivatives](#cas-particulier-pour-les-dérivatives)
+    * [Bien positionner le point de pivot d'un objet](#comment-bien-positionner-le-point-de-pivot-dun-objet)
 
 
-### Lister les possibilités offertes par les Visites Guidées via Exemples
 
-<!-- Prévoir à fix la scène du mur de brique pour la montrer en exemple ? 
+### Les différentes possibilités de médiations offertes par les Visites Guidées
 
-Prévoir à faire une visite guidée animée avec le VanMarum exemple ?  -->
+Les visites guidées offrent de **multiples possibiliés de médiation** dans une scène DPO-Voyager. Offrir la possibilité d'une visite guidée à son utilisateur est un véritable atout pour ce-dernier, qui aura la possibilité de pleinement profiter de l'enrichissement sémantique apporté.
 
-Les visites guidées offrent de multiples possibiliés de médiation dans une scène DPO-Voyager. Offrir la possibilité d'une visite guidée à son utilisateur est un véritable atout pour ce-dernier, qui aura la possibilité de pleinement profiter de l'enrichissement sémantique apporté.
+Une bonne visite guidée dite _"basique"_ a donc pour objectif de montrer de manière intéressante et pensée son contenu, de façon à le lier à certains points de vue de son modèle. Par exemple: prévoir une étape montrant un zoom sur la tête d'un personnage et y lié un article lié à cet élément.
 
-Une bonne visite guidée dite "basique" a donc pour objectif de montrer de manière intéressante et pensée son contenu, de manière à le lié à certains points de vue de son modèle. Par exemple: prévoir une étape montrant un zoom sur la tête d'un personnage et y lié un article lié à cet élément.
-
-Une visite guidée dite "animée" se concentre ici sur la mise en scène et la scénographie évolutive des sujets, afin de les mettre en mouvement. Elles peuvent très bien être exempte de toute annotation ou article, bien que ces-derniers soient fortement recommandé pour apprécier pleinement le mouvement démontré via cette fonctionnalité.
+Une visite guidée dite _**_"animée"_ se concentre ici sur la mise en scène et la scénographie évolutive des sujets, afin de les mettre en mouvement. Elles peuvent très bien être exempte de toute annotation ou article, bien que ces-derniers soient fortement recommandé pour apprécier pleinement le mouvement démontré via cette fonctionnalité.
 
 #### Exemples de mises en scène
 
-Ses animations peuvent être utilisées à but de démonstration de mouvement, ou de fragmentation pour montrer la structure interne d'un mécanisme. Voici une liste non-exhaustive des différentes présentations permises par les visites guidées:
+Ces animations peuvent être utilisées à but de démonstration de mouvement, ou de fragmentation pour montrer la structure interne d'un mécanisme. Voici une **liste non-exhaustive des différentes présentations permises par les visites guidées**:
 
-##### Montrer comment est assemblée la structure interne d'un objet
+* ##### Montrer comment est assemblée la structure interne d'un objet:
 
-[Exemple d'un pied de croix](https://ecorpus.holusion.com/ui/scenes/Pied_croix_dome/view)
+    * [Exemple d'un pied de croix](https://ecorpus.holusion.com/ui/scenes/Pied_croix_dome/view)
 
-##### Montrer une hypothèse de reconstitution de fragments
+* ##### Montrer une hypothèse de reconstitution de fragments:
 
-[Exemple d'une statue-colonne reconstituée](https://ecorpus.holusion.com/ui/scenes/NoceDeCana_Puzzle/view)
+    * [Exemple d'une statue-colonne reconstituée](https://ecorpus.holusion.com/ui/scenes/NoceDeCana_Puzzle/view)
 
-##### Montrer le fonctionnement interne d'un mécanisme
+* ##### Montrer le fonctionnement interne d'un mécanisme:
 
-[Exemple de fonctionnement d'une serrure](https://ecorpus.holusion.com/ui/scenes/Lock_Stator/view)
+    * [Exemple de fonctionnement d'une serrure](https://ecorpus.holusion.com/ui/scenes/Lock_Stator/view)
+    * [Exemple de fonctionnement d'un outil scientifique](https://ecorpus.holusion.com/ui/scenes/RoueDeBarlow_TestAnim/view)
 
 <!-- Ajouter un exemple de comparaison de modèles 3D via dérivative, type chapiteau d'Arthous ?-->
 
-### Parler de la fonctionnalité Derivative et MultiModels
+### Ce qu'il faut savoir
 
 #### Un peu plus d'explications sur les translations
 
-Cet effet d'animation est possible grâce aux translations des paramètres (position, rotation, etc...) d'un objets d'une étape à l'autres, aidée d'une transition assistée.
+Cet effet d'animation est possible grâce aux **translations des paramètres** (position, rotation, etc...) d'un objets d'une étape à l'autres, aidée d'une **transition assistée**.
 
 Pour faire simple, décomposons la logique  dérrière la création des étapes et les transitions apportée par l'outil:
 
 * Une étape A conserve des informations de positions des objets et du point de vue dans l'espace.
-    * Exemple: je montre la face avant de mon objet
+    * _Exemple: je montre la face avant de mon objet_
 
 * Une étape B conserve également des informations de positions des objets et du point de vue dans l'espace, indépendament du point A.
-    * Exemple: je montre la face arrière de mon objet
+    * _Exemple: je montre la face arrière de mon objet_
 
 Les translations de l'étape A et B sont différentes entre elles.
 
 _On peut comparer la scène 3D à un studio photo. L'étape A est une photo prise avec la caméra placée devant l'objet, l'étape B est une photo prise avec la caméra placée devant l'objet: c'est donc la position de la caméra qui a bougé entre ses deux images._
 
-Si les visites guidées ne ressemble pas à un diaporama photo, c'est grâce à l'existence des Transitions, qui viennent ajouter des interpolations automatiques entre ces translations pour créer un mouvement fluide. 
+Si les visites guidées ne ressemble pas à un diaporama photo, c'est grâce à l'existence des **Transitions**, qui viennent ajouter des **interpolations automatiques** entre ces translations pour **créer un mouvement fluide**. 
 
 Reprenons l'exemple du studio photo pour y voir plus clair:
 
@@ -85,16 +89,17 @@ _On peut alors imaginer les visites guidées comme un théatre de marionnette, o
 
 Vous l'aurez donc compris, chaque modèle peut se déplacer dans la scène selon vos besoins, tandis que les transitions s'occuperont d'animer ces déplacements. 
 
-De ce fait, les translations se font selon chaque modèle indépendament, en fonction du point de pivot leur ayant été attribué lors de leur export. (cf point suivant). Si chaque objet est limité a un mouvement global, il est parfois nécessaire de le décomposer en plusieurs parties pour obtenir le mouvement voulue.
+De ce fait, **les translations se font selon chaque modèle indépendament**, en fonction du point de pivot leur ayant été attribué lors de leur export. (cf point suivant). Si chaque objet est limité a un mouvement global, il est parfois nécessaire de le **décomposer en plusieurs parties** pour obtenir le mouvement voulue.
 
-Pour reprendre l'exemple de la Serrure: chaque objet effectuant un mouvement indépendamment des autres à été séparer en glb différents. Les quatre ressors visible, par exmple, constituent quatre GLB différents, car chaque ressors effectue un mouvement différent a un moment donné.
+Pour reprendre l'exemple de la Serrure: chaque objet effectuant un mouvement indépendamment des autres à été séparer en glb différents. Les quatre ressors visible, par exemple, constituent quatre GLB différents, car chaque ressors effectue un mouvement différent a un moment donné.
 
-Par soucis d'organisation, il n'est pas nécessaire de décomposer toutes les petites parties d'un mécanisme. Ici, le barillet, le panneton et le fond du stator (réprésentés en violet) sont bien trois parties différentes, qui ont pourtant été exportées dans le même glb: les trois parties ont la même translation au même moment (rotation au moment du tournage de clef). Il est donc plus facile de faire une seule translation et de n'avoir qu'un glb à gérer que trois glb différents sur lequel on applique trois fois la même translation.
+**Par soucis d'organisation, il n'est pas nécessaire de décomposer toutes les petites parties d'un mécanisme**. Ici, le barillet, le panneton et le fond du stator (réprésentés en violet) sont bien trois parties différentes, qui ont pourtant été exportées dans le même glb: les trois parties ont la même translation au même moment (rotation au moment du tournage de clef). Il est donc plus facile de faire une seule translation et de n'avoir qu'un glb à gérer que trois glb différents sur lequel on applique trois fois la même translation.
 
 
- ##### Cas particulier pour les Dérivatives <!-- Changer sa place >> peut-être dans l'apprentissage des paramètre de visite guidée ? // Voir même carrément le transférer sur un autre guide-->
+ ##### Cas particulier pour les Dérivatives 
+ <!-- Changer sa place >> peut-être dans l'apprentissage des paramètre de visite guidée ? // Voir même carrément le transférer sur un autre guide ???-->
 
-Cas particulier: DPO-Voyager gère ce que l'on appelle des Dérivative. Ce sont des états d'objet qui servent à définir sa qualité. Un seul objet dans la scène peut donc avoir plusieurs glb de différentes qualités.
+Cas particulier: DPO-Voyager gère ce que l'on appelle des **Dérivatives**. Ce sont des états d'objet qui servent à définir sa qualité. Un seul objet dans la scène peut donc avoir plusieurs glb de différentes qualités.
 
 Ces qualités sont:
 
@@ -110,22 +115,24 @@ Les utilisations de dérivatives sont très courantes dans le jeu vidéo ou dans
 Pour faire simple: chaque modèle implémenté en tant que Dérivative seront chargés dés le lancement de la scène eCorpus: il faut donc faire attention à ne pas trop éxagérer la taille de ses modèles, même en Highest. 
 La qualité du modèle affiché sera décidé en fonction des capacités du support utilisé pour que le visionage 3D reste fluide en toute circonstance.
 
-Si les dérivatives peuvent-être utiles, elles ne sont pas toujours utilisées. Cependant, elles peuvent tout de même servir pour faire des comparaisons dans les visites guidées. 
+Si les dérivatives peuvent-être utiles, elles ne sont pas toujours utilisées. Cependant, elles peuvent tout de même **servir pour faire des comparaisons dans les visites guidées**. 
 
-C'est par exemple le cas avec [cette scène](https://ecorpus.fr-scv.fr/ui/scenes/Arthous_49/). Elle ne présente qu'un seul modèle, contenant deux glb différent: un glb représentant la numérisation en lumière structurée dans la dérivative High (qui doit être le plus précis possible pour la recherche), et un glb représentant la nummérisation par photogrammétrie dans la dérivative Normal (qui peut être allégé pour tout de même être visible avec des performances moindres). 
+C'est par exemple le cas avec [cette scène](https://ecorpus.fr-scv.fr/ui/scenes/Arthous_49/): elle ne présente qu'**un seul objet**, contenant **deux glb différents**: un glb représentant la numérisation en lumière structurée dans la dérivative High (qui doit être le plus précis possible pour la recherche), et un glb représentant la nummérisation par photogrammétrie dans la dérivative Normal (qui peut être allégé pour tout de même être visible avec des performances moindres). 
 
-Les deux versions cont comparées lors de la visite guidée.
+Les deux versions sont comparées lors de la visite guidée.
 
-#### Expliquer l'importance d'un bon point de pivot lors d'une animation de mécanisme
+#### Comment bien positionner le point de pivot d'un objet
 
-Comme vu précédemment, il est important de savoir où placer son point de pivot pour permettre une bonne translation.
+Comme vu précédemment, il est important de savoir **où placer son point de pivot pour permettre une bonne translation**.
 Un point de pivot, comme son nom l'indique décide du centre de l'axe sur lequel vous objet pivotera / effectuera sa rotation. 
 
 <!-- Insérer un petit schéma explication sur les rotation ?-->
 
 _Par exemple, un levier aura son point de pivot à sa base, tandis qu'une porte aura son point de pivot sur son côté._
 
-Les points de pivots peuvent être changer  sur le fichier glb directement via une application de modélisation, telle que Blender. Toutefois, ils sont recalculer automatiquement en fonction de leur emplacement dans la scène DPO-Voyager.
+Les points de pivots peuvent être changés sur **le fichier glb directement** via une application de modélisation, telle que Blender. Toutefois, ils sont **recalculés automatiquement en fonction de leur emplacement dans la scène** DPO-Voyager.
+
+_On notera une différence entre le point de pivot "local" de l'objet, qui influe les paramètres de translation dans l'onglet Pose, et le point de pivot "global" de l'objet qui est définit par son orientation et sa position dans l'onglet Pose._
 
 ##### Comment repositionner correctement le point de pivot de son objet
 
@@ -147,16 +154,16 @@ _Exemple: Si vous déplacez votre objet de 0,5 sur un axe dans l'onglet Pose, aj
 
 **Conseils** Il est important de vérifier les points de pivots de ses objets avant toute création de visite guidée. En effet, les valeurs de translations des étapes resteront les même tels qui sauvegardés. Un changement dans le point de pivot risque donc de rendre ses translations faussées.
 
-##### Rappeler qu'il faut faire attention à bien sortir de la visite guidée avant d'enregistrer la scène
+##### Rappel concernant la sauvegarde de la scène
 
-Il est important de rappeller que sauvegarder la scène en pleine visite guidée sauvegardera également les translations actuelles dans l'affichage par défaut de la scène.
-C'est-à-dire: si vous sauvegarder la scène en plein visite guidée pendant que l'objet a une position et un mouvement particulier, il gardera cette position lors de l'actualisation de la scène, même lorsque la visite guidée n'est pas active.
+Il est important de rappeler que sauvegarder la scène en pleine visite guidée **sauvegardera également les translations actuelles dans l'affichage par défaut de la scène**.
+_C'est-à-dire_: si vous sauvegardez la scène en pleine visite guidée pendant que l'objet a une position et un mouvement particulier, il gardera cette position lors de l'actualisation de la scène, même lorsque la visite guidée n'est pas active.
 
 Si cela vous arrive et que vous souhaitez revenir à l'état de base de l'objet, il vous faudra remodifié les valeurs de translations de l'objet à la main et resauvegarder la scène, ou bien restaurer une ancienne version dans l'Historique eCorpus.
 
 **Conseil**: il semble important de garder une étape dans votre visite guidée où l'objet reste en position neutre, par défaut. Ainsi, si un problème comme décrit précèdement arrive, il vous suffit de vous rendre à cette étape où la position de l'objet est neutre puis sauvegarder de nouveau la scène. 
 
-Il est donc important de penser à sortir de votre visite guidée (en terminant toutes les étapes, et en cliquant de nouveau sur l'icône **"visite guidée"**) avant de sauvegarder votre scène.
+Il est donc important de **penser à sortir de votre visite guidée** (en terminant toutes les étapes, et en cliquant de nouveau sur l'icône **"visite guidée"**) **avant de sauvegarder votre scène**.
 
 <!-- IMPORTANT On a pas encore parlé des tags d'annotation ni de modèle, donc retravailler et déplacer ces parties pour qu'elles deviennent un point concernant l'animation de modèle et d'annotation par tag-->
 
@@ -333,11 +340,11 @@ Si vous utilisez la scène StandAlone, vous n'aurez pas besoin de passer par cet
 
 Une fois votre scène créée, passez-là en mode édition, et glissez déponsez le reste des modèles.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_01.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_01.jpg" width ="400" alt="illustration Media Voyager" />
 
 Pour chaque modèle, pensez à choisir une qualité de Dérivative (privilégié High).
 
-<img src="/assets/img/doc/AnimatedTours_Exo_02.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_02.jpg" width ="400" alt="illustration Media Voyager" />
 
 * Si vous souhaitez remplacer un objet dans votre scène, selectionnez le nom de l'objet à remplacer dans ce menu.
 
@@ -355,17 +362,17 @@ Entre l'export et l'import de modèle 3D, il arrive très fréquement que les un
 
 Pour vérifier les unités de mesures de votre modèle, nous allons nous rendre dans les paramètres de nos objets.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_04.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_04.jpg" width ="700" alt="illustration Media Voyager" />
 
 Selectionnons ensuite la clef, soit en cliquant sur son modèle 3D dans l'Explorer, soit en cliquant sur son nom dans le Navigateur.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_03.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_03.jpg" width ="400" alt="illustration Media Voyager" />
 
 Dans les paramètres de l'objet se trouve l'option "Local Units". Il s'agit de l'unité de mesure courante de l'objet selectionné. 
 
 Notez bien que la clef a des unités de mesure spécifiée en mètre (m).
 
-<img src="/assets/img/doc/AnimatedTours_Exo_05.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_05.jpg" width ="400" alt="illustration Media Voyager" />
 
 En vérifiant le reste des objets, on peut remarquer que leurs unités de mesure sont définies en centimètres (cm).
 
@@ -377,11 +384,11 @@ Désormais, tous les objets de la scènes sont trop petits. Les scènes DPO-Voya
 
 Si les LocalUnits définissent l'unité de mesure d'un objet, les GlobalUnits définissent l'unité de mesure de la scène.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_06.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_06.jpg" width ="700" alt="illustration Media Voyager" />
 
 Ce paramètre se trouve dans l'onglet Pose en haut de l'Explorer.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_07.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_07.jpg" width ="700" alt="illustration Media Voyager" />
 
 Dans **Global Units** changer les unités en mètres (m) pour des centimètres (cm). Si ce n'est pas déjà fait, vous pouvez aussi en profiter pour changer les unités de l'objet en cm dans ItemUnits (paramètre juste en dessous de GlobalUnits).
 
@@ -389,7 +396,7 @@ Dans **Global Units** changer les unités en mètres (m) pour des centimètres (
 
 Dans cette étape, nous allons vérifier, objet par objet, leurs paramètres, leurs bons axes de rotations, ainsi que modifier leur matériau pour leur attribuer une couleur.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_04.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_04.jpg" width ="700" alt="illustration Media Voyager" />
 
 Dans l'onglet **Paramètres**, sélectionner chaque objet pour vous assurer qu'ils fonctionnent comme vous le souhaitez. Voici les étapes de vérifications pour vous aider:
 
@@ -399,7 +406,7 @@ Premièrement, nous vérifions le stator. Cette partie cache les pièces les plu
 
 * **Transform** Si vous vous souvenez de [l'étape 1](#etape-1-définir-la-fragmentation-de-son-modèle-3d), le stator ne bouge pas, aucune vérification n'est donc nécessaire à ce niveau-là
 
-<img src="/assets/img/doc/AnimatedTours_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
 
 * **Material** Ces paramètres servent à changer l'aspect visuel de l'objet
 
@@ -423,7 +430,7 @@ Nous vérifions ensuite la clef:
 
     * La rotation la plus importante est celle où la clef effectue un roulement pour actionner le barillet. Après vérification, ce mouvement se fait sans problème sur l'axe Z.  
 
-<img src="/assets/img/doc/AnimatedTours_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
 
 * **Material** Ces paramètres servent à changer l'aspect visuel de l'objet.
 
@@ -443,7 +450,7 @@ Nous vérifions ensuite le Barillet et la Panneton (tous deux dans le même obje
 
     * La rotation la plus importante est celle où le barillet effectue un roulement par un actionnement de la clef. Après vérification, ce mouvement se fait sans problème sur l'axe Z.  
 
-<img src="/assets/img/doc/AnimatedTours_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
 
 * **Material** Ces paramètres servent à changer l'aspect visuel de l'objet.
 
@@ -465,7 +472,7 @@ Nous vérifions ensuite une à une les Goupilles:
 
     * La rotation la plus importante est celle où la goupille effectue un roulement par un actionnement de la clef et du barillet. Après vérification, ce mouvement se fait sans problème sur l'axe Z.  
 
-<img src="/assets/img/doc/AnimatedTours_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
 
 * **Material** Ces paramètres servent à changer l'aspect visuel de l'objet.
 
@@ -486,7 +493,7 @@ Nous vérifions ensuite une à une les Contre-Goupilles:
     * Le mouvement le plus important est celui où la contre-goupille monte et descend en fonction de si la clef est introduite dans le stator ou non. Après vérification, ce mouvement se fait sans problème sur l'axe Y.  
 
 
-<img src="/assets/img/doc/AnimatedTours_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
 
 * **Material** Ces paramètres servent à changer l'aspect visuel de l'objet.
 
@@ -537,7 +544,7 @@ Voici les bonnes valeurs pour chaque ressort (le ressort 1 est le plus proche du
     * **Paramètres** X = 0 / Y = -0.26 / Z = 0.18
 
 
-<img src="/assets/img/doc/AnimatedTours_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_08.jpg" width ="400" alt="illustration Media Voyager" />
 
 * **Material** Ces paramètres servent à changer l'aspect visuel de l'objet.
 
@@ -553,19 +560,19 @@ Voici les bonnes valeurs pour chaque ressort (le ressort 1 est le plus proche du
 
 Une fois toutes ces préparations terminées, nous pouvons passer à la création de la visite guidée. 
 
-<img src="/assets/img/doc/AnimatedTours_Exo_09.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_09.jpg" width ="700" alt="illustration Media Voyager" />
 
 Dans l'onglet **Visites** (en haut de l'Explorer).
 
-<img src="/assets/img/doc/AnimatedTours_Exo_10.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_10.jpg" width ="400" alt="illustration Media Voyager" />
 
 Créer une nouvelle visite guidée. 
 
-<img src="/assets/img/doc/AnimatedTours_Exo_11.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_11.jpg" width ="400" alt="illustration Media Voyager" />
 
 Ouvrez les paramètres de Visite Guidée en cliquant sur l'icône formant trois barres horizontales, tout à droite.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_12.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_12.jpg" width ="400" alt="illustration Media Voyager" />
 
 Pour cet exercice, nous aurons besoin de sélectionner les paramètres:
 
@@ -577,7 +584,7 @@ Dans les **Paramètres**, sélectionnez le Stator et rendez-le de nouveau visibl
 
 **N'oubliez pas de sauvegarder votre scène régulièrement**, sauf si vous utilisez le mode standalone.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_13.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_13.jpg" width ="600" alt="illustration Media Voyager" />
 
 Nous allons ensuite créer la première étape de notre visite guidée. La création de ces étapes ne se font pas toujours dans l'ordre chronologique, mais dans l'ordre dans lequel il est le plus logique de les créer. De ce fait, il est conseiller de renommer ses étapes seulement à la toute fin, quand elles ont finies d'être créées et que la composition de la visite est sûre de convenir.
 
@@ -595,27 +602,27 @@ Ici, nous allons utiliser une autre méthode: avec un seul modèle, celui du sta
 
 Durant l'étape 4, nous avons activé le Paramètre de visite guidée **Slicer** qui permet l'animation de cet outil dans les visites guidées. Nous pouvons donc indiquer dans l'étape quels sont les objets qui seront affectés par cet outil.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_14.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_14.jpg" width ="600" alt="illustration Media Voyager" />
 
 Nous allons afficher les Outils de la scène en cliquant sur l'icône correspondant à gauche de l'Explorer. Un onglet s'ouvre alors en bas de de l'Explorer.
 
 En sélectionnant l'Option **Coupe** vous accèderez à l'Outil correspondant. 
 
-<img src="/assets/img/doc/AnimatedTours_Exo_15.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_15.jpg" width ="600" alt="illustration Media Voyager" />
 
 Nous activons tout d'abord l'Outil Coupe en cliquant sur le bouton "Off" pour le faire passer en "On". L'Axe X est l'axe de découpe sélectionné par défaut, il s'agit également du bon axe pour cet exercice. Le levier intitulé "Position" défini l'état de la découpe. Positionner-le au milieu pour que le stator soit découpé de moitié.
 
 Le reste des objets sont également affectés par cet Outil. 
 
-<img src="/assets/img/doc/AnimatedTours_Exo_04.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_04.jpg" width ="600" alt="illustration Media Voyager" />
 
 Pour y remédier, allez dans l'onglet Paramètre.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_16.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_16.jpg" width ="400" alt="illustration Media Voyager" />
 
 Désactiver l'Option SlicerEnabled dans les paramètres de tous les objets, à l'exception du Stator.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_17.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_17.jpg" width ="600" alt="illustration Media Voyager" />
 
 Nous penserons bien à mettre l'étape à jour en cliquant sur le bouton "Mettre à jour" du **Tour Editor** en bas de l'Explorer.
 
@@ -623,7 +630,7 @@ _Pourquoi ne pas l'avoir paramétré avant ?_: l'état de cet option est paramé
 
 _Pourquoi ne pas le paramétrer après ?_: Les nouvelles étapes reprennent l'état exact de la scène et des paramètres au moment de leur création. Si l'option une option est active par défaut, elle le sera dans toutes les étapes. Changer un paramètre signifierait donc mettre à jour toutes les étapes déjà créée.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_18.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_18.jpg" width ="700" alt="illustration Media Voyager" />
 
 Enfin, nous pouvons créer une nouvelle étape qui animera cette découpe. 
 
@@ -639,7 +646,7 @@ _Si jamais il vous arrive de Mettre à jour par mégarde une étape en bougeant 
 
 Cette étape servira d'introduction à la viste guidée. Actuellement, elle est placée en seconde position dans la liste d'éape. Afin de la placer à la première place, cliquer sur l'icône "Déplacer vers le haut".
 
-<img src="/assets/img/doc/AnimatedTours_Exo_21.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_21.jpg" width ="600" alt="illustration Media Voyager" />
 
 Désactivez ensuite l'Outil de Coupe en cliquant sur le bouton pour le placer en "Off". 
 
@@ -650,7 +657,7 @@ Vous remarquerez que le curseur se déplace entre les deux étapes: il s'agit de
 
 Dans la première étape de la visite, celle où le stator est montré plein, nous allons déplacer la clef de manière à ce qu'elle soit en dehors du stator.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_19.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_19.jpg" width ="400" alt="illustration Media Voyager" />
 
 Dans les paramètres de l'objet Clef, nous ajusterons Son Transform de Position dans l'Axe Z, pour le passer à 0.5.
 
@@ -662,7 +669,7 @@ Nous nommerons cette nouvelle étape: **étape C**.
 
 Nous aurons besoin de changer la rotation de la clef, du barillet et des quatre goupille. Ces objets sont entrainés par la même action, ils auront par conséquent la même rotation.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_20.jpg" width ="400" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_20.jpg" width ="400" alt="illustration Media Voyager" />
 
 Dans les **Paramètres** d'objet, changez la rotation de l'axe Z pour une valeur de 45. Répéter ce changement pour les objets cités juste avant.
 
@@ -712,20 +719,20 @@ Ici, nous verrons comment utiliser les Tags d'annotation pour annoter la scène 
 
 Pour les besoin de cet exercice, nous voulons placer les annotations à l'étape B et D. Nous commençons tout d'abord par sélectionner l'étape B.
 
-<img src="/assets/img/doc/AnimatedTours_Exo_22.jpg" width ="600" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_22.jpg" width ="600" alt="illustration Media Voyager" />
 
 Rendez-vous dans l'onglet **Annotation**, en haut de l'Explorer. Nous commencerons par créer les annotations pour le mécanisme externe.
 
 Sélectionnons tout d'abord le Stator. Pour cet exercice, seul le titre de l'annotation ainsi que son tag seront changés. N'hésitez pas à aller plus loin si vous le souhaitez: _pourquoi ne pas essayer de passer vos annotations en Extended et y ajouter des descriptions ?_
 
-<img src="/assets/img/doc/AnimatedTours_Exo_23.jpg" width ="700" alt="illustration Media Voyager" />
+<img src="/assets/img/doc/AnimatedTour_Exo_23.jpg" width ="700" alt="illustration Media Voyager" />
 
 En cliquant sur l'icône "Créer", puis sur le stator, une annotation se crée. Dans ses paramètres, nous changeons son titre pour "Stator", et indiquons son Tag en "Mécanisme Extérieur". 
 
 Répéter ces actions pour le Barillet et le Panneton en adaptant le Titre des annotations selon l'objet. **Attention**: nous vous rappelons que les annotations sont liés aux objets de la scène: par conséquent, il est important de bien sélectionné l'objet voulu avant de créer votre annotation.
 Pour cet exercice, il est important que ces trois objets partagent strictement le même nom de Tag.
 
-**A noter**: une fois le Tag créée, il apparaitra dans l'onglet des tags, en dessous de l'Explorer. N'oubliez pas de l'activer pour l'afficher sur la scène.
+**A noter**: une fois le Tag créé, il apparaitra dans l'onglet des tags, en dessous de l'Explorer. N'oubliez pas de l'activer pour l'afficher sur la scène.
 
 Passons désormais à l'étape D. Nous allons faire de même pour l'un des Ressort, une Goupille, ainsi qu'une Contre-Goupille. Cette fois-ci, le Tag utilisé devra être différent. Ici, nous utiliserons le terme "Mécanisme Intérieur".
 
@@ -740,11 +747,35 @@ Enfin, créons une annotation pour la clef. Pour cette partie de l'exercice, il 
 
 ##### Effectuer un changement d'objet
 
-Il existe, à ce jour, deux méthodes pour effectuer un changement d'objet dans une scène DPO-Voyager.
 
-###### En utilisant les Dérivatives
+Pour l'exemple, supposons que vous souhaitez montrer l'agissement du mécanisme avec une mauvaise clef. Naturellement, il est nécessaire de disposer de deux modèles de clef différents. 
 
-###### En important un nouvel objet
+Il est donc nécessaire d'effectuer un changement de modèle à un moment donné dans la visite.
+
+Il existe, à ce jour, deux méthodes pour effectuer un changement d'objet dans une scène DPO-Voyager. (Dans tous les cas, elle nécessite l'importation d'un glb au nom unique dans la scène.)
+
+**En utilisant les Dérivatives:**
+
+Cette méthode utilise la fonction de Derivative des Objets sur la scène. Un objet peut donc contenir plusieurs modèles glb sous forme de dérivative.
+
+Lors de l'importation, il vous suffit de sélectionner l'objet voulu (ici la clef) et de choisir une derivative autre que High (l'objet High est celui qui se charge par défaut sur la scène, il est donc réservé uniquement si vous souhaitez changer le visuel de l'objet de base).
+
+Dans les paramètres de l'objet, vous pourrez ensuite choisir sa dérivative. (Si vous avez importé la seconde clef dans la derivative Medium, vous noterez que le modèle de l'objet change entre sa derivative High et sa derivative Medium).
+
+Cette méthode a pour avantage d'alléger la liste d'objets dans la scène, et de rendre le tout plus digeste. Cependant, elle peut rendre l'organisation de la scène confuse. Cette méthode est donc à réserver si vos objets ont un rapport entre eux, ainsi que des mouvements similaires.
+
+Ici, les deux clefs ont une démonstration strictement similaire: il est donc avantageux d'utiliser le système de Dérivative. 
+
+**En important un nouvel objet**
+
+Cette méthode est déjà plus classique. Il consiste à importer un nouvel objet dans la scène et à changer sa visibilité en Off ou On en fonction de son apparition. 
+
+
+**Pour aller plus loin**
+
+Maintenant que vous maîtriser le système de visite guidée, pourquoi ne pas essayer de réaliser par vous-même une démonstration similaire avec une mauvaise clef ?
+
+_Indice_: Il vous suffit de dupliquer les étapes une à une (cliquer sur l'étape à dupliquer et créer une nouvelle étape), puis les replacer dans le bon ordre. Enfin, changer la dérivative de la clef et mettez à jour les translations des mécanismes (goupilles, contre-goupilles et ressors) pour coller à sa différente forme.
 
 
 * [Revenir en haut de la page](#apprendre-à-animer-des-mises-en-scène-grâce-aux-visites-guidées)
