@@ -27,6 +27,8 @@ eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser d
     * [Les contrôles de base](#les-contrôles-de-base)
     * [Créer une image de miniature](#créer-une-image-de-miniature)
     * [Recentrer un objet dans la scène](#centrer-son-modèle-automatiquement)
+* [Partager facilement sa scène](#pouvoir-partager-facilement-sa-scène-ecorpus)
+    * [Implémenter la scène sur une page Web](#permettre-laffichage-de-la-scène-sur-une-page-web)
 * [En savoir plus](#en-savoir-plus)
 
 
@@ -267,6 +269,32 @@ Vous recentrer facilement votre modèle, il vous suffit de cliquer sur le bouton
 Il se peut que le recentrage automatique ne suffise pas à règler les problèmes de placement. Pour replacer votre modèle manuellement, il vous suffit de changer les valeurs dans les emplacements de Position. 
 
 Un tutoriel avancé sur l'édition du point de pivot de votre objet sera bientôt disponible sur la plateforme.
+
+
+## Pouvoir partager facilement sa scène eCorpus
+
+Une fois votre scène créée et paramétrée selon votre souhait, il vous ait possible de la partager. Pour cela, plusieurs solutions sont possibles:
+
+#### Partager le lien du visualisateur
+
+La première solution est également la plus simple: il s'agit de se rendre sur le visualisateur de la scène eCorpus (bouton **"Voir"**) et de copier coller le lien pour le partager ensuite sur des publications de réseau sociaux (type LinkedIn).
+
+**Attention: afin que la scène soit visible au public non identifié, veuillez à bien indiquer "Lecture" dans les droits d'accès intitulé "Accès Public" de la scène en question**
+
+#### Permettre l'affichage de la scène sur une page Web
+
+Cette solution permet l'affichage d'une scène eCorpus dans une page Web. Chaque scène eCoprus possède une icône de **Partage**, situé à gauche de l'Explorer, permettant la copie d'un code "Iframe".
+[Vous trouverez ici la liste des icônes de l'Explorer](#pour-explorer-votre-scène)
+
+Il suffit donc de récupérer de copier coller ce colle dans le code de votre page, à l'endroit souhaité.
+
+**Attention: afin que la scène soit visible au public non identifié, veuillez à bien indiquer "Lecture" dans les droits d'accès intitulé "Accès Public" de la scène en question**
+
+#### Partager la scène à ses collègues vient les droits d'administration
+
+Si ils possèdent un compte sur votre base de données eCorpus, il est tout à fait possible de partager votre scène à vos collègue pour une lecture seule. Il vous suffit simplement de changer les **droits d'accès** de votre scène en y ajoutant le nom d'utilisateur de la personne souhaité, comme [montré dans ce point](#administrer-sa-scène).
+
+La scène s'affichera alors dans la liste de cet utilisateur.
 
 
 ## En savoir plus

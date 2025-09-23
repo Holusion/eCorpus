@@ -98,6 +98,8 @@ Une fois satisfait de votre capture, cliquer sur le bouton **"Download"** afin d
 | | Normales| Affiche votre objet en le colorant selon comment la lumière intéragit avec lui ([cf guide avancé](models/model))| Oui|
 | | Fil de Fer| Affiche votre objet transparent, seuls le maillage 3D du modèle est visible| Oui|
 
+**Attention** les Matériaux sont uniquement animables via l'Outil Texture. Le paramètre "Shader" d'un objet, qui rempli une fonction similaire à l'Outil Texture, n'est pas animable.
+
 #### Matériau par défaut
 
 <img src="/assets/img/doc/Tools_07.jpg" width ="400" alt="illustration Media Voyager" />
@@ -260,6 +262,8 @@ Dernier dans la liste, mais pas des moindre, l'Outil Coupe permet de **séctionn
 | | Z| Découpe vos modèles selon sa profondeur| **Oui** - Option: _Slicer_|
 
 **A noter**: vous pouvez inverser le sens de la coupe en cliquant de nouveau sur l'axe voulu.
+
+**Important** Il est possible de choisir quel objet est affecté ou non par cet outil. Ce choix se fait dans les paramètre de l'objet catégorie Material: **SlicerEnabled**.
 
 #### L'Axe X
 
