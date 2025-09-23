@@ -14,22 +14,18 @@ description: Présentation du système de gestion de scènes 3D eCorpus. Découv
 </section>
 <section>
     <h3>
-        eCorpus : Outil d’édition 3D libre pour les chercheurs et les conservateurs
+        eCorpus : Une solution logicielle libre pour la valorisation du patrimoine 3D.
     </h3>
     <p>
         eCorpus permet de <b>stocker, annoter et partager une collection de modèles 3D</b>. Il utilise <a
             href="https://smithsonian.github.io/dpo-voyager/" target="_blank"><b>DPO-Voyager</a> comme
         visualiseur 3D</b> et éditeur de métadonnées, et est doté entre autres d'un gestionnaire de droits
         utilisateurs
-        et d’historique de modifications.
+        et d'historique de modifications.
     </p>
-    <p>Le développement d'eCorpus a été initié dans le cadre du consortium <a href="about"><b>eThesaurus</b></a>. Le
-        projet portait sur la
-        numérisation de
-        six œuvres d'orfèvrerie médiévale, conservées au musée
-        Sandelin à Saint-Omer et au Palais des Beaux-arts de Lille.</p>
-    <p>Le développement est assuré conjointement par l'Université de Lille, l'Université de Liège et la société
-        Holusion</p>
+    <p>
+        L'architecture libre de ce projet vous garantie la <b>pérennité des données</b>, la <b>personnalisation</b> et le <b>contrôle total sur l'infrastructure</b>.
+    </p>
     <p>eCorpus peut être utilisé en <i>self-hosting</i> ou sur un hébergement clé-en-main.</p>
 </section>
 
@@ -37,35 +33,21 @@ description: Présentation du système de gestion de scènes 3D eCorpus. Découv
     <div class="section">
         <h3> Conservation, médiation et diffusion des contenus</h3>
     </div>
-    {% include voyager.html embed="encensoir" server="https://ecorpus.holusion.com" class="h-100" %}
-    <div class="section">
-        <p>
-            eCorpus permet une diffusion des objets 3D et des métadonnées dans deux conﬁgurations différentes.
-        </p>
-        <ul class="retrait">
-            <li>
-                D’une part, <b>l'intégration du visualisateur Voyager dans une page web ou une application</b> permet
-                d’aller directement requérir la dernière version de l'objet 3D auprès du serveur en fonction de ses
-                droits de
-                diffusion. C’est la méthode la plus simple pour la <b>présentation des résultats sur des sites
-                    institutionnels, par email ou
-                    via des applications mobiles</b>. Les derniers développements en termes de <b>Réalité Augmentée</b>
-                permettent de diffuser
-                l’objet directement sous ce format à travers les AR Kit d’Apple 8 ou d'Androïd sans avoir besoin de
-                passer par
-                l’installation d’une application tierce.
-            </li>
-            <li>
-                D'autre part, <b>lorsqu'une connexion à internet n’est pas possible</b> (installations hors-les-murs par
-                exemple),
-                eCorpus permet de <b>créer des applications fonctionnant avec une base de données locale</b>, exportée
-                au
-                préalable depuis la plateforme en ligne. Cela permet d’avoir un travail asynchrone et d'ajouter des
-                données sans
-                connexion internet. Il faut par la suite resynchroniser les données en les exportant.
-            </li>
-        </ul>
-    </div>
+    {% include voyager.html embed="encensoir" server="https://ethesaurus.uliege.be" class="h-100" %}
+    
+<section>
+<h3>Un logiciel issu de la recherche, pour la recherche</h3>
+<p>Le développement d'eCorpus a été initié dans le cadre du consortium <a href="about"><b>eThesaurus</b></a>.
+    <p>Le développement est assuré conjointement par l'Université de Lille, l'Université de Liège et la société Holusion</p>
+    <ul>
+    <h4>Réalisé avec eCorpus : Cloître de Notre-Dame-en-Vaux, Châlons-en-Champagne</h4>
+<li><b>Défi :</b> Rendre la collection lapidaire du musée accessible au grand public et aux chercheurs, en créant une expérience de médiation numérique interactive et durable.</li>
+<li><b>Solution :</b> Le musée a utilisé le logiciel eCorpus comme fondation technique pour créer sa propre plateforme de valorisation en ligne. Les modèles 3D des chapiteaux et autres fragments ont été importés et documentés, permettant de les consulter, de les annoter et de les comparer.</li>
+<li><b>Résultat :</b> Les chercheurs disposent désormais d'une base de données d'étude unique, tandis que le public peut explorer les collections avec des parcours de visite enrichis directement sur le site web du musée.</li>
+</ul>
+<div style="display: flex; justify-content: space-evenly;"><a class="button button" href="2025/04/05/collectionchalons.html">Découvrez le projet</a></div>
+<img style="object-position: 70% 0;" src="/assets/img/illustration_chalons.jpg"
+        alt="eCorpus sur un iPad dans le musée du Cloitre de Notre Dame en Vaux">
 </section>
 <section>
     <h3 id="features">Fonctionnalités</h3>
@@ -174,12 +156,12 @@ description: Présentation du système de gestion de scènes 3D eCorpus. Découv
     <div class="section">
         <h3>Caractéristiques d'eCorpus</h3>
     </div>
-    {% include voyager.html server="https://irhis.ecorpus.holusion.com" embed="sc.67.petit.prince.imperial" class="h-100 larg100" %}
-
+    {% include voyager.html server="https://ecorpus.fr-scv.fr" embed="Lion_Belfort.Sc.130.3" class="h-100 larg100" %}
+    <p style="color:lightslategrey;font-size: 75%;"><i>Travaux de numérisation et de médiation des étudiants en Histoire de l'Art de l'Université de Lille</i></p>
     <div class="section">
         <h4>Complet</h4>
         <p>
-            eCorpus vous permet de <b>lier directement des données à chaque objet 3D</b> par le biais d’annotations
+            eCorpus vous permet de <b>lier directement des données à chaque objet 3D</b> par le biais d'annotations
             enrichies : titre, abstract et article pouvant comporter des contenus multimédias (vidéos, images, liens…).
         </p>
         <p>
@@ -196,17 +178,17 @@ description: Présentation du système de gestion de scènes 3D eCorpus. Découv
         </p>
         <h4>Ouvert mais sécurisé</h4>
         <p>
-            L’architecture de l’application fonctionne grâce au déploiement d’instances indépendantes, <b>les bases de
+            L'architecture de l'application fonctionne grâce au déploiement d'instances indépendantes, <b>les bases de
                 données étant compatibles entre elles, mais entièrement séparées</b>.
-            La majeure partie des cas d’usages concernent des entités qui possèdent déjà une solution de gestion de
+            La majeure partie des cas d'usages concernent des entités qui possèdent déjà une solution de gestion de
             contenu, les données de eCorpus sont intégrables au sein de celle-ci et recherchables.
         </p>
         <h4>Open source</h4>
         <p>
-            Les résultats du développement sont diffusés dans un format Open Source, pour que l’utilisateur soit
-            pleinement propriétaire de ses données et de son environnement. De plus, le dynamisme d’un projet Open
-            Source est capital dans la réussite d’un projet et sa diffusion. La présence de sa documentation sur une
-            plateforme comme <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> et l’activité
+            Les résultats du développement sont diffusés dans un format Open Source, pour que l'utilisateur soit
+            pleinement propriétaire de ses données et de son environnement. De plus, le dynamisme d'un projet Open
+            Source est capital dans la réussite d'un projet et sa diffusion. La présence de sa documentation sur une
+            plateforme comme <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> et l'activité
             régulière du
             développement avec une équipe clairement identiﬁée.
         </p>
@@ -218,14 +200,14 @@ description: Présentation du système de gestion de scènes 3D eCorpus. Découv
         </p>
         <p>
             Cette organisation permet <b>une grande ﬂexibilité</b> : les données exportées peuvent être utilisées telles
-            qu’elles indépendamment du serveur sur lequel elles sont stockées.
+            qu'elles indépendamment du serveur sur lequel elles sont stockées.
         </p>
         <p>
             Le ﬁchier descriptif des scènes permet <b>la gestion des modèles à multiples niveaux de détails (LOD)</b>
             ainsi que la traduction des différentes métadonnées.
         </p>
         <p>
-            Chaque entrée dans la base peut donc être composée d’un assemblage de sous-éléments et chacun de ceux-ci
+            Chaque entrée dans la base peut donc être composée d'un assemblage de sous-éléments et chacun de ceux-ci
             peut comporter des modèles en multi-résolution offrant <b>un chargement optimisé de la géométrie par le
                 client</b> en
             limitant le chargement de données complexes en fonction de ses besoins.
@@ -242,8 +224,8 @@ description: Présentation du système de gestion de scènes 3D eCorpus. Découv
     <div class="section">
         <p>
             Les modèles numériques issus de la <b>photogrammétrie</b> comportent les informations liées à la géométrie
-            de l’objet sous la forme d’un maillage ainsi que les informations liées à son aspect visuels tels que décrit
-            dans un modèle PBR (Physical Based Rendering) décrivant pour chaque point de l’objet ses propriétés optique
+            de l'objet sous la forme d'un maillage ainsi que les informations liées à son aspect visuels tels que décrit
+            dans un modèle PBR (Physical Based Rendering) décrivant pour chaque point de l'objet ses propriétés optique
             : couleur, réflexion, spéculaires, rugosité etc…
         </p>
         <p>
@@ -278,15 +260,16 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
 
 
 <section class="section">
+    <h3>Médiation Numérique</h3>
     <p>
-        Parmi les différents formats d’export pour la médiation, eCorpus supporte la visualisation sur table
+        Parmi les différents formats d'export pour la médiation, eCorpus supporte la visualisation sur table
         tactile, tablettes mobiles, hologrammes et dispositifs de réalité virtuelle et réalité augmentée.
         Le démonstrateur <a href="./about">eThesaurus</a>, fabriqué
-        par Holusion, permet la visualisation d’un export d’une base de données eCorpus.
-        L’affichage est séparé sur deux écrans :
+        par Holusion, permet la visualisation d'un export d'une base de données eCorpus.
+        L'affichage est séparé sur deux écrans :
     <ul class="retrait">
         <li>
-            <b>L’écran transparent est dédié à la visualisation des objets 3D</b>, des animations et des annotations
+            <b>L'écran transparent est dédié à la visualisation des objets 3D</b>, des animations et des annotations
             concises.
         </li>
         <li>
@@ -294,9 +277,17 @@ alt="Node tree contenant les meta data d'un document sur DPO-Voyager"> -->
             tactile a été retenu pour
             sa prévalence auprès des publics, habitués à la manipulation de smartphones et de tablettes au
             quotidien. Sur celui-ci,
-            l’usager consulte également les informations textuelles et les médias photos et vidéos complémentaires
+            l'usager consulte également les informations textuelles et les médias photos et vidéos complémentaires
             inclus dans les articles.
         </li>
     </ul>
+    <div style="display: flex; justify-content: space-evenly;">
+        <iframe width="640px" height="400px" src="https://www.youtube.com/embed/EA3K__X78n0?si=hyjJ_Ky0UB9eTiGL" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
     </p>
+</section>
+
+<section>
+    <div style="display: flex; justify-content: space-evenly;">
+        <a class="button button" href="contact.html">Contactez-nous</a></div>
 </section>
