@@ -127,6 +127,7 @@ module Jekyll
         Jekyll.logger.warn("Syntax Error in tag 'OAPI_schema' : Not a valid schema object : #{input.inspect()}")
         return ""
       end
+
       case input["type"]
       when "object"
         str = "{"
@@ -138,13 +139,13 @@ module Jekyll
           props = input["additionalProperties"]
           str = str + "\n#{prefix}  [#{props["type"]}]?: #{OAPI_schema(props, "#{prefix}  ")}"
         end
-        return "#{str}\n#{prefix}}"
+        str = "#{str}\n#{prefix}}"
       when "array"
-        return "[ #{OAPI_schema(input["items"], ( prefix || ""))} ]"
+        str =  "[ #{OAPI_schema(input["items"], ( prefix || ""))} ]"
       when "string"
         # First check if "string" is in fact a binary blob
         if input["format"] == "binary"
-          return "Buffer"
+          str = "Buffer"
         end
         # Then check for an enum type
         if input["enum"]
@@ -152,23 +153,26 @@ module Jekyll
         else
           str = "\"string\""
         end
-        # Add any useful info about the string
-        if input["summary"]
-          str = str + "  //#{input["summary"]}"
-        elsif input["pattern"]
-          str = str + "  // /#{input["pattern"]}/"
-        end
-        return str
+
       else #default case
         str = input["type"]
         if input["format"]
           str = str + " (#{input["format"]})"
         end
-        if input["summary"]
-          str = str + "  //#{input["summary"]}"
-        end
-        return str
       end
+
+      if input["pattern"]
+        str = "#{str} // /#{input["pattern"]}/"
+      end
+      
+      # Add any useful info
+      if input["summary"]
+        str = "#{str} //#{input["summary"]}"
+      elsif input["description"]
+        str = "#{str} //#{input["description"].split("\n").join("\n#{"".rjust(str.length," ")} //")}"
+      end
+
+      return str
     end
   end
 end

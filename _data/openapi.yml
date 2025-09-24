@@ -284,17 +284,21 @@ paths:
               properties:
                 name: 
                   type: string
+                archived:
+                  type: boolean
+                public_access:
+                  type: string
+                  enum: ["none", "read"]
+                default_access:
+                  type: string
+                  enum: ["none", "read", "write"]
                 permissions:
                   type: object
                   required: []
                   properties:
-                    default: 
-                      $ref: "#/components/schemas/AccessType"
-                    any: 
-                      $ref: "#/components/schemas/AccessType"
                   additionalProperties:
-                    $ref: "#/components/schemas/AccessType" 
-
+                    $ref: "#/components/schemas/AccessType"
+                  description: user ids to change
                 tags:
                   type: array
                   items:
