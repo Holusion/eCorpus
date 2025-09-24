@@ -45,6 +45,7 @@ labels:
   totalDiskUsage: Total disk usage
   buildId: Build ID
   databaseSchema: Database schema version
+  show: show
 
 buttons:
   searchScene: search scenes

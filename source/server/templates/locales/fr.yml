@@ -45,6 +45,7 @@ labels:
   totalDiskUsage: Espace disque total
   buildId: Build ID
   databaseSchema: Version du schéma de la base de données
+  show: voir
 
 buttons:
   searchScene: chercher une scène

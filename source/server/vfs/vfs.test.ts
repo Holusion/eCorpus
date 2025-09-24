@@ -945,16 +945,40 @@ describe("Vfs", function(){
           await vfs.addTag(scene_id, `foo_tag`);
           await vfs.addTag(scene_id, `tag_bar`);
 
-          expect(await vfs.getTags("foo")).to.deep.equal([
+          expect(await vfs.getTags({like: "foo"})).to.deep.equal([
             {name:"foo_tag", size: 1},
             {name: "tag_foo", size: 1},
           ]);
 
           //Match should be case-insensitive
-          expect(await vfs.getTags("Foo")).to.deep.equal([
+          expect(await vfs.getTags({like: "Foo"})).to.deep.equal([
             {name:"foo_tag", size: 1},
             {name: "tag_foo", size: 1},
           ]);
+        });
+
+        it("supports pagination", async function(){
+          //Create a bunch of additional test scenes
+          for(let i=0; i < 3; i++){
+            let id = await vfs.createScene(`test_${i}`);
+            for(let j=0; j <= i; j++ ){
+              await vfs.addTag(id, `tag_${j}`);
+            }
+          }
+          expect(await vfs.getTags({limit: 1})).to.deep.equal([
+            {name: "tag_0", size: 3},
+          ]);
+          expect(await vfs.getTags({limit: 2, offset: 1})).to.deep.equal([
+            {name: "tag_1", size: 2},
+            {name: "tag_2", size: 1},
+          ]);
+          expect(await vfs.getTags({offset: 3})).to.deep.equal([ ]);
+        });
+
+        it("don't count archived scenes", async function(){
+          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(true);
+          await vfs.archiveScene(scene_id);
+          expect(await vfs.getTags()).to.deep.equal([]);
         });
       });
 
@@ -974,6 +998,17 @@ describe("Vfs", function(){
           expect(scenes).to.deep.equal(ids);
         });
 
+        it("Ignore archived scenes", async function(){
+          await expect(vfs.addTag(scene_id, "foo")).to.eventually.equal(true);
+
+          let s2 = await vfs.createScene(`test_scene_2`);
+          await expect(vfs.addTag(s2, "foo")).to.eventually.equal(true);
+          expect(await vfs.getTag("foo")).to.deep.equal([scene_id, s2]);
+
+          await vfs.archiveScene(s2);
+          expect(await vfs.getTag("foo")).to.deep.equal([scene_id]);
+        });
+
 
         describe("respects permissions", function(){
           let userManager :UserManager, alice :User, bob :User;
@@ -983,12 +1018,22 @@ describe("Vfs", function(){
             bob = await userManager.addUser("bob", "12345678", "create");
           });
 
-          it("return scenes with read access", async function(){
+          it("return scenes with public read access", async function(){
             await vfs.addTag("foo", "foo");
             expect(await vfs.getTag("foo", alice.uid), "with admin user_id").to.deep.equal([scene_id]);
 
             expect(await vfs.getTag("foo", bob.uid), "with normal user id").to.deep.equal([scene_id]);
           });
+
+          it("return all scenes for admins", async function(){
+            //Scene if from bob, alice has no special rights over it, but should see it anyways
+            const id = await vfs.createScene("bob-private", bob.uid);
+            await userManager.setPublicAccess("bob-private", "none");
+            await userManager.setDefaultAccess("bob-private", "none");
+            await vfs.addTag("bob-private", "foo");
+            expect(await vfs.getTag("foo"), "without user id").to.deep.equal([]);
+            expect(await vfs.getTag("foo", alice.uid), "with admin id").to.deep.equal([id]);
+          })
 
           it("won't return non-readable scene", async function(){
             const id = await vfs.createScene("admin-only", alice.uid);

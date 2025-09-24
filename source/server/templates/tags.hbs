@@ -1,11 +1,55 @@
+
 <h2>{{i18n "nav.tags"}}</h2>
-<div class="section" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: .5rem;justify-content:center;">
+<form class="section form-control">
+  <h3 id="tags-search-title">{{i18n "titles.search" }}</h3>
+  <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
+    <input class="search-box-input" type="search" name="match" id="tags-search" aria-labelledby="tags-search-title"
+      value="{{match}}">
+    <button class="btn btn-addon btn-main" style="margin-top:0" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
+        name="search"></ui-icon></button>
+  </div>
+</form>
+<div role="list" class="tags-grid">
+
+{{#if tags.length }}
   {{#each tags}}
-    <a class="btn" style="overflow: hidden; text-overflow:ellipsis" href="/ui/tags/{{encodeURIComponent name}}">
-      {{name}} ({{size}})
-    </a>
+    <div role="listitem" id="{{encodeURIComponent name}}" aria-labelledby="{{encodeURIComponent name}}-title" class="section" style="">
+      <a href="/ui/tags/{{encodeURIComponent name}}"><h3 id="{{encodeURIComponent name}}-title">{{ name }}</h3></a>
+      {{#if scenes }}
+        <div class="tag-preview-line">
+          {{#each scenes}}
+            {{#if (test @index '<' 6) }}
+              <a href="{{uri}}" title="{{ name }}">
+                {{#if thumb }}
+                  <img loading="lazy" src="{{thumb}}" >
+                {{else}}
+                  <img loading="lazy" style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg">
+                {{/if}}
+              </a>
+            {{/if}}
+          {{/each}}
+        </div>
+      {{/if}}
+      <span class="tag-size"><a href="/ui/tags/{{encodeURIComponent name}}">{{ i18n "labels.show" }} ({{size}})</a></span>
+    </div>
   {{/each}}
-  {{#unless tags.length}}
-    <p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>
-  {{/unless}}
+  <div style="grid-column: 1 / end;">
+    {{#with pager}}
+    {{> pager }}
+    {{/with}}
+  </div>
+{{else}}
+  {{#if match }}
+    <div style="grid-column: 1 / end;">
+      {{#with pager}}
+      {{> pager }}
+      {{/with}}
+    </div>
+  {{else}}
+    <div role="listitem" class="section" style="grid-column: 1 / end;">
+      <p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>
+    </div>
+  {{/if}}
+
+{{/if}}
 </div>
