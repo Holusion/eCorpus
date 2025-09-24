@@ -1,0 +1,26 @@
+{{! 
+  paging buttons for search results
+  provide a "previous" and "next" url to show the associated buttons
+  "from" and "to" shows a pagination-counter
+  a "total" can optionally be provided
+}}
+<div style="display:flex; justify-content: space-between;margin-top: 1rem;">
+  {{#if previous}}
+    <a class="btn btn-main" id="search-previous" href="{{previous}}">{{i18n "buttons.previous"}}</a>
+  {{else}}
+    <div style="width:100px;"><!--placeholder--></div>
+  {{/if}}
+  <div>
+    {{#if (test from "!=" to)}}
+      {{from}}-{{to}}{{#if total }}/{{total}}{{/if}}
+    {{else}}
+      {{i18n "leads.noResults"}}
+    {{/if}}
+  </div>
+  {{#if next }}
+    <a class="btn btn-main"id="search-next" href="{{next}}">{{i18n "buttons.next"}}</a>
+  {{else}}
+    <div style="width:100px;"><!--placeholder--></div>
+  {{/if}}
+
+</div>

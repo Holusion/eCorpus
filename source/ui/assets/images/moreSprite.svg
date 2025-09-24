@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="Gradient1">
+      <stop offset="0%" stop-color="#343434" />
+      <stop offset="100%" stop-color="#1b1b1b" />
+    </radialGradient>
+  </defs>
+  <rect
+    x="0"
+    y="0"
+    width="512"
+    height="512"
+    fill="url(#Gradient1)" />
+  <path d="M448 341.37V170.61A32 32 0 00432.11 143l-152-88.46a47.94 47.94 0 00-48.24 0L79.89 143A32 32 0 0064 170.61v170.76A32 32 0 0079.89 369l152 88.46a48 48 0 0048.24 0l152-88.46A32 32 0 00448 341.37z" fill="none" stroke="white" stroke-width="32"/>
+  <circle cx="256" cy="300" r="20" fill="white"/>
+  <circle cx="170" cy="300" r="20" fill="white"/>
+  <circle cx="342" cy="300" r="20" fill="white"/>
+</svg>

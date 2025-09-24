@@ -9,6 +9,7 @@ import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { UserRoles } from "../../auth/User.js";
 import { locales } from "../../utils/templates.js";
+import { BadRequestError } from "../../utils/errors.js";
 
 
 
@@ -103,10 +104,62 @@ routes.get("/upload", (req, res)=>{
 
 routes.get("/tags", wrap(async (req, res)=>{
   const vfs = getVfs(req);
-  const tags = await vfs.getTags();
+  const {match, limit:limitString, offset:offsetString} =  req.query;
+  const requester = getUser(req);
+  const host = getHost(req);
+
+  const limit = limitString? parseInt(limitString as any): 12;
+  const offset = offsetString? parseInt(offsetString as any): 0;
+
+  if(match && typeof match !== "string") throw new BadRequestError("Unsupported match parameter");
+  if(!Number.isInteger(limit) || limit < 1 || 100 < limit) throw new BadRequestError(`invalid limit parameter : ${limitString}`);
+  if(!Number.isInteger(offset) || offset < 0) throw new BadRequestError(`invalid offset parameter : ${offsetString}`);
+
+
+
+  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string}[]}> = await vfs.getTags({like: match, limit, offset});
+  for(let tag of tags){
+    let scene_ids = await vfs.getTag(tag.name, requester?.uid ?? null);
+    tag.scenes ??= [];
+    for(let id of scene_ids.slice(0, 6)){
+      let scene = mapScene(req, await vfs.getScene(id, requester?.uid));
+      tag.scenes.push({
+        name: scene.name,
+        uri: `/ui/scenes/${encodeURIComponent(scene.name)}`,
+        thumb: scene.thumb,
+      });
+    }
+    if(6 < scene_ids.length){
+      tag.scenes.splice(-1, 1, {
+        name: "More scenes",
+        uri: `/ui/tags/${encodeURIComponent(tag.name)}`,
+        thumb: "/dist/images/moreSprite.svg",
+      })
+    }
+  }
+
+  let pager = {
+    from: offset,
+    to: offset + tags.length,
+    next: undefined as any,
+    previous: undefined as any
+  };
+  if(limit === tags.length){
+    const nextUrl = new URL(req.originalUrl, host);
+    nextUrl.searchParams.set("offset", (offset+limit).toString());
+    pager.next = nextUrl.pathname+nextUrl.search;
+  }
+  if(offset){
+    const prevUrl = new URL(req.originalUrl, host);
+    prevUrl.searchParams.set("offset", Math.max(0, offset - limit).toString());
+    pager.previous = prevUrl.pathname+prevUrl.search;
+  }
+ 
   res.render("tags", {
     title: "eCorpus Tags",
-    tags,
+    tags: tags.filter(t=>t.scenes?.length),
+    match,
+    pager,
   });
 }));
 

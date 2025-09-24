@@ -8,6 +8,15 @@ import { toAccessLevel } from "../auth/UserManager.js";
 import { UserLevels } from "../auth/User.js";
 
 
+export interface GetTagsParams{
+  /** Match (regex), case insensitive with tag name */
+  like?:string;
+  /** Offset results*/
+  offset?: number;
+  /** Limit result set */
+  limit?: number;
+}
+
 export default abstract class TagsVfs extends BaseVfs{
 
   /**
@@ -72,9 +81,19 @@ export default abstract class TagsVfs extends BaseVfs{
     return !!r.changes;
   }
 
-  async getTags(like ?:string):Promise<Tag[]>{
-    let where :string = like?`WHERE tag_name ~* $1::text COLLATE "default"` :"";
-    let args = like ? [like] : [];
+  async getTags({like, offset, limit}: GetTagsParams ={}):Promise<Tag[]>{
+    let args :any[]= [];
+    let fragments = {like: "", offset: "", limit: ""};
+    if(like){
+      fragments.like = `AND tag_name ~* $${args.push(like)}::text COLLATE "default"`
+    }
+    if(typeof limit === "number"){
+      fragments.limit = `LIMIT $${args.push(limit)}`;
+    }
+    if(typeof offset === "number"){
+      fragments.offset = `OFFSET $${args.push(offset)}`;
+    }
+
     return await this.db.all<Tag>(
       `
         SELECT 
@@ -82,16 +101,20 @@ export default abstract class TagsVfs extends BaseVfs{
           COUNT(fk_scene_id) as size
         FROM 
           tags
-        ${where}
+          INNER JOIN scenes ON fk_scene_id = scene_id
+        WHERE scenes.archived IS NULL
+          ${fragments.like}
         GROUP BY name
         ORDER BY name ASC
+        ${fragments.limit}
+        ${fragments.offset}
       `,
       args
     );
   }
 
   /** 
-   * Get all scenes that have this tag, regrdless of permissions
+   * Get all scenes that have this tag, regardless of permissions
    * @fixme the JOIN could be optimized away in this case
    */
   async getTag(name :string):Promise<number[]>
@@ -99,26 +122,31 @@ export default abstract class TagsVfs extends BaseVfs{
   async getTag(name :string, user_id :number | null):Promise<number[]>
   async getTag(name :string, user_id ?:number | null):Promise<number[]>{
 
+    let args:any[] = [name];
+    if(typeof user_id === "number"){
+      args.push(user_id);
+    }
     let scenes = await this.db.all<{scene_id:number}>(`
       SELECT scene_id , scene_name
       FROM tags 
       LEFT JOIN scenes ON fk_scene_id = scene_id
-      LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id ${typeof user_id === "number"?`AND users_acl.fk_user_id = ${user_id}`:""}
-      LEFT JOIN users ON users_acl.fk_user_id = user_id
+      LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id ${args.length == 2 ?`AND users_acl.fk_user_id = $2`:""}
+      LEFT JOIN users ON ( users_acl.fk_user_id = user_id ${args.length == 2 ?`OR user_id = $2`:""} )
       WHERE (
         tags.tag_name = $1
-        ${typeof user_id === "number"? `AND ( 
+        AND scenes.archived IS NULL
+        ${args.length == 2 ? `AND ( 
           users.level = ${UserLevels.ADMIN} OR
           GREATEST(
             users_acl.access_level, 
             CASE WHEN users.level IS NOT NULL THEN scenes.default_access ELSE 0 END,
             public_access
           ) >= ${toAccessLevel("read")}
-        )`: `AND public_access >= ${toAccessLevel("read")}`} 
+        )`: `AND public_access >= ${toAccessLevel("read")}`}
       )
       GROUP BY scene_id , scene_name
       ORDER BY scene_name ASC
-    `, [name]);
+    `, args);
 
     return scenes.map(s=>s.scene_id);
   }

@@ -108,25 +108,8 @@
     {{#each scenes}}
       {{>sceneCard select_form="scene-selection" }}
     {{/each}}
-    <div style="display:flex; justify-content: space-between;margin-top: 1rem;">
-      {{#if pager.previous}}
-        <a class="btn btn-main" id="search-previous" href="{{pager.previous}}">{{i18n "buttons.previous"}}</a>
-      {{else}}
-        <div style="width:100px;"><!--placeholder--></div>
-      {{/if}}
-      <div>
-        {{#if scenes.length}}
-          {{pager.from}}-{{pager.to}}
-        {{else}}
-          {{i18n "leads.noResults"}}
-        {{/if}}
-      </div>
-      {{#if pager.next }}
-        <a class="btn btn-main"id="search-next" href="{{pager.next}}">{{i18n "buttons.next"}}</a>
-      {{else}}
-        <div style="width:100px;"><!--placeholder--></div>
-      {{/if}}
-
-    </div>
+    {{#with pager }}
+    {{> pager }}
+    {{/with}}
   </div>
 </div>
