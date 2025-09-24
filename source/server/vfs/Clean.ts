@@ -18,9 +18,9 @@ export default abstract class CleanVfs extends BaseVfs{
    */
   public async clean(this:Vfs){
     await timers.setTimeout(randomInt(100));
-    let result = this.cleanLooseObjects();
+    let result = await this.cleanLooseObjects();
     if(result) console.log(result);
-    result = this.checkForMissingObjects();
+    result = await this.checkForMissingObjects();
     if(result) console.error(result);
   }
 
