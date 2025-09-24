@@ -216,7 +216,7 @@ L'outil mesure permet de **mesurer la distance entre deux points selectionnés d
 
 |Fonction| Sous-fonction| Description | Animable Visites Guidées |
 |:----------|----------|----------|-----------:|
-|Mesure| Activation| Lorem Ipsum dolor et sit amet| Non|
+|Mesure| Activation| Active la possibilité de mesurer une distance entre deux points définis par l'utilisateur| Non|
 
 Afin d'utiliser cet outil, veuillez tout d'abord le selectionner dans la liste de paramètre d'Outils.
 
