@@ -24,6 +24,14 @@ WIP[Insérer une vidéo de présentation ici]
     * [Décomposer son modèle en plusieurs parties](#décomposer-son-modèle-en-plusieurs-parties)
     * [Mieux comprendre les Derivatives](#cas-particulier-pour-les-dérivatives)
     * [Bien positionner le point de pivot d'un objet](#comment-bien-positionner-le-point-de-pivot-dun-objet)
+* [Les paramètres centraux à modifier](#les-paramètres-centraux-à-modifier)
+    * [Regrouper ses informations via le système de Tag](#quest-ce-quun-tag-)
+    * [Tags d'Annotation](#les-tags-dannotations)
+    * [Tags de Modèle 3D](#les-tags-de-modèles-3d)
+* [Aborder les paramètres de visites guidées](#aborder-les-paramètres-de-visites-guidées)
+    * [Liste des paramètres d'objet et de visite guidée associés](#animer-les-paramètres-dun-objet)
+    * [Pour en savoir plus sur les paramètres de visites guidées](#pour-en-savoir-plus-sur-les-paramètres-de-visites-guidées)
+* [Exercice Pratique](#exercice-pratique-apprendre-pas-à-pas-à-réaliser-la-scène-de-la-serrure)
 
 
 
@@ -180,21 +188,13 @@ Si, pour une raison quelconque, vous souhaiter faire changer l'apparence de votr
 * **Une annotation fixé sur un objet invisible**: cette méthode s'inspire des Controller Null (ou Empty) que l'on retrouve dans l'infographie. Elle consiste à créer un objet dit "récipient" qui accueillera l'annotation, et pourra être placer dans la scène à votre convenance. Ensuite, désactiver le visuel de l'objet dans ses **Paramètres** en plançant l'indicateur **Visible** en **Off**.
 Les annotations, tant qu'elles sont actives dans la scène, resteront visibles, même si l'objet ne l'est pas.
 
-#### Expliquer la fonctionalité de Tags pour modèle 3D afin d'aller plus vite (cf ex: goupilles et ressors)
-
-Paramètrer et animer les objets à la main peut prendre un temps conséquent. Surtout lorseque votre mécanisme contient de nombreuses petites pièces. Heureusement, le système de Tag dans les **Paramètres** de l'objet peut vous épargner beaucoup de clics lors de vos créations d'étapes de Visite Guidée.
-
-Si on prend l'exemple de la serrure: le mécanisme contient une répétition de petits objets similaires. Ici, quatre goupilles, et le même nombre de contre-goupilles et ressors. Si l'on veut que ces douze objets soient invisibles à l'étape 1 pour apparaitre à l'étape 2, il faudrait en toute logique faire autant de clics que d'objets pour chacun de ces changements d'états. 
-
-Heureusement, il est possible de passer outre cette contrainte en utilisant les Tags présents dans les **Paramètres** d'objet. Leurs fonctionnement est tout à fait similaires aux tags d'annotations
-
 ## Les paramètres centraux à modifier
 
-Les translations basées sur la rotation et la position des objets constitue une bonne base pour la mise en scène d'une Visite Guidée. Pour aller plus loin, il est également possible de changer d'autres paramètres, comme la visibilité d'un objet entre deux étapes, par exemple.
+Les translations basées sur la rotation et la position des objets constituent une bonne base pour la mise en scène d'une Visite Guidée. Pour aller plus loin, il est également possible de changer d'autres paramètres, comme la visibilité d'un objet entre deux étapes, par exemple.
 
-Ces apparitions et autre changements de paramètres ne sont pas forcément animable par défaut. Il est important d'activer leurs changements d'états via d'autres paramètres listés ci-après.
+Ces apparitions et autre changements de paramètres ne sont pas forcément animable par défaut. Il est important d'activer leurs changements d'états via d'autres paramètres listés [dans ce point](#animer-les-paramètres-dun-objet).
 
-### Expliquer les Tags
+### Qu'est-ce qu'un Tag ?
 
 Les Tags sont un système de classification pratique qui permet le tri dans l'apparition et la disparition de certaines informations visibles. 
 **Attention**: les Tags de scènes DPO-Voyager sont à ne pas confondre avec les Tags de Collection eCorpus.
@@ -207,29 +207,29 @@ Les Tags d'objets sont particulierements pratiques pour gérer l'apparition et l
 
 #### Les Tags d'Annotations
 
-Si vous avez suivi le guide des Annotations, vous devez savoir qu'elles peuvent être activée ou désactivée dans la scène via l'icône **Annotations** présent à gauche de l'Explorer. 
+Si vous avez suivi le guide des Annotations, vous devez savoir qu'elles peuvent être activées ou désactivées dans la scène via l'icône **Annotations** présent à gauche de l'Explorer. 
 
-Cet état est animable dans les visites guidées, ce qui peut-être fort pratique pour ne pas surcharger la scène d'information. Cependant, il a pour défaut de désactiver toutes les annotations, sans aucune distinction. 
+Cet état est **animable dans les visites guidées**, ce qui peut-être fort pratique pour ne pas surcharger la scène d'information. Cependant, il a pour défaut de désactiver toutes les annotations, sans aucune distinction. 
 
-Grâce au système de Tags, il devient possible de classifier les annotations, pour les faire apparaitre ou disparaitre indépendemment des autres tags.
+**Grâce au système de Tags, il devient possible de classifier les annotations, pour les faire apparaitre ou disparaitre indépendemment des autres tags**.
 
 Par défaut, les annotations n'ont pas de Tags quand elles sont crées. Le conteneur prévu pour recevoir cette information est vide.
 
-<!-- Image d'illustration montrant le paramètre Tag dans une image-->
+<img src="/assets/img/doc/AnimatedTour_Exo_24.jpg" width ="400" alt="Paramètre de Tag dans une annotation" />
 
-Pour ajouter des Tag, pas besoin d'étape de création particulière. Sélectionner l'annotation voulue et écrivez le nom du Tag de votre choix dans le conteneur prévu à cet effet.
+Pour ajouter des Tags, pas besoin d'étape de création particulière. Sélectionner l'annotation voulue et écrivez le nom du Tag de votre choix dans le conteneur prévu à cet effet.
 
-Vous remarquerez l'apparition de ce Tag dans un petit volet en bas de l'Explorer.
+Vous remarquerez l'apparition de ce Tag dans un petit volet en bas de l'Explorer, comme présenté dans l'exemple ci-dessous.
 
-<!-- Image d'illustration montrant le petit volet de Tags en bas de l'Explorer-->
+<img src="/assets/img/doc/AnimatedTour_Exo_23.jpg" width ="700" alt="Exemple d'une annotation et de son Tag affiché dans l'Explorer" />
 
-**Attention** le nom d'un Tag constitue une catégorie d'annotation à afficher visible par tous les spectateurs de la scène. Veuillez donc à faire en sorte que ce nom reflète au mieux la catégorie.
+**Attention** le nom d'un Tag constitue une catégorie d'annotation à afficher visible par tous les spectateurs de la scène. Veuillez donc à faire en sorte que **ce nom reflète au mieux la catégorie** qu'il représente.
 
 Pour afficher un Tag, repérer son nom dans le volet de Tag et cliquer dessus. Le nom s'encadrera en bleu pour montrer son activation et les annotations liées s'afficheront. Le processus est le même pour arrêter l'affichage de ces annotations.
 
-Pour ajouter d'autres annotations à ce Tag, écrivez le même nom dans le paramètre Tag des annotations souhaitées. Faites bien attention à éviter les fautes de frappe: si un nom de Tag n'est pas sictrement identique à un Tag déjà existant, un nouveau Tag sera créé.
+**Pour ajouter d'autres annotations à ce Tag, écrivez le même nom dans le paramètre Tag des annotations souhaitées**. Faites bien attention à éviter les fautes de frappe: si un nom de Tag n'est pas strictement identique à un Tag déjà existant, un nouveau Tag sera créé.
 
-Pour supprimer un Tag, remplacer ou supprimer son nom dans toutes les annotations liées.
+Pour **supprimer un Tag**, remplacer ou **supprimer son nom dans toutes les annotations liées**.
 
 Les annotations n'ayant pas de Tag reste toujours visibles tant que les Annotations globales restent activées.
 
@@ -243,23 +243,25 @@ Le procédé est le même: en écrivant le nom de Tag de votre choix dans le con
 
 _Ce faisant, les Tags de Modèles 3D et d'annotations sont tous les deux traités de la même manière. Il est donc possible d'allier Annotations et Modèles 3D sous le même Tag_
 
-Pour ajouter d'autres annotations à ce Tag, écrivez le même nom dans le paramètre Tag des annotations souhaitées. Faites bien attention à éviter les fautes de frappe: si un nom de Tag n'est pas sictrement identique à un Tag déjà existant, un nouveau Tag sera créé.
+**Pour ajouter d'autres annotations à ce Tag, écrivez le même nom dans le paramètre Tag des annotations souhaitées**. Faites bien attention à éviter les fautes de frappe: si un nom de Tag n'est pas sictrement identique à un Tag déjà existant, un nouveau Tag sera créé.
 
-Pour supprimer un Tag, remplacer ou supprimer son nom dans toutes les annotations liées.
+Pour **supprimer un Tag**, remplacer ou **supprimer son nom dans toutes les annotations liées**.
+
+Grâce à ce système, il est donc possible de **faire apparaitre ou disparaitre plusieurs modèles 3D en un clic** de façon simple et organisée.
 
 ### Aborder les paramètres de visites guidées
 
 Dans un soucis de simplifier la création d'étape des Visites Guidées, toutes les fonctionnalités pouvant être prises en compte dans l'animation de ces-dernières ne sont pas activées par défaut. Par exemple, si vous souhaitez changer la couleur de votre modèle d'une étape à une autre, il vous faudra activer la fonction correspondante dans les **paramètres de visites guidées** au préalable.
 
-<!-- Image représentant la liste d'onglets avec l'icône Visites selectionné-->
+<img src="/assets/img/doc/AnimatedTour_Exo_09.jpg" width ="700" alt="Onglet Visites Guidées en surbrillance" />
 
 Ces **Paramètres** sont disponibles dans l'onglet **"Visites"** en haut de l'Explorer. En bas à gauche, dans la liste des visites guidées créées est disponible une série d'icônes. 
 
-<!-- Image représentant l'icône des paramètres de visites guidées en surbrillance-->
+<img src="/assets/img/doc/AnimatedTour_Exo_11.jpg" width ="400" alt="Onglet Paramètres de Visite Guidée en surbrillance" />
 
 L'icône des paramètres des visites guidéees est représenté par trois barres horizontales, tout à droite de la ligne.
 
-<!-- Image représentant le volet des paramètres de visites guidées-->
+<img src="/assets/img/doc/AnimatedTour_Exo_12.jpg" width ="400" alt="Onglet Paramètres de Visite Guidée en surbrillance" />
 
 Vous remarquerez que trois icônes sont dores et déjà actifs dans cette liste: Reader, Viewer et Navigation. **Il est déconseillé de les désactiver** pour ne pas créer d'erreur dans l'application.
 
@@ -286,7 +288,7 @@ Ils correspondent aux données à prendre en compte lors de la création d'étap
 | | Occlusion| Définit l'intensité de l'Ambiant Occlusion (Accentue artificiellement les ombres dans les recoins et interstices du modèle.) | Models |
 
 
-##### Faire un lien avec le tuto Outils et montrer les paramètres de visite guidée
+##### Pour en savoir plus sur les paramètres de Visites Guidées
 
 De la même manière que les paramètres d'Objet, les paramètres des Outils (Mesure, Coupe, etc...) sont également animable via ces paramètres. Pour en savoir plus, veuillez vous référer à [ce guide](tools.md).
 
@@ -301,7 +303,7 @@ A titre d'exemple pratique, voici un exercice que nous expliquerons pas à pas a
 
 Voici ce que donne la scène une fois cet exercice terminé:
 
-<!-- Pas oublier d'ajouter une Iframe de la scène une fois finie ! -->
+<iframe name="eCorpus Voyager" src="https://ecorpus.holusion.com/ui/scenes/eCorpusTutorial_AnimatedTours/view?lang=FR" width="800" height="450" allow="xr; xr-spatial-tracking; fullscreen"></iframe>
 
 #### Etape 1: Définir la fragmentation de son modèle 3D
 
@@ -328,7 +330,9 @@ Avant toute chose, il est essentiel de bien définir la façon dont sera fragmen
 
 Ce genre de raisonement n'est pas simple et demande de l'expérience, ne vous inquiètez pas si cette partie vous semble encore un peu flou.
 
-Voici un lien de téléchargement contenant les principaux modèles 3D utilisés lors de cet exercice: <!--Ajouter un lien de DL pour modèles 3D -->
+Vous pouvez télécharger les principaux modèles 3D utilisés lors de cet exercice: [En cliquant ici](/assets/3d/ExerciceTuto.zip)
+
+[<img src="/assets/img/doc/AnimatedTour_Exo_25.jpg" width="400" alt="Prévisualisation du modèle de Test" />](/assets/3d/ExerciceTuto.zip)
 
 #### Etape 2: Importer ses modèles 3D dans la scène
 
