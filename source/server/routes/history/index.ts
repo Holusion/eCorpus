@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { canAdmin, canRead } from "../../utils/locals.js";
+import { canAdmin, canRead, canWrite } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 import bodyParser from "body-parser";
@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import { postSceneHistory } from "./post.js";
 import getSceneHistory from "./get.js";
 import handleGetDiff from "./diff/get.js";
+import { handleShowFile } from "./show/get.js";
 
 const router = Router();
 
@@ -21,12 +22,14 @@ router.use((req, res, next)=>{
   next();
 });
 
-router.use("/:scene", canRead);
+router.use("/:scene", canWrite);
 
 router.get("/:scene", wrap(getSceneHistory));
 router.post("/:scene", canAdmin, bodyParser.json(), wrap(postSceneHistory));
 
 router.get("/:scene/:id/diff", wrap(handleGetDiff));
 router.get("/:scene/:id/diff/:from", wrap(handleGetDiff));
+
+router.get("/:scene/:id/show/:name(*)", wrap(handleShowFile));
 
 export default router;

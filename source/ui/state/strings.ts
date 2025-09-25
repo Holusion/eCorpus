@@ -302,6 +302,10 @@ export default {
     restoredTo: {
       fr: "scène restaurée à {point}",
       en: "scene restored to {point}",
+    },
+    viewAtThisPoint: {
+      fr: "Voir la scène à ce moment",
+      en: "View scene at this point",
     }
   },
   errors:{

@@ -69,7 +69,7 @@ a{
     background-color: var(--color-secondary);
 
     &:hover:not([disabled]){
-      background-color: var(--color-secondary);
+      background-color: var(--color-secondary-light);
     }
   }
 
@@ -120,6 +120,7 @@ a{
     &:hover:not([disabled]){
       box-shadow: none !important;
     }
+
     &.btn-primary{
       color: var(--color-primary);
       &:hover:not([disabled]){
@@ -127,6 +128,17 @@ a{
         color: var(--color-primary-light);
       }
     }
+
+    &.btn-secondary {
+      color: var(--color-secondary);
+
+      &:hover:not([disabled]){
+        color: var(--color-secondary-light);
+      }
+    }
+
+
+
     &.btn-danger {
       color: var(--color-error);
       &:hover:not([disabled]){

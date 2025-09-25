@@ -1,4 +1,4 @@
-import { LitElement, TemplateResult, html, render } from 'lit';
+import { LitElement, TemplateResult, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 import Notification from "../composants/Notification";
@@ -10,11 +10,8 @@ import "../composants/HistoryAggregation";
 
 import i18n from "../state/translate";
 import { withUser } from "../state/auth";
-import { navigate } from "../state/router";
-import { AccessType, AccessTypes, Scene } from "../state/withScenes";
-import HttpError from "../state/HttpError";
+import { AccessType } from "../state/withScenes";
 import { HistoryEntry, HistoryEntryJSON } from "../composants/HistoryAggregation";
-import { createDialog, showFormModal, showTaskModal } from '../state/dialog';
 
 
 
@@ -36,6 +33,8 @@ interface AccessRights{
   @property()
   name :string;
 
+  @property({attribute: true, type: Boolean})
+  write: boolean = false;
 
   @property({attribute: false, type:Array})
   versions : HistoryEntry[];
@@ -52,7 +51,7 @@ interface AccessRights{
   createRenderRoot() {
       return this;
   }
-    
+
   public connectedCallback(): void {
       super.connectedCallback();
       this.fetchHistory();
@@ -87,7 +86,7 @@ interface AccessRights{
             <h1></h1>
         </div>`;
       }
-      return html`<history-aggregation .entries=${this.versions} .scene=${this.name} @restore=${this.onRestore}></history-aggregation>`;
+      return html`<history-aggregation .entries=${this.versions} .scene=${this.name} ?write=${this.write} @restore=${this.onRestore}></history-aggregation>`;
   }
 
   onRestore = (e :CustomEvent<number>)=>{

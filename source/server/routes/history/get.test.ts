@@ -45,6 +45,7 @@ describe("GET /history/:scene", function(){
 
     it("get a scene's history", async function(){
       let res = await request(this.server).get("/history/foo")
+      .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -61,6 +62,7 @@ describe("GET /history/:scene", function(){
 
     it("get text history", async function(){
       let res = await request(this.server).get("/history/foo")
+      .auth(user.username, "12345678")
       .set("Accept", "text/plain")
       .expect(200)
       .expect("Content-Type", "text/plain; charset=utf-8");
@@ -70,11 +72,13 @@ describe("GET /history/:scene", function(){
     it("get an empty history", async function(){
       await vfs.createScene("empty", user.uid);
       let res = await request(this.server).get("/history/empty")
+      .auth(user.username, "12345678")
       .expect(200);
     });
 
     it("can ?limit results", async function(){
       let res = await request(this.server).get("/history/foo?limit=1")
+      .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -86,6 +90,7 @@ describe("GET /history/:scene", function(){
 
     it("can ?offset results", async function(){
       let res = await request(this.server).get("/history/foo?limit=1&offset=1")
+      .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -95,11 +100,11 @@ describe("GET /history/:scene", function(){
       ]);
     });
 
-    describe("requires read access", function(){
+    describe("requires write access", function(){
       this.beforeAll(async function(){
         await vfs.createScene("private", user.uid);
-        await userManager.setPublicAccess("private", "none");
-        await userManager.setDefaultAccess("private", "none");
+        await userManager.setPublicAccess("private", "read");
+        await userManager.setDefaultAccess("private", "read");
       });
       it("(anonymous)", async function(){
         await request(this.server).get("/history/private")

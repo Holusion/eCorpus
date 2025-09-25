@@ -394,7 +394,7 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
   });
 });
 
-routes.get("/scenes/:scene/history", canAdmin, wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   let vfs = getVfs(req);
   //scene_name is actually already validated through canAdmin
   let {scene:scene_name} = req.params;
@@ -403,8 +403,26 @@ routes.get("/scenes/:scene/history", canAdmin, wrap(async (req, res)=>{
   res.render("history", {
     title: `eCorpus: History of ${scene_name}`,
     name: scene_name,
-  })
+    canAdmin: res.locals.access === "admin",
+  });
 }))
+
+routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
+  let vfs = getVfs(req);
+  //scene_name is actually already validated through canAdmin
+  let {scene:scene_name, id} = req.params;
+  let scene = await vfs.getScene(scene_name);
+  let thumb = new URL(`/scenes/${encodeURIComponent(scene_name)}/scene-image-thumb.jpg`, getHost(req));
+  
+  res.render("explorer", {
+    title: `eCorpus: History of ${scene_name}`,
+    layout: "viewer",
+    scene: scene_name,
+    thumb: thumb.toString(),
+    referrer: `/ui/scenes/${scene.name}/history`,
+    scenePath: `/history/${encodeURIComponent(scene.name)}/${encodeURIComponent(id)}/show/`,
+  })
+}));
 
 routes.get("/standalone", (req, res)=>{
   let host = getHost(req);

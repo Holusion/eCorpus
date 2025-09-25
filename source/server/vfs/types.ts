@@ -25,7 +25,7 @@ export interface GetFileParams extends CommonFileParams{
   /**Also return deleted files */
   archive ?:boolean;
   generation ?:number;
-  //SELECT FOR UPDATE, use only within a transaction
+  /**SELECT FOR UPDATE, use only within a transaction. Might solve some transaction serialization troubles */
   lock?: boolean;
 }
 

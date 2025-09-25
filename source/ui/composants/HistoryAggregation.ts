@@ -77,6 +77,9 @@ function bucketize(entries :HistoryEntry[], duration :number= (1/3)*24*60*60*100
 export class HistoryEntryAggregate extends i18n(LitElement){
   #c = new AbortController();
 
+  @property({attribute: true, type: Boolean })
+  write: boolean = false;
+
   @property({attribute: false, type: String})
   scene :string;
 
@@ -85,6 +88,9 @@ export class HistoryEntryAggregate extends i18n(LitElement){
 
   @property({attribute: "aria-selected", reflect: true})
   ariaSelected: "true"|"false" = "false";
+
+  @property({attribute: true, reflect: true, type: Boolean})
+  highlighted: boolean = false;
 
   @state()
   diff ?:Partial<EntryDiff>;
@@ -111,13 +117,20 @@ export class HistoryEntryAggregate extends i18n(LitElement){
       this.diff = await r.json();
     }).catch(e=>{
       if(e.name === "AbortError") return;
-      console.error(e);
+      console.error("Diff request failed: ", e.message);
       this.diff = {diff: `Error failing diff : ${e.message}`}
     });
   }
 
   connectedCallback(): void {
-    this.classList.add("history-entry-line")
+    this.classList.add("history-entry-line");
+    let {activeId} = window.history.state ?? {};
+    console.log("Active ID:", activeId);
+    if(activeId &&  this.id == activeId){
+      this.highlighted = true;
+    }else if(activeId && this.id.length < activeId.length && activeId.startsWith(this.id)){
+      this.ariaSelected = "true"
+    }
     super.connectedCallback();
   }
 
@@ -167,23 +180,25 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     
     return html`<div class="history-entry-diff-block">
       <p>
-        ${(src.size !=0 && src.size != dst.size)?  html`
+        ${(src?.size && src.size != dst.size)?  html`
           Size changed from
           <span class="text-info"><b-size b=${src.size}></b-size></span>
           to
           <span class="text-info"><b-size b=${dst.size}></b-size></span>
           .
         ` : null}
-        ${(new Date(src.ctime).valueOf() != 0)? html`Previous version was saved on <span class="text-info">${new Date(src.ctime).toLocaleString(this.language)}</span>`:null}
+        ${(src?.ctime && new Date(src.ctime).valueOf() != 0)? html`Previous version was saved on <span class="text-info">${new Date(src.ctime).toLocaleString(this.language)}</span>`:null}
       </p>
       ${diffBlock}
     </div>`;
   }
 
-  
+  /**
+   * Renders a summary of this aggregation.
+   * Adds appropriate expand/collapse buttons and actions
+   */
   protected renderSummary({id, name, restorePoint, authoredBy, from, to}:HistorySummary){
     const selected = this.ariaSelected === "true";
-    
     const expand = (this.entries.length === 1)?html`
       <ui-button @click=${this.toggleSelect} class="btn btn-small btn-transparent btn-inline" text=${selected?"⌃":"⌄"}></ui-button>
     `: html`
@@ -196,7 +211,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     </div>`: null;
     
     const longAction = selected && this.entries.length === 1
-    const action = html`<div style="display: flex;justify-content: end;">
+    const action = this.write? html`<div class="history-actions" style="display: flex;justify-content: end;">
       <ui-button
         style="margin-top:-1px"
         class="btn btn-primary ${(longAction)?"btn-outline":"btn-small btn-transparent hover-only"} btn-rollback"
@@ -207,7 +222,12 @@ export class HistoryEntryAggregate extends i18n(LitElement){
         }}
         icon="restore"
       ></ui-button>
-    </div>`;
+      <a href="history/${restorePoint}/view" 
+        @click=${(e)=>e.stopPropagation()}
+        title="${this.t("info.viewAtThisPoint")}" class="btn btn-secondary btn-small btn-transparent btn-inline">
+        <ui-icon name="eye"></ui-icon>
+      </a>
+    </div>`:"";
 
     const toDate = (to.valueOf() != from.valueOf())? html` - <span style="opacity:0.75; font-size: 90%; font-family: monospace">${to.toLocaleTimeString(this.language)}</span>`: null;
     
@@ -228,6 +248,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     ${showDiff}
     `;
   }
+
 
   protected renderEntry(entry:HistoryEntry){
     const selected = this.ariaSelected === "true";
@@ -261,7 +282,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     const selected = this.ariaSelected === "true";
 
     if(selected){
-      return bucketize(entries).map((bucket, index)=>html`<history-entry-aggregate id=${this.id+"-"+index.toString(10)} role="treeitem" aria-disabled=${index ===0? this.getAttribute("aria-disabled"): "false"} .scene=${this.scene} .entries=${bucket}></history-entry-aggregate>`);
+      return bucketize(entries).map((bucket, index)=>html`<history-entry-aggregate  ?write=${this.write} id=${this.id+"-"+index.toString(10)} role="treeitem" aria-disabled=${index ===0? this.getAttribute("aria-disabled"): "false"} .scene=${this.scene} .entries=${bucket}></history-entry-aggregate>`);
     }
 
 
@@ -303,6 +324,10 @@ export class HistoryEntryAggregate extends i18n(LitElement){
 
 @customElement("history-aggregation")
 export default class HistoryAggregation extends i18n(LitElement){
+
+  @property({attribute: true, type: Boolean })
+  write: boolean = false;
+
   @property({attribute: false, type: String})
   scene :string;
 
@@ -325,7 +350,7 @@ export default class HistoryAggregation extends i18n(LitElement){
         • ${this.t("info.changeDay", {date: day[0].ctime.toLocaleDateString(this.language)})}
       </h4>
       <div class="history-day-content">
-        <history-entry-aggregate role="treeitem" aria-selected="${1 <day.length?"true":"false"}" .scene=${this.scene} .entries=${day} id=${"day-group-"+index.toString(10)} aria-disabled=${index === 0? "true":"false"}></history-entry-aggregate>
+        <history-entry-aggregate ?write=${this.write} role="treeitem" aria-selected="${1 <day.length?"true":"false"}" .scene=${this.scene} .entries=${day} id=${"day-group-"+index.toString(10)} aria-disabled=${index === 0? "true":"false"}></history-entry-aggregate>
       </div>
       <span class="caret" @click=${handleCollapse}></span>
     </div>`;
@@ -412,10 +437,20 @@ export default class HistoryAggregation extends i18n(LitElement){
           }
         }
 
+        &:has(> .history-point > .history-actions:focus-within) {
+          border: 1px solid var(--color-primary);
+          border-left-width: 0.7rem;
+          & .btn-rollback.hover-only{
+            opacity: 1;
+          }
+        }
+
         &[aria-disabled="true"] {
           border-top-color: transparent !important;
-          > .history-point .btn-rollback {
+          > .history-point .history-actions .btn {
             opacity: 0 !important;
+            pointer-events: none;
+            cursor: auto;
           }
         }
 
