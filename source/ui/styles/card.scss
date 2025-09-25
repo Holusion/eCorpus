@@ -13,6 +13,7 @@
   border-radius: 4px;
   overflow: hidden;
 
+
   &:hover{
     background-color: var(--color-highlight);
     border-color: var(--color-highlight2);
@@ -51,7 +52,11 @@
     @at-root .list-grid & {
       flex-direction: column;
     }
+    @at-root .scene-card-compact & {
+      max-height: var(--card-height);
+    }
   }
+
 
 
   .infos{
@@ -61,6 +66,7 @@
     align-items: baseline;
     flex-direction: column;
     align-self: stretch;
+    max-height: 100%;
   }
 
   .tools{
@@ -89,17 +95,27 @@
     display: flex;
     align-self: stretch;
     width: 100%;
+    max-height: 100%;
   }
 
   .card-title{
     flex: 0 1 auto;
     min-width: 0;
+    max-height: 100%;
     margin:0;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     &:hover{
       color: var(--color-secondary-light);
+    }
+    @at-root .list-grid-compact &{
+      display: -webkit-inline-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow-wrap: break-word;
+      white-space: wrap;
     }
   }
 

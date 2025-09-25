@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import { InternalError, UnauthorizedError } from "./errors.js";
-import { either, validateRedirect } from "./locals.js";
+import { either, isEmbed, validateRedirect } from "./locals.js";
 
 //Dummy middlewares
 function pass(req :Request, res :Response, next :NextFunction){
@@ -107,5 +107,44 @@ describe("validateRedirect()", function(){
     .expect(500);
     expect(res.text).to.equal("[400] Bad Redirect parameter");
   });
+
+});
+
+describe("isEmbed()", function(){
+  let app: Express;
+  this.beforeAll(function(){
+    app = express();
+    app.get("/", (req, res)=>{
+      res.status(200).send(isEmbed(req));
+    });
+  });
+
+  it("defaults to false", async function(){
+    await request(app).get("/").expect("false");
+  });
+
+  it("respects explicit \"embed\" query param", async function(){
+    await request(app).get("/?embed").expect("true");
+    await request(app).get("/?embed=true").expect("true");
+    await request(app).get("/?embed=1").expect("true");
+    await request(app).get("/?embed=foo").expect("true");
+
+    await request(app).get("/?embed=false").expect("false");
+    await request(app).get("/?embed=0").expect("false");
+  });
+
+  it("respects \"Sec-Fetch-Dest\" header", async function(){
+    //This will generally be the only interesting value
+    await request(app).get("/").set("Sec-Fetch-Dest", "iframe").expect("true");
+    //Other embed Sec-Fetch-Dest values. Most are not expected to happen too often, but supported just in case.
+    await request(app).get("/").set("Sec-Fetch-Dest", "frame").expect("true");
+    await request(app).get("/").set("Sec-Fetch-Dest", "fencedframe").expect("true");
+    await request(app).get("/").set("Sec-Fetch-Dest", "embed").expect("true");
+
+    //Other common Sec-Fetch-Dest that should return false
+    await request(app).get("/").set("Sec-Fetch-Dest", "document").expect("false");
+    await request(app).get("/").set("Sec-Fetch-Dest", "empty").expect("false");
+
+  })
 
 })

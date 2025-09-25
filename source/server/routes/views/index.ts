@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical, isEmbed } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -49,6 +49,7 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
     location: req.originalUrl,
     search,
     brand: config.brand,
+    embeddable: req.originalUrl.startsWith("/ui/") && ("scene" in req.params || "tag" in req.params),
     canonical: canonical(req).toString(),
     root_url: canonical(req, "/").toString(),
   });
@@ -173,7 +174,10 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
       let scene =  await vfs.getScene(id,  requester ? requester.uid : null);
       return mapScene(req, scene);
     }))
+  const embedded = isEmbed(req);
   res.render("tag", {
+    layout: embedded? "embed": "main",
+    embedded,
     title: "eCorpus "+tag,
     tag,
     scenes,

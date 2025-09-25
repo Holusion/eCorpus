@@ -208,3 +208,13 @@ export function validateRedirect(req :Request, redirect :string|any): URL{
   }
 
 }
+
+/**
+ * Tries to determine if a request is for embedded content
+ * @param req 
+ */
+export function isEmbed(req :Request) :boolean{
+  if(typeof req.query.embed === "string") return req.query.embed != "0" && req.query.embed != "false";
+  if(typeof req.headers["sec-fetch-dest"] === "string") return req.headers["sec-fetch-dest"].indexOf("frame") !== -1 || req.headers["sec-fetch-dest"] === "embed";
+  return false;
+}
