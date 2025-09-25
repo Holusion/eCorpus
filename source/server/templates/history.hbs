@@ -3,5 +3,5 @@
 <div class="section">
   <h2><a href="/ui/scenes/{{encodeURIComponent name}}">{{name}}</a></h2>
   <p>{{{i18n "leads.historyEdition"}}}</p>
-  <scene-history name="{{name}}"></scene-history>
+  <scene-history name="{{name}}" {{#if canAdmin}}write{{/if}}></scene-history>
 </div>

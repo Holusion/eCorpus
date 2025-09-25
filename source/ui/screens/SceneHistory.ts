@@ -33,6 +33,8 @@ interface AccessRights{
   @property()
   name :string;
 
+  @property({attribute: true, type: Boolean})
+  write: boolean = false;
 
   @property({attribute: false, type:Array})
   versions : HistoryEntry[];
@@ -84,7 +86,7 @@ interface AccessRights{
             <h1></h1>
         </div>`;
       }
-      return html`<history-aggregation .entries=${this.versions} .scene=${this.name} @restore=${this.onRestore}></history-aggregation>`;
+      return html`<history-aggregation .entries=${this.versions} .scene=${this.name} ?write=${this.write} @restore=${this.onRestore}></history-aggregation>`;
   }
 
   onRestore = (e :CustomEvent<number>)=>{

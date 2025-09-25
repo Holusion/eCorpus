@@ -34,6 +34,7 @@ describe("GET /history/:scene/:id/diff", function(){
     await vfs.writeFile(dataStream(["Hello\n"]), {scene:scene_id, name:"hello.txt", user_id: 0, mime: "text/plain"});
     let ref = await vfs.writeFile(dataStream(["Hello World\n"]), {scene:scene_id, name:"hello.txt", user_id: 0, mime: "text/plain"});
     let res = await request(this.server).get(`/history/foo/${ref.id}/diff`)
+    .auth(user.username, "12345678")
     .set("Accept", "text/plain")
     .expect(200)
     .expect("Content-Type", "text/plain; charset=utf-8");
@@ -44,6 +45,7 @@ describe("GET /history/:scene/:id/diff", function(){
       await vfs.writeDoc(`{"label":"foo"}`, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
       let ref = await vfs.writeDoc(`{"label":"bar"}`, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
       let res = await request(this.server).get(`/history/foo/${ref.id}/diff`)
+    .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -58,6 +60,7 @@ describe("GET /history/:scene/:id/diff", function(){
       await vfs.writeDoc(docString, {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
       let ref = await vfs.writeDoc(JSON.stringify(doc2), {scene: scene_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json", user_id: 0});
       let res = await request(this.server).get(`/history/foo/${ref.id}/diff`)
+      .auth(user.username, "12345678")
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");

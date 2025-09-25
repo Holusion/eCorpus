@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { canAdmin, canRead } from "../../utils/locals.js";
+import { canAdmin, canRead, canWrite } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 import bodyParser from "body-parser";
@@ -22,7 +22,7 @@ router.use((req, res, next)=>{
   next();
 });
 
-router.use("/:scene", canRead);
+router.use("/:scene", canWrite);
 
 router.get("/:scene", wrap(getSceneHistory));
 router.post("/:scene", canAdmin, bodyParser.json(), wrap(postSceneHistory));
