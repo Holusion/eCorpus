@@ -1,0 +1,17 @@
+{{!scene repesentation. Give it a `Scene` interface. Optionally, provide a `compact` boolean parameter or `url` string parameter }}
+<a id="scene-{{id}}" href="/ui/scenes/{{encodeURIComponent name}}/view" class="scene-card scene-card-compact">
+  <div class="card-image"  title="{{i18n "labels.view"}}">
+    {{#if thumb }}
+      <img src="{{thumb}}" />
+    {{else}}
+      <img style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg" />
+    {{/if}}
+  </div>
+  <div class="scene-card-inner">
+    <div class="infos">
+      <div class="card-header">
+        <h4 class="card-title">{{name}}</h4>
+      </div>
+    </div>
+  </div>
+</a>
