@@ -4,12 +4,14 @@ on:
     branches:
       - '**'
       - '!gh_pages'
+permissions:
+  contents: read
 concurrency: 
   group: build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build-ui:
-    name: UI
+    name: UI Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,12 +19,10 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 22
           cache: 'npm'
-      - name: install voyager dependencies
-        run: (cd source/voyager && npm ci --legacy-peer-deps)
-      - name: install ui dependencies
-        run: npm ci && (cd source/ui && npm ci)
+      - name: install dependencies
+        run: npm ci
       - name: build UI
         run: npm run build-ui
       - uses: actions/upload-artifact@v4
@@ -32,14 +32,43 @@ jobs:
           if-no-files-found: error
           retention-days: 1
   build-server:
-    name: Server
+    name: Server Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: install dependencies
+        run: npm ci
+      - name: build server
+        run:  npm run build-server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "server"
+          path: |
+            source/server/dist/*
+            !source/server/dist/*.test.js
+            !source/server/dist/*.test.js.map
+            !source/server/dist/__test_fixtures/**
+            source/server/package.json
+            source/server/package-lock.json
+            source/server/migrations/
+            source/server/templates/
+            source/server/LICENSE.md
+          retention-days: 1
+  run-tests:
+    name: Server tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16, 18, 20, 22]
+        node-version: [18, 20, 22]
     services:
       postgres:
-        image: postgres
+        image: postgres:16 #version 16 is required by ubuntu
         ports:
           - 5432:5432
         env:
@@ -67,26 +96,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - name: install
-        run: npm ci && (cd source/server && npm ci)
+        run: npm ci
       - name: test
-        run: (cd source/server && npm test)
-      - name: build
-        run:  npm run build-server
-      - uses: actions/upload-artifact@v4
-        if: matrix.node-version == 22
-        with:
-          name: "server"
-          path: |
-            source/server/dist/*
-            !source/server/dist/*.test.js
-            !source/server/dist/*.test.js.map
-            !source/server/dist/__test_fixtures/**
-            source/server/package.json
-            source/server/package-lock.json
-            source/server/migrations/
-            source/server/templates/
-            source/server/LICENSE.md
-          retention-days: 1
+        run: npm test
 
   pack:
     name: Pack tarball
@@ -115,7 +127,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:16
         ports:
           - 5432:5432
         env:

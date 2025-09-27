@@ -2,13 +2,14 @@
   "name": "e-corpus",
   "version": "0.0.1",
   "description": "3D model database and content management system with integrated annotations and stories 3D editor",
+  "type": "commonjs",
   "scripts": {
-    "start": "cd source/server/ && ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start",
-    "test": "cd source/server/ && npm test",
-    "build-ui": "cd source/ui && webpack --mode=production",
+    "start": "ROOT_DIR=\"$(pwd)\" EXPERIMENTAL=1 CLEAN_DATABASE=0 npm -w source/server/ start",
+    "test": "npm  -w source/server/ test",
+    "build-ui": "npx -w source/ui webpack --mode=production",
     "build-server": "tsc -b source/server",
     "watch-server": "tsc -b source/server --watch",
-    "watch-ui": "cd source/ui && webpack --watch --mode=development",
+    "watch-ui": "npx -w source/ui webpack --watch --mode=development",
     "watch": "NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon npm start\""
   },
   "author": "Holusion <contact@holusion.com>",
@@ -34,5 +35,10 @@
       "source/server/dist",
       "source/server/migrations"
     ]
-  }
+  },
+  "workspaces": [
+    "source/server",
+    "source/ui",
+    "source/voyager"
+  ]
 }
