@@ -3,7 +3,9 @@ title: Ajouter des Articles
 rank: 5
 ---
 
-## Aller plus loin dans la substance
+# Articles
+
+## Aller plus loin dans vos contenus
 
 Si, nous l'avons vu dans le tutoriel précèdent, les annotations sont l'outil parfait pour enrichir sémantiquement sa scène, la contrainte de n'avoir qu'un nombre limité de caractère peut s'avérer bloquante. C'est ici que les articles prennent toute leur importance: grâce à cette fonctionnalité, ils vous ait possible de rentrer en profondeur dans l'explication de votre sujet. De plus, il vous ait également possible d'enrichir votre texte d'images, de tableaux, ainsi que de vidéo pour illustrer de manière optimale votre propos.
 

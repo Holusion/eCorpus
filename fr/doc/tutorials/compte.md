@@ -3,6 +3,8 @@ title: Connexion à eCorpus
 rank: 1
 ---
 
+# Gestion de compte
+
 ## Votre compte eCorpus
 
 Ce guide vous décrira pas à pas comment vous connecter pour la première fois sur votre base de donnée eCorpus, et vous expliquera les principales fonctionnalités lié à votre compte utilisateur.

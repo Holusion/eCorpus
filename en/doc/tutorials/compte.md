@@ -3,6 +3,8 @@ title: Logging in to eCorpus
 rank: 1
 ---
 
+# Account management
+
 ## Your eCorpus Account
 
 This guide will walk you through how to log in to your eCorpus database for the first time and introduce you to the key features available through your user account.

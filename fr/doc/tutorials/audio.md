@@ -3,16 +3,19 @@ title: Ajouter une narration Audio
 rank: 7
 ---
 
+# Elements sonores
+
 ## Placer l'immersion au coeur de votre médiation
 
 Souvent delaissé à tord, la narration audio est un véritable atout dans l'immersion du visiteur. Avec ce guide, vous apprendrez comment ajouter et mettre en avant des pistes audio dans votre scène eCorpus.
 
 ## Présentation de la fonction Audio
 
-WIP [Insérer une vidéo de présentation ici]
+<iframe src="https://pod.univ-lille.fr/video/43709-creation-de-contenus-audio-pour-ecorpus/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="Création de contenus audio pour eCorpus" ></iframe>
 
-<iframe name="eCorpus Voyager" src="https://ecorpus.holusion.com/ui/scenes/BoulogneSurMer_Gargouille/view?lang=FR" width="800" height="450" allow="xr; xr-spatial-tracking; fullscreen"></iframe>
-
+## Tester une scène audio sur eCorpus
+{% include voyager.html embed="BoulogneSurMer_Gargouille" server="https://ecorpus.holusion.com" class="h-100" %}
+    
 ### Sommaire
 
 * [Importer des pistes audio](#importer-des-pistes-audio-dans-une-scène-ecorpus)

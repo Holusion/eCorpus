@@ -3,6 +3,8 @@ title: Créer une scène
 rank: 3
 ---
 
+# Création de scènes
+
 ## Prise en main d'eCorpus
 
 eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser des modèles 3D. Cet ensemble de tutoriel a pour but de vous permettre de **découvrir les fonctionnalités d'eCorpus** en tant qu'utilisateur, éditeur et administrateur.

@@ -3,6 +3,8 @@ title: Creating a Scene
 rank: 3
 ---
 
+# Model import and scene creation
+
 ## Getting Started with eCorpus
 
 eCorpus is **open-source software** designed to preserve, annotate, and share 3D models. This series of tutorials is intended to help you **explore the features of eCorpus** as a user, editor, and administrator.

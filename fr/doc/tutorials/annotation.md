@@ -3,7 +3,9 @@ title: Ajouter des Annotations
 rank: 4
 ---
 
-## Lié un vocabulaire à un visuel
+# Annotations
+
+## Lier un vocabulaire à un visuel
 
 Grâce à sa fonctionnalité avancée d'annotations, eCorpus vous offre la possibilité de lier un lexique précis à une partie de votre modèle 3D de **manière simple et intuitive**. Cette fonction permet un **enrichissement sémantique** simple et efficace. Il rend accessible les **thermes techniques** et autre **iconographie** à l'utilisateur, sert à **mettre en valeur les détails** peu accessibles pour un oeil non aguérri, et plus encore.
 
