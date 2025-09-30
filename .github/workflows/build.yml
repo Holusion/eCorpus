@@ -48,9 +48,9 @@ jobs:
       - name: test HTML validity
         run: >
           bundle exec htmlproofer _site/ 
-          --disable-external true 
-          --enforce-https false
-          --allow-missing-href=true
+          --disable-external  
+          --no-enforce-https
+          --allow-missing-href
           --log-level :debug
       - name: Upload artifact
         if: ${{ github.ref == 'refs/heads/gh_pages' }}
