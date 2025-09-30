@@ -21,7 +21,7 @@
       </form>
       {{/unless}}
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
-      {{#if (test user.level "==" "admin")}}
+      {{#if (test (test user.level "==" "admin") "||" (test user.level "==" "manage"))}}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
       <div class="divider"></div>

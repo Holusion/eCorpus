@@ -4,6 +4,7 @@ lang:
   en: Anglais
 labels:
   optional: optionnel
+  scene: Scène
   sceneTitle: titre de la scène
   selectFile: sélectionner un fichier
   selectFile_s: sélectionner un ou plusieurs fichiers
@@ -100,6 +101,7 @@ nav:
   administration: administration
   adminRecap: récapitulatif
   adminUsers: utilisateurs
+  adminGroups: groupes
   adminStats: statistiques
   adminArchives: archives
   reportBug: signaler un bug
@@ -108,6 +110,7 @@ nav:
 
 titles:
   myScenesSection: mes scenes
+  myGroups: Mes groupes
   homeHeader: système de gestion de scènes 3D
   mtimeScenesSection: scènes modifiées récemment
   ctimeScenesSection: scènes ajoutées récemment

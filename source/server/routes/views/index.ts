@@ -3,9 +3,7 @@ import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrato
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
-import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
-import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { locales } from "../../utils/templates.js";
@@ -271,10 +269,13 @@ routes.get("/user", wrap(async (req, res)=>{
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
+  const userManager = getUserManager(req);
+  const groups = await userManager.getGroupsOfUser(user?.uid);
   let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
   res.render("user", {
     title: "eCorpus User Settings",
     archives,
+    groups
   });
 }));
 

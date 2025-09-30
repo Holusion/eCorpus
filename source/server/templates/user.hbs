@@ -58,39 +58,52 @@
     </div>
   </div>
 
-  <div class="archived-scenes section" style="flex-grow: 1;">
-  <h2>{{i18n "titles.archives"}}</h2>
-    <table class="list-table">
-      <thead><tr>
-        <th class="sm-hidden">{{i18n "fields.mtime"}}</th>
-        <th>{{i18n "fields.name"}}</th>
-        <th></th>
-      </tr></thead>
-      <tbody>
-      {{#unless archives.length}}
-        <tr><td colspan=4 style="text-align: center;">{{i18n "leads.noArchives"}}</td></tr>
-      {{/unless}}
-      {{#each archives}}
-        <tr>
-          <td class="sm-hidden">{{dateString mtime}}</td>
-          <td ><a href="/ui/scenes/{{encodeURIComponent name }}">{{name}}</a></td>
-          <td>
-            <submit-fragment  action="/scenes/{{encodeURIComponent name }}" encoding="application/json" onsubmit="this.closest('tr')?.remove();">
-              <form class="form-control" style="display:flex; justify-content:end;gap:.6rem;">
-                <input type="hidden" name="archived", value="false"/>
-                <button data-formmethod="PATCH" role="submit" class="btn btn-small btn-transparent btn-inline text-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
-                  <ui-icon name="plus"></ui-icon>
-                </button>
-                <button data-formmethod="DELETE" role="submit" class="btn btn-small btn-transparent btn-inline text-error" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}" >
-                  <ui-icon name="trash"></ui-icon>
-                </button>
-              </form>
-              <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
-            </submit-fragment>
-          </td>
-        </tr>
-      {{/each}}
-      </tbody>
-    </table>
+  <div style="flex-grow: 1;">
+    <div class="section">
+      <h2>{{i18n "titles.myGroups"}}</h2>
+      <div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: .5rem;justify-content:center;">
+        {{#each groups}}
+         <a class="btn" style="overflow: hidden; text-overflow:ellipsis" href="/ui/groups/{{encodeURIComponent groupName}}">
+            {{groupName}}
+          </a>
+        {{/each}}
+      </div>
+    </div>
+    
+    <div class="archived-scenes section">
+      <h2>{{i18n "titles.archives"}}</h2>
+      <table class="list-table">
+        <thead><tr>
+          <th class="sm-hidden">{{i18n "fields.mtime"}}</th>
+          <th>{{i18n "fields.name"}}</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+        {{#unless archives.length}}
+          <tr><td colspan=4 style="text-align: center;">{{i18n "leads.noArchives"}}</td></tr>
+        {{/unless}}
+        {{#each archives}}
+          <tr>
+            <td class="sm-hidden">{{dateString mtime}}</td>
+            <td ><a href="/ui/scenes/{{encodeURIComponent name }}">{{name}}</a></td>
+            <td>
+              <submit-fragment  action="/scenes/{{encodeURIComponent name }}" encoding="application/json" onsubmit="this.closest('tr')?.remove();">
+                <form class="form-control" style="display:flex; justify-content:end;gap:.6rem;">
+                  <input type="hidden" name="archived", value="false"/>
+                  <button data-formmethod="PATCH" role="submit" class="btn btn-small btn-transparent btn-inline text-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
+                    <ui-icon name="plus"></ui-icon>
+                  </button>
+                  <button data-formmethod="DELETE" role="submit" class="btn btn-small btn-transparent btn-inline text-error" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}" >
+                    <ui-icon name="trash"></ui-icon>
+                  </button>
+                </form>
+                <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
+              </submit-fragment>
+            </td>
+          </tr>
+        {{/each}}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>

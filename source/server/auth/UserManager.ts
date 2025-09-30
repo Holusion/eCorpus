@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import crypto, { randomBytes } from "crypto";
 import path from "path";
-import {promisify, callbackify} from "util";
+import {promisify} from "util";
 
 import uid, { Uid } from "../utils/uid.js";
 import { BadRequestError, ConflictError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
@@ -331,7 +331,7 @@ export default class UserManager extends DbController {
         ]);
       }catch(e:any){
         if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_user_id"){
-          throw new NotFoundError(`User ID can't be null`);
+          throw new NotFoundError( (typeof user === "number")? `User ID can't be null` : `Invalid username ${user}`);
         }else if(e.code === errors.foreign_key_violation && e.table === "users_acl" && e.constraint === 'users_acl_fk_user_id_fkey'){
           throw new NotFoundError(`Invalid user ID ${user}`);
         }else if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_scene_id"){
@@ -548,6 +548,14 @@ export default class UserManager extends DbController {
       SELECT * FROM groups`)).map(group => new Group(group)));
   }
 
+  async getGroupsOfUser(user_id: number): Promise<Group[]> {
+    return ((await this.db.all<{ group_id: number, group_name: string }>(`
+      SELECT * 
+      FROM groups
+      JOIN groups_membership ON groups_membership.fk_group_id = group_id
+      WHERE fk_user_id = $1
+      `,[user_id])).map(group => new Group(group)));
+  }
 
   async addMemberToGroup(user: number | string, group: number | string) {
     let group_id = `(${(typeof group === "number") ? `SELECT $1::bigint AS group_id` : `SELECT group_id FROM groups WHERE group_name = $1`})`;

@@ -161,7 +161,7 @@
                           
               <tr>    
                {{#if (test @root.access "!=" "admin") }}
-                     <td class="text-main" title="{{i18n "labels.public_access"}}">{{i18n "labels.publicAccess"}}</td>
+                     <td class="text-main" title="{{i18n "labels.publicAccess"}}">{{i18n "labels.publicAccess"}}</td>
                      <td class="text-main" >{{i18n (join "fields." @root.scene.public_access) @root.scene.public_access}}</td>
                    {{else }}
                      <td title="{{i18n "labels.username"}}">{{i18n "labels.publicAccess"}}</td>
@@ -186,7 +186,7 @@
   
               <tr>    
                {{#if (test @root.access "!=" "admin") }}
-                     <td class="text-main" title="{{i18n "labels.default_access"}}">{{i18n "labels.defaultAccess"}}</td>
+                     <td class="text-main" title="{{i18n "labels.defaultAccess"}}">{{i18n "labels.defaultAccess"}}</td>
                      <td class="text-main" >{{i18n (join "fields." @root.scene.default_access) @root.scene.default_access}}</td>
                    {{else }}
                      <td title="{{i18n "labels.username"}}">{{i18n "labels.defaultAccess"}}</td>
@@ -212,7 +212,7 @@
               {{#each groupPermissions}}
               <tr>
                 {{#if (test @root.access "!=" "admin") }}
-                <td class="text-main" title="{{i18n "labels.username"}}">{{groupName}}</td>
+                <td class="text-main" title="{{i18n "labels.group"}}">{{groupName}}</td>
                 <td class="text-main">{{i18n (join "fields." access) access}} </td>
                 {{else if (test (test username "==" @root.user.username) "&&" (test "!" (test @root.user.level "=="
                 "admin")))}}

@@ -14,7 +14,7 @@
           form.action = action_url;
           window.location.reload()">
         <label class="form-item">
-          <input id="new-member" type="text" value="" placeholder="{{i18n " fields.username"}}" />
+          <input id="new-member" type="text" value="" placeholder="{{i18n "labels.username"}}" />
           <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
         </label>
       </form>
@@ -36,7 +36,7 @@
             <submit-fragment method="DELETE" action="/groups/{{@root.name}}/{{this}}" encoding="application/json"
               onsubmit="window.location.reload()">
               <form>
-                <button role="submit" class="btn btn-inline btn-icon btn-danger" aria-label="{{i18n " labels.delete"}}">
+                <button role="submit" class="btn btn-inline btn-icon btn-danger" aria-label="{{i18n "labels.delete"}}">
                   <ui-icon name="trash"></ui-icon>
                 </button>
               </form>
@@ -63,8 +63,8 @@
             form.action = action_url;">
         <div class="form-item, row">
           <input type="hidden" name="groupName" value="{{name}}" />
-          <input id="sceneName" name="sceneName" placeholder="{{i18n " labels.scene"}}" />
-          <select name="access" aria-label="{{i18n " labels.permission"}}">
+          <input id="sceneName" name="sceneName" placeholder="{{i18n "labels.scene"}}" />
+          <select name="access" aria-label="{{i18n "labels.permission"}}">
             <option disabled selected value> -- select an option -- </option>
             {{> inputs/option selected=false value="none" text=(i18n "fields.removeSpecificAccess")}}
             {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
@@ -91,7 +91,7 @@
       <tbody>
         {{#each scenes}}
         <tr>
-          <td title="{{i18n " labels.scene"}}">{{scene}}</td>
+          <td title="{{i18n "labels.scene"}}"><a href="/ui/scenes/{{encodeURIComponent scene}}"><h4 style="margin:0">{{scene}}</h4></a></td>
           {{#if @root.manageAccess}}
           <td class="form-control">
             <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
@@ -99,7 +99,7 @@
               onsubmit="window.location.reload()">
               <form class="form-item" style="flex-grow: 1;" autocomplete="off">
                 <input type="hidden" name="groupName" value="{{@root.name}}" />
-                <select name="access" aria-label="{{i18n " labels.permission"}}">
+                <select name="access" aria-label="{{i18n "labels.permission"}}">
                   {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n
                   "fields.removeSpecificAccess")}}
                   {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
