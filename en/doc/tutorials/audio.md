@@ -45,7 +45,7 @@ In this regard, two approaches are possible:
 
 * **Narration serves as an introduction to the scene**. It can provide the main semantic information, invite the user to start guided tours, or serve as ambient sound to facilitate user immersion. The rest of the sound information will then be provided in the form of audio tracks linked to annotations.
 
-* **Narration compiles all the information given about the presented work**. Excerpts from this general track can then be provided with context in the form of audio tracks linked to annotations. This is the case, for example, with the Gargoyle scene, [given as an example above](#présentation-de-la-fonction-audio).
+* **Narration compiles all the information given about the presented work**. Excerpts from this general track can then be provided with context in the form of audio tracks linked to annotations. This is the case, for example, with the Gargoyle scene, [given as an example above](#test-an-audio-scene-on-ecorpus).
 
 The preparation of the tracks is therefore done according to the desired staging. It is still recommended to keep one sound track containing all the different parts of the script. This so-called "Master" track will ensure easy editing for possible sound adjustments or fragmentation of tracks via a third-party audio processing software.
 

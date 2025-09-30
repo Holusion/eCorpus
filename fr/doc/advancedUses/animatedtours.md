@@ -290,7 +290,7 @@ Ils correspondent aux données à prendre en compte lors de la création d'étap
 
 ##### Pour en savoir plus sur les paramètres de Visites Guidées
 
-De la même manière que les paramètres d'Objet, les paramètres des Outils (Mesure, Coupe, etc...) sont également animable via ces paramètres. Pour en savoir plus, veuillez vous référer à [ce guide](tools.md).
+De la même manière que les paramètres d'Objet, les paramètres des Outils (Mesure, Coupe, etc...) sont également animable via ces paramètres. Pour en savoir plus, veuillez vous référer à [ce guide](tools).
 
 
 ### Exercice pratique: apprendre pas à pas à réaliser la scène de la serrure
