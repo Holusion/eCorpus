@@ -3,6 +3,8 @@ title: Créer une scène
 rank: 3
 ---
 
+# Création de scènes
+
 ## Prise en main d'eCorpus
 
 eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser des modèles 3D. Cet ensemble de tutoriel a pour but de vous permettre de **découvrir les fonctionnalités d'eCorpus** en tant qu'utilisateur, éditeur et administrateur.
@@ -17,6 +19,7 @@ eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser d
 
 ### Sommaire
 
+* [Créer une scène eCorpus](#créer-une-scène-ecorpus)
 * [Gérer les options de scène](#découvrir-les-options-de-gestion-de-scène)
     * [Visualiser sa scène](#le-bouton-voir)
     * [Editer sa scène](#le-bouton-editer)
@@ -26,10 +29,33 @@ eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser d
     * [Les contrôles de base](#les-contrôles-de-base)
     * [Créer une image de miniature](#créer-une-image-de-miniature)
     * [Recentrer un objet dans la scène](#centrer-son-modèle-automatiquement)
+* [Partager facilement sa scène](#pouvoir-partager-facilement-sa-scène-ecorpus)
+    * [Implémenter la scène sur une page Web](#permettre-laffichage-de-la-scène-sur-une-page-web)
 * [En savoir plus](#en-savoir-plus)
 
 
 ## Préparation d'une scène eCorpus
+
+### Créer une scène eCorpus
+
+#### Comment générer et mettre en ligne votre modèle 3D
+Pour **charger un modèle 3D** sur votre compte eCorpus, il vous suffit de vous rendre la page principal de votre base de donnée. Vous pouvez notamment vous y rendre en cliquant sur le logo affiché en haut à gauche de la page.
+
+<img src="/assets/img/doc/SceneCreation_01.jpg" width ="800" alt="illustration connexion" />
+
+Vous trouverez un onglet "**Tools**" en haut à gauche dans lequel s'imbrique 3 boutons. Cliquez sur le bouton "**Créer une scène**". La page changera pour afficher les paramètres de création de scènes eCorpus.
+
+<img src="/assets/img/doc/SceneCreation_06.jpg" width ="100%" alt="paramètre création de scène" />
+
+Une fois rendu, cliquez sur le bouton "**Choisir un fichier**". Un pop-up apparaîtra vous demandant de sélectionnier dans vos documents le fichiers à téléverser sur la base de données.
+
+* *Vous pouvez également glisser déposer le fichier à téléverser directement sur l'onglet*
+
+Enfin, nommez votre scène (ce nom sera directement visible dans l'URL, par conséquent, veuillez éviter les caractères spéciaux), sélectionner la langue par défaut de votre, et cliquer sur le bouton "**créer une scène**" pour lancer l'import de votre modèle 3D dans la base de données.
+
+
+* Seule l'extension .glb est utilisable sur l'editeur eCorpus. Pour apprendre à exporter un modèle en .glb, veuillez vous réferrer [au point suivant](#découvrir-les-options-de-gestion-de-scène).
+* Si vous êtes administrateur sur votre base de données eCorpus, il vous est possible d'importer des scènes eCorpus (préalablement téléchargement d'une autre base de données eCorpus, par exemple) directement sous format .zip. Pous savoir comment télécharger une scène sous format .zip, veuillez vous rendre sur [ce point](#télécharger-la-scène).
 
 ### Découvrir les options de gestion de scène
 
@@ -111,12 +137,10 @@ Télécharger votre scène eCorpus permet, par exemple:
 
 * de récupérer les modèles de votre base de donnée pour une utilisation quelquonque (impression 3D, édition du modèle, etc...);
 * de copier votre scène sur une autre base de données eCorpus;
-* de charger votre scène sur####  Aperçu rapide de l'interface de Voyager Story 
- une vitrine holographique interactive.
 
 ##### Historique
 
-Il permet d'avoir accèse à l'historique d'édition de la scène. 
+Il permet d'avoir accès à l'historique d'édition de la scène. 
 
 Il témoigne de chaque changement effectué sur la scène depuis sa création. 
 Si vous avez sauvegardé une mauvaise version de votre scène, vous pouvez restaurer une version précédente à cette modification en survolant une étape de l'historique et en cliquant sur "restaurer".
@@ -128,6 +152,17 @@ Si vous avez sauvegardé une mauvaise version de votre scène, vous pouvez resta
 
 **Attention, cliquer sur "restaurer à" ne supprimera pas les changements: de nouvelles entrées seront ajoutées à la date présente pour restaurer la scène dans l'état ou elle était à la date indiquée**
 
+##### Ajouter sa scène dans une collection précise
+
+Il est tout à fait possible de créer et de gérer des collections de scènes eCorpus en fonction des besoins, grâce à la création et à la gestion de **Tags**. 
+
+
+En haut à droite de la fenêtre de gestion des Droits d'accès ([comme illustré dans ce point](#administrer-sa-scène)) se trouve le lien cliquable **"Modifier les tags"**. Il vous suffit de cliquer dessus pour y faire apparaître un bouton vous permettant de modifier les tags associés à cette scène.
+
+<img src="/assets/img/doc/AdminSettings_04.jpg" width ="90%" alt="illustration création tag" />
+
+* Si vous souhaitez inclure la scène dans **une collection déjà existante**, cliquez sur la flêche du menu déroulant et sélectionnez le nom correspondant au tag que vous souhaitez associer.
+* Si vous souhaitez inclure la scène dans une **collection qui n'existe pas encore**, cliquez directement dans la barre du menu déroulant pour y entrer le nom souhaité pour votre collection. Une fois le nom entré, cliquer sur l'icône **+** juste à droite pour créer la collection et y associé d'emblé la scène.
 
 ### Les bases pour bien paramètrer sa scène rapidement
 
@@ -236,6 +271,32 @@ Vous recentrer facilement votre modèle, il vous suffit de cliquer sur le bouton
 Il se peut que le recentrage automatique ne suffise pas à règler les problèmes de placement. Pour replacer votre modèle manuellement, il vous suffit de changer les valeurs dans les emplacements de Position. 
 
 Un tutoriel avancé sur l'édition du point de pivot de votre objet sera bientôt disponible sur la plateforme.
+
+
+## Pouvoir partager facilement sa scène eCorpus
+
+Une fois votre scène créée et paramétrée selon votre souhait, il vous ait possible de la partager. Pour cela, plusieurs solutions sont possibles:
+
+#### Partager le lien du visualisateur
+
+La première solution est également la plus simple: il s'agit de se rendre sur le visualisateur de la scène eCorpus (bouton **"Voir"**) et de copier coller le lien pour le partager ensuite sur des publications de réseau sociaux (type LinkedIn).
+
+**Attention: afin que la scène soit visible au public non identifié, veuillez à bien indiquer "Lecture" dans les droits d'accès intitulé "Accès Public" de la scène en question**
+
+#### Permettre l'affichage de la scène sur une page Web
+
+Cette solution permet l'affichage d'une scène eCorpus dans une page Web. Chaque scène eCoprus possède une icône de **Partage**, situé à gauche de l'Explorer, permettant la copie d'un code "Iframe".
+[Vous trouverez ici la liste des icônes de l'Explorer](#pour-explorer-votre-scène)
+
+Il suffit donc de récupérer de copier coller ce colle dans le code de votre page, à l'endroit souhaité.
+
+**Attention: afin que la scène soit visible au public non identifié, veuillez à bien indiquer "Lecture" dans les droits d'accès intitulé "Accès Public" de la scène en question**
+
+#### Partager la scène à ses collègues vient les droits d'administration
+
+Si ils possèdent un compte sur votre base de données eCorpus, il est tout à fait possible de partager votre scène à vos collègue pour une lecture seule. Il vous suffit simplement de changer les **droits d'accès** de votre scène en y ajoutant le nom d'utilisateur de la personne souhaité, comme [montré dans ce point](#administrer-sa-scène).
+
+La scène s'affichera alors dans la liste de cet utilisateur.
 
 
 ## En savoir plus

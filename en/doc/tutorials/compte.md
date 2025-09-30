@@ -1,99 +1,98 @@
 ---
-title: Login to eCorpus
+title: Logging in to eCorpus
 rank: 1
 ---
 
+# Account management
+
 ## Your eCorpus Account
 
-<iframe src="https://pod.univ-lille.fr/video/40132-connexion-sur-une-base-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="LogIn on an eCorpus base" ></iframe>    
-  
-### Summary
+This guide will walk you through how to log in to your eCorpus database for the first time and introduce you to the key features available through your user account.
 
-* [URL and access to your data base](#url-and-access-to-your-data-base)
-* [LogIn to your Account](#login-to-your-account)
+<iframe src="https://pod.univ-lille.fr/video/40132-connexion-sur-une-base-ecorpus/?is_iframe=true" width="800" height="450" style="padding: 0; margin: 0; border:0" allowfullscreen title="Logging in to an eCorpus database" ></iframe>    
+
+### Table of Contents
+
+* [Database URL and Access](#database-url-and-access)
+* [Logging into Your Account](#logging-into-your-account)
 * [Your eCorpus Account](#your-ecorpus-account-1)
-    * [Load a 3D model on your eCorpus account](#load-a-3d-model-on-your-ecorpus-account)
-    * [Retrieve your password](#retreive-your-password)
-* [Contact](#test-ecorpus)
+    * [Password Recovery](#password-recovery)
+    * [Uploading a 3D Model to Your eCorpus Account](#uploading-a-3d-model-to-your-ecorpus-account)
+* [Contact](#testing-ecorpus)
 * [Learn More](#learn-more)
 
-### URL and access to your data base
+### Database URL and Access
 
-To function, an eCorpus server must be set up. eCorpus is **decentralized** and operates on **independent** instances of each other to guarantee everyone's full **data sovereignty**. **Data remains interoperable** and can be easily exchanged between users.
+To operate, an eCorpus server must be set up. eCorpus is **decentralized** and works through **independent instances** to ensure full **data sovereignty** for each organization. **Data remains interoperable** and can easily be shared between users.
 
-* To **create your own eCorpus server**, you can refer to the section: <a href="../../hosting/deployment.html">Installing an eCorpus server</a>.
+* To **set up your own eCorpus server**, refer to the section: <a href="../hosting/deployment">Setting Up an eCorpus Server</a>.
 
-If your organization has an eCorpus server, contact your advisor or an administrator to create your account.
+If your organization already hosts an eCorpus server, contact your local reference person or administrator to create an account.
 
-* **If you are an administrator** of an eCorpus instance, you can consult the tutorials: <a href="../advancedUses/userAdministration">User administration</a> and <a href="../advancedUses/exportData">Exporting your data</a>.
+* **If you are an administrator** of an eCorpus instance, you can refer to the following tutorials: <a href="../advancedUses/userAdministration">User Management</a> and <a href="../advancedUses/exportData">Data Export</a>.
 
-### LogIn to your Account
+### Logging into Your Account
 
-Each eCorpus instance is independent and dedicated to an institution. To log in, use the URL provided by your administrator.
+Each eCorpus instance is independent and tied to a specific institution. To log in, use the URL provided by your administrator.
 
-<img src="/assets/img/doc/Account_Connect_01.jpg" width ="700" alt="illustration connexion"/>
+<img src="/assets/img/doc/Account_Connect_01.jpg" width="700" alt="Login illustration"/>
 
-When you arrive at the URL of your eCorpus database, simply **enter your identifiers** in the spaces provided for this purpose to connect. You can also log in directly through a login link provided by your administrator.
-* If you no longer remember your login details, you can click on the "**forgotten password**" link to receive an email to log in to your account.
+Once on the eCorpus database URL, simply **enter your login credentials** in the designated fields to sign in. You may also be provided with a direct login link by your administrator.
 
-<img src="/assets/img/doc/Account_Connect_02.jpg" width ="700" alt="illustration connexion"/>
+* If you’ve forgotten your credentials, click the "**Forgot Password**" link to receive an email with a login link to your account.
 
-Once connected, you will have access to the 3D scenes that you have created, as well as those that have been shared with you by other users.
+<img src="/assets/img/doc/Account_Connect_02.jpg" width="700" alt="Login illustration"/>
 
-You will notice that your username appears at the very top right of the page. Click on it to access your **user profile settings**. There you can modify your username, your email address associated with the account, change your password, access your archived scenes and log out.
+Once logged in, you will have access to the 3D scenes you’ve created, as well as those shared with you by other users.
+
+You will see your username displayed in the top right corner of the page. Click on it to access your **user profile settings**, where you can update your username, email address, change your password, view archived scenes, and log out.
 
 ## Your eCorpus Account
 
-### Load a 3D model on your eCorpus Account
+### Password Recovery
 
-#### How to generate and upload your 3D model
+If you forget your password, you can request a new login link at any time by clicking on "Forgot Password" at the bottom right of the login panel.
 
-To **load a 3D model** to your eCorpus account, simply go to the main page of your database. You can get there by clicking on the logo displayed at the top left of the page.
+<img src="/assets/img/doc/Account_Connect_04.jpg" width="400" alt="Password recovery illustration" />
 
-<img src="/assets/img/doc/SceneCreation_01.jpg" width ="800" alt="illustration connexion" />
+After clicking the link, simply enter either your eCorpus username or the email address associated with your account, and a new login form will be automatically sent to you by email.
 
-You will find a "**Tools**" tab at the top left in which 3 buttons fit. Click on the “**Create scene**” button. The page will change to display the eCorpus scene creation settings.
+* **Don’t forget to change your password afterward for security reasons.**
 
-<img src="/assets/img/doc/SceneCreation_06.jpg" width ="100%" alt="paramètre création de scène" />
+To **change your password**, go to your user settings by clicking on your username at the top right of the page.
 
-Once there, click on the “**Choose file**” button. A pop-up will appear asking you to select from your documents the files to upload to the database.
+<img src="/assets/img/doc/Account_Connect_03.jpg" width="800" alt="User settings illustration"/>
 
-* *You can also drag and drop the file to upload directly onto the tab*
+On this page, you can update your username, email address, and password.
 
-Finally, name your scene (this name will be directly visible in the URL, therefore, please avoid special characters), select your default language, and click on the "**create scene**" button to start importing your 3D model into the database.
+You will also find a **Log Out** button at the bottom of the page.
 
+### Uploading a 3D Model to Your eCorpus Account
 
-* Only the .glb extension can be used on the eCorpus editor. To learn how to export a model to .glb, please refer to this guide: <a href="../advancedUses/models/model">SetUp your 3D Model</a>.
+#### How to Generate and Upload a 3D Model
 
-### Retreive your password
+To **upload a 3D model** to your eCorpus account, go to the homepage of your database. You can do this by clicking on the logo at the top left of the page.
 
-If you forget your password, you can request a new connection link at any time by clicking on "forgotten password" at the bottom right of the tab provided to enter your login.
-<img src="/assets/img/doc/Account_Connect_04.jpg" width ="400" alt="illustration connexion" />
+<img src="/assets/img/doc/SceneCreation_01.jpg" width="800" alt="Homepage navigation" />
 
+At the top left, you will find a "**Tools**" tab containing three buttons. Click the "**Create Scene**" button. The page will then display the eCorpus scene creation settings.
 
-Once clicked, all you need to do is enter either your eCorpus identifier or the email address associated with your account so that a new form will be automatically sent to you by email.
+<img src="/assets/img/doc/SceneCreation_06.jpg" width="100%" alt="Scene creation settings" />
 
+Next, click on "**Choose a file**". A pop-up will appear prompting you to select a file from your device to upload to the database.
 
-* **If you lose your password, don't forget to change it**
+* *You can also drag and drop the file directly into the tab.*
 
-To do this, simply go to your user settings, by clicking on your user name at the top right of the page.
-<img src="/assets/img/doc/Account_Connect_03.jpg" width ="800"  alt="illustration connexion"/>
+Finally, name your scene (this name will appear in the URL, so avoid special characters), select the default language, and click the "**Create Scene**" button to begin importing your 3D model into the database.
 
+* Only `.glb` files are supported in the eCorpus editor. To learn how to export a model in `.glb` format, refer to this guide: <a href="../advancedUses/models/model">Preparing Your 3D Model</a>.
 
-On this page, you can change your username, the email address associated with your account, as well as your password.
+## Testing eCorpus
 
-
-You will also find a button to **LogOut** at the bottom of the page.
-
-## Test eCorpus
-
-Contact the eCorpus team to help you set up a dedicated eCorpus server <hello@ecorpus.eu>
-
-
-
+Contact the eCorpus team for support in setting up a dedicated eCorpus server: <hello@ecorpus.eu>
 
 ## Learn More
-If you want to learn more about eCorpus features, you can visit this guide: <a href="../advancedUses/models/model">SetUp your 3D Model</a>.
 
+To explore additional features of eCorpus, visit the guide: <a href="../advancedUses/models/model">Preparing Your 3D Model</a>.
 
-* [Return to top of page](#your-ecorpus-account)
+* [Back to top](#your-ecorpus-account)

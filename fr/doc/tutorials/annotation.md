@@ -3,7 +3,9 @@ title: Ajouter des Annotations
 rank: 4
 ---
 
-## Lié un vocabulaire à un visuel
+# Annotations
+
+## Lier un vocabulaire à un visuel
 
 Grâce à sa fonctionnalité avancée d'annotations, eCorpus vous offre la possibilité de lier un lexique précis à une partie de votre modèle 3D de **manière simple et intuitive**. Cette fonction permet un **enrichissement sémantique** simple et efficace. Il rend accessible les **thermes techniques** et autre **iconographie** à l'utilisateur, sert à **mettre en valeur les détails** peu accessibles pour un oeil non aguérri, et plus encore.
 
@@ -35,7 +37,7 @@ Gérer le moteur d'annotation, ajouter du contenu, les organiser et les animer.
 eCorpus est très pratique pour **enrichir sémantiquement** sa scène 3D. Pour ce faire, voyons d'abord comment fonctionne le système d'annotation.
 
 
-Si des annotation ont été ajoutées dans une scène 3D, un **icône annontation** sera visible dans le visualisateur 3D. Il vous suffit alors de cliquer sur cet icône pour faire apparaître ou disparaître les annotations.
+Si des annotation ont été ajoutées dans une scène 3D, un **icône annotation** sera visible dans le visualisateur 3D. Il vous suffit alors de cliquer sur cet icône pour faire apparaître ou disparaître les annotations.
 
 
 _Notez que chaque annotation est lié a un modèle 3D. Il ne peut donc pas y avoir d'annotation "dans le vide"._
@@ -162,6 +164,6 @@ Pour fonctionner, vérifiez préalablement que l'article que vous voulez lier a 
 
 Si vous souhaitez apprendre à créer des articles, rendez-vous dans ce guide: <a href="article">Créer des articles</a>.
 
-* [Revenir en haut de la page](#lié-un-vocabulaire-à-un-visuel)
+* [Revenir en haut de la page](#lier-un-vocabulaire-à-un-visuel)
 
 

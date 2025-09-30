@@ -3,6 +3,8 @@ title: Add Guided Tours
 rank: 6
 ---
 
+# Tours
+
 ## Add a guideline to your experience
 
 Guided tours of eCorpus scenes are the perfect tool to provide a guideline for your subjects. Thanks to it, you will be able to highlight not only your articles and your annotations in the desired order, but also energize and guide the reading of the scene by presenting precise points of view of one or more objects.

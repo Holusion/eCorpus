@@ -3,7 +3,7 @@ title: Getting started with eCorpus
 rank: 0
 ---
 
-## Getting started with eCorpus
+# Getting started with eCorpus
 
 eCorpus is free software for preserving, annotating and distributing 3D models. This tutorial set is intended to allow you to discover the functionalities of eCorpus as a user, editor and administrator.
 

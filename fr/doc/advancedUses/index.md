@@ -1,6 +1,6 @@
 ---
 title: Utilisation avancée
-rank: 0
+rank: 1
 ---
 
 ## Les modèles 3D
@@ -10,6 +10,8 @@ rank: 0
 * [Préparer un modèle 3D](models/model)
 * [Optimiser un modèle 3D](models/optimizing_models)
 * [Guide avancé sur les matériaux](models/materials)
+* [Guide avance sur les visites guidées](animatedtours)
+* [Guide sur les outils Voyager](tools)
 
 
 ## Gestion de vos données

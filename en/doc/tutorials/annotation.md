@@ -3,6 +3,8 @@ title: Add Annotations
 rank: 4
 ---
 
+# Annotations
+
 ## Link a vocabulary to a visual
 
 Thanks to its advanced annotation feature, eCorpus allows you to link a precise lexicon to a part of your 3D model **in a simple and intuitive way**. This function enables **efficient semantic enrichment** making **technical terms** and **iconography** accessible to a user. It helps **highlight details** that may be difficult to notice for an untrained eye, and much more.

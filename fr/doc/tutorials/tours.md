@@ -3,6 +3,8 @@ title: Ajouter des Visites Guidées
 rank: 6
 ---
 
+# Visites guidées
+
 ## Ajouter une ligne directrice à l'experience
 
 Les visites guidées des scènes eCorpus sont le parfait outil pour offrir une ligne directrice à vos sujets. Grâce à lui, vous pourrez mettre en lumière, non seulement vos articles et vos annotations dans l'ordre désiré, mais aussi dynamiser et orienter la lecture de la scène en présentant des points de vus précis d'un ou plusieurs objets.
@@ -82,10 +84,8 @@ eCorpus crée automatiquement des transitions entre les différentes étapes. La
 
 ## En savoir plus
 
-Vous venez à bout des tutoriels vous apprenant les bases d'eCorpus, félicitations !
+Pour finaliser la médiation de votre scène en y ajoutant une narration immersive, vous pouvez vous rendre sur ce dernier guide de base: [Ajouter de l'Audio](audio)
 
-Les possibilités qu'offrent eCorpus sont nombreuses, et n'ont pas toutes été citées. Une catégorie de guides avancés vous attendent pour en découvrir encore plus.
-
-Apprenez-en plus sur les possibilités de visites guidées en suivant ce guide avancé: GUIDE A VENIR
+Apprenez-en plus sur les possibilités de visites guidées en suivant ce guide avancé: [Apprendre à animer ses modèles via les Visites Guidées](../advancedUses/animatedtours).
 
 * [Revenir en haut de la page](#ajouter-une-ligne-directrice-à-lexperience)

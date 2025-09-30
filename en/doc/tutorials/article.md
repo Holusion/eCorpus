@@ -3,6 +3,8 @@ title: Add Articles
 rank: 5
 ---
 
+# Articles
+
 ## Go deeper into substance
 
 If, as we saw in the previous tutorial, annotations are the perfect tool to semantically enrich your scene, the constraint of having only a limited number of characters can be too limited. This is where the articles take on their importance: thanks to this functionality, they allow you to go in-depth into the explanation of your subject. In addition, you can also enrich your text with images, tables, as well as video to optimally illustrate your point.
