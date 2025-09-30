@@ -164,6 +164,6 @@ Pour fonctionner, vérifiez préalablement que l'article que vous voulez lier a 
 
 Si vous souhaitez apprendre à créer des articles, rendez-vous dans ce guide: <a href="article">Créer des articles</a>.
 
-* [Revenir en haut de la page](#lié-un-vocabulaire-à-un-visuel)
+* [Revenir en haut de la page](#lier-un-vocabulaire-à-un-visuel)
 
 

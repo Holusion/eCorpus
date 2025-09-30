@@ -115,4 +115,4 @@ Vous pouvez vérifier la langue de votre scène en bas à droite de la fenêtre 
 ## En savoir plus
 Si vous souhaitez en apprendre plus sur les fonctionnalités d'eCorpus, vous pouvez vous rendre sur ce guide: <a href="tours">Créer des visites guidées</a>.
 
-* [Revenir en haut de la page](#aller-plus-loin-dans-la-substance)
+* [Revenir en haut de la page](#aller-plus-loin-dans-vos-contenus)

@@ -25,8 +25,8 @@ eCorpus is **open-source software** designed to preserve, annotate, and share 3D
 * [Scene Setup Essentials](#scene-setup-essentials)
     * [Quick Overview of Voyager Story Interface](#quick-overview-of-voyager-story-interface)
     * [Basic Controls](#basic-controls)
-    * [Create a Thumbnail Image](#create-a-thumbnail-image)
-    * [Auto-Center Your Model](#auto-center-your-model)
+    * [Create a Thumbnail Image](#create-a-thumbnail-picture)
+    * [Auto-Center Your Model](#center-your-model-automatically)
 * [Learn More](#learn-more)
 
 ## Preparing an eCorpus Scene
@@ -171,7 +171,7 @@ At the top right of the Access Rights panel, click **"Edit Tags"** to assign or 
 </div>
   
 
-####  The basic Controls
+#### basic controls
 
 <img src="/assets/img/doc/SceneEdition_01.jpg" width ="800" alt="illustration importation" />
 

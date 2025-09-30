@@ -6,7 +6,7 @@ rank: 9
 
 ## Apprendre à animer des mises en scène grâce aux Visites Guidées
 
-Les visites guidées constituent un outil important de DPO-Voyager de par son utilité et sa grande adaptabilité. Si ce n'est pas encore fait, nous vous invitons à apprendre les bases de la création d'une visite guidée via [ce guide](../tutorials/tours.md).
+Les visites guidées constituent un outil important de DPO-Voyager de par son utilité et sa grande adaptabilité. Si ce n'est pas encore fait, nous vous invitons à apprendre les bases de la création d'une visite guidée via [ce guide](../tutorials/tours).
 
 Par essence, les visites guidées servent à donner une trame narrative à une scène eCorpus. Les étapes servent le plus souvent à mettre en évidence différents points de vue d'un même modèle, inciter la lecture d'articles ou d'annotation... Toutefois, il est également possible d'aller plus loin, en y animant des parties d'un objet afin de montrer son fonctionnement, par exemple.
 
@@ -22,7 +22,7 @@ WIP[Insérer une vidéo de présentation ici]
 * [Ce qu'il faut savoir](#ce-quil-faut-savoir)
     * [Comprendre les transitions de translation d'objet](#un-peu-plus-dexplications-sur-les-translations)
     * [Décomposer son modèle en plusieurs parties](#décomposer-son-modèle-en-plusieurs-parties)
-    * [Mieux comprendre les Derivatives](#cas-particulier-pour-les-dérivatives)
+    * [Mieux comprendre les Derivatives](#cas-particulier-pour-les-derivatives)
     * [Bien positionner le point de pivot d'un objet](#comment-bien-positionner-le-point-de-pivot-dun-objet)
 * [Les paramètres centraux à modifier](#les-paramètres-centraux-à-modifier)
     * [Regrouper ses informations via le système de Tag](#quest-ce-quun-tag-)
@@ -104,10 +104,10 @@ Pour reprendre l'exemple de la Serrure: chaque objet effectuant un mouvement ind
 **Par soucis d'organisation, il n'est pas nécessaire de décomposer toutes les petites parties d'un mécanisme**. Ici, le barillet, le panneton et le fond du stator (réprésentés en violet) sont bien trois parties différentes, qui ont pourtant été exportées dans le même glb: les trois parties ont la même translation au même moment (rotation au moment du tournage de clef). Il est donc plus facile de faire une seule translation et de n'avoir qu'un glb à gérer que trois glb différents sur lequel on applique trois fois la même translation.
 
 
- ##### Cas particulier pour les Dérivatives 
+##### Cas particulier pour les derivatives 
  <!-- Changer sa place >> peut-être dans l'apprentissage des paramètre de visite guidée ? // Voir même carrément le transférer sur un autre guide ???-->
 
-Cas particulier: DPO-Voyager gère ce que l'on appelle des **Dérivatives**. Ce sont des états d'objet qui servent à définir sa qualité. Un seul objet dans la scène peut donc avoir plusieurs glb de différentes qualités.
+Cas particulier: DPO-Voyager gère ce que l'on appelle des **Derivatives**. Ce sont des états d'objet qui servent à définir sa qualité. Un seul objet dans la scène peut donc avoir plusieurs glb de différentes qualités.
 
 Ces qualités sont:
 
@@ -116,7 +116,7 @@ Ces qualités sont:
 * **Medium**: Qualité médiante. La géométrie reste de bonne qualité, les textures sont de moindres qualités.
 * **Low**: Qualité basse. Le modèle reste beau de loin, mais montre des lacunes au zoom.
 * **Ultra Low**: Qualité la plus basse. Est utilisé lorsque l'objet est visible de loin: il garde une bonne silouhette et permet de bonnes performances.
-* **AR**: Pour Augmented Reality. Est utilisé pour appliquer la fonctionnalité Réalité Augmentée à la scène. Vous pouvez en savoir plus sur [ce guide](../advancedUses/augmented_reality.md).
+* **AR**: Pour Augmented Reality. Est utilisé pour appliquer la fonctionnalité Réalité Augmentée à la scène. Vous pouvez en savoir plus sur [ce guide](../advancedUses/augmented_reality).
 
 Les utilisations de dérivatives sont très courantes dans le jeu vidéo ou dans l'affichage Web, car ils permettent se modifier le LoD (Level of Detail) en fonction des capacités du matériel utilisateur, par exemple.
 
@@ -150,7 +150,7 @@ Par conséquent, centrer un objet au centre de la scène dans sa configuration i
 
 <!-- Insérer des images d'illustration montrant différents placements de Pose d'un objet et l'emplacement conséquentiel de son point de pivot-->
 
-**A noter** ce changement de configuration se fait uniquement dans l'onglet **"Pose"** du mode Edit de DPO-Voyager. Vous pouvez en savoir plus sur cet outil dans [ce guide](..//tutorials/import.md). 
+**A noter** ce changement de configuration se fait uniquement dans l'onglet **"Pose"** du mode Edit de DPO-Voyager. Vous pouvez en savoir plus sur cet outil dans [ce guide](..//tutorials/import). 
 
 **Astuce** Si vous souhaitez repositionner le point de pivot sur votre objet sans pour autant changement son emplacement dans la scène, vous pouvez "compenser" les modifications apportés par les changements de **Pose** en éditant les **Paramètres** de Position de votre objet.
 
@@ -177,7 +177,7 @@ Il est donc important de **penser à sortir de votre visite guidée** (en termin
 
 ##### Petite note pour rappeler que les annotations se font par modèles 3D et qu'il faut des fois les refaire ??? (tester la création d'objet nuls pour avoir des annotation "flottantes" et voir si ça change quelque chose)
 
-Un point important à considérer dans ces animations sont les annotations. Si vous avez déjà lu le [guide sur les annotations](../tutorials/annotation.md) vous n'êtes pas sans savoir que chaque annotation est liée a un modèle 3D. Par conséquent, elles suivent les translations de ces modèles.
+Un point important à considérer dans ces animations sont les annotations. Si vous avez déjà lu le [guide sur les annotations](../tutorials/annotation) vous n'êtes pas sans savoir que chaque annotation est liée a un modèle 3D. Par conséquent, elles suivent les translations de ces modèles.
 
 Si, pour une raison quelconque, vous souhaiter faire changer l'apparence de votre objet, tout en gardant son annotation liée, ou bien garder une annotation fixe dans l'espace qui ne bouge pas, nous pouvons vous proposer ces quelques astuces:
 
@@ -199,7 +199,7 @@ Ces apparitions et autre changements de paramètres ne sont pas forcément anima
 Les Tags sont un système de classification pratique qui permet le tri dans l'apparition et la disparition de certaines informations visibles. 
 **Attention**: les Tags de scènes DPO-Voyager sont à ne pas confondre avec les Tags de Collection eCorpus.
 
-Les Tags de scène sont étroitement liés aux Annotations, car c'est dans cet onglet qu'il sont visibles. Si vous souhaitez en savoir plus sur les Annotations, veuillez vous réferrer à [ce guide](../tutorials/annotation.md).
+Les Tags de scène sont étroitement liés aux Annotations, car c'est dans cet onglet qu'il sont visibles. Si vous souhaitez en savoir plus sur les Annotations, veuillez vous réferrer à [ce guide](../tutorials/annotation).
 
 **Toutefois** les annotations ne sont pas les seules outils à pouvoir bénéficier d'un tri par Tag: les objets le peuvent également. Le système et le lieu de stockage de ces données restent cependant les mêmes, bien que les paramètres soient à deux endroits différents.
 

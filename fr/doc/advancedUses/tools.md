@@ -58,7 +58,7 @@ Pour faire **apparaître ces outils**, il suffit de cliquer sur l'icône corresp
 
 **A noter** les points de vue sont fixés par rapport à la **scène**. Si votre objet n'apparait pas dans le bon angle en selectionnant une vue spécifique, c'est que l'objet est mal orienté par rapport à la scène.
 
-Pour **réorienter l'objet**, veuillez vous rendre dans l'onglet **Pose** en haut de l'Explorer. Pour en savoir plus, vous pouvez consulter [ce guide](import).
+Pour **réorienter l'objet**, veuillez vous rendre dans l'onglet **Pose** en haut de l'Explorer. Pour en savoir plus, vous pouvez consulter [ce guide](../tutorials/import).
 
 #### Réaliser une Orthophoto avec l'Outil Vue
 

@@ -86,6 +86,6 @@ eCorpus crée automatiquement des transitions entre les différentes étapes. La
 
 Pour finaliser la médiation de votre scène en y ajoutant une narration immersive, vous pouvez vous rendre sur ce dernier guide de base: [Ajouter de l'Audio](audio)
 
-Apprenez-en plus sur les possibilités de visites guidées en suivant ce guide avancé: [Apprendre à animer ses modèles via les Visites Guidées](../advancedUses/animatedtours.md).
+Apprenez-en plus sur les possibilités de visites guidées en suivant ce guide avancé: [Apprendre à animer ses modèles via les Visites Guidées](../advancedUses/animatedtours).
 
 * [Revenir en haut de la page](#ajouter-une-ligne-directrice-à-lexperience)
