@@ -11,7 +11,6 @@ A ne pas confondre avec les paramètres d'édition de scène, **les outils et pa
 Avec ceux-ci, pour pouvez, entre autre, changer le point de vue de la caméra (passer d'une vue perspective à orthographique), modifier l'éclairage de la scène, découper le modèle selon un axe ou encore le mesurer avec un outil de règle.
 
 
-WIP[Insérer une vidéo de présentation ici]
 
 
 ### Sommaire

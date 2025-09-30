@@ -11,7 +11,6 @@ Not to be confused with scene editing parameters, **tools and parameters constit
 With these, you can, among other things, change the camera's viewpoint (switch from perspective to orthographic view), modify the scene's lighting, cut the model along an axis, or measure it with a ruler tool.
 
 
-WIP[Insert presentation video here]
 
 
 ### Summary

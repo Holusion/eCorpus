@@ -12,7 +12,6 @@ Essentially, guided tours serve to provide a narrative framework for an eCorpus 
 
 <iframe name="eCorpus Voyager" src="https://ecorpus.holusion.com/ui/scenes/Lock_Stator/view?lang=FR" width="800" height="450" allow="xr; xr-spatial-tracking; fullscreen"></iframe>
 
-WIP[Insert presentation video here]
 
 
 ### Summary

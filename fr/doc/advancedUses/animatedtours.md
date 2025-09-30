@@ -12,7 +12,6 @@ Par essence, les visites guidées servent à donner une trame narrative à une s
 
 <iframe name="eCorpus Voyager" src="https://ecorpus.holusion.com/ui/scenes/Lock_Stator/view?lang=FR" width="800" height="450" allow="xr; xr-spatial-tracking; fullscreen"></iframe>
 
-WIP[Insérer une vidéo de présentation ici]
 
 
 ### Sommaire
