@@ -27,8 +27,8 @@ CREATE TABLE groups_membership (
 -- Down
 --------------------------------------------------------------------------------
 
-DROP TABLE groups;
-
 DROP TABLE groups_acl;
 
 DROP TABLE groups_membership;
+
+DROP TABLE groups;

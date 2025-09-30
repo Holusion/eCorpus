@@ -23,7 +23,7 @@ describe("POST /groups", function () {
         await request(this.server).post(`/groups`)
             .auth(manage.username, "12345678")
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup" }))
+            .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(201);
         await (expect(userManager.getGroup("MyGroup")).to.be.fulfilled);
     });
@@ -32,7 +32,7 @@ describe("POST /groups", function () {
         await request(this.server).post(`/groups`)
             .auth(admin.username, "12345678")
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup" }))
+            .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(201);
         await (expect(userManager.getGroup("MyGroup")).to.be.fulfilled);
     });
@@ -41,7 +41,7 @@ describe("POST /groups", function () {
         await request(this.server).post(`/groups`)
             .auth(creator.username, "12345678")
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup" }))
+            .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(401);
         await expect(userManager.getGroup("MyGroup")).to.be.rejectedWith("404");
     });
@@ -50,7 +50,7 @@ describe("POST /groups", function () {
         await request(this.server).post(`/groups`)
             .auth(user.username, "12345678")
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup" }))
+            .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(401);
         await expect(userManager.getGroup("MyGroup")).to.be.rejectedWith("404");
     });
@@ -58,7 +58,7 @@ describe("POST /groups", function () {
     it("can't create a group as anonmyous", async function () {
         await request(this.server).post(`/groups`)
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup" }))
+            .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(401);
         await expect(userManager.getGroup("MyGroup")).to.be.rejectedWith("404");
     });
@@ -68,7 +68,7 @@ describe("POST /groups", function () {
         await request(this.server).post(`/groups`)
             .auth(admin.username, "12345678")
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup" }))
+            .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(409);
     });
 
@@ -76,7 +76,7 @@ describe("POST /groups", function () {
         await request(this.server).post(`/groups`)
             .auth(admin.username, "12345678")
             .set("Content-Type", "application/json")
-            .send(JSON.stringify({ name: "MyGroup", members: [user.username, creator.uid]}))
+            .send(JSON.stringify({ groupName: "MyGroup", members: [user.username, creator.uid]}))
             .expect(201);
         let group = await (expect(userManager.getGroup("MyGroup")).to.be.fulfilled);
         expect(group).to.have.property("members");

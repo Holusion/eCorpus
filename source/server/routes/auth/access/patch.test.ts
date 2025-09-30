@@ -153,7 +153,7 @@ describe("PATCH /auth/access/:scene", function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
         .auth(user.username, "12345678")
         .set("Content-Type", "application/json")
-        .send({ groupName: group.groupUid, access: "write" })
+        .send({ groupUid: group.groupUid, access: "write" })
         .expect(204);
       expect(await userManager.getPermissions(titleSlug)).to.have.deep.members([
         { "groupUid": group.groupUid, "groupName": group.groupName, "access": "write" },

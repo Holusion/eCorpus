@@ -9,7 +9,6 @@
       encoding="application/json" class="row">
       <form onsubmit="
           const action_url = '/groups/{{name}}/' + encodeURIComponent(document.getElementById('new-member').value);
-          console.log(action_url);
           const form = document.getElementById('new-member-form');
           form.action = action_url;
           window.location.reload()">
