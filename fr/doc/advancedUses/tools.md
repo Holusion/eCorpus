@@ -25,7 +25,7 @@ WIP[Insérer une vidéo de présentation ici]
     * [L'Outil Eclairage](#loutil-eclairage)
     * [L'Outil Mesure](#loutil-mesure)
         * [Modifier les Unités de mesure d'une scène](#modifier-les-unités-de-mesure-dune-scène)
-    *[L'Outil Coupe](#loutil-coupe)
+    * [L'Outil Coupe](#loutil-coupe)
 
 ### Comprendre ce que sont les Outils et paramètres d'une scène
 
