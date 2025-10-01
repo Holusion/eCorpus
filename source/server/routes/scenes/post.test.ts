@@ -27,8 +27,7 @@ describe("POST /scenes", function(){
     userManager  = locals.userManager;
   });
   this.afterEach(async function(){
-    await vfs.close();
-    await fs.rm(this.dir, {recursive: true});
+    await cleanIntegrationContext(this);
   });
 
   describe("as create", function () {

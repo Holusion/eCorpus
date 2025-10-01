@@ -11,58 +11,36 @@ import { BadRequestError, HTTPError, UnauthorizedError } from "../utils/errors.j
 import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { mkdir } from "fs/promises";
 
-import {AppLocals, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
+import {AppLocals, AppParameters, getHost, getLocals, getUser, getUserManager, isUser} from "../utils/locals.js";
 
 import openDatabase from "../vfs/helpers/db.js";
 import Vfs from "../vfs/index.js";
 import defaultConfig from "../utils/config.js";
 import User from "../auth/User.js";
 import Templates, { locales } from "../utils/templates.js";
+import { TaskProcessor } from "../tasks/processor.js";
+import { Client } from "pg";
 
 
 const debug = debuglog("pg:connect");
 
-export default async function createServer(config = defaultConfig) :Promise<express.Application>{
+export default async function createServer(locals:AppParameters) :Promise<express.Application>{
 
-  await Promise.all([config.files_dir].map(d=>mkdir(d, {recursive: true})));
-  let db = await openDatabase({uri: config.database_uri, forceMigration: config.force_migration});
-  let uri = new URL(config.database_uri);
-  debug(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`)
-  const vfs = await Vfs.Open(config.files_dir, {db});
-  const userManager = new UserManager(db);
-
-  const templates = new Templates({dir: config.templates_dir, cache: config.node_env == "production"});
+  const templates = new Templates({dir: locals.config.templates_dir, cache: locals.config.node_env == "production"});
 
   const app = express();
   app.disable('x-powered-by');
-  app.set("trust proxy", config.trust_proxy);
-
-  if(config.clean_database){
-    setTimeout(()=>{
-      //Clean file system after a while to prevent delaying startup
-      vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
-    }, 6000).unref();
-
-
-    setInterval(()=>{
-      vfs.optimize();
-    }, 2*3600*1000).unref();
-  }
-
+  app.set("trust proxy", locals.config.trust_proxy);
 
 
   app.locals  = Object.assign(app.locals, {
-    userManager,
-    fileDir: config.files_dir,
-    vfs,
-    templates,
-    config,
     sessionMaxAge: 31 * 24 * 60 * 60*1000, // 1 month, in milliseconds
-  }) as AppLocals;
+    templates,
+  }, locals) as AppLocals;
 
   app.use(cookieSession({
     name: 'session',
-    keys: await userManager.getKeys(),
+    keys: await locals.userManager.getKeys(),
     // Cookie Options
     maxAge: (app.locals as AppLocals).sessionMaxAge,
     sameSite: "lax"
@@ -112,7 +90,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
 
   
   /* istanbul ignore next */
-  if (config.verbose ||debuglog("http:requests").enabled) {
+  if (locals.config.verbose ||debuglog("http:requests").enabled) {
     let {default: morgan} = await import("morgan"); 
     //Requests logging is enabled only in dev mode as a proxy would handle it in production
     app.use(morgan(process.stdout.isTTY?"dev": "tiny", {
@@ -136,12 +114,12 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   });
   
 
-  if(config.assets_dir){
-    app.use("/dist", express.static(config.assets_dir));
+  if(locals.config.assets_dir){
+    app.use("/dist", express.static(locals.config.assets_dir));
   }
 
   // static file server
-  app.use("/dist", express.static(config.dist_dir));
+  app.use("/dist", express.static(locals.config.dist_dir));
 
   app.use("/ui", (await import("./views/index.js")).default);
 
@@ -155,7 +133,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
   app.use("/groups", (await import("./groups/index.js")).default);
   app.use("/services", (await import("./services/index.js")).default);
   
-  const logLevel = (config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
+  const logLevel = (locals.config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
   const isTTY = process.stderr.isTTY;
 
   // error handling
