@@ -254,7 +254,7 @@ You will notice that three icons are already active in this list: Reader, Viewer
 
 They correspond to the data to be taken into account when creating guided tour steps. For example, the "Models" parameter allows the steps to store data from 3D model parameters, such as their visibility or material properties.
 
-**Warning**: not all parameters of a functionality are animatable. If you have questions about how to animate your object, or if you wish to implement an animatable parameter, do not hesitate to contact us via hello@ecorpus.eu
+**Warning**: not all parameters of a functionality are animatable. If you have questions about how to animate your object, or if you wish to implement an animatable parameter, do not hesitate to contact us via contact@ecorpus.eu
 
 
 #### Animating object parameters

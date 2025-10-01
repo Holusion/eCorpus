@@ -266,7 +266,7 @@ Vous remarquerez que trois icônes sont dores et déjà actifs dans cette liste:
 
 Ils correspondent aux données à prendre en compte lors de la création d'étape de visites guidées. Par exemple, le paramètre "Models" permet aux étapes de stocker les données des paramètres des modèles 3D, tels que leur visibilité ou les propriétés de leur matériaux.
 
-**Attention**: tous les paramètres d'une fonctionnalité ne sont pas animable. Si vous avez des questions sur comment animer votre objet, ou si vous souhaitez implémenter un paramètre animable, n'hésitez pas à nous contacter via hello@ecorpus.eu
+**Attention**: tous les paramètres d'une fonctionnalité ne sont pas animable. Si vous avez des questions sur comment animer votre objet, ou si vous souhaitez implémenter un paramètre animable, n'hésitez pas à nous contacter via contact@ecorpus.eu
 
 
 #### Animer les paramètres d'un objet
