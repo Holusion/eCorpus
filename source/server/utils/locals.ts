@@ -8,12 +8,13 @@ import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundErro
 import Templates, { AcceptedLocales, locales } from "./templates.js";
 import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
-
+import { TaskScheduler } from "../tasks/scheduler.js";
 
 export interface AppLocals extends Record<string, any>{
   fileDir :string;
   userManager :UserManager;
   vfs :Vfs;
+  taskScheduler: TaskScheduler;
   templates :Templates;
   config: Config;
   /** Length of a session, in milliseconds since epoch */
@@ -214,6 +215,12 @@ export function getVfs(req :Request){
   //istanbul ignore if
   if(!vfs) throw new InternalError("Badly configured app : vfs is not defined in app.locals");
   return vfs;
+}
+
+export function getTaskScheduler(req: Request){
+  const scheduler = getLocals(req).taskScheduler;
+  if(!scheduler) throw new InternalError("Badly configured app: task scheduler is not defined in app.locals");
+  return scheduler;
 }
 
 export function getHost(req :Request) :URL{
