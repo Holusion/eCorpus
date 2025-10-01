@@ -3,7 +3,7 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, either, isAdministrator, isUserAndCanRead } from "../../utils/locals.js";
+import { canAdmin, canRead, either, isAdministrator, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
@@ -59,7 +59,7 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
 router.post("/logout",  useJSON, useURLEncoded, postLogout);
 
 
-router.get("/access/:scene", isUserAndCanRead, wrap(getPermissions));
+router.get("/access/:scene", isUser, canRead, wrap(getPermissions));
 router.patch("/access/:scene", canAdmin, useJSON, wrap(patchPermissions));
 
 

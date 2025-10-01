@@ -61,11 +61,6 @@ export function isUser(req: Request, res:Response, next :NextFunction){
   else next(new UnauthorizedError());
 }
 
-export function isUserAndCanRead(req: Request, res:Response, next :NextFunction){  
-  res.append("Cache-Control", "private");
-  if((req.session as User).uid ) canRead(req, res, next);
-  else next(new UnauthorizedError());
-}
 
 
 /**

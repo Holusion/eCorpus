@@ -4,7 +4,7 @@
 
 
 CREATE TABLE groups (
-  group_id BIGINT PRIMARY KEY,
+  group_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   group_name TEXT NOT NULL UNIQUE COLLATE ignore_accent_case CHECK(3 <= length(group_name))
 );
 

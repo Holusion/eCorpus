@@ -497,26 +497,18 @@ export default class UserManager extends DbController {
   }
 
   async addGroup(groupName: string) {
-    let groupId;
-    for (let i = 0; i < 3; i++) {
-      //Retry 3 times in case we are unlucky with the RNG
-      try {
-        /* 48bits is a safe integer (ie. less than 2^53-1)*/
-        groupId = Uid.make();
-        await this.db.run(`
-          INSERT INTO groups (group_id, group_name)
-          VALUES ($1, $2)
-        `, [
-          groupId,
-          groupName
-        ]); break;
-      } catch (e: any) {
-        if (e.code == errors.unique_violation && e.constraint === "groups_group_id_key") continue;
-        else if (e.code == errors.unique_violation && e.constraint === "groups_group_name_key") {throw new ConflictError(`A group named ${groupName} already exists`)}
-        else throw e;
-      }
+    try{
+          return new Group(await this.db.get<StoredGroup>(`
+      INSERT INTO groups (group_name)
+      VALUES ($1)
+      RETURNING *
+    `, [
+      groupName
+    ]));
+    }catch(e:any){
+      if (e.code == errors.unique_violation && e.constraint === "groups_group_name_key")throw new ConflictError(`A group named ${groupName} already exists`)
+      else throw e;
     }
-    return new Group({ group_name: groupName, group_id: groupId! });
   }
 
   async removeGroup(group: number | string) {
