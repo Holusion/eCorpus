@@ -47,7 +47,7 @@ describe("/users", function(){
 
       it("can't create a user", async function(){
         await this.agent.post("/users")
-        .send({username:"foo", password:"12345678", email:"foo@example.com", isAdministrator: true})
+        .send({username:"foo", password:"12345678", email:"foo@example.com", level: "admin"})
         .expect(401);
       });
 
@@ -140,6 +140,15 @@ describe("/users", function(){
         .set("Content-Type", "application/json")
         .send({username: "Dave", password: "abcdefghij", level: "admin", email: "dave@foo.com"})
         .expect(201);
+      });
+
+      it("can accept plain text response", async function(){
+        await this.agent.post("/users")
+        .set("Content-Type", "application/json")
+        .set("Accept", "text/plain")
+        .send({username: "Dave", password: "abcdefghij", level: "manage", email: "dave@foo.com"})
+        .expect(201)
+        .expect(/Created user/);
       });
   
       it("redirects if created from the user interface form", async function(){

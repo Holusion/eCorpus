@@ -31,6 +31,9 @@ export default async function postUser(req :Request, res :Response){
         
       return res.status(201).send(`Created user ${u.username} <${u.email}>: ${u.level}`);
 
+    },
+    default: ()=>{
+      return res.status(201).send(`Created user ${u.username} <${u.email}>: ${u.level}`)
     }
-  })
+  });
 };
