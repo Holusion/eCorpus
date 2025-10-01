@@ -90,7 +90,7 @@ Enfin, nommez votre scène (ce nom sera directement visible dans l'URL, par cons
 
 ## Tester eCorpus
 
-Prenez contact avec l'équipe de eCorpus pour vous accompagner dans la mise en place d'un serveur eCorpus dédié <hello@ecorpus.eu>
+Prenez contact avec l'équipe de eCorpus pour vous accompagner dans la mise en place d'un serveur eCorpus dédié <contact@ecorpus.eu>
 
 
 

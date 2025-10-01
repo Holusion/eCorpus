@@ -89,7 +89,7 @@ Finally, name your scene (this name will appear in the URL, so avoid special cha
 
 ## Testing eCorpus
 
-Contact the eCorpus team for support in setting up a dedicated eCorpus server: <hello@ecorpus.eu>
+Contact the eCorpus team for support in setting up a dedicated eCorpus server: <contact@ecorpus.eu>
 
 ## Learn More
 
