@@ -18,6 +18,7 @@ export interface Services{
   app: express.Application;
   vfs: Vfs;
   userManager: UserManager;
+  close: ()=>Promise<void>;
 }
 
 export default async function createService(config = defaultConfig) :Promise<Services>{
@@ -47,9 +48,18 @@ export default async function createService(config = defaultConfig) :Promise<Ser
     fileDir: config.files_dir,
     vfs,
     config,
-  })
+  });
 
 
 
-  return {app, vfs, userManager};
+  return {
+    app,
+    vfs,
+    userManager,
+    async close(){
+      await Promise.all([
+        vfs.close(),
+      ]);
+    }
+  };
 }
