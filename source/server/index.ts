@@ -16,7 +16,7 @@
  */
 
 import path from "path";
-import createServer from "./routes/index.js";
+import createService from "./create.js";
 import config from "./utils/config.js";
 
 //@ts-ignore
@@ -28,8 +28,8 @@ import("source-map-support").then((s)=>{
 (async ()=>{
     let root = path.resolve(config.root_dir);
     console.info("Serve directory : "+root+" on "+config.port);
-    const app = await createServer(config);
-    app.listen(config.port, () => {
+    const services = await createService(config);
+    services.app.listen(config.port, () => {
         console.info(`Server ready and listening on port ${config.port}\n`);
     });
 })();
