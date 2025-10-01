@@ -254,6 +254,8 @@ export default class UserManager extends DbController {
         break;
       }catch(e:any){
         if(e.code == errors.unique_violation && e.constraint === "users_user_id_key") continue;
+        if(e.code == errors.unique_violation && e.constraint === "users_username_key") throw new ConflictError(`username ${username} already exists`);
+        if(e.code == errors.unique_violation && e.constraint === "users_email_key") throw new ConflictError(`email ${email} already exists`);
         else throw e;
       }
     }

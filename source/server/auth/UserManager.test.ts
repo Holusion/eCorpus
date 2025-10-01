@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import path from "path";
 
 import {expect} from "chai";
-import { BadRequestError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import User, { SafeUser, StoredUser, UserLevels } from "./User.js";
 import openDatabase, { Database } from "../vfs/helpers/db.js";
 import { Uid } from "../utils/uid.js";
@@ -138,7 +138,7 @@ describe("UserManager methods", function(){
 
     it("rejects duplicate username", async function(){
       await expect(userManager.addUser("bob-duplicate-1", "abcdefghij")).to.be.fulfilled;
-      await expect(userManager.addUser("bob-duplicate-1", "abcdefghij")).to.be.rejectedWith({code: errors.unique_violation, constraint: "users_username_key"} as any);
+      await expect(userManager.addUser("bob-duplicate-1", "abcdefghij")).to.be.rejectedWith(ConflictError);
     })
 
     it("can handle RNG duplicates", async function(){
