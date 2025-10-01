@@ -27,8 +27,7 @@ describe("POST /scenes/:scene", function(){
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
   });
   this.afterEach(async function(){
-    await vfs.close();
-    await fs.rm(this.dir, {recursive: true});
+    await cleanIntegrationContext(this);
   });
 
   describe("as create", function () {
