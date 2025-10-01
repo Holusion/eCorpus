@@ -1,0 +1,48 @@
+
+<div style="margin-bottom: 1.5rem; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: end;">
+  <h1>{{i18n "titles.groupManager"}}</h2>
+  <submit-fragment method="POST" action="/groups/" encoding="application/json" onsubmit="window.location.reload()">
+    <form>
+    <label class="form-item" style="display:flex; flex-direction: row">
+      <input id="new-group" name="groupName" type="text" value="" placeholder="{{i18n "labels.newGroup"}}" required/>
+      <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+    </label>
+    </form>
+    </submit-fragment>
+</div>
+
+<div class="group-list" style="position:relative;">
+  <table class="list-table">
+    <thead><tr>
+        <th>uid</th>
+        <th>{{i18n "labels.group"}}</th>
+        <th></th>
+    </tr></thead>
+    <tbody>
+      {{#each groups}}
+        <tr aria-labelledby="user-row-{{uid}}">
+          <td style="font-family:monospace;">{{groupUid}}</td>
+          <td id="group-row-{{uid}}"><a href="/ui/groups/{{groupName}}">{{groupName}}</a></td>
+          <td>
+            <div style="display:flex; justify-content:end;gap:.6rem;">
+              {{#if (test @root.user.level "==" "admin")}}
+              <submit-fragment method="DELETE" action="/groups/{{groupName}}" encoding="application/json"  onsubmit="window.location.reload()">
+                <form>
+                  <button role="submit" class="btn btn-inline btn-icon btn-danger" aria-label="{{i18n "labels.delete"}}">
+                    <ui-icon name="trash"></ui-icon>
+                  </button>
+                </form>
+              </submit-fragment>
+              {{/if}}
+            </div>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{#if groups.length}}
+    <div style="text-align: right;">{{i18n "leads.groupsList" start=start end=end total=total}}</div>
+  {{else}}
+      <div style="text-align: center;">No group created. Enter a name and click the <ui-icon name="plus"></ui-icon> to add one</div>
+  {{/if}}
+</div>

@@ -1,12 +1,15 @@
 
 <div style="margin-bottom: 1.5rem; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: end;">
   <h1>{{i18n "titles.userManager"}}</h2>
-  <button class="btn btn-main" onclick="document.querySelector('#create-user-modal').showModal()">
-    <ui-icon name="plus"></ui-icon>
-    {{i18n "buttons.createUser"}}
+   {{#if (test @root.user.level "==" "admin")}}
+    <button class="btn btn-main" onclick="document.querySelector('#create-user-modal').showModal()">
+      <ui-icon name="plus"></ui-icon>
+      {{i18n "buttons.createUser"}}
+    {{/if}}
   </button>
 </div>
 
+{{#if (test @root.user.level "==" "admin")}}
 <dialog id="create-user-modal" aria-labelledby="create-user-dialog-title">
   <form id="userlogin" method="POST" action="/users" autocomplete="off" class="form-control form-modal">
     <div style="position: relative">
@@ -50,6 +53,7 @@
       </div>
   </form>
 </dialog>
+{{/if}}
 
 <div class="users-list" style="position:relative;">
   <table class="list-table">
@@ -65,24 +69,29 @@
           <td style="font-family:monospace;">{{uid}}</td>
           <td id="user-row-{{uid}}">{{username}}</td>
           <td>
-            {{#unless (test uid "==" ../user.uid)}}
-            <submit-fragment method="PATCH" action="/users/{{uid}}" encoding="application/json"  submit="level" onsubmit="window.location.reload()">
-              <form class="form-control" autocomplete="off">
-                <div class="form-item">
-                  <select name="level" aria-label="{{i18n "labels.role"}}">
-                    {{> inputs/option selected=(test "use" "==" level) value="use" text=(i18n "fields.userRoles.use")}}
-                    {{> inputs/option selected=(test "create" "==" level) value="create" text=(i18n "fields.userRoles.create")}}
-                    {{> inputs/option selected=(test "manage" "==" level) value="manage" text=(i18n "fields.userRoles.manage")}}
-                    {{> inputs/option selected=(test "admin" "==" level) value="admin" text=(i18n "fields.userRoles.admin")}}
-                  </select>
-                </div>
-              </form>
-            </submit-fragment>
+            {{#if (test @root.user.level "==" "admin")}}
+              {{#unless (test uid "==" ../user.uid)}}
+              <submit-fragment method="PATCH" action="/users/{{uid}}" encoding="application/json"  submit="level" onsubmit="window.location.reload()">
+                <form class="form-control" autocomplete="off">
+                  <div class="form-item">
+                    <select name="level" aria-label="{{i18n "labels.role"}}">
+                      {{> inputs/option selected=(test "use" "==" level) value="use" text=(i18n "fields.userRoles.use")}}
+                      {{> inputs/option selected=(test "create" "==" level) value="create" text=(i18n "fields.userRoles.create")}}
+                      {{> inputs/option selected=(test "manage" "==" level) value="manage" text=(i18n "fields.userRoles.manage")}}
+                      {{> inputs/option selected=(test "admin" "==" level) value="admin" text=(i18n "fields.userRoles.admin")}}
+                    </select>
+                  </div>
+                </form>
+              </submit-fragment>
+              {{else}}
+              <div title="can't change self role">{{level}}</div>
+              {{/unless}}
             {{else}}
-            <div title="can't change self role">{{level}}</div>
-            {{/unless}}
+                <div>{{level}}</div>
+            {{/if}}
           </td>
           <td>
+          {{#if (test @root.user.level "==" "admin")}}
             <div style="display:flex; justify-content:end;gap:.6rem;">
               {{#if (test level "!=" "admin")}}
               <submit-fragment method="DELETE" action="/users/{{uid}}" encoding="application/json"  onsubmit="window.location.reload()">
@@ -98,6 +107,7 @@
                 <ui-icon name="key"></ui-icon>
               </button>
             </div>
+          {{/if}}
           </td>
         </tr>
       {{/each}}

@@ -4,12 +4,17 @@ lang:
   en: English
 labels:
   optional: optional
+  scene: Scene
   sceneTitle: scene title
   selectFile: select a file
   selectFile_s: select one or several files 
   signin: Sign in
   save: Save
   username: Username
+  group: Group
+  groupMembers: Group Members
+  newGroup: New group
+  deletingAGroupIsPermanent: Deleting a group is permanent
   email: Email
   password: Password
   newPassword: New Password
@@ -95,8 +100,9 @@ nav:
   login: connection
   administration: administration
   adminRecap: summary
-  adminUsers: utilisateurs
-  adminStats: statistiques
+  adminUsers: users
+  adminGroups: groups
+  adminStats: statistics
   adminArchives: archives
   reportBug: report a bug
   documentation: project doc
@@ -104,6 +110,7 @@ nav:
 
 titles:
   myScenesSection: my scenes
+  myGroups: My groups
   homeHeader: 3D scenes management engine
   mtimeScenesSection: Recently modified scenes
   ctimeScenesSection: Recently added scenes
@@ -125,6 +132,7 @@ titles:
   testEmail: "{{what}} email system test"
   testEmailVerify: Additional verifications
   userManager: Users management
+  groupManager: Groups management
   adminHome: Administration Interface
   serverStatistics: Instance Statistics
   filesStatistics: Data statistics
@@ -191,6 +199,7 @@ leads:
     <a href="https://postmaster.google.com">Postmaster Tools</a>.
   sendTestEmail: Send a test email
   usersList: Users {{start}}-{{end}}/{{total}}
+  groupsList: Groups {{start}}-{{end}}/{{total}}
   noArchives: No archived scenes
 errors:
   generic: Unknown Error

@@ -13,8 +13,11 @@
     <nav class="admin-nav">
       {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.adminRecap"}}{{/navLink}}
       {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.adminUsers"}}{{/navLink}}
-      {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> {{i18n "nav.adminStats"}}{{/navLink}}
-      {{#navLink "/ui/admin/archives" "exact"}}<ui-icon name="folder"></ui-icon> {{i18n "nav.adminArchives"}}{{/navLink}}
+      {{#navLink "/ui/admin/groups" "exact"}}<ui-icon name="groups" style="display:flex"></ui-icon> {{i18n "nav.adminGroups"}}{{/navLink}}
+      {{#if (test user.level "==" "admin")}}
+        {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> {{i18n "nav.adminStats"}}{{/navLink}}
+        {{#navLink "/ui/admin/archives" "exact"}}<ui-icon name="folder"></ui-icon> {{i18n "nav.adminArchives"}}{{/navLink}}
+      {{/if}}
     </nav>
     <section>
       {{{body}}}

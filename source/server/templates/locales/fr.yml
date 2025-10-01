@@ -4,12 +4,17 @@ lang:
   en: Anglais
 labels:
   optional: optionnel
+  scene: Scène
   sceneTitle: titre de la scène
   selectFile: sélectionner un fichier
   selectFile_s: sélectionner un ou plusieurs fichiers
   signin: Connexion
   save: Enregistrer
   username: Nom d'utilisateur
+  group: Groupe
+  groupMembers: Membres du groupe
+  newGroup: Nouveau groupe
+  deletingAGroupIsPermanent: Supprimer un groupe est définitif.
   email: Email
   password: Mot de passe
   newPassword: Nouveau mot de passe
@@ -96,6 +101,7 @@ nav:
   administration: administration
   adminRecap: récapitulatif
   adminUsers: utilisateurs
+  adminGroups: groupes
   adminStats: statistiques
   adminArchives: archives
   reportBug: signaler un bug
@@ -104,6 +110,7 @@ nav:
 
 titles:
   myScenesSection: mes scenes
+  myGroups: Mes groupes
   homeHeader: système de gestion de scènes 3D
   mtimeScenesSection: scènes modifiées récemment
   ctimeScenesSection: scènes ajoutées récemment
@@ -125,6 +132,7 @@ titles:
   testEmail: Test du système d'email de {{what}}
   testEmailVerify: Vérifications supplémentaires
   userManager: Gestion des utilisateurs
+  groupManager: Gestion des groupes
   adminHome: Interface d'administration
   serverStatistics: Statistiques de l'instance
   filesStatistics: Données
@@ -196,6 +204,7 @@ leads:
     Pour GMAIL, vous pouvez utiliser l'outil <a href="https://postmaster.google.com">Postmaster Tools</a>.
   sendTestEmail: Envoyer un email de test
   usersList: Utilisateurs {{start}}-{{end}}/{{total}}
+  groupsList: Groupes {{start}}-{{end}}/{{total}}
   noArchives: Pas de scènes archivées
 errors:
   generic: Erreur inconnue

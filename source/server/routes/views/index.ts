@@ -1,13 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical, isEmbed } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical, isMemberOrManage, isManage, isEmbed } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
-import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
 import ScenesVfs from "../../vfs/Scenes.js";
-import scrapDoc from "../../utils/schema/scrapDoc.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
-import { UserRoles } from "../../auth/User.js";
+import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { locales } from "../../utils/templates.js";
 import { BadRequestError } from "../../utils/errors.js";
 
@@ -184,6 +182,22 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   });
 }));
 
+routes.get("/groups/:group", isMemberOrManage, wrap(async (req, res)=>{
+  const host = getHost(req);
+  const userManager = getUserManager(req);
+  const requester = getUser(req);
+  const {group} = req.params;
+  const groupObj = await userManager.getGroup(group);
+  res.render("group", {
+    name: groupObj.groupName,
+    id: groupObj.groupUid,
+    manageAccess: requester? isUserAtLeast(requester, "manage"): false,
+    scenes: groupObj.scenes,
+    members: groupObj.members,
+  });
+}));
+
+
 routes.get("/scenes", wrap(async (req, res)=>{
   let host = getHost(req);
   let vfs = getVfs(req);
@@ -255,14 +269,17 @@ routes.get("/user", wrap(async (req, res)=>{
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
+  const userManager = getUserManager(req);
+  const groups = await userManager.getGroupsOfUser(user?.uid);
   let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
   res.render("user", {
     title: "eCorpus User Settings",
     archives,
+    groups
   });
 }));
 
-routes.use("/admin", isAdministrator);
+routes.use("/admin", isManage);
 routes.get("/admin", (req, res)=>{
   res.render("admin/home", {
     layout: "admin",
@@ -270,7 +287,7 @@ routes.get("/admin", (req, res)=>{
   });
 });
 
-routes.get("/admin/archives", wrap(async (req, res)=>{
+routes.get("/admin/archives", isAdministrator, wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
@@ -293,7 +310,19 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/stats", wrap(async (req, res)=>{
+routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
+  let groups = await getUserManager(req).getGroups();
+  res.render("admin/groups", {
+    layout: "admin",
+    title: "eCorpus Administration: Groups",
+    start: 0,
+    end: 0 + groups.length,
+    total: groups.length,
+    groups,
+  });
+}));
+
+routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
   const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
@@ -319,6 +348,9 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     vfs.getTags(),
   ]);
 
+  const groupPermissions = permissions.filter((permission)=>("groupName" in permission));
+  const userPermissions = permissions.filter((permission)=>("username" in permission));
+  
   const tagSuggestions = serverTags.filter(t=>{
     let res = scene.tags.indexOf(t.name) === -1;
     return res;
@@ -342,7 +374,8 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     displayedIntro,
     scene,
     meta,
-    permissions,
+    groupPermissions,
+    userPermissions,
     tagSuggestions,
   });
 }));

@@ -137,9 +137,9 @@ describe("Web Server Integration", function(){
         let r = await this.agent.get("/auth/access/foo")
         .expect(200)
         .expect("Content-Type", "application/json; charset=utf-8");
-        expect(r, JSON.stringify(r.body)).to.have.property("body").to.deep.equal([
-          {uid:user.uid, username: user.username, access: "admin"},
-          {uid:dave.uid, username: dave.username, access: "write"},
+        expect(r, JSON.stringify(r.body)).to.have.property("body").to.have.deep.members([
+        {uid:user.uid, username: user.username, access: "admin"},
+          {uid:dave.uid, username: dave.username, access: "write"}
         ]);
       });
 
