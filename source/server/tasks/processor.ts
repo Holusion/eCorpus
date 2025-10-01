@@ -1,15 +1,19 @@
-import {debuglog} from 'node:util';
+import {debuglog, format} from 'node:util';
 import {Client, ClientBase, Notification, Pool, PoolClient, PoolConfig, QueryResultRow, types as pgtypes} from 'pg';
 import { DatabaseHandle, toHandle } from '../vfs/helpers/db.js';
 import { takeOne } from './queue.js';
-import { ResolvedTaskDefinition, TaskDefinition, TaskHandler, TaskHandlerParams, TaskStatus } from './types.js';
+import { ResolvedTaskDefinition, TaskDefinition, TaskHandler, TaskHandlerContext, TaskHandlerParams, TaskLogger, TaskStatus } from './types.js';
 import { TaskListener } from './listener.js';
+import Vfs from '../vfs/index.js';
+import UserManager from '../auth/UserManager.js';
 
 
 const debug = debuglog("tasks:processor");
 
 export interface TaskProcessorParams{
   client: Client;
+  vfs: Vfs;
+  userManager: UserManager;
 }
 
 
@@ -17,11 +21,13 @@ export class TaskProcessor extends TaskListener{
 
   #current_task:number|null = null;
   #control = new AbortController();
+  #context: TaskHandlerContext;
 
   public handlers = new Map<string, TaskHandler>();
 
-  constructor({client}: TaskProcessorParams){
+  constructor({client, vfs, userManager}: TaskProcessorParams){
     super({client});
+    this.#context = {vfs, userManager};
     this.on("aborting", this.onAbortTask);
     this.on("pending", this.onNewTask);
   }
@@ -85,7 +91,18 @@ export class TaskProcessor extends TaskListener{
     if(id == this.#current_task) this.#control.abort();
   }
 
+  async appendTaskLog(id: number, severity: keyof TaskLogger,  message: string){
+    await this.db.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, $2, $3)`, [id, severity, message]);
+  }
 
+  getTaskLogger(id: number){
+    return {
+      debug: (...args:any[])=>this.appendTaskLog(id, 'debug', format(...args)),
+      log: (...args:any[])=>this.appendTaskLog(id, 'log', format(...args)),
+      warn: (...args:any[])=>this.appendTaskLog(id, 'warn', format(...args)),
+      error: (...args:any[])=>this.appendTaskLog(id, 'error', format(...args)),
+    }
+  }
 
   /**
    * Marks a task as completed
@@ -100,7 +117,7 @@ export class TaskProcessor extends TaskListener{
     if(msg){
       const message = (typeof msg == "object" && "message" in msg)? msg.message:msg;
       try{
-        await this.db.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'error', $2)`, [id, message]);
+        await this.appendTaskLog(id, "error", message);
       }catch(e: any){
         console.error("While trying to save task error log:", e);
       }
@@ -120,7 +137,7 @@ export class TaskProcessor extends TaskListener{
     const resolved = await this.resolveTask(task.task_id);
     debug(`Processing task #${task.task_id}`);
     /** @fixme add logger */
-    handler({task: resolved, logger: {}, signal});
+    handler({task: resolved, logger: this.getTaskLogger(task.task_id), signal, context: this.#context});
   }
 }
 

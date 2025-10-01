@@ -77,12 +77,12 @@ describe("Task handling", function(){
       expect(resolved.parent).to.deep.equal(t1);
     })
   });
-  
+
   describe("scheduler / processor", function(){
     let processor: TaskProcessor, scheduler: TaskScheduler;
 
     this.beforeEach(async function(){
-      processor = new TaskProcessor({client}); 
+      processor = new TaskProcessor({client, vfs: null as any, userManager: null as any}); 
       scheduler = new TaskScheduler({client}); 
     });
 

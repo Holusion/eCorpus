@@ -1,15 +1,11 @@
 
-import { Client, Notification } from "pg";
-import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
-import { TaskProcessorParams } from "./processor.js";
-import { TaskListener } from "./listener.js";
-import { TaskDefinition } from "./types.js";
+import { TaskListener, TaskListenerParams } from "./listener.js";
 
 
 export class TaskScheduler extends TaskListener{
 
 
-  constructor({client}: TaskProcessorParams){
+  constructor({client}:TaskListenerParams){
     super({client});
   }
 

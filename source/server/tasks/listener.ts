@@ -1,9 +1,12 @@
 import EventEmitter from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
-import { TaskProcessorParams } from "./processor.js";
 import { ResolvedTaskDefinition, TaskDefinition, TaskStatus } from "./types.js";
 
+
+export interface TaskListenerParams{
+  client: Client;
+}
 
 export class TaskListener extends EventEmitter{
 
@@ -22,7 +25,7 @@ export class TaskListener extends EventEmitter{
   }
 
 
-  constructor({client}: TaskProcessorParams){
+  constructor({client}: TaskListenerParams){
     super();
     this.#client = client;
     this.#db = toHandle(this.#client);
