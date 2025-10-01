@@ -462,6 +462,18 @@ describe("Vfs", function(){
           expect(scenes[0]).to.have.property("access").to.equal("write");
         });
         
+        it("get proper group access", async function(){
+          let scene_id = await vfs.createScene("foo");
+          let group = await userManager.addGroup("My group");
+          await userManager.addMemberToGroup(user.uid, group.groupUid);
+          await userManager.setDefaultAccess(scene_id, "read");
+          await userManager.setPublicAccess(scene_id, "read");
+          await userManager.grantGroup(scene_id, group.groupUid, "write")
+          let scenes = await vfs.getScenes(user.uid);
+          expect(scenes).to.have.property("length", 1);
+          expect(scenes[0]).to.have.property("access").to.equal("write");
+        });
+        
         it("Do not show non-public scene when there is no requester", async function(){
           let scene_id = await vfs.createScene("foo", user.uid);
           await userManager.setDefaultAccess(scene_id, "write");
@@ -1745,6 +1757,21 @@ describe("Vfs", function(){
           let scene = await vfs.getScene("alice's", alice.uid);
           expect(scene).to.have.property("access").to.equal("admin");
         });
+
+        it("get requester's group access right", async function(){
+          let userManager = new UserManager(vfs._db);
+          let alice = await userManager.addUser("alice", "xxxxxxxx", "create");
+          let group = await userManager.addGroup("My Group");
+          await userManager.addMemberToGroup(alice.uid, group.groupUid);
+
+          let id = await vfs.createScene("foo2");
+          await userManager.grantGroup(id, group.groupUid, "write");
+
+          await vfs.writeDoc("{}", {scene: id, user_id: alice.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+          let scene = await vfs.getScene("foo2", alice.uid);
+          expect(scene).to.have.property("access").to.equal("write");
+        });
+
         it("performs requests for default user", async function(){
           let scene = await vfs.getScene("foo", 0);
           expect(scene).to.be.ok;

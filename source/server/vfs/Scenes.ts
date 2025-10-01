@@ -177,7 +177,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(typeof user_id == "number"){
       whereClause += `(
         (SELECT level FROM users WHERE user_id = $1 ) = ${UserLevels.ADMIN}
-        OR GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
+        OR GREATEST(users_acl.access_level, group_access, scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
       )`
     }else{
       whereClause += "scenes.public_access > 0";
@@ -190,7 +190,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     if(typeof access != "undefined"){
       let idx = args.push(toAccessLevel(access));
-      whereClause += ` AND GREATEST(users_acl.access_level, scenes.default_access, scenes.public_access) >= $${idx}`;
+      whereClause += ` AND GREATEST(users_acl.access_level, group_access, scenes.default_access, scenes.public_access) >= $${idx}`;
     }
 
     if(typeof archived === "boolean"){
@@ -249,17 +249,23 @@ export default abstract class ScenesVfs extends BaseVfs{
           COALESCE(users.username, 'default') AS author,
           (SELECT name FROM current_files WHERE fk_scene_id = scenes.scene_id AND (${ScenesVfs._fragIsThumbnail()}) ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
           COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
-          COALESCE( users_acl.access_level, scenes.default_access) AS user_access,
+          GREATEST( users_acl.access_level, group_access, scenes.default_access) AS user_access,
           scenes.default_access AS default_access,
           scenes.public_access AS public_access
         FROM 
           ${fromScenes}
           LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
+          LEFT JOIN (
+              SELECT MAX(access_level) as group_access, fk_scene_id
+              FROM groups_acl JOIN groups_membership 
+              ON ( groups_membership.fk_user_id = $1 AND groups_acl.fk_group_id = groups_membership.fk_group_id)
+              GROUP BY fk_scene_id) AS group_accesses
+            ON ( group_accesses.fk_scene_id = scene_id)
           LEFT JOIN current_files as documents ON (documents.fk_scene_id = scene_id AND mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL)
           LEFT JOIN users ON scenes.fk_author_id = user_id
           LEFT JOIN tags ON tags.fk_scene_id = scene_id
         ${whereClause}
-        GROUP BY id, scene_name, username, access_level
+        GROUP BY id, scene_name, username, access_level, group_access
         )  as matched_scenes
       ${match? `WHERE rank > 0.00001`:""}
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}, name ASC
@@ -320,6 +326,10 @@ export default abstract class ScenesVfs extends BaseVfs{
             ELSE scenes.default_access
             END)
           ELSE 0 END,
+          (SELECT MAX(access_level)
+          FROM groups_acl JOIN groups_membership 
+            ON (groups_membership.fk_user_id = ${user_id} AND fk_scene_id = scenes.scene_id
+              AND groups_acl.fk_group_id = groups_membership.fk_group_id)),
           `: ``}
           public_access
         ) AS access 
@@ -332,6 +342,10 @@ export default abstract class ScenesVfs extends BaseVfs{
             ELSE scenes.default_access
             END)
           ELSE 0 END,
+          (SELECT MAX(access_level)
+          FROM groups_acl JOIN groups_membership 
+            ON (groups_membership.fk_user_id = ${user_id} AND fk_scene_id = scenes.scene_id
+              AND groups_acl.fk_group_id = groups_membership.fk_group_id)),
           public_access) > 0
           `: ``}
     )
