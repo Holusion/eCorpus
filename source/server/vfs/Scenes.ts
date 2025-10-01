@@ -112,6 +112,14 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(!r?.changes) throw new NotFoundError(`no scene found with id: ${scene_id}`);
   }
 
+  static _fragGroupAccess(user_id :number){
+    return `
+    (SELECT MAX(access_level)
+    FROM groups_acl JOIN groups_membership 
+    ON (groups_membership.fk_user_id = ${user_id} AND fk_scene_id = scenes.scene_id
+    AND groups_acl.fk_group_id = groups_membership.fk_group_id))
+`;
+  }
 
   static _fragIsThumbnail(field :string = "name"){
     return `(${field} = 'scene-image-thumb.jpg' OR ${field} = 'scene-image-thumb.png') AND size != 0`;
@@ -326,10 +334,7 @@ export default abstract class ScenesVfs extends BaseVfs{
             ELSE scenes.default_access
             END)
           ELSE 0 END,
-          (SELECT MAX(access_level)
-          FROM groups_acl JOIN groups_membership 
-            ON (groups_membership.fk_user_id = ${user_id} AND fk_scene_id = scenes.scene_id
-              AND groups_acl.fk_group_id = groups_membership.fk_group_id)),
+          ${ScenesVfs._fragGroupAccess(user_id)},
           `: ``}
           public_access
         ) AS access 
@@ -342,10 +347,7 @@ export default abstract class ScenesVfs extends BaseVfs{
             ELSE scenes.default_access
             END)
           ELSE 0 END,
-          (SELECT MAX(access_level)
-          FROM groups_acl JOIN groups_membership 
-            ON (groups_membership.fk_user_id = ${user_id} AND fk_scene_id = scenes.scene_id
-              AND groups_acl.fk_group_id = groups_membership.fk_group_id)),
+          ${ScenesVfs._fragGroupAccess(user_id)},
           public_access) > 0
           `: ``}
     )
