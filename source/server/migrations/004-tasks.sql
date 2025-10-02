@@ -10,6 +10,7 @@ CREATE TABLE tasks (
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- task data
   type TEXT NOT NULL,
+  after BIGINT REFERENCES tasks(task_id),
   parent BIGINT REFERENCES tasks(task_id),
   data JSONB NOT NULL DEFAULT '{}'::jsonb,
   -- task state management

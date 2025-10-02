@@ -16,6 +16,7 @@ export interface CreateTaskParams<T extends TaskType>{
   type: T;
   data: TaskTypeData<T>;
   parent?:number|null;
+  after?: number|null;
 }
 
 export class TaskListener extends EventEmitter{
@@ -112,12 +113,12 @@ export class TaskListener extends EventEmitter{
     return task as any;
   }
 
-  async create<T extends TaskType>(scene: number, {type, data, parent = null}:CreateTaskParams<T> ): Promise<TaskDefinition>{
+  async create<T extends TaskType>(scene: number, {type, data, parent = null, after = null}:CreateTaskParams<T> ): Promise<TaskDefinition>{
     let task = await this.db.get<TaskDefinition>(`
-      INSERT INTO tasks(fk_scene_id, type, parent, data) 
-      VALUES ($1, $2, $3, $4) 
+      INSERT INTO tasks(fk_scene_id, type, after, parent, data)
+      VALUES ($1, $2, $3, $4, $5) 
       RETURNING *
-    `, [scene, type, parent, data]);
+    `, [scene, type, after, parent, data]);
 
     return task;
   }
