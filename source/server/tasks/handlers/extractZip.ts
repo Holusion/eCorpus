@@ -11,7 +11,7 @@ interface ExtractZipParams{
 /**
  * Analyze an uploaded file and create child tasks accordingly
  */
-export default async function handleExtractZipFile({task: {fk_scene_id:scene_id, data:{filepath}}, signal, context:{vfs}}:TaskHandlerParams<ExtractZipParams>){
+export default async function handleExtractZipFile({task: {fk_scene_id:scene_id, data:{filepath}}, signal, context:{vfs, tasks}}:TaskHandlerParams<ExtractZipParams>){
     
   let zipError: Error;
   let zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(filepath, {lazyEntries: true, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
@@ -20,6 +20,8 @@ export default async function handleExtractZipFile({task: {fk_scene_id:scene_id,
 
   const onEntry = async (record :Entry) =>{
     //Handle file
+
+    
   };
 
   zip.on("entry", (record)=>{
