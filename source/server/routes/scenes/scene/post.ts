@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 
 import { parse_glb } from "../../../utils/glTF.js";
-import { getVfs, getUserId } from "../../../utils/locals.js";
+import { getVfs, getUserId, getTaskScheduler } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
 import getDefaultDocument from "../../../utils/schema/default.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
+import { TLanguageType } from "../../../utils/schema/common.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
@@ -81,6 +82,7 @@ async function getDocument({scene, filepath, language}:GetDocumentParams){
  */
 export default async function postScene(req :Request, res :Response){
   let vfs = getVfs(req);
+  let scheduler = getTaskScheduler(req);
   let user_id = getUserId(req);
   let {scene} = req.params;
   let {language} = req.query;
@@ -98,12 +100,17 @@ export default async function postScene(req :Request, res :Response){
   let scene_id = await vfs.createScene(scene, user_id);
   try{
     let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});
-    let document = await getDocument({
-      scene,
-      filepath: vfs.filepath(f),
-      language,
+    let task = await scheduler.create(scene_id, {
+      type: "appendModel",
+      data: {
+        file: vfs.filepath(f),
+        name: scene,
+        index: 0,
+        language: language?.toUpperCase() as TLanguageType|undefined,
+        user_id,
+      }
     });
-    await vfs.writeDoc(JSON.stringify(document), {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await scheduler.wait(task.task_id);
   }catch(e){
     //If written, the file will stay as a loose object but will get cleaned-up later
     await vfs.removeScene(scene_id).catch(e=>console.warn(e));

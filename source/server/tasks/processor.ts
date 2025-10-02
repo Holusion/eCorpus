@@ -1,12 +1,12 @@
 import {debuglog, format} from 'node:util';
-import {Client, ClientBase, Notification, Pool, PoolClient, PoolConfig, QueryResultRow, types as pgtypes} from 'pg';
-import { DatabaseHandle, toHandle } from '../vfs/helpers/db.js';
+import {Client } from 'pg';
 import { takeOne } from './queue.js';
-import { ResolvedTaskDefinition, TaskDefinition, TaskHandler, TaskHandlerContext, TaskHandlerParams, TaskLogger, TaskStatus } from './types.js';
+import {  TaskDefinition, TaskHandler, TaskHandlerContext, TaskLogger, TaskType, TaskTypeData } from './types.js';
 import { TaskListener } from './listener.js';
 import Vfs from '../vfs/index.js';
 import UserManager from '../auth/UserManager.js';
 
+import * as tasks from "./handlers/index.js";
 
 const debug = debuglog("tasks:processor");
 
@@ -23,11 +23,10 @@ export class TaskProcessor extends TaskListener{
   #control = new AbortController();
   #context: TaskHandlerContext;
 
-  public handlers = new Map<string, TaskHandler>();
 
   constructor({client, vfs, userManager}: TaskProcessorParams){
     super({client});
-    this.#context = {vfs, userManager};
+    this.#context = {vfs, userManager, tasks: {create:this.create.bind(this), wait: this.wait.bind(this)}};
     this.on("aborting", this.onAbortTask);
     this.on("pending", this.onNewTask);
   }
@@ -36,13 +35,14 @@ export class TaskProcessor extends TaskListener{
     return await super.start(["pending", "aborting"]);
   }
 
-  addHandler(name: string, h: TaskHandler){
-    if(this.handlers.has(name)) throw new Error("Duplicate task handler name: "+name);
-    this.handlers.set(name, h);
+  async stop(){
+    this.#control.abort();
+    await super.stop();
   }
 
 
   onNewTask = (task_id: number)=>{
+    debug("Task available:", task_id);
     this.takeTask().then(
       ()=>debug("Polled task pool"),
       (err)=>console.error("Failed to poll task pool :", err)
@@ -50,13 +50,17 @@ export class TaskProcessor extends TaskListener{
   }
 
   takeTask = takeOne((async function takeTask(this: TaskProcessor){
+    debug("Acquiring task");
     let task = await this.acquireTask();
-    if(!task) return;
+    if(!task){
+      debug("No matched task");
+      return;
+    }
     this.#current_task = task.task_id;
     const {signal} = this.#control = new AbortController();
     debug(`Acquired task #${task.task_id}`);
     try{
-      await this.processTask({task, signal});
+      await this.processTask({task: task as any, signal});
       await this.releaseTask(task.task_id);
     }catch(e:any){
       await this.errorTask(task.task_id, e);
@@ -84,7 +88,7 @@ export class TaskProcessor extends TaskListener{
         FOR UPDATE OF tasks SKIP LOCKED
         LIMIT 1
       )
-      RETURNING *`, [ [...this.handlers.keys()] ]);
+      RETURNING *`, [ Object.keys(tasks) ]);
   }
 
   onAbortTask =(id: number)=>{
@@ -122,7 +126,11 @@ export class TaskProcessor extends TaskListener{
         console.error("While trying to save task error log:", e);
       }
     }
-    return await this.setTaskStatus(id, "error");
+    try{
+      await this.setTaskStatus(id, "error");
+    }catch(e){
+        console.error("While trying to set task status:", e);
+    }
   }
 
   /**
@@ -130,14 +138,14 @@ export class TaskProcessor extends TaskListener{
    * Throw as needed to be caught by this.errorTask
    * Upon completion, task is released.
    */
-  async processTask({task, signal}: {task:TaskDefinition, signal: AbortSignal}){
-    const handler = this.handlers.get(task.type);
+  async processTask<T extends TaskType>({task, signal}: {task:TaskDefinition<TaskTypeData<T>>, signal: AbortSignal}){
+    const handler = tasks[task.type as keyof typeof tasks] as TaskHandler<TaskTypeData<T>>;
     if(!handler) throw new Error(`Invalid task type ${task.type} in task #${task.task_id}: matches no handler`);
     debug(`Resolving task #${task.task_id}`);
-    const resolved = await this.resolveTask(task.task_id);
-    debug(`Processing task #${task.task_id}`);
+    const resolved = await this.resolveTask<T>(task.task_id);
+    debug(`Processing task #${task.task_id}`, resolved);
     /** @fixme add logger */
-    handler({task: resolved, logger: this.getTaskLogger(task.task_id), signal, context: this.#context});
+    await handler({task: resolved, logger: this.getTaskLogger(task.task_id), signal, context: this.#context});
   }
 }
 

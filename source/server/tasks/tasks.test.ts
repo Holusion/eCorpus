@@ -51,7 +51,7 @@ describe("Task handling", function(){
 
     //Non-connected functions that should work well in isolation
     it("create tasks", async function(){
-      let task = await listener.create(scene_id, {type: "sample-task", data: {}});
+      let task = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
       expect(task).to.have.property("task_id").a("number");
       expect(task).to.have.property("ctime").instanceof(Date);
       expect(task).to.have.property("data").an("object");
@@ -61,7 +61,7 @@ describe("Task handling", function(){
 
 
     it("update task status", async function(){
-      let t = await listener.create(scene_id, {type: "sample-task", data: {}});
+      let t = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
       expect(await handle.get("SELECT * FROM tasks")).to.have.property("status", "pending");
       await listener.setTaskStatus(t.task_id, "success");
       expect(await handle.get("SELECT * FROM tasks")).to.have.property("status", "success");
@@ -69,12 +69,13 @@ describe("Task handling", function(){
 
     it("resolve task", async function(){
       //Create a task with a parent
-      let t1 = await listener.create(scene_id, {type: "sample-task", data: {}});
-      let t2 = await listener.create(scene_id, {type: "sample-task", data: {}, parent: t1.task_id});
+      let t1 = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let t2 = await listener.create(scene_id, {type: "delayTask", data: {time: 0}, parent: t1.task_id});
       
       let resolved = await listener.resolveTask(t2.task_id);
       expect(resolved.parent).to.be.an("object");
       expect(resolved.parent).to.deep.equal(t1);
+      expect(resolved.fk_scene_id).to.equal(t2.fk_scene_id);
     })
   });
 
@@ -95,8 +96,8 @@ describe("Task handling", function(){
       await processor.start();
       await scheduler.start();
 
-      processor.addHandler("test-task", async function dummy(){});
-      await handle.run("INSERT INTO tasks(fk_scene_id, type) VALUES ($1, $2)", [scene_id, "test-task"]);
+
+      await handle.run("INSERT INTO tasks(fk_scene_id, type, data) VALUES ($1, $2, $3)", [scene_id, "delayTask", {time: 0}]);
       let task_id = await once(scheduler, "success");
     });
   })

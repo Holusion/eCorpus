@@ -1,11 +1,21 @@
-import EventEmitter from "node:events";
+import EventEmitter, { on } from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
-import { ResolvedTaskDefinition, TaskDefinition, TaskStatus } from "./types.js";
+import { ResolvedTaskDefinition, TaskData, TaskDefinition, TaskHandler, TaskStatus, TaskType, TaskTypeData } from "./types.js";
+import { NotFoundError, InternalError } from "../utils/errors.js";
+import { debuglog } from "node:util";
 
+const debug = debuglog("tasks:scheduler");
 
 export interface TaskListenerParams{
   client: Client;
+}
+
+
+export interface CreateTaskParams<T extends TaskType>{
+  type: T;
+  data: TaskTypeData<T>;
+  parent?:number|null;
 }
 
 export class TaskListener extends EventEmitter{
@@ -56,14 +66,20 @@ export class TaskListener extends EventEmitter{
     let [prefix, status ] = channel.split("_");
     if(prefix !== "tasks") return console.error("Invalid task channel name :", channel);
     if(this.#events!.indexOf(status as any) !== -1){
-      this.emit(status, task_id);
+      if(status === "error"){
+        this.db.get<{message:string}>(`SELECT message FROM tasks_logs WHERE fk_task_id = $1 AND severity = 'error' ORDER BY log_id DESC LIMIT 1`, [task_id])
+        .then((log)=>{
+          if(log) this.emit("error", new Error(`In task ${task_id}: ${log.message}`));
+          if(log) this.emit("error", new Error(`In task ${task_id}: no logs`));
+        }, (e:any)=>{
+          this.emit("error", new Error(`In task ${task_id}: failed to get log with error: ${e.message}`));
+        });
+      }else{
+        this.emit(status, task_id);
+      }
     }
   }
 
-
-  async create(scene_id: number, {type, data, parent = null}: {type: TaskDefinition["type"], data: TaskDefinition["data"], parent?:TaskDefinition["parent"]}){
-    return await this.db.get<TaskDefinition>(`INSERT INTO tasks(fk_scene_id, type, data, parent) VALUES ($1, $2, $3, $4) RETURNING *`, [scene_id, type, data, parent]);
-  }
 
   /**
    * Internal method to adjust task status
@@ -75,9 +91,10 @@ export class TaskListener extends EventEmitter{
   }
 
 
-  public async resolveTask(id: number):Promise<ResolvedTaskDefinition>{
+  public async resolveTask<T extends TaskType>(id: number):Promise<ResolvedTaskDefinition<TaskTypeData<T>>>{
     let task = await this.db.get<ResolvedTaskDefinition>(`
       SELECT
+        fk_scene_id,
         task_id,
         ctime,
         type,
@@ -92,7 +109,33 @@ export class TaskListener extends EventEmitter{
     if(task.parent?.ctime){
       task.parent.ctime = new Date(task.parent.ctime);
     }
-    return task;
+    return task as any;
+  }
 
+  async create<T extends TaskType>(scene: number, {type, data, parent = null}:CreateTaskParams<T> ): Promise<TaskDefinition>{
+    let task = await this.db.get<TaskDefinition>(`
+      INSERT INTO tasks(fk_scene_id, type, parent, data) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING *
+    `, [scene, type, parent, data]);
+
+    return task;
+  }
+
+  async wait(id: number){
+    let it = on(this, "success");
+    let task = await this.db.get<{status: TaskStatus}> (`SELECT status FROM tasks WHERE task_id = $1`, [id]);
+    if(!task){
+      throw new NotFoundError(`No task found with id ${id}`);
+    }
+    if(task.status === "error"){
+      /** @fixme should retrieve task logs to provide a helpful message */
+      throw new InternalError("Task failed");
+    }else if(task.status === "success"){
+      return;
+    }
+    for await (let [taskId] of it){
+      if(taskId === id) return;
+    }
   }
 }

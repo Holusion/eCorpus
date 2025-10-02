@@ -62,6 +62,7 @@ export default async function createService(config = defaultConfig) :Promise<Ser
     fileDir: config.files_dir,
     vfs,
     config,
+    taskScheduler,
   });
 
   return {

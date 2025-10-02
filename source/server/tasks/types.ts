@@ -1,12 +1,10 @@
 import type UserManager from "../auth/UserManager.js";
 import type Vfs from "../vfs/index.js";
 
+import type * as tasks from "./handlers/index.js";
+import { TaskListener } from "./listener.js";
 
-export interface TaskData{
-  inputs?: Record<string, string|number|boolean>;
-  outputs?: Record<string, string|number|boolean>;
-  params?: Record<string, string|number|boolean>;
-}
+export type TaskData =Record<string, any>;
 
 export type TaskStatus = 'pending'|'aborting'|'running'|'success'|'error';
 
@@ -14,7 +12,7 @@ export interface TaskDefinition<T extends TaskData = TaskData>{
   fk_scene_id: number;
   task_id: number;
   ctime: Date;
-  type :string;
+  type :TaskType;
   parent: number|null;
   data: T;
   status: TaskStatus;
@@ -33,6 +31,7 @@ export interface TaskLogger{
 export interface TaskHandlerContext{
   vfs: Vfs,
   userManager: UserManager,
+  tasks: Pick<TaskListener,"create"|"wait">,
 };
 
 export interface TaskHandlerParams<T extends TaskData>{
@@ -43,4 +42,11 @@ export interface TaskHandlerParams<T extends TaskData>{
 }
 
 export type TaskHandler<T extends TaskData = TaskData> = (params:TaskHandlerParams<T>)=>Promise<string|void>;
-export type TaskHandlerDefinition<T extends TaskData = TaskData> = {readonly type: string , handle:TaskHandler<T>};
+
+export type TaskType =  keyof typeof tasks;
+export type TaskTypeData<T extends TaskType> = Parameters<(typeof tasks[T])>[0]["task"]["data"];
+
+export interface TaskHandlerDefinition<T extends TaskData = TaskData>{
+  readonly type: string;
+  handle:TaskHandler<T>;
+};
