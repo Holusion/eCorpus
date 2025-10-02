@@ -132,4 +132,36 @@ describe("Task handling", function(){
     });
   });
 
+  describe("multi processor", function(){
+    // Tests task processing parallelism. Since task processor has no built-in parallelism, we rely on multiple instances
+    let processors: TaskProcessor[] =[], scheduler: TaskScheduler;
+
+    this.beforeEach(async function(){
+      processors =[];
+      for(let i = 0; i < 4; i++){
+        processors.push(new TaskProcessor({client, vfs: null as any, userManager: null as any}))
+      }
+      scheduler = new TaskScheduler({client});
+      await Promise.all([...processors.map(p=>p.start()), scheduler.start()])
+    });
+
+    this.afterEach(async function(){
+      processors.forEach(processor=>processor.stop());
+      if(scheduler.started) scheduler.stop();
+    });
+
+    it("can respect tasks ordering", async function(){
+      let parent = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let before = await scheduler.create(scene_id, {type: "delayTask", data: {time: 5}, parent: parent.task_id});
+      let after = await scheduler.create(scene_id, {type: "delayTask", data: {time: 1}, parent: parent.task_id, after: before.task_id});
+      let results:number[] = [];
+      await Promise.all([parent, before, after].map(async task=>{
+        await scheduler.wait(task.task_id);
+        results.push(task.task_id);
+      }));
+      expect(results).to.deep.equal([parent, before, after].map(t=>t.task_id));
+    });
+
+  });
+
 });

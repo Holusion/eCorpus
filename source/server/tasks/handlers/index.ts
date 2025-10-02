@@ -2,6 +2,7 @@
 
 export * from "./control/delay.js";
 export * from "./control/forEach.js";
+export * from "./control/group.js";
 export * from "./control/error.js";
 
 export {default as appendModel} from "./appendModel.js";
