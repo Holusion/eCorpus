@@ -11,6 +11,7 @@ import { once } from "node:events";
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
 import { TaskListener } from "./listener.js";
+import { InternalError } from "../utils/errors.js";
 
 // So it's mostly integration tests
 describe("Task handling", function(){
@@ -84,22 +85,51 @@ describe("Task handling", function(){
 
     this.beforeEach(async function(){
       processor = new TaskProcessor({client, vfs: null as any, userManager: null as any}); 
-      scheduler = new TaskScheduler({client}); 
+      scheduler = new TaskScheduler({client});
+      await Promise.all([processor.start(), scheduler.start()])
     });
 
     this.afterEach(async function(){
-    if(processor.started) processor.stop();
-    if(scheduler.started) scheduler.stop();
+      if(processor.started) processor.stop();
+      if(scheduler.started) scheduler.stop();
+    });
+
+    it("can create tasks", async function(){
+      await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let tasks = await handle.all(`SELECT * FROM tasks`);
+      expect(tasks).to.have.property("length", 1);
     });
 
     it("can take tasks", async function(){
-      await processor.start();
-      await scheduler.start();
 
-
-      await handle.run("INSERT INTO tasks(fk_scene_id, type, data) VALUES ($1, $2, $3)", [scene_id, "delayTask", {time: 0}]);
-      let task_id = await once(scheduler, "success");
+      let t = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let [task_id] = await once(scheduler, "success");
+      expect(task_id).to.equal(t.task_id);
     });
-  })
+
+    it("can wait for tasks", async function(){
+
+      let t = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+
+      await scheduler.wait(t.task_id);
+    });
+
+    it("can wait for task to fail", async function(){
+      let t = await scheduler.create(scene_id, {type: "errorTask", data: {message: "Some error"}});
+      await expect(scheduler.wait(t.task_id)).to.be.rejectedWith("Some error");
+    });
+
+    it("will take all available tasks", async function(){
+      let tasks = [];
+      for(let i = 0; i < 4; i++){
+        tasks.push(await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}}));
+      }
+
+      await Promise.all(tasks.map(t=> scheduler.wait(t.task_id)));
+
+      let allTasks = await handle.all(`SELECT * FROM tasks`);
+      expect(Array.from(new Set(allTasks.map(t=>t.status)))).to.deep.equal(["success"]);
+    });
+  });
 
 });

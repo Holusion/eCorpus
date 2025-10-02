@@ -6,17 +6,15 @@ import { TLanguageType } from "../../utils/schema/common.js";
 
 
 interface UploadFileParams{
-  inputs: {
-    filepath: string,
-    filename: string,
-    user_id: number,
-    language?: TLanguageType,
-  }
+  filepath: string,
+  filename: string,
+  user_id: number,
+  language?: TLanguageType,
 }
 /**
  * Analyze an uploaded file and create child tasks accordingly
  */
-export default async function handleUploadedFile({task: {task_id, fk_scene_id:scene_id, data:{inputs:{filepath, filename, user_id, language}}}, signal, context:{vfs, tasks}}:TaskHandlerParams<UploadFileParams>){
+export default async function handleUploadedFile({task: {task_id, fk_scene_id:scene_id, data:{filepath, filename, user_id, language}}, signal, context:{vfs, tasks}}:TaskHandlerParams<UploadFileParams>){
   const ext = filename.split(".").pop()?.toLowerCase();
   if(ext == "glb"){
     await tasks.create(scene_id, {
