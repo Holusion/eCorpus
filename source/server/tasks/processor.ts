@@ -67,6 +67,7 @@ export class TaskProcessor extends TaskListener{
     }finally{
       this.#current_task = null;
     }
+    this.takeTask();
   }).bind(this));
 
   /**
@@ -78,12 +79,12 @@ export class TaskProcessor extends TaskListener{
       WHERE task_id = (
         SELECT tasks.task_id 
         FROM tasks
-          LEFT JOIN tasks AS parent_task ON tasks.parent = parent_task.task_id 
+          LEFT JOIN tasks AS after_task ON tasks.after = after_task.task_id 
         WHERE tasks.status = 'pending' 
           AND tasks.type = ANY($1::text[])
           AND (
-            parent_task IS NULL
-            OR parent_task.status = 'success'
+            after_task IS NULL
+            OR after_task.status = 'success'
           )
         FOR UPDATE OF tasks SKIP LOCKED
         LIMIT 1
