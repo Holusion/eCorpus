@@ -29,9 +29,9 @@ export default async function handleUploadedFile({task: {task_id, fk_scene_id:sc
         user_id,
       },
       parent: task_id,
-    } );
+    });
   }else if(ext == "zip"){
-    await tasks.create(scene_id, {
+    let unzip = await tasks.create(scene_id, {
       type: "extractZip",
       data: {
         filepath,
