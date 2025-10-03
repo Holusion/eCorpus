@@ -114,7 +114,7 @@ describe("Task handling", function(){
     });
 
     it("can wait for task to fail", async function(){
-      let t = await scheduler.create(scene_id, {type: "errorTask", data: {message: "Some error"}});
+      let t = await scheduler.create(scene_id, {type: "evalTask", data: {x: `() =>{throw new Error("Some error")}`}});
       await expect(scheduler.wait(t.task_id)).to.be.rejectedWith("Some error");
     });
 
@@ -181,8 +181,18 @@ describe("Task handling", function(){
       if(scheduler.started) scheduler.stop();
     });
 
+
     //Tasks
-    describe("forEachTask", function(){
+
+    describe("evalTask", function(){
+      it("can execute arbitrary code", async function(){
+        let t = await scheduler.create(scene_id, {type: "evalTask", data: {x: `()=> 'foo'`}});
+        let result = await scheduler.wait(t.task_id);
+        expect(result.output).to.equal("foo");
+      });
+    });
+    
+    describe("map-reduce tasks", function(){
       it("can map tasks outputs", async function(){
         let parent = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0, value: [0, 1, 2, 3]}});
         let mapper = await scheduler.create(scene_id, {type: "forEachTask", data: { task: {type: "delayTask", data: {time: 0, value: 'a'}} }, after: parent.task_id});
@@ -190,7 +200,18 @@ describe("Task handling", function(){
         let results = (await Promise.all(children.map((c: any) => scheduler.wait(c.task_id)))).map(result=>result.output);
         expect(results).to.deep.equal(['a','a','a','a']);
       });
-    });
+
+      it("can reduce a task group", async function(){
+        let reducer = await scheduler.create(scene_id, {type: "reduceTasks", data: {
+          tasks: [0, 1, 2, 3].map(value=>({
+            type: "delayTask", data: {time: 0, variance: 3, value}
+          }))
+        }});
+        let {output: results} = await scheduler.wait(reducer.task_id);
+        expect(results).to.deep.equal([0, 1, 2, 3]);
+      });
+
+    })
   });
 
   
