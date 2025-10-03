@@ -5,7 +5,8 @@ export * from "./control/forEach.js";
 export * from "./control/group.js";
 export * from "./control/error.js";
 
-export {default as appendModel} from "./appendModel.js";
+export * from "./createDocument.js";
+
 export {default as decimateGlb} from "./decimateGlb.js";
 
 export {default as handleUpload} from "./handleUpload.js";
