@@ -16,12 +16,10 @@ export interface TaskDefinition<T extends TaskData = TaskData>{
   after: number|null;
   parent: number|null;
   data: T;
+  output: any;
   status: TaskStatus;
 }
 
-export interface ResolvedTaskDefinition<T extends TaskData = TaskData> extends Omit<TaskDefinition<T>, "parent">{
-  parent: TaskDefinition<TaskData>|null;
-}
 
 export interface TaskLogger{
   debug: (message?: any, ...optionalParams: any[]) => void,
@@ -32,17 +30,17 @@ export interface TaskLogger{
 export interface TaskHandlerContext{
   vfs: Vfs,
   userManager: UserManager,
-  tasks: Pick<TaskListener,"create"|"wait">,
+  tasks: Pick<TaskListener,"create"|"wait"|"getTask">,
 };
 
 export interface TaskHandlerParams<T extends TaskData>{
-  task: ResolvedTaskDefinition<T>;
+  task: TaskDefinition<T>;
   logger: TaskLogger;
   signal: AbortSignal;
   context: TaskHandlerContext;
 }
 
-export type TaskHandler<T extends TaskData = TaskData> = (params:TaskHandlerParams<T>)=>Promise<string|void>;
+export type TaskHandler<T extends TaskData = TaskData> = (params:TaskHandlerParams<T>)=>Promise<any>;
 
 export type TaskType =  keyof typeof tasks;
 export type TaskTypeData<T extends TaskType> = Parameters<(typeof tasks[T])>[0]["task"]["data"];

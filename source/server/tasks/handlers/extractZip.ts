@@ -17,11 +17,13 @@ export default async function handleExtractZipFile({task: {fk_scene_id:scene_id,
   let zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(filepath, {lazyEntries: true, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
   const openZipEntry = (record:Entry)=> new Promise<Readable>((resolve, reject)=>zip.openReadStream(record, (err, rs)=>(err?reject(err): resolve(rs))));
   
+  let files :string[] = [];
 
   const onEntry = async (record :Entry) =>{
-    //Handle file
+    //Write file to tmp folder
 
-    
+    files.push("filename"); /** @fixme */
+
   };
 
   zip.on("entry", (record)=>{
@@ -35,5 +37,5 @@ export default async function handleExtractZipFile({task: {fk_scene_id:scene_id,
 
   zip.readEntry();
   await once(zip, "close");
-
+  return files;
 };
