@@ -1,79 +1,15 @@
 import { Request, Response } from "express";
 
-import { parse_glb } from "../../../utils/glTF.js";
 import { getVfs, getUserId, getTaskScheduler } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
-import getDefaultDocument from "../../../utils/schema/default.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
-import { TLanguageType } from "../../../utils/schema/common.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
 function isSceneLanguage(l:any) :l is SceneLanguage|undefined{
-  return typeof l === "undefined" || sceneLanguages.indexOf(l.toUpperCase()) !== -1;
+  return typeof l === "undefined" || sceneLanguages.indexOf(l) !== -1;
 }
 
-
-interface GetDocumentParams{
-  scene :string;
-  filepath :string;
-  language?:SceneLanguage;
-}
-
-/**
- * Creates a new default document for a scene
- * uses data embedded in the glb to fill the document where possible
- * @param scene 
- * @param filepath 
- * @returns 
- */
-async function getDocument({scene, filepath, language}:GetDocumentParams){
-  let orig = await getDefaultDocument();
-  //dumb inefficient Deep copy because we want to mutate the doc in-place
-  let document = JSON.parse(JSON.stringify(orig));
-  let meta = await parse_glb(filepath);
-  let mesh = meta.meshes[0]; //Take the first mesh for its name
-  document.nodes.push({
-    "id": uid(),
-    "name": mesh?.name ?? scene,
-    "model": 0,
-  } as any);
-  document.scenes[0].nodes.push(document.nodes.length -1);
-
-  if(language){
-    document.setups[0].language = {language: language.toUpperCase()};
-  }
-
-  document.models = [{
-    "units": "m", //glTF specification says it's always meters. It's what blender do.
-    "boundingBox": meta.bounds,
-    "derivatives":[{
-      "usage": "Web3D",
-      "quality": "High",
-      "assets": [
-        {
-          "uri": `models/${scene}.glb`,
-          "type": "Model",
-          "byteSize": meta.byteSize,
-          "numFaces": meta.meshes.reduce((acc, m)=> acc+m.numFaces, 0),
-          "imageSize": 8192
-        }
-      ]
-    }],
-    "annotations":[],
-  }];
-  document.metas = [{
-    "collection": {
-      "titles": {
-        "EN": scene,
-        "FR": scene,
-      }
-    },
-  }];
-  document.scenes[document.scene].meta = 0;
-
-  return document
-}
 
 /**
  * Tries to create a scene.
@@ -86,7 +22,7 @@ export default async function postScene(req :Request, res :Response){
   let user_id = getUserId(req);
   let {scene} = req.params;
   let {language} = req.query;
-  
+  language = typeof language === "string"?language.toUpperCase(): language;
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
@@ -101,13 +37,17 @@ export default async function postScene(req :Request, res :Response){
   try{
     let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});
     let task = await scheduler.create(scene_id, {
-      type: "appendModel",
+      type: "createDocument",
       data: {
-        file: vfs.filepath(f),
+        models: [{
+          id: uid(),
+          file: f,
+          quality: "High",
+          usage: "Web3D"
+        }],
         name: scene,
-        index: 0,
-        language: language?.toUpperCase() as TLanguageType|undefined,
         user_id,
+        language,
       }
     });
     await scheduler.wait(task.task_id);
