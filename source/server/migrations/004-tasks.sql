@@ -13,6 +13,7 @@ CREATE TABLE tasks (
   after BIGINT REFERENCES tasks(task_id),
   parent BIGINT REFERENCES tasks(task_id),
   data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  output JSON,
   -- task state management
   status task_status NOT NULL DEFAULT 'pending'
 );

@@ -26,7 +26,7 @@ export class TaskProcessor extends TaskListener{
 
   constructor({client, vfs, userManager}: TaskProcessorParams){
     super({client});
-    this.#context = {vfs, userManager, tasks: {create:this.create.bind(this), wait: this.wait.bind(this)}};
+    this.#context = {vfs, userManager, tasks: {create:this.create.bind(this), wait: this.wait.bind(this), getTask: this.getTask.bind(this)}};
     this.on("aborting", this.onAbortTask);
     this.on("pending", this.onNewTask);
   }
@@ -60,8 +60,8 @@ export class TaskProcessor extends TaskListener{
     const {signal} = this.#control = new AbortController();
     debug(`Acquired task #${task.task_id}`);
     try{
-      await this.processTask({task: task as any, signal});
-      await this.releaseTask(task.task_id);
+      let result = await this.processTask({task: task as any, signal});
+      await this.releaseTask(task.task_id, result);
     }catch(e:any){
       await this.errorTask(task.task_id, e);
     }finally{
@@ -112,11 +112,14 @@ export class TaskProcessor extends TaskListener{
   /**
    * Marks a task as completed
    */
-  async releaseTask(id: number){
-    debug(`Release task #${id}`);
-    return await this.setTaskStatus(id, "success");
+  async releaseTask(id: number, output: any = null){
+    debug(`Release task #${id}:`, output);
+    await this.db.run(`UPDATE tasks SET status = 'success', output = $2 WHERE task_id = $1`, [id, JSON.stringify(output)]);
   }
 
+  /**
+   * @fixme use task.output to store the error message?
+   */
   async errorTask(id: number, msg?: Error|string){
     debug(`Log error for task #${id}:`, msg);
     if(msg){
@@ -143,10 +146,8 @@ export class TaskProcessor extends TaskListener{
     const handler = tasks[task.type as keyof typeof tasks] as TaskHandler<TaskTypeData<T>>;
     if(!handler) throw new Error(`Invalid task type ${task.type} in task #${task.task_id}: matches no handler`);
     debug(`Resolving task #${task.task_id}`);
-    const resolved = await this.resolveTask<T>(task.task_id);
-    debug(`Processing task #${task.task_id}`, resolved);
-    /** @fixme add logger */
-    await handler({task: resolved, logger: this.getTaskLogger(task.task_id), signal, context: this.#context});
+    debug(`Processing task #${task.task_id}`, task);
+    return await handler({task, logger: this.getTaskLogger(task.task_id), signal, context: this.#context});
   }
 }
 

@@ -1,7 +1,7 @@
 import EventEmitter, { on } from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
-import { ResolvedTaskDefinition, TaskData, TaskDefinition, TaskHandler, TaskStatus, TaskType, TaskTypeData } from "./types.js";
+import { TaskDefinition, TaskHandler, TaskStatus, TaskType, TaskTypeData } from "./types.js";
 import { NotFoundError, InternalError } from "../utils/errors.js";
 import { debuglog } from "node:util";
 
@@ -92,17 +92,17 @@ export class TaskListener extends EventEmitter{
   }
 
 
-  public async resolveTask<T extends TaskType>(id: number):Promise<ResolvedTaskDefinition<TaskTypeData<T>>>{
-    let task = await this.db.get<ResolvedTaskDefinition>(`
+  public async getTask<T extends TaskType =any>(id: number):Promise<TaskDefinition<TaskTypeData<T>>>{
+    let task = await this.db.get(`
       SELECT
         fk_scene_id,
         task_id,
         ctime,
         type,
-        CASE WHEN parent IS NOT NULL THEN (
-          SELECT row_to_json(parent_task) FROM tasks AS parent_task WHERE parent_task.task_id = tasks.parent
-        ) ELSE NULL END as parent,
+        parent,
+        after,
         data,
+        output,
         status
       FROM tasks
       WHERE task_id = $1
@@ -123,7 +123,7 @@ export class TaskListener extends EventEmitter{
     return task;
   }
 
-  async wait(id: number){
+  async wait(id: number) :Promise<TaskDefinition<any>>{
     let it = on(this, "success");
     let task = await this.db.get<{status: TaskStatus}> (`SELECT status FROM tasks WHERE task_id = $1`, [id]);
     if(!task){
@@ -133,10 +133,12 @@ export class TaskListener extends EventEmitter{
       /** @fixme should retrieve task logs to provide a helpful message */
       throw new InternalError("Task failed");
     }else if(task.status === "success"){
-      return;
+      return this.getTask(id);
     }
     for await (let [taskId] of it){
-      if(taskId === id) return;
+      if(taskId === id) return await this.getTask(id);
     }
+    // @ts-ignore
+    return;
   }
 }
