@@ -73,11 +73,10 @@ describe("Task handling", function(){
       let t1 = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
       let t2 = await listener.create(scene_id, {type: "delayTask", data: {time: 0}, parent: t1.task_id});
       
-      let resolved = await listener.resolveTask(t2.task_id);
-      expect(resolved.parent).to.be.an("object");
-      expect(resolved.parent).to.deep.equal(t1);
+      let resolved = await listener.getTask(t2.task_id);
+      expect(resolved.parent).to.equal(t1.task_id);
       expect(resolved.fk_scene_id).to.equal(t2.fk_scene_id);
-    })
+    });
   });
 
   describe("scheduler / processor", function(){
@@ -162,6 +161,36 @@ describe("Task handling", function(){
       expect(results).to.deep.equal([parent, before, after].map(t=>t.task_id));
     });
 
+  });
+
+  describe("control tasks", function(){
+    // Tests task processing parallelism. Since task processor has no built-in parallelism, we rely on multiple instances
+    let processors: TaskProcessor[] =[], scheduler: TaskScheduler;
+
+    this.beforeEach(async function(){
+      processors =[];
+      for(let i = 0; i < 3; i++){
+        processors.push(new TaskProcessor({client, vfs: null as any, userManager: null as any}))
+      }
+      scheduler = new TaskScheduler({client});
+      await Promise.all([...processors.map(p=>p.start()), scheduler.start()])
+    });
+
+    this.afterEach(async function(){
+      processors.forEach(processor=>processor.stop());
+      if(scheduler.started) scheduler.stop();
+    });
+
+    //Tasks
+    describe("forEachTask", function(){
+      it("can map tasks outputs", async function(){
+        let parent = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0, value: [0, 1, 2, 3]}});
+        let mapper = await scheduler.create(scene_id, {type: "forEachTask", data: { task: {type: "delayTask", data: {time: 0, value: 'a'}} }, after: parent.task_id});
+        let {output: children} = await scheduler.wait(mapper.task_id);
+        let results = (await Promise.all(children.map((c: any) => scheduler.wait(c.task_id)))).map(result=>result.output);
+        expect(results).to.deep.equal(['a','a','a','a']);
+      });
+    });
   });
 
 });
