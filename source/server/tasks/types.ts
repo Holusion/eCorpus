@@ -6,7 +6,7 @@ import { TaskListener } from "./listener.js";
 
 export type TaskData =Record<string, any>;
 
-export type TaskStatus = 'pending'|'aborting'|'running'|'success'|'error';
+export type TaskStatus = 'initializing'|'pending'|'aborting'|'running'|'success'|'error';
 
 export interface TaskDefinition<T extends TaskData = TaskData>{
   fk_scene_id: number;
@@ -21,22 +21,42 @@ export interface TaskDefinition<T extends TaskData = TaskData>{
 }
 
 
+
+export interface CreateTaskParams<T extends TaskType>{
+  type: T;
+  data: TaskTypeData<T>;
+  parent?: number|null;
+  after?: number[]|null;
+  status?: TaskStatus;
+}
+
+
 export interface TaskLogger{
   debug: (message?: any, ...optionalParams: any[]) => void,
   log: (message?: any, ...optionalParams: any[]) => void,
   warn: (message?: any, ...optionalParams: any[]) => void,
   error: (message?: any, ...optionalParams: any[]) => void,
 }
+
+export interface TaskContextHandlers{
+  create<T extends TaskType>(p: CreateTaskParams<T> ): Promise<number>;
+  wait(id: number) :Promise<any>;
+  getTask<T extends TaskType =any>(id: number):Promise<TaskDefinition<TaskTypeData<T>>>;
+  group(cb: (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>) :Promise<number>;
+}
+
 export interface TaskHandlerContext{
   vfs: Vfs,
   userManager: UserManager,
-  tasks: Pick<TaskListener,"create"|"wait"|"getTask">,
+  tasks: TaskContextHandlers,
+  logger: TaskLogger,
+  signal: AbortSignal,
 };
+
+export type GroupCallback = (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>;
 
 export interface TaskHandlerParams<T extends TaskData>{
   task: TaskDefinition<T>;
-  logger: TaskLogger;
-  signal: AbortSignal;
   context: TaskHandlerContext;
 }
 
