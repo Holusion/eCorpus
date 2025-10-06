@@ -75,22 +75,29 @@ export class TaskProcessor extends TaskListener{
    * Get an exclusive lock over an available task and marks it as running 
    */
   async acquireTask() :Promise<TaskDefinition|undefined>{
-    return await this.db.get<TaskDefinition>(`
-      UPDATE tasks SET status = 'running'
-      WHERE task_id = (
-        SELECT tasks.task_id 
+    let t = await this.db.get<TaskDefinition>(`
+      UPDATE tasks 
+      SET status = 'running'
+      WHERE tasks.task_id = (
+        SELECT 
+          tasks.task_id
         FROM tasks
-          LEFT JOIN tasks AS after_task ON tasks.after = after_task.task_id 
-        WHERE tasks.status = 'pending' 
+          LEFT JOIN tasks_relations ON target = tasks.task_id
+          LEFT JOIN tasks AS source_tasks ON (source = source_tasks.task_id AND source_tasks.status != 'success')
+        WHERE tasks.status = 'pending'
           AND tasks.type = ANY($1::text[])
-          AND (
-            after_task IS NULL
-            OR after_task.status = 'success'
-          )
+          AND source_tasks.task_id IS NULL
         FOR UPDATE OF tasks SKIP LOCKED
         LIMIT 1
       )
       RETURNING *`, [ Object.keys(tasks) ]);
+      if(!t) return;
+      console.log("#%d runs after: ", t.task_id, await this.db.all(`SELECT source_tasks.task_id, source_tasks.status
+            FROM tasks_relations
+              INNER JOIN tasks AS source_tasks ON source = source_tasks.task_id
+            WHERE target = $1
+              AND source_tasks.status != 'success'`, [t.task_id]));
+      return t;
   }
 
   onAbortTask =(id: number)=>{
