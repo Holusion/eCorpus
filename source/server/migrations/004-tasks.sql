@@ -10,14 +10,49 @@ CREATE TABLE tasks (
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- task data
   type TEXT NOT NULL,
-  after BIGINT REFERENCES tasks(task_id),
-  parent BIGINT REFERENCES tasks(task_id),
+  parent BIGINT DEFAULT NULL REFERENCES tasks(task_id),
   data JSONB NOT NULL DEFAULT '{}'::jsonb,
   output JSON,
   -- task state management
   status task_status NOT NULL DEFAULT 'pending'
 );
 
+
+CREATE TABLE tasks_relations(
+  source BIGINT REFERENCES tasks(task_id),
+  target BIGINT REFERENCES tasks(task_id) ON DELETE CASCADE
+);
+
+CREATE FUNCTION relation_has_cycle(input_source_id bigint, input_target_id bigint)
+RETURNS BOOLEAN
+LANGUAGE plpgsql AS $$
+DECLARE
+  rec RECORD;
+BEGIN
+  FOR rec IN
+    WITH RECURSIVE traversed AS (
+      SELECT
+        ARRAY[input_source_id] AS path,
+        input_target_id AS target_id
+      UNION ALL
+      SELECT
+        traversed.path || tasks_relations.source,
+        tasks_relations.target
+      FROM traversed
+      JOIN tasks_relations ON tasks_relations.source = traversed.target_id
+    )
+    SELECT * FROM traversed
+  LOOP
+    IF rec.target_id = ANY(rec.path) THEN
+      RETURN TRUE; -- Early return, stop looking when first cycle is detected
+    END IF;
+  END LOOP;
+  RETURN FALSE;
+END;
+$$;
+
+ALTER TABLE tasks_relations 
+ADD CONSTRAINT check_no_cycles CHECK (NOT relation_has_cycle(source, target));
 
 -- create a trigger that will notify clients on every task update
 CREATE OR REPLACE FUNCTION tasks_status_notify()
@@ -51,6 +86,8 @@ CREATE TABLE tasks_logs (
 
 DROP TABLE tasks_logs;
 DROP TYPE log_severity;
+
+DROP TABLE tasks_relations;
 
 DROP TABLE tasks;
 DROP TYPE task_status;

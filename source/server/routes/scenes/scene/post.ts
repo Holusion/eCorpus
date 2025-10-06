@@ -50,7 +50,7 @@ export default async function postScene(req :Request, res :Response){
         language,
       }
     });
-    await scheduler.wait(task.task_id);
+    await scheduler.wait(task);
   }catch(e){
     //If written, the file will stay as a loose object but will get cleaned-up later
     await vfs.removeScene(scene_id).catch(e=>console.warn(e));

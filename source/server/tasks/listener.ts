@@ -15,8 +15,8 @@ export interface TaskListenerParams{
 export interface CreateTaskParams<T extends TaskType>{
   type: T;
   data: TaskTypeData<T>;
-  parent?:number|null;
-  after?: number|null;
+  parent?: number|null;
+  after?: number[]|null;
 }
 
 export class TaskListener extends EventEmitter{
@@ -71,7 +71,7 @@ export class TaskListener extends EventEmitter{
         this.db.get<{message:string}>(`SELECT message FROM tasks_logs WHERE fk_task_id = $1 AND severity = 'error' ORDER BY log_id DESC LIMIT 1`, [task_id])
         .then((log)=>{
           if(log) this.emit("error", new Error(`In task ${task_id}: ${log.message}`));
-          if(log) this.emit("error", new Error(`In task ${task_id}: no logs`));
+          else this.emit("error", new Error(`In task ${task_id}: no logs`));
         }, (e:any)=>{
           this.emit("error", new Error(`In task ${task_id}: failed to get log with error: ${e.message}`));
         });
@@ -93,39 +93,79 @@ export class TaskListener extends EventEmitter{
 
 
   public async getTask<T extends TaskType =any>(id: number):Promise<TaskDefinition<TaskTypeData<T>>>{
-    let task = await this.db.get(`
+    let {after, ...task} = await this.db.get(`
       SELECT
         fk_scene_id,
         task_id,
         ctime,
         type,
         parent,
-        after,
+        (SELECT array_agg(source)::bigint[] FROM tasks_relations WHERE target = task_id) as after,
         data,
         output,
         status
       FROM tasks
       WHERE task_id = $1
     `, [id]);
-    if(task.parent?.ctime){
-      task.parent.ctime = new Date(task.parent.ctime);
+    return {
+      ...task,
+      after: (after??[]).map((n: any)=>parseInt(n))
+    };
+  }
+
+  async listTasks(){
+    return await this.db.all(`
+     SELECT 
+        tasks.task_id
+      FROM tasks
+      WHERE tasks.status = 'pending'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM tasks_relations
+            INNER JOIN tasks AS source_tasks ON source = source_tasks.task_id
+          WHERE target = tasks.task_id
+            AND source_tasks.status != 'success'
+        )
+    `);
+  }
+
+  async create<T extends TaskType>(scene: number, {type, data, parent, after}:CreateTaskParams<T> ): Promise<number>{
+    let args =  [scene, type, parent, data];
+    if(after?.length) args.push(after as any);
+    let task = await this.db.get<{task_id: number}>(`
+      WITH task AS (
+        INSERT INTO tasks(fk_scene_id, type, parent, data)
+        VALUES ($1, $2, $3, $4) 
+        RETURNING *
+      )
+      ${after?.length?`INSERT INTO 
+        tasks_relations (source, target)
+      SELECT 
+        source,
+        task.task_id
+      FROM task, unnest( $5::bigint[] ) as source
+      RETURNING target AS task_id
+      `: `SELECT task_id FROM task`}
+    `, args);
+    return task?.task_id;
+  }
+
+  async wait(id: number) :Promise<any>{
+
+    const onResult = ()=>{
+      return this.getTask(id).then(t=>{
+        if(/^\d+$/.test(t.output)){
+          debug("recurse over returned task definition #%d", t.output.task_id);
+          return this.wait(parseInt(t.output));
+        }else{
+          debug("Return task output for #%d:", id, t.output);
+          return t.output;
+        }
+      });
     }
-    return task as any;
-  }
-
-  async create<T extends TaskType>(scene: number, {type, data, parent = null, after = null}:CreateTaskParams<T> ): Promise<TaskDefinition>{
-    let task = await this.db.get<TaskDefinition>(`
-      INSERT INTO tasks(fk_scene_id, type, after, parent, data)
-      VALUES ($1, $2, $3, $4, $5) 
-      RETURNING *
-    `, [scene, type, after, parent, data]);
-
-    return task;
-  }
-
-  async wait(id: number) :Promise<TaskDefinition<any>>{
+    debug("wait for task #%d", id);
     let it = on(this, "success");
-    let task = await this.db.get<{status: TaskStatus}> (`SELECT status FROM tasks WHERE task_id = $1`, [id]);
+    let task = await this.db.get<{status: TaskStatus, output?:any}> (`SELECT status, output FROM tasks WHERE task_id = $1`, [id]);
     if(!task){
       throw new NotFoundError(`No task found with id ${id}`);
     }
@@ -133,10 +173,10 @@ export class TaskListener extends EventEmitter{
       /** @fixme should retrieve task logs to provide a helpful message */
       throw new InternalError("Task failed");
     }else if(task.status === "success"){
-      return this.getTask(id);
+      return onResult();
     }
     for await (let [taskId] of it){
-      if(taskId === id) return await this.getTask(id);
+      if(taskId === id) return onResult();
     }
     // @ts-ignore
     return;
