@@ -13,8 +13,8 @@ export interface TaskDefinition<T extends TaskData = TaskData>{
   task_id: number;
   ctime: Date;
   type :TaskType;
-  after: number|null;
   parent: number|null;
+  after: number[];
   data: T;
   output: any;
   status: TaskStatus;
