@@ -3,6 +3,7 @@ import open, {Database, DbController} from "./helpers/db.js";
 import path from "path";
 import { InternalError, NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
+import { randomBytes, randomInt } from "crypto";
 
 
 export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
@@ -37,6 +38,13 @@ export default abstract class BaseVfs extends DbController{
     }else{
       throw new NotFoundError(`No file matching ${f}`);
     }
+  }
+
+  public mktemp(prefix: string, ts:number = Date.now()){
+    let b = Buffer.allocUnsafe(10);
+    b.writeUIntBE(ts, 0, 6);
+    randomBytes(4).copy(b as any, 6);
+    return prefix+"."+b.toString("hex");
   }
 
   abstract close() :Promise<any>;

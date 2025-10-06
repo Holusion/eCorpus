@@ -2,7 +2,7 @@
 -- Up
 --------------------------------------------------------------------------------
 
-CREATE TYPE task_status AS ENUM ('pending', 'aborting', 'running', 'success', 'error');
+CREATE TYPE task_status AS ENUM ('initializing', 'pending', 'aborting', 'running', 'success', 'error');
 
 CREATE TABLE tasks (
   task_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

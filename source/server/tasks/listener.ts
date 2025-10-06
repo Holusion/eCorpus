@@ -1,7 +1,7 @@
 import EventEmitter, { on } from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
-import { TaskDefinition, TaskHandler, TaskStatus, TaskType, TaskTypeData } from "./types.js";
+import { CreateTaskParams, GroupCallback, TaskContextHandlers, TaskDefinition, TaskHandler, TaskStatus, TaskType, TaskTypeData } from "./types.js";
 import { NotFoundError, InternalError } from "../utils/errors.js";
 import { debuglog } from "node:util";
 
@@ -9,14 +9,6 @@ const debug = debuglog("tasks:scheduler");
 
 export interface TaskListenerParams{
   client: Client;
-}
-
-
-export interface CreateTaskParams<T extends TaskType>{
-  type: T;
-  data: TaskTypeData<T>;
-  parent?: number|null;
-  after?: number[]|null;
 }
 
 export class TaskListener extends EventEmitter{
@@ -129,13 +121,16 @@ export class TaskListener extends EventEmitter{
     `);
   }
 
-  async create<T extends TaskType>(scene: number, {type, data, parent, after}:CreateTaskParams<T> ): Promise<number>{
-    let args =  [scene, type, parent, data];
+  async create<T extends TaskType>(scene: number, {type, data, after}:CreateTaskParams<T> ): Promise<number>
+  async create<T extends TaskType>(scene: number, parent : number|null, params: CreateTaskParams<T> ): Promise<number>
+  async create<T extends TaskType>(scene: number, _parent : number|null|CreateTaskParams<T>, params: Partial<CreateTaskParams<T>> ={} ): Promise<number>{
+    const {type, data, after, status='pending'} = (typeof _parent === "object" && _parent) ? _parent: params;
+    let args =  [scene, type,  (typeof _parent === "object") ? null : _parent, data, status];
     if(after?.length) args.push(after as any);
     let task = await this.db.get<{task_id: number}>(`
       WITH task AS (
-        INSERT INTO tasks(fk_scene_id, type, parent, data)
-        VALUES ($1, $2, $3, $4) 
+        INSERT INTO tasks(fk_scene_id, type, parent, data, status)
+        VALUES ($1, $2, $3, $4, $5) 
         RETURNING *
       )
       ${after?.length?`INSERT INTO 
@@ -143,7 +138,7 @@ export class TaskListener extends EventEmitter{
       SELECT 
         source,
         task.task_id
-      FROM task, unnest( $5::bigint[] ) as source
+      FROM task, unnest( $6::bigint[] ) as source
       RETURNING target AS task_id
       `: `SELECT task_id FROM task`}
     `, args);
@@ -180,5 +175,42 @@ export class TaskListener extends EventEmitter{
     }
     // @ts-ignore
     return;
+  }
+
+  async group(scene_id: number, work: GroupCallback) :Promise<number>
+  async group(scene_id: number, id: number, work: GroupCallback) :Promise<number>
+  async group(scene_id: number, _id:number|null|GroupCallback, _work?:GroupCallback) :Promise<number>
+  {
+    const id = typeof _id === "number"? _id : null;
+    const work = typeof _work !== "undefined"? _work: _id;
+    if(typeof work !== "function") throw new Error("Invalid payload : "+ work?.toString());
+    let group_id = await this.create( scene_id, id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: id?[id]: []});
+    let ctx = this.makeTaskProxy(scene_id, group_id);
+    try{
+      for await(let child of await work({...ctx, create: async (d)=>{
+        let after = (d.after??[]);
+        if(typeof id === "number") after.unshift(id);
+        return await ctx.create({...d, after});
+      }})){
+        await this.addRelation(child, group_id);
+      }
+    }finally{
+      await this.setTaskStatus(group_id, 'pending');
+    }
+
+    return group_id;
+  }
+
+  async addRelation(source: number, target: number){
+    await this.db.run(`INSERT INTO tasks_relations(source, target) VALUES($1, $2)`, [source, target]);
+  }
+
+  makeTaskProxy(scene_id: number, id: number): TaskContextHandlers{
+    return {
+      create: this.create.bind(this, scene_id, id),
+      group: this.group.bind(this, scene_id, id),
+      wait: this.wait.bind(this),
+      getTask: this.getTask.bind(this),
+    }
   }
 }
