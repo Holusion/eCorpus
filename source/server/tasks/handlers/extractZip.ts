@@ -23,7 +23,7 @@ export default async function handleExtractZipFile({task: {fk_scene_id:scene_id,
     //Write file to tmp folder
 
     files.push("filename"); /** @fixme */
-
+    
   };
 
   zip.on("entry", (record)=>{
