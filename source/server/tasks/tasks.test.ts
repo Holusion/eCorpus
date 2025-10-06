@@ -107,6 +107,12 @@ describe("Task handling", function(){
       expect(await scheduler.getTask(after)).to.have.property("after").to.deep.equal( requirements);
     });
 
+    it("can create tasks with asynchronous initialization", async function(){
+      await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, status: 'initializing'});
+      let tasks = await handle.all(`SELECT * FROM tasks`);
+      expect(tasks).to.have.property("length", 1);
+      expect(tasks[0]).to.have.property("status", "initializing");
+    });
   });
 
 
@@ -179,8 +185,8 @@ describe("Task handling", function(){
 
     it("can respect tasks ordering", async function(){
       let parent = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
-      let before = await scheduler.create(scene_id, {type: "delayTask", data: {time: 25}, parent: parent});
-      let after = await scheduler.create(scene_id, {type: "delayTask", data: {time: 10}, parent: parent, after:[before]});
+      let before = await scheduler.create(scene_id, parent, {type: "delayTask", data: {time: 25}});
+      let after = await scheduler.create(scene_id, parent, {type: "delayTask", data: {time: 10}, after:[before]});
       
       let results:number[] = [];
       await Promise.all([parent, before, after].map(async task=>{
@@ -220,16 +226,39 @@ describe("Task handling", function(){
       });
     });
     
-    describe("reduce tasks", function(){
+    describe("group tasks", function(){
 
       it("can reduce a task group", async function(){
-        let reducer = await scheduler.create(scene_id, {type: "reduceTasks", data: {
-          tasks: ['a', 'b', 'c', 'd'].map<Pick<TaskDefinition,"type"|"data">>(value=>({
-            type: "delayTask", data: {time: 0, variance: 3, value}
-          }))
-        }});
+        //Manual creation without the group aggregation method
+        const children = [
+          await scheduler.create(scene_id, {type: "delayTask", data: {time: 0, value: 'a'}}),
+          await scheduler.create(scene_id, {type: "delayTask", data: {time: 5, value: 'b'}}),
+          await scheduler.create(scene_id, {type: "delayTask", data: {time: 2, value: 'c'}}),
+          await scheduler.create(scene_id, {type: "delayTask", data: {time: 0, value: 'd'}}),
+        ];
+        let reducer = await scheduler.create(scene_id, {type: "groupOutputsTask", data: {children}});
         let results = await scheduler.wait(reducer);
         expect(results).to.deep.equal(['a', 'b', 'c', 'd']);
+      });
+
+      it("with TaskListener.group()- array", async function(){
+        let group = await scheduler.group(scene_id, async (tasks)=>{
+          return [
+            await tasks.create({type: "delayTask", data: {time: 5, value: 'a'}}),
+            await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}}),
+          ];
+        });
+        let results = await scheduler.wait(group);
+        expect(results).to.deep.equal(['a', 'b']);
+      });
+
+      it("with TaskListener.group()- generator", async function(){
+        let group = await scheduler.group(scene_id, async function* (tasks){
+            yield await tasks.create({type: "delayTask", data: {time: 5, value: 'a'}});
+            yield await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}});
+        });
+        let results = await scheduler.wait(group);
+        expect(results).to.deep.equal(['a', 'b']);
       });
     });
   });

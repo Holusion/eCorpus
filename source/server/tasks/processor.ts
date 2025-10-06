@@ -1,7 +1,7 @@
 import {debuglog, format} from 'node:util';
 import {Client } from 'pg';
 import { takeOne } from './queue.js';
-import {  TaskDefinition, TaskHandler, TaskHandlerContext, TaskLogger, TaskType, TaskTypeData } from './types.js';
+import {  CreateTaskParams, TaskContextHandlers, TaskDefinition, TaskHandler, TaskHandlerContext, TaskLogger, TaskType, TaskTypeData } from './types.js';
 import { TaskListener } from './listener.js';
 import Vfs from '../vfs/index.js';
 import UserManager from '../auth/UserManager.js';
@@ -22,12 +22,12 @@ export class TaskProcessor extends TaskListener{
 
   #current_task:number|null = null;
   #control = new AbortController();
-  #context: TaskHandlerContext;
+  #context: Pick<TaskHandlerContext, "vfs"|"userManager">;
 
 
   constructor({client, vfs, userManager}: TaskProcessorParams){
     super({client});
-    this.#context = {vfs, userManager, tasks: {create:this.create.bind(this), wait: this.wait.bind(this), getTask: this.getTask.bind(this)}};
+    this.#context = {vfs, userManager};
     this.on("aborting", this.onAbortTask);
     this.on("pending", this.onNewTask);
   }
@@ -52,11 +52,12 @@ export class TaskProcessor extends TaskListener{
 
   takeTask = takeOne((async function takeTask(this: TaskProcessor){
     debug("Acquiring task");
-    let task = await this.acquireTask();
-    if(!task){
+    let id = await this.acquireTask();
+    if(!id){
       debug("No matched task");
       return;
     }
+    const task = await this.getTask(id);
     this.#current_task = task.task_id;
     const {signal} = this.#control = new AbortController();
     debug(`Acquired task #${task.task_id}`);
@@ -74,8 +75,8 @@ export class TaskProcessor extends TaskListener{
   /**
    * Get an exclusive lock over an available task and marks it as running 
    */
-  async acquireTask() :Promise<TaskDefinition|undefined>{
-    let t = await this.db.get<TaskDefinition>(`
+  async acquireTask() :Promise<number|undefined>{
+    let t = await this.db.get<{task_id: number}>(`
       UPDATE tasks 
       SET status = 'running'
       WHERE tasks.task_id = (
@@ -97,7 +98,7 @@ export class TaskProcessor extends TaskListener{
               INNER JOIN tasks AS source_tasks ON source = source_tasks.task_id
             WHERE target = $1
               AND source_tasks.status != 'success'`, [t.task_id]));
-      return t;
+      return t.task_id;
   }
 
   onAbortTask =(id: number)=>{
@@ -109,14 +110,7 @@ export class TaskProcessor extends TaskListener{
     await this.db.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, $2, $3)`, [id, severity, message]);
   }
 
-  getTaskLogger(id: number){
-    return {
-      debug: (...args:any[])=>this.appendTaskLog(id, 'debug', format(...args)),
-      log: (...args:any[])=>this.appendTaskLog(id, 'log', format(...args)),
-      warn: (...args:any[])=>this.appendTaskLog(id, 'warn', format(...args)),
-      error: (...args:any[])=>this.appendTaskLog(id, 'error', format(...args)),
-    }
-  }
+
 
   /**
    * Marks a task as completed
@@ -156,7 +150,18 @@ export class TaskProcessor extends TaskListener{
     if(!handler) throw new Error(`Invalid task type ${task.type} in task #${task.task_id}: matches no handler`);
     debug(`Resolving task #${task.task_id}`);
     debug(`Processing task #${task.task_id}`, task);
-    return await handler({task, logger: this.getTaskLogger(task.task_id), signal, context: this.#context});
+    const id = task.task_id;
+    return await handler({task, context: {
+      ...this.#context,
+      logger: {
+        debug: (...args:any[])=>this.appendTaskLog(id, 'debug', format(...args)),
+        log: (...args:any[])=>this.appendTaskLog(id, 'log', format(...args)),
+        warn: (...args:any[])=>this.appendTaskLog(id, 'warn', format(...args)),
+        error: (...args:any[])=>this.appendTaskLog(id, 'error', format(...args)),
+      },
+      tasks: this.makeTaskProxy(task.fk_scene_id, id),
+      signal,
+    }});
   }
 }
 
