@@ -32,7 +32,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
         let model_id = uid();
         for(let quality of ["Thumb", "Low", "Medium", "High"]){
           let optimize = await tasks.create({type: "optimizeGlb", data: {file: file.path}});
-          yield optimize;
+          
           yield await tasks.create({
             type: "mapOutputsTask",
             data: {
@@ -48,6 +48,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
       }
     }
   });
+
 
   return await tasks.create({
     type: "createDocument",
