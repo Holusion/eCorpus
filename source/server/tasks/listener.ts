@@ -181,17 +181,15 @@ export class TaskListener extends EventEmitter{
   async group(scene_id: number, id: number, work: GroupCallback) :Promise<number>
   async group(scene_id: number, _id:number|null|GroupCallback, _work?:GroupCallback) :Promise<number>
   {
-    const id = typeof _id === "number"? _id : null;
+    const parent_id = typeof _id === "number"? _id : null;
     const work = typeof _work !== "undefined"? _work: _id;
     if(typeof work !== "function") throw new Error("Invalid payload : "+ work?.toString());
-    let group_id = await this.create( scene_id, id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: id?[id]: []});
-    let ctx = this.makeTaskProxy(scene_id, group_id);
+    let group_id = await this.create( scene_id, parent_id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: parent_id?[parent_id]: []});
+    
+    const ctx = this.makeTaskProxy(scene_id, group_id);
+
     try{
-      for await(let child of await work({...ctx, create: async (d)=>{
-        let after = (d.after??[]);
-        if(typeof id === "number") after.unshift(id);
-        return await ctx.create({...d, after});
-      }})){
+      for await(let child of await work(ctx)){
         await this.addRelation(child, group_id);
       }
     }finally{

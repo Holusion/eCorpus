@@ -110,6 +110,11 @@ export class TaskProcessor extends TaskListener{
     await this.db.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, $2, $3)`, [id, severity, message]);
   }
 
+  wrapLog(id: number, severity: keyof TaskLogger,  message: string):void{
+    this.appendTaskLog(id, severity, message).catch(e=>{
+      console.error("Failed to write task log for #%d [%s]", id, severity, message);
+    });
+  }
 
 
   /**
@@ -154,12 +159,13 @@ export class TaskProcessor extends TaskListener{
     return await handler({task, context: {
       ...this.#context,
       logger: {
-        debug: (...args:any[])=>this.appendTaskLog(id, 'debug', format(...args)),
-        log: (...args:any[])=>this.appendTaskLog(id, 'log', format(...args)),
-        warn: (...args:any[])=>this.appendTaskLog(id, 'warn', format(...args)),
-        error: (...args:any[])=>this.appendTaskLog(id, 'error', format(...args)),
+        debug: (...args:any[])=>this.wrapLog(id, 'debug', format(...args)),
+        log: (...args:any[])=>this.wrapLog(id, 'log', format(...args)),
+        warn: (...args:any[])=>this.wrapLog(id, 'warn', format(...args)),
+        error: (...args:any[])=>this.wrapLog(id, 'error', format(...args)),
       },
       tasks: this.makeTaskProxy(task.fk_scene_id, id),
+      db: this.db,
       signal,
     }});
   }

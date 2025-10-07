@@ -1,8 +1,8 @@
 import type UserManager from "../auth/UserManager.js";
+import { DatabaseHandle } from "../vfs/helpers/db.js";
 import type Vfs from "../vfs/index.js";
 
 import type * as tasks from "./handlers/index.js";
-import { TaskListener } from "./listener.js";
 
 export type TaskData =Record<string, any>;
 
@@ -47,6 +47,7 @@ export interface TaskContextHandlers{
 
 export interface TaskHandlerContext{
   vfs: Vfs,
+  db: Omit<DatabaseHandle,"beginTransaction">,
   userManager: UserManager,
   tasks: TaskContextHandlers,
   logger: TaskLogger,
