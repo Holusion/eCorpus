@@ -15,20 +15,44 @@ interface DerivativeDefinition {
    * Every derivatives of the same model should share the same id
    */
   id: string,
-  file: Pick<FileProps,"name"|"hash">,
+  filepath: string,
+  filename: string,
   quality: TDerivativeQuality,
   usage: TDerivativeUsage,
 }
 
 interface CreateDocumentParams{
-  models: DerivativeDefinition[];
+  models?: DerivativeDefinition[];
   name: string,
   language?: TLanguageType,
   user_id: number,
 }
 
-export async function createDocument({task: {fk_scene_id: scene_id, data: {models, name, language, user_id}}, context:{vfs}}:TaskHandlerParams<CreateDocumentParams>){
-  if(!models?.length) throw new Error("Can't create an empty scene: need at least one model");
+function isDerivativeDefinition(d: any): d is DerivativeDefinition{
+  return typeof d === "object" 
+    && typeof d.file === "string"
+    && ["Thumb", "Low", "Medium", "High", "Highest", "AR"].indexOf(d.quality) !== -1
+    && ["Web3D", "App3D", "iOSApp3D"].indexOf(d.usage) !== -1;
+} 
+
+export async function createDocument({task: {fk_scene_id: scene_id, parent, data: {models, name, language, user_id}}, context:{vfs, tasks, logger}}:TaskHandlerParams<CreateDocumentParams>){
+
+  if(!models?.length){
+    logger.debug("Getting list of models from parent");
+    if(typeof parent !== "number") throw new Error("Can't create an empty scene: no model was provided and this task has no parent");
+    let {output} = await tasks.getTask(parent);
+    models = output;
+    throw new Error("Can't create an empty scene: need at least one model");
+  }else{
+    logger.debug("Using provided list of %d models", models.length);
+  }
+
+  if(!Array.isArray(models)) throw new Error(`models is not an array`);
+  let non_model_index = models.findIndex(isDerivativeDefinition) !== -1;
+  if(non_model_index){
+
+    throw new Error(`Object at index ${non_model_index} is not a model`);
+  } 
 
   let document = getDefaultDocument();
 
@@ -47,11 +71,11 @@ export async function createDocument({task: {fk_scene_id: scene_id, data: {model
   document.scenes![document.scene!].meta = 0;
 
   document.models = [];
-  for(const {id, file, quality, usage} of models){
-    if(!file.hash) throw new Error(`File ${name}/${file.name} does not point to a valid file`);
-    let meta = await parse_glb(vfs.filepath(file.hash));
+  for(const {id, filepath, filename, quality, usage} of models){
+    if(!filepath) throw new Error(`File ${filename} does not point to a valid file`);
+    let meta = await parse_glb(filepath);
     let mesh = meta.meshes[0]; //Take the first mesh for its name
-    let mesh_name = mesh?.name ?? file.name.split("/").pop()!.replace(/\.glb$/i, "");
+    let mesh_name = mesh?.name ?? filename.replace(/\.glb$/i, "");
     let node: INode = document.nodes.find(n=> n.id === id) ?? (()=>{
       let model_index = document.models.push({
         "units": "m", //glTF specification says it's always meters. It's what blender do.
@@ -77,7 +101,7 @@ export async function createDocument({task: {fk_scene_id: scene_id, data: {model
       "quality": quality,
       "assets": [
         {
-          "uri": file.name,
+          "uri": filename,
           "type": "Model",
           "byteSize": meta.byteSize,
           "numFaces": meta.meshes.reduce((acc, m)=> acc+m.numFaces, 0),
