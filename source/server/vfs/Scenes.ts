@@ -214,14 +214,26 @@ export default abstract class ScenesVfs extends BaseVfs{
       let idx = args.push(match);
       let list_idx = args.push(dicts);
       fromScenes = `(
-        SELECT 
+      SELECT 
+        fk_scene_id,
+        MAX(rank) as rank
+      FROM 
+        (SELECT 
           fk_scene_id,
-          MAX(ts_rank(ts_terms, websearch_to_tsquery(language::regconfig, $${idx}))) as rank
+          ts_rank(ts_terms, websearch_to_tsquery(language::regconfig, $${idx})) as rank
         FROM 
           (SELECT cast_to_regconfig(language) AS language FROM unnest($${list_idx}::text[]) as t(language)) AS static_languages
           INNER JOIN scenes_search_terms USING(language)
         WHERE ts_terms @@ websearch_to_tsquery(static_languages.language, $${idx})
-        GROUP BY fk_scene_id
+        UNION
+        SELECT
+          scene_id as fk_scene_id,
+          0.4 as rank
+        FROM
+          scenes 
+        WHERE (scene_name LIKE '%'|| $${idx} ||'%')
+    ) matches
+      GROUP BY fk_scene_id 
       ) as matching_scenes
       INNER JOIN scenes ON fk_scene_id = scene_id`;
     }

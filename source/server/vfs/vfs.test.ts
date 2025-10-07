@@ -743,6 +743,18 @@ describe("Vfs", function(){
           let s = await vfs.getScenes(user.uid, {match: ""})
           expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
         });
+
+
+        it("can match partial words in titles of scenes, including the ones without json", async function(){
+          await vfs.createScene("EAD.A.Nom1.Nom2", user.uid);
+          await vfs.createScene("GlobeAppli", user.uid);
+          let s = await vfs.getScenes(user.uid, {match: "lobe"});
+          console.log(s)
+          expect(s, `Globe Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+          s = await vfs.getScenes(user.uid, {match: "EAD"});
+          console.log(s)
+          expect(s, `EAD Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+        });
       });
         
       describe("ordering", function(){
