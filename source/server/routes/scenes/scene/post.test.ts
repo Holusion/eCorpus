@@ -40,17 +40,20 @@ describe("POST /scenes/:scene", function(){
         .send(data)
         .expect(201);
       await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
-
-
-      await request(app).get("/scenes/foo/models/foo.glb")
-        .auth(user.username, "12345678")
-        .expect(200)
-        .expect("Content-Type", "model/gltf-binary");
-
-      await request(app).get("/scenes/foo/scene.svx.json")
+      let res = await request(app).get("/scenes/foo/scene.svx.json")
         .auth(user.username, "12345678")
         .expect(200)
         .expect("Content-Type", "application/si-dpo-3d.document+json");
+      let doc = res.body;
+      let models = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
+      console.log("Models :", models);
+      expect(models).to.have.property("length").above(1);
+      for(let model of models){
+        await request(app).get("/scenes/foo/"+model)
+        .auth(user.username, "12345678")
+        .expect(200)
+        .expect("Content-Type", "model/gltf-binary");
+      }
     });
 
     it("can force scene's setup language", async function () {

@@ -44,7 +44,7 @@ export interface SceneDescription{
   byteSize ?:number;
 }
 
-interface GlbDescription extends SceneDescription{
+export interface GlbDescription extends SceneDescription{
   byteSize :number;
 }
 

@@ -90,7 +90,6 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
  */
 export async function copyFileTask({task:{after, data: {filepath, ...params}}, context: {tasks, vfs, logger}}:TaskHandlerParams<WriteFileParams&{filepath: string}>){
   logger.log(`Copy file from ${filepath} to ${params.scene}/${params.name}`);
-  let rs = createReadStream(filepath);
-  let f = await vfs.writeFile(rs, params);
+  let f = await vfs.copyFile(filepath, params);
   return f;
 }
