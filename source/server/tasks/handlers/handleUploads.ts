@@ -3,6 +3,8 @@ import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
 import { TLanguageType } from "../../utils/schema/common.js";
 import uid from "../../utils/uid.js";
+import { createReadStream } from "node:fs";
+import { WriteFileParams } from "../../vfs/types.js";
 
 
 
@@ -18,7 +20,7 @@ interface UploadFileParams{
 /**
  * Analyze an uploaded file and create child task(s) accordingly
  */
-export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:{files, scene_name, user_id, language}}, context:{signal, tasks}}:TaskHandlerParams<UploadFileParams>):Promise<number>{
+export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:{files, scene_name, user_id, language}}, context:{signal, logger, tasks}}:TaskHandlerParams<UploadFileParams>):Promise<number>{
 
   const group = await tasks.group(async function *(tasks){
     for(let file of files){
@@ -28,36 +30,67 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
       
       /** @fixme for extensionless files, we can check for known magic bytes */
 
-      if(extname === ".glb"){
+      if(extname === "glb"){
+        logger.debug("Found a glb file: "+file.name);
         let model_id = uid();
-        for(let quality of ["Thumb", "Low", "Medium", "High"]){
+        for(let quality of ["High", "Medium", "Low", "Thumb"]){
+          logger.debug("Create processing tasks for %s in quality %s", file.name, quality);
+          const filename = `${basename}_${quality.toLowerCase()}.glb`;
           let optimize = await tasks.create({type: "optimizeGlb", data: {file: file.path}});
           
+          let parse = await tasks.create({type: "parseGlbTask", data: {file: "$[0]"}, after: [optimize]});
+
+          let copy = await tasks.create({
+            type: "copyFileTask",
+            data: {
+              scene: scene_id,
+              name: filename,
+              mime: "model/gltf-binary",
+              user_id,
+              filepath: '$[0]' as any,
+            },
+            after: [optimize]
+          });
           yield await tasks.create({
-            type: "mapOutputsTask",
+            type: "groupOutputsTask",
             data: {
               id: model_id,
               quality,
               usage: "Web3D",
               filepath: "$[0]",
-              filename: `${basename}_${quality.toLowerCase()}.glb`,
+              filename,
+              meta: "$[1]",
             },
-            after: [optimize],
+            after: [optimize, parse, copy],
           });
         }
+      }else{
+        logger.warn("Ignore unsupported file: %s (%s)",file.name, extname);
       }
     }
   });
 
-
   return await tasks.create({
     type: "createDocument",
     data: {
+      models: "$[0]" as any,
       name: scene_name,
       user_id,
       language,
     },
     after: [group],
   });
-
 };
+
+
+
+
+/**
+ * Copy a temporary file into a scene
+ */
+export async function copyFileTask({task:{after, data: {filepath, ...params}}, context: {tasks, vfs, logger}}:TaskHandlerParams<WriteFileParams&{filepath: string}>){
+  logger.log(`Copy file from ${filepath} to ${params.scene}/${params.name}`);
+  let rs = createReadStream(filepath);
+  let f = await vfs.writeFile(rs, params);
+  return f;
+}
