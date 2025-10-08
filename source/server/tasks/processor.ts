@@ -10,11 +10,40 @@ import * as tasks from "./handlers/index.js";
 
 const debug = debuglog("tasks:processor");
 const debug_logs = debuglog("tasks:logs");
+const debug_outputs = debuglog("tasks:outputs");
 
 export interface TaskProcessorParams{
   client: Client;
   vfs: Vfs;
   userManager: UserManager;
+}
+
+export function mapShape(shape: any, outputs: any):any{
+  let shapeString = JSON.stringify(shape);
+  return JSON.parse(shapeString, function(key, value){
+      if(typeof value !== "string" || value.indexOf("$") !== 0) return value;
+      let path = value.slice(1);
+      let ptr = outputs;
+      while(path.length){
+        const m = /^\.?([^.\[]+|\.?\[[^.\[]+\])/.exec(path);
+        if(!m) throw new TypeError(`${path} is not a valid path`);
+        const attr = m[1];
+        if(typeof ptr === "undefined") throw new TypeError(`Cannot read properties of undefined (reading '${attr}')`);
+
+        path = path.slice(attr.length+1);
+        if(attr.startsWith("[")){
+          let index = attr.slice(1, -1);
+          if(/^[+-]?\d+$/.test(index)){
+            ptr = ptr[parseInt(index)];
+          }else{
+            ptr = ptr[(/^['"']/.test(index))?index.slice(1, -1): index];
+          }
+        }else{
+          ptr = ptr[attr];
+        }
+      }
+      return ptr;
+    });
 }
 
 
@@ -60,7 +89,7 @@ export class TaskProcessor extends TaskListener{
     const task = await this.getTask(id);
     this.#current_task = task.task_id;
     const {signal} = this.#control = new AbortController();
-    debug(`Acquired task #${task.task_id}`);
+    debug(`Acquired task ${task.type}#${task.task_id}`);
     try{
       let result = await this.processTask({task: task as any, signal});
       await this.releaseTask(task.task_id, result);
@@ -93,11 +122,6 @@ export class TaskProcessor extends TaskListener{
       )
       RETURNING *`, [ Object.keys(tasks) ]);
       if(!t) return;
-      console.log("#%d runs after: ", t.task_id, await this.db.all(`SELECT source_tasks.task_id, source_tasks.status
-            FROM tasks_relations
-              INNER JOIN tasks AS source_tasks ON source = source_tasks.task_id
-            WHERE target = $1
-              AND source_tasks.status != 'success'`, [t.task_id]));
       return t.task_id;
   }
 
@@ -121,7 +145,7 @@ export class TaskProcessor extends TaskListener{
    * Marks a task as completed
    */
   async releaseTask(id: number, output: any = null){
-    debug(`Release task #${id}:`, output);
+    debug_outputs(`Release task #${id}`, output);
     await this.db.run(`UPDATE tasks SET status = 'success', output = $2 WHERE task_id = $1`, [id, JSON.stringify(output)]);
   }
 
@@ -129,9 +153,8 @@ export class TaskProcessor extends TaskListener{
    * @fixme use task.output to store the error message?
    */
   async errorTask(id: number, msg?: Error|string){
-    debug(`Log error for task #${id}:`, msg);
     if(msg){
-      const message = (typeof msg == "object" && "message" in msg)? msg.message:msg;
+      const message = (msg instanceof Error)? msg.stack ?? msg.message: msg;
       try{
         await this.appendTaskLog(id, "error", message);
       }catch(e: any){
@@ -152,11 +175,11 @@ export class TaskProcessor extends TaskListener{
    */
   async processTask<T extends TaskType>({task, signal}: {task:TaskDefinition<TaskTypeData<T>>, signal: AbortSignal}){
     const handler = tasks[task.type as keyof typeof tasks] as TaskHandler<TaskTypeData<T>>;
-    if(!handler) throw new Error(`Invalid task type ${task.type} in task #${task.task_id}: matches no handler`);
-    debug(`Resolving task #${task.task_id}`);
-    debug(`Processing task #${task.task_id}`, task);
+    if(!handler) throw new Error(`Invalid task type ${task.type} for #${task.task_id}: matches no handler`);
+    debug(`Resolve task ${task.type}#${task.task_id}`);
     const id = task.task_id;
-    return await handler({task, context: {
+
+    const context = {
       ...this.#context,
       logger: {
         debug: (...args:any[])=>this.wrapLog(id, 'debug', format(...args)),
@@ -167,7 +190,25 @@ export class TaskProcessor extends TaskListener{
       tasks: this.makeTaskProxy(task.fk_scene_id, id),
       db: this.db,
       signal,
-    }});
+    };
+
+    let after_outputs = task.after.length? (await this.db.all(`SELECT output FROM tasks WHERE task_id = ANY($1::bigint[])`, [task.after])).map(t=>t.output) : [];
+    
+    if(task.data && after_outputs.length){
+      debug_outputs(`Map task's input data `, task.data);
+      debug_outputs(`Using outputs `, after_outputs);
+      try{
+        task.data = mapShape(task.data, after_outputs);
+      }catch(e){
+        context.logger.error(`Failed to map requirements to input data "${JSON.stringify(task.data)}"`);
+        throw e;
+      }
+    }
+    debug(`Process task ${task.type}#${task.task_id}`);
+    return await handler({
+      task,
+      context
+    });
   }
 }
 

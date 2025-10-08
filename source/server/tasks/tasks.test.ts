@@ -11,8 +11,6 @@ import { once } from "node:events";
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
 import { TaskListener } from "./listener.js";
-import { TaskDefinition } from "./types.js";
-import { expandSQLError } from "../vfs/helpers/errors.js";
 
 // So it's mostly integration tests
 describe("Task handling", function(){
@@ -107,6 +105,19 @@ describe("Task handling", function(){
       expect(await scheduler.getTask(after)).to.have.property("after").to.deep.equal( requirements);
     });
 
+    it("can nest relations", async function(){
+      let t1 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1]});
+      let t3 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1, t2]});
+      let t4 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t3]});
+    });
+
+    it("can't cycle relations", async function(){
+      let t1 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1]});
+      await expect(scheduler.addRelation(t2, t1)).to.be.rejectedWith("check_no_cycles");
+    });
+
     it("can create tasks with asynchronous initialization", async function(){
       await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, status: 'initializing'});
       let tasks = await handle.all(`SELECT * FROM tasks`);
@@ -162,7 +173,30 @@ describe("Task handling", function(){
       expect(Array.from(new Set(allTasks.map(t=>t.status)))).to.deep.equal(["success"]);
     });
 
-    it.skip("catch errors if the scene is deleted in-flight");
+    it("catch errors if the scene is deleted in-flight", async function(){
+      let s2 = await handle.get(
+        "INSERT INTO scenes(scene_id, scene_name) VALUES ( $1, $2 ) RETURNING scene_id",
+      [Uid.make(), randomBytes(8).toString("base64url")]);
+
+      let  t = await scheduler.create(s2.scene_id, {type: "delayTask", data: {time: 10}});
+      
+      await handle.run(`DELETE FROM scenes WHERE scene_id = $1`, [s2.scene_id]);
+
+      await expect(scheduler.wait(t)).to.be.rejectedWith("[404] No task found with id");
+    });
+
+    it("catch errors if the scene is deleted in-flight (with relations)", async function(){
+      let s2 = await handle.get(
+        "INSERT INTO scenes(scene_id, scene_name) VALUES ( $1, $2 ) RETURNING scene_id",
+      [Uid.make(), randomBytes(8).toString("base64url")]);
+
+      let  t = await scheduler.create(s2.scene_id, {type: "delayTask", data: {time: 10}});
+      let  t2 = await scheduler.create(s2.scene_id, {type: "delayTask", data: {time: 10}, after: [t]});
+      
+      await handle.run(`DELETE FROM scenes WHERE scene_id = $1`, [s2.scene_id]);
+
+      await expect(scheduler.wait(t)).to.be.rejectedWith("[404] No task found with id");
+    });
   })
 
   describe("multi processor", function(){
@@ -228,19 +262,6 @@ describe("Task handling", function(){
     
     describe("group tasks", function(){
 
-      it("can reduce a task group", async function(){
-        //Manual creation without the group aggregation method
-        const children = [
-          await scheduler.create(scene_id, {type: "delayTask", data: {time: 0, value: 'a'}}),
-          await scheduler.create(scene_id, {type: "delayTask", data: {time: 5, value: 'b'}}),
-          await scheduler.create(scene_id, {type: "delayTask", data: {time: 2, value: 'c'}}),
-          await scheduler.create(scene_id, {type: "delayTask", data: {time: 0, value: 'd'}}),
-        ];
-        let reducer = await scheduler.create(scene_id, {type: "groupOutputsTask", data: {children}});
-        let results = await scheduler.wait(reducer);
-        expect(results).to.deep.equal(['a', 'b', 'c', 'd']);
-      });
-
       it("with TaskListener.group()- array", async function(){
         let group = await scheduler.group(scene_id, async (tasks)=>{
           return [
@@ -260,9 +281,17 @@ describe("Task handling", function(){
         let results = await scheduler.wait(group);
         expect(results).to.deep.equal(['a', 'b']);
       });
+
+      it("nested groups", async function(){
+        let group = await scheduler.group(scene_id, async function* (tasks){
+          yield await tasks.group(async function*(tasks){
+            yield await tasks.create({type: "delayTask", data: {time: 0, value: 'a'}});
+            yield await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}});
+          });
+        });
+        let results = await scheduler.wait(group);
+        expect(results).to.deep.equal([['a', 'b']]);
+      });
     });
   });
-
-  
-
 });
