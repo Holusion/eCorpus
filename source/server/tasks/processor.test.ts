@@ -1,8 +1,11 @@
-import { mapShape } from "./groupOutputs.js";
-
+import { mapShape } from "./processor.js";
 
 
 describe("mapShape()", function(){
+  it("maps identity", function(){
+    expect(mapShape("$", ["value"])).to.deep.equal(["value"]);
+
+  })
   it("maps outputs to a shape", function(){
     expect(mapShape({foo: "bar", out: "$"}, ["value"])).to.deep.equal({foo: "bar", out: ["value"]});
   });

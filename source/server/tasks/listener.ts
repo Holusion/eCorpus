@@ -145,12 +145,16 @@ export class TaskListener extends EventEmitter{
     return task?.task_id;
   }
 
+  /**
+   * @fixme recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
+   *  We should probably rely on waiting for every child of a task being finished instead?
+   */
   async wait(id: number) :Promise<any>{
 
     const onResult = ()=>{
       return this.getTask(id).then(t=>{
         if(/^\d+$/.test(t.output)){
-          debug("recurse over returned task definition #%d", t.output.task_id);
+          debug("recurse over returned task definition #%d", t.output);
           return this.wait(parseInt(t.output));
         }else{
           debug("Return task output for #%d:", id, t.output);
@@ -184,17 +188,16 @@ export class TaskListener extends EventEmitter{
     const parent_id = typeof _id === "number"? _id : null;
     const work = typeof _work !== "undefined"? _work: _id;
     if(typeof work !== "function") throw new Error("Invalid payload : "+ work?.toString());
-    let group_id = await this.create( scene_id, parent_id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: parent_id?[parent_id]: []});
+    let group_id = await this.create( scene_id, parent_id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: []});
     
     const ctx = this.makeTaskProxy(scene_id, group_id);
 
-    try{
-      for await(let child of await work(ctx)){
-        await this.addRelation(child, group_id);
-      }
-    }finally{
-      await this.setTaskStatus(group_id, 'pending');
+    for await(let child of await work(ctx)){
+      debug(`Add dependency over #${child} for #${group_id}`);
+      await this.addRelation(child, group_id);
     }
+      debug(`Make group #${group_id} ready for processing`);
+    await this.setTaskStatus(group_id, 'pending');
 
     return group_id;
   }
@@ -207,7 +210,6 @@ export class TaskListener extends EventEmitter{
     return {
       create: this.create.bind(this, scene_id, id),
       group: this.group.bind(this, scene_id, id),
-      wait: this.wait.bind(this),
       getTask: this.getTask.bind(this),
     }
   }
