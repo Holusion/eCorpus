@@ -44,7 +44,7 @@ export default abstract class BaseVfs extends DbController{
     let b = Buffer.allocUnsafe(10);
     b.writeUIntBE(ts, 0, 6);
     randomBytes(4).copy(b as any, 6);
-    return prefix+"."+b.toString("hex");
+    return path.join(this.uploadsDir, prefix+"."+b.toString("hex"));
   }
 
   abstract close() :Promise<any>;

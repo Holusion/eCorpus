@@ -8,7 +8,7 @@ import { CommonFileParams, DataStream, DocProps, FileProps, GetFileParams, GetFi
 
 import { Transaction } from "./helpers/db.js";
 import { FileHandle } from "fs/promises";
-import { Duplex, Readable, Transform } from "stream";
+import { Duplex, Readable, Transform, Writable } from "stream";
 import { pipeline } from "stream/promises";
 import { transform } from "typescript";
 
@@ -82,6 +82,49 @@ export default abstract class FilesVfs extends BaseVfs{
     }finally{
       await handle.close();
       await fs.unlink(tmpfile).catch(e=>console.error("Error while trying to remove tmpfile : ", e));
+    }
+  }
+
+  /**
+   * Faster alternative to {@link writeFile} that only computes the file's hash in-place then hard-links it to its destination
+   * 
+   * The source file can then safely be unlinked
+   */
+  async copyFile(
+    filepath :string, 
+    params :WriteFileParams
+  ) :Promise<FileProps>{
+    let handle = await fs.open(filepath, constants.O_RDONLY);
+    let hashsum = createHash("sha256");
+    let size = 0;
+    try{
+      let rs = handle.createReadStream();
+      await pipeline(
+        rs,
+        new Writable({
+          write(chunk, encoding, callback){
+            hashsum.update(chunk);
+            size += chunk.length;
+            callback(null);
+          }
+        }),
+      );
+      let hash = hashsum.digest("base64url");
+      let destfile = path.join(this.objectsDir, hash);
+
+      return await this.createFile(params, async ({id})=>{
+        try{
+          // It's always possible for the transaction to fail afterwards, creating a loose object
+          // However it's not possible to safely clean it up without race conditions over any other row that may be referencing it
+          await fs.link(filepath, destfile);
+        }catch(e){
+          if((e as any).code != "EEXIST") throw e;
+          //If a file with the same hash exists, we presume it's the same file and don't overwrite it.
+        }
+        return {hash, size};
+      });
+    }finally{
+      await handle.close();
     }
   }
 
