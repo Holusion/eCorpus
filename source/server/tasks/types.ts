@@ -4,7 +4,7 @@ import type Vfs from "../vfs/index.js";
 
 import type * as tasks from "./handlers/index.js";
 
-export type TaskData =Record<string, any>;
+export type TaskData =Record<string, any>|void;
 
 export type TaskStatus = 'initializing'|'pending'|'aborting'|'running'|'success'|'error';
 
@@ -40,9 +40,13 @@ export interface TaskLogger{
 
 export interface TaskContextHandlers{
   create<T extends TaskType>(p: CreateTaskParams<T> ): Promise<number>;
-  wait(id: number) :Promise<any>;
   getTask<T extends TaskType =any>(id: number):Promise<TaskDefinition<TaskTypeData<T>>>;
-  group(cb: (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>) :Promise<number>;
+  /**
+   * Creates a group and encapsulates any task N° returned from the inner function as a dependency of this group.
+   * The group's output is an array of all its dependencies outputs.
+   * @param cb 
+   */
+  group(cb: (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>, remap?: any) :Promise<number>;
 }
 
 export interface TaskHandlerContext{
