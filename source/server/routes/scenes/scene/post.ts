@@ -22,8 +22,9 @@ export default async function postScene(req :Request, res :Response){
   let scheduler = getTaskScheduler(req);
   let user_id = getUserId(req);
   let {scene} = req.params;
-  let {language: languageQuery} = req.query;
+  let {language: languageQuery, optimize: optimizeQuery} = req.query;
   const language = typeof languageQuery === "string"?languageQuery.toUpperCase(): languageQuery;
+  const optimize = (typeof optimizeQuery === "string" && ["false", "0", "no"].indexOf(optimizeQuery) !== -1)?false: true;
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
@@ -48,7 +49,8 @@ export default async function postScene(req :Request, res :Response){
         }],
         scene_name: scene,
         user_id: user_id!,
-        language,  
+        language,
+        optimize,
       }
     });
     await scheduler.wait(task);

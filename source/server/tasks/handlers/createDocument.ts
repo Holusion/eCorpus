@@ -7,7 +7,7 @@ import { IDerivative, IModel, TDerivativeQuality, TDerivativeUsage } from "../..
 import { SceneDescription } from "./glb/inspect.js";
 
 
-interface AssetDefinition {
+export interface AssetDefinition {
   /** Model id. 
    * Randomly generated uid string.
    * Every derivatives of the same model should share the same id
@@ -20,7 +20,7 @@ interface AssetDefinition {
   size: number,
 }
 
-interface CreateDocumentParams{
+export interface CreateDocumentParams{
   models: AssetDefinition[];
   name: string,
   language?: TLanguageType,
