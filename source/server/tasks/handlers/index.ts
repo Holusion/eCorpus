@@ -6,7 +6,7 @@ export * from "./control/groupOutputs.js";
 
 export * from "./createDocument.js";
 
-export * from "./glbFiles.js";
+export * from "./glb/index.js";
 
 export * from "./handleUploads.js";
 export {default as extractZip} from "./extractZip.js";
