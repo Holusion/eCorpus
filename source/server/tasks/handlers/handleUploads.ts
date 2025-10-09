@@ -60,6 +60,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
               filepath: "$[0]",
               filename,
               meta: "$[1]",
+              size: "$[2].size"
             },
             after: [optimize, parse, copy],
           });
