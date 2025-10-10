@@ -1,5 +1,5 @@
 
-import {run} from "./run.js";
+import {run} from "./command.js";
 
 
 describe("run()", function(){
