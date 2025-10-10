@@ -14,13 +14,11 @@ import {
 import { KHRTextureBasisu } from '@gltf-transform/extensions';
 import {
 	createTransform,
-	fitPowerOfTwo,
-	fitWithin,
 	getTextureChannelMask,
 	getTextureColorSpace,
 	listTextureSlots,
 } from '@gltf-transform/functions';
-import fs, { rm } from 'fs/promises';
+import fs from 'fs/promises';
 import os from 'os';
 import path, { join } from 'path';
 import sharp from 'sharp';
@@ -50,8 +48,8 @@ interface GlobalOptions {
 	/**
 	 * Pattern matching the material texture slot(s) to be compressed or converted.
 	 */
-	slots?: RegExp | null;
-	resize?: vec2 | 'nearest-pot' | 'ceil-pot' | 'floor-pot';
+	slots: RegExp;
+  scale: number;
   tmpdir: string;
 }
 
@@ -87,7 +85,6 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 		const basisuExtension = doc.createExtension(KHRTextureBasisu).setRequired(true);
 
 		const textures = doc.getRoot().listTextures();
-		const numTextures = textures.length;
 
     for (let textureIndex = 0; textureIndex< textures.length; textureIndex++){
       const texture = textures[textureIndex];
@@ -110,7 +107,7 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
       } else if (srcMimeType !== 'image/png' && srcMimeType !== 'image/jpeg') {
         logger.warn(`${prefix}: Skipping, unsupported texture type "${texture.getMimeType()}".`);
         return;
-      } else if (options.slots && !slots.find((slot) => slot.match(options.slots!))) {
+      } else if (options.slots && !slots.find((slot) => slot.match(options.slots))) {
         logger.debug(`${prefix}: Skipping, [${slots.join(', ')}] excluded by "slots" parameter.`);
         return;
       }
@@ -128,24 +125,22 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
       }
 
       //Resize
-      if (options.resize || !isMultipleOfFour(srcSize[0]) || !isMultipleOfFour(srcSize[1])) {
+      if(options.scale !== 1 || !srcSize.every(n=>isMultipleOfFour(n))){
         const encoder = sharp(srcImage, { limitInputPixels: 32768 * 32768 }).toFormat('png');
-        const srcSize = ImageUtils.getSize(srcImage, srcMimeType)!;
 
-        const dstSize = options.resize
-          ? Array.isArray(options.resize)
-            ? fitWithin(srcSize, options.resize)
-            : fitPowerOfTwo(srcSize, options.resize)
-          : srcSize;
-        dstSize[0] = ceilMultipleOfFour(dstSize[0]);
-        dstSize[1] = ceilMultipleOfFour(dstSize[1]);
-
-        logger.debug(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px`);
+        const dstSize = srcSize.map(n=> ceilMultipleOfFour(n*options.scale));
+        
+        if(!dstSize.every(n=>isPowerofTwo(n))){
+          logger.warn(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px, not a power of two.`);
+        }else{
+          logger.debug(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px`);
+        }
         encoder.resize(dstSize[0], dstSize[1], { fit: 'fill', kernel: 'lanczos3' });
 
         srcImage = BufferUtils.toView((await encoder.toBuffer()) as Uint8Array);
         srcExtension = 'png';
         srcMimeType = 'image/png';
+
       }
 
       // PREPARE: Create temporary in/out paths for the 'ktx' CLI tool, and determine
@@ -158,7 +153,7 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 
       const params = [
         'create',
-        ...createParams(texture, slots, channels, numTextures, options),
+        ...createParams(texture, slots, channels, options),
         srcPath,
         dstPath,
       ];
@@ -168,7 +163,7 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
       const { code, stdout, stderr} = await  run('ktx', params as string[]);
 
       if (code !== 0) {
-        logger.error(`${prefix}: Failed → \n\n${stderr.toString()}`);
+        logger.error(`${prefix}: Failed with code [${code}]:\n\n${stderr.toString()}`);
       } else {
         // PACK: Replace image data in the glTF asset.
         texture.setImage(await fs.readFile(dstPath) as Uint8Array).setMimeType('image/ktx2');
@@ -201,7 +196,6 @@ function createParams(
 	texture: Texture,
 	slots: string[],
 	channels: number,
-	numTextures: number,
 	options: ETC1SOptions | UASTCOptions,
 ): (string | number)[] {
 	const colorSpace = getTextureColorSpace(texture);
@@ -282,6 +276,12 @@ export async function checkKTXSoftware(logger: ILogger): Promise<string> {
 function isMultipleOfFour(value: number): boolean {
 	return value % 4 === 0;
 }
+
+function isPowerofTwo(n:number) {
+  // Check if n is positive and n & (n-1) is 0
+  return (n > 0) && ((n & (n - 1)) === 0);
+}
+
 
 function ceilMultipleOfFour(value: number): number {
 	if (value <= 4) return 4;

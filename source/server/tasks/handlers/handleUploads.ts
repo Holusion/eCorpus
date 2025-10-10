@@ -46,7 +46,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
         for(let quality of qualities){
           logger.debug("Create processing tasks for %s in quality %s", file.name, quality);
           const filename = `${basename}_${quality.toLowerCase()}.glb`;
-          let optimizeTask = (quality == "High"  && optimize)? null: await tasks.create({type: "optimizeGlb", data: {file: file.path}});
+          let optimizeTask = (quality == "High"  && optimize)? null: await tasks.create({type: "optimizeGlb", data: {file: file.path, preset: quality}});
 
           let parse = await tasks.create({type: "parseGlbTask", data: {file: optimizeTask?"$[0]":file.path}, after: optimizeTask?[optimizeTask]: null});
 
