@@ -23,7 +23,7 @@ import os from 'os';
 import path, { join } from 'path';
 import sharp from 'sharp';
 
-import {run} from "./run.js";
+import {getKtxVersion, run} from "../../command.js";
 import { formatBytes } from '../../../utils/format.js';
 
 const NUM_CPUS = os.cpus().length || 1;
@@ -77,7 +77,7 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 		const logger = doc.getLogger();
 
 		// Confirm recent version of KTX-Software is installed.
-		await checkKTXSoftware(logger);
+		logger.debug(`Found ktx version: ${await getKtxVersion()}`) ;
 
 		const tmpdir = options.tmpdir;
 		const batchPrefix = path.basename(tmpdir);
@@ -252,26 +252,6 @@ function createParams(
 	return params;
 }
 
-
-
-export async function checkKTXSoftware(logger: ILogger): Promise<string> {
-
-	const {stdout, stderr} = await run('ktx', ['--version']);
-
-	const version = ((stdout || stderr) as string)
-		.replace(/ktx version:\s+/, '')
-		.replace(/~\d+/, '')
-		.trim();
-
-	if (!version) {
-		throw new Error(
-			`Unable to find "ktx" version. Confirm KTX-Software ${KTX_SOFTWARE_VERSION_MIN}+ is installed.`,
-		);
-	} else {
-		logger.debug(`ktx: Found KTX-Software ${version}.`);
-	}
-	return version;
-}
 
 function isMultipleOfFour(value: number): boolean {
 	return value % 4 === 0;
