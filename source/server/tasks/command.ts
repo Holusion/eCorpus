@@ -1,6 +1,7 @@
 
 import {spawn, SpawnOptionsWithoutStdio} from "node:child_process";
 import { once } from "node:events";
+import { TaskLogger } from "./types.js";
 
 
 
@@ -27,4 +28,36 @@ export async function run(cmd: string, args:string[], opts?: SpawnOptionsWithout
     child.stdout.removeAllListeners();
     child.stderr.removeAllListeners();
   }
+}
+
+
+export async function getKtxVersion(): Promise<string> {
+
+	const {stdout, stderr} = await run('ktx', ['--version']);
+
+	const version = ((stdout || stderr) as string)
+		.replace(/ktx version:\s+/, '')
+		.replace(/~\d+/, '')
+		.trim();
+
+	if (!version) {
+		throw new Error(
+			`Unable to find "ktx" version. Confirm KTX-Software is installed.`,
+		);
+	}
+	return version;
+}
+
+export async function getBlenderVersion(): Promise<string> {
+
+	const {stdout, stderr} = await run('blender', ['--version']);
+
+	const versionMatch = stdout.match(/^Blender (\d+.\d+.\d+[^\s]*)/gm);
+
+	if (!versionMatch) {
+		throw new Error(
+			`Unable to find "blender" version. Confirm Blender is installed.`,
+		);
+	}
+	return versionMatch[1];
 }
