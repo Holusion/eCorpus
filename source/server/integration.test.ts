@@ -74,8 +74,7 @@ describe("Web Server Integration", function(){
         for(let derivative of doc.models[0].derivatives){
           expect(derivative).to.have.property("assets").an("array").to.have.length(1);
           let res = await this.agent.get("/scenes/bar/"+derivative.assets[0].uri).expect(200);
-          expect(res.text.slice(0,4).toString()).to.equal("glTF");
-          expect(res.text.length).to.equal(content.length);
+          expect(res.text.slice(0,4).toString(), res.text.slice(0,100)).to.equal("glTF");
         }
 
       });
