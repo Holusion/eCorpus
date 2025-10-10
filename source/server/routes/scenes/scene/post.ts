@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { getVfs, getUserId, getTaskScheduler } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
-import { writeFile } from "fs/promises";
+import { constants, writeFile } from "fs/promises";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
@@ -38,8 +38,10 @@ export default async function postScene(req :Request, res :Response){
   
   let scene_id = await vfs.createScene(scene, user_id);
   try{
-    let tmpfile = vfs.mktemp(scene_id.toString(10));
-    await writeFile(tmpfile, req);
+    let tmpfile = vfs.mktemp();
+    await writeFile(tmpfile, req, {
+      flag: constants.O_CREAT|constants.O_EXCL|constants.O_WRONLY
+    });
     let task = await scheduler.create(scene_id, {
       type: "handleUploads",
       data: {

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const thisFile = fileURLToPath(import.meta.url);
 
 import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
-import { inspectGlb } from "./inspect.js";
+import { getBaseTextureSizeMultiplier, inspectGlb } from "./inspect.js";
 
 
 describe("inspectGlb()", function(){
@@ -51,4 +51,18 @@ describe("inspectGlb()", function(){
       extensions: ["KHR_draco_mesh_compression"],
     });
   })
+});
+
+
+describe("getBaseTextureSizeMultiplier()", function(){
+  it("scales down to 8k textures", function(){
+    expect(getBaseTextureSizeMultiplier(8192)).to.equal(1);
+    expect(getBaseTextureSizeMultiplier(8192*2)).to.equal(1/2);
+    expect(getBaseTextureSizeMultiplier(8192*1.5)).to.equal(1/1.5);
+  });
+
+  it("won't upscale", function(){
+    expect(getBaseTextureSizeMultiplier(1024)).to.equal(1);
+    expect(getBaseTextureSizeMultiplier(2048)).to.equal(1);
+  });
 });
