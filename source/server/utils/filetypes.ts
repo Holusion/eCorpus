@@ -1,14 +1,16 @@
-import path from 'path';
+import fs from 'fs/promises';
+
 import {Request} from "express";
 import {lookup, types} from "mime-types";
 
 const mimeMap :Record<string,string> = {
-  ".jpg": "image.jpeg",
-  ".jpeg": "image.jpeg",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp",
   ".mp4": "video/mp4",
   ".glb": "model/gltf-binary",
+  ".obj": "model/obj",
   ".htm": "text/html",
   ".html": "text/html",
   ".txt": "text/plain",
@@ -42,4 +44,45 @@ export function compressedMime(mime :string) :boolean{
     if(mime.endsWith("zip")) return false; //A whole lot of things are application/**+zip
   }
   return true;
+}
+
+export function extFromType(type: string){
+  return mimeList.find(([key])=>key === type)?.[0];
+}
+
+export async function readMagicBytes(filepath: string): Promise<string>{
+  let handle = await fs.open(filepath, fs.constants.O_RDONLY);
+  try{
+    const b = Buffer.alloc(12);
+    const {bytesRead} = await handle.read(b);
+    return parseMagicBytes(b.subarray(0, bytesRead));
+  }finally{
+    await handle.close();
+  }
+}
+
+/**
+ * 
+ * @see {@link https://en.wikipedia.org/wiki/List_of_file_signatures File Signatures }
+ */
+export function parseMagicBytes(src: Buffer|Uint8Array) :string{
+  if(src[0] == 0x89 && src.subarray(0, 8).toString("hex") == "89504e470d0a1a0a"){
+    return "image/png";
+  }
+
+  if(src[0] == 0xFF && src.subarray(0, 3).toString("hex") == "ffd8ff"){
+    return "image/jpeg";
+  }
+
+  if(src[0] == 0x52 && src.subarray(0, 4).toString("hex") == "52494646"){
+    //RIFF files. Next 4 bytes are for the file size.
+    let sig = src.subarray(8, 12).toString();
+    if(sig == "WEBP") return "image/webp";
+  }
+
+  if(src[0] == 0x46 && src.subarray(0, 4).toString("hex") == "46546c67" /* glTF ASCII String*/){
+    return "model/gltf-binary";
+  }
+
+  return "application/octet-stream";
 }
