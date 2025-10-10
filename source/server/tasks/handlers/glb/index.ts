@@ -9,6 +9,8 @@ import { MeshoptDecoder } from 'meshoptimizer';
 import { inspectGlb } from './inspect.js';
 import { transformGlb, TransformGlbParams } from './transform.js';
 import { TDerivativeQuality } from '../../../utils/schema/model.js';
+import path from 'node:path';
+import { run } from '../../command.js';
 
 
 interface ParseGlbParams{
@@ -46,3 +48,32 @@ export async function optimizeGlb({task: {task_id, data:{file, preset}}, context
     tmpdir
   });
 };
+
+interface ConvertToGlbParams{
+  file: string,
+  backface: boolean,
+}
+
+export async function convertToGlb({task: {task_id, data:{file, backface}}, context: {vfs}}:TaskHandlerParams<ConvertToGlbParams>):Promise<string>{
+  let tmpdir = await vfs.createTaskWorkspace(task_id);
+  const filename = path.basename(file);
+  const outputFile = path.join(tmpdir, filename);
+
+  let args = [
+    "--background",
+    "--factory-startup",
+    "--addons", "io_scene_gltf2",
+    "--python", "blender_export_glb.py",
+    "--",
+   "-i", file,
+   "-o", outputFile,
+  ];
+
+  if(backface){
+    args.push("--backface");
+  }
+
+  await run('blender', args);
+
+  return outputFile;
+}
