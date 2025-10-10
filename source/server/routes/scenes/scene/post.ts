@@ -4,6 +4,7 @@ import { getVfs, getUserId, getTaskScheduler } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
 import { constants, writeFile } from "fs/promises";
+import { readMagicBytes } from "../../../utils/filetypes.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
@@ -35,6 +36,9 @@ export default async function postScene(req :Request, res :Response){
     throw new UnauthorizedError("Requires authenticated user");
   }
   
+
+
+
   
   let scene_id = await vfs.createScene(scene, user_id);
   try{
@@ -42,6 +46,12 @@ export default async function postScene(req :Request, res :Response){
     await writeFile(tmpfile, req, {
       flag: constants.O_CREAT|constants.O_EXCL|constants.O_WRONLY
     });
+
+    let filetype = req.get("Content-Type");
+    if(!filetype || filetype == "application/octet-stream"){
+      filetype = await readMagicBytes(tmpfile);
+    }
+
     let task = await scheduler.create(scene_id, {
       type: "handleUploads",
       data: {
