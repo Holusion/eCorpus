@@ -1,24 +1,21 @@
 
 import { expect } from "chai";
 import path  from "path";
-import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import os from "os";
-
-const thisFile = fileURLToPath(import.meta.url);
 
 import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
 import { ILogger } from "@gltf-transform/core";
 import { transformGlb } from "./transform.js";
 import { TaskLogger } from "../../types.js";
-import { debuglog } from "util";
+import { debuglog, format } from "util";
 
-const debug = debuglog("gltf:transform");
+const debug = debuglog("tasks:logs");
 
 
 const models = (await fs.readdir(fixturesDir)).filter(f=> f.endsWith("glb")).map(f=>path.join(fixturesDir, f));
 
-describe("transformGlb", function(){
+describe("transformGlb()", function(){
   let logger :TaskLogger&{lines:Array<{level: string, message: string}>};
   let mainTmpDir: string, tmpdir :string;
   this.beforeAll(async function(){
@@ -27,9 +24,9 @@ describe("transformGlb", function(){
 
 
   this.beforeEach(async function(){
-    function _write(level:string, message:string){
-      debug(`[${level}] ${message}`);
-      logger.lines.push({ level, message }); 
+    function _write(level:string, ...args:any[]){
+      debug(`[${level}] ${format(...args)}`);
+      logger.lines.push({ level, message:format(...args) }); 
     } 
     logger = {
       lines: [],
@@ -48,17 +45,15 @@ describe("transformGlb", function(){
   models.forEach(m=>{
     const name = path.basename(m);
     it("optimize "+name, async function(){
-      let result = await transformGlb(m, {
+      let outputFile = await transformGlb(m, {
         tmpdir,
         logger,
-        simplify: {
-          ratio: 0,
-          error: 0.001,
-          lockBorders: true,
-        },
-        size: 8,
+        preset: "High"
       });
+
+      expect(outputFile).to.be.a("string");
+      expect(outputFile.endsWith(".glb"), `${outputFile} should end with .glb`).to.be.true;
     })
   })
 
-})
+});

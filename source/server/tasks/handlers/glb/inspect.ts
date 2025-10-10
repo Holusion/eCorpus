@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import {getBounds, getPrimitiveVertexCount, VertexCountMethod} from '@gltf-transform/functions';
 import {io} from './io.js';
-import { ImageUtils, PropertyType } from '@gltf-transform/core';
+import { Document, ImageUtils, PropertyType } from '@gltf-transform/core';
 
 
 export interface SceneDescription{
@@ -16,20 +16,7 @@ export interface SceneDescription{
 }
 
 
-const MeshPrimitiveMode = {
-  "POINTS": 0, //Faces=0.
-  "LINES": 1, //Faces=0.
-  "LINE_LOOP": 2, //Faces=0.
-  "LINE_STRIP": 3, //Faces=0.
-  "TRIANGLES": 4, //Faces=Index Count/3. (Most common for static meshes).
-  "TRIANGLES_STRIP": 5, //Faces=Index Count−2.
-  "TRIANGLE_FAN": 6, //Faces=Index Count−2.
-}
-/**
- * See {@link https://github.com/donmccurdy/glTF-Transform/blob/main/packages/functions/src/inspect.ts }
- */
-export async function inspectGlb(file: string):Promise<SceneDescription>{
-  const document = await io.read(file); // → Document
+export function inspectDocument(document: Document): SceneDescription{
   const root = document.getRoot();
   const scene = root.getDefaultScene();
   const name = scene?.listChildren().map((node=>node.getName())).find(n=>!!n) ?? scene?.getName() ?? '';
@@ -46,6 +33,30 @@ export async function inspectGlb(file: string):Promise<SceneDescription>{
     }
   }
 
+  let imageSize = getMaxDiffuseSize(document);
+
+
+  return {
+    name,
+    bounds,
+    imageSize,
+    numFaces,
+    extensions,
+  }
+
+}
+
+/**
+ * See {@link https://github.com/donmccurdy/glTF-Transform/blob/main/packages/functions/src/inspect.ts }
+ */
+export async function inspectGlb(file: string):Promise<SceneDescription>{
+  const document = await io.read(file); // → Document
+  return inspectDocument(document);
+}
+
+
+export function getMaxDiffuseSize(document: Document) :number{
+  const root = document.getRoot();
   let imageSize = 0
   for(const texture of root.listTextures()){
     const slots = document
@@ -61,13 +72,11 @@ export async function inspectGlb(file: string):Promise<SceneDescription>{
       imageSize = Math.max(imageSize, ...resolution);
     }
   }
+  return imageSize;
+}
 
-
-  return {
-    name,
-    bounds,
-    imageSize,
-    numFaces,
-    extensions,
-  }
+export function getBaseTextureSizeMultiplier(originalMaxSize: number){
+  //How much should we scale down to have High be a 8k texture?
+  const baseDivider = Math.max(1, originalMaxSize / 8192);
+  return 1/baseDivider;
 }

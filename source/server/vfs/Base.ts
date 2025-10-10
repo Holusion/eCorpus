@@ -4,6 +4,7 @@ import path from "path";
 import { InternalError, NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
 import { randomBytes, randomInt } from "crypto";
+import { mkdir } from "fs/promises";
 
 
 export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
@@ -40,11 +41,22 @@ export default abstract class BaseVfs extends DbController{
     }
   }
 
-  public mktemp(prefix: string, ts:number = Date.now()){
+
+  public mktemp(ts:number = Date.now()){
     let b = Buffer.allocUnsafe(10);
     b.writeUIntBE(ts, 0, 6);
     randomBytes(4).copy(b as any, 6);
-    return path.join(this.uploadsDir, prefix+"."+b.toString("hex"));
+    return path.join(this.uploadsDir, b.toString("hex"));
+  }
+  
+  public taskWorkspace(id: number){
+    return path.join(this.artifactsDir, id.toString(10));
+  }
+
+  public async createTaskWorkspace(id: number){
+    let dirpath = this.taskWorkspace(id);
+    await mkdir(dirpath);
+    return dirpath;
   }
 
   abstract close() :Promise<any>;
