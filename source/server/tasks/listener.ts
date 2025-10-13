@@ -85,7 +85,7 @@ export class TaskListener extends EventEmitter{
 
 
   public async getTask<T extends TaskType =any>(id: number):Promise<TaskDefinition<TaskTypeData<T>>>{
-    let {after, ...task} = await this.db.get(`
+    let task = await this.db.get(`
       SELECT
         fk_scene_id,
         task_id,
@@ -99,9 +99,10 @@ export class TaskListener extends EventEmitter{
       FROM tasks
       WHERE task_id = $1
     `, [id]);
+    if(!task) throw new NotFoundError(`No task found with id ${id}`);
     return {
       ...task,
-      after: (after??[]).map((n: any)=>parseInt(n))
+      after: (task.after??[]).map((n: any)=>parseInt(n))
     };
   }
 
@@ -121,16 +122,31 @@ export class TaskListener extends EventEmitter{
     `);
   }
 
-  async create<T extends TaskType>(scene: number, {type, data, after}:CreateTaskParams<T> ): Promise<number>
-  async create<T extends TaskType>(scene: number, parent : number|null, params: CreateTaskParams<T> ): Promise<number>
-  async create<T extends TaskType>(scene: number, _parent : number|null|CreateTaskParams<T>, params: Partial<CreateTaskParams<T>> ={} ): Promise<number>{
-    const {type, data, after, status='pending'} = (typeof _parent === "object" && _parent) ? _parent: params;
-    let args =  [scene, type,  (typeof _parent === "object") ? null : _parent, data, status];
+  async create<T extends TaskType>(scene: number, user_id : number|null, {type, data, status='pending'}: Pick<CreateTaskParams<T>, "type"|"data"|"status">): Promise<number>{
+    let args =  [scene, type, data, status, user_id];
+    let task = await this.db.get<{task_id: number}>(`
+      INSERT INTO tasks(fk_scene_id, type, data, status, fk_user_id)
+      VALUES ($1, $2, $3, $4, $5) 
+      RETURNING *
+    `, args);
+    return task!.task_id;
+  }
+
+  async createChild<T extends TaskType>(parent: number, {type, data, status='pending', after}: Pick<CreateTaskParams<T>, "type"|"data"|"status"|"after">):Promise<number>{
+    let args =  [parent, type, data, status];
     if(after?.length) args.push(after as any);
     let task = await this.db.get<{task_id: number}>(`
       WITH task AS (
-        INSERT INTO tasks(fk_scene_id, type, parent, data, status)
-        VALUES ($1, $2, $3, $4, $5) 
+        INSERT INTO tasks(fk_scene_id, fk_user_id, parent, type, data, status)
+        SELECT
+         fk_scene_id,
+         fk_user_id,
+         task_id AS parent,
+         $2 AS type,
+         $3 AS data,
+         $4 AS status
+        FROM tasks
+        WHERE task_id = $1 
         RETURNING *
       )
       ${after?.length?`INSERT INTO 
@@ -138,12 +154,14 @@ export class TaskListener extends EventEmitter{
       SELECT 
         source,
         task.task_id
-      FROM task, unnest( $6::bigint[] ) as source
+      FROM task, unnest( $5::bigint[] ) as source
       RETURNING target AS task_id
       `: `SELECT task_id FROM task`}
     `, args);
-    return task?.task_id;
+    if(!task) throw new NotFoundError(`Parent task ${parent} not found`);
+    return task.task_id;
   }
+
 
   /**
    * @fixme recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
@@ -181,16 +199,12 @@ export class TaskListener extends EventEmitter{
     return;
   }
 
-  async group(scene_id: number, work: GroupCallback) :Promise<number>
-  async group(scene_id: number, id: number, work: GroupCallback) :Promise<number>
-  async group(scene_id: number, _id:number|null|GroupCallback, _work?:GroupCallback) :Promise<number>
+  async group(parent_id:number, work:GroupCallback) :Promise<number>
   {
-    const parent_id = typeof _id === "number"? _id : null;
-    const work = typeof _work !== "undefined"? _work: _id;
-    if(typeof work !== "function") throw new Error("Invalid payload : "+ work?.toString());
-    let group_id = await this.create( scene_id, parent_id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: []});
+    if(typeof work !== "function") throw new Error("Invalid payload : "+ (work as any).toString());
+    let group_id = await this.createChild(parent_id, {type: "groupOutputsTask", status: 'initializing', data: {}, after: []});
     
-    const ctx = this.makeTaskProxy(scene_id, group_id);
+    const ctx = this.makeTaskProxy(group_id);
 
     for await(let child of await work(ctx)){
       debug(`Add dependency over #${child} for #${group_id}`);
@@ -206,10 +220,10 @@ export class TaskListener extends EventEmitter{
     await this.db.run(`INSERT INTO tasks_relations(source, target) VALUES($1, $2)`, [source, target]);
   }
 
-  makeTaskProxy(scene_id: number, id: number): TaskContextHandlers{
+  makeTaskProxy(parent_id: number): TaskContextHandlers{
     return {
-      create: this.create.bind(this, scene_id, id),
-      group: this.group.bind(this, scene_id, id),
+      create: this.createChild.bind(this, parent_id),
+      group: this.group.bind(this, parent_id),
       getTask: this.getTask.bind(this),
     }
   }

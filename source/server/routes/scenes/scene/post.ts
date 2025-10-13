@@ -52,7 +52,7 @@ export default async function postScene(req :Request, res :Response){
       filetype = await readMagicBytes(tmpfile);
     }
 
-    let task = await scheduler.create(scene_id, {
+    let task = await scheduler.create(scene_id, user_id, {
       type: "handleUploads",
       data: {
         files: [{

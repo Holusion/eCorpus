@@ -11,6 +11,7 @@ import { once } from "node:events";
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
 import { TaskListener } from "./listener.js";
+import { NotFoundError } from "../utils/errors.js";
 
 // So it's mostly integration tests
 describe("Task handling", function(){
@@ -52,14 +53,14 @@ describe("Task handling", function(){
 
     //Non-connected functions that should work well in isolation
     it("create tasks", async function(){
-      let task = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let task = await listener.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
       expect(task).to.be.a("number");
       expect(await handle.all("SELECT * FROM tasks")).to.have.length(1);
     });
 
 
     it("update task status", async function(){
-      let t = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let t = await listener.create(scene_id, null, {type: "delayTask", data: {time: 0}});
       expect(await handle.get("SELECT * FROM tasks")).to.have.property("status", "pending");
       await listener.setTaskStatus(t, "success");
       expect(await handle.get("SELECT * FROM tasks")).to.have.property("status", "success");
@@ -67,8 +68,8 @@ describe("Task handling", function(){
 
     it("resolve task", async function(){
       //Create a task with a parent
-      let t1 = await listener.create(scene_id, {type: "delayTask", data: {time: 0}});
-      let t2 = await listener.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1]});
+      let t1 = await listener.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+      let t2 = await listener.createChild(t1,  {type: "delayTask", data: {time: 0}, after: [t1]});
       
       let resolved = await listener.getTask(t2);
       expect(resolved.after).to.deep.equal([t1]);
@@ -90,36 +91,38 @@ describe("Task handling", function(){
     });
 
     it("can create tasks", async function(){
-      await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
       let tasks = await handle.all(`SELECT * FROM tasks`);
       expect(tasks).to.have.property("length", 1);
     });
 
     it("can create \"after\" relations", async function(){
+      let parent = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
       let requirements = [
-         await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}}),
-        await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}})
+         await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}}),
+        await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}})
       ]
-      let after = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: requirements});
+      let after = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}, after: requirements});
 
       expect(await scheduler.getTask(after)).to.have.property("after").to.deep.equal( requirements);
     });
 
     it("can nest relations", async function(){
-      let t1 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
-      let t2 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1]});
-      let t3 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1, t2]});
-      let t4 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t3]});
+      let t1 = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(t1,  {type: "delayTask", data: {time: 0}, after: [t1]});
+      let t3 = await scheduler.createChild(t1,  {type: "delayTask", data: {time: 0}, after: [t1, t2]});
+      let t4 = await scheduler.createChild(t1,  {type: "delayTask", data: {time: 0}, after: [t3]});
     });
 
     it("can't cycle relations", async function(){
-      let t1 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
-      let t2 = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, after: [t1]});
+      let parent = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+      let t1 = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}, after: [t1]});
       await expect(scheduler.addRelation(t2, t1)).to.be.rejectedWith("check_no_cycles");
     });
 
     it("can create tasks with asynchronous initialization", async function(){
-      await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}, status: 'initializing'});
+      await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}, status: 'initializing'});
       let tasks = await handle.all(`SELECT * FROM tasks`);
       expect(tasks).to.have.property("length", 1);
       expect(tasks[0]).to.have.property("status", "initializing");
@@ -144,27 +147,27 @@ describe("Task handling", function(){
 
     it("can take tasks", async function(){
 
-      let t = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
       let [task_id] = await once(scheduler, "success");
       expect(task_id).to.equal(t);
     });
 
     it("can wait for tasks", async function(){
 
-      let t = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
 
       await scheduler.wait(t);
     });
 
     it("can wait for task to fail", async function(){
-      let t = await scheduler.create(scene_id, {type: "evalTask", data: {x: `() =>{throw new Error("Some error")}`}});
+      let t = await scheduler.create(scene_id, null,  {type: "evalTask", data: {x: `() =>{throw new Error("Some error")}`}});
       await expect(scheduler.wait(t)).to.be.rejectedWith("Some error");
     });
 
     it("will take all available tasks", async function(){
       let tasks = [];
       for(let i = 0; i < 4; i++){
-        tasks.push(await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}}));
+        tasks.push(await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}}));
       }
 
       await Promise.all(tasks.map(t=> scheduler.wait(t)));
@@ -178,7 +181,7 @@ describe("Task handling", function(){
         "INSERT INTO scenes(scene_id, scene_name) VALUES ( $1, $2 ) RETURNING scene_id",
       [Uid.make(), randomBytes(8).toString("base64url")]);
 
-      let  t = await scheduler.create(s2.scene_id, {type: "delayTask", data: {time: 10}});
+      let  t = await scheduler.create(s2.scene_id, null,  {type: "delayTask", data: {time: 10}});
       
       await handle.run(`DELETE FROM scenes WHERE scene_id = $1`, [s2.scene_id]);
 
@@ -190,8 +193,8 @@ describe("Task handling", function(){
         "INSERT INTO scenes(scene_id, scene_name) VALUES ( $1, $2 ) RETURNING scene_id",
       [Uid.make(), randomBytes(8).toString("base64url")]);
 
-      let  t = await scheduler.create(s2.scene_id, {type: "delayTask", data: {time: 10}});
-      let  t2 = await scheduler.create(s2.scene_id, {type: "delayTask", data: {time: 10}, after: [t]});
+      let  t = await scheduler.create(s2.scene_id, null,  {type: "delayTask", data: {time: 10}});
+      let  t2 = await scheduler.createChild(t,  {type: "delayTask", data: {time: 10}, after: [t]});
       
       await handle.run(`DELETE FROM scenes WHERE scene_id = $1`, [s2.scene_id]);
 
@@ -218,9 +221,9 @@ describe("Task handling", function(){
     });
 
     it("can respect tasks ordering", async function(){
-      let parent = await scheduler.create(scene_id, {type: "delayTask", data: {time: 0}});
-      let before = await scheduler.create(scene_id, parent, {type: "delayTask", data: {time: 25}});
-      let after = await scheduler.create(scene_id, parent, {type: "delayTask", data: {time: 10}, after:[before]});
+      let parent = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+      let before = await scheduler.createChild( parent, {type: "delayTask", data: {time: 25}});
+      let after = await scheduler.createChild( parent, {type: "delayTask", data: {time: 10}, after:[before]});
       
       let results:number[] = [];
       await Promise.all([parent, before, after].map(async task=>{
@@ -254,16 +257,21 @@ describe("Task handling", function(){
 
     describe("evalTask", function(){
       it("can execute arbitrary code", async function(){
-        let t = await scheduler.create(scene_id, {type: "evalTask", data: {x: `()=> 'foo'`}});
+        let t = await scheduler.create(scene_id, null,  {type: "evalTask", data: {x: `()=> 'foo'`}});
         let result = await scheduler.wait(t);
         expect(result).to.equal("foo");
       });
     });
     
     describe("group tasks", function(){
+      let group_id: number;
+      this.beforeEach(async function(){
+        group_id = await scheduler.create(scene_id, null, {type: "delayTask", data:{time: 0}});
+      });
+
 
       it("with TaskListener.group()- array", async function(){
-        let group = await scheduler.group(scene_id, async (tasks)=>{
+        let group = await scheduler.group(group_id, async (tasks)=>{
           return [
             await tasks.create({type: "delayTask", data: {time: 5, value: 'a'}}),
             await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}}),
@@ -274,7 +282,7 @@ describe("Task handling", function(){
       });
 
       it("with TaskListener.group()- generator", async function(){
-        let group = await scheduler.group(scene_id, async function* (tasks){
+        let group = await scheduler.group(group_id, async function* (tasks){
             yield await tasks.create({type: "delayTask", data: {time: 5, value: 'a'}});
             yield await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}});
         });
@@ -283,7 +291,7 @@ describe("Task handling", function(){
       });
 
       it("nested groups", async function(){
-        let group = await scheduler.group(scene_id, async function* (tasks){
+        let group = await scheduler.group(group_id, async function* (tasks){
           yield await tasks.group(async function*(tasks){
             yield await tasks.create({type: "delayTask", data: {time: 0, value: 'a'}});
             yield await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}});
@@ -291,6 +299,16 @@ describe("Task handling", function(){
         });
         let results = await scheduler.wait(group);
         expect(results).to.deep.equal([['a', 'b']]);
+      });
+
+      it("creates an empty group", async function(){
+        let group = await scheduler.group(group_id, async function* (tasks){ });
+        let results = await scheduler.wait(group);
+        expect(results).to.deep.equal([]);
+      });
+
+      it("requires a valid task_id", async function(){
+        await expect(scheduler.group(scene_id, async function* (tasks){ })).to.be.rejectedWith(NotFoundError);
       });
     });
   });
