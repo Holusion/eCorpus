@@ -132,6 +132,7 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   app.use("/tags", (await import("./tags/index.js")).default);
   app.use("/groups", (await import("./groups/index.js")).default);
   app.use("/services", (await import("./services/index.js")).default);
+  app.use("/tasks", (await import("./tasks/index.js")).default);
   
   const logLevel = (locals.config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
   const isTTY = process.stderr.isTTY;
