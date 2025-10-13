@@ -7,7 +7,7 @@ CREATE TYPE task_status AS ENUM ('initializing', 'pending', 'aborting', 'running
 CREATE TABLE tasks (
   task_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   fk_scene_id BIGINT NOT NULL REFERENCES scenes(scene_id) ON DELETE CASCADE,
-  fk_user_id BIGINT REFERENCES users(user_id),
+  fk_user_id BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- task data
   type TEXT NOT NULL,
@@ -90,6 +90,23 @@ CREATE TABLE tasks_logs (
   message TEXT NOT NULL
 );
 
+CREATE OR REPLACE FUNCTION task_tree(_task_id bigint)
+  RETURNS jsonb
+  LANGUAGE sql STABLE PARALLEL SAFE AS
+$$
+SELECT jsonb_agg(sub)
+FROM  (
+  SELECT
+    t.task_id AS task_id,
+    t.type AS type,
+    t.status AS status,
+    t.ctime AS ctime,
+    COALESCE(task_tree(t.task_id), '[]'::jsonb) AS children
+  FROM   tasks t
+  WHERE  t.parent = _task_id
+  ORDER  BY t.ctime ASC, t.task_id ASC
+) AS sub
+$$;
 
 --------------------------------------------------------------------------------
 -- Down
