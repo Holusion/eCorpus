@@ -1,5 +1,5 @@
 import express from "express";
-import { compressedMime, getContentType, getMimeType } from "./filetypes.js";
+import { compressedMime, getContentType, getMimeType, parseMagicBytes } from "./filetypes.js";
 import request from "supertest";
 
 
@@ -94,3 +94,47 @@ describe("compressedMime", function(){
     });
   });
 });
+
+
+describe("extFromType()", function(){
+  
+});
+
+describe("parseMagicBytes()", function(){
+  //Header of a 1156x420 png
+  //Header of a 1067x800 jpeg
+  it("image/png", function(){
+    expect(parseMagicBytes(Buffer.from('89504e470d0a1a0a', "hex"))).to.equal("image/png");
+  });
+
+  it("image/jpeg", function(){
+    [
+      "FFD8FFDB", //Raw jpeg
+      "FFD8FFE000104A4649460001", //JFIF
+      "FFD8FFEE", //Also jpeg
+      "FFD8FFE0", // still jpeg
+    ].forEach((str)=>{
+      expect(parseMagicBytes(Buffer.from(str, "hex")), `0x${str} should be a valid jpeg header`).to.equal("image/jpeg")
+    })
+  });
+  it("image/webp", function(){
+    //Header with a size of 0
+    expect(parseMagicBytes(Buffer.from('524946460000000057454250', 'hex'))).to.equal("image/webp");
+    //header with a real size
+    expect(parseMagicBytes(Buffer.from('52494646b254000057454250', 'hex'))).to.equal("image/webp");
+    //header from another RIFF container
+    expect(parseMagicBytes(Buffer.from('524946460000000057415645', 'hex'))).to.equal("application/octet-stream");
+  });
+
+  it("model/gltf-binary", function(){
+    // See https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#binary-header
+    const b= Buffer.alloc(4);
+    b.writeUint32LE(0x676C5446);
+    expect(parseMagicBytes(b)).to.equal("model/gltf-binary");
+    
+    expect(parseMagicBytes(Buffer.from("46546c67", "hex"))).to.equal("model/gltf-binary");
+
+  });
+
+
+})
