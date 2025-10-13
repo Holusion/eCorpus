@@ -188,7 +188,7 @@ export class TaskProcessor extends TaskListener{
         warn: (...args:any[])=>this.wrapLog(id, 'warn', format(...args)),
         error: (...args:any[])=>this.wrapLog(id, 'error', format(...args)),
       },
-      tasks: this.makeTaskProxy(task.fk_scene_id, id),
+      tasks: this.makeTaskProxy(id),
       db: this.db,
       signal,
     };
