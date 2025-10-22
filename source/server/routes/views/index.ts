@@ -1,5 +1,5 @@
-import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties } from "../../utils/locals.js";
+import { Router, Request, Response } from "express";
+import { getHost, getVfs, getUser, getUserManager, getLocals, isMemberOrManage, isEmbed, isUser, useTemplateProperties } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import { Scene } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
@@ -60,11 +60,15 @@ routes.get("/", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/upload", (req, res)=>{
+routes.get("/upload", isUser, wrap(async (req, res)=>{
+  const {uid:user_id} = getUser(req)!;
+  const {taskScheduler} = getLocals(req);
+  const tasks = await taskScheduler.getTasks({user_id, after: new Date(Date.now() - 1000*3600*24)});
   res.render("upload", {
     title: "eCorpus: Create new scene",
+    tasks,
   });
-})
+}));
 
 routes.get("/tags", wrap(async (req, res)=>{
   const vfs = getVfs(req);

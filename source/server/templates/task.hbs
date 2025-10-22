@@ -10,19 +10,35 @@
   <div class="grid-toolbar">
 
   <section class="section-column task-header">
-    <h3>
-      {{#if tree.children.length }}
-        Group
-      {{else}}
-        Task
+    <div class="col">
+      <h3>
+        {{#if tree.children.length }}
+          Group
+        {{else}}
+          Task
+        {{/if}}
+        status:
+      </h3>
+      <span class="task-status status-{{tree.groupStatus}}">{{tree.groupStatus}}</span>
+      {{#if task.parent }}
+        <h3>Parent: <a href="{{ task.parent }}">#{{ task.parent }}</a></h3>
       {{/if}}
-      status:
-    </h3>
-    <span class="task-status status-{{tree.groupStatus}}">{{tree.groupStatus}}</span>
-    {{#if task.parent }}
-      <h3>Parent: <a href="{{ task.parent }}">#{{ task.parent }}</a></h3>
-    {{/if}}
-    
+    </div>
+
+    <div class="col task-actions">
+      {{#if (test task.status "==" "error")}}
+        <!-- @fixme retry button -->
+      {{/if}}
+      <submit-fragment method="DELETE" action="/tasks/scene/{{encodeURIComponent scene }}/{{ task.task_id }}" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent scene.name}}/tasks'">
+        <form>
+          <button role="submit" id="btn-deleteTask" class="btn btn-danger">
+            <ui-icon name="trash"></ui-icon>
+            {{i18n "buttons.delete"}}
+          </button>
+        </form>
+      </submit-fragment>
+    </div>
+
     {{#if tree.children.length}}
       <div class="col">
         <h2>Children: </h2>
@@ -31,7 +47,6 @@
               {{> tasks/summary }}
           {{/each ~}}
         </div>
-
       </div>
     {{/if}}
   </section>
@@ -45,6 +60,8 @@
         </a>
         <span>#{{ task.task_id }}</span>
       </h2>
+      
+      
 
       {{#each logs}}
         <div id="log-{{ id }}" class="log-line">
@@ -53,18 +70,18 @@
           <span class="log-message">{{ message }}</span>
         </div>
       {{/each}}
+      {{#with tree }}
+        <div class="task-status-root">
+          {{> tasks/status }}
+        </div>
+      {{/with}}
       {{#if output}}
       <div>
         <h3>Output</h3>
         <pre>{{output}}</pre>
       </div>
       {{/if}}
-        {{#with tree }}
-      <div class="task-status-root">
-        {{> tasks/status }}
-      </div>
-      {{/with}}
-      
+
     </section>
   </div>
 </div>

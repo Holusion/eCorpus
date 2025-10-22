@@ -1,26 +1,5 @@
 import { mapShape } from "./processor.js";
 
-
-describe("mapShape()", function(){
-  it("maps identity", function(){
-    expect(mapShape("$", ["value"])).to.deep.equal(["value"]);
-
-  })
-  it("maps outputs to a shape", function(){
-    expect(mapShape({foo: "bar", out: "$"}, ["value"])).to.deep.equal({foo: "bar", out: ["value"]});
-  });
-
-  it("maps output array", function(){
-    expect(mapShape({foo: "$[0]"}, ["value"])).to.deep.equal({foo: "value"});
-  });
-
-  it("maps outputs properties to a shape", function(){
-    expect(mapShape({foo: "$[0].foo", bar: "$[0].bar", baz: "baz"}, [{foo: "foo", bar: "bar"}])).to.deep.equal({foo: "foo", bar: "bar", baz: "baz"});
-  });
-});
-
-
-
 // Tests for tasks management
 // The system is a bit intricate and hard to test in isolation
 
@@ -31,7 +10,6 @@ import { TaskScheduler } from "./scheduler.js";
 import { once } from "node:events";
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
-import { TaskListener } from "./listener.js";
 import { NotFoundError } from "../utils/errors.js";
 
 // So it's mostly integration tests
@@ -86,8 +64,9 @@ describe("TaskProcessor", function(){
     it("can take tasks", async function(){
 
       let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
-      let [task_id] = await once(scheduler, "success");
+      let [task_id, status] = await once(scheduler, "update");
       expect(task_id).to.equal(t);
+      expect(status).to.equal("success");
     });
 
     it("can wait for tasks", async function(){
@@ -252,3 +231,24 @@ describe("TaskProcessor", function(){
     });
   });
 });
+
+
+
+describe("mapShape()", function(){
+  it("maps identity", function(){
+    expect(mapShape("$", ["value"])).to.deep.equal(["value"]);
+
+  })
+  it("maps outputs to a shape", function(){
+    expect(mapShape({foo: "bar", out: "$"}, ["value"])).to.deep.equal({foo: "bar", out: ["value"]});
+  });
+
+  it("maps output array", function(){
+    expect(mapShape({foo: "$[0]"}, ["value"])).to.deep.equal({foo: "value"});
+  });
+
+  it("maps outputs properties to a shape", function(){
+    expect(mapShape({foo: "$[0].foo", bar: "$[0].bar", baz: "baz"}, [{foo: "foo", bar: "bar"}])).to.deep.equal({foo: "foo", bar: "bar", baz: "baz"});
+  });
+});
+

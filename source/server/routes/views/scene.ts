@@ -151,6 +151,10 @@ type ResolvedNode = Omit<TasksTreeNode,"after"|"status">&{
   status: TaskStatus|"waiting";
   requirements: ResolvedNode[];
 };
+
+/**
+ * Resolve every node's relations to point to the referenced task object
+ */
 function toResolved({after, ...node}:TasksTreeNode, refs:Map<number,TasksTreeNode>):ResolvedNode{
   const chainedNode = (typeof node.output === "number"?refs.get(node.output):null);
 
@@ -176,6 +180,16 @@ function toResolved({after, ...node}:TasksTreeNode, refs:Map<number,TasksTreeNod
   }
 }
 
+/**
+ * Extract a flat map of `id->taskNode` for later reference
+ * @returns 
+ */
+function listNodes(task: TasksTreeNode, m: Map<number, TasksTreeNode> = new Map()){
+  m.set(task.task_id, task);
+  task.children.forEach(n=> listNodes(n, m));
+  return m;
+}
+
 router.get("/:scene/tasks/:id", canAdmin, wrap(async (req, res)=>{
   const {id:idString, scene} = req.params;
   const {taskScheduler} = getLocals(req);
@@ -187,11 +201,7 @@ router.get("/:scene/tasks/:id", canAdmin, wrap(async (req, res)=>{
 
   //We rely on the root tree because a task can have relationships with ancestors
   const rootTree = await taskScheduler.getRootTree(id);
-  function listNodes(task: TasksTreeNode, m: Map<number, TasksTreeNode> = new Map()){
-    m.set(task.task_id, task);
-    task.children.forEach(n=> listNodes(n, m));
-    return m;
-  }
+
 
   const allTreeNodes = listNodes(rootTree);
 
@@ -200,14 +210,13 @@ router.get("/:scene/tasks/:id", canAdmin, wrap(async (req, res)=>{
   if(!tree) throw new InternalError(`Couldn't find task ${id} in root tree for ${rootTree.task_id}`);
   const requiredTree = toResolved(tree, allTreeNodes);
 
-
   res.render("task", {
     title: `eCorpus: task view`,
     scene: scene,
     groupStatus: tree.groupStatus,
     task,
     logs: await taskScheduler.getTaskLogs(id),
-    output: typeof task.output === "number"? (await taskScheduler.getTask(task.output)).output: task.output,
+    output: JSON.stringify(requiredTree.output, null, 2),
     tree: requiredTree,
   });
 }));

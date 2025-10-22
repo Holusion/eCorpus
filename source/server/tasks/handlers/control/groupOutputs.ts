@@ -22,7 +22,6 @@ export async function groupOutputsTask({task:{after, data}, context:{logger, tas
     logger.debug(`Map group outputs ${JSON.stringify(outputs)}`);
     return mapShape(data, outputs);
   }else{
-    logger.debug(`Grouped outputs: ${JSON.stringify(outputs)}`);
     return outputs;
   }
 };

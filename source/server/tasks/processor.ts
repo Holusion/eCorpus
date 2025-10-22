@@ -56,12 +56,16 @@ export class TaskProcessor extends TaskListener{
   constructor({client, vfs, userManager}: TaskProcessorParams){
     super({client});
     this.#context = {vfs, userManager};
-    this.on("aborting", this.onAbortTask);
-    this.on("pending", this.onNewTask);
+    this.on("update", (id, status)=>{
+      if(status == "pending") this.onNewTask(id);
+      else if(status == "aborting") this.onAbortTask(id);
+    });
   }
 
   async start(){
-    return await super.start(["pending", "aborting"]);
+    await super.start(["pending", "aborting"]);
+    this.pollTasks();
+
   }
 
   async stop(){
@@ -72,6 +76,13 @@ export class TaskProcessor extends TaskListener{
 
   onNewTask = (task_id: number)=>{
     debug("Task available:", task_id);
+    this.pollTasks();
+  }
+
+  /**
+   * Safe synchronous wrapper around takeTask that will handle any error that might be thrown asynchronously
+   */
+  pollTasks(){
     this.takeTask().then(
       ()=>debug("Polled task pool"),
       (err)=>console.error("Failed to poll task pool :", err)
