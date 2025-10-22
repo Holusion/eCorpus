@@ -9,7 +9,6 @@ import UserManager from '../auth/UserManager.js';
 import * as tasks from "./handlers/index.js";
 
 const debug = debuglog("tasks:processor");
-const debug_logs = debuglog("tasks:logs");
 const debug_outputs = debuglog("tasks:outputs");
 
 export interface TaskProcessorParams{
@@ -129,14 +128,9 @@ export class TaskProcessor extends TaskListener{
     if(id == this.#current_task) this.#control.abort();
   }
 
-  async appendTaskLog(id: number, severity: keyof TaskLogger,  message: string){
-    debug_logs(`${id} [${severity}]: ${message}`);
-    await this.db.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, $2, $3)`, [id, severity, message]);
-  }
-
   wrapLog(id: number, severity: keyof TaskLogger,  message: string):void{
     this.appendTaskLog(id, severity, message).catch(e=>{
-      console.error("Failed to write task log for #%d [%s]", id, severity, message);
+      if(this.started) console.error("Failed to write task log for #%d [%s]", id, severity, message);
     });
   }
 

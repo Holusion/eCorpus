@@ -67,8 +67,10 @@ export default async function postScene(req :Request, res :Response){
     });
     await scheduler.wait(task);
   }catch(e){
-    //If written, the file will stay as a loose object but will get cleaned-up later
-    await vfs.removeScene(scene_id).catch(e=>console.warn(e));
+    //We don't remove the scene because that would destroy the failed task, which makes debugging harder.
+    //However we try to archive it so we don't keep the name with a failed scene
+    await vfs.archiveScene(scene_id).catch(e=>console.warn(e));
+    //await vfs.removeScene(scene_id).catch(e=>console.warn(e));
     throw e;
   }
   res.status(201).send({code: 201, message: "created scene with id :"+scene_id});

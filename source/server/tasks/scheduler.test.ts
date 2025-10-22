@@ -10,13 +10,14 @@ import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
 import Vfs from "../vfs/index.js";
 import UserManager from "../auth/UserManager.js";
+import { TaskStatus } from "./types.js";
 
 // So it's mostly integration tests
 describe("TaskScheduler", function(){
   let _vfs :Vfs, _userManager: UserManager;
   let db_uri: string, handle: Database, client: Client;
 
-  let scene_id: number, user_id: number
+  let scene_name: string, scene_id: number, author:string, user_id: number
 
   let scheduler: TaskScheduler;
   this.beforeAll(async function(){
@@ -24,10 +25,11 @@ describe("TaskScheduler", function(){
     handle = await openDatabase({uri: db_uri});
     _vfs = new Vfs("/dev/null", handle);
     _userManager = new UserManager(handle);
-    scene_id = await _vfs.createScene(randomBytes(8).toString("base64url"))
+    scene_name = randomBytes(8).toString("base64url");
+    scene_id = await _vfs.createScene(scene_name)
 
-
-    let u = await _userManager.addUser(randomBytes(4).toString("hex"), randomBytes(6).toString("base64"));
+    author = randomBytes(4).toString("hex");
+    let u = await _userManager.addUser(author, randomBytes(6).toString("base64"));
     user_id = u.uid;
   });
 
@@ -97,7 +99,7 @@ describe("TaskScheduler", function(){
     });
   });
 
-  describe("list tasks", function(){
+  describe("getTasks()", function(){
     let parent: number, t1: number, t2: number;
 
     this.beforeEach(async function(){
@@ -106,42 +108,144 @@ describe("TaskScheduler", function(){
       t2 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}});
     });
 
-    it("all list functions have same shape", async function(){
-      const ownTasks = await scheduler.listOwnTasks({user_id});
-      expect(ownTasks, `expected to receive 1 owned task`).to.have.length(1);
-
-      const sceneTasks = await scheduler.listSceneTasks({scene_id});
-      expect(sceneTasks, `expected to receive 1 scene task`).to.have.length(1);
-
-      //In this case, we expect outputs to be strictly equal
-      expect(ownTasks).to.deep.equal(sceneTasks);
-
-      const allTasks = await scheduler.listAllTasks();
-      expect(allTasks, `expected to receive 1 readable task`).to.have.length(1);
-
-      //In this case, we expect outputs to be strictly equal
-      expect(ownTasks).to.deep.equal(allTasks);
+    it("get a tasks tree", async function(){
+      let now = new Date(); //Ensure consistent dates
+      await handle.run(`UPDATE tasks SET ctime = $1`, [now]);
+      const alltasks = await scheduler.getTasks();
+      expect(alltasks).to.deep.equal([{
+        scene_id,
+        scene_name,
+        task_id: parent,
+        type: "delayTask",
+        ctime: now,
+        status: "pending",
+        groupStatus: "pending",
+        author,
+        children: [
+          {
+            type: 'delayTask',
+            ctime:  now,
+            status: 'pending',
+            groupStatus: "pending",
+            task_id: t1,
+            children: []
+          },
+          {
+            type: 'delayTask',
+            ctime: now,
+            status: 'pending',
+            groupStatus: "pending",
+            task_id: t2,
+            children: []
+          }
+        ]
+      }])
     });
 
-    describe("listOwnTasks()", function(){
+    ([
+      'aborting',
+      'error',
+      'initializing',
+      'running',
+    ] satisfies TaskStatus[]).forEach((status)=>{
+      it(`computes group status ${status}`, async function(){
+        const t3 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}, status });
+        const alltasks = await scheduler.getTasks();
+        expect(alltasks).to.have.length(1);
+        expect(alltasks[0]).to.have.property("groupStatus", status);
+      });
+
+      it(`recursively computes group status ${status}`, async function(){
+        await scheduler.setTaskStatus(t1, "success");
+        const t3 = await scheduler.createChild(t2, {type: "delayTask", data: {time: 0}, status });
+        const alltasks = await scheduler.getTasks();
+        expect(alltasks).to.have.length(1);
+        expect(alltasks[0]).to.have.property("groupStatus", status);
+
+      });
+    });
+
+    describe("all tasks", function(){
+      it("can filter by task status", async function(){
+        let list = await scheduler.getTasks({ status: "initializing"});
+        expect(list).to.have.length(0);
+        let t = await scheduler.create(scene_id, user_id,  {type: "delayTask", data: {time: 0}, status: "initializing"});
+
+        list = await scheduler.getTasks({status: "initializing"});
+        expect(list).to.have.length(1);
+        expect(list[0]).to.have.property("children").to.have.length(0);
+        expect(list[0]).to.have.property("task_id", t);
+      });
+    });
+
+    describe("own tasks", function(){
       it("get a list of owned tasks", async function(){
-        const ownTasks = await scheduler.listOwnTasks({user_id});
+        let oscar = await _userManager.addUser("oscar", "12345678", "create");
+        await scheduler.create(scene_id, oscar.uid,  {type: "delayTask", data: {time: 0}});
+
+        const ownTasks = await scheduler.getTasks({user_id});
         expect(ownTasks).to.have.length(1);
       });
-    });
 
-    describe("listAllTasks()", function(){
-      it("get a list of all tasks", async function(){
-        const alltasks = await scheduler.listAllTasks();
-        expect(alltasks).to.have.length(1);
+      it("can filter by task status", async function(){
+        let list = await scheduler.getTasks({user_id, status: "initializing"});
+        expect(list).to.have.length(0);
+        let t = await scheduler.create(scene_id, user_id,  {type: "delayTask", data: {time: 0}, status: "initializing"});
+
+        list = await scheduler.getTasks({user_id, status: "initializing"});
+        expect(list).to.have.length(1);
+        expect(list[0]).to.have.property("children").to.have.length(0);
+        expect(list[0]).to.have.property("task_id", t);
       });
     });
 
-    describe("listSceneTasks()", function(){
+    describe("scene tasks", function(){
       it("get a list of scene tasks", async function(){
-        const sceneTasks = await scheduler.listSceneTasks({scene_id});
+        const s2 = await _vfs.createScene("scene-2-getTasks");
+        await scheduler.create(s2, user_id,  {type: "delayTask", data: {time: 0}});;
+
+        const sceneTasks = await scheduler.getTasks({scene_id});
         expect(sceneTasks).to.have.length(1);
+        expect(sceneTasks[0]).to.have.property("scene_name", scene_name);
+        expect(sceneTasks[0]).to.have.property("children").to.have.length(2);
       });
     });
-  })
+  });
+
+
+  describe("wait()", function(){
+    it("returns immediately if tasks has completed", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}, status: "success"});
+      await expect(scheduler.wait(t)).to.be.fulfilled;
+    });
+
+    it("throws if tasks has failed", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0, value: "foo"}, status: "error"});
+      await expect(scheduler.wait(t)).to.be.rejected;
+    });
+
+    it("waits for a task to complete", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0, value: "foo"}});
+      setTimeout(()=>{
+        scheduler.setTaskStatus(t, "success");
+      }, 5);
+      await expect(scheduler.wait(t)).to.be.fulfilled;
+    });
+
+    it("throws if tasks errors-out", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0, value: "foo"}});
+      setTimeout(()=>{
+        scheduler.setTaskStatus(t, "error");
+      }, 5);
+      await expect(scheduler.wait(t)).to.be.rejected;
+    });
+
+    it.skip("waits recursively", async function(){
+      throw new Error("Unsupported");
+    });
+
+    it("throws when task dependencies errors out", async function(){
+
+    });
+  });
 });

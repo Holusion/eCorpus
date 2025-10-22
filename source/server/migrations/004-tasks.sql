@@ -82,6 +82,7 @@ EXECUTE PROCEDURE tasks_status_notify();
 
 
 CREATE TYPE log_severity AS ENUM('debug', 'log', 'warn', 'error');
+
 CREATE TABLE tasks_logs (
   log_id BIGSERIAL PRIMARY KEY, -- ensure consistent ordering
   fk_task_id BIGINT REFERENCES tasks(task_id) ON DELETE CASCADE,
@@ -90,7 +91,7 @@ CREATE TABLE tasks_logs (
   message TEXT NOT NULL
 );
 
-CREATE OR REPLACE FUNCTION task_tree(_task_id bigint)
+CREATE FUNCTION task_tree(_task_id bigint)
   RETURNS jsonb
   LANGUAGE sql STABLE PARALLEL SAFE AS
 $$
@@ -101,6 +102,7 @@ FROM  (
     t.type AS type,
     t.status AS status,
     t.ctime AS ctime,
+    (SELECT array_agg(source)::bigint[] FROM tasks_relations WHERE target = t.task_id) as after,
     COALESCE(task_tree(t.task_id), '[]'::jsonb) AS children
   FROM   tasks t
   WHERE  t.parent = _task_id
@@ -111,6 +113,8 @@ $$;
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
+
+DROP FUNCTION task_tree;
 
 DROP TABLE tasks_logs;
 DROP TYPE log_severity;

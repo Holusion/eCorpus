@@ -1,7 +1,7 @@
 /**
  * Query string utilities
  */
-import QueryString from "qs";
+import QueryString, { ParsedQs } from "qs";
 import { BadRequestError } from "./errors.js";
 
 type QsValue =  string | string[] | QueryString.ParsedQs | QueryString.ParsedQs[] | undefined;
@@ -35,4 +35,20 @@ export function qsToInt(v:QsValue) :number|undefined{
   let r = parseInt(v);
   if(!Number.isInteger(r)) throw new BadRequestError(`Not a valid integer : ${v}`);
   return r;
+}
+
+export function queryToPage(query: ParsedQs) :{offset: number, limit: number}{
+  let params = {offset: 0, limit: 25};
+  if(typeof query.offset === "string" && Number.isInteger(parseInt(query.offset))){
+    params.offset = parseInt(query.offset);
+  }
+  if(typeof query.limit === "string" && Number.isInteger(parseInt(query.limit))){
+    params.limit = parseInt(query.limit);
+  }
+  if(params.offset < 0) throw new BadRequestError(`offset can't be negative (${params.offset})`);
+  if(params.limit < 0) throw new BadRequestError(`limit can't be negative (${params.limit})`);
+  if(100 < params.limit) throw new BadRequestError(`limit can't be over 100 (${params.limit})`);
+
+  return params;
+
 }
