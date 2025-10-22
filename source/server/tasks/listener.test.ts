@@ -71,4 +71,5 @@ describe("TaskListener", function(){
     let resolved = await listener.getTask(t2);
     expect(resolved.after).to.deep.equal([t1]);
   });
+  
 });

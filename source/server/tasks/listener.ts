@@ -1,11 +1,12 @@
 import EventEmitter, { on } from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
-import { CreateTaskParams, GroupCallback, TaskContextHandlers, TaskDefinition, TaskHandler, TaskStatus, TaskType, TaskTypeData } from "./types.js";
+import { CreateTaskParams, GroupCallback, TaskContextHandlers, TaskDefinition, TaskHandler, TaskLogger, TaskStatus, TaskType, TaskTypeData } from "./types.js";
 import { NotFoundError, InternalError } from "../utils/errors.js";
 import { debuglog } from "node:util";
 
 const debug = debuglog("tasks:scheduler");
+const debug_logs = debuglog("tasks:logs");
 
 export interface TaskListenerParams{
   client: Client;
@@ -58,21 +59,37 @@ export class TaskListener extends EventEmitter{
     }
     let [prefix, status ] = channel.split("_");
     if(prefix !== "tasks") return console.error("Invalid task channel name :", channel);
-    if(this.#events!.indexOf(status as any) !== -1){
-      if(status === "error"){
-        this.db.get<{message:string}>(`SELECT message FROM tasks_logs WHERE fk_task_id = $1 AND severity = 'error' ORDER BY log_id DESC LIMIT 1`, [task_id])
-        .then((log)=>{
-          if(log) this.emit("error", new Error(`In task ${task_id}: ${log.message}`));
-          else this.emit("error", new Error(`In task ${task_id}: no logs`));
-        }, (e:any)=>{
-          this.emit("error", new Error(`In task ${task_id}: failed to get log with error: ${e.message}`));
-        });
-      }else{
-        this.emit(status, task_id);
-      }
-    }
+    if(this.#events!.indexOf(status as any) === -1) return debug(`Received unwanted notification event : ${status}`);
+
+    debug(`Notification for #${payload}: ${status}`);
+    this.emit("update", task_id)
   }
 
+
+  async appendTaskLog(id: number, severity: keyof TaskLogger,  message: string){
+    debug_logs(`${id} [${severity}]: ${message}`);
+    await this.db.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, $2, $3)`, [id, severity, message]);
+  }
+
+  async getTaskLogs(id: number, {offset = 0, limit = 25}:{offset?:number, limit?:number} = {}){
+    return await this.db.all(`
+      SELECT  log_id, timestamp, severity, message
+      FROM tasks_logs
+      WHERE fk_task_id = $1
+      OFFSET $2
+      LIMIT $3
+    `, [id, offset, limit]);
+  }
+
+  async resolveTaskError(task_id: number) : Promise<Error>{
+    try{
+      let log = await this.db.get<{message:string}>(`SELECT message FROM tasks_logs WHERE fk_task_id = $1 AND severity = 'error' ORDER BY log_id DESC LIMIT 1`, [task_id])
+      if(log) return new Error(`In task ${task_id}: ${log.message}`);
+      else return new Error(`In task ${task_id}: no logs`);
+    }catch(e: any){
+      return new Error(`In task ${task_id}: failed to get log with error: ${e.message}`);
+    };
+  }
 
   /**
    * Internal method to adjust task status
@@ -106,7 +123,7 @@ export class TaskListener extends EventEmitter{
     };
   }
 
-  async listTasks(){
+  async getTasks(){
     return await this.db.all(`
      SELECT 
         tasks.task_id
@@ -163,42 +180,6 @@ export class TaskListener extends EventEmitter{
   }
 
 
-  /**
-   * @fixme recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
-   *  We should probably rely on waiting for every child of a task being finished instead?
-   */
-  async wait(id: number) :Promise<any>{
-
-    const onResult = ()=>{
-      return this.getTask(id).then(t=>{
-        if(/^\d+$/.test(t.output)){
-          debug("recurse over returned task definition #%d", t.output);
-          return this.wait(parseInt(t.output));
-        }else{
-          debug("Return task output for #%d:", id, t.output);
-          return t.output;
-        }
-      });
-    }
-    debug("wait for task #%d", id);
-    let it = on(this, "success");
-    let task = await this.db.get<{status: TaskStatus, output?:any}> (`SELECT status, output FROM tasks WHERE task_id = $1`, [id]);
-    if(!task){
-      throw new NotFoundError(`No task found with id ${id}`);
-    }
-    if(task.status === "error"){
-      /** @fixme should retrieve task logs to provide a helpful message */
-      throw new InternalError("Task failed");
-    }else if(task.status === "success"){
-      return onResult();
-    }
-    for await (let [taskId] of it){
-      if(taskId === id) return onResult();
-    }
-    // @ts-ignore
-    return;
-  }
-
   async group(parent_id:number, work:GroupCallback) :Promise<number>
   {
     if(typeof work !== "function") throw new Error("Invalid payload : "+ (work as any).toString());
@@ -220,6 +201,10 @@ export class TaskListener extends EventEmitter{
     await this.db.run(`INSERT INTO tasks_relations(source, target) VALUES($1, $2)`, [source, target]);
   }
 
+  /**
+   * Create a wrapper context around task creation functions
+   * To set parent and after relations automatically from context
+   */
   makeTaskProxy(parent_id: number): TaskContextHandlers{
     return {
       create: this.createChild.bind(this, parent_id),
