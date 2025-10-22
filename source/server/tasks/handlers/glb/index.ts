@@ -1,13 +1,9 @@
-import fs from 'node:fs/promises';
+
 import { TaskHandlerParams } from "../../types.js";
 
-import { NodeIO } from '@gltf-transform/core';
-import { KHRDracoMeshCompression } from '@gltf-transform/extensions';
-import draco3d from 'draco3dgltf';
-import { MeshoptDecoder } from 'meshoptimizer';
 
 import { inspectGlb } from './inspect.js';
-import { transformGlb, TransformGlbParams } from './transform.js';
+import { transformGlb } from './transform.js';
 import { TDerivativeQuality } from '../../../utils/schema/model.js';
 import path from 'node:path';
 import { run } from '../../command.js';
@@ -16,15 +12,6 @@ import { run } from '../../command.js';
 interface ParseGlbParams{
   file: string;
 }
-
-
-const io = new NodeIO()
-  .registerExtensions([KHRDracoMeshCompression])
-  .registerDependencies({
-    'draco3d.decoder': await draco3d.createDecoderModule(),
-    'meshopt.decoder': MeshoptDecoder,
-  });
-
 
 
 export async function parseGlbTask({task: {data: {file}}}:TaskHandlerParams<ParseGlbParams>){

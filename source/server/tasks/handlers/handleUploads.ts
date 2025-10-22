@@ -14,6 +14,7 @@ interface UploadFileParams{
   files: {
     path: string,
     name: string,
+    type: string,
   }[],
   optimize: boolean,
   scene_name: string,

@@ -62,7 +62,7 @@ export class TaskListener extends EventEmitter{
     if(this.#events!.indexOf(status as any) === -1) return debug(`Received unwanted notification event : ${status}`);
 
     debug(`Notification for #${payload}: ${status}`);
-    this.emit("update", task_id)
+    this.emit("update", task_id, status);
   }
 
 

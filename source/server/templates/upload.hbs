@@ -2,7 +2,7 @@
 
 <upload-form>
   <form class="form-control" aria-labelledby="upload-form-title">
-    <section class="container">
+    <section class="container" style="margin: 1rem  0;max-width: 100%">
       <h3 id="upload-form-title">{{i18n "titles.createOrUpdateScene"}}                  
         {{#> popover id="upload-tooltip" type="button" }}{{i18n "tooltips.upload"}}{{/popover}}
         </h3>
@@ -40,3 +40,12 @@
     </section>
   </form>
 </upload-form>
+
+
+{{#if tasks.length}}
+<section>
+  <h3>{{i18n "titles.tasks" }}</h3>
+  {{> tasks/list tasks=tasks }}
+</section>
+
+{{/if}}
