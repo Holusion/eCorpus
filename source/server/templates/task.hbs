@@ -1,0 +1,70 @@
+
+<h1>{{scene}}</h1>
+
+<div class="main-grid">
+  <div class="grid-header">
+    {{#if task.author}}
+      <span style="text-align: right; display: block;">from <span style="color: var(--color-primary-light)">{{ task.author }}</span></span>
+    {{/if}}
+  </div>
+  <div class="grid-toolbar">
+
+  <section class="section-column task-header">
+    <h3>
+      {{#if tree.children.length }}
+        Group
+      {{else}}
+        Task
+      {{/if}}
+      status:
+    </h3>
+    <span class="task-status status-{{tree.groupStatus}}">{{tree.groupStatus}}</span>
+    {{#if task.parent }}
+      <h3>Parent: <a href="{{ task.parent }}">#{{ task.parent }}</a></h3>
+    {{/if}}
+    
+    {{#if tree.children.length}}
+      <div class="col">
+        <h2>Children: </h2>
+        <div class="task-children task-root-tree">
+          {{~#each tree.children}}
+              {{> tasks/summary }}
+          {{/each ~}}
+        </div>
+
+      </div>
+    {{/if}}
+  </section>
+
+  </div>
+  <div class="grid-content">
+    <section class="task-summary" id="task-{{ task.task_id }}">
+      <h2 class="task-title">
+        <a href="{{task.task_id}}">
+          {{ task.type }}
+        </a>
+        <span>#{{ task.task_id }}</span>
+      </h2>
+
+      {{#each logs}}
+        <div id="log-{{ id }}" class="log-line">
+          <span class="log-time">{{dateString timestamp}}</span>
+          <span class="log-severity severity-{{ severity }}">{{ severity }}</span>
+          <span class="log-message">{{ message }}</span>
+        </div>
+      {{/each}}
+      {{#if output}}
+      <div>
+        <h3>Output</h3>
+        <pre>{{output}}</pre>
+      </div>
+      {{/if}}
+        {{#with tree }}
+      <div class="task-status-root">
+        {{> tasks/status }}
+      </div>
+      {{/with}}
+      
+    </section>
+  </div>
+</div>
