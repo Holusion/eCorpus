@@ -1,0 +1,15 @@
+
+<div class="task-summary{{#if children.length}} task-group{{/if}}" id="task-{{ task_id }}" data-after="{{after}}">
+  <span class="task-title">
+    <a href="{{task_id}}">
+      {{ type }}
+    </a>
+    <span class="task-status status-{{ status }}" style="align-self:flex-end; margin-top:.5rem">#{{ task_id }}</span>
+  </span>
+  <div class="task-children">
+    {{~#each children }}
+        {{> tasks/summary }}
+    {{/each ~}}
+  </div>
+
+</div>

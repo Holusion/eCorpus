@@ -102,7 +102,8 @@ FROM  (
     t.type AS type,
     t.status AS status,
     t.ctime AS ctime,
-    (SELECT array_agg(source)::bigint[] FROM tasks_relations WHERE target = t.task_id) as after,
+    (SELECT json_agg(source) FROM tasks_relations WHERE target = t.task_id) as after,
+    t.output AS output,
     COALESCE(task_tree(t.task_id), '[]'::jsonb) AS children
   FROM   tasks t
   WHERE  t.parent = _task_id

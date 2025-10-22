@@ -1,22 +1,15 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical, isMemberOrManage, isManage, isEmbed } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
-import path from "path";
 import { Scene } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { locales } from "../../utils/templates.js";
 import { BadRequestError } from "../../utils/errors.js";
+import { mapScene } from "./scene.js";
 
 
-
-function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
-  if(thumb){
-    thumb = new URL(path.join("/scenes/", encodeURIComponent(name), encodeURIComponent(thumb)), getHost(req)).toString();
-  }
-  return {thumb, name, ...s};
-}
 
 const routes = Router();
 /**
@@ -304,183 +297,9 @@ routes.get("/user/archives", wrap(async (req, res)=>{
 
 
 
-routes.use("/admin", isManage);
-routes.get("/admin", (req, res)=>{
-  res.render("admin/home", {
-    layout: "admin",
-    title: "eCorpus Administration",
-  });
-});
+routes.use("/admin", (await import("./admin.js")).default);
 
-routes.get("/admin/archives", isAdministrator, wrap(async (req, res)=>{
-  const vfs = getVfs(req);
-  const user = getUser(req);
-  let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
-  res.render("admin/archives", {
-    layout: "admin",
-    title: "eCorpus Administration: Archived scenes",
-    scenes,
-  });
-}));
-
-routes.get("/admin/users", wrap(async (req, res)=>{
-  let users = await getUserManager(req).getUsers();
-  res.render("admin/users", {
-    layout: "admin",
-    title: "eCorpus Administration: Users list",
-    start: 0,
-    end: 0 + users.length,
-    total: users.length,
-    users,
-  });
-}));
-
-routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
-  let groups = await getUserManager(req).getGroups();
-  res.render("admin/groups", {
-    layout: "admin",
-    title: "eCorpus Administration: Groups",
-    start: 0,
-    end: 0 + groups.length,
-    total: groups.length,
-    groups,
-  });
-}));
-
-routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
-  const stats = await getVfs(req).getStats();
-  res.render("admin/stats", {
-    layout: "admin",
-    title: "eCorpus Administration: Instance Statistics",
-    stats,
-  });
-}));
-
-//Ensure no unauthorized access
-//Additionally, sets res.locals.access, required for the "scene" template
-routes.use("/scenes/:scene", canRead);
-
-routes.get("/scenes/:scene", wrap(async (req, res)=>{
-  const requester = getUser(req);
-  const vfs = getVfs(req);
-  const um = getUserManager(req);
-  const {scene:scene_name} = req.params;
-  let scene = mapScene(req, await vfs.getScene(scene_name, requester? requester.uid: undefined));
-
-  let [permissions, meta, serverTags] = await Promise.all([
-    um.getPermissions(scene.id),
-    vfs.getSceneMeta(scene_name),
-    vfs.getTags(),
-  ]);
-
-  const groupPermissions = permissions.filter((permission)=>("groupName" in permission));
-  const userPermissions = permissions.filter((permission)=>("username" in permission));
-  
-  const tagSuggestions = serverTags.filter(t=>{
-    let res = scene.tags.indexOf(t.name) === -1;
-    return res;
-  }).map(t=>t.name);
-
-  let displayedTitle = meta.primary_title;
-  let displayedIntro = meta.primary_intro;
-  const language = getSession(req)?.lang;
-  if (language !== undefined){
-      if(meta.titles && language.toUpperCase() in meta.titles){
-        displayedTitle = meta.titles[language.toUpperCase()];
-      }
-      if(meta.intros && language in meta.intros){
-        displayedIntro = meta.intros[language.toUpperCase()];
-      }
-  }
-
-  res.render("scene", {
-    title: `eCorpus: ${scene.name}`,
-    displayedTitle,
-    displayedIntro,
-    scene,
-    meta,
-    groupPermissions,
-    userPermissions,
-    tagSuggestions,
-  });
-}));
-
-routes.get("/scenes/:scene/view", (req, res)=>{
-  let {scene} = req.params;
-  let {lang, tour} = req.query;
-  let host = getHost(req);
-  let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-  let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-  
-  let script = undefined;
-  if(tour && !Number.isNaN(parseInt(tour as any))){
-    script = `
-      const v = document.querySelector("voyager-explorer");
-      v?.on("model-load",()=>{
-        v?.toggleTours();
-        v?.setTourStep(${parseInt(tour as any)}, 0, true);
-      })
-    `;
-  }
-
-
-  res.render("explorer", {
-    title: `${scene}: Explorer`,
-    layout: "viewer",
-    scene,
-    thumb: thumb.toString(),
-    referrer: referrer.toString(),
-    script
-  });
-});
-
-
-routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
-  let {scene} = req.params;
-  let {mode="Edit"} = req.query;
-  let host = getHost(req);
-  let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-  let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-
-  res.render("story", {
-    title: `${scene}: Story Editor`,
-    layout: "viewer",
-    scene,
-    thumb: thumb.toString(),
-    referrer: referrer.toString(),
-    mode,
-  });
-});
-
-routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
-  let vfs = getVfs(req);
-  //scene_name is actually already validated through canAdmin
-  let {scene:scene_name} = req.params;
-  let scene = await vfs.getScene(scene_name);
-  
-  res.render("history", {
-    title: `eCorpus: History of ${scene_name}`,
-    name: scene_name,
-    canAdmin: res.locals.access === "admin",
-  });
-}))
-
-routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
-  let vfs = getVfs(req);
-  //scene_name is actually already validated through canAdmin
-  let {scene:scene_name, id} = req.params;
-  let scene = await vfs.getScene(scene_name);
-  let thumb = new URL(`/scenes/${encodeURIComponent(scene_name)}/scene-image-thumb.jpg`, getHost(req));
-  
-  res.render("explorer", {
-    title: `eCorpus: History of ${scene_name}`,
-    layout: "viewer",
-    scene: scene_name,
-    thumb: thumb.toString(),
-    referrer: `/ui/scenes/${scene.name}/history`,
-    scenePath: `/history/${encodeURIComponent(scene.name)}/${encodeURIComponent(id)}/show/`,
-  })
-}));
+routes.use("/scenes",(await import("./scene.js")).default);
 
 routes.get("/standalone", (req, res)=>{
   let host = getHost(req);

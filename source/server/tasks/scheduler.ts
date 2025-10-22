@@ -28,11 +28,13 @@ export interface TasksTreeNode{
   groupStatus: TaskStatus;
   after: number[];
   ctime: Date;
+  output?:any;
   children: TasksTreeNode[];
 }
 
-type StoredTasksTreeNode = Omit<TasksTreeNode, "ctime"|"children"|"groupStatus">&{
+type StoredTasksTreeNode = Omit<TasksTreeNode, "ctime"|"children"|"groupStatus"|"after">&{
   ctime: string|Date;
+  after?:number[];
   children: StoredTasksTreeNode[];
 };
 
@@ -55,6 +57,7 @@ function parseNodes(n:StoredTasksTreeNode|RootTasksTreeNode<StoredTasksTreeNode>
   let groupStatus = ETaskStatus[statusCode] as TaskStatus;
   return {
     ...n, 
+    after: n.after??[],
     ctime: new Date(n.ctime),
     groupStatus,
     children
@@ -80,7 +83,8 @@ export class TaskScheduler extends TaskListener{
     t.status as status,
     t.ctime as ctime,
     users.username as author,
-    (SELECT array_agg(source)::bigint[] FROM tasks_relations WHERE target = t.task_id) as after,
+    t.output as output,
+    (SELECT json_agg(source) FROM tasks_relations WHERE target = t.task_id) as after,
     COALESCE(task_tree(t.task_id), '[]'::jsonb) as children
   `
 
@@ -111,10 +115,11 @@ export class TaskScheduler extends TaskListener{
   }
 
   /**
-   * Gets a list of task children
+   * Given a task ID, return its task tree
+   * Tree has the same shape as what would be returned by {@link getTasks()}
    */
   async getTaskTree(id: number){
-     return (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
+     let tasks = (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
       SELECT
         ${TaskScheduler._fragTaskTree}
       FROM
@@ -122,7 +127,41 @@ export class TaskScheduler extends TaskListener{
         INNER JOIN scenes ON fk_scene_id = scene_id
         INNER JOIN users ON fk_user_id = user_id
       WHERE task_id = $1
-    `, [id])).map<RootTasksTreeNode<TasksTreeNode>>(parseNodes)[0];
+    `, [id]));
+    if(tasks.length ==0) throw new NotFoundError(`No task found with id ${id}`);
+    if( 1 < tasks.length) throw new InternalError(`getTaskTree somehow returned more than one task matching ${id}`);
+    return tasks.map<RootTasksTreeNode<TasksTreeNode>>(parseNodes)[0];
+  }
+
+  /**
+   * Given a task ID, walk back to the root (no parent) task, then return its task tree
+   * Tree has the same shape as what would be returned by {@link getTasks()}
+   */
+  async getRootTree(id: number){
+     let tasks = (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
+      WITH RECURSIVE cte_parent_task(id, parent) AS (
+        SELECT task_id as id, parent FROM tasks WHERE task_id = $1
+        UNION ALL
+          SELECT tasks.task_id as id, tasks.parent as parent
+          FROM cte_parent_task INNER JOIN tasks ON cte_parent_task.parent = tasks.task_id
+      ),
+      cte_root_task AS (
+        SELECT id
+        FROM cte_parent_task
+        WHERE  cte_parent_task.parent IS NULL
+      )
+      SELECT
+        ${TaskScheduler._fragTaskTree}
+      FROM
+        cte_root_task
+        INNER JOIN tasks AS t ON id = t.task_id
+        INNER JOIN scenes ON fk_scene_id = scene_id
+        INNER JOIN users ON fk_user_id = user_id
+     
+    `, [id]));
+    if(tasks.length ==0) throw new NotFoundError(`No task found with id ${id}`);
+    if( 1 < tasks.length) throw new InternalError(`getTaskTree somehow returned more than one task matching ${id}`);
+    return tasks.map<RootTasksTreeNode<TasksTreeNode>>(parseNodes)[0];
   }
 
 

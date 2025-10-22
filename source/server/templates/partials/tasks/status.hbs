@@ -1,0 +1,17 @@
+<div class="task-status-group">
+  {{#if requirements.length }}
+    <span class="task-requirements">
+      {{#each requirements}}
+        <span class="task-requirement">
+          {{> tasks/status }}
+        </span>
+      {{/each}}
+    </span>
+  {{/if }}
+  <span class="task-status status-{{ status }}" title="{{ type }}">
+    <a href="{{ task_id }}">
+      # {{ task_id }}<span class="lg-only">: {{status}}</span>
+    </a>
+  </span> 
+
+</div>
