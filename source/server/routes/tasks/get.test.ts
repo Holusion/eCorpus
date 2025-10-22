@@ -9,7 +9,6 @@ describe("formatTaskTree()", function(){
       task_id: 0,
       type: "extractZip",
       status: "pending",
-      ctime: new Date('2025-10-13T13:30:47.105Z'),
       children: []
     })).to.deep.equal(["├─ #0 extractZip (pending)"]);
   });
@@ -18,25 +17,21 @@ describe("formatTaskTree()", function(){
       task_id: 0,
       type: "extractZip",
       status: "pending",
-      ctime: new Date('2025-10-13T13:30:47.105Z'),
       children: [
         {
           task_id: 1,
           type: "delayTask",
           status: "success",
-          ctime: new Date('2025-10-13T13:30:47.105Z'),
           children: []
         },{
           task_id: 2,
           type: "delayTask",
           status: "success",
-          ctime: new Date('2025-10-13T13:30:47.105Z'),
           children: [
             {
               task_id: 3,
               type: "delayTask",
               status: "error",
-              ctime: new Date('2025-10-13T13:30:47.105Z'),
               children: []
             }
           ]

@@ -7,6 +7,14 @@ import type * as tasks from "./handlers/index.js";
 export type TaskData =Record<string, any>|void;
 
 export type TaskStatus = 'initializing'|'pending'|'aborting'|'running'|'success'|'error';
+export enum ETaskStatus{
+  'aborting' = -2,
+  'error' = -1,
+  'initializing',
+  'running',
+  'pending',
+  'success',
+}
 
 export interface TaskDefinition<T extends TaskData = TaskData>{
   fk_scene_id: number;

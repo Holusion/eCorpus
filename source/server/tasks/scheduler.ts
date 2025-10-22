@@ -1,24 +1,64 @@
 
+import { debuglog } from "node:util";
+import { InternalError, NotFoundError } from "../utils/errors.js";
 import { TaskListener, TaskListenerParams } from "./listener.js";
-import { TaskStatus, TaskType } from "./types.js";
+import { ETaskStatus, TaskStatus, TaskType } from "./types.js";
+import { on } from "node:events";
+
+
+const debug = debuglog("tasks:scheduler");
 
 interface ListTasksParams{
   limit?: number;
   offset?: number;
+  /** Filter by task status */
+  status?: TaskStatus;
+  /** only return tasks for this scene */
+  scene_id?: number;
+  /** only return tasks created by this user */
+  user_id?: number; 
 }
+
+
 
 export interface TasksTreeNode{
   task_id: number;
   type: TaskType;
   status: TaskStatus;
+  groupStatus: TaskStatus;
+  after: number[];
   ctime: Date;
   children: TasksTreeNode[];
 }
 
-export interface SceneTasksTree {
-  scene_id: number;
+type StoredTasksTreeNode = Omit<TasksTreeNode, "ctime"|"children"|"groupStatus">&{
+  ctime: string|Date;
+  children: StoredTasksTreeNode[];
+};
+
+export interface RootTasksTreeNode<T = TasksTreeNode> extends Omit<TasksTreeNode,"children"> {
+  author: string;
   scene_name: string;
-  tasks:TasksTreeNode[];
+  scene_id: string;
+  children: T[];
+}
+
+/**
+ * Maps nodes as returned from the database to expected structures
+ * @param n 
+ */
+function parseNodes(n:StoredTasksTreeNode):TasksTreeNode
+function parseNodes(n:RootTasksTreeNode<StoredTasksTreeNode>):RootTasksTreeNode<TasksTreeNode>
+function parseNodes(n:StoredTasksTreeNode|RootTasksTreeNode<StoredTasksTreeNode>){
+  const children = n.children.map(n=>parseNodes(n));
+  let statusCode = children.reduce((status, c)=> Math.min(status, ETaskStatus[c.groupStatus]),  ETaskStatus[n.status]);
+  let groupStatus = ETaskStatus[statusCode] as TaskStatus;
+  return {
+    ...n, 
+    ctime: new Date(n.ctime),
+    groupStatus,
+    children
+  } satisfies TasksTreeNode;
 }
 
 
@@ -32,163 +72,96 @@ export class TaskScheduler extends TaskListener{
     await super.start(["success", "error"]);
   }
 
-  async listAllTasks({offset = 0, limit = 25}: ListTasksParams ={}): Promise<SceneTasksTree[]>{
-     return await this.db.all<SceneTasksTree>(`
+  static _fragTaskTree = `
+    t.task_id as task_id,
+    scenes.scene_id as scene_id,
+    scenes.scene_name as scene_name,
+    t.type as type,
+    t.status as status,
+    t.ctime as ctime,
+    users.username as author,
+    (SELECT array_agg(source)::bigint[] FROM tasks_relations WHERE target = t.task_id) as after,
+    COALESCE(task_tree(t.task_id), '[]'::jsonb) as children
+  `
+
+  async getTasks({user_id, scene_id, status, offset = 0, limit = 25}: ListTasksParams ={}): Promise<RootTasksTreeNode[]>{
+    let args :any[] = [offset, limit];
+
+     return (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
       SELECT
-        scene_id,
-        scene_name,
-        jsonb_agg(jsonb_build_object(
-          'task_id', t.task_id,
-          'type', t.type,
-          'status', t.status,
-          'ctime', t.ctime,
-          'children', task_tree(t.task_id)
-        )) AS tasks
+        ${TaskScheduler._fragTaskTree}
       FROM
         tasks AS t
         INNER JOIN scenes ON fk_scene_id = scene_id
-       WHERE parent IS NULL 
-      GROUP BY scene_name, scene_id
+        INNER JOIN users ON fk_user_id = user_id
+      WHERE parent IS NULL 
+        ${typeof user_id === "number"? 
+          `AND fk_user_id = $${args.push(user_id)}`:""
+        }
+        ${scene_id? 
+          `AND fk_scene_id = $${args.push(scene_id)}`:""
+        }
+        ${status? 
+          `AND t.status = $${args.push(status)}`:""
+        }
+      ORDER BY ctime DESC, task_id DESC
       OFFSET $1
       LIMIT $2
-    `, [offset, limit]);
+    `, args)).map<RootTasksTreeNode<TasksTreeNode>>(parseNodes);
   }
 
-  async listOwnTasks({user_id, offset = 0, limit = 25}: ListTasksParams&{user_id: number}): Promise<SceneTasksTree[]>{
-    return await this.db.all<SceneTasksTree>(`
+  /**
+   * Gets a list of task children
+   */
+  async getTaskTree(id: number){
+     return (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
       SELECT
-        scene_id,
-        scene_name, 
-        jsonb_agg(jsonb_build_object(
-          'task_id', t.task_id,
-          'type', t.type,
-          'status', t.status,
-          'ctime', t.ctime,
-          'children', task_tree(t.task_id)
-        )) AS tasks
+        ${TaskScheduler._fragTaskTree}
       FROM
         tasks AS t
         INNER JOIN scenes ON fk_scene_id = scene_id
-       WHERE parent IS NULL 
-          AND fk_user_id = $1
-      GROUP BY scene_name, scene_id
-      OFFSET $2
-      LIMIT $3
-    `, [user_id, offset, limit]);
+        INNER JOIN users ON fk_user_id = user_id
+      WHERE task_id = $1
+    `, [id])).map<RootTasksTreeNode<TasksTreeNode>>(parseNodes)[0];
   }
 
-  async listSceneTasks({scene_id, offset, limit}: ListTasksParams&{scene_id: number}): Promise<SceneTasksTree[]>{
-    return await this.db.all<SceneTasksTree>(`
-      SELECT
-        scene_id,
-        scene_name, 
-        jsonb_agg(jsonb_build_object(
-          'task_id', t.task_id,
-          'type', t.type,
-          'status', t.status,
-          'ctime', t.ctime,
-          'children', task_tree(t.task_id)
-        )) AS tasks
-      FROM
-        tasks AS t
-        INNER JOIN scenes ON fk_scene_id = scene_id
-       WHERE parent IS NULL 
-          AND fk_scene_id = $1
-      GROUP BY scene_name, scene_id
-      OFFSET $2
-      LIMIT $3
-    `, [scene_id, offset, limit]);
+
+  /**
+   * @fixme recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
+   *  We should probably rely on waiting for every child of a task being finished instead?
+   */
+  async wait(id: number) :Promise<any>{
+
+    const onResult = async ()=>{
+      const t = await this.getTask(id);
+      if(t.status == "error"){
+        throw await this.resolveTaskError(id);
+      }else if(t.status === "success"){
+        if(/^\d+$/.test(t.output)){
+          debug("recurse over returned task definition #%d", t.output);
+          return this.wait(parseInt(t.output));
+        }else{
+          debug("Return task output for #%d:", id, t.output);
+          return t.output;
+        }
+      }else{
+        throw new Error(`Task ${id} is not finished (${t.status})`);
+      }
+    }
+    debug("wait for task #%d", id);
+    let it = on(this, "update");
+    let task = await this.db.get<{status: TaskStatus, output?:any}> (`SELECT status, output FROM tasks WHERE task_id = $1`, [id]);
+    if(!task){
+      throw new NotFoundError(`No task found with id ${id}`);
+    }
+    if(task.status === "error" || task.status === "success"){
+      return await onResult();
+    }
+    for await (let [taskId] of it){
+      if(taskId === id) return onResult();
+    }
+    // @ts-ignore
+    return;
   }
+
 }
-
-/*
-      WITH RECURSIVE cte_requester AS (
-        SELECT 
-        user_id,
-        level,
-        (
-          SELECT array_agg(fk_group_id) AS ids
-          FROM groups_membership
-          WHERE fk_user_id = user_id
-        ) AS groups
-        FROM users
-        WHERE user_id = '216199665534191'::bigint
-      ),
-      cte_tasks_tree(fk_scene_id,task_id, type, parent) AS (
-        SELECT -- select root tasks
-          fk_scene_id,
-          task_id,
-          type,
-          parent
-        FROM 
-          tasks 
-          LEFT JOIN users_acl USING(fk_scene_id)
-          LEFT JOIN groups_acl USING(fk_scene_id)
-          CROSS JOIN cte_requester
-          INNER JOIN scenes ON tasks.fk_scene_id = scenes.scene_id
-        WHERE parent IS NULL 
-          AND (
-            users_acl.fk_user_id = cte_requester.user_id
-          )
-        UNION ALL (
-          SELECT 
-            tasks.fk_scene_id,
-            tasks.task_id,
-            tasks.type,
-            tasks.parent
-          FROM 
-            tasks,
-            cte_tasks_tree
-          WHERE
-            tasks.parent = cte_tasks_tree.task_id
-        )
-      )
-      SELECT
-        scene_name, 
-        cte_tasks_tree.* FROM cte_tasks_tree INNER JOIN scenes ON fk_scene_id = scene_id;
-      ;
-*/
-
-
-
-
-/*
-      WITH cte_requester AS (
-        SELECT 
-        user_id,
-        level,
-        (
-          SELECT array_agg(fk_group_id) AS ids
-          FROM groups_membership
-          WHERE fk_user_id = user_id
-        ) AS groups
-        FROM users
-        WHERE user_id = $1
-      )
-      SELECT 
-        scenes.scene_id AS scene_id,
-        scenes.scene_name AS scene_name,
-        array_agg(json_build_object(
-          'id', tasks.task_id,
-          'type', tasks.type,
-          'status', tasks.status,
-          'ctime', tasks.ctime
-        )) AS tasks
-      FROM
-        tasks
-        LEFT JOIN users_acl USING(fk_scene_id)
-        LEFT JOIN groups_acl USING(fk_scene_id)
-        CROSS JOIN cte_requester
-        INNER JOIN scenes ON tasks.fk_scene_id = scenes.scene_id
-      WHERE 
-        tasks.parent IS NULL
-        AND (
-          cte_requester.level = 3
-          OR users_acl.fk_user_id = cte_requester.user_id
-          OR groups_acl.fk_group_id = ANY(cte_requester.groups)
-        )
-      GROUP BY scenes.scene_id, scenes.scene_name
-      ORDER BY tasks.ctime desc
-      OFFSET $2
-      LIMIT $3
-*/
