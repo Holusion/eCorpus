@@ -11,6 +11,7 @@ import { randomBytes } from "node:crypto";
 import Vfs from "../vfs/index.js";
 import UserManager from "../auth/UserManager.js";
 import { TaskStatus } from "./types.js";
+import { NotFoundError } from "../utils/errors.js";
 
 // So it's mostly integration tests
 describe("TaskScheduler", function(){
@@ -117,6 +118,7 @@ describe("TaskScheduler", function(){
         scene_name,
         task_id: parent,
         type: "delayTask",
+        after: [],
         ctime: now,
         status: "pending",
         groupStatus: "pending",
@@ -128,7 +130,8 @@ describe("TaskScheduler", function(){
             status: 'pending',
             groupStatus: "pending",
             task_id: t1,
-            children: []
+            children: [],
+            after: [],
           },
           {
             type: 'delayTask',
@@ -136,10 +139,20 @@ describe("TaskScheduler", function(){
             status: 'pending',
             groupStatus: "pending",
             task_id: t2,
-            children: []
+            children: [],
+            after: [],
           }
         ]
       }])
+    });
+
+    it("get tasks relations", async function(){
+      let t3 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}, after: [t2]});
+      const alltasks = await scheduler.getTasks();
+      expect(alltasks).to.have.length(1);
+      expect(alltasks[0].children).to.have.length(3);
+      expect(alltasks[0].children[2]).to.have.property("task_id", t3);
+      expect(alltasks[0].children[2]).to.have.property("after").to.deep.equal( [t2]);
     });
 
     ([
@@ -244,8 +257,58 @@ describe("TaskScheduler", function(){
       throw new Error("Unsupported");
     });
 
-    it("throws when task dependencies errors out", async function(){
-
+    it.skip("throws when task dependencies errors out", async function(){
+      throw new Error("Unimplemented");
     });
   });
+
+  describe("getTaskTree()", function(){
+
+
+    it("get task relations", async function(){
+      let parent = await scheduler.create(scene_id, user_id, {type: "delayTask", data: {time: 0}});
+      let t1 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}, after: [t1]});
+      let task = await scheduler.getTaskTree(t2);
+      expect(task).to.have.property("task_id", t2);
+      expect(task.children).to.have.length(0);
+      expect(task).to.have.property("after").to.deep.equal( [t1]);
+    });
+
+    it("get nested task relations", async function(){
+      let root = await scheduler.create(scene_id, user_id, {type: "delayTask", data: {time: 0}});
+      let parent = await scheduler.createChild(root, {type: "delayTask", data: {time: 0}});
+      let t1 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(parent, {type: "delayTask", data: {time: 0}, after: [t1]});
+      let task = await scheduler.getTaskTree(root);
+      expect(task.children).to.have.length(1);
+      expect(task.children[0].children).to.have.length(2);
+      expect(task.children[0].children[1]).to.have.property("task_id", t2);
+      expect(task.children[0].children[1]).to.have.property("after").to.deep.equal( [t1]);
+    });
+
+    it("throws on invalid id", async function(){
+      await expect(scheduler.getTaskTree(-1)).to.be.rejectedWith(NotFoundError);
+    });
+  })
+
+  describe("getRootTree()", function(){
+
+    it("recursively walks to the root task", async function(){
+      let root = await scheduler.create(scene_id, user_id, {type: "delayTask", data: {time: 0}});
+      let t1 = await scheduler.createChild(root, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(t1, {type: "delayTask", data: {time: 0}});
+      const ref = await scheduler.getRootTree(root);
+      expect(await scheduler.getRootTree(t1)).to.deep.equal(ref);
+      expect(await scheduler.getRootTree(t2)).to.deep.equal(ref);
+    })
+
+    it("has same shape as getTaskTree", async function(){
+      let root = await scheduler.create(scene_id, user_id, {type: "delayTask", data: {time: 0}});
+      let t1 = await scheduler.createChild(root, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(t1, {type: "delayTask", data: {time: 0}});
+      const ref = await scheduler.getTaskTree(root);
+      expect(await scheduler.getRootTree(root)).to.deep.equal(ref);
+    });
+  })
 });
