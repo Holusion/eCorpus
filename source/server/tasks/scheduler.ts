@@ -11,8 +11,16 @@ const debug = debuglog("tasks:scheduler");
 interface ListTasksParams{
   limit?: number;
   offset?: number;
-  /** Filter by task status */
+  /**
+   * Filter by task status
+   * This will probably never return the expected results due to nested tasks having other status than the root task
+   * */
   status?: TaskStatus;
+
+  /**
+   * Filter tasks created after this date
+   */
+  after?:Date;
   /** only return tasks for this scene */
   scene_id?: number;
   /** only return tasks created by this user */
@@ -88,7 +96,7 @@ export class TaskScheduler extends TaskListener{
     COALESCE(task_tree(t.task_id), '[]'::jsonb) as children
   `
 
-  async getTasks({user_id, scene_id, status, offset = 0, limit = 25}: ListTasksParams ={}): Promise<RootTasksTreeNode[]>{
+  async getTasks({user_id, scene_id, status, after, offset = 0, limit = 25}: ListTasksParams ={}): Promise<RootTasksTreeNode[]>{
     let args :any[] = [offset, limit];
 
      return (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
@@ -107,6 +115,9 @@ export class TaskScheduler extends TaskListener{
         }
         ${status? 
           `AND t.status = $${args.push(status)}`:""
+        }
+        ${after?
+          `AND  $${args.push(after)} < t.ctime`:""
         }
       ORDER BY ctime DESC, task_id DESC
       OFFSET $1
@@ -201,6 +212,16 @@ export class TaskScheduler extends TaskListener{
     }
     // @ts-ignore
     return;
+  }
+
+  /**
+   * Deletes a task from the database
+   * Deletion will cascade to any dependents.
+   */
+  async deleteTask(id: number): Promise<boolean>{
+    let r = await this.db.run(`DELETE FROM tasks WHERE task_id = $1`, [id]);
+    if(r.changes !== 1) return false;
+    return true; 
   }
 
 }

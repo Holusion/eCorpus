@@ -11,7 +11,7 @@ CREATE TABLE tasks (
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- task data
   type TEXT NOT NULL,
-  parent BIGINT DEFAULT NULL REFERENCES tasks(task_id),
+  parent BIGINT DEFAULT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
   data JSONB NOT NULL DEFAULT '{}'::jsonb,
   output JSON,
   -- task state management

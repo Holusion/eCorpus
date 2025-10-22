@@ -58,6 +58,7 @@ export default async function postScene(req :Request, res :Response){
         files: [{
           path: tmpfile,
           name: `models/${scene}.glb`,
+          type: filetype,
         }],
         scene_name: scene,
         user_id: user_id!,
