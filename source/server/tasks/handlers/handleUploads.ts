@@ -43,13 +43,24 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
       if(extname === "glb"){
         logger.debug("Found a glb file: "+file.name);
         let model_id = uid();
-
+        /** @fixme export raw glb file as Highest quality? */
         for(let quality of qualities){
           logger.debug("Create processing tasks for %s in quality %s", file.name, quality);
           const filename = `${basename}_${quality.toLowerCase()}.glb`;
-          let optimizeTask = (quality == "High"  && optimize)? null: await tasks.create({type: "optimizeGlb", data: {file: file.path, preset: quality}});
 
-          let parse = await tasks.create({type: "parseGlbTask", data: {file: optimizeTask?"$[0]":file.path}, after: optimizeTask?[optimizeTask]: null});
+          const do_optimize = (optimize || quality != "High");
+          let optimizeTask:number|null = null;
+          if(do_optimize){
+            logger.log(`Optimize ${file.name} for quality ${quality}`);
+            const resizeTask = await tasks.create({type: "bakeGlb", data: {file: file.path, preset: quality}});
+            optimizeTask = await tasks.create({type: "transformGlb", data: {file: "$[0]", preset: quality}, after:[
+              resizeTask
+            ]});
+          }else{
+            logger.debug("Model optimization is disabled");
+          }
+
+          let parse = await tasks.create({type: "inspectGlb", data: {file: optimizeTask?"$[0]":file.path}, after: optimizeTask?[ optimizeTask ]: null});
 
           let copy = await tasks.create({
             type: "copyFileTask",

@@ -3,7 +3,7 @@ import { dedup, flatten, getSceneVertexCount, join, meshopt, prune, resample, si
 
 import { toktx } from './toktx.js';
 
-import type {TaskLogger} from "../../types.js";
+import type {TaskHandlerParams, TaskLogger} from "../../types.js";
 
 import {io} from './io.js';
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
@@ -18,19 +18,39 @@ export interface TransformGlbParams{
 }
 
 
-function getPreset(quality: TDerivativeQuality): {scale: number, ratio: number, error: number} {
+function getPreset(quality: TDerivativeQuality): {ratio: number, error: number} {
   return {
-  "Thumb": {scale: 1/8, ratio: 0, error: 0.05},
-  "Low": {scale: 1/4, ratio: 1/4, error: 0},
-  "Medium": {scale: 1/2, ratio: 1/2, error: 0.001},
-  "High": {scale: 1, ratio: 1, error: 0.0001},
-  "Highest": {scale: 1, ratio: 1, error: 0},
-  "AR": {scale: 1/4, ratio: 0, error: 0.001},
+  "Thumb": {ratio: 0, error: 0.05},
+  "Low": {ratio: 1/4, error: 0},
+  "Medium": {ratio: 1/2, error: 0.001},
+  "High": {ratio: 1, error: 0.0001},
+  "Highest": {ratio: 1, error: 0},
+  "AR": {ratio: 0, error: 0.001},
   }[quality];
 }
 
 
-export async function transformGlb(inputFile: string, {logger, tmpdir, preset:presetName}:TransformGlbParams){
+interface OptimizeGlbParams{
+  file: string,
+  preset: TDerivativeQuality,
+}
+
+
+
+export async function transformGlb({task: {task_id, data:{file, preset}}, context:{ vfs, logger }}:TaskHandlerParams<OptimizeGlbParams>):Promise<string>{
+  //Takes a glb file as input, outputs an optimized file
+  //It's not yet clear if the output file's path is determined beforehand or generated as an output
+  let tmpdir = await vfs.createTaskWorkspace(task_id);
+
+  //Resize textures
+  return await processGlb(file, {
+    logger,
+    preset,
+    tmpdir
+  });
+};
+
+export async function processGlb(inputFile: string, {logger, tmpdir, preset:presetName}:TransformGlbParams){
   logger.debug("Open GLB file using gltf-transform", inputFile);
   const document = await io.read(inputFile); // → Document
 
@@ -51,12 +71,10 @@ export async function transformGlb(inputFile: string, {logger, tmpdir, preset:pr
    * Preset and heuristics
    */
   let preset = getPreset(presetName);
-  const maxDiffuseSize = getMaxDiffuseSize(document);
-  preset.scale =  preset.scale * getBaseTextureSizeMultiplier(maxDiffuseSize);
 
   const vertexCount = getSceneVertexCount(root.getDefaultScene()!, VertexCountMethod.UPLOAD);
   if(1000000 < vertexCount){
-    logger.debug("Allow more aggressive mesh decimation because vertex count is > 1M");
+    logger.warn("Allow more aggressive mesh decimation because vertex count is > 1M");
     preset.error = preset.error *2;
     preset.ratio = preset.ratio/2;
   }
@@ -90,14 +108,12 @@ export async function transformGlb(inputFile: string, {logger, tmpdir, preset:pr
   /// Textures
 
   await time("Compress ORM textures",document.transform(toktx({
-    scale: preset.scale,
     mode: "uastc",
     slots: /^(normal|occlusion|metallicRoughness)/,
     tmpdir,
   })));
 
   await time("Compress Color textures",document.transform(toktx({
-    scale: preset.scale,
     mode: "etc1s",
     slots: /^baseColor/,
     tmpdir,
@@ -107,8 +123,11 @@ export async function transformGlb(inputFile: string, {logger, tmpdir, preset:pr
 
 
   //Remove draco extension as it is now unused
-  let draco = root.listExtensionsUsed().find(e=> e.extensionName === 'KHR_draco_mesh_compression');
-  draco?.dispose();
+  let ext_draco = root.listExtensionsUsed().find(e=> e.extensionName === 'KHR_draco_mesh_compression');
+  ext_draco?.dispose();
+  //Remove webp extension as it is now unused
+  let ext_webp = root.listExtensionsUsed().find(e=> e.extensionName === 'EXT_texture_webp');
+  ext_webp?.dispose();
 
   logger.debug("Output file uses extensions:", root.listExtensionsUsed().map(e=>e.extensionName));
 

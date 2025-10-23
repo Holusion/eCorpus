@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import {getBounds, getPrimitiveVertexCount, VertexCountMethod} from '@gltf-transform/functions';
 import {io} from './io.js';
 import { Document, ImageUtils, PropertyType } from '@gltf-transform/core';
+import { TaskHandlerParams } from '../../types.js';
 
 
 export interface SceneDescription{
@@ -13,6 +14,18 @@ export interface SceneDescription{
   imageSize: number,
   numFaces: number,
   extensions: string[],
+}
+
+
+interface ParseGlbParams{
+  file: string;
+}
+
+
+export async function inspectGlb({task: {data: {file}}}:TaskHandlerParams<ParseGlbParams>){
+
+  const document = await io.read(file); // → Document
+  return inspectDocument(document);
 }
 
 
@@ -46,13 +59,6 @@ export function inspectDocument(document: Document): SceneDescription{
 
 }
 
-/**
- * See {@link https://github.com/donmccurdy/glTF-Transform/blob/main/packages/functions/src/inspect.ts }
- */
-export async function inspectGlb(file: string):Promise<SceneDescription>{
-  const document = await io.read(file); // → Document
-  return inspectDocument(document);
-}
 
 
 export function getMaxDiffuseSize(document: Document) :number{

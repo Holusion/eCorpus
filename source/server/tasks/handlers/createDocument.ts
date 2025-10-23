@@ -28,17 +28,19 @@ export interface CreateDocumentParams{
 }
 
 function isSceneDescription(meta: any): meta is SceneDescription{
+
   return meta && typeof meta === "object"
     && "name" in meta
     && meta.bounds && typeof meta.bounds === "object" 
     && Array.isArray(meta.bounds.min) && meta.bounds.min.length == 3 && meta.bounds.min.every((n:number)=>Number.isFinite(n))
     && Array.isArray(meta.bounds.max) && meta.bounds.max.length == 3  && meta.bounds.max.every((n:number)=>Number.isFinite(n))
     && Number.isInteger(meta.imageSize) && 0 <= meta.imageSize
-    && Number.isInteger(meta.numFaces) && 0 <= meta.numFaces
+    && Number.isInteger(meta.numFaces) && 0 <= meta.numFaces;
 }
 
 function isAssetDefinition(d: any): d is AssetDefinition{
   return typeof d === "object"
+    && d != null
     && typeof d.id === "string" 
     && typeof d.filename === "string"
     && ["Thumb", "Low", "Medium", "High", "Highest", "AR"].indexOf(d.quality) !== -1
