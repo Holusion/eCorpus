@@ -10,6 +10,13 @@ def fail(msg):
     print(msg, file=stderr)
     exit(1)
 
+def clean():
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete()
+    if len(bpy.data.objects) != 0:
+        print('Error deleting Blender scene objects', file=stderr)
+        exit(1)
+
 def file_name(filepath):
     return path.split(filepath)[1]
 
@@ -50,18 +57,26 @@ args = parser.parse_args(argv)
 if not (args.input and args.output):
     fail('Command line arguments not supplied or inappropriate')
 
+
+clean()
+
 try: 
-    bpy.ops.object.select_all(action='SELECT')
-    bpy.ops.object.delete()
-    if len(bpy.data.objects) != 0:
-        err_msg = 'Error deleting Blender scene objects'
-        exit(1)
     
     stdout = import_mesh(args.input)
     if len(bpy.data.objects) == 0:
         # likely invalid file error, not an easy way to capture this from Blender
         fail(stdout.replace("\n", "; "))
-            
+    
+
+    for obj in bpy.data.objects:
+      if type(obj.data) != bpy.types.Mesh:
+        continue
+      bpy.context.view_layer.objects.active = obj
+      mesh = obj.data
+      for f in mesh.polygons:
+          f.use_smooth = True
+      mesh.shade_smooth()
+
     # Disable backface culling
     for eachMat in bpy.data.materials:
         eachMat.use_backface_culling = args.backface

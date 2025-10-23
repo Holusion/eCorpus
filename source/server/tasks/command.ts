@@ -30,6 +30,33 @@ export async function run(cmd: string, args:string[], opts?: SpawnOptionsWithout
   }
 }
 
+interface RunCommandOpts extends SpawnOptionsWithoutStdio{
+  logger: TaskLogger;
+}
+/**
+ * Run a command with a {@link TaskLogger} instrumentation
+ */
+export async function taskRun(cmd: string, args: string[], {logger, ...opts}:RunCommandOpts):Promise<void>{
+  let child = spawn(cmd, args, opts);
+  
+  child.stdout.setEncoding("utf-8");
+  child.stdout.on("data", (chunk)=>logger.debug(chunk));
+  child.stderr.setEncoding("utf-8");
+  child.stderr.on("data", (chunk)=>logger.log(chunk));
+
+  try{
+    let [code, signal] = await once(child, "close");
+    if(typeof code !== "number"){
+      let e: any = new Error(`Command ${cmd} was interrupted by signal ${signal}`);
+      throw e;
+    }else if(code != 0){
+      throw new Error(`Command ${cmd} exitted with non-zero error code: ${code}`);
+    }
+  }finally{
+    child.stdout.removeAllListeners();
+    child.stderr.removeAllListeners();
+  }
+}
 
 export async function getKtxVersion(): Promise<string> {
 
