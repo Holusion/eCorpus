@@ -62,14 +62,16 @@
       </h2>
       
       
+      <div class="task-logs">
+        {{#each logs}}
+          <div id="log-{{ log_id }}" class="log-line">
+            <span class="log-time">{{dateString timestamp}}</span>
+            <span class="log-severity severity-{{ severity }}">{{ severity }}</span>
+            <pre class="log-message">{{ message }}</pre>
+          </div>
+        {{/each}}
 
-      {{#each logs}}
-        <div id="log-{{ id }}" class="log-line">
-          <span class="log-time">{{dateString timestamp}}</span>
-          <span class="log-severity severity-{{ severity }}">{{ severity }}</span>
-          <span class="log-message">{{ message }}</span>
-        </div>
-      {{/each}}
+      </div>
       {{#with tree }}
         <div class="task-status-root">
           {{> tasks/status }}

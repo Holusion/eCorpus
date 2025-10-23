@@ -5,6 +5,7 @@ import uid from "../../../utils/uid.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
 import { constants, writeFile } from "fs/promises";
 import { readMagicBytes } from "../../../utils/filetypes.js";
+import { qsToBool } from "../../../utils/query.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
@@ -25,7 +26,7 @@ export default async function postScene(req :Request, res :Response){
   let {scene} = req.params;
   let {language: languageQuery, optimize: optimizeQuery} = req.query;
   const language = typeof languageQuery === "string"?languageQuery.toUpperCase(): languageQuery;
-  const optimize = (typeof optimizeQuery === "string" && ["false", "0", "no"].indexOf(optimizeQuery) !== -1)?false: true;
+  const optimize = qsToBool(req.query.optimize, true);
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
@@ -36,8 +37,6 @@ export default async function postScene(req :Request, res :Response){
     throw new UnauthorizedError("Requires authenticated user");
   }
   
-
-
 
   
   let scene_id = await vfs.createScene(scene, user_id);

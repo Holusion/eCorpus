@@ -7,6 +7,7 @@ import Vfs from '../vfs/index.js';
 import UserManager from '../auth/UserManager.js';
 
 import * as tasks from "./handlers/index.js";
+import { Config } from '../utils/config.js';
 
 const debug = debuglog("tasks:processor");
 const debug_outputs = debuglog("tasks:outputs");
@@ -15,6 +16,7 @@ export interface TaskProcessorParams{
   client: Client;
   vfs: Vfs;
   userManager: UserManager;
+  config: Config;
 }
 
 export function mapShape(shape: any, outputs: any):any{
@@ -50,12 +52,12 @@ export class TaskProcessor extends TaskListener{
 
   #current_task:number|null = null;
   #control = new AbortController();
-  #context: Pick<TaskHandlerContext, "vfs"|"userManager">;
+  #context: Pick<TaskHandlerContext, "vfs"|"userManager"|"config">;
 
 
-  constructor({client, vfs, userManager}: TaskProcessorParams){
+  constructor({client, vfs, userManager, config}: TaskProcessorParams){
     super({client});
-    this.#context = {vfs, userManager};
+    this.#context = {vfs, userManager, config};
     this.on("update", (id, status)=>{
       if(status == "pending") this.onNewTask(id);
       else if(status == "aborting") this.onAbortTask(id);

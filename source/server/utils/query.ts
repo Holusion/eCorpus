@@ -11,11 +11,13 @@ type QsValue =  string | string[] | QueryString.ParsedQs | QueryString.ParsedQs[
  * @param v QueryString value as parsed by the express framework
  * @returns cast value
  */
-export function qsToBool(v:QsValue) :boolean|undefined{
+export function qsToBool(v:QsValue) :boolean|undefined
+export function qsToBool(v:QsValue, defaultValue:boolean) :boolean
+export function qsToBool(v:QsValue, defaultValue?:boolean) :boolean|undefined{
   if(Array.isArray(v)){
     v = v.pop();
   }
-  if(typeof v === "undefined") return undefined;
+  if(typeof v === "undefined") return defaultValue;
   if(typeof v === "object"){
     throw new BadRequestError(`Can't cast object value to boolean`);
   }

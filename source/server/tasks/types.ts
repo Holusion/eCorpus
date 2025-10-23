@@ -1,4 +1,5 @@
 import type UserManager from "../auth/UserManager.js";
+import { Config } from "../utils/config.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import type Vfs from "../vfs/index.js";
 
@@ -64,6 +65,7 @@ export interface TaskHandlerContext{
   tasks: TaskContextHandlers,
   logger: TaskLogger,
   signal: AbortSignal,
+  config: Config,
 };
 
 export type GroupCallback = (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>;

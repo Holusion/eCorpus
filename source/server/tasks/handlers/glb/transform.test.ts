@@ -6,7 +6,7 @@ import os from "os";
 
 import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
 import { ILogger } from "@gltf-transform/core";
-import { transformGlb } from "./transform.js";
+import { processGlb } from "./transform.js";
 import { TaskLogger } from "../../types.js";
 import { debuglog, format } from "util";
 
@@ -45,7 +45,7 @@ describe("transformGlb()", function(){
   models.forEach(m=>{
     const name = path.basename(m);
     it("optimize "+name, async function(){
-      let outputFile = await transformGlb(m, {
+      let outputFile = await processGlb(m, {
         tmpdir,
         logger,
         preset: "High"

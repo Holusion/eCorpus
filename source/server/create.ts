@@ -36,7 +36,7 @@ export default async function createService(config = defaultConfig) :Promise<Ser
   const client = new Client({connectionString: config.database_uri});
   await client.connect();
   
-  const taskProcessor = new TaskProcessor({client, vfs, userManager});
+  const taskProcessor = new TaskProcessor({client, vfs, userManager, config});
   const taskScheduler = new TaskScheduler({client});
 
   await Promise.all([

@@ -7,8 +7,6 @@ import {
 	type Texture,
 	TextureChannel,
 	type Transform,
-	uuid,
-	type vec2,
 } from '@gltf-transform/core';
 
 import { KHRTextureBasisu } from '@gltf-transform/extensions';
@@ -27,7 +25,6 @@ import {getKtxVersion, run} from "../../command.js";
 import { formatBytes } from '../../../utils/format.js';
 
 const NUM_CPUS = os.cpus().length || 1;
-const KTX_SOFTWARE_VERSION_MIN = '4.3.0';
 
 const { R, G, A } = TextureChannel;
 
@@ -49,7 +46,6 @@ interface GlobalOptions {
 	 * Pattern matching the material texture slot(s) to be compressed or converted.
 	 */
 	slots: RegExp;
-  scale: number;
   tmpdir: string;
 }
 
@@ -125,22 +121,26 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
       }
 
       //Resize
-      if(options.scale !== 1 || !srcSize.every(n=>isMultipleOfFour(n))){
+      if(!srcSize.every(n=>isMultipleOfFour(n))){
+				// Constrain texture size to a multiple of four
+				// To be conservative with 3D API compatibility
+				// @see https://github.khronos.org/KTX-Specification/ktxspec.v2.html#dimensions
+				logger.warn(`Source image ${texture.getName()} at index ${textureIndex} is ${srcSize.join("x")} px. Resizing to a multiple of four`);
         const encoder = sharp(srcImage, { limitInputPixels: 32768 * 32768 }).toFormat('png');
 
-        const dstSize = srcSize.map(n=> ceilMultipleOfFour(n*options.scale));
-        
+        const dstSize = srcSize.map(n=> ceilMultipleOfFour(n));
+
         if(!dstSize.every(n=>isPowerofTwo(n))){
-          logger.warn(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px, not a power of two.`);
+          logger.warn(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px: This is not a power of two, which might not be optimal for performance`);
         }else{
           logger.debug(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px`);
         }
+
         encoder.resize(dstSize[0], dstSize[1], { fit: 'fill', kernel: 'lanczos3' });
 
         srcImage = BufferUtils.toView((await encoder.toBuffer()) as Uint8Array);
         srcExtension = 'png';
         srcMimeType = 'image/png';
-
       }
 
       // PREPARE: Create temporary in/out paths for the 'ktx' CLI tool, and determine

@@ -50,7 +50,7 @@ describe("TaskProcessor", function(){
     let processor: TaskProcessor, scheduler: TaskScheduler;
 
     this.beforeEach(async function(){
-      processor = new TaskProcessor({client, vfs: null as any, userManager: null as any}); 
+      processor = new TaskProcessor({client} as any); 
       scheduler = new TaskScheduler({client});
       await Promise.all([processor.start(), scheduler.start()])
     });
@@ -126,7 +126,7 @@ describe("TaskProcessor", function(){
     this.beforeEach(async function(){
       processors =[];
       for(let i = 0; i < 4; i++){
-        processors.push(new TaskProcessor({client, vfs: null as any, userManager: null as any}))
+        processors.push(new TaskProcessor({client} as any))
       }
       scheduler = new TaskScheduler({client});
       await Promise.all([...processors.map(p=>p.start()), scheduler.start()])
@@ -159,7 +159,7 @@ describe("TaskProcessor", function(){
     this.beforeEach(async function(){
       processors =[];
       for(let i = 0; i < 1; i++){
-        processors.push(new TaskProcessor({client, vfs: null as any, userManager: null as any}))
+        processors.push(new TaskProcessor({client} as any))
       }
       scheduler = new TaskScheduler({client});
       await Promise.all([...processors.map(p=>p.start()), scheduler.start()])

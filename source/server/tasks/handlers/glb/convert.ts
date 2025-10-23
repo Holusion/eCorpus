@@ -1,6 +1,7 @@
 
 import path from 'node:path';
-import { run } from '../../command.js';
+import { run, taskRun } from '../../command.js';
+import { TaskHandlerParams } from '../../types.js';
 
 
 
@@ -13,15 +14,24 @@ export interface ConvertFileParams{
   signal?: AbortSignal;
 }
 
-export async function convertModelFile({tmpdir, scripts_dir, inputFile, outputFile, backface, signal}: ConvertFileParams){
-  if(path.extname(outputFile)!== ".glb") throw new Error("Unsupported file extension: "+outputFile);
+interface ConvertToGlbParams{
+  file: string,
+  backface: boolean,
+}
+
+
+export async function convertToGlb({task: {task_id, data:{file, backface}}, context: { vfs, config, logger }}:TaskHandlerParams<ConvertToGlbParams>):Promise<string>{
+  let tmpdir = await vfs.createTaskWorkspace(task_id);
+  const filename = path.basename(file);
+  const outputFile = path.join(tmpdir, filename);
+
   let args = [
     "--background",
     "--factory-startup",
     "--addons", "io_scene_gltf2",
-    "--python", path.join(scripts_dir, "blender_export.py"),
+    "--python", path.join(config.scripts_dir, "obj2gltf.py"),
     "--",
-   "-i", inputFile,
+   "-i", file,
    "-o", outputFile,
   ];
 
@@ -29,12 +39,9 @@ export async function convertModelFile({tmpdir, scripts_dir, inputFile, outputFi
     args.push("--backface");
   }
 
-  await run('blender', args, {
-    signal,
-    env: {
-      ...process.env,
-      TMPDIR: tmpdir,
-    }
+  await taskRun('blender', args, {
+    logger,
   });
 
+  return outputFile;
 }
