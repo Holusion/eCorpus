@@ -1,6 +1,6 @@
 import path from "node:path";
 import { BadRequestError } from "../../utils/errors.js";
-import { TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
+import { requireFileInput, TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
 import { TLanguageType } from "../../utils/schema/common.js";
 import uid from "../../utils/uid.js";
 import { createReadStream } from "node:fs";
@@ -53,14 +53,14 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
           if(do_optimize){
             logger.log(`Optimize ${file.name} for quality ${quality}`);
             const resizeTask = await tasks.create({type: "bakeGlb", data: {file: file.path, preset: quality}});
-            optimizeTask = await tasks.create({type: "transformGlb", data: {file: "$[0]", preset: quality}, after:[
+            optimizeTask = await tasks.create({type: "transformGlb", data: {preset: quality}, after:[
               resizeTask
             ]});
           }else{
             logger.debug("Model optimization is disabled");
           }
 
-          let parse = await tasks.create({type: "inspectGlb", data: {file: optimizeTask?"$[0]":file.path}, after: optimizeTask?[ optimizeTask ]: null});
+          let parse = await tasks.create({type: "inspectGlb", data: {file: optimizeTask?undefined:file.path}, after: optimizeTask?[ optimizeTask ]: null});
 
           let copy = await tasks.create({
             type: "copyFileTask",
@@ -69,7 +69,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
               name: filename,
               mime: "model/gltf-binary",
               user_id,
-              filepath: optimizeTask?'$[0]' as any: file.path,
+              file: optimizeTask?undefined: file.path,
             },
             after: optimizeTask?[optimizeTask]: null
           });
@@ -81,8 +81,8 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
               quality,
               usage: "Web3D",
               filename,
-              meta: "$[0]",
-              size: "$[1].size"
+              meta: `$[${parse}]`,
+              size: `$[${copy}].size`
             },
             after: [parse, copy],
           });
@@ -96,7 +96,6 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
   return await tasks.create({
     type: "createDocument",
     data: {
-      models: "$[0]" as any,
       name: scene_name,
       user_id,
       language,
@@ -111,7 +110,9 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
 /**
  * Copy a temporary file into a scene
  */
-export async function copyFileTask({task:{after, data: {filepath, ...params}}, context: {tasks, vfs, logger}}:TaskHandlerParams<WriteFileParams&{filepath: string}>){
+export async function copyFileTask({task:{data: {file, ...params}}, inputs, context: {tasks, vfs, logger}}:TaskHandlerParams<WriteFileParams&{file?: string}>){
+  if(!file) logger.debug("Searching inputs for a source file");
+  const filepath = file ?? requireFileInput(inputs);
   logger.log(`Copy file from ${filepath} to ${params.scene}/${params.name}`);
   let f = await vfs.copyFile(filepath, params);
   return f;

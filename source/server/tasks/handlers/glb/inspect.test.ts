@@ -6,6 +6,7 @@ const thisFile = fileURLToPath(import.meta.url);
 
 import { fixturesDir } from "../../../__test_fixtures/fixtures.js";
 import { getBaseTextureSizeMultiplier, inspectGlb } from "./inspect.js";
+import { TaskDefinition } from "../../types.js";
 
 
 describe("inspectGlb()", function(){
@@ -13,8 +14,19 @@ describe("inspectGlb()", function(){
   const cube = path.resolve(fixturesDir, "cube.glb" );
   const cube_textured = path.resolve(fixturesDir, "cube_textured.glb");
   const cube_draco = path.resolve(fixturesDir, "cube_draco.glb" );
+
+  const _ctx :Parameters<typeof inspectGlb>[0]["context"] = {
+
+  } as any;
+
+  function t(file: string){
+    return {
+      data: { file },
+    } as unknown as  TaskDefinition<{file: string}>
+  }
+
   it("Generates a report for a glb file", async function(){
-    expect(await inspectGlb(cube)).to.deep.equal({
+    expect(await inspectGlb({context: _ctx, inputs: new Map(), task: t(cube)})).to.deep.equal({
       name: "Cube",
       bounds: {
         min: [-1, -1, -1],
@@ -27,7 +39,7 @@ describe("inspectGlb()", function(){
   });
 
   it("Finds texture sizes", async function(){
-    expect(await inspectGlb(cube_textured)).to.deep.equal({
+    expect(await inspectGlb({context: _ctx, inputs: new Map(), task: t(cube_textured)})).to.deep.equal({
       name: "Cube",
       bounds: {
         min: [-1, -1, -1],
@@ -40,7 +52,7 @@ describe("inspectGlb()", function(){
   });
 
   it("opens draco-compressed mesh", async function(){
-    expect(await inspectGlb(cube_draco)).to.deep.equal({
+    expect(await inspectGlb({context: _ctx, inputs: new Map(), task: t(cube_draco)})).to.deep.equal({
       name: "Cube",
       bounds: {
         min: [-1, -1, -1],

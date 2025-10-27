@@ -2,7 +2,7 @@ import EventEmitter, { on } from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
 import { CreateTaskParams, GroupCallback, TaskContextHandlers, TaskDefinition, TaskHandler, TaskLogger, TaskStatus, TaskType, TaskTypeData } from "./types.js";
-import { NotFoundError, InternalError } from "../utils/errors.js";
+import { NotFoundError, InternalError, BadRequestError } from "../utils/errors.js";
 import { debuglog } from "node:util";
 
 const debug = debuglog("tasks:scheduler");
@@ -59,7 +59,7 @@ export class TaskListener extends EventEmitter{
     }
     let [prefix, status ] = channel.split("_");
     if(prefix !== "tasks") return console.error("Invalid task channel name :", channel);
-    if(this.#events!.indexOf(status as any) === -1) return debug(`Received unwanted notification event : ${status}`);
+    if(this.#events!.indexOf(status as any) === -1) return;
 
     debug(`Notification for #${payload}: ${status}`);
     this.emit("update", task_id, status);
@@ -109,7 +109,7 @@ export class TaskListener extends EventEmitter{
         ctime,
         type,
         parent,
-        (SELECT array_agg(source)::bigint[] FROM tasks_relations WHERE target = task_id) as after,
+        (SELECT array_agg(source ORDER BY source ASC)::bigint[] FROM tasks_relations WHERE target = task_id) as after,
         data,
         output,
         status
@@ -198,7 +198,21 @@ export class TaskListener extends EventEmitter{
   }
 
   async addRelation(source: number, target: number){
-    await this.db.run(`INSERT INTO tasks_relations(source, target) VALUES($1, $2)`, [source, target]);
+    let r = await this.db.run(`
+      INSERT INTO tasks_relations(source, target) 
+      SELECT $1, $2
+      WHERE (
+        SELECT CASE
+          WHEN status IN ('initializing') THEN 'ok'
+          ELSE 'wrong_status'
+        END
+        FROM tasks
+        WHERE task_id = $2
+      ) IS DISTINCT FROM 'wrong_status';
+    `, [source, target]);
+    if(!r.changes){
+      throw new BadRequestError(`Task ${target} is already initialized`);
+    }
   }
 
   /**

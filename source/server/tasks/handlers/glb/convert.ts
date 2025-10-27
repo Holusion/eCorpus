@@ -1,6 +1,6 @@
 
 import path from 'node:path';
-import { run, taskRun } from '../../command.js';
+import { run, runBlenderScript, taskRun } from '../../command.js';
 import { TaskHandlerParams } from '../../types.js';
 
 
@@ -26,11 +26,6 @@ export async function convertToGlb({task: {task_id, data:{file, backface}}, cont
   const outputFile = path.join(tmpdir, filename);
 
   let args = [
-    "--background",
-    "--factory-startup",
-    "--addons", "io_scene_gltf2",
-    "--python", path.join(config.scripts_dir, "obj2gltf.py"),
-    "--",
    "-i", file,
    "-o", outputFile,
   ];
@@ -39,7 +34,7 @@ export async function convertToGlb({task: {task_id, data:{file, backface}}, cont
     args.push("--backface");
   }
 
-  await taskRun('blender', args, {
+  await runBlenderScript(path.join(config.scripts_dir, "obj2gltf.py"), args, {
     logger,
   });
 

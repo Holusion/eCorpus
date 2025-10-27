@@ -1,8 +1,11 @@
-
-<h1>{{scene}}</h1>
+<div class="task-title">
+  <h1>{{ task.type }}</h1>
+  <span style="font-size: 200%; font-weight: bold">#{{ task.task_id }}</span>
+</div>
 
 <div class="main-grid">
   <div class="grid-header">
+
     {{#if task.author}}
       <span style="text-align: right; display: block;">from <span style="color: var(--color-primary-light)">{{ task.author }}</span></span>
     {{/if}}
@@ -10,7 +13,12 @@
   <div class="grid-toolbar">
 
   <section class="section-column task-header">
-    <div class="col">
+    <div class="col" style="display:flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline;">
+      <h3>Scene:</h3>
+      <a href="../">{{scene}}</a>
+    </div>
+
+    <div class="col" style="display:flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline;">
       <h3>
         {{#if tree.children.length }}
           Group
@@ -20,10 +28,14 @@
         status:
       </h3>
       <span class="task-status status-{{tree.groupStatus}}">{{tree.groupStatus}}</span>
-      {{#if task.parent }}
-        <h3>Parent: <a href="{{ task.parent }}">#{{ task.parent }}</a></h3>
-      {{/if}}
+  
     </div>
+    {{#if task.parent }}
+      <div class="col" style="display:flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline;">
+        <h3>Parent:</h3>
+        <a href="{{ task.parent }}">#{{ task.parent }}</a>
+      </div>
+    {{/if}}
 
     <div class="col task-actions">
       {{#if (test task.status "==" "error")}}
@@ -54,12 +66,7 @@
   </div>
   <div class="grid-content">
     <section class="task-summary" id="task-{{ task.task_id }}">
-      <h2 class="task-title">
-        <a href="{{task.task_id}}">
-          {{ task.type }}
-        </a>
-        <span>#{{ task.task_id }}</span>
-      </h2>
+
       
       
       <div class="task-logs">

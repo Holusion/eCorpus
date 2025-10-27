@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import {getBounds, getPrimitiveVertexCount, VertexCountMethod} from '@gltf-transform/functions';
 import {io} from './io.js';
 import { Document, ImageUtils, PropertyType } from '@gltf-transform/core';
-import { TaskHandlerParams } from '../../types.js';
+import { requireFileInput, TaskHandlerParams } from '../../types.js';
 
 
 export interface SceneDescription{
@@ -18,12 +18,12 @@ export interface SceneDescription{
 
 
 interface ParseGlbParams{
-  file: string;
+  file?: string;
 }
 
 
-export async function inspectGlb({task: {data: {file}}}:TaskHandlerParams<ParseGlbParams>){
-
+export async function inspectGlb({task: {data: {file}}, inputs}:TaskHandlerParams<ParseGlbParams>){
+  if(!file) file = requireFileInput(inputs);
   const document = await io.read(file); // → Document
   return inspectDocument(document);
 }

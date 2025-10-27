@@ -131,11 +131,6 @@
       }
     }
   }
-  .task-title{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
 
 
   .highlighted{
@@ -149,6 +144,19 @@
       box-shadow: inset 0 0 3px 2px var(--color-warning);
     }
   }
+}
+
+
+.task-title{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 2rem;
+}
+
+.task-logs{
+  overflow-x: auto;
+  padding-bottom: .5rem;
 }
 
 .log-line{
@@ -176,10 +184,13 @@
     }
     &.severity-error{
       color: var(--color-error);
+      + .log-message{
+        color: var(--color-error);
+
+      }
     }
   }
   .log-message{
-    white-space: normal;
-    word-break: break-word;
+    margin: 0;
   }
 }

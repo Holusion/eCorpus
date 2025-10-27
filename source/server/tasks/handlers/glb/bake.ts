@@ -1,7 +1,7 @@
 import path from "node:path";
-import type {TaskHandlerParams, TaskLogger} from "../../types.js";
+import {requireFileInput, type ProcessFileParams, type TaskHandlerParams, type TaskLogger} from "../../types.js";
 import type { TDerivativeQuality } from "../../../utils/schema/model.js";
-import { run, taskRun } from '../../command.js';
+import { run, runBlenderScript, taskRun } from '../../command.js';
 
 export interface TransformGlbParams{
   logger: TaskLogger;
@@ -31,33 +31,26 @@ function getPreset(quality: TDerivativeQuality): {scale: number} {
   }[quality];
 }
 
-interface BakeGlbParams{
-  file: string,
-  preset: TDerivativeQuality,
-}
 
 
+export async function bakeGlb({task: {task_id, data:{file, preset:presetName}}, inputs, context:{ vfs, logger, config, signal }}:TaskHandlerParams<ProcessFileParams>):Promise<string>{
 
-export async function bakeGlb({task: {task_id, data:{file: inputFile, preset:presetName}}, context:{ vfs, logger, config, signal }}:TaskHandlerParams<BakeGlbParams>):Promise<string>{
 
+  const inputFile = file ?? requireFileInput(inputs);
   let tmpdir = await vfs.createTaskWorkspace(task_id);
+  const outputFile = path.join(tmpdir, path.basename(inputFile).replace(/\.glb$/i, "")+".glb");
 
-  logger.debug("Bake textures for %s to %dx%d with blender", inputFile);
-  const outputFile = path.join(tmpdir, path.basename(inputFile, ".glb")+'_out.glb');
+  logger.debug("Bake textures for %s with preset %s", inputFile, presetName);
+
   const preset = getPreset(presetName);
 
   let args = [
-    "--background",
-    "--factory-startup",
-    "--addons", "io_scene_gltf2",
-    "--python", path.join(config.scripts_dir, "bake.py"),
-    "--",
     "-i", inputFile,
     "-o", outputFile,
     "--scale", preset.scale.toString(10),
   ];
 
-  await taskRun('blender', args, {
+  await runBlenderScript(path.join(config.scripts_dir, "bake.py"), args, {
     logger,
     signal,
     env: {
