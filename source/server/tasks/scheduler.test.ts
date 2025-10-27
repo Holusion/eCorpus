@@ -94,7 +94,7 @@ describe("TaskScheduler", function(){
 
     it("can't cycle relations", async function(){
       let parent = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
-      let t1 = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}});
+      let t1 = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}, status: "initializing"});
       let t2 = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}, after: [t1]});
       await expect(scheduler.addRelation(t2, t1)).to.be.rejectedWith("check_no_cycles");
     });
@@ -121,6 +121,7 @@ describe("TaskScheduler", function(){
         after: [],
         ctime: now,
         status: "pending",
+        output: null,
         groupStatus: "pending",
         author,
         children: [
@@ -129,6 +130,7 @@ describe("TaskScheduler", function(){
             ctime:  now,
             status: 'pending',
             groupStatus: "pending",
+            output: null,
             task_id: t1,
             children: [],
             after: [],
@@ -138,6 +140,7 @@ describe("TaskScheduler", function(){
             ctime: now,
             status: 'pending',
             groupStatus: "pending",
+            output: null,
             task_id: t2,
             children: [],
             after: [],

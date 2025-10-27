@@ -92,7 +92,7 @@ export class TaskScheduler extends TaskListener{
     t.ctime as ctime,
     users.username as author,
     t.output as output,
-    (SELECT json_agg(source) FROM tasks_relations WHERE target = t.task_id) as after,
+    (SELECT json_agg(source ORDER BY source ASC) FROM tasks_relations WHERE target = t.task_id) as after,
     COALESCE(task_tree(t.task_id), '[]'::jsonb) as children
   `
 

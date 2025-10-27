@@ -1,7 +1,7 @@
 import {debuglog, format} from 'node:util';
 import {Client } from 'pg';
 import { takeOne } from './queue.js';
-import {  CreateTaskParams, TaskContextHandlers, TaskDefinition, TaskHandler, TaskHandlerContext, TaskLogger, TaskType, TaskTypeData } from './types.js';
+import { TaskDefinition, TaskHandler, TaskHandlerContext, TaskLogger, TaskType, TaskTypeData } from './types.js';
 import { TaskListener } from './listener.js';
 import Vfs from '../vfs/index.js';
 import UserManager from '../auth/UserManager.js';
@@ -17,34 +17,6 @@ export interface TaskProcessorParams{
   vfs: Vfs;
   userManager: UserManager;
   config: Config;
-}
-
-export function mapShape(shape: any, outputs: any):any{
-  let shapeString = JSON.stringify(shape);
-  return JSON.parse(shapeString, function(key, value){
-      if(typeof value !== "string" || value.indexOf("$") !== 0) return value;
-      let path = value.slice(1);
-      let ptr = outputs;
-      while(path.length){
-        const m = /^\.?([^.\[]+|\.?\[[^.\[]+\])/.exec(path);
-        if(!m) throw new TypeError(`${path} is not a valid path`);
-        const attr = m[1];
-        if(typeof ptr === "undefined") throw new TypeError(`Cannot read properties of undefined (reading '${attr}')`);
-
-        path = path.slice(attr.length+1);
-        if(attr.startsWith("[")){
-          let index = attr.slice(1, -1);
-          if(/^[+-]?\d+$/.test(index)){
-            ptr = ptr[parseInt(index)];
-          }else{
-            ptr = ptr[(/^['"']/.test(index))?index.slice(1, -1): index];
-          }
-        }else{
-          ptr = ptr[attr];
-        }
-      }
-      return ptr;
-    });
 }
 
 
@@ -85,10 +57,7 @@ export class TaskProcessor extends TaskListener{
    * Safe synchronous wrapper around takeTask that will handle any error that might be thrown asynchronously
    */
   pollTasks(){
-    this.takeTask().then(
-      ()=>debug("Polled task pool"),
-      (err)=>console.error("Failed to poll task pool :", err)
-    );
+    this.takeTask().catch((err)=>console.error("Failed to poll task pool :", err));
   }
 
   takeTask = takeOne((async function takeTask(this: TaskProcessor){
@@ -114,7 +83,11 @@ export class TaskProcessor extends TaskListener{
   }).bind(this));
 
   /**
-   * Get an exclusive lock over an available task and marks it as running 
+   * Get an exclusive lock over an available task and marks it as running
+   * 
+   * We are not concerned about the inner's select possible race conditions because:
+   *  - tasks that are "success" are never going back
+   *  - a task can't be the target of more relations once it's created and in the "pending" state.
    */
   async acquireTask() :Promise<number|undefined>{
     let t = await this.db.get<{task_id: number}>(`
@@ -124,11 +97,15 @@ export class TaskProcessor extends TaskListener{
         SELECT 
           tasks.task_id
         FROM tasks
-          LEFT JOIN tasks_relations ON target = tasks.task_id
-          LEFT JOIN tasks AS source_tasks ON (source = source_tasks.task_id AND source_tasks.status != 'success')
         WHERE tasks.status = 'pending'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM tasks_relations
+            LEFT JOIN tasks AS source_tasks ON (tasks_relations.source = source_tasks.task_id)
+            WHERE tasks_relations.target = tasks.task_id
+              AND source_tasks.status != 'success'
+          )
           AND tasks.type = ANY($1::text[])
-          AND source_tasks.task_id IS NULL
         FOR UPDATE OF tasks SKIP LOCKED
         LIMIT 1
       )
@@ -184,7 +161,6 @@ export class TaskProcessor extends TaskListener{
   async processTask<T extends TaskType>({task, signal}: {task:TaskDefinition<TaskTypeData<T>>, signal: AbortSignal}){
     const handler = tasks[task.type as keyof typeof tasks] as TaskHandler<TaskTypeData<T>>;
     if(!handler) throw new Error(`Invalid task type ${task.type} for #${task.task_id}: matches no handler`);
-    debug(`Resolve task ${task.type}#${task.task_id}`);
     const id = task.task_id;
 
     const context = {
@@ -200,22 +176,23 @@ export class TaskProcessor extends TaskListener{
       signal,
     };
 
-    let after_outputs = task.after.length? (await this.db.all(`SELECT output FROM tasks WHERE task_id = ANY($1::bigint[])`, [task.after])).map(t=>t.output) : [];
-    
-    if(task.data && after_outputs.length){
-      debug_outputs(`Map task's input data `, task.data);
-      debug_outputs(`Using outputs `, after_outputs);
-      try{
-        task.data = mapShape(task.data, after_outputs);
-      }catch(e){
-        context.logger.error(`Failed to map requirements to input data "${JSON.stringify(task.data)}"`);
-        throw e;
-      }
+    let inputs = new Map<number,any>(task.after.length? (await this.db.all(`
+      SELECT 
+        output,
+        task_id 
+      FROM tasks 
+      WHERE task_id = ANY($1::bigint[]) AND status = 'success' 
+      ORDER BY task_id ASC
+    `, [task.after])).map(t=>([t.task_id,t.output])) : []);
+    if(inputs.size != task.after.length){
+      const missing = task.after.filter(id=>!inputs.has(id));
+      throw new Error(`Expected ${task.after.length} inputs, but ${inputs.size} were returned. Received [${Array.from(inputs.keys()).join(", ")}]. Missing Task id${1< missing.length?"s":""}: [${missing.join(", ")}]`);
     }
     debug(`Process task ${task.type}#${task.task_id}`);
     return await handler({
       task,
-      context
+      context,
+      inputs,
     });
   }
 }

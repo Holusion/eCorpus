@@ -1,4 +1,3 @@
-import { mapShape } from "./processor.js";
 
 // Tests for tasks management
 // The system is a bit intricate and hard to test in isolation
@@ -31,18 +30,17 @@ describe("TaskProcessor", function(){
   });
 
   this.beforeEach(async function(){
-    await handle.run(`DELETE FROM tasks_relations`);
-    await Promise.all([
-      handle.run(`DELETE FROM tasks`),
-      handle.run(`DELETE FROM tasks_logs`),
-    ]);
-    
     client = new Client({connectionString: db_uri});
     await client.connect();
   })
 
   this.afterEach(async function(){
     await client.end();
+    await handle.run(`DELETE FROM tasks_relations`);
+    await Promise.all([
+      handle.run(`DELETE FROM tasks`),
+      handle.run(`DELETE FROM tasks_logs`),
+    ]);
   });
 
 
@@ -116,6 +114,23 @@ describe("TaskProcessor", function(){
       await handle.run(`DELETE FROM scenes WHERE scene_id = $1`, [s2.scene_id]);
 
       await expect(scheduler.wait(t)).to.be.rejectedWith("[404] No task found with id");
+    });
+
+    it("can't take tasks that have pending requirements", async function(){
+      for(let i =0; i <2; i++){
+        const parent =  await scheduler.create(scene_id, null, {type:"groupOutputsTask", data:{}});
+        let deps = [], res = [];
+        for(let j = 0; j < 2; j++){
+          const t = j*10;
+          res.push(`${t}ms`);
+          deps.push(await scheduler.createChild(parent, {type: "delayTask", data: {time: t, value:`${t}ms`}}));
+        }
+
+        const after = await scheduler.createChild(parent, {type: "groupOutputsTask", data: {}, after: deps });
+        
+        const output = await scheduler.wait(after);
+        expect(output).to.deep.equal(res);
+      }
     });
   })
 
@@ -191,7 +206,7 @@ describe("TaskProcessor", function(){
       it("with TaskListener.group()- array", async function(){
         let group = await scheduler.group(group_id, async (tasks)=>{
           return [
-            await tasks.create({type: "delayTask", data: {time: 5, value: 'a'}}),
+            await tasks.create({type: "delayTask", data: {time: 1, value: 'a'}}),
             await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}}),
           ];
         });
@@ -201,7 +216,7 @@ describe("TaskProcessor", function(){
 
       it("with TaskListener.group()- generator", async function(){
         let group = await scheduler.group(group_id, async function* (tasks){
-            yield await tasks.create({type: "delayTask", data: {time: 5, value: 'a'}});
+            yield await tasks.create({type: "delayTask", data: {time: 1, value: 'a'}});
             yield await tasks.create({type: "delayTask", data: {time: 0, value: 'b'}});
         });
         let results = await scheduler.wait(group);
@@ -231,24 +246,3 @@ describe("TaskProcessor", function(){
     });
   });
 });
-
-
-
-describe("mapShape()", function(){
-  it("maps identity", function(){
-    expect(mapShape("$", ["value"])).to.deep.equal(["value"]);
-
-  })
-  it("maps outputs to a shape", function(){
-    expect(mapShape({foo: "bar", out: "$"}, ["value"])).to.deep.equal({foo: "bar", out: ["value"]});
-  });
-
-  it("maps output array", function(){
-    expect(mapShape({foo: "$[0]"}, ["value"])).to.deep.equal({foo: "value"});
-  });
-
-  it("maps outputs properties to a shape", function(){
-    expect(mapShape({foo: "$[0].foo", bar: "$[0].bar", baz: "baz"}, [{foo: "foo", bar: "bar"}])).to.deep.equal({foo: "foo", bar: "bar", baz: "baz"});
-  });
-});
-
