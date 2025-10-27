@@ -21,7 +21,7 @@ export interface AssetDefinition {
 }
 
 export interface CreateDocumentParams{
-  models: AssetDefinition[];
+  models?: AssetDefinition[];
   name: string,
   language?: TLanguageType,
   user_id: number,
@@ -49,9 +49,12 @@ function isAssetDefinition(d: any): d is AssetDefinition{
     && typeof d.size === "number";
 }
 
-export async function createDocument({task: {fk_scene_id: scene_id, data: {models, name, language, user_id}}, context:{vfs, tasks, logger}}:TaskHandlerParams<CreateDocumentParams>){
+export async function createDocument({task: {fk_scene_id: scene_id, data: {models, name, language, user_id}}, inputs, context:{vfs, tasks, logger}}:TaskHandlerParams<CreateDocumentParams>){
 
-  if(!Array.isArray(models)) throw new Error(`models is not an array`);
+  if(!Array.isArray(models)){
+    logger.log(`Using ${inputs.size} inputs as model sources`);
+    models = Array.from(inputs.values()).flat(Infinity);
+  }
   if(!models.length) throw new Error(`Can't create document from an empty list`);
   let non_model_index = models.findIndex(m=>!isAssetDefinition(m));
   if(non_model_index !== -1){

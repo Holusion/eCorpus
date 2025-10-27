@@ -42,7 +42,7 @@ export async function taskRun(cmd: string, args: string[], {logger, ...opts}:Run
   child.stdout.setEncoding("utf-8");
   child.stdout.on("data", (chunk)=>logger.debug(chunk));
   child.stderr.setEncoding("utf-8");
-  child.stderr.on("data", (chunk)=>logger.log(chunk));
+  child.stderr.on("data", (chunk)=>logger.warn(chunk));
 
   try{
     let [code, signal] = await once(child, "close");
@@ -87,4 +87,24 @@ export async function getBlenderVersion(): Promise<string> {
 		);
 	}
 	return versionMatch[1];
+}
+
+/**
+ * 
+ * @param script absolute path to python script to load
+ * @param scriptArgs script arguments
+ * @param params Spawn parameters
+ * @returns 
+ */
+export async function runBlenderScript(script: string, scriptArgs: string[], params:RunCommandOpts){
+    return await taskRun("blender", [
+      "--background",
+      "--offline-mode",
+      "--factory-startup",
+      "--threads", "1",
+      "--addons", "io_scene_gltf2",
+      "--python", script,
+      "--",
+      ...scriptArgs
+    ], params);
 }

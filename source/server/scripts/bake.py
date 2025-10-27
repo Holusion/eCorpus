@@ -7,6 +7,7 @@
 import os
 from pathlib import Path
 from sys import argv,stderr
+from functools import reduce
 import math
 
 import argparse
@@ -49,7 +50,7 @@ parser = argparse.ArgumentParser(description='Blender bake resized maps')
 parser.add_argument('-i', '--input', help='glb file to be converted')
 parser.add_argument('-o', '--output', help='output GLB file')
 parser.add_argument('-s', '--scale', help='texture scale factor [0..1]', type=float)
-parser.add_argument('--unwrap', help='Unwrap mesh or just pack islands', default=False, action='store_true')
+parser.add_argument('--unwrap', help='Force unwrap mesh', default=False, action='store_true')
 parser.add_argument('--orm', help='Bake an Occlusion-Roughness-Metallic map', default=False, action='store_true')
 args = parser.parse_args(argv)
 
@@ -78,36 +79,59 @@ def configure():
   # FIXME is it possible to rebake using Eevee?
   bpy.data.scenes['Scene'].render.engine = 'CYCLES' 
   bpy.data.scenes['Scene'].cycles.device = 'CPU'
-  bpy.data.scenes['Scene'].render.bake.margin = 2
+  #We won't resize the texture further so we don't expect too much bleeding. We might even use 0
+  bpy.data.scenes['Scene'].render.bake.margin = 1 
 
+  #Disable undo to save memory
+  bpy.context.preferences.edit.undo_steps = 0
+  bpy.context.preferences.edit.use_global_undo = False
+
+
+
+def walk_node(node:bpy.types.ShaderNode) -> int:
+  if not node:
+    return 0
+  if node.type == 'TEX_IMAGE':
+    image = node.image
+    if not image:
+      print("Image texture does not point to an image for object {}".format(obj.name_full))
+      return 0
+    else:
+      return image.size[0] * image.size[1]
+  if node.type == "BSDF_PRINCIPLED":
+    diffuseInput = node.inputs[0]
+    if not diffuseInput.links:
+      return 0
+    if len(diffuseInput.links) != 1:
+      print("Diffuse input has more than one link for object {} (additional links ignored)".format(obj.name_full))
+      return 0
+    return walk_node(diffuseInput.links[0].from_node)
+  elif node.type == "MIX":
+    # a MixShader is inserted into the glTF if it has some color attributes
+    return reduce(lambda s, input: s + walk_node(input.links[0].from_node) if hasattr(input, 'links') and 0 < len(input.links) else s, node.inputs, 0)
+  else:
+    return 0
 
 def diffuse_pixels(obj):
   """Compute total pixel count of all difuses assigned to this object"""
   size = 0
-  for mat_slot in obj.material_slots: 
-    for node in mat_slot.material.node_tree.nodes:
-      if node.type != "BSDF_PRINCIPLED":
-          continue
-      diffuseInput = node.inputs[0]
-      if not diffuseInput.links:
-          continue
-      if len(diffuseInput.links) != 1:
-          print("Diffuse input has more than one link for object {} (additional links ignored)".format(obj.name_full))
-      from_node = diffuseInput.links[0].from_node
-      if from_node.type != 'TEX_IMAGE':
-          print("PBR diffuse input is not an image texture for object {}".format(obj.name_full))
-          continue
-      image = from_node.image
-      if not image:
-          print("Image texture does not point to an image for object {}".format(obj.name_full))
-          continue
-      size = size + image.size[0] * image.size[1]
+  for mat_slot in obj.material_slots:
+    material = mat_slot.material
+    output_node = material.node_tree.get_output_node('CYCLES')
+    if not output_node:
+      print("Material {} has no output node".format(material.name_full))
+      continue
+    diffuse_input = [input for input in output_node.inputs if input.name == "Surface"][0]
+    if not diffuse_input:
+      print("material {} has no diffuse input".format(material.name_full))
+      continue
+    size = size + walk_node(diffuse_input.links[0].from_node)
   return size
 
 def pixels_to_width(n):
    """from a total count of pixel, compute an image width, rounded-down to the nearest power of two"""
    width = math.sqrt(n)
-   exp = math.floor(math.log(width))
+   exp = math.floor(math.log2(width))
    return 2**exp
 
 def pack(obj):
@@ -115,20 +139,22 @@ def pack(obj):
   pack uv islands
   """
   obj.select_set(True)
-  print("Create packed UV")
-  #create new UV
+  print("Remove doubles")
+  #create new UV, initialized to existing unwrap or a default uv map
   uv = obj.data.uv_layers.new(name='UVMap_smart', do_init=True)
   uv.active = True
   bpy.context.view_layer.objects.active = obj
   bpy.ops.object.mode_set(mode="EDIT")
   bpy.ops.mesh.select_all(action='SELECT')
-  bpy.ops.mesh.remove_doubles(threshold=00)
+  bpy.ops.mesh.remove_doubles(threshold=0)
   if args.unwrap:
-      print("Unwrap with smart UV project") 
-      bpy.ops.uv.smart_project()
+    print("Create new Unwrap with smart UV project")
+    bpy.ops.uv.smart_project()
+  #Or not smart :
+  # bpy.ops.uv.unwrap()
   bpy.ops.uv.select_all(action='SELECT')
   print("Pack Islands") 
-  # FIXME what is margin's unit ?
+  # pack margin is in fraction of island size
   bpy.ops.uv.pack_islands(margin=0.0001)
   return uv
   
@@ -138,20 +164,22 @@ def bake(obj: bpy.types.Mesh, type: str):
   name = obj.name_full
 
   # clamped max original texture value
-  original_size_pixels = min(diffuse_pixels(obj),8192*8192)
+  original_size_pixels = min(diffuse_pixels(obj), 8192*8192)
   if(original_size_pixels == 0):
+     print("Skip texture baking: No diffuse found")
      return None
+  square_size = math.isqrt(original_size_pixels)
+  print("Original combined diffuse size {} {} pixels square".format("was a" if square_size == math.sqrt(original_size_pixels) else "rounded down to", square_size))
+
   width = height = pixels_to_width(original_size_pixels*scale)
 
-
-  print("baking {}({}) to {}x{}".format(obj, type, width, height))
+  print("baking {} ({}) to a {}x{} pixels map".format(name, type, width, height))
 
 
   #create empty img
-  bake_img_name="{}_{}_{}".format(type.slice(0, 3), width, name)
-  bake_img = bpy.ops.image.new(name = bake_img_name, width = width, height = height)
-
-  for mat_slot in obj.material_slots: 
+  bake_img_name="{}_{}_{}".format(type[0:3], width, name)
+  bake_img = bpy.data.images.new(name = bake_img_name, width = width, height = height)
+  for mat_slot in obj.material_slots:
       mat= mat_slot.material
       nodes = mat.node_tree.nodes
       bake_node = nodes.new('ShaderNodeTexImage')
@@ -164,46 +192,19 @@ def bake(obj: bpy.types.Mesh, type: str):
       bake_node.select = True
       nodes.active = bake_node
   
-  # we could probably do without saving the image to disk, 
-  # if we are confident-enough we'll not need to manually inspect it at some point for debugging
   img_file = bake_img_name + ".png"
-  print("export baked {} to {}".format(type.lower(), img_file))
   bpy.ops.object.bake(type=type)
   bake_img.filepath_raw = img_file
   bake_img.file_format = 'PNG'
-  bake_img.save()
+  # we can save the image to disk if we want to see it.
+  # But since it will be saved with the glb file, we can also just extract it from there
+  #print("export baked {} to {}".format(type.lower(), img_file))
+  #bake_img.save()
   return bake_img
 
-def process(obj):
-  """
-  take a mesh, iterate through its material to pack its uv islands and rebake its textures into one image
-  """
-  obj.select_set(True)
-  name = obj.name_full
 
-  uv = pack(obj)
-  
-  bake_img = bake(obj, 'DIFFUSE')
-  if(args.orm):
-    print("ORM map not supported")
-    # bake(obj, 'AO')
-
-  if not bake_img:
-    print("No diffuse found in this object")
-    obj.data.uv_layers.remove(uv)
-    return
-
-  #Delete all material
-  obj.data.materials.clear()
-
-  #Delete useless UV
-  for _uv in obj.data.uv_layers:
-    if _uv == uv:
-      continue
-    print("remove old uv map")
-    obj.data.uv_layers.remove(_uv)
-    
-  #Create baked material
+def create_baked_material(bake_img: bpy.types.Image):
+  print("Create baked material")
   mat = bpy.data.materials.new(name="baked_material_" + name)
   mat.use_nodes = True
   # FIXME should we handle backface culling here?
@@ -220,15 +221,54 @@ def process(obj):
   imgDiffuse_node = nodes.new('ShaderNodeTexImage')
   imgDiffuse_node.name="baked_diffuse_node"
   #bake_img =  bpy.data.images.get(bake_img_name)
-  imgDiffuse_node.image= bake_img
+  imgDiffuse_node.image = bake_img
   links.new(imgDiffuse_node.outputs[0], shader.inputs[0])
   
   #Shader default value : rough
   shader.inputs['Roughness'].default_value = 1
-  # FIXME ORM map goes here
+  return mat
 
+def remove_color_attributes(obj: bpy.types.Mesh):
+  while obj.data.color_attributes:
+    obj.data.color_attributes.remove(obj.data.color_attributes[0])
+
+def clean_uv(obj: bpy.types.Mesh):
+  if 1 < len(obj.data.uv_layers):
+    print("Delete {} UV layers".format(len(obj.data.uv_layers) - 1))
+  while 1 < len(obj.data.uv_layers):
+    obj.data.uv_layers.remove(obj.data.uv_layers[0])
+
+def process(obj: bpy.types.Mesh):
+  """
+  take a mesh, iterate through its material to pack its uv islands and rebake its textures into one image
+  """
+  obj.select_set(True)
+  name = obj.name_full
+
+  uv = pack(obj)
+  
+  bake_img = bake(obj, 'DIFFUSE')
+  if(args.orm):
+    fail("ORM maps not supported")
+    # bake(obj, 'AO')
+
+  if not bake_img:
+    print("No diffuse found in this object")
+    obj.data.uv_layers.remove(uv)
+    return
+  else:
+    #Delete useless UV layers
+    clean_uv(obj)
+
+  #Delete all material
+  obj.data.materials.clear()
+  # FIXME ORM map goes here
+  mat = create_baked_material(bake_img)
   obj.data.materials.append(mat)
 
+  #Delete any color attributes are they are now baked in the diffuse
+  # (if they were used at all...)
+  remove_color_attributes(obj)
 
 ###
 # BOOTSTRAP
