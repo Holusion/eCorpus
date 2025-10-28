@@ -48,7 +48,8 @@ describe("transformGlb()", function(){
       let outputFile = await processGlb(m, {
         tmpdir,
         logger,
-        preset: "High"
+        preset: "High",
+        resize: false,
       });
 
       expect(outputFile).to.be.a("string");

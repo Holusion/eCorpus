@@ -19,3 +19,11 @@ export function formatBytes(bytes:number, si=true){
   } while(Math.abs(bytes) >= thresh && u < units.length - 1);
   return Math.round(bytes*100)/100 + ' '+units[u];
 }
+
+/**
+ * Checks if a Date-like parameter might be an interval 
+ * It is not fool-proof: We don't want to match string that would be valid dates. But if it's neither a valid date nor a valid interval, we don't really care about trhe output here.
+ */
+export function isTimeInterval(t:any){
+    return typeof t === "string" && /^[-+]?P?(\d+[YMD]|T[.\d]+[HMS])/.test(t);
+}

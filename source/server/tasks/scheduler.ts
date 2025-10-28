@@ -4,6 +4,7 @@ import { InternalError, NotFoundError } from "../utils/errors.js";
 import { TaskListener, TaskListenerParams } from "./listener.js";
 import { ETaskStatus, TaskStatus, TaskType } from "./types.js";
 import { on } from "node:events";
+import { isTimeInterval } from "../utils/format.js";
 
 
 const debug = debuglog("tasks:scheduler");
@@ -18,9 +19,9 @@ interface ListTasksParams{
   status?: TaskStatus;
 
   /**
-   * Filter tasks created after this date
+   * Filter tasks created after this date. Supports ISO 8601 "period" format
    */
-  after?:Date;
+  after?:Date|string;
   /** only return tasks for this scene */
   scene_id?: number;
   /** only return tasks created by this user */
@@ -99,7 +100,9 @@ export class TaskScheduler extends TaskListener{
   async getTasks({user_id, scene_id, status, after, offset = 0, limit = 25}: ListTasksParams ={}): Promise<RootTasksTreeNode[]>{
     let args :any[] = [offset, limit];
 
-     return (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
+    const is_period = isTimeInterval(after);
+
+    return (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
       SELECT
         ${TaskScheduler._fragTaskTree}
       FROM
@@ -117,7 +120,7 @@ export class TaskScheduler extends TaskListener{
           `AND t.status = $${args.push(status)}`:""
         }
         ${after?
-          `AND  $${args.push(after)} < t.ctime`:""
+          `AND ${is_period?`CURRENT_TIMESTAMP - $${args.push(after)}::interval`: `$${args.push(after)}`}  < t.ctime`:""
         }
       ORDER BY ctime DESC, task_id DESC
       OFFSET $1

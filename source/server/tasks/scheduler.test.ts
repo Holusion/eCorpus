@@ -182,7 +182,7 @@ describe("TaskScheduler", function(){
     });
 
     describe("all tasks", function(){
-      it("can filter by task status", async function(){
+      it("filter by task status", async function(){
         let list = await scheduler.getTasks({ status: "initializing"});
         expect(list).to.have.length(0);
         let t = await scheduler.create(scene_id, user_id,  {type: "delayTask", data: {time: 0}, status: "initializing"});
@@ -191,6 +191,45 @@ describe("TaskScheduler", function(){
         expect(list).to.have.length(1);
         expect(list[0]).to.have.property("children").to.have.length(0);
         expect(list[0]).to.have.property("task_id", t);
+      });
+
+      it("filter by reference date", async function(){
+        const time_ref = new Date('2025-10-28');
+        await handle.run("UPDATE tasks SET ctime = $1", [time_ref]);
+        let t = await scheduler.create(scene_id, user_id,  {type: "delayTask", data: {time: 0}});
+        await handle.run("UPDATE tasks SET ctime = $1 WHERE task_id = $2", [new Date(time_ref.valueOf() + 1000*3600*12), t]);
+
+        const list = await scheduler.getTasks({after: new Date(time_ref.valueOf() + 1000*3600)});
+        expect(list).to.have.length(1);
+        expect(list[0]).to.have.property("task_id", t);
+      });
+      
+      it("filter by reference date-string", async function(){
+        const time_ref = new Date('2025-10-28');
+        await handle.run("UPDATE tasks SET ctime = $1", [time_ref]);
+        let t = await scheduler.create(scene_id, user_id,  {type: "delayTask", data: {time: 0}});
+        await handle.run("UPDATE tasks SET ctime = $1 WHERE task_id = $2", [new Date(time_ref.valueOf() + 1000*3600*12), t]);
+
+        const list = await scheduler.getTasks({after: new Date(time_ref.valueOf() + 1000*3600).toISOString()});
+        expect(list).to.have.length(1);
+        expect(list[0]).to.have.property("task_id", t);
+      });
+
+      it("filter by interval", async function(){
+        //Take a ref 12 hours ago
+        const time_ref = new Date(Date.now()-  1000*3600*12);
+        await handle.run("UPDATE tasks SET ctime = $1", [time_ref]);
+        let t = await scheduler.create(scene_id, user_id,  {type: "delayTask", data: {time: 0}});
+        //Make this task be ~ 1h ago
+        await handle.run("UPDATE tasks SET ctime = $1 WHERE task_id = $2", [new Date(Date.now() - 1000*3600), t]);
+
+        //Search one-hour-one-minute ago
+        let list = await scheduler.getTasks({after: "PT1H1M"});
+        expect(list).to.have.length(1);
+        expect(list[0]).to.have.property("task_id", t);
+        
+        list = await scheduler.getTasks({after: "PT13H"});
+        expect(list).to.have.length(2);
       });
     });
 
