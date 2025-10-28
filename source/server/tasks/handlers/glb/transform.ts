@@ -13,22 +13,30 @@ export interface TransformGlbParams{
   logger: TaskLogger;
   preset: TDerivativeQuality;
   tmpdir: string;
+  resize: boolean;
 }
 
 
-function getPreset(quality: TDerivativeQuality): {ratio: number, error: number} {
+interface PresetSettings{
+  ratio: number,
+  error: number,
+  etc1s_quality: number,
+  maxSize: number,
+}
+
+function getPreset(quality: TDerivativeQuality): PresetSettings {
   return {
-  "Thumb": {ratio: 0, error: 0.01},
-  "Low": {ratio: 1/4, error: 0.005},
-  "Medium": {ratio: 1/2, error: 0.001},
-  "High": {ratio: 1, error: 0.0001},
-  "Highest": {ratio: 1, error: 0},
-  "AR": {ratio: 0, error: 0.001},
+  "Thumb": {ratio: 0, error: 0.01, etc1s_quality: 128, maxSize: 512},
+  "Low": {ratio: 1/4, error: 0.005, etc1s_quality: 180, maxSize: 1024},
+  "Medium": {ratio: 1/2, error: 0.001, etc1s_quality: 220, maxSize: 2048},
+  "High": {ratio: 1, error: 0.0001, etc1s_quality: 240, maxSize: 4096},
+  "Highest": {ratio: 1, error: 0, etc1s_quality: 250, maxSize: 8192},
+  "AR": {ratio: 0, error: 0.001, etc1s_quality: 180, maxSize: 2048},
   }[quality];
 }
 
 
-export async function transformGlb({task: {task_id, data:{file, preset}}, inputs, context:{ vfs, logger }}:TaskHandlerParams<ProcessFileParams>):Promise<string>{
+export async function transformGlb({task: {task_id, data:{file, preset}}, inputs, context:{ vfs, logger, config }}:TaskHandlerParams<ProcessFileParams>):Promise<string>{
   if(!file) file = requireFileInput(inputs);
   //Takes a glb file as input, outputs an optimized file
   //It's not yet clear if the output file's path is determined beforehand or generated as an output
@@ -38,15 +46,17 @@ export async function transformGlb({task: {task_id, data:{file, preset}}, inputs
   return await processGlb(file, {
     logger,
     preset,
-    tmpdir
+    tmpdir,
+    //Texture rebake would already have resized images
+    resize: !config.enable_rebake_textures,
   });
 };
 
-export async function processGlb(inputFile: string, {logger, tmpdir, preset:presetName}:TransformGlbParams){
+export async function processGlb(inputFile: string, {logger, tmpdir, preset:presetName, resize}:TransformGlbParams){
   logger.log("Optimize with preset %s using gltf-transform", presetName);
   logger.debug("Input file:", inputFile);
 
-  let outputFile = path.join(tmpdir, path.basename(inputFile));
+  let outputFile = path.join(tmpdir, path.basename(inputFile, ".glb")+".glb");
 
   const document = await io.read(inputFile); // → Document
 
@@ -91,17 +101,12 @@ export async function processGlb(inputFile: string, {logger, tmpdir, preset:pres
 
   await time("Sparse", document.transform(sparse()));
 
-  logger.log("Save intermediate file", path.join(tmpdir, "simplified.glb"));
-  await io.write(path.join(tmpdir, "simplified.glb"), document);
-
   await time("Compress meshs", document.transform(meshopt({
     ...preset,
     encoder: MeshoptEncoder,
     level: "medium",
   })));
 
-  logger.log("Save intermediate file", path.join(tmpdir, "meshopt-compressed.glb"));
-  await io.write(path.join(tmpdir, "compressed.glb"), document);
 
   /// Textures
 
@@ -109,12 +114,15 @@ export async function processGlb(inputFile: string, {logger, tmpdir, preset:pres
     mode: "uastc",
     slots: /^(normal|occlusion|metallicRoughness)/,
     tmpdir,
+    maxSize: resize? preset.maxSize:undefined,
   })));
 
   await time("Compress Color textures",document.transform(toktx({
     mode: "etc1s",
+    quality: preset.etc1s_quality,
     slots: /^baseColor/,
     tmpdir,
+    maxSize: resize? preset.maxSize:undefined,
   })));
 
 
@@ -126,7 +134,6 @@ export async function processGlb(inputFile: string, {logger, tmpdir, preset:pres
   ext_webp?.dispose();
 
   logger.debug("Output file uses extensions:", root.listExtensionsUsed().map(e=>e.extensionName));
-
   await io.write(outputFile, document);
   return outputFile;
 }

@@ -43,12 +43,11 @@ class Vfs extends BaseVfs{
     let vfs = new Vfs(rootDir, db);
 
     if(createDirs){
-      await fs.rm(vfs.uploadsDir, {recursive: true, force: true});
       await Promise.all([
         fs.mkdir(vfs.objectsDir, {recursive: true}),
         fs.mkdir(vfs.uploadsDir, {recursive: true}),
         fs.mkdir(vfs.artifactsDir, {recursive: true}),
-      ])
+      ]);
     }
     return vfs;
   }

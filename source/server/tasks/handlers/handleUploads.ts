@@ -24,7 +24,7 @@ interface UploadFileParams{
 /**
  * Analyze an uploaded file and create child task(s) accordingly
  */
-export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:{files, scene_name, user_id, language, optimize}}, context:{signal, logger, tasks}}:TaskHandlerParams<UploadFileParams>):Promise<number>{
+export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:{files, scene_name, user_id, language, optimize}}, context:{signal, config, logger, tasks}}:TaskHandlerParams<UploadFileParams>):Promise<number>{
 
   //Do some preprocessing to check what we should generate?
   /** @fixme handle other formats */
@@ -52,10 +52,11 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
           let optimizeTask:number|null = null;
           if(do_optimize){
             logger.log(`Optimize ${file.name} for quality ${quality}`);
-            const resizeTask = await tasks.create({type: "bakeGlb", data: {file: file.path, preset: quality}});
-            optimizeTask = await tasks.create({type: "transformGlb", data: {preset: quality}, after:[
+            if(config.enable_rebake_textures)logger.log(`Use experimental textures rebake task`);
+            const resizeTask = config.enable_rebake_textures? await tasks.create({type: "bakeGlb", data: {file: file.path, preset: quality}}): null;
+            optimizeTask = await tasks.create({type: "transformGlb", data: {preset: quality, file: resizeTask?undefined: file.path}, after: resizeTask?[
               resizeTask
-            ]});
+            ]:[]});
           }else{
             logger.debug("Model optimization is disabled");
           }
