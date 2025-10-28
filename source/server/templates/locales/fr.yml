@@ -107,6 +107,9 @@ nav:
   reportBug: signaler un bug
   documentation: documentation du projet
   license: license apache
+  userSettings: Paramètres
+  userGroups: Groupes
+  userArchives: Archives
 
 titles:
   myScenesSection: mes scenes
@@ -206,6 +209,7 @@ leads:
   usersList: Utilisateurs {{start}}-{{end}}/{{total}}
   groupsList: Groupes {{start}}-{{end}}/{{total}}
   noArchives: Pas de scènes archivées
+  noGroups: Cet utilisateur n'est ajouté à aucun groupe
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

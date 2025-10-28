@@ -107,6 +107,9 @@ nav:
   reportBug: report a bug
   documentation: project doc
   license: Apache License
+  userSettings: Settings
+  userGroups: Groups
+  userArchives: Archives
 
 titles:
   myScenesSection: my scenes
@@ -201,6 +204,7 @@ leads:
   usersList: Users {{start}}-{{end}}/{{total}}
   groupsList: Groups {{start}}-{{end}}/{{total}}
   noArchives: No archived scenes
+  noGroups: This user has not been added to any group
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

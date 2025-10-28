@@ -264,20 +264,45 @@ routes.get("/scenes", wrap(async (req, res)=>{
 }));
 
 routes.get("/user", wrap(async (req, res)=>{
-  const vfs = getVfs(req);
+  const user = getUser(req);
+  if(user == null || UserRoles.indexOf(user.level) < 1){
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
+  }
+  res.render("user/settings", {
+    layout: "user",
+    title: "eCorpus User Settings",
+  });
+}));
+
+routes.get("/user/groups", wrap(async (req, res)=>{
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
   }
   const userManager = getUserManager(req);
   const groups = await userManager.getGroupsOfUser(user?.uid);
-  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
-  res.render("user", {
+  res.render("user/groups", {
+    layout: "user",
     title: "eCorpus User Settings",
-    archives,
     groups
   });
 }));
+
+routes.get("/user/archives", wrap(async (req, res)=>{
+  const vfs = getVfs(req);
+  const user = getUser(req);
+  if(user == null || UserRoles.indexOf(user.level) < 1){
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
+  }
+  let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
+  res.render("user/archives", {
+    layout: "user",
+    title: "eCorpus User Settings",
+    archives,
+  });
+}));
+
+
 
 routes.use("/admin", isManage);
 routes.get("/admin", (req, res)=>{
