@@ -4,7 +4,7 @@ import config from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
-import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneMeta, SceneQuery } from "./types.js";
+import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneMeta, SceneQuery, SceneType } from "./types.js";
 import errors, { expandSQLError } from "./helpers/errors.js";
 import { UserLevels } from "../auth/User.js";
 import { dicts } from "../utils/templates.js";
@@ -254,9 +254,10 @@ export default abstract class ScenesVfs extends BaseVfs{
       default_access: number,
       public_access: number,
       archived: Date|null,
+      type: SceneType,
     }>(
       `
-      SELECT id, name, ctime, archived, mtime, author_id, author, thumb, tags, user_access, default_access, public_access
+      SELECT id, name, ctime, archived, mtime, author_id, author, thumb, tags, user_access, default_access, public_access, type
       FROM (
         SELECT
           ${withMatch? "MAX(rank) as rank," : ""}
@@ -264,6 +265,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           scenes.scene_name AS name,
           scenes.ctime AS ctime,
           scenes.archived AS archived,
+          scene_type AS type,
           MAX(COALESCE(documents.ctime, scenes.ctime)) as mtime,
           scenes.fk_author_id AS author_id,
           COALESCE(users.username, 'default') AS author,
@@ -325,10 +327,12 @@ export default abstract class ScenesVfs extends BaseVfs{
       default_access: number,
       public_access: number,
       archived: Date|null,
+      type: SceneType,
     }>(`
       SELECT 
         scene_name as name,
         scene_id as id,
+        scene_type as type,
         ctime,
         archived,
         fk_author_id AS author_id,

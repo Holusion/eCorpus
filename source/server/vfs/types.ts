@@ -77,6 +77,13 @@ export interface GetFileResult extends FileProps{
 }
 
 
+const SceneTypes = [
+  null,
+  "html",
+  "voyager"
+] as const;
+export type SceneType = typeof SceneTypes[number];
+
 
 export interface Scene extends ItemProps{
   /** optional name of the scene's thumbnail. Will generally be null due to sql types */
@@ -88,6 +95,7 @@ export interface Scene extends ItemProps{
   public_access: AccessType;
   default_access : AccessType;
   archived: Date|null;
+  type: SceneType;
 }
 
 export interface SceneMeta{
