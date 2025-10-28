@@ -127,7 +127,7 @@ test("can show archived scenes", async ({page, uniqueAccount:{username}})=>{
   const {scenes} = await res.json();
   expect(scenes).toHaveLength(1);
 
-  await page.goto("/ui/user");
+  await page.goto("/ui/user/archives");
 
   await expect(page.getByRole("link", {name})).toBeVisible();
   await page.getByLabel('labels.restore').click();

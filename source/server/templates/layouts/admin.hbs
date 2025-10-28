@@ -9,7 +9,7 @@
   </head>
   <body>
   {{> navbar }}
-  <main class="admin-panel">
+  <main class="tabs-main admin-panel">
     <nav class="admin-nav">
       {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.adminRecap"}}{{/navLink}}
       {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.adminUsers"}}{{/navLink}}
@@ -25,50 +25,6 @@
   </main>
   {{> footer }}
   <script src="/dist/js/corpus.js"></script>
-  <style>
-    .admin-panel{
-      display:flex;
-      gap: 15px;
-      padding: 1rem;
-      align-items: start;
-    }
-    .admin-panel nav{
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      padding-bottom: 10px;
-      margin-top: 75px;
-    }
-    section{
-      width:100%;
-    }
-    .admin-panel nav > .nav-link{
-      font-size: 1rem;
-      text-align: left;
-      min-width:200px;
-      flex-wrap: nowrap;
-    }
-    .admin-panel  nav > .nav-link svg{
-      fill: white;
-      padding-right: 2px;
-    }
-    .admin-panel  nav > .nav-link ui-icon{
-      width: 1.5rem !important;
-      height: 1.5rem !important;
-    }
 
-    @media (max-width: 1024px){
-      .admin-panel{
-        flex-direction: column;
-      }
-      .admin-panel nav{
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-self: stretch;
-        justify-content: center;
-        margin-top:0;
-      }
-    }
-  </style>
   </body>
 </html>

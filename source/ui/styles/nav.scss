@@ -135,3 +135,48 @@ nav{
   }
 
 }
+
+.tabs-main{
+  display:flex;
+  gap: 15px;
+  padding: 1rem;
+  align-items: start;
+  > nav{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-bottom: 10px;
+    margin-top: 75px;
+    > .nav-link{
+      font-size: 1rem;
+      text-align: left;
+      min-width:200px;
+      flex-wrap: nowrap;
+      svg{
+        fill: white;
+        padding-right: 2px;
+      }
+      ui-icon{
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+      }
+    }
+  }
+  > section{
+    width:100%;
+  }
+}
+
+@media (max-width: 1024px){
+  .tabs-main{
+    flex-direction: column;
+    nav{
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-self: stretch;
+      justify-content: center;
+      margin-top:0;
+    }
+
+  }
+}
