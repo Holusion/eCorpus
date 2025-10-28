@@ -47,10 +47,12 @@ interface GlobalOptions {
 	 */
 	slots: RegExp;
   tmpdir: string;
+	maxSize?: number;
 }
 
 export interface ETC1SOptions extends GlobalOptions {
   mode: typeof Mode.ETC1S;
+	/** [1..255] quality setting. Higher is better. */
 	quality?: number;
 	compression?: number;
 	rdo?: boolean;
@@ -58,6 +60,7 @@ export interface ETC1SOptions extends GlobalOptions {
 
 export interface UASTCOptions extends GlobalOptions {
   mode: typeof Mode.UASTC;
+	/** 0 (fastest) to 4 (slowest) */
 	level?: number;
 	zstd?: number;
 }
@@ -97,14 +100,11 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 
       let srcMimeType = texture.getMimeType();
 
-      if (srcMimeType === 'image/ktx2') {
-        logger.debug(`${prefix}: Skipping, already KTX.`);
-        return;
-      } else if (srcMimeType !== 'image/png' && srcMimeType !== 'image/jpeg') {
-        logger.warn(`${prefix}: Skipping, unsupported texture type "${texture.getMimeType()}".`);
-        return;
-      } else if (options.slots && !slots.find((slot) => slot.match(options.slots))) {
+      if (options.slots && !slots.find((slot) => slot.match(options.slots))) {
         logger.debug(`${prefix}: Skipping, [${slots.join(', ')}] excluded by "slots" parameter.`);
+        return;
+      }else if (srcMimeType === 'image/ktx2') {
+        logger.debug(`${prefix}: Skipping, already KTX.`);
         return;
       }
 
@@ -121,14 +121,22 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
       }
 
       //Resize
-      if(!srcSize.every(n=>isMultipleOfFour(n))){
+      if(typeof options.maxSize === "number" || !srcSize.every(n=>isMultipleOfFour(n)) || texture.getMimeType() === "image/webp"){
 				// Constrain texture size to a multiple of four
 				// To be conservative with 3D API compatibility
 				// @see https://github.khronos.org/KTX-Specification/ktxspec.v2.html#dimensions
-				logger.warn(`Source image ${texture.getName()} at index ${textureIndex} is ${srcSize.join("x")} px. Resizing to a multiple of four`);
+				if(typeof options.maxSize ==="number"){
+					logger.info(`Resizing images to fit within a ${options.maxSize}x${options.maxSize} pixels square`);
+				}else if(texture.getMimeType() === "image/webp"){
+					// toktx doesn't support webp images
+					logger.info("Reencoding webp image to png before basisu conversion")
+				}
+				let dstSize:[number, number] =  ((typeof options.maxSize === "number")?fitWithin(srcSize, options.maxSize):srcSize);
+				if(!dstSize.every(n=>isMultipleOfFour(n))){
+					logger.warn(`Source image ${texture.getName()} at index ${textureIndex} ${typeof options.maxSize === "number"?"would be":"is"} ${dstSize.join("x")} px. Ceiling to a multiple of four`);
+					dstSize = dstSize.map(n=> ceilMultipleOfFour(n)) as [number, number];
+				}
         const encoder = sharp(srcImage, { limitInputPixels: 32768 * 32768 }).toFormat('png');
-
-        const dstSize = srcSize.map(n=> ceilMultipleOfFour(n));
 
         if(!dstSize.every(n=>isPowerofTwo(n))){
           logger.warn(`${prefix}: Resizing ${srcSize.join('x')} → ${dstSize.join('x')}px: This is not a power of two, which might not be optimal for performance`);
@@ -266,4 +274,22 @@ function isPowerofTwo(n:number) {
 function ceilMultipleOfFour(value: number): number {
 	if (value <= 4) return 4;
 	return value % 4 ? value + 4 - (value % 4) : value;
+}
+export function fitWithin(size: [number, number], limit: number): [number, number] {
+
+	let [width, height] = size;
+
+	if (width <= limit && height <= limit) return size;
+
+	if (width > limit) {
+		height = Math.floor(height * (limit / width));
+		width = limit;
+	}
+
+	if (height > limit) {
+		width = Math.floor(width * (limit / height));
+		height = limit;
+	}
+
+	return [width, height];
 }

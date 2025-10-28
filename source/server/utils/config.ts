@@ -27,6 +27,7 @@ const values = {
   experimental: [false, toBool],
   /// FEATURE FLAGS ///
   enable_document_merge: [isExperimental, toBool],
+  enable_rebake_textures: [isExperimental, toBool],
   
 } as const;
 
@@ -64,7 +65,7 @@ function toListenTarget(s:string):number|string{
 }
 
 function toBool(s:string):boolean{
-  return !(!s || s.toLowerCase() === "false" || s == "0");
+  return !(!s || ["false", "0", "no"].indexOf(s.toLowerCase()) !== -1);
 }
 
 /**

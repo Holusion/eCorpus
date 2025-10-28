@@ -101,7 +101,7 @@ export async function runBlenderScript(script: string, scriptArgs: string[], par
       "--background",
       "--offline-mode",
       "--factory-startup",
-      "--threads", "1",
+      "--threads", "4",
       "--addons", "io_scene_gltf2",
       "--python", script,
       "--",

@@ -76,9 +76,10 @@ def configure():
   bpy.data.scenes['Scene'].render.bake.use_pass_direct = False
   bpy.data.scenes['Scene'].render.bake.use_pass_indirect = False
   bpy.data.scenes['Scene'].render.bake.use_pass_color = True
-  # FIXME is it possible to rebake using Eevee?
+  # only Cycles can bake
   bpy.data.scenes['Scene'].render.engine = 'CYCLES' 
   bpy.data.scenes['Scene'].cycles.device = 'CPU'
+  bpy.data.scenes['Scene'].render.bake.margin_type = 'ADJACENT_FACES' # Or 'EXTEND'?
   #We won't resize the texture further so we don't expect too much bleeding. We might even use 0
   bpy.data.scenes['Scene'].render.bake.margin = 1 
 
