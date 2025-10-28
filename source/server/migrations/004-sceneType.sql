@@ -2,6 +2,8 @@
 -- Up
 --------------------------------------------------------------------------------
 ALTER TABLE scenes ADD COLUMN IF NOT EXISTS scene_type text CONSTRAINT scene_type_values CHECK (scene_type = 'voyager' OR scene_type = 'html');
+UPDATE scenes SET scene_type = 'html' FROM current_files WHERE scenes.scene_id = current_files.fk_scene_id AND current_files.name = 'index.html';
+UPDATE scenes SET scene_type = 'voyager' FROM current_files WHERE scenes.scene_id = current_files.fk_scene_id AND current_files.name = 'scene.svx.json';
 
 CREATE FUNCTION set_scene_type() RETURNS TRIGGER AS $$
 BEGIN
