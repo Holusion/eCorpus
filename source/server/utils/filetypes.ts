@@ -1,23 +1,10 @@
 import fs from 'fs/promises';
 
 import {Request} from "express";
-import {lookup, types} from "mime-types";
+import {lookup, types, extension, extensions} from "mime-types";
 
-const mimeMap :Record<string,string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".mp4": "video/mp4",
-  ".glb": "model/gltf-binary",
-  ".obj": "model/obj",
-  ".htm": "text/html",
-  ".html": "text/html",
-  ".txt": "text/plain",
-  ".json": "application/json",
-  ".svx.json":"application/si-dpo-3d.document+json",
-}
-const mimeList = Object.values(mimeMap);
+//Add non-standard extension
+extensions["application/si-dpo-3d.document+json"] = ["svx.json"];
 
 export function getMimeType(name:string){
   //Special case because extname doesn't recognize double-extensions
@@ -46,8 +33,14 @@ export function compressedMime(mime :string) :boolean{
   return true;
 }
 
+/**
+ * Returns standard extension with a leading dot for a given mime type
+ * Returns an empty string for extensionless types (eg: application/octet-stream)
+ */
 export function extFromType(type: string){
-  return mimeList.find(([key])=>key === type)?.[0];
+  let ext = extension(type);
+  if(ext === "bin") return "";
+  return `.${ext}`;
 }
 
 export async function readMagicBytes(filepath: string): Promise<string>{
@@ -55,6 +48,7 @@ export async function readMagicBytes(filepath: string): Promise<string>{
   try{
     const b = Buffer.alloc(12);
     const {bytesRead} = await handle.read(b);
+    console.log("Read :", bytesRead, b.subarray(0, 4).toString("hex"));
     return parseMagicBytes(b.subarray(0, bytesRead));
   }finally{
     await handle.close();
@@ -62,7 +56,9 @@ export async function readMagicBytes(filepath: string): Promise<string>{
 }
 
 /**
- * 
+ * Seek the first bytes of a file to find type signatures.
+ * Most files have 4 bytes signatures.
+ * RIFF containers (eg: webp) needs at least 12 bytes of content
  * @see {@link https://en.wikipedia.org/wiki/List_of_file_signatures File Signatures }
  */
 export function parseMagicBytes(src: Buffer|Uint8Array) :string{
@@ -74,14 +70,18 @@ export function parseMagicBytes(src: Buffer|Uint8Array) :string{
     return "image/jpeg";
   }
 
-  if(src[0] == 0x52 && src.subarray(0, 4).toString("hex") == "52494646"){
+  if(src[0] == 0x52 && src.subarray(0, 4).toString("ascii") == "RIFF"){
     //RIFF files. Next 4 bytes are for the file size.
     let sig = src.subarray(8, 12).toString();
     if(sig == "WEBP") return "image/webp";
   }
 
-  if(src[0] == 0x46 && src.subarray(0, 4).toString("hex") == "46546c67" /* glTF ASCII String*/){
+  if(src[0] == 0x67 && src.subarray(0, 4).toString("ascii") == "glTF"){
     return "model/gltf-binary";
+  }
+
+  if(src[0] == 0x50 && src.subarray(0, 4).toString("hex") == "504b0304"){
+    return "application/zip";
   }
 
   return "application/octet-stream";

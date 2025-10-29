@@ -1,7 +1,10 @@
+import path from "node:path";
 import express from "express";
-import { compressedMime, getContentType, getMimeType, parseMagicBytes } from "./filetypes.js";
+import { compressedMime, extFromType, getContentType, getMimeType, parseMagicBytes, readMagicBytes } from "./filetypes.js";
 import request from "supertest";
 
+
+import { fixturesDir } from "../__test_fixtures/fixtures.js";
 
 describe("getMimeType",function(){
   //Check proper operation of mimetype guessing function
@@ -97,7 +100,21 @@ describe("compressedMime", function(){
 
 
 describe("extFromType()", function(){
-  
+
+  Object.entries({
+    "model/gltf-binary": ".glb",
+    "image/jpeg": ".jpeg",
+    "application/zip": ".zip",
+    "application/si-dpo-3d.document+json": ".svx.json",
+  }).forEach(function([type, extname]){
+    it(`${type} => ${extname}`, function(){
+      expect(extFromType(type)).to.equal(extname);
+    });
+  });
+
+  it("returns an empty string for extensionless files", function(){
+    expect(extFromType("application/octet-stream")).to.equal("");
+  });
 });
 
 describe("parseMagicBytes()", function(){
@@ -128,13 +145,23 @@ describe("parseMagicBytes()", function(){
 
   it("model/gltf-binary", function(){
     // See https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#binary-header
+    // maps to glTF ascii string, but backwards, because it's a little-endian format
     const b= Buffer.alloc(4);
-    b.writeUint32LE(0x676C5446);
+    b.writeUint32LE(0x46546C67);
     expect(parseMagicBytes(b)).to.equal("model/gltf-binary");
-    
-    expect(parseMagicBytes(Buffer.from("46546c67", "hex"))).to.equal("model/gltf-binary");
-
   });
 
+  it("application/zip", function(){
+    // See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
+    const b = Buffer.alloc(4);
+    b.writeUint32LE(0x04034b50);
+    expect(parseMagicBytes(b)).to.equal("application/zip");
+  });
+});
 
-})
+describe("readMagicBytes()", function(){
+  it("reads first bytes of a glb file", async function(){
+    let type = await readMagicBytes(path.join(fixturesDir, "cube.glb"));
+    expect(type).to.equal("model/gltf-binary");
+  });
+});
