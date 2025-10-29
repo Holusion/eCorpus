@@ -3,7 +3,6 @@ import { TaskHandlerParams } from "../../types.js";
 
 
 function walkPath(path: string, input: any):any{
-  console.log("Walk selector :", path, input);
   let ptr: any = input;
   while(path.length){
     const m = /^\.?([^.\[$]+|\.?\[[^\]$]+\])/.exec(path);
@@ -27,7 +26,6 @@ function walkPath(path: string, input: any):any{
     if(ptr == null) throw new TypeError(`Cannot read properties of null (reading '${attr}')`);
     ptr = ptr[attr];
   }
-  console.log("Value :", ptr);
   return ptr;
 }
 
