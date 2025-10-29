@@ -89,15 +89,16 @@ describe("POST /scenes/:scene", function(){
 
     it("rejects bad files", async function () {
       let res = await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
-        .set("Content-Type", "application/zip")
-        .send("foo");
+      .auth(user.username, "12345678")
+      .set("Content-Type", "application/zip")
+      .send("foo");
       expect(res.status, `${res.error}`).to.equal(500);
       //Code 500 to differentiate bad data from bad encoding (see following tests)
       //If return code is ever changed to 400, we need to specify those tests further.
-      expect(await vfs.getScenes()).to.have.property("length", 0);
-      expect(await vfs._db.get(`SELECT COUNT(*) AS count FROM files`)).to.have.property("count", 0);
-    })
+      expect(await vfs.getScenes(null, {archived: false})).to.have.property("length", 0);
+      //Scene is still there, but archived
+      expect(await vfs.getScenes()).to.have.property("length", 1);
+    });
 
     it("rejects multipart form-data", async function () {
       await request(app).post("/scenes/foo")

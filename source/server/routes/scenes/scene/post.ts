@@ -4,7 +4,7 @@ import { getVfs, getUserId, getTaskScheduler } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
 import { constants, writeFile } from "fs/promises";
-import { readMagicBytes } from "../../../utils/filetypes.js";
+import { extFromType, readMagicBytes } from "../../../utils/filetypes.js";
 import { qsToBool } from "../../../utils/query.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
@@ -49,14 +49,18 @@ export default async function postScene(req :Request, res :Response){
     let filetype = req.get("Content-Type");
     if(!filetype || filetype == "application/octet-stream"){
       filetype = await readMagicBytes(tmpfile);
+      console.log("Read filetype from magic bytes :", filetype);
     }
+
+    const ext = extFromType(filetype);
+    const name = `models/${scene}${ext}`;
 
     let task = await scheduler.create(scene_id, user_id, {
       type: "handleUploads",
       data: {
         files: [{
           path: tmpfile,
-          name: `models/${scene}.glb`,
+          name,
           type: filetype,
         }],
         scene_name: scene,

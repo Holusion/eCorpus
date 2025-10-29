@@ -27,6 +27,7 @@
         "ui": "bdd",
         "recursive": true,
         "check-leaks": true,
+        "slow":150,
         "extension": [
             "js",
             "ts"
