@@ -28,19 +28,19 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
 
   //Do some preprocessing to check what we should generate?
   /** @fixme handle other formats */
-  const modelFiles = files.filter(m=>m.name.toLowerCase().endsWith(".glb"));
+  const modelFiles = files.filter(m=>m.type ==="model/gltf-binary" || m.name.toLowerCase().endsWith(".glb"));
   const with_lod = 1 < modelFiles.length;
   const qualities :TDerivativeQuality[] = with_lod? ["Thumb", "Low", "Medium", "High"]: ["Thumb", "High"];
+  /** @fixme if we want to handle not-voyager-scenes, we should start here */
+  if(!modelFiles.length) throw new Error(`No supported file: Can't create a scene`);
 
   const group = await tasks.group(async function *(tasks){
     for(let file of modelFiles){
       const ext = path.extname(file.name);
       const basename = path.basename(file.name, ext);
       const extname = ext.slice(1).toLowerCase();
-      
-      /** @fixme for extensionless files, we can check for known magic bytes */
 
-      if(extname === "glb"){
+      if(file.type === "model/gltf-binary" || extname === "glb"){
         logger.debug("Found a glb file: "+file.name);
         let model_id = uid();
         /** @fixme export raw glb file as Highest quality? */
@@ -89,7 +89,8 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
           });
         }
       }else{
-        logger.warn("Ignore unsupported file: %s (%s)",file.name, extname);
+        //This should not happen if we pre-filter models properly. Which we should because it then allows the task to fail early, with better reporting
+        logger.error(`Unsupported file type: ${file.name} (${file.type})`);
       }
     }
   });

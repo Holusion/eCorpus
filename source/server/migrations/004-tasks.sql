@@ -2,7 +2,7 @@
 -- Up
 --------------------------------------------------------------------------------
 
-CREATE TYPE task_status AS ENUM ('initializing', 'pending', 'aborting', 'running', 'success', 'error');
+CREATE TYPE task_status AS ENUM ('aborting', 'error', 'initializing', 'running', 'pending', 'success');
 
 CREATE TABLE tasks (
   task_id BIGSERIAL PRIMARY KEY,
