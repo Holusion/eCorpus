@@ -28,7 +28,7 @@
       gap: 5px;
 
     }
-    .row{
+    &.row{
       display:flex;
       align-items: stretch;
       flex-direction: row;
@@ -50,7 +50,7 @@
     margin: .25rem 0 .1rem 0;
   }
 
-
+  /* Should wrap around every <input/> or <select/> and its <label>*/
   .form-item {
     position: relative;
     box-sizing: border-box;
@@ -69,6 +69,7 @@
       }
     }
 
+    /* <input/> styling */
     > input{
       box-sizing: border-box;
       padding: 0.35rem .75rem;
@@ -88,6 +89,8 @@
       &:hover:not(:disabled){
         box-shadow: inset 0 -1px var(--color-highlight2);
       }
+
+      /* input with a button addon (typ. inline submit button)*/
       &:has( + .btn-addon){
         //To have proper outline alignment
         padding-right: 2.5rem;
@@ -107,6 +110,8 @@
         }
       }
     }
+
+    /* Actual button addon styling*/
     > input + .btn-addon{
       position: absolute;
       top: 0;
@@ -123,7 +128,12 @@
     }
 
     > label{
-      opacity: 0.7;
+      opacity: 0.9;
+    }
+
+    &:has(+ .form-lead),
+    + .form-lead {
+      width: auto;
     }
 
   }
@@ -206,7 +216,6 @@
     input:focus ~ label, input:not(:placeholder-shown) ~label{
       opacity: .65;
     }
-
   }
   
   input[type="submit"] {
@@ -223,7 +232,7 @@
     &.dropzone{
       max-width: 100%;
       flex: 1 1 auto;
-      background: var(--color-highlight2);
+      padding: .75rem;
     }
     &::file-selector-button {
       margin-right: 8px;
@@ -232,6 +241,47 @@
       padding: 8px 12px;
       color: #fff;
       cursor: pointer;
+    }
+  }
+
+  input[type=radio],
+  input[type=checkbox] {
+    appearance: none;
+    border-radius: 4px;
+    padding: 1px;
+    position: relative;
+    box-sizing: content-box;
+    height: 1.4rem;
+    display: flex;
+
+    color: white;
+
+    &::before{
+      content: "✓";
+      border-radius: 4px 0 0 4px;
+      background: linear-gradient(90deg, transparent, transparent 50%, var(--color-secondary) 50%, var(--color-secondary));
+    }
+
+    &::after{
+      content: "⨯";
+      border-radius: 0 4px 4px 0;
+      background: linear-gradient(90deg, var(--color-section), var(--color-section) 50%, transparent 50%, transparent);
+    }
+
+    &::before, &::after{
+      padding: 0 .5rem;
+      transition: background-position .1s linear;
+      background-size: 200% 100%;
+      background-position: 0% 0%;
+    }
+
+    &:checked{
+      &::before, &::after{
+        background-position: 100% 0%;
+      }
+      &::after{
+        opacity: 0.4;
+      }
     }
   }
 
@@ -251,13 +301,13 @@
     padding: 5px;
     border: none;
     color: inherit;
-    background: var(--color-section);
+    background: var(--color-element);
     cursor: pointer;
     option{
       -webkit-appearance: none;
       -moz-appearance: none;
       appearance: none;
-      background-color: var(--color-section);
+      background-color: var(--color-element);
     }
 
     @at-root .list-table &{
@@ -271,5 +321,34 @@
   &:disabled *, & *:disabled, & *:disabled * {
     pointer-events: none;
     opacity: 0.7;
+  }
+
+
+  &.form-grid,
+  & .form-grid{
+    display: grid;
+    justify-content: center;
+    align-items: baseline;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-flow: dense;
+    gap: .5rem;
+    
+    > .form-title{
+      grid-column: 1 / end;
+    }
+    > .form-item,
+    > .form-group{
+      grid-column: 1 / span 1;
+    }
+    > .form-lead {
+      grid-column: 2 / span 1;
+      margin: 2px;
+    }
+    @media screen and (max-width: 992px) {
+      grid-template-columns: minmax(auto, 500px);
+    > .form-lead {
+      grid-column: 1 / span 1;
+    }
+    }
   }
 }
