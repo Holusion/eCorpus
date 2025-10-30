@@ -136,12 +136,12 @@ export default class UploadForm extends i18n(LitElement){
     }
 
     let url = new URL(as_scenes? `/scenes`:`/scenes/${name}`, window.location.href);
+
     if(typeof language === "string" && language){
       url.searchParams.set("language", language);
     }
-    if(optimize){
-      url.searchParams.set("optimize", "true");
-    }
+
+    url.searchParams.set("optimize", optimize?"true": "false");
 
     xhr.open('POST', url);
     xhr.send(file);

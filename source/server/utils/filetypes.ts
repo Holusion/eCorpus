@@ -48,7 +48,6 @@ export async function readMagicBytes(filepath: string): Promise<string>{
   try{
     const b = Buffer.alloc(12);
     const {bytesRead} = await handle.read(b);
-    console.log("Read :", bytesRead, b.subarray(0, 4).toString("hex"));
     return parseMagicBytes(b.subarray(0, bytesRead));
   }finally{
     await handle.close();

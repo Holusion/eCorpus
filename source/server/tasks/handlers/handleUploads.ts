@@ -30,7 +30,14 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
   /** @fixme handle other formats */
   const modelFiles = files.filter(m=>m.type ==="model/gltf-binary" || m.name.toLowerCase().endsWith(".glb"));
   const with_lod = 1 < modelFiles.length;
-  const qualities :TDerivativeQuality[] = with_lod? ["Thumb", "Low", "Medium", "High"]: ["Thumb", "High"];
+  let qualities :TDerivativeQuality[] = ["High"];
+  if(with_lod){
+    logger.log("Multiple models : enable all quality levels");
+    qualities = ["Thumb", "Low", "Medium", "High"];
+  }else if(optimize){
+    logger.log("Optimization enabled: Generating Thumb and High qualities");
+    qualities = ["Thumb", "High"];
+  }
   /** @fixme if we want to handle not-voyager-scenes, we should start here */
   if(!modelFiles.length) throw new Error(`No supported file: Can't create a scene`);
 
@@ -48,7 +55,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
           logger.debug("Create processing tasks for %s in quality %s", file.name, quality);
           const filename = `${basename}_${quality.toLowerCase()}.glb`;
 
-          const do_optimize = (optimize || quality != "High");
+          const do_optimize = (optimize /*|| quality != "High" /*We might want */);
           let optimizeTask:number|null = null;
           if(do_optimize){
             logger.log(`Optimize ${file.name} for quality ${quality}`);
@@ -93,6 +100,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
         logger.error(`Unsupported file type: ${file.name} (${file.type})`);
       }
     }
+    logger.debug("Tasks creation complete");
   });
 
   return await tasks.create({
