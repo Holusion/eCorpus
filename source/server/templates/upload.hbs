@@ -1,51 +1,60 @@
-<h2>{{i18n "titles.upload"}}</h2>
 
-<upload-form>
-  <form class="form-control" aria-labelledby="upload-form-title">
-    <section class="container" style="margin: 1rem  0;max-width: 100%">
-      <h3 id="upload-form-title">{{i18n "titles.createOrUpdateScene"}}                  
-        {{#> popover id="upload-tooltip" type="button" }}{{i18n "tooltips.upload"}}{{/popover}}
-        </h3>
-      <div class="form-group">
-        <div class="form-item">
-          <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile_s"}} (glb, zip)</label>
-          <input 
-              role="button"
-              class="dropzone"
-              id="fileUpload" 
-              type="file"
-              name="files"
-              multiple
-            />
-        </div>
-      </div>
-      <div class="form-group inline" style="gap: .5rem;" >
-        <div class="form-item" style="flex: 1 1 auto;">
-          <label for="sceneTitle">{{i18n "labels.sceneTitle"}} ({{i18n "labels.optional"}}, {{ i18n "labels.ignoredIfMultipleScenes"}})</label>
-          <input id="sceneTitle" type="text" name="name">
-        </div>
-        
-        <div class="form-item">
-          <label for="sceneSetupLanguage">{{i18n "labels.setupLocalization"}}</label>
-          <select name="language" id="sceneSetupLanguage" >
-            {{#each languages}}
-            <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
-            {{/each}}
-          </select>
-        </div>
-        <div class="form-item" style="align-self: end; justify-self: end">
-          <button class="btn btn-main" type="submit" role="submit" >{{i18n "buttons.upload"}}</button>
-        </div>
-      </div>
+<div class="main-container">
+  
+  <h2>{{i18n "titles.upload"}}</h2>
+  <div class="grid-content">
+    <section class="container">
+      <upload-form>
+        <form class="form-control form-grid" aria-labelledby="upload-form-title" >
+          <h3 id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
+          <p class="form-lead">{{i18n "leads.uploadFiles"}}</p>
+          <div class="form-group">
+            <div class="form-item">
+              <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile_s"}} (glb, zip)</label>
+              <input 
+                  role="button"
+                  class="dropzone"
+                  id="fileUpload" 
+                  type="file"
+                  name="files"
+                  multiple
+                />
+            </div>
+          </div>
+
+          <p class="form-lead">{{i18n "leads.uploadOptimize" }}</p>
+          <div class="form-item inline">
+            <input id="sceneOptimize" type="checkbox" name="optimize"/>
+            <label for="sceneOptimize">{{i18n "labels.optimizeModel"}}</label>
+          </div>
+
+          <p class="form-lead">{{i18n "leads.uploadTitle"}}</p>
+          <div class="form-group">
+            <div class="form-item">
+              <label for="sceneTitle">{{i18n "labels.sceneTitle"}}</label>
+              <input id="sceneTitle" type="text" name="name">
+            </div>
+          </div>
+
+          <p class="form-lead">{{i18n "leads.uploadLanguage"}}</p>
+          <div class="form-group">
+            <div class="form-item">
+              <label for="sceneSetupLanguage">{{i18n "labels.setupLocalization"}}</label>
+              <select name="language" id="sceneSetupLanguage" >
+                {{#each languages}}
+                <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
+                {{/each}}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group row" style="justify-content: end">
+            <div class="form-item" style="align-self: end; justify-self: end">
+              <button class="btn btn-main" type="submit" role="submit" >{{i18n "buttons.upload"}}</button>
+            </div>
+          </div>
+        </form>
+      </upload-form>
     </section>
-  </form>
-</upload-form>
-
-
-{{#if tasks.length}}
-<section>
-  <h3>{{i18n "titles.tasks" }}</h3>
-  {{> tasks/list tasks=tasks }}
-</section>
-
-{{/if}}
+  </div>
+</div>

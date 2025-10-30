@@ -31,7 +31,7 @@ section, .section{
   background: var(--color-section);
 
   &.container{
-    max-width: 1200px;
+    max-width: var(--col-width);
     margin: 1rem auto;
   }
 
@@ -96,14 +96,18 @@ section, .section{
   }
 }
 
+/* Centered column layout */
+.main-container{
+  max-width: var(--col-width);
+  margin: 0 auto;
+}
 
-
-
+/* grid with a sidebar and a top header */
 .main-grid{
   display: grid;
   gap: .5rem;
   grid-auto-rows: auto;
-  grid-template-columns: minmax(auto, 300px) 1fr;
+  grid-template-columns: minmax(auto, var(--sidebar-width)) 1fr;
   grid-template-areas: 
     '. header'
     'toolbar content';
