@@ -17,6 +17,8 @@ import UserManager from "../../../auth/UserManager.js";
 import User, { UserLevels } from "../../../auth/User.js";
 
 
+const models = (await fs.readdir(fixturesDir)).filter(f=> f.endsWith("glb")).map(f=>path.join(fixturesDir, f));
+
 describe("POST /scenes/:scene", function(){
   let vfs:Vfs, userManager: UserManager, user :User, app: Application, data:Buffer;
   this.beforeEach(async function(){
@@ -34,6 +36,7 @@ describe("POST /scenes/:scene", function(){
     this.beforeEach(async function () {
       user = await userManager.addUser("celia", "12345678", "create", "create@example.com");
     });
+
     it("creates .glb and .svx.json files", async function () {
       await request(app).post("/scenes/foo")
         .auth(user.username, "12345678")
@@ -46,7 +49,7 @@ describe("POST /scenes/:scene", function(){
         .expect("Content-Type", "application/si-dpo-3d.document+json");
       let doc = res.body;
       let models = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
-      console.log("Models :", models);
+
       expect(models).to.have.property("length").above(1);
       for(let model of models){
         await request(app).get("/scenes/foo/"+model)
@@ -55,6 +58,60 @@ describe("POST /scenes/:scene", function(){
         .expect("Content-Type", "model/gltf-binary");
       }
     });
+
+    it("can upload the model as-is", async function(){
+      await request(app).post("/scenes/foo?optimize=false")
+      .auth(user.username, "12345678")
+      .send(data)
+      .expect(201);
+      let res = await request(app).get("/scenes/foo/scene.svx.json")
+        .auth(user.username, "12345678")
+        .expect(200)
+        .expect("Content-Type", "application/si-dpo-3d.document+json");
+      let doc = res.body;
+      let high_model = doc.models.map((m:any)=> m.derivatives.filter((d: any)=>d.quality == "High").map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3)[0];
+
+      expect(high_model, "Expected to find a model of quality \"High\"").to.be.ok;
+          res = await request(app).get(`/scenes/foo/${high_model}`)
+      .auth(user.username, "12345678")
+      .expect(200);
+
+      expect(res.text, `expect model to not have been modified during the upload`).to.equal(data.toString("utf8"));
+    });
+
+    models.forEach(model=>{
+      [true, false].forEach(optimize=>{
+        it(`can upload ${path.basename(model)} with${optimize?"":"out"} optimization`, async function(){
+          const data = await fs.readFile(model);
+
+          await request(app).post(`/scenes/foo?optimize=${optimize.toString()}`)
+          .auth(user.username, "12345678")
+          .send(data)
+          .expect(201);
+
+          let res = await request(app).get("/scenes/foo/scene.svx.json")
+          .auth(user.username, "12345678")
+          .expect(200)
+          .expect("Content-Type", "application/si-dpo-3d.document+json");
+          let doc = res.body;
+          let models = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
+          expect(models).to.have.property("length").above(1);
+          
+          let high_model = doc.models.map((m:any)=> m.derivatives.filter((d: any)=>d.quality == "High").map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3)[0];
+          expect(high_model, "Expected to find a model of quality \"High\"").to.be.ok;
+          res = await request(app).get(`/scenes/foo/${high_model}`)
+          .auth(user.username, "12345678")
+          .expect(200);
+
+          if(optimize){
+            expect(res.text, `expect model to have been modified during the upload`).to.not.equal(data.toString("utf8"));
+          }else{
+            expect(res.text, `expect model to not have been modified during the upload`).to.equal(data.toString("utf8"));
+          }
+          
+        });
+      })
+    })
 
     it("can force scene's setup language", async function () {
       await request(app).post("/scenes/foo?language=fr")

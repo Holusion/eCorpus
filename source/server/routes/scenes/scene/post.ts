@@ -26,7 +26,7 @@ export default async function postScene(req :Request, res :Response){
   let {scene} = req.params;
   let {language: languageQuery, optimize: optimizeQuery} = req.query;
   const language = typeof languageQuery === "string"?languageQuery.toUpperCase(): languageQuery;
-  const optimize = qsToBool(req.query.optimize, true);
+  const optimize = qsToBool(req.query.optimize, false);
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
@@ -49,11 +49,10 @@ export default async function postScene(req :Request, res :Response){
     let filetype = req.get("Content-Type");
     if(!filetype || filetype == "application/octet-stream"){
       filetype = await readMagicBytes(tmpfile);
-      console.log("Read filetype from magic bytes :", filetype);
     }
 
     const ext = extFromType(filetype);
-    const name = `models/${scene}${ext}`;
+    const name = `${scene}${ext}`;
 
     let task = await scheduler.create(scene_id, user_id, {
       type: "handleUploads",
