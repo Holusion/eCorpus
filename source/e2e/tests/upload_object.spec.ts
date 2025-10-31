@@ -35,8 +35,10 @@ test("uploads and rename a glb", async ({page, request})=>{
   expect(doc.setups).toHaveLength(1);
   expect(doc.setups[0]).toHaveProperty("language", {language: "EN"});
 
-
-  res = await request.get(`/scenes/${name}/models/${name}.glb`);
+  expect(doc.models[0].derivatives).toHaveLength(1);
+  const model = doc.models[0].derivatives[0].assets[0].uri;
+  expect(model, `Couldn't find model uri in: `+JSON.stringify(doc.models[0].derivatives[0])).toBeTruthy();
+  res = await request.get(`/scenes/${name}/${model}`);
   await expect(res).toBeOK();
   expect(res.headers()).toHaveProperty("etag", "W/4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs");
 });
@@ -68,8 +70,11 @@ test("uploads and rename a glb (force FR)", async ({page, request})=>{
   expect(doc.setups).toHaveLength(1);
   expect(doc.setups[0]).toHaveProperty("language", {language: "FR"});
 
+  expect(doc.models[0].derivatives).toHaveLength(1);
+  const model = doc.models[0].derivatives[0].assets[0].uri;
+  expect(model, `Couldn't find model uri in: `+JSON.stringify(doc.models[0].derivatives[0])).toBeTruthy();
 
-  res = await request.get(`/scenes/${name}/models/${name}.glb`);
+  res = await request.get(`/scenes/${name}/${model}`);
   await expect(res).toBeOK();
   expect(res.headers()).toHaveProperty("etag", "W/4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs");
 });
@@ -94,7 +99,7 @@ test("upload many glb", async ({page, request})=>{
     const buffer = Buffer.from(content);
     files.push({
       name: randomUUID()+".glb",
-      mimeType: "model/gltf+binary",
+      mimeType: "model/gltf-binary",
       buffer,
     })
   }

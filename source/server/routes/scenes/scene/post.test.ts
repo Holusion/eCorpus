@@ -43,6 +43,11 @@ describe("POST /scenes/:scene", function(){
         .send(data)
         .expect(201);
       await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
+
+      //Check scene.svx.json in the databse - because GET gets special-cased and can lie about the stored mime type
+      const docProps = await vfs.getFileProps({scene: "foo", name:"scene.svx.json"}, true);
+      expect(docProps).to.have.property("mime", "application/si-dpo-3d.document+json");
+      // Check GET scene.svx.json
       let res = await request(app).get("/scenes/foo/scene.svx.json")
         .auth(user.username, "12345678")
         .expect(200)
@@ -50,7 +55,7 @@ describe("POST /scenes/:scene", function(){
       let doc = res.body;
       let models = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
 
-      expect(models).to.have.property("length").above(1);
+      expect(models).to.have.property("length").not.equal(0);
       for(let model of models){
         await request(app).get("/scenes/foo/"+model)
         .auth(user.username, "12345678")
@@ -94,8 +99,8 @@ describe("POST /scenes/:scene", function(){
           .expect(200)
           .expect("Content-Type", "application/si-dpo-3d.document+json");
           let doc = res.body;
-          let models = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
-          expect(models).to.have.property("length").above(1);
+          let assets = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
+          expect(assets).to.have.property("length", optimize? 2 : 1);
           
           let high_model = doc.models.map((m:any)=> m.derivatives.filter((d: any)=>d.quality == "High").map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3)[0];
           expect(high_model, "Expected to find a model of quality \"High\"").to.be.ok;

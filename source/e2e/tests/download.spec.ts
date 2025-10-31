@@ -50,7 +50,7 @@ test("downloads a scene archive", async ({page, request})=>{
   await once(zip, "end");
   expect(entries).toHaveLength(2);
   expect(entries.map(e=>e.fileName).sort()).toEqual([
-    `scenes/${name}/models/${name}.glb`,
+    `scenes/${name}/${name}_high.glb`,
     `scenes/${name}/scene.svx.json`,
   ]);
 });

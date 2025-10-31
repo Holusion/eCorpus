@@ -3,7 +3,7 @@ import { TaskHandlerParams } from "../types.js";
 import getDefaultDocument from "../../utils/schema/default.js";
 import { INode } from "../../utils/schema/document.js";
 import { TLanguageType } from "../../utils/schema/common.js";
-import { IDerivative, IModel, TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
+import { IAsset, IDerivative, IModel, TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
 import { SceneDescription } from "./glb/inspect.js";
 
 
@@ -101,19 +101,22 @@ export async function createDocument({task: {fk_scene_id: scene_id, data: {model
     const model = document.models[node.model!];
     if(!model) throw new Error(`Node ${id} does not point to a valid model in scene document`);
     if(model.derivatives.find(d=>d.quality == quality && d.usage == usage)) throw new Error(`Duplicate derivative ${usage}/${quality} for node ${id} (model #${node.model}) in scene document`)
-    
+    let asset :IAsset = {
+      "uri": filename,
+      "type": "Model",
+      "byteSize": size,
+    };
+    if(meta.imageSize){
+      asset.imageSize = meta.imageSize;
+    }
+    if(meta.numFaces){
+      asset.numFaces = meta.numFaces;
+    }
+
     let derivative: IDerivative = {
       "usage": usage,
       "quality": quality,
-      "assets": [
-        {
-          "uri": filename,
-          "type": "Model",
-          "byteSize": size,
-          "numFaces": meta.numFaces,
-          "imageSize": meta.imageSize,
-        }
-      ],
+      "assets": [ asset ],
     };
     model.derivatives.push(derivative);
   }
@@ -124,5 +127,6 @@ export async function createDocument({task: {fk_scene_id: scene_id, data: {model
     scene: scene_id,
     user_id,
     name: "scene.svx.json",
+    mime: "application/si-dpo-3d.document+json"
   });
 };
