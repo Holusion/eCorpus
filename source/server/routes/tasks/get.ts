@@ -63,7 +63,7 @@ export async function getSceneTasks(req: Request, res: Response){
   let {taskScheduler, vfs} = getLocals(req);
 
 
-  let {id: scene_id} = await vfs.getScene(scene);
+  let {id: scene_id, name} = await vfs.getScene(scene);
   let params = {scene_id, ...queryToPage(req.query)};
 
   let tree = await taskScheduler.getTasks(params);
@@ -74,7 +74,7 @@ export async function getSceneTasks(req: Request, res: Response){
       res.status(200).send(tree);
     },
     "text/plain": ()=>{
-      let txt = `${scene}\n`;
+      let txt = `${name}\n`;
       for(let rootTask of tree){
         txt+= formatTaskTree(rootTask).join("\n") ;
       }
