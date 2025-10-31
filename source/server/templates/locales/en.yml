@@ -21,7 +21,6 @@ labels:
   forgottenPassword: Forgotten password
   pagination: pagination
   searchPlaceholder: search a scene
-  ignoredIfMultipleScenes: ignored if multiple scenes are created at the same time
   sortBy: Sort by
   loginLink: Copy direct login link
   sendLoginLink: Send a login link
@@ -51,6 +50,7 @@ labels:
   buildId: Build ID
   databaseSchema: Database schema version
   show: show
+  optimizeModel: Optimize the file
 
 buttons:
   searchScene: search scenes
@@ -205,6 +205,15 @@ leads:
   groupsList: Groups {{start}}-{{end}}/{{total}}
   noArchives: No archived scenes
   noGroups: This user has not been added to any group
+  uploadFiles: >
+    Accepted files are standalone glb files or zip archives exported from another eCorpus instance
+    En cas de duplication du nom de scène, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
+  uploadTitle: >
+    Title is only used when one GLB is uploaded
+  uploadLanguage: >
+    Set default language for the created scene
+  uploadOptimize: >
+    Apply advanced compression to the uploaded file
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

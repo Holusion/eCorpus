@@ -3,6 +3,7 @@
 @import "./landing.scss";
 @import "./card.scss";
 @import "./tags.scss";
+@import "./tasks.scss";
 
 html {
   color: var(--color-text);
@@ -10,8 +11,8 @@ html {
 
 main{
   position: relative;
-  max-width: var(--col-width);
   margin: auto;
+  max-width: var(--grid-width);
 
   font-family: var(--font-body);
   color: var(--color-text);

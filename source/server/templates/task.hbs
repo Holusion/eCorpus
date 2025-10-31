@@ -1,0 +1,96 @@
+<div class="task-title">
+  <h1>{{ task.type }}</h1>
+  <span style="font-size: 200%; font-weight: bold">#{{ task.task_id }}</span>
+</div>
+
+<div class="main-grid">
+  <div class="grid-header">
+
+    {{#if task.author}}
+      <span style="text-align: right; display: block;">from <span style="color: var(--color-primary-light)">{{ task.author }}</span></span>
+    {{/if}}
+  </div>
+  <div class="grid-toolbar">
+
+  <section class="section-column task-header">
+    <div class="col" style="display:flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline;">
+      <h3>Scene:</h3>
+      <a href="../">{{scene}}</a>
+    </div>
+
+    <div class="col" style="display:flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline;">
+      <h3>
+        {{#if tree.children.length }}
+          Group
+        {{else}}
+          Task
+        {{/if}}
+        status:
+      </h3>
+      <span class="task-status status-{{tree.groupStatus}}">{{tree.groupStatus}}</span>
+  
+    </div>
+    {{#if task.parent }}
+      <div class="col" style="display:flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline;">
+        <h3>Parent:</h3>
+        <a href="{{ task.parent }}">#{{ task.parent }}</a>
+      </div>
+    {{/if}}
+
+    <div class="col task-actions">
+      {{#if (test task.status "==" "error")}}
+        <!-- @fixme retry button -->
+      {{/if}}
+      <submit-fragment method="DELETE" action="/tasks/scene/{{encodeURIComponent scene }}/{{ task.task_id }}" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent scene.name}}/tasks'">
+        <form>
+          <button role="submit" id="btn-deleteTask" class="btn btn-danger">
+            <ui-icon name="trash"></ui-icon>
+            {{i18n "buttons.delete"}}
+          </button>
+        </form>
+      </submit-fragment>
+    </div>
+
+    {{#if tree.children.length}}
+      <div class="col">
+        <h2>Children: </h2>
+        <div class="task-children task-root-tree">
+          {{~#each tree.children}}
+              {{> tasks/summary }}
+          {{/each ~}}
+        </div>
+      </div>
+    {{/if}}
+  </section>
+
+  </div>
+  <div class="grid-content">
+    <section class="task-summary" id="task-{{ task.task_id }}">
+
+      
+      
+      <div class="task-logs">
+        {{#each logs}}
+          <div id="log-{{ log_id }}" class="log-line">
+            <span class="log-time">{{dateString timestamp}}</span>
+            <span class="log-severity severity-{{ severity }}">{{ severity }}</span>
+            <pre class="log-message">{{ message }}</pre>
+          </div>
+        {{/each}}
+
+      </div>
+      {{#with tree }}
+        <div class="task-status-root">
+          {{> tasks/status }}
+        </div>
+      {{/with}}
+      {{#if output}}
+      <div>
+        <h3>Output</h3>
+        <pre>{{output}}</pre>
+      </div>
+      {{/if}}
+
+    </section>
+  </div>
+</div>

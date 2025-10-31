@@ -21,7 +21,6 @@ labels:
   forgottenPassword: Mot de passe oublié?
   pagination: pagination
   searchPlaceholder: chercher une scène
-  ignoredIfMultipleScenes: ignoré si plusieurs scènes sont créées simultanément
   sortBy: Trier par
   loginLink: Copier un lien de connexion
   sendLoginLink: Envoyer un lien
@@ -51,6 +50,7 @@ labels:
   buildId: Build ID
   databaseSchema: Version du schéma de la base de données
   show: voir
+  optimizeModel: Optimiser le(s) modèle(s)
 
 buttons:
   searchScene: chercher une scène
@@ -148,11 +148,6 @@ tooltips:
   permissions: >
     L'accès par défaut pour les autres utilisateurs connectés ne peut pas être plus restrictif que l'accès public.
     Les droits les plus élévés s'appliquent parmis les droits par défaut et les droits spécifiques d'un utilisateur.
-  upload: >
-    Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
-    En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
-    Le titre ne sera pris en compte que si un seul glb est importé à la fois.
-    Pour renommer les scènes importées sous forme de zip, utilisez la page de scène. 
 leads:
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion
@@ -210,6 +205,16 @@ leads:
   groupsList: Groupes {{start}}-{{end}}/{{total}}
   noArchives: Pas de scènes archivées
   noGroups: Cet utilisateur n'est ajouté à aucun groupe
+  uploadFiles: >
+    Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
+    En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
+  uploadTitle: >
+    Le titre ne sera pris en compte que si un seul glb est importé à la fois.
+    Pour renommer les scènes importées sous forme de zip, utilisez la page de scène après l'import.
+  uploadLanguage: >
+    Définit le language de la scène, dans le cas d'une scène unique
+  uploadOptimize: >
+    Applique une compression avancée sur les modèles
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

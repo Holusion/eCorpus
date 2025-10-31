@@ -12,6 +12,7 @@ const values = {
   root_dir: [ process.cwd(), toPath],
   migrations_dir: [path.join(process.cwd(),"migrations"), toPath],
   templates_dir: [path.join(process.cwd(),"templates"), toPath],
+  scripts_dir: [path.join(process.cwd(),"scripts"), toPath],
   files_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), toPath],
   dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
   assets_dir: [undefined, toPath],
@@ -26,6 +27,7 @@ const values = {
   experimental: [false, toBool],
   /// FEATURE FLAGS ///
   enable_document_merge: [isExperimental, toBool],
+  enable_rebake_textures: [isExperimental, toBool],
   
 } as const;
 
@@ -63,7 +65,7 @@ function toListenTarget(s:string):number|string{
 }
 
 function toBool(s:string):boolean{
-  return !(!s || s.toLowerCase() === "false" || s == "0");
+  return !(!s || ["false", "0", "no"].indexOf(s.toLowerCase()) !== -1);
 }
 
 /**
