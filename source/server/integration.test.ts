@@ -70,7 +70,7 @@ describe("Web Server Integration", function(){
 
         let {body:doc} = await this.agent.get("/scenes/bar/bar.svx.json").expect(200);
         expect(doc).to.have.property("models").an("array").to.have.length(1);
-        expect(doc.models[0]).to.have.property("derivatives").an("array").to.have.length(2);
+        expect(doc.models[0]).to.have.property("derivatives").an("array").to.have.length(1);
         for(let derivative of doc.models[0].derivatives){
           expect(derivative).to.have.property("assets").an("array").to.have.length(1);
           let res = await this.agent.get("/scenes/bar/"+derivative.assets[0].uri).expect(200);
