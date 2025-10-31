@@ -25,7 +25,7 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'line',
   use: {
-    baseURL: 'http://localhost:8000',
+    baseURL: process.env["TEST_TARGET"] ?? 'http://localhost:8000',
     trace: 'on-first-retry',
   },
 
@@ -48,8 +48,8 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
      command: `${path.resolve(import.meta.dirname, "start_server.sh")}`,
-     url: 'http://127.0.0.1:8000',
-     reuseExistingServer: !process.env.CI,
+     url:  process.env["TEST_TARGET"] ?? 'http://127.0.0.1:8000',
+     reuseExistingServer: true,
      stdout: 'pipe',
       stderr: 'pipe',
   },
