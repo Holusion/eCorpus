@@ -49,6 +49,21 @@ ENV BUILD_REF=${BUILD_REF}
 
 ENV NODE_ENV=production
 
+#Install dependencies
+RUN apt -qqy update && apt -qqy install  --no-install-recommends \
+  ocl-icd-libopencl1 \
+  xz-utils \
+  curl &&\
+  ln -s libOpenCL.so.1 /usr/lib/x86_64-linux-gnu/libOpenCL.so &&\
+  rm -rf /var/lib/apt/lists/* /var/tmp/*
+
+#Install blender
+RUN curl -fsSL -o "/tmp/blender.tar.xz" "https://download.blender.org/release/Blender4.5/blender-4.5.4-linux-x64.tar.xz" &&\
+    mkdir -p /usr/local/lib/blender /usr/local/bin &&\
+    tar -xf "/tmp/blender.tar.xz" -C /usr/local/lib/blender --strip-components=1 &&\
+    ln -s /usr/local/lib/blender/blender /usr/local/bin/blender &&\
+    rm -rf /tmp/*
+
 WORKDIR /app
 COPY source/server/package*.json /app/
 #might occasionally fail if the prebuilt version can't be downloaded, 
@@ -64,5 +79,7 @@ COPY --from=build /app/source/server/dist /app/server
 
 VOLUME [ "/app/files" ]
 EXPOSE ${PORT}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD [ "node", "server/healthcheck.js" ]
 
 CMD [ "node", "--disable-proto=delete", "server/index.js" ]

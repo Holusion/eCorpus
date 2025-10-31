@@ -26,6 +26,22 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URI: postgres://postgres:postgres@postgres:5432/postgres
-
+    healthcheck:
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - app_data:/app/files
+  test: #run end-to-end tests when `--profile test` is specified
+    build:
+      context: source/e2e
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - test
+    environment:
+      TEST_TARGET: "http://app:8000"
 volumes:
   postgres_data:
+  app_data:
