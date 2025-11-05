@@ -36,9 +36,12 @@ Pour se faire, glisser simplement votre modèle en GLB dans la scène ci-dessus.
 
 ## Tutoriels
 
-* [Connexion à votre compte eCorpus](compte)
-* [Importer un modèle 3D ](import)
-* [Ajouter des annotations](annotation)
-* [Créer des articles](article)
-* [Préparer une visite guidée](tours)
-* [Préparer une narration audio](audio)
+ * **Créer et améliorer votre scène**
+  * [Connexion à votre compte eCorpus](compte)
+  * [Importer un modèle 3D ](import)
+  * [Ajouter des annotations](annotation)
+  * [Créer des articles](article)
+  * [Préparer une visite guidée](tours)
+  * [Préparer une narration audio](audio)
+ * **Diffuser votre scène**
+  * [Intégrer votre scène dans un site Web](embed)
