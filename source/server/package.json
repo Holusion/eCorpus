@@ -21,7 +21,7 @@
     "license": "Apache-2.0",
     "homepage": "https://github.com/Holusion/ecorpus",
     "engines": {
-        "node": ">=16.14"
+        "node": ">=18.17"
     },
     "mocha": {
         "ui": "bdd",
