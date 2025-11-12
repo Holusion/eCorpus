@@ -67,15 +67,22 @@
       </div>
       <div class="col" style="display:flex;flex-direction: column; gap: 10px; align-items: stretch;">
         {{#unless scene.archived }}
-          {{#unless (test access "==" "read")}}
+          {{#unless (test (test access "==" "read") "||" (test scene.type "!=" "voyager"))}}
             <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
               <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
             </a>
           {{/unless}}
-          <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
-            <ui-icon name="eye"></ui-icon>
-            <span class="tool-text">{{i18n "labels.view"}}</span>
-          </a>
+          {{#if (test scene.type "==" "voyager")}}
+            <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
+              <ui-icon name="eye"></ui-icon>
+              <span class="tool-text">{{i18n "labels.view"}}</span>
+            </a>
+          {{else if (test scene.type "==" "html")}}
+            <a class="btn btn-main" href="/scenes/{{encodeURIComponent scene.name}}/index.html" title="{{i18n "leads.showScene"}}">
+              <ui-icon name="eye"></ui-icon>
+              <span class="tool-text">{{i18n "labels.view"}}</span>
+            </a>
+          {{/if}}
           <a class="btn btn-main" download="{{scene.name}}.zip"
             href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
             <ui-icon name="save"></ui-icon>
@@ -125,6 +132,7 @@
             {{#if meta.copyright}}
               <p>{{i18n "labels.copyright"}} {{meta.copyright}}</p>
             {{/if}}
+            <p>{{i18n "labels.sceneType"}} : {{scene.type}}</p>
 
           </div>
         </div>
