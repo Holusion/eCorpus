@@ -65,6 +65,11 @@ RUN curl -fsSL -o "/tmp/blender.tar.xz" "https://download.blender.org/release/Bl
     ln -s /usr/local/lib/blender/blender /usr/local/bin/blender &&\
     rm -rf /tmp/*
 
+#Instal ktx-software
+RUN curl -fsSL -o "/tmp/ktx-software.deb" "https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb" &&\
+  dpkg -i /tmp/ktx-software.deb &&\
+  rm -rf /tmp/*
+
 WORKDIR /app
 COPY source/server/package*.json /app/
 #might occasionally fail if the prebuilt version can't be downloaded, 
