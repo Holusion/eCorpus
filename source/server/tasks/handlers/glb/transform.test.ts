@@ -20,7 +20,7 @@ describe("transformGlb()", function(){
   let mainTmpDir: string, tmpdir :string;
   this.beforeAll(async function(){
     mainTmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ecorpus-gltf-transform-tests-"));
-  })
+  });
 
 
   this.beforeEach(async function(){

@@ -4,9 +4,11 @@ on:
     branches:
       - '**'
       - '!gh_pages'
+
 concurrency: 
   group: build-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build-ui:
     name: UI
@@ -31,6 +33,7 @@ jobs:
           path: "dist"
           if-no-files-found: error
           retention-days: 1
+
   build-server:
     name: Server
     runs-on: ubuntu-latest
@@ -68,7 +71,7 @@ jobs:
           cache: 'npm'
       - name: install
         run: npm ci && (cd source/server && npm ci)
-      - name: test
+      - name: run unit tests
         run: (cd source/server && npm test)
       - name: build
         run:  npm run build-server
@@ -108,6 +111,7 @@ jobs:
           path: eCorpus
           if-no-files-found: error
           retention-days: 10
+
   e2e:
     name: Test End-to-End
     runs-on: ubuntu-latest
@@ -153,7 +157,7 @@ jobs:
           (cd build && npm ci --omit=dev)
           (cd source/e2e && npm ci)
           (cd source/e2e && npx playwright install  --with-deps)
-      - name: run tests
+      - name: run end-to-end tests
         working-directory: source/e2e
         env:
           ROOT_DIR: "${{ github.workspace}}/build"
@@ -166,6 +170,7 @@ jobs:
           name: playwright-report
           path: source/e2e/playwright-report/
           retention-days: 10
+
   build_docker:
     runs-on: ubuntu-latest
     steps:

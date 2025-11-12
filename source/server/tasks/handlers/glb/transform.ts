@@ -79,6 +79,7 @@ export async function processGlb(inputFile: string, {logger, tmpdir, preset:pres
   let preset = getPreset(presetName);
 
 
+
   logger.log("Optimize geometry");
   
 
@@ -108,30 +109,35 @@ export async function processGlb(inputFile: string, {logger, tmpdir, preset:pres
   })));
 
 
-  /// Textures
-
-  await time("Compress ORM textures",document.transform(toktx({
-    mode: "uastc",
-    slots: /^(normal|occlusion|metallicRoughness)/,
-    tmpdir,
-    maxSize: resize? preset.maxSize:undefined,
-  })));
-
-  await time("Compress Color textures",document.transform(toktx({
-    mode: "etc1s",
-    quality: preset.etc1s_quality,
-    slots: /^baseColor/,
-    tmpdir,
-    maxSize: resize? preset.maxSize:undefined,
-  })));
-
-
   //Remove draco extension as it is now unused
   let ext_draco = root.listExtensionsUsed().find(e=> e.extensionName === 'KHR_draco_mesh_compression');
   ext_draco?.dispose();
-  //Remove webp extension as it is now unused
-  let ext_webp = root.listExtensionsUsed().find(e=> e.extensionName === 'EXT_texture_webp');
-  ext_webp?.dispose();
+
+
+
+  /// Textures
+  /** @fixme we should handle textures resize fallback when toktx is not available */
+  try{
+    await time("Compress ORM textures",document.transform(toktx({
+      mode: "uastc",
+      slots: /^(normal|occlusion|metallicRoughness)/,
+      tmpdir,
+      maxSize: resize? preset.maxSize: undefined,
+    })));
+
+    await time("Compress Color textures",document.transform(toktx({
+      mode: "etc1s",
+      quality: preset.etc1s_quality,
+      slots: /^baseColor/,
+      tmpdir,
+      maxSize: resize? preset.maxSize: undefined,
+    })));
+    //Remove webp extension as it is now unused
+    let ext_webp = root.listExtensionsUsed().find(e=> e.extensionName === 'EXT_texture_webp');
+    ext_webp?.dispose();
+  }catch(e){
+    logger.warn("Couldn't compress textures to KTX: ", e);
+  }
 
   logger.debug("Output file uses extensions:", root.listExtensionsUsed().map(e=>e.extensionName));
   await io.write(outputFile, document);
