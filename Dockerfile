@@ -53,6 +53,7 @@ ENV NODE_ENV=production
 RUN apt -qqy update && apt -qqy install  --no-install-recommends \
   ocl-icd-libopencl1 \
   xz-utils \
+  ca-certificates \
   curl &&\
   ln -s libOpenCL.so.1 /usr/lib/x86_64-linux-gnu/libOpenCL.so &&\
   rm -rf /var/lib/apt/lists/* /var/tmp/*

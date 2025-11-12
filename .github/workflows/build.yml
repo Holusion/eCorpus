@@ -174,7 +174,7 @@ jobs:
           submodules: recursive
       - name: build containers
         run: |
-          docker compose build .
+          docker compose build
       - name: run end to end tests
         # to repeatedly test this locally,
         # run `docker compose down -v` to reset volumes between runs
