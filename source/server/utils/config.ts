@@ -27,7 +27,9 @@ const values = {
   experimental: [false, toBool],
   /// FEATURE FLAGS ///
   enable_document_merge: [isExperimental, toBool],
-  enable_rebake_textures: [isExperimental, toBool],
+  with_ktx: [isExperimental, toBool],
+  with_blender: [isExperimental, toBool],
+  enable_rebake_textures: [({experimental, with_blender}: {experimental: boolean, with_blender: boolean})=> (experimental && with_blender), toBool],
   
 } as const;
 
