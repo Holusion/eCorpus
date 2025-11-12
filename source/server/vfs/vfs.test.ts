@@ -1173,15 +1173,33 @@ describe("Vfs", function(){
         });
 
         it("Set scene type to html when a file named index.html is created", async function(){
-          let foo = await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
           let scene = await vfs.getScene("foo");
           expect(scene.type).to.equal("html");         
         });
 
         it("Set scene type to html when a file named scene.svx.json is created", async function(){
-          let foo = await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
+          await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
           let scene = await vfs.getScene("foo");
           expect(scene.type).to.equal("voyager");         
+        });
+
+        it("Voyager scene type overrides html scene types", async function(){
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
+          let scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("html");  
+          await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
+          scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");         
+        });
+        
+        it("html scene type does not override voyager scene type", async function(){
+          await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
+          let scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
+          scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");     
         });
       });
 
