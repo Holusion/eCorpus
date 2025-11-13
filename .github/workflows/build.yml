@@ -183,7 +183,7 @@ jobs:
       - name: run end to end tests
         # to repeatedly test this locally,
         # run `docker compose down -v` to reset volumes between runs
-        run: |
+        run: >
           docker compose up -y
             --force-recreate
             --no-color
