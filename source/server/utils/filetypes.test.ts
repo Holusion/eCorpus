@@ -164,4 +164,8 @@ describe("readMagicBytes()", function(){
     let type = await readMagicBytes(path.join(fixturesDir, "cube.glb"));
     expect(type).to.equal("model/gltf-binary");
   });
+
+  it("throws if file doesn't exist", async function(){
+    await expect(readMagicBytes(path.join(fixturesDir, "not_cube.glb"))).to.be.rejectedWith({code: "ENOENT"} as any);
+  });
 });
