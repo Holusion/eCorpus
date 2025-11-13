@@ -46,8 +46,8 @@ export function extFromType(type: string){
 export async function readMagicBytes(filepath: string): Promise<string>{
   let handle = await fs.open(filepath, fs.constants.O_RDONLY);
   try{
-    const b = Buffer.alloc(12);
-    const {bytesRead} = await handle.read(b);
+    const b = Buffer.allocUnsafe(12);
+    const {bytesRead} = await handle.read({buffer: b});
     return parseMagicBytes(b.subarray(0, bytesRead));
   }finally{
     await handle.close();
