@@ -1,0 +1,23 @@
+<table class="list-table">
+    <thead><tr>
+      <th class="sm-hidden">{{i18n "fields.ctime"}}</th>
+      <th>{{i18n "fields.scene"}}</th>
+      <th>{{i18n "fields.author"}}</th>
+      <th>{{i18n "fields.taskType"}}</th>
+      <th>{{i18n "fields.taskStatus"}}</th>
+    </tr></thead>
+    <tbody>
+      {{#unless tasks.length}}
+        <tr><td colspan=5 style="text-align: center;">{{i18n "leads.noTasks"}}</td></tr>
+      {{/unless}}
+      {{#each tasks}}
+        <tr>
+          <td class="sm-hidden">{{dateString ctime}}</td>
+          <td><a href="/ui/scenes/{{encodeURIComponent scene_name}}">{{scene_name}}</a></td>
+          <td>{{author}}</td>
+          <td><a href="/ui/scenes/{{encodeURIComponent scene_name}}/tasks/{{ task_id }}">{{type}} #{{ task_id }}</a></td>
+          <td><span class="task-status status-{{ groupStatus }}">{{ groupStatus }}</span></td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>

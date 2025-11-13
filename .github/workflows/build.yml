@@ -4,9 +4,11 @@ on:
     branches:
       - '**'
       - '!gh_pages'
+
 concurrency: 
   group: build-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build-ui:
     name: UI
@@ -31,12 +33,13 @@ jobs:
           path: "dist"
           if-no-files-found: error
           retention-days: 1
+
   build-server:
     name: Server
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16, 18, 20, 22]
+        node-version: [18, 20, 22]
     services:
       postgres:
         image: postgres
@@ -68,7 +71,7 @@ jobs:
           cache: 'npm'
       - name: install
         run: npm ci && (cd source/server && npm ci)
-      - name: test
+      - name: run unit tests
         run: (cd source/server && npm test)
       - name: build
         run:  npm run build-server
@@ -108,6 +111,7 @@ jobs:
           path: eCorpus
           if-no-files-found: error
           retention-days: 10
+
   e2e:
     name: Test End-to-End
     runs-on: ubuntu-latest
@@ -149,13 +153,11 @@ jobs:
           cache: 'npm'
       - name: install dependencies
         run: |
-          ls
-          ls build/*
           npm ci
           (cd build && npm ci --omit=dev)
           (cd source/e2e && npm ci)
           (cd source/e2e && npx playwright install  --with-deps)
-      - name: run tests
+      - name: run end-to-end tests
         working-directory: source/e2e
         env:
           ROOT_DIR: "${{ github.workspace}}/build"
@@ -168,3 +170,22 @@ jobs:
           name: playwright-report
           path: source/e2e/playwright-report/
           retention-days: 10
+
+  build_docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: build containers
+        run: |
+          docker compose build
+      - name: run end to end tests
+        # to repeatedly test this locally,
+        # run `docker compose down -v` to reset volumes between runs
+        run: >
+          docker compose up -y
+            --force-recreate
+            --no-color
+            --exit-code-from test
+            test

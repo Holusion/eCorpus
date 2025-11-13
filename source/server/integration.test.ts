@@ -67,12 +67,16 @@ describe("Web Server Integration", function(){
         .set("Content-Type", "application/octet-stream")
         .send(content)
         expect(r.status, `Expected status code 201 but received [${r.status}]: ${r.text}`).to.equal(201);
-        let res = await this.agent.get("/scenes/bar/models/bar.glb").expect(200);
-        expect(res.text.slice(0,4).toString()).to.equal("glTF");
-        expect(res.text.length).to.equal(content.length);
 
         let {body:doc} = await this.agent.get("/scenes/bar/bar.svx.json").expect(200);
         expect(doc).to.have.property("models").an("array").to.have.length(1);
+        expect(doc.models[0]).to.have.property("derivatives").an("array").to.have.length(1);
+        for(let derivative of doc.models[0].derivatives){
+          expect(derivative).to.have.property("assets").an("array").to.have.length(1);
+          let res = await this.agent.get("/scenes/bar/"+derivative.assets[0].uri).expect(200);
+          expect(res.text.slice(0,4).toString(), res.text.slice(0,100)).to.equal("glTF");
+        }
+
       });
 
       it("can upload a glb model in an existing scene", async function(){

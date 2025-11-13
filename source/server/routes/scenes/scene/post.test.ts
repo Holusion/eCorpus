@@ -17,6 +17,8 @@ import UserManager from "../../../auth/UserManager.js";
 import User, { UserLevels } from "../../../auth/User.js";
 
 
+const models = (await fs.readdir(fixturesDir)).filter(f=> f.endsWith("glb")).map(f=>path.join(fixturesDir, f));
+
 describe("POST /scenes/:scene", function(){
   let vfs:Vfs, userManager: UserManager, user :User, app: Application, data:Buffer;
   this.beforeEach(async function(){
@@ -27,14 +29,14 @@ describe("POST /scenes/:scene", function(){
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
   });
   this.afterEach(async function(){
-    await vfs.close();
-    await fs.rm(this.dir, {recursive: true});
+    await cleanIntegrationContext(this);
   });
 
   describe("as create", function () {
     this.beforeEach(async function () {
       user = await userManager.addUser("celia", "12345678", "create", "create@example.com");
     });
+
     it("creates .glb and .svx.json files", async function () {
       await request(app).post("/scenes/foo")
         .auth(user.username, "12345678")
@@ -42,17 +44,79 @@ describe("POST /scenes/:scene", function(){
         .expect(201);
       await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
 
-
-      await request(app).get("/scenes/foo/models/foo.glb")
-        .auth(user.username, "12345678")
-        .expect(200)
-        .expect("Content-Type", "model/gltf-binary");
-
-      await request(app).get("/scenes/foo/scene.svx.json")
+      //Check scene.svx.json in the databse - because GET gets special-cased and can lie about the stored mime type
+      const docProps = await vfs.getFileProps({scene: "foo", name:"scene.svx.json"}, true);
+      expect(docProps).to.have.property("mime", "application/si-dpo-3d.document+json");
+      // Check GET scene.svx.json
+      let res = await request(app).get("/scenes/foo/scene.svx.json")
         .auth(user.username, "12345678")
         .expect(200)
         .expect("Content-Type", "application/si-dpo-3d.document+json");
+      let doc = res.body;
+      let models = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
+
+      expect(models).to.have.property("length").not.equal(0);
+      for(let model of models){
+        await request(app).get("/scenes/foo/"+model)
+        .auth(user.username, "12345678")
+        .expect(200)
+        .expect("Content-Type", "model/gltf-binary");
+      }
     });
+
+    it("can upload the model as-is", async function(){
+      await request(app).post("/scenes/foo?optimize=false")
+      .auth(user.username, "12345678")
+      .send(data)
+      .expect(201);
+      let res = await request(app).get("/scenes/foo/scene.svx.json")
+        .auth(user.username, "12345678")
+        .expect(200)
+        .expect("Content-Type", "application/si-dpo-3d.document+json");
+      let doc = res.body;
+      let high_model = doc.models.map((m:any)=> m.derivatives.filter((d: any)=>d.quality == "High").map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3)[0];
+
+      expect(high_model, "Expected to find a model of quality \"High\"").to.be.ok;
+          res = await request(app).get(`/scenes/foo/${high_model}`)
+      .auth(user.username, "12345678")
+      .expect(200);
+
+      expect(res.text, `expect model to not have been modified during the upload`).to.equal(data.toString("utf8"));
+    });
+
+    models.forEach(model=>{
+      [true, false].forEach(optimize=>{
+        it(`can upload ${path.basename(model)} with${optimize?"":"out"} optimization`, async function(){
+          const data = await fs.readFile(model);
+
+          await request(app).post(`/scenes/foo?optimize=${optimize.toString()}`)
+          .auth(user.username, "12345678")
+          .send(data)
+          .expect(201);
+
+          let res = await request(app).get("/scenes/foo/scene.svx.json")
+          .auth(user.username, "12345678")
+          .expect(200)
+          .expect("Content-Type", "application/si-dpo-3d.document+json");
+          let doc = res.body;
+          let assets = doc.models.map((m:any)=> m.derivatives.map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3);
+          expect(assets).to.have.property("length", optimize? 2 : 1);
+          
+          let high_model = doc.models.map((m:any)=> m.derivatives.filter((d: any)=>d.quality == "High").map((d:any)=>d.assets.map((a:any)=>a.uri))).flat(3)[0];
+          expect(high_model, "Expected to find a model of quality \"High\"").to.be.ok;
+          res = await request(app).get(`/scenes/foo/${high_model}`)
+          .auth(user.username, "12345678")
+          .expect(200);
+
+          if(optimize){
+            expect(res.text, `expect model to have been modified during the upload`).to.not.equal(data.toString("utf8"));
+          }else{
+            expect(res.text, `expect model to not have been modified during the upload`).to.equal(data.toString("utf8"));
+          }
+          
+        });
+      })
+    })
 
     it("can force scene's setup language", async function () {
       await request(app).post("/scenes/foo?language=fr")
@@ -87,15 +151,16 @@ describe("POST /scenes/:scene", function(){
 
     it("rejects bad files", async function () {
       let res = await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
-        .set("Content-Type", "application/zip")
-        .send("foo");
+      .auth(user.username, "12345678")
+      .set("Content-Type", "application/zip")
+      .send("foo");
       expect(res.status, `${res.error}`).to.equal(500);
       //Code 500 to differentiate bad data from bad encoding (see following tests)
       //If return code is ever changed to 400, we need to specify those tests further.
-      expect(await vfs.getScenes()).to.have.property("length", 0);
-      expect(await vfs._db.get(`SELECT COUNT(*) AS count FROM files`)).to.have.property("count", 0);
-    })
+      expect(await vfs.getScenes(null, {archived: false})).to.have.property("length", 0);
+      //Scene is still there, but archived
+      expect(await vfs.getScenes()).to.have.property("length", 1);
+    });
 
     it("rejects multipart form-data", async function () {
       await request(app).post("/scenes/foo")

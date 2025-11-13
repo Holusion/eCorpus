@@ -1,78 +1,18 @@
 import { Request, Response } from "express";
 
-import { parse_glb } from "../../../utils/glTF.js";
-import { getVfs, getUserId } from "../../../utils/locals.js";
+import { getVfs, getUserId, getTaskScheduler } from "../../../utils/locals.js";
 import uid from "../../../utils/uid.js";
-import getDefaultDocument from "../../../utils/schema/default.js";
 import { BadRequestError, UnauthorizedError } from "../../../utils/errors.js";
+import { constants, writeFile } from "fs/promises";
+import { extFromType, readMagicBytes } from "../../../utils/filetypes.js";
+import { qsToBool } from "../../../utils/query.js";
 
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
 function isSceneLanguage(l:any) :l is SceneLanguage|undefined{
-  return typeof l === "undefined" || sceneLanguages.indexOf(l.toUpperCase()) !== -1;
+  return typeof l === "undefined" || sceneLanguages.indexOf(l) !== -1;
 }
 
-
-interface GetDocumentParams{
-  scene :string;
-  filepath :string;
-  language?:SceneLanguage;
-}
-
-/**
- * Creates a new default document for a scene
- * uses data embedded in the glb to fill the document where possible
- * @param scene 
- * @param filepath 
- * @returns 
- */
-async function getDocument({scene, filepath, language}:GetDocumentParams){
-  let orig = await getDefaultDocument();
-  //dumb inefficient Deep copy because we want to mutate the doc in-place
-  let document = JSON.parse(JSON.stringify(orig));
-  let meta = await parse_glb(filepath);
-  let mesh = meta.meshes[0]; //Take the first mesh for its name
-  document.nodes.push({
-    "id": uid(),
-    "name": mesh?.name ?? scene,
-    "model": 0,
-  } as any);
-  document.scenes[0].nodes.push(document.nodes.length -1);
-
-  if(language){
-    document.setups[0].language = {language: language.toUpperCase()};
-  }
-
-  document.models = [{
-    "units": "m", //glTF specification says it's always meters. It's what blender do.
-    "boundingBox": meta.bounds,
-    "derivatives":[{
-      "usage": "Web3D",
-      "quality": "High",
-      "assets": [
-        {
-          "uri": `models/${scene}.glb`,
-          "type": "Model",
-          "byteSize": meta.byteSize,
-          "numFaces": meta.meshes.reduce((acc, m)=> acc+m.numFaces, 0),
-          "imageSize": 8192
-        }
-      ]
-    }],
-    "annotations":[],
-  }];
-  document.metas = [{
-    "collection": {
-      "titles": {
-        "EN": scene,
-        "FR": scene,
-      }
-    },
-  }];
-  document.scenes[document.scene].meta = 0;
-
-  return document
-}
 
 /**
  * Tries to create a scene.
@@ -81,10 +21,12 @@ async function getDocument({scene, filepath, language}:GetDocumentParams){
  */
 export default async function postScene(req :Request, res :Response){
   let vfs = getVfs(req);
+  let scheduler = getTaskScheduler(req);
   let user_id = getUserId(req);
   let {scene} = req.params;
-  let {language} = req.query;
-  
+  let {language: languageQuery, optimize: optimizeQuery} = req.query;
+  const language = typeof languageQuery === "string"?languageQuery.toUpperCase(): languageQuery;
+  const optimize = qsToBool(req.query.optimize, false);
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
@@ -95,18 +37,43 @@ export default async function postScene(req :Request, res :Response){
     throw new UnauthorizedError("Requires authenticated user");
   }
   
+
+  
   let scene_id = await vfs.createScene(scene, user_id);
   try{
-    let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});
-    let document = await getDocument({
-      scene,
-      filepath: vfs.filepath(f),
-      language,
+    let tmpfile = vfs.mktemp();
+    await writeFile(tmpfile, req, {
+      flag: constants.O_CREAT|constants.O_EXCL|constants.O_WRONLY
     });
-    await vfs.writeDoc(JSON.stringify(document), {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+    let filetype = req.get("Content-Type");
+    if(!filetype || filetype == "application/octet-stream"){
+      filetype = await readMagicBytes(tmpfile);
+    }
+
+    const ext = extFromType(filetype);
+    const name = `${scene}${ext}`;
+
+    let task = await scheduler.create(scene_id, user_id, {
+      type: "handleUploads",
+      data: {
+        files: [{
+          path: tmpfile,
+          name,
+          type: filetype,
+        }],
+        scene_name: scene,
+        user_id: user_id!,
+        language,
+        optimize,
+      }
+    });
+    await scheduler.wait(task);
   }catch(e){
-    //If written, the file will stay as a loose object but will get cleaned-up later
-    await vfs.removeScene(scene_id).catch(e=>console.warn(e));
+    //We don't remove the scene because that would destroy the failed task, which makes debugging harder.
+    //However we try to archive it so we don't keep the name with a failed scene
+    await vfs.archiveScene(scene_id).catch(e=>console.warn(e));
+    //await vfs.removeScene(scene_id).catch(e=>console.warn(e));
     throw e;
   }
   res.status(201).send({code: 201, message: "created scene with id :"+scene_id});

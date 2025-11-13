@@ -18,21 +18,23 @@ interface ReducedWebDAVProps{
 function reducePropfind(text:string) :ReducedWebDAVProps[]{
   const root = xml.xml2js(text);
   expect(root).toHaveProperty("elements");
-  const multistatus = root.elements[0];
+  const multistatus = root.elements[0] as xml.Element;
   expect(multistatus).toHaveProperty("name", "D:multistatus");
-  const responses = multistatus.elements;
+  const responses = multistatus.elements!;
   return responses.map(({elements})=>{
+    if(!elements) throw new Error("Badly structured response: no status in multistatus");
     const href = elements.find(e=>e.name === "D:href");
     expect(href, `find D:href in ${elements.map(p=>p.name)}`).toBeTruthy();
     let item: ReducedWebDAVProps = {
-      path: new URL(href.elements.find(e=>e.type === "text").text).pathname,
+      path: new URL(href!.elements!.find(e=>e.type === "text")!.text as string)!.pathname,
     };
 
     const propstat = elements.find(e=>e.name === "D:propstat");
     expect(propstat, `find D:propstat in ${elements.map(p=>p.name)}`).toBeTruthy();
-    const props = propstat.elements.find(e=>e.name === "D:prop");
-    for(const el of props.elements){
-      const content = el.elements?.find(e=>e.type ==="text")?.text;
+    const props = propstat!.elements!.find(e=>e.name === "D:prop")!;
+    expect(props, `find D:prop in ${propstat!.elements!.map(p=>p.name)}`).toBeTruthy();
+    for(const el of props.elements!){
+      const content = el.elements?.find(e=>e.type ==="text")?.text as string;
       switch(el.name){
         case "D:getetag":
           item.etag = content;
@@ -108,7 +110,7 @@ test("uploads a multi-scene zip", async ({page, request})=>{
     await expect(res).toBeOK();
   }));
 
-  //We rely on this "filter by name" in other softwares anyway so it's a good check
+  //We rely on this "filter by name" in other tools anyway so it's a good check
   let res = await request.get(`/scenes?${names.map(n=>`name=${n}`).join("&")}`, {
     headers: {
       "Accept": "application/zip",
@@ -170,8 +172,8 @@ test("uploads a multi-scene zip", async ({page, request})=>{
   }))).flat();
 
   expect(
-    updatedProps.sort((a,b)=>a.path < b.path?-1:1)
-  ).toEqual(
+    updatedProps.sort((a,b)=>a.path < b.path?-1:1),
+  `Props from PROPFIND /scenes/:scene should match values before upload`).toEqual(
     props.sort((a,b)=>a.path < b.path?-1:1)
   );
 });

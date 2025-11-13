@@ -34,17 +34,21 @@ class Vfs extends BaseVfs{
   static async Open(rootDir :string, opts:VfsOptions&Required<Pick<VfsOptions,"database_uri">> ):Promise<Vfs>
   static async Open(rootDir :string, {db, database_uri, createDirs=true, forceMigration = true} :VfsOptions = {} ){
     if(!db && !database_uri) throw new Error(`No DB connection method provided. Can't open VFS`);
-    if(createDirs){
-      await fs.mkdir(path.join(rootDir, "objects"), {recursive: true});
-      await fs.rm(path.join(rootDir, "uploads"), {recursive: true, force: true});
-      await fs.mkdir(path.join(rootDir, "uploads"), {recursive: true});
-    }
+
     db ??= await open({
       uri: database_uri!,
       forceMigration,
     });
 
     let vfs = new Vfs(rootDir, db);
+
+    if(createDirs){
+      await Promise.all([
+        fs.mkdir(vfs.objectsDir, {recursive: true}),
+        fs.mkdir(vfs.uploadsDir, {recursive: true}),
+        fs.mkdir(vfs.artifactsDir, {recursive: true}),
+      ]);
+    }
     return vfs;
   }
   

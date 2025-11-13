@@ -53,7 +53,7 @@ export default class UploadForm extends i18n(LitElement){
   /**
    * @returns True if the file upload started. False otherwise
    */
-  upload(file: File, language, name: string) :boolean{
+  upload(file: File, {language, name, optimize}: {language?:string, name?: string, optimize?:boolean}) :boolean{
 
     const as_scenes = file.name.endsWith(".zip");
 
@@ -135,7 +135,15 @@ export default class UploadForm extends i18n(LitElement){
       setError({ code: xhr.status, message: xhr.response.message ? xhr.response.message : xhr.statusText });
     }
 
-    xhr.open('POST', as_scenes? `/scenes`:`/scenes/${name}?language=${language}`);
+    let url = new URL(as_scenes? `/scenes`:`/scenes/${name}`, window.location.href);
+
+    if(typeof language === "string" && language){
+      url.searchParams.set("language", language);
+    }
+
+    url.searchParams.set("optimize", optimize?"true": "false");
+
+    xhr.open('POST', url);
     xhr.send(file);
   }
 
@@ -145,8 +153,11 @@ export default class UploadForm extends i18n(LitElement){
     const data = new FormData(ev.target as HTMLFormElement);
 
     const files =  data.getAll("files").map((fileData) => {return fileData as File});
-
-    files.forEach((file) => this.upload(file, data.get("language"), files.length==1? data.get("name") as string: ""));
+    files.forEach((file) => this.upload(file, {
+      language: data.get("language") as string,
+      name: files.length==1? data.get("name") as string: "",
+      optimize: !!data.get("optimize")
+    }));
     (ev.target as HTMLFormElement).reset();
     return false;
   }
