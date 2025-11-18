@@ -51,6 +51,7 @@ labels:
   buildId: Build ID
   databaseSchema: Database schema version
   show: show
+  sceneType: Scene type
 
 buttons:
   searchScene: search scenes

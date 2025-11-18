@@ -37,6 +37,7 @@ function sceneProps(id:number): {[P in keyof Required<Scene>]: Function|any}{
     public_access: "read",
     default_access: "read",
     archived: null,
+    type: null,
   };
 }
 
@@ -749,10 +750,8 @@ describe("Vfs", function(){
           await vfs.createScene("EAD.A.Nom1.Nom2", user.uid);
           await vfs.createScene("GlobeAppli", user.uid);
           let s = await vfs.getScenes(user.uid, {match: "lobe"});
-          console.log(s)
           expect(s, `Globe Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
           s = await vfs.getScenes(user.uid, {match: "EAD"});
-          console.log(s)
           expect(s, `EAD Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
         });
       });
@@ -1173,6 +1172,35 @@ describe("Vfs", function(){
           expect(bar).to.have.property("size", 0);
         });
 
+        it("Set scene type to html when a file named index.html is created", async function(){
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
+          let scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("html");         
+        });
+
+        it("Set scene type to html when a file named scene.svx.json is created", async function(){
+          await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
+          let scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");         
+        });
+
+        it("Voyager scene type overrides html scene types", async function(){
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
+          let scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("html");  
+          await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
+          scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");         
+        });
+        
+        it("html scene type does not override voyager scene type", async function(){
+          await vfs.createFile( {scene: "foo", mime: "application/si-dpo-3d.document+json", name: "scene.svx.json", user_id: null}, {hash: "xxxxxx", size: 150});
+          let scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");
+          await vfs.createFile( {scene: "foo", mime: "text/html", name: "index.html", user_id: null}, {hash: "xxxxxx", size: 150});
+          scene = await vfs.getScene("foo");
+          expect(scene.type).to.equal("voyager");     
+        });
       });
 
       describe("writeFile()", function(){
@@ -1701,6 +1729,7 @@ describe("Vfs", function(){
           let scene = await vfs.getScene("foo");
 
           let props = sceneProps(scene_id);
+          props.type = "voyager";
           let key:keyof Scene;
           for(key in props){
             if(typeof props[key] ==="undefined"){
