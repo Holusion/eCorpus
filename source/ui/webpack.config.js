@@ -101,7 +101,7 @@ module.exports = function createAppConfig(env, argv={})
                         priority: 0,
                     },
                     { 
-                        from: "{js,js/draco,js/basis,css,language,images}/*.{js,json,wasm,css,jpg,png,svg}",
+                        from: "{js,js/draco,js/basis,css,language,images}/*.{js,json,wasm,css,jpg,png,svg,hdr}",
                         context: path.join(project, "source/voyager/assets/"),
                         force: false,
                         priority: 1,
