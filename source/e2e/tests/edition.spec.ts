@@ -47,7 +47,7 @@ test("can create an annotation", async ()=>{
   await scenePage.getByRole("button", {name: "Annotations"}).click();
   await scenePage.getByText('Cube', { exact: true }).click();
 
-  await scenePage.getByRole('button', { name: 'Create' }).click();
+  await scenePage.getByRole('button', { name: 'Create', exact: true }).click();
   const vp = scenePage.viewportSize();
   await scenePage.mouse.click( vp!.width/1.75,  vp!.height/1.75);
   await expect(scenePage.getByLabel('annotation', { exact: true })).toBeVisible();
@@ -65,7 +65,7 @@ test("can create an annotation in a secondary language", async ()=>{
   
   
   await scenePage.mouse.click( vp!.width/1.1,  vp!.height/1.75); // click outside to deselect previous annotation before creating a new one
-  await scenePage.getByRole('button', { name: 'Create' }).click();
+  await scenePage.getByRole('button', { name: 'Create', exact: true }).click();
   await scenePage.mouse.click( vp!.width/1.75,  vp!.height/2);
   await expect(scenePage.getByLabel('annotation', { exact: true })).toHaveCount(2);
 
@@ -87,7 +87,7 @@ test("can create an article", async ()=>{
   await scenePage.getByRole("button", {name: "Articles"}).click();
   await scenePage.getByText('Cube', { exact: true }).click();
 
-  await scenePage.getByRole('button', { name: 'Create' }).click();
+  await scenePage.getByRole('button', { name: 'Create', exact: true }).click();
 
   let mce = scenePage.locator('sv-article-editor').getByRole('application').locator("iframe").contentFrame();
   await expect(mce.getByRole("heading")).toHaveText("Nouvel Article");
