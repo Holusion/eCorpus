@@ -70,7 +70,7 @@ test.describe("admin", ()=>{
 });
 
 test("read-only view", async ({page, createScene})=>{
-  let name = await createScene();
+  let name = await createScene({public_access: "read"});
   await page.goto(`/ui/scenes/${encodeURIComponent(name)}`);
 
   //Expect "edit" and "history" buttons to be present
