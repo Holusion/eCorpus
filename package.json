@@ -38,6 +38,7 @@
   "workspaces": [
     "source/server",
     "source/ui",
-    "source/e2e"
+    "source/e2e",
+    "source/voyager"
   ]
 }
