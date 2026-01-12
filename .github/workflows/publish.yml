@@ -13,6 +13,9 @@ env:
 concurrency: 
   group: publish-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  contents: read
+  packages: write
 jobs:
   docker-publish:
     name: Docker Image
@@ -55,3 +58,14 @@ jobs:
           provenance: false
           build-args: |
             BUILD_REF=${{ steps.ref.outputs.id }}
+  clean:
+    name: Clean package
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+    - uses: actions/delete-package-versions@v5
+      with: 
+        package-name: 'e-corpus'
+        package-type: 'container'
+        min-versions-to-keep: 5
+        delete-only-untagged-versions: 'true'
