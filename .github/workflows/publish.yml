@@ -13,6 +13,9 @@ env:
 concurrency: 
   group: publish-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  contents: read
+  packages: write
 jobs:
   docker-publish:
     name: Docker Image
