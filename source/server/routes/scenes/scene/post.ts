@@ -42,23 +42,6 @@ async function getDocument({scene, filepath, language}:GetDocumentParams){
   if(language){
     document.setups[0].language = {language: language.toUpperCase()};
   }
-  // We initialise the navigation with default voyager values,
-  // otherwise (if not defined) the outlink on the orbit to update lights position is not set up properly by voyager when loading the document.
-  // lightsFollowCamera is set to true, but the lights do not follow the camera.
-  document.setups[0].navigation = {
-      type: "Orbit",
-      enabled: true,
-      autoZoom: true,
-      lightsFollowCamera: true,
-      autoRotation: false,
-      orbit: {
-          orbit: [-24, -26, 0],
-          offset: [0, 0, 150],
-          minOrbit: [-90, null, null],
-          maxOrbit: [90, null, null],
-          minOffset: [null, null, 0.1],
-          maxOffset: [null, null, 10000]
-   }};
 
   document.models = [{
     "units": "m", //glTF specification says it's always meters. It's what blender do.
