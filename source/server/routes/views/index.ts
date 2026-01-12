@@ -1,12 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, canAdmin, getLocals, canonical, isMemberOrManage, isManage, isEmbed } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
-import { locales } from "../../utils/templates.js";
 import { BadRequestError } from "../../utils/errors.js";
 
 
@@ -26,33 +25,6 @@ routes.use("/", (req :Request, res:Response, next)=>{
   res.set("Cache-Control", `max-age=${30*60}, public`);
   next();
 });
-
-/**
- * Common properties for template rendering.
- * All props required for navbar/footer rendering should be set here
- */
-export function useTemplateProperties(req :Request, res:Response, next?:NextFunction){
-  const session = getSession(req);
-  const {config} = getLocals(req);
-  const user = getUser(req);
-  const {search} = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
-  Object.assign(res.locals, {
-    lang,
-    languages: [
-      {selected: lang === "fr", code: "fr", key: "lang.fr"},
-      {selected: lang === "en", code: "en", key: "lang.en"},
-    ],
-    user: user,
-    location: req.originalUrl,
-    search,
-    brand: config.brand,
-    embeddable: req.originalUrl.startsWith("/ui/") && ("scene" in req.params || "tag" in req.params),
-    canonical: canonical(req).toString(),
-    root_url: canonical(req, "/").toString(),
-  });
-  if(next) next();
-}
 
 routes.use("/", useTemplateProperties);
 

@@ -3,14 +3,13 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, either, isAdministrator, isUser } from "../../utils/locals.js";
+import { canAdmin, canRead, either, isAdministrator, isUser, useTemplateProperties  } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
-import { useTemplateProperties } from "../views/index.js";
 
 const useJSON = bodyParser.json();
 const useURLEncoded = bodyParser.urlencoded({

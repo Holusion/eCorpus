@@ -172,7 +172,10 @@ describe("Database migration", function(){
       await migrate({db, migrations:dir, force: false});
       //force-apply to run "down"
       await expect(migrate({db, migrations:dir, force: true})).to.be.rejectedWith("x");
+    });
 
+    it("replaces last migration if renamed", async function(){
+      // Might happen when we switch dev branches. In this case we want the migration to be removed and its replacement reapplied
     })
 
   });

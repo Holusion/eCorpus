@@ -2,9 +2,8 @@ import { createHmac } from "crypto";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../auth/User.js";
 import { BadRequestError, ForbiddenError, HTTPError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
-import { AppLocals, getHost, getLocals, getSession, getUser, getUserManager, validateRedirect } from "../../utils/locals.js";
+import { AppLocals, getHost, getLocals, getSession, getUser, getUserManager, validateRedirect, useTemplateProperties  } from "../../utils/locals.js";
 import sendmail from "../../utils/mails/send.js";
-import { useTemplateProperties } from "../views/index.js";
 
 /**
  * Handler for login flow. Used for automated AND interactive login flows, which makes it a bit more complicated

@@ -1,8 +1,5 @@
 import { Request, Response } from "express";
-import sendmail from "../../../utils/mails/send.js";
-import { getLocals, getUser } from "../../../utils/locals.js";
-import { BadRequestError } from "../../../utils/errors.js";
-import { useTemplateProperties } from "../../views/index.js";
+import { getLocals, getUser, useTemplateProperties } from "../../../utils/locals.js";
 
 /**
  * Send a test email

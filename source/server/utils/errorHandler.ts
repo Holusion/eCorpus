@@ -1,8 +1,7 @@
 import util from "node:util";
 import { Request, Response, NextFunction } from "express";
-import { useTemplateProperties } from "../routes/views/index.js";
 import { HTTPError } from "./errors.js";
-import { getUser } from "./locals.js";
+import { getUser, useTemplateProperties } from "./locals.js";
 import { locales } from "./templates.js";
 
 

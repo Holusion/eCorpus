@@ -16,6 +16,22 @@ const isEmbedParams = (opts: CommonEmbedParams): opts is EmbedParams =>{
   return typeof opts.url === "string" && typeof opts.title === "string";
 }
 
+/**
+ * RegExp to match pages that can be embedded.
+ * History views can't be embedded because we might compress the histories in the future, making those links unreliable.
+ * We'd need some kind of "history tag" to make an entry permanent and allow a link to it
+ */
+const embed_re = /^\/(?:ui\/)?(?:scenes\/(?<scene>[^/]+)(?:\/view)?|tags\/(?<tag>[^/]+))\/?$/;
+
+/**
+ * Determines if a route points to an embeddable (oembed-compatible) resource.
+ * @returns
+ */
+export function isEmbeddable(pathname: string): boolean {
+  return embed_re.test(pathname);
+}
+
+
 const asIframe = ({url, title, width, height}:EmbedParams)=>{
   return `<iframe name="eCorpus Voyager" title="${title}" src="${url}" width="${width}" height="${height}" allow="xr; xr-spatial-tracking; fullscreen"></iframe>`;
 }
@@ -61,7 +77,7 @@ export async function getEmbed(req: Request, res: Response){
 
   const target = new URL(decodeURIComponent(url));
   const pathname = decodeURIComponent(target.pathname);
-  const m = /^\/(?:ui\/)?(?:scenes\/(?<scene>[^/]+)(\/view)?|tags\/(?<tag>[^/]+))\/?$/.exec(pathname);
+  const m = embed_re.exec(pathname);
   if(m?.groups!.scene){
     let scene = await vfs.getScene(m.groups!.scene);
     if(scene.public_access =="none"){

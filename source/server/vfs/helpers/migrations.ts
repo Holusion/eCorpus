@@ -102,6 +102,7 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
     }
 
     if(force && records.length){
+      console.log("Force Migration")
       const lastMigration = records[records.length - 1];
       if(lastMigration){
         await undoMigration(db, lastMigration);

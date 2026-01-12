@@ -2,11 +2,45 @@ import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import Vfs from "../../vfs/index.js";
 import request from "supertest";
+import { isEmbeddable } from "./oembed.js";
 
 
 function makeURL(target:string, format :"json"|"xml" ="json"){
   return `/services/oembed?format=${format}&url=${encodeURIComponent(target)}`
 }
+
+
+
+describe("isEmbeddable()", function(){
+  [
+    "/ui/scenes/foo/",
+    "/ui/scenes/foo/view",
+    "/ui/scenes/foo?embed",
+    "/ui/scenes/foo?embed=true",
+    "/scenes/foo/",
+    "/ui/scenes/مشهد/",
+    "/ui/tags/sometag",
+    "/ui/tags/标签",
+  ].forEach(function (str){
+    it(`${str} Can be embedded`, function(){
+      expect(isEmbeddable(str)).to.be.true;
+    });
+  });
+
+  [
+    "/ui/",
+    "/ui/scenes",
+    "/ui/scenes/",
+    "/scenes",
+    "/ui/tags/",
+    "/ui/scenes/foo/history",
+    "/ui/scenes/foo/history/5/view",
+  ].forEach(function (str){
+    it(`${str} Can't be embedded`, function(){
+      expect(isEmbeddable(str)).to.be.false;
+    });
+  });
+});
 
 describe("GET /services/oembed", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
@@ -28,6 +62,7 @@ describe("GET /services/oembed", function(){
   this.afterAll(async function(){
     await cleanIntegrationContext(this);
   });
+
 
 
   describe("embed scenes", function(){
@@ -69,11 +104,29 @@ describe("GET /services/oembed", function(){
     });
 
     it("accept alternative scene view paths", async function(){
-      await Promise.all(["/ui/scenes/public-scene", "/scenes/public-scene"].map(async (pathname)=>{
+      await Promise.all([
+        "/ui/scenes/public-scene",
+        "/ui/scenes/public-scene/view",
+        "/scenes/public-scene",
+      ].map(async (pathname)=>{
         await request(this.server).get(makeURL("http://localhost"+pathname))
         .expect(200);
       }));
     });
+
+    it("don't match valid URI that are not view paths", async function(){
+      // Check that we match what `isEmbeddable()` says
+      await Promise.all([
+        "/ui/scenes/public-scene/edit",
+        "/ui/scenes/public-scene/history",
+        "/ui/scenes/public-scene/history/1/view",
+        "/ui/scenes/public-scene/history/1/",
+      ].map(async (pathname)=>{
+        await request(this.server).get(makeURL("http://localhost"+pathname))
+        .expect(404);
+      }));
+    });
+
     it("501 if not a scene view URL", async function(){
       await Promise.all(["/ui/", "/ui/scenes/public-scene/edit", "/users/bob"].map(async (pathname)=>{
         await request(this.server).get(makeURL(encodeURIComponent("http://localhost"+pathname)))
@@ -81,6 +134,7 @@ describe("GET /services/oembed", function(){
       }));
     });
   });
+
 
   describe("embed tags", function(){
     this.beforeAll(async function(){

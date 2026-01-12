@@ -5,8 +5,10 @@ import User, { isUserAtLeast, SafeUser } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
-import Templates, { AcceptedLocales } from "./templates.js";
+import Templates, { AcceptedLocales, locales } from "./templates.js";
 import { Config } from "./config.js";
+import { isEmbeddable } from "../routes/services/oembed.js";
+
 
 export interface AppLocals extends Record<string, any>{
   fileDir :string;
@@ -242,3 +244,31 @@ export function isEmbed(req :Request) :boolean{
   if(typeof req.headers["sec-fetch-dest"] === "string") return req.headers["sec-fetch-dest"].indexOf("frame") !== -1 || req.headers["sec-fetch-dest"] === "embed";
   return false;
 }
+
+/**
+ * Common properties for template rendering.
+ * All props required for navbar/footer rendering should be set here
+ */
+export function useTemplateProperties(req :Request, res:Response, next?:NextFunction){
+  const session = getSession(req);
+  const {config} = getLocals(req);
+  const user = getUser(req);
+  const {search} = req.query;
+  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
+  Object.assign(res.locals, {
+    lang,
+    languages: [
+      {selected: lang === "fr", code: "fr", key: "lang.fr"},
+      {selected: lang === "en", code: "en", key: "lang.en"},
+    ],
+    user: user,
+    location: req.originalUrl,
+    search,
+    brand: config.brand,
+    embeddable: isEmbeddable(req.originalUrl),
+    canonical: canonical(req).toString(),
+    root_url: canonical(req, "/").toString(),
+  });
+  if(next) next();
+}
+
