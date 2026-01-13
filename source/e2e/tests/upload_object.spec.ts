@@ -9,6 +9,49 @@ const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 //Authenticated as admin
 test.use({ storageState: 'playwright/.auth/user.json' });
 
+const mimemap :Record<string, string> = {
+  "glb": "model/gltf-binary",
+  "jpg": "image/jpeg",
+};
+
+([
+  ["cube.glb"],
+  ["cube.blend"],
+  ["cube.obj", "cube.mtl"],
+] satisfies string[][]).forEach((filenames)=>{
+
+  test.skip(`upload a ${filenames[0].split(".").pop()!.toUpperCase()}`, async ({page})=>{
+    await page.goto("/ui/upload");
+    //We are forced to use the rename otherwise we'd have a name collision
+    const f = page.getByRole("form", {name: "create or update a scene"});
+    await expect(f).toBeVisible();
+    await expect(f.getByRole("combobox", {name: "language"})).toHaveValue("en");
+
+    let fileList :{
+        name: string;
+        mimeType: string;
+        buffer: Buffer;
+    }[] = await Promise.all(filenames.map(async (filename)=>{
+      const ext = filename.split(".").pop()!;
+      return {
+        name: `${randomUUID()}.${ext}`,
+        mimeType: mimemap[ext] ??"application/octet-stream",
+        buffer: await readFile(path.join(fixtures, filename)),
+      }
+    }));
+
+    await f.getByRole("button", {name: "files"}).setInputFiles(fileList);
+    await f.getByRole("button", {name: "create a scene"}).click();
+
+    const uploads = page.getByRole("region", {name: "uploads"});
+    await expect(uploads).toBeVisible();
+    //Don't check for actual progress bar visibility because that could be too quick to register
+
+  });
+});
+
+
+
 test("uploads and rename a glb", async ({page, request})=>{
   await page.goto("/ui/upload");
   //We are forced to use the rename otherwise we'd have a name collision
