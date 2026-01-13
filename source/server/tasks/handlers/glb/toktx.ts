@@ -67,7 +67,9 @@ export interface UASTCOptions extends GlobalOptions {
 
 
 /**********************************************************************************************
- * Implementation.
+ * KTX conversion Implementation
+ * 
+ * @todo There is some optimization to be had for the resize step where we may benefit from some experimentation over resize algorithms
  */
 
 export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform {

@@ -59,11 +59,7 @@ export async function handleUploads({task: {task_id, fk_scene_id:scene_id, data:
           let optimizeTask:number|null = null;
           if(do_optimize){
             logger.log(`Optimize ${file.name} for quality ${quality}`);
-            if(config.enable_rebake_textures)logger.log(`Use experimental textures rebake task`);
-            const resizeTask = config.enable_rebake_textures? await tasks.create({type: "bakeGlb", data: {file: file.path, preset: quality}}): null;
-            optimizeTask = await tasks.create({type: "transformGlb", data: {preset: quality, file: resizeTask?undefined: file.path}, after: resizeTask?[
-              resizeTask
-            ]:[]});
+            optimizeTask = await tasks.create({type: "transformGlb", data: {preset: quality, file: file.path}});
           }else{
             logger.debug("Model optimization is disabled");
           }

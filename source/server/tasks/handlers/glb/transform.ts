@@ -13,6 +13,7 @@ export interface TransformGlbParams{
   logger: TaskLogger;
   preset: TDerivativeQuality;
   tmpdir: string;
+  /** Whether to resize textures to match maxSize */
   resize: boolean;
 }
 
@@ -47,8 +48,7 @@ export async function transformGlb({task: {task_id, data:{file, preset}}, inputs
     logger,
     preset,
     tmpdir,
-    //Texture rebake would already have resized images
-    resize: !config.enable_rebake_textures,
+    resize: true,
   });
 };
 
