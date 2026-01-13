@@ -66,7 +66,7 @@ export default async function createServer(config = defaultConfig) :Promise<expr
     // Cookie Options
     maxAge: (app.locals as AppLocals).sessionMaxAge,
     sameSite: "lax"
-  }));
+  }) as any);
 
   app.use("/", (req, res, next)=>{
     if(req.query.lang && (req.query.lang === "fr" || req.query.lang === "en")){

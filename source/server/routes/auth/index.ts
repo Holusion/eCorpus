@@ -53,7 +53,7 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
 	standardHeaders: 'draft-7',
 	legacyHeaders: false,
   validate: {trustProxy: false}
-})), wrap(sendLoginLink));
+}) as any), wrap(sendLoginLink));
 
 router.post("/logout",  useJSON, useURLEncoded, postLogout);
 
