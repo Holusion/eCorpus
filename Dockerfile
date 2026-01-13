@@ -8,16 +8,16 @@ RUN mkdir -p /app/dist /app/source
 WORKDIR /app
 
 COPY source/server/package*.json /app/source/server/
-RUN (cd /app/source/server && npm ci)
+RUN (cd /app/source/server && npm ci  --no-fund --no-audit )
 
 COPY source/voyager/package*.json /app/source/voyager/
-RUN (cd /app/source/voyager && npm ci --legacy-peer-deps)
+RUN (cd /app/source/voyager && npm ci --legacy-peer-deps  --no-fund --no-audit )
 
 COPY source/ui/package*.json /app/source/ui/
-RUN (cd /app/source/ui && npm ci)
+RUN (cd /app/source/ui && npm ci  --no-fund --no-audit )
 
 COPY ./package*.json /app/
-RUN npm ci
+RUN npm ci --no-fund --no-audit 
 
 
 COPY source/server /app/source/server
@@ -37,7 +37,9 @@ RUN npm run build-ui
 FROM node:22-slim
 LABEL org.opencontainers.image.source=https://github.com/Holusion/eCorpus
 LABEL org.opencontainers.image.description="eCorpus base image"
-LABEL org.opencontainers.image.licenses=Apache
+LABEL org.opencontainers.image.documentation="https://ecorpus.eu"
+LABEL org.opencontainers.image.vendor="Holusion SAS"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 ARG PORT
 ARG PUBLIC
@@ -54,7 +56,7 @@ WORKDIR /app
 COPY source/server/package*.json /app/
 #might occasionally fail if the prebuilt version can't be downloaded, 
 # because it can't rebuild it locally
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --no-fund --no-audit 
 
 COPY ./source/server/migrations /app/migrations
 COPY ./source/server/templates /app/templates
