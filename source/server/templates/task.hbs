@@ -41,7 +41,7 @@
       {{#if (test task.status "==" "error")}}
         <!-- @fixme retry button -->
       {{/if}}
-      <submit-fragment method="DELETE" action="/tasks/scene/{{encodeURIComponent scene }}/{{ task.task_id }}" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent scene.name}}/tasks'">
+      <submit-fragment method="DELETE" action="/tasks/{{ task.task_id }}" encoding="application/json"  onsubmit="window.location.href='/ui/scenes/{{encodeURIComponent scene.name}}/tasks'">
         <form>
           <button role="submit" id="btn-deleteTask" class="btn btn-danger">
             <ui-icon name="trash"></ui-icon>

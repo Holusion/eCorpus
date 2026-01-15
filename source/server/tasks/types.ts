@@ -20,6 +20,7 @@ export enum ETaskStatus{
 
 export interface TaskDefinition<T extends TaskData = TaskData>{
   fk_scene_id: number;
+  fk_user_id: number;
   task_id: number;
   ctime: Date;
   type :TaskType;

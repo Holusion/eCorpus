@@ -5,7 +5,7 @@ lang:
 labels:
   optional: optionnel
   scene: Scène
-  sceneTitle: titre de la scène
+  sceneName: Nom de la scène
   selectFile: sélectionner un fichier
   selectFile_s: sélectionner un ou plusieurs fichiers
   signin: Connexion
@@ -209,11 +209,11 @@ leads:
   uploadFiles: >
     Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
     En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
-  uploadTitle: >
-    Le titre ne sera pris en compte que si un seul glb est importé à la fois.
-    Pour renommer les scènes importées sous forme de zip, utilisez la page de scène après l'import.
+  uploadName: |-
+    Nom la scène.
+    Il doit être unique, mais Un titre d'affichage plus pratique pourra être défini par la suite.
   uploadLanguage: >
-    Définit le language de la scène, dans le cas d'une scène unique
+    Définit le language principal de la scène
   uploadOptimize: >
     Applique une compression avancée sur les modèles
 errors:

@@ -1,4 +1,4 @@
-import path from "node:path";
+import path, { basename, extname } from "node:path";
 import { BadRequestError } from "../../utils/errors.js";
 import { requireFileInput, TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
 import { TLanguageType } from "../../utils/schema/common.js";
@@ -7,7 +7,10 @@ import { createReadStream } from "node:fs";
 import { WriteFileParams } from "../../vfs/types.js";
 import { AssetDefinition } from "./createDocument.js";
 import { TDerivativeQuality } from "../../utils/schema/model.js";
-
+import { readdir, stat } from "node:fs/promises";
+import yauzl, { Entry, ZipFile } from "yauzl";
+import { on, once } from "node:events";
+import { toAccessLevel } from "../../auth/UserManager.js";
 
 
 interface UploadFileParams{
@@ -122,4 +125,59 @@ export async function copyFileTask({task:{data: {file, ...params}}, inputs, cont
   logger.log(`Copy file from ${filepath} to ${params.scene}/${params.name}`);
   let f = await vfs.copyFile(filepath, params);
   return f;
+}
+
+interface UserUploadParams{
+  size: number;
+  filename: string;
+}
+
+
+
+
+export async function userUploads({task:{task_id, fk_user_id, data:{filename, size}}, inputs, context: {tasks, vfs, userManager, logger}}:TaskHandlerParams<UserUploadParams>){
+  const dir = vfs.getTaskWorkspace(task_id);
+  let files :string[] = [];
+
+  const filepath = path.join(dir, filename);
+
+  const {size:diskSize}=  await stat(filepath);
+  if(diskSize != size){
+    throw new Error(`Expected a file of size ${size}, found ${diskSize}`);
+  }
+
+  const ext = extname(filename).toLowerCase();
+  if(ext == ".zip"){
+    logger.debug("Open zip file to list entries")
+    let zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(filepath, {lazyEntries: false, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
+    zip.on("entry", (record)=>{
+
+      files.push(record.fileName); 
+    });
+    await once(zip, "close");
+    logger.debug(`Found ${files.length} entries in zip`)
+  }else{
+    files.push(filename);
+  }
+
+  let scenes :Array<{name: string, action: "create"|"update"|"error"}>= [];
+  for(let file of files){
+    if(!file.endsWith(".svx.json")) continue;
+    const parts = file.split("/").filter(p=>!!p);
+    const name = (parts.length == 1)?basename(filename, extname(filename)) : parts.slice(-2)[0];
+    let action :"create"|"update"|"error";
+    try{
+      const level = toAccessLevel(await userManager.getAccessRights(name, fk_user_id));
+      action = level < toAccessLevel("write")? "error": "update";
+    }catch(e:any){
+      if(e.code !== 404) throw e;
+      action = "create";
+    }
+    scenes.push({name, action});
+  }
+
+  return {
+    files: files,
+    scenes
+  };
 }

@@ -81,6 +81,9 @@ export class TaskListener extends EventEmitter{
     `, [id, offset, limit]);
   }
 
+  /**
+   * Create a javascript `Error` using the task's last error log
+   */
   async resolveTaskError(task_id: number) : Promise<Error>{
     try{
       let log = await this.db.get<{message:string}>(`SELECT message FROM tasks_logs WHERE fk_task_id = $1 AND severity = 'error' ORDER BY log_id DESC LIMIT 1`, [task_id])
@@ -105,6 +108,7 @@ export class TaskListener extends EventEmitter{
     let task = await this.db.get(`
       SELECT
         fk_scene_id,
+        fk_user_id,
         task_id,
         ctime,
         type,
@@ -139,7 +143,7 @@ export class TaskListener extends EventEmitter{
     `);
   }
 
-  async create<T extends TaskType>(scene: number, user_id : number|null, {type, data, status='pending'}: Pick<CreateTaskParams<T>, "type"|"data"|"status">): Promise<number>{
+  async create<T extends TaskType>(scene: number|null, user_id : number|null, {type, data, status='pending'}: Pick<CreateTaskParams<T>, "type"|"data"|"status">): Promise<number>{
     let args =  [scene, type, data, status, user_id];
     let task = await this.db.get<{task_id: number}>(`
       INSERT INTO tasks(fk_scene_id, type, data, status, fk_user_id)

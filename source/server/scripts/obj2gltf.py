@@ -34,8 +34,6 @@ def import_mesh(filepath):
         '.obj': bpy.ops.wm.obj_import,
         '.ply': bpy.ops.wm.ply_import,
         '.stl': bpy.ops.import_mesh.stl,
-        '.wrl': bpy.ops.import_scene.x3d,
-        '.x3d': bpy.ops.import_scene.x3d,
     }
 
     stdout = io.StringIO()

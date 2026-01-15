@@ -4,57 +4,60 @@
   <h2>{{i18n "titles.upload"}}</h2>
   <div class="grid-content">
     <section class="container">
-      <upload-form>
-        <form class="form-control form-grid" aria-labelledby="upload-form-title" >
-          <h3 id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
-          <p class="form-lead">{{i18n "leads.uploadFiles"}}</p>
-          <div class="form-group">
-            <div class="form-item">
-              <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile_s"}} (glb, zip)</label>
-              <input 
-                  role="button"
-                  class="dropzone"
-                  id="fileUpload" 
-                  type="file"
-                  name="files"
-                  multiple
-                />
+      
+      <upload-manager class="form-control">
+        <h3 slot="title" id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
+        <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
+        <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
+        <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
+        <form slot="upload-form" class="form-control form-grid" aria-labelledby="upload-form-title">
+          <div class="form-row">
+
+            <div class="form-group">
+              <div class="form-item">
+                <label for="sceneName">
+                  {{i18n "labels.sceneName"}}
+                  {{#> popover id="sceneName"}}{{i18n "leads.uploadName" }}{{/popover}}
+                </label>
+                <input id="sceneName" type="text" name="name">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-item">
+                <label for="sceneSetupLanguage">
+                  {{i18n "labels.setupLocalization"}}
+                  {{#> popover id="sceneSetupLanguage" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
+                </label>
+                <select name="language" id="sceneSetupLanguage" >
+                  {{#each languages}}
+                  <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
+                  {{/each}}
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="form-row">
+            <h4>{{i18n "titles.advancedConfiguration"}}</h4>
+            <div class="form-item inline" style="justify-content: end;">
+              <label for="sceneOptimize">
+                {{i18n "labels.optimizeModel"}}
+              {{#> popover id="sceneOptimize" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
+              </label>
+              <input id="sceneOptimize" type="checkbox" name="optimize"/>
             </div>
           </div>
 
-          <p class="form-lead">{{i18n "leads.uploadOptimize" }}</p>
-          <div class="form-item inline">
-            <input id="sceneOptimize" type="checkbox" name="optimize"/>
-            <label for="sceneOptimize">{{i18n "labels.optimizeModel"}}</label>
-          </div>
 
-          <p class="form-lead">{{i18n "leads.uploadTitle"}}</p>
-          <div class="form-group">
-            <div class="form-item">
-              <label for="sceneTitle">{{i18n "labels.sceneTitle"}}</label>
-              <input id="sceneTitle" type="text" name="name">
-            </div>
-          </div>
 
-          <p class="form-lead">{{i18n "leads.uploadLanguage"}}</p>
-          <div class="form-group">
-            <div class="form-item">
-              <label for="sceneSetupLanguage">{{i18n "labels.setupLocalization"}}</label>
-              <select name="language" id="sceneSetupLanguage" >
-                {{#each languages}}
-                <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
-                {{/each}}
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group row" style="justify-content: end">
-            <div class="form-item" style="align-self: end; justify-self: end">
-              <button class="btn btn-main" type="submit" role="submit" >{{i18n "buttons.upload"}}</button>
-            </div>
-          </div>
         </form>
-      </upload-form>
+
+        <button slot="submit" role="submit" class="btn btn-main">{{i18n "buttons.upload"}}</button>
+        <span slot="upload-errors">{{i18n "leads.uploadErrors"}}</span>
+      </upload-manager>
+
     </section>
   </div>
 </div>

@@ -6,7 +6,7 @@ CREATE TYPE task_status AS ENUM ('aborting', 'error', 'initializing', 'running',
 
 CREATE TABLE tasks (
   task_id BIGSERIAL PRIMARY KEY,
-  fk_scene_id BIGINT NOT NULL REFERENCES scenes(scene_id) ON DELETE CASCADE,
+  fk_scene_id BIGINT REFERENCES scenes(scene_id) ON DELETE CASCADE,
   fk_user_id BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
   ctime TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- task data

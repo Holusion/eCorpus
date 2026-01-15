@@ -173,20 +173,27 @@ a{
     }
     //The popover element
     >[popover]:popover-open{
+      // Positionning
       position:relative;
-      line-height: initial;
       inset: unset;
+      max-width: max(20%, 30rem);
+      // We don't expect anchor positionning to work everywhere (yet)
+      top: anchor(bottom);
+      left: anchor(left);
+
       margin: 0 1rem;
       padding: .2rem .4rem;
       border: 1px solid var(--color-primary);
       border-radius: 4px;
+      //Colors
       color: var(--color-text);
       background-color: var(--color-highlight2);
-      max-width: max(20%, 30rem);
+      // Text format
+      white-space: pre-line;
+      text-align: left;
+      line-height: initial;
       font-size: 1rem;
       font-family: var(--font-body);
-      top: anchor(bottom);
-      left: anchor(left);
     }
   }
 

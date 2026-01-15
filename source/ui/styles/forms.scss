@@ -229,11 +229,6 @@
   }
 
   input[type=file]{
-    &.dropzone{
-      max-width: 100%;
-      flex: 1 1 auto;
-      padding: .75rem;
-    }
     &::file-selector-button {
       margin-right: 8px;
       border: none;
@@ -336,14 +331,18 @@
     > .form-title{
       grid-column: 1 / end;
     }
+
     > .form-item,
     > .form-group{
       grid-column: 1 / span 1;
     }
+
     > .form-lead {
       grid-column: 2 / span 1;
       margin: 2px;
     }
+
+
     @media screen and (max-width: 992px) {
       grid-template-columns: minmax(auto, 500px);
     > .form-lead {

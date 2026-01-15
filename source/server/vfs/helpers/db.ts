@@ -24,6 +24,7 @@ pgtypes.setTypeParser(20 /* BIGINT */, function parseBigInt(val){
 const debug = debuglog("pg:trace");
 
 function safeDebugError(e:Error|unknown, sql: string){
+  if(!debug.enabled) return;
   try{
     debug(expandSQLError(e, sql).toString());
   }catch(e){
@@ -120,7 +121,9 @@ export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "begin
 let _id :number = 0;
 export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
   debug("connect to database at : "+ uri)
-  let pool = new Pool({connectionString: uri});
+  let pool = new Pool({
+    connectionString: uri,
+  });
 
   pool.on("error", (err, client)=>{
     console.error("psql client pool error :", err);

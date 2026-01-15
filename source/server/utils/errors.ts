@@ -32,13 +32,25 @@ export class NotFoundError extends HTTPError {
   }
 }
 
+export class MethodNotAllowedError extends HTTPError{
+  constructor(reason :string = "Method Not Allowed"){
+    super(405, reason);
+  }
+}
+
 export class ConflictError extends HTTPError {
   constructor(reason :string="Conflict"){
     super(409, reason);
   }
 }
 
-export class RangeNotSatisfiable extends HTTPError {
+export class LengthRequiredError extends HTTPError{
+  constructor(reason: string = "Length Required"){
+    super(411, reason);
+  }
+}
+
+export class RangeNotSatisfiableError extends HTTPError {
   constructor(reason :string="Range Not Satisfiable"){
     super(416, reason);
   }
@@ -47,5 +59,11 @@ export class RangeNotSatisfiable extends HTTPError {
 export class InternalError extends HTTPError {
   constructor(reason :string="Internal Server Error"){
     super(500, reason);
+  }
+}
+
+export class NotImplementedError extends HTTPError{
+  constructor(reason :string="Not Implemented"){
+    super(501, reason);
   }
 }

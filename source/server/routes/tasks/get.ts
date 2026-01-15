@@ -1,84 +1,30 @@
 import { Request, Response } from "express";
-import { getLocals, getUserId } from "../../utils/locals.js";
-import { BadRequestError, ForbiddenError, NotFoundError } from "../../utils/errors.js";
-import { RootTasksTreeNode, TasksTreeNode } from "../../tasks/scheduler.js";
-import { queryToPage } from "../../utils/query.js";
+import { UnauthorizedError } from "../../utils/errors.js";
+import { getLocals, getUser } from "../../utils/locals.js";
+import { toAccessLevel } from "../../auth/UserManager.js";
 
 
 
-type TasksTreeNodeDescription = Pick<TasksTreeNode, "task_id"|"type"|"status">&{
-  children: TasksTreeNodeDescription[];
-};
+export async function getTask(req: Request, res: Response){
+  const {
+    vfs,
+    taskScheduler,
+    userManager,
+  } = getLocals(req);
+  const requester = getUser(req)!;
+  const {id:idString} = req.params;
+  const id = parseInt(idString);
+  let task = await taskScheduler.getTask(id);
 
-export function formatTaskTree(node: TasksTreeNodeDescription):string[]{
-  return [
-    `├─ #${node.task_id} ${node.type} (${node.status})`,
-    ...node.children.map(c=>formatTaskTree(c).map(s=>`│  ${s}`))
-   ].flat(1);
-}
-
-function groupTaskTree(nodes:RootTasksTreeNode[]){
-  let scenes = new Map<string, RootTasksTreeNode[]>();
-  for(let node of nodes){
-    if(!scenes.get(node.scene_name)?.push(node)){
-      scenes.set(node.scene_name,[node]);
-    }
+  if(requester.level !== "admin" 
+    && task.fk_user_id !== requester.uid 
+    && toAccessLevel(await userManager.getAccessRights(task.fk_scene_id, requester.uid)) < toAccessLevel("read")
+  ){
+    throw new UnauthorizedError(`Read rights are required to delete tasks`);
   }
-  return scenes;
-}
-
-
-export async function getOwnTasks(req: Request, res: Response){
-  let user_id = getUserId(req); 
-  let {taskScheduler} = getLocals(req);
-
-  if(!user_id) throw new ForbiddenError(`Requires valid authentication`);
-
-  let params = {user_id, ...queryToPage(req.query)};
-
-  let list = await taskScheduler.getTasks(params);
-
-  res.format({
-    "application/json": ()=>{
-      res.status(200).send(list);
-    },
-    "text/plain": ()=>{
-      let txt = "";
-      const scenes = groupTaskTree(list);
-      for(let [scene, tasks] of scenes){
-        txt += `${scene}\n`
-        for(let rootTask of tasks){
-          txt+= formatTaskTree(rootTask).join("\n") ;
-        }
-      }
-      
-      res.status(200).set("Content-Type", "text/plain; encoding=utf-8").send(txt);
-    }
-  })
-}
-
-
-export async function getSceneTasks(req: Request, res: Response){
-  let {scene} = req.params;
-  let {taskScheduler, vfs} = getLocals(req);
-
-
-  let {id: scene_id, name} = await vfs.getScene(scene);
-  let params = {scene_id, ...queryToPage(req.query)};
-
-  let tree = await taskScheduler.getTasks(params);
-
-
-  res.format({
-    "application/json": ()=>{
-      res.status(200).send(tree);
-    },
-    "text/plain": ()=>{
-      let txt = `${name}\n`;
-      for(let rootTask of tree){
-        txt+= formatTaskTree(rootTask).join("\n") ;
-      }
-      res.status(200).set("Content-Type", "text/plain; encoding=utf-8").send(txt);
-    }
-  });
+  if(task.status == "running" || task.status == "pending"){
+    await taskScheduler.wait(task.task_id);
+    task = await taskScheduler.getTask(task.task_id);
+  }
+  res.status(200).send(task);
 }

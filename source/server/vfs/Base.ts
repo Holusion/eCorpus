@@ -41,7 +41,11 @@ export default abstract class BaseVfs extends DbController{
     }
   }
 
-
+  /**
+   * Make a temporary upload directory
+   * @param ts 
+   * @returns 
+   */
   public mktemp(ts:number = Date.now()){
     let b = Buffer.allocUnsafe(10);
     b.writeUIntBE(ts, 0, 6);
@@ -49,8 +53,17 @@ export default abstract class BaseVfs extends DbController{
     return path.join(this.uploadsDir, b.toString("hex"));
   }
 
+  /**
+   * Create an artifact directory for this task
+   */
   public async createTaskWorkspace(id: number){
-    return mkdtemp( path.join(this.artifactsDir, id.toString(10)+"-"));
+    const dir = this.getTaskWorkspace(id);
+    await mkdir( dir, {recursive: true});
+    return dir;
+  }
+
+  public getTaskWorkspace(id: number){
+    return path.join(this.artifactsDir, id.toString(10));
   }
 
   abstract close() :Promise<any>;

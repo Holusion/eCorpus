@@ -5,7 +5,7 @@ lang:
 labels:
   optional: optional
   scene: Scene
-  sceneTitle: scene title
+  sceneName: Scene name
   selectFile: select a file
   selectFile_s: select one or several files 
   signin: Sign in
@@ -209,8 +209,8 @@ leads:
   uploadFiles: >
     Accepted files are standalone glb files or zip archives exported from another eCorpus instance
     En cas de duplication du nom de scène, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
-  uploadTitle: >
-    Title is only used when one GLB is uploaded
+  uploadName: |-
+    Unique name of the scene. A different display title can be defined later.
   uploadLanguage: >
     Set default language for the created scene
   uploadOptimize: >
