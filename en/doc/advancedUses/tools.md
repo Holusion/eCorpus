@@ -15,16 +15,25 @@ With these, you can, among other things, change the camera's viewpoint (switch f
 
 ### Summary
 
-* [Understanding Scene Tools and Parameters](#understanding-scene-tools-and-parameters)
-* [List of Available Tools](#the-view-tool)
-    * [The View Tool](#the-view-tool)
-        * [Creating an Orthophoto](#creating-an-orthophoto-with-the-view-tool)
-    * [The Texture Tool](#the-texture-tool)
-    * [The Environment Tool](#the-environment-tool)
-    * [The Lighting Tool](#the-lighting-tool)
-    * [The Measure Tool](#the-measure-tool)
-        * [Modifying a Scene's Units of Measurement](#modifying-a-scenes-units-of-measurement)
-    * [The Cut Tool](#the-cut-tool)
+- [Learn to Use DPO-Voyager Scene Tools and Parameters](#learn-to-use-dpo-voyager-scene-tools-and-parameters)
+  - [Summary](#summary)
+  - [Understanding Scene Tools and Parameters](#understanding-scene-tools-and-parameters)
+  - [The View Tool](#the-view-tool)
+    - [Creating an Orthophoto with the View Tool](#creating-an-orthophoto-with-the-view-tool)
+  - [The Texture Tool](#the-texture-tool)
+    - [Default Material](#default-material)
+    - [Clay Material](#clay-material)
+    - [X-Ray Material](#x-ray-material)
+    - [Normal Material](#normal-material)
+    - [Wireframe Material](#wireframe-material)
+  - [The Environment Tool](#the-environment-tool)
+  - [The Lighting Tool](#the-lighting-tool)
+  - [The Measure Tool](#the-measure-tool)
+      - [Modifying a Scene's Units of Measurement](#modifying-a-scenes-units-of-measurement)
+  - [The Cut Tool](#the-cut-tool)
+    - [The X-Axis](#the-x-axis)
+    - [The Y-Axis](#the-y-axis)
+    - [The Z-Axis](#the-z-axis)
 
 ### Understanding Scene Tools and Parameters
 
@@ -172,40 +181,14 @@ It therefore serves to enhance their presentation and can be modified to align w
 
 <img src="/assets/img/doc/Tools_15.jpg" width ="700" alt="illustration Media Voyager" />
 
-As its name suggests, this tool allows modifying the lighting parameters present in the scene. By default, a Voyager scene includes 4 lights, based on photo studio lighting principles, described below.
+As its name suggests, this tool allows modifying some of the lighting parameters present in the scene. By default, a Voyager scene includes an environment light and two disabled "shadow casters". For more detail on the lights check the [light](../tutorials/lights.html) tutorial.
 
-**Note** lights follow camera movements. For example, the left-oriented secondary light will always illuminate the left of the Explorer, regardless of whether you are viewing the front or back of the object.
+The light tools allows to edit the intensity and the color (if applicable) of each enabled lights. The screenshot above shows the light tool for a scene with four lights named "Principale", "Remplissage #1", "Remplissage #2" and "Contre-jour". 
 
 |Function| Sub-function| Description | Animatable in Guided Tours |
 |:----------|----------|----------|-----------:|
-|**Lighting**| Key| Allows adjusting the intensity and color of the scene's main light| **Yes** - Option: _Lights_|
-| | Fill 1| Allows adjusting the intensity and color of the scene's right-oriented secondary light| **Yes** - Option: _Lights_|
-| | Fill 2| Allows adjusting the intensity and color of the scene's left-oriented secondary light| **Yes** - Option: _Lights_|
-| | Backlight| Allows adjusting the intensity and color of the scene's Rim light| **Yes** - Option: _Lights_|
+|**Lighting**| \<selected light\>| Allows adjusting the intensity and color (if applicable) of the selected light| **Yes** - Option: _Lights_|
 
-#### Key Lighting
-
-The **Key Light** is the most important light in the scene. It emits the most light. It is always placed in front of the camera.
-
-Generally, its color is white, so as not to affect the actual color of the illuminated object. A key light can be colored to give specific moods to the scene (e.g., blue to recreate an American night).
-
-#### Secondary Lighting
-
-The **Fill Light** is an optional but preferred light. It is traditionally placed towards the front of the subject, oriented to the left or right.
-
-Their role is to complement the area of light emitted by the key light. They are often slightly colored to create softer and more interesting shadows in photos.
-
-Here, DPO-Voyager scenes are composed by default of two secondary lights. Fill #1 is oriented to the right of the screen, while Fill #2 is oriented to the left of the screen.
-
-It is customary to use warm colors for these lights, or to alternate a warm color on one side and a cool color on the other.
-
-#### Backlighting
-
-The **Rim Light** is the most optional of all the lights presented. Traditionally placed behind the subject, they serve to create a halo of light on the contours of the latter, in order to highlight it.
-
-In the scene, the backlight is placed in the background, to the right of the screen.
-
-It is customary for this light to be colored so as not to contradict the Key Light. Cool colors are preferred, to contrast with the generally warm colors of the Secondary Lights.
 
 ### The Measure Tool
 

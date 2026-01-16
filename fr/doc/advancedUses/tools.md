@@ -15,16 +15,25 @@ Avec ceux-ci, pour pouvez, entre autre, changer le point de vue de la caméra (p
 
 ### Sommaire
 
-* [Comprendre les Outils et les paramètres de scène](#comprendre-ce-que-sont-les-outils-et-paramètres-dune-scène)
-* [Liste des Outils présents](#loutil-vue)
-    * [L'Outil Vue](#loutil-vue)
-        * [Réaliser une Orthophoto](#réaliser-une-orthophoto-avec-loutil-vue)
-    * [L'Outil Texture](#loutil-texture)
-    * [L'Outil Environnement](#loutil-environnement)
-    * [L'Outil Eclairage](#loutil-eclairage)
-    * [L'Outil Mesure](#loutil-mesure)
-        * [Modifier les Unités de mesure d'une scène](#modifier-les-unités-de-mesure-dune-scène)
-    * [L'Outil Coupe](#loutil-coupe)
+- [Apprendre à utiliser les Outils et paramètres d'une scène DPO-Voyager](#apprendre-à-utiliser-les-outils-et-paramètres-dune-scène-dpo-voyager)
+  - [Sommaire](#sommaire)
+  - [Comprendre ce que sont les Outils et paramètres d'une scène](#comprendre-ce-que-sont-les-outils-et-paramètres-dune-scène)
+  - [L'outil Vue](#loutil-vue)
+    - [Réaliser une Orthophoto avec l'Outil Vue](#réaliser-une-orthophoto-avec-loutil-vue)
+  - [L'outil Texture](#loutil-texture)
+    - [Matériau par défaut](#matériau-par-défaut)
+    - [Matériau argile](#matériau-argile)
+    - [Matériau Rayons X](#matériau-rayons-x)
+    - [Matériau Normale](#matériau-normale)
+    - [Matériau Fil de Fer](#matériau-fil-de-fer)
+  - [L'outil Environnement](#loutil-environnement)
+  - [L'outil Eclairage](#loutil-eclairage)
+  - [L'outil Mesure](#loutil-mesure)
+      - [Modifier les unités de mesure d'une scène](#modifier-les-unités-de-mesure-dune-scène)
+  - [L'outil Coupe](#loutil-coupe)
+    - [L'Axe X](#laxe-x)
+    - [L'Axe Y](#laxe-y)
+    - [L'Axe Z](#laxe-z)
 
 ### Comprendre ce que sont les Outils et paramètres d'une scène
 
@@ -172,40 +181,14 @@ Il sert donc à sa bonne mise en valeur, et peut être modifier pour s'approcher
 
 <img src="/assets/img/doc/Tools_15.jpg" width ="700" alt="illustration Media Voyager" />
 
-Comme son nom l'indique, cet outil permet de modifier les paramètres d'éclairage présent dans la scène. Par défaut, une scène Voyager comprend 4 lumières, se basant sur les principes d'éclairage de studio photo, décrits ci-après.
+Comme son nom l'indique, cet outil permet de modifier les paramètres d'éclairage présent dans la scène. Par défaut, une scène Voyager comprend une lumière d'environment et deux "shadow caster" désactivés. Pour plus d'informations sur les lumières, voir le tutoriel [éclairage](../tutorials/lights.html)
 
-**A noter** les lumières suivent les mouvements de la caméra. Par exemple, la lumière secondaire orientée gauche éclairera toujours la gauche de l'Explorer, peu importe si vous visionner l'avant ou l'arrière  de l'objet. 
+L'outil éclairage permet d'éditer l'intensité et la couleur (si applicable) de chaque lumière active. La capture d'écran ci-dessous montre l'outil d'éclairage pour une scène avec quatre lumières nommées "Principale", "Remplissage #1", "Remplissage #2" and "Contre-jour".
 
 |Fonction| Sous-fonction| Description | Animable Visites Guidées |
 |:----------|----------|----------|-----------:|
-|**Eclairage**| Principale| Permet le règlage de l'intensité et la couleur de la lumière principale de la scène| **Oui** - Option: _Lights_|
-| | Remplissage 1| Permet le règlage de l'intensité et la couleur de la lumière secondaire orientée droite de la scène| **Oui** - Option: _Lights_|
-| | Remplissage 2| Permet le règlage de l'intensité et la couleur de la lumière secondaire orientée gauche de la scène| **Oui** - Option: _Lights_|
-| | Contre-jour| Permet le règlage de l'intensité et la couleur de la lumière Rim de la scène| **Oui** - Option: _Lights_|
+|**Eclairage**| \< lumière sélectionnée \>| Permet le règlage de l'intensité et la couleur de la lumière sélectionnée| **Oui** - Option: _Lights_|
 
-#### Eclairage principal
-
-La **Lumière principale**, aussi appelée **Key Light**, est la plus importante dans la scène. C'est elle qui émet le plus de lumière. Elle est toujours placée à l'avant de la caméra.
-
-De manière générale, sa couleur est blanche, pour ne pas influer sur la couleur réel de l'objet éclairé. Une lumière principale peut-être colorée pour donner des ambiances précises à la scène (ex: bleue pour recréer une nuit américaine).
-
-#### Eclairage Secondaire
-
-La **Lumière secondaire**, aussi appelée **Fill Light**, est une lumière optionelle mais privilégiée. Elle se place traditionnelement vers l'avant du sujet, orienté à gauche ou à droite.
-
-Leur rôle est de compléter la zone de lumière émise par la lumière principale. Elle sont souvent légérement colorées pour créer des ombres moins dures et plus intéressantes en photo.
-
-Ici, les scènes DPO-Voyager sont composées par défaut de deux lumières secondaires. La Remplissage #1 est orientée à droite de l'écran, là où la Remplissage #2 est orientée à gauche de l'écran.
-
-Il est de coutume d'utiliser des couleurs chaudes pour ces lumières, ou d'alterner une couleur chaude d'un côté et une couleur froide de l'autre.
-
-#### Eclairage contre-jour
-
-La **Lumière contre-jour**, aussi appelée **Rim Light**, est la plus optionnelle de toutes les lumières présentées. Traditionnelement placée derrière le sujet, elles servent à créer un halo de lumière sur les contours de ce-dernier, afin de le mettre en valeur.
-
-Dans la scène, la lumière contre-jour est placée dans le fond, à droite de l'écran. 
-
-Il est de coutume que cette lumière soit colorée pour ne pas contredire la Lumière Principale. Les couleurs froides sont privilégiée, pour contraster avec les couleurs généralement chaudes des Lumière Secondaires.
 
 ### L'outil Mesure
 
