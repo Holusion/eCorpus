@@ -152,8 +152,8 @@ Avec des réglages spécifiques, ce type de lumière est utilisé pour les "Shad
 
 <h4 id="spot-light"> <svg width=1em viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M301.87 108.727c0 52.94 43.06 96 96 96 8.84 0 16-7.16 16-16s-7.16-16-16-16c-35.3 0-64-28.72-64-64 0-8.84-7.16-16-16-16s-16 7.16-16 16zM478.636 144.265a15.898 15.898 0 0 0 4.356-8.146l8.718-43.38a16.008 16.008 0 0 0-4.37-14.468l-55.755-55.755a15.982 15.982 0 0 0-14.467-4.37l-43.381 8.718a16.084 16.084 0 0 0-8.146 4.356l-30.568 30.498L448.13 174.826zM30.3 216.774c-7.856 4.045-10.956 13.686-6.912 21.55l7.32 14.232c4.044 7.855 13.695 10.956 21.55 6.911l207.354-102.82c-5.12-15.272-4.739-35.452-3.706-49.874zM257.42 455.585c-3.858 7.948-.554 17.522 7.4 21.388l14.393 6.994c7.949 3.858 17.53.549 21.388-7.4l108.397-220.653c-14.872 2.094-34.317 1.858-49.625-2.162zM119.554 363.004c-6.162 6.331-6.037 16.458.298 22.63l11.464 11.165c6.331 6.162 16.468 6.034 22.63-.297L309.885 230.5c-11.419-7.558-22.03-17.993-30.532-31.249z"/></svg> Spot lumineux (<span style="font-style: italic;">spot</span>)</h4>
 
-<div class="media" style="display:flex; justify-content: center">
-<img src="/assets/img/doc/Lights_spotlightl.png" width ="300" alt="illustration projecteur" />
+<div class="media" style="display:flex; justify-content: center; align-items: space-around;">
+<img src="/assets/img/doc/Lights_spotlight1.png" width ="300" alt="spot light illustration" /><img src="/assets/img/doc/Lights_spotlight2.png" width ="300" alt="spot light illustration with gizmo" />
 </div>
 
 Cette lumière est émise depuis un point unique dans une direction donnée, selon un cône qui s’élargit avec la distance. Elle peut projeter des ombres.
