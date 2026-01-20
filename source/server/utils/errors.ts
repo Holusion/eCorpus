@@ -6,6 +6,7 @@ import { useTemplateProperties } from "./locals.js";
 export class HTTPError extends Error{
   constructor(public code :number, message :string){
     super(`[${code}] ${message}`);
+    this.name = "HTTPError";
   }
 }
 

@@ -7,7 +7,7 @@ import { HTTPError } from "../utils/errors.js";
  */
 export function parseTaskError(output: any) :Error|HTTPError{
   if(typeof output === "string" && output.length) return new Error(output);
-  let err :any = new Error("Unknown task error");
+  let err :any = (output?.name == "HTTPError" && typeof output.code === "number")?new HTTPError(output.code, "Unknown task error"):new Error("Unknown task error");
   if(! output || typeof output !== "object") return err;
   for(let key in output){
     err[key] = output[key];
@@ -25,5 +25,10 @@ export function serializeTaskError(e: HTTPError|Error|string):string{
   if(typeof e === "string") return JSON.stringify({message: e});
   else if(!e || typeof e !== "object") return JSON.stringify({message: `Error: ${e}`});
   else if(!e.message) return JSON.stringify({message: `Error: ${JSON.stringify(e)}`});
-  else return JSON.stringify(e, Object.getOwnPropertyNames(e));
+  let obj :any = {}
+  for(let key of Object.getOwnPropertyNames(e)){
+    obj[key] = (e as any)[key];
+  }
+  obj["name"] = e.name;
+  return JSON.stringify(obj);
 }
