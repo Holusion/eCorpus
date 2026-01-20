@@ -152,8 +152,8 @@ describe("POST /scenes", function(){
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
-      expect(res.body.failed_scenes).not.to.be.empty;
-      expect(res.body.failed_scenes).to.deep.equal({ foo: 'User does not have writting rights on the scene' });
+      
+      expect(res.body.message).to.match(/permissions.*foo/);
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
@@ -188,13 +188,13 @@ describe("POST /scenes", function(){
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
-      expect(res.body.failed_scenes).not.to.be.empty;
-      expect(res.body.failed_scenes).to.deep.equal({foo: "User does not have writting rights on the scene"});
+
+      expect(res.body.message).to.match(/permissions.*foo/);
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
       await expect(vfs.getScene("bar"), `scene "bar" should still exist`).to.be.fulfilled.to.be.ok;
-      expect(await vfs.getFileProps({ scene: "bar", name: "articles/hello.html" })).to.have.property("hash", fileHash);
+      await expect(vfs.getFileProps({ scene: "bar", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
     });
 
   })
@@ -349,8 +349,8 @@ describe("POST /scenes", function(){
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
-      expect(res.body.failed_scenes).not.to.be.empty;
-      expect(res.body.failed_scenes).to.deep.equal({foo: 'User does not have writting rights on the scene'});
+      
+      expect(res.body.message).to.match(/permissions.*foo/);
 
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
@@ -385,13 +385,14 @@ describe("POST /scenes", function(){
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
-      expect(res.body.failed_scenes).not.to.be.empty;
-      expect(res.body.failed_scenes).to.deep.equal({foo: "User does not have writting rights on the scene"});
+      
+      expect(res.body.message).to.match(/permissions.*foo/);
 
+      //Check we didn't change anything
       await expect(vfs.getScene("foo"), `scene "foo" should still exist`).to.be.fulfilled.to.be.ok;
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
       await expect(vfs.getScene("bar"), `scene "bar" should still exist`).to.be.fulfilled.to.be.ok;
-      expect(await vfs.getFileProps({ scene: "bar", name: "articles/hello.html" })).to.have.property("hash", fileHash);
+      await expect(vfs.getFileProps({ scene: "bar", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
     });
   });
 

@@ -1,5 +1,5 @@
 import path, { basename, extname } from "node:path";
-import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
+import { BadRequestError, ForbiddenError, UnauthorizedError } from "../../utils/errors.js";
 import { ImportSceneResult, requireFileInput, TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
 import { TLanguageType } from "../../utils/schema/common.js";
 import uid from "../../utils/uid.js";
@@ -235,10 +235,10 @@ function taskIsUploadOutput(output: any): output is UploadResult {
  */
 export async function processUploadedFiles({inputs, context:{tasks, vfs, logger}}: TaskHandlerParams<{}>):Promise<number>{
   let uploads = [...inputs.entries()].map(([task_id, output])=>{
-    if(! taskIsUploadOutput(output)) throw new Error(`Invalid input task ${task_id}: Output ${output} is not a valid file upload result`);
+    if(! taskIsUploadOutput(output)) throw new BadRequestError(`Invalid input task ${task_id}: Output ${output} is not a valid file upload result`);
     return output;
   });
-  if(!uploads.length) throw new Error(`This task requires at least one source file`);
+  if(!uploads.length) throw new BadRequestError(`This task requires at least one source file`);
 
   const upload_scenes =  uploads.findIndex(u=>u.scenes.length) !== -1 //A file containing at least one complete scene
   const upload_files = uploads.findIndex(u=>!u.scenes.length) !== -1 // A file NOT containing any complete scene
@@ -254,8 +254,11 @@ export async function processUploadedFiles({inputs, context:{tasks, vfs, logger}
   for(let {error, name} of errors){
     logger.error(error  ?? `Unspecified error on scene ${name}`);
   }
+
   // @FIXME should we clean up some things immediately when we abort due to planned errors?
-  if(errors.length) throw new ForbiddenError(`Insufficient permission on some scenes for this user. Aborting.`);
+  if(errors.length){
+    throw new UnauthorizedError(`Insufficient permissions on scene${1 < errors.length?"s":""} [${errors.slice(0, 3).map(({name})=>name)}${3 < errors.length?", ...":""}] for this user. Aborting.`);
+  }
 
   return await tasks.group(async function* createChildren(context){
     for(let upload of uploads){
