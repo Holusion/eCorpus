@@ -37,10 +37,8 @@ describe("TaskProcessor", function(){
   this.afterEach(async function(){
     await client.end();
     await handle.run(`DELETE FROM tasks_relations`);
-    await Promise.all([
-      handle.run(`DELETE FROM tasks`),
-      handle.run(`DELETE FROM tasks_logs`),
-    ]);
+    await handle.run(`DELETE FROM tasks`);
+    await handle.run(`DELETE FROM tasks_logs`);
   });
 
 

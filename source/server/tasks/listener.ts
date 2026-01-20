@@ -2,11 +2,13 @@ import EventEmitter, { on } from "node:events";
 import { Client, Notification } from "pg";
 import { DatabaseHandle, toHandle } from "../vfs/helpers/db.js";
 import { CreateTaskParams, GroupCallback, TaskContextHandlers, TaskDefinition, TaskHandler, TaskLogger, TaskStatus, TaskType, TaskTypeData } from "./types.js";
-import { NotFoundError, InternalError, BadRequestError } from "../utils/errors.js";
+import { NotFoundError, InternalError, BadRequestError, HTTPError } from "../utils/errors.js";
 import { debuglog } from "node:util";
+import { serializeTaskError } from "./errors.js";
 
 const debug = debuglog("tasks:scheduler");
 const debug_logs = debuglog("tasks:logs");
+const debug_outputs = debuglog("tasks:outputs");
 
 export interface TaskListenerParams{
   client: Client;
@@ -82,25 +84,32 @@ export class TaskListener extends EventEmitter{
   }
 
   /**
-   * Create a javascript `Error` using the task's last error log
-   */
-  async resolveTaskError(task_id: number) : Promise<Error>{
-    try{
-      let log = await this.db.get<{message:string}>(`SELECT message FROM tasks_logs WHERE fk_task_id = $1 AND severity = 'error' ORDER BY log_id DESC LIMIT 1`, [task_id])
-      if(log) return new Error(`In task ${task_id}: ${log.message}`);
-      else return new Error(`In task ${task_id}: no logs`);
-    }catch(e: any){
-      return new Error(`In task ${task_id}: failed to get log with error: ${e.message}`);
-    };
-  }
-
-  /**
    * Internal method to adjust task status
    * @param id 
    * @param status 
    */
-  public async setTaskStatus(id: number, status:TaskStatus){
+  public async setTaskStatus(id: number, status:Omit<TaskStatus, "success"|"error">): Promise<void>{
     await this.db.run(`UPDATE tasks SET status = $2 WHERE task_id = $1`, [id, status]);
+  }
+  /**
+   * Marks a task as completed
+   * Output is serialized using `JSON.stringify()`
+   */
+  async releaseTask(id: number, output: any = null){
+    debug_outputs(`Release task #${id}`, output);
+    await this.db.run(`UPDATE tasks SET status = 'success', output = $2 WHERE task_id = $1`, [id, JSON.stringify(output)]);
+  }
+
+  /**
+   * @fixme use task.output to store the error message?
+   */
+  async errorTask(id: number, reason: HTTPError|Error|string){
+    try{
+      debug_outputs(`Task #${id} Error : `, reason);
+      await this.db.run(`UPDATE tasks SET status = 'error', output = $2 WHERE task_id = $1`, [id, serializeTaskError(reason)]);
+    }catch(e:any){
+        console.error("While trying to set task status:", e);
+    }
   }
 
 

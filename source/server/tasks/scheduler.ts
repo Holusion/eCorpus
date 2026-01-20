@@ -1,10 +1,11 @@
 
 import { debuglog } from "node:util";
-import { InternalError, NotFoundError } from "../utils/errors.js";
+import { HTTPError, InternalError, NotFoundError } from "../utils/errors.js";
 import { TaskListener, TaskListenerParams } from "./listener.js";
 import { ETaskStatus, TaskStatus, TaskType } from "./types.js";
 import { on } from "node:events";
 import { isTimeInterval } from "../utils/format.js";
+import { parseTaskError } from "./errors.js";
 
 
 const debug = debuglog("tasks:scheduler");
@@ -72,7 +73,6 @@ function parseNodes(n:StoredTasksTreeNode|RootTasksTreeNode<StoredTasksTreeNode>
     children
   } satisfies TasksTreeNode;
 }
-
 
 export class TaskScheduler extends TaskListener{
 
@@ -192,7 +192,7 @@ export class TaskScheduler extends TaskListener{
     const onResult = async ()=>{
       const t = await this.getTask(id);
       if(t.status == "error"){
-        throw await this.resolveTaskError(id);
+        throw parseTaskError(t.output);
       }else if(t.status === "success"){
         if(/^\d+$/.test(t.output)){
           debug("recurse over returned task definition #%d", t.output);

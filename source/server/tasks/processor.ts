@@ -8,9 +8,9 @@ import UserManager from '../auth/UserManager.js';
 
 import * as tasks from "./handlers/index.js";
 import { Config } from '../utils/config.js';
+import { HTTPError } from '../utils/errors.js';
 
 const debug = debuglog("tasks:processor");
-const debug_outputs = debuglog("tasks:outputs");
 
 export interface TaskProcessorParams{
   client: Client;
@@ -134,34 +134,6 @@ export class TaskProcessor extends TaskListener{
   }
 
 
-  /**
-   * Marks a task as completed
-   * Output is serialized using `JSON.stringify()`
-   */
-  async releaseTask(id: number, output: any = null){
-    debug_outputs(`Release task #${id}`, output);
-    await this.db.run(`UPDATE tasks SET status = 'success', output = $2 WHERE task_id = $1`, [id, JSON.stringify(output)]);
-  }
-
-  /**
-   * @fixme use task.output to store the error message?
-   */
-  async errorTask(id: number, msg?: Error|string){
-    if(msg){
-      const message = (msg instanceof Error)? msg.stack ?? msg.message: msg;
-      try{
-        await this.appendTaskLog(id, "error", message);
-      }catch(e: any){
-        console.error("While trying to save task error log:", e.message);
-        console.error("Message was :", msg);
-      }
-    }
-    try{
-      await this.setTaskStatus(id, "error");
-    }catch(e:any){
-        console.error("While trying to set task status:", e);
-    }
-  }
 
 
   /**
