@@ -7,15 +7,15 @@ describe("formatTaskTree()", function(){
   it("formats simple task", function(){
     expect(formatTaskTree({
       task_id: 0,
-      type: "extractZip",
+      type: "inspectGlb",
       status: "pending",
       children: []
-    })).to.deep.equal(["├─ #0 extractZip (pending)"]);
+    })).to.deep.equal(["├─ #0 inspectGlb (pending)"]);
   });
   it("formats children", function(){
     expect(formatTaskTree({
       task_id: 0,
-      type: "extractZip",
+      type: "inspectGlb",
       status: "pending",
       children: [
         {
@@ -38,7 +38,7 @@ describe("formatTaskTree()", function(){
         }
       ]
     })).to.deep.equal([
-      "├─ #0 extractZip (pending)",
+      "├─ #0 inspectGlb (pending)",
       "│  ├─ #1 delayTask (success)",
       "│  ├─ #2 delayTask (success)",
       "│  │  ├─ #3 delayTask (error)",

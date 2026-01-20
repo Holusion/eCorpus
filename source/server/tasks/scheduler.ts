@@ -180,8 +180,11 @@ export class TaskScheduler extends TaskListener{
 
 
   /**
-   * @fixme recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
+   * Waits for a task to complete and returns its output.
+   * recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
    *  We should probably rely on waiting for every child of a task being finished instead?
+   * 
+   * @fixme This algorithm is bad™ because it makes it easy to have dangling children not accounted-for when this returns
    * @returns the task's output, resolved recursively if output was a dependant task's id
    */
   async wait(id: number) :Promise<any>{

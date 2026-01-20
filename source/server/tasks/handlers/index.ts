@@ -9,4 +9,4 @@ export * from "./createDocument.js";
 export * from "./glb/index.js";
 
 export * from "./handleUploads.js";
-export {default as extractZip} from "./extractZip.js";
+export {extractScenesArchive} from "./extractZip.js";

@@ -79,6 +79,13 @@ describe("TaskProcessor", function(){
       await expect(scheduler.wait(t)).to.be.rejectedWith("Some error");
     });
 
+    it("stores the task's output as JSON", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "evalTask", data: {x: `() =>({foo: "bar"})`}});
+      const output = await scheduler.wait(t);
+      expect(output).to.be.an("object");
+      expect(output).to.deep.equal({foo: "bar"});
+    });
+
     it("will take all available tasks", async function(){
       let tasks = [];
       for(let i = 0; i < 4; i++){
@@ -242,6 +249,15 @@ describe("TaskProcessor", function(){
 
       it("requires a valid task_id", async function(){
         await expect(scheduler.group(scene_id, async function* (tasks){ })).to.be.rejectedWith(NotFoundError);
+      });
+
+      it("parses JSON outputs", async function(){
+        let group = await scheduler.group(group_id, async function* (tasks){
+            yield await tasks.create({type: "delayTask", data: {time: 1, value: {foo: "bar"}}});
+            yield await tasks.create({type: "delayTask", data: {time: 0, value: {hello: "world"}}});
+        });
+        let results = await scheduler.wait(group);
+        expect(results).to.deep.equal([{foo: "bar"}, {hello: "world"}]);
       });
     });
   });

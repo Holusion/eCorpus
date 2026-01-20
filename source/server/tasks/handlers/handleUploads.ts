@@ -1,6 +1,6 @@
 import path, { basename, extname } from "node:path";
-import { BadRequestError } from "../../utils/errors.js";
-import { requireFileInput, TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
+import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
+import { ImportSceneResult, requireFileInput, TaskDefinition, TaskHandlerParams, TaskTypeData } from "../types.js";
 import { TLanguageType } from "../../utils/schema/common.js";
 import uid from "../../utils/uid.js";
 import { createReadStream } from "node:fs";
@@ -11,6 +11,8 @@ import { readdir, stat } from "node:fs/promises";
 import yauzl, { Entry, ZipFile } from "yauzl";
 import { on, once } from "node:events";
 import { toAccessLevel } from "../../auth/UserManager.js";
+import { isUserAtLeast } from "../../auth/User.js";
+import { isMainSceneFile, parseFilepath } from "../../utils/archives.js";
 
 
 interface UploadFileParams{
@@ -132,12 +134,30 @@ interface UserUploadParams{
   filename: string;
 }
 
+interface UploadResult{
+  filepath: string;
+  files: string[];
+  scenes: ImportSceneResult[];
+}
 
 
-
+/**
+ * Handle a user-provided file
+ * 
+ * The upload should happen while the task is in `initializing` state.
+ * Once done, the task is switched to `pending` state and the automated task processor will
+ * perform a size check to try to catch corrupted uploads and a limited analysis of the uploaded file to detect potential use cases
+ * 
+ * @fixme should perform a hash verification when possible
+ * 
+ * @param param0 
+ * @returns 
+ */
 export async function userUploads({task:{task_id, fk_user_id, data:{filename, size}}, inputs, context: {tasks, vfs, userManager, logger}}:TaskHandlerParams<UserUploadParams>){
   const dir = vfs.getTaskWorkspace(task_id);
   let files :string[] = [];
+
+  const requester = await userManager.getUserById(fk_user_id);
 
   const filepath = path.join(dir, filename);
 
@@ -160,24 +180,89 @@ export async function userUploads({task:{task_id, fk_user_id, data:{filename, si
     files.push(filename);
   }
 
-  let scenes :Array<{name: string, action: "create"|"update"|"error"}>= [];
+  let scenes :ImportSceneResult[] = [];
   for(let file of files){
-    if(!file.endsWith(".svx.json")) continue;
-    const parts = file.split("/").filter(p=>!!p);
-    const name = (parts.length == 1)?basename(filename, extname(filename)) : parts.slice(-2)[0];
+    const {scene, name} = parseFilepath(file);
+    if(!scene || !name || !isMainSceneFile(file)) continue;
     let action :"create"|"update"|"error";
+    let error: string;
     try{
-      const level = toAccessLevel(await userManager.getAccessRights(name, fk_user_id));
-      action = level < toAccessLevel("write")? "error": "update";
+      const level = toAccessLevel(await userManager.getAccessRights(scene, fk_user_id));
+      if(level < toAccessLevel("write")){
+        action = "error";
+        error = `User doesn't have write permissions on scene ${scene}`;
+      }else{
+        action = "update";
+      }
     }catch(e:any){
       if(e.code !== 404) throw e;
-      action = "create";
+      if(isUserAtLeast(requester, "create")){
+        action = "create"
+      }else{
+        action = "error";
+        error = "User doesn't have permission to create a new scene";
+      }
     }
-    scenes.push({name, action});
+    scenes.push({name: scene, action, error: error!});
   }
 
+  // @FIXME maybe we should already delete the file if it has errors?
+  // It depends on the behaviour we expect of a "partial success" zip upload.
+
   return {
+    filepath: vfs.relative(filepath),
     files: files,
     scenes
-  };
+  } satisfies UploadResult;
+}
+
+
+function taskIsUploadOutput(output: any): output is UploadResult {
+    if(
+      typeof output!== "object"
+      || !output
+      || typeof output.filepath !== "string"
+      || !Array.isArray(output.files)
+      || !Array.isArray(output.scenes)
+    ) return false;
+    return true;
+}
+
+
+/**
+ * Process file(s) that have been uploaded through `userUploads` task(s).
+ * The file(s) are expected to come from previous tasks' outputs
+ */
+export async function processUploadedFiles({inputs, context:{tasks, vfs, logger}}: TaskHandlerParams<{}>):Promise<number>{
+  let uploads = [...inputs.entries()].map(([task_id, output])=>{
+    if(! taskIsUploadOutput(output)) throw new Error(`Invalid input task ${task_id}: Output ${output} is not a valid file upload result`);
+    return output;
+  });
+  if(!uploads.length) throw new Error(`This task requires at least one source file`);
+
+  const upload_scenes =  uploads.findIndex(u=>u.scenes.length) !== -1 //A file containing at least one complete scene
+  const upload_files = uploads.findIndex(u=>!u.scenes.length) !== -1 // A file NOT containing any complete scene
+  // Don't allow mixed-content. ie. a scene archive with some asset files
+  // In reality we _could_ probably, though we'd have to think carefully about edge cases?
+  if( upload_scenes && upload_files ){
+    throw new BadRequestError(`Can't do mixed-content processing. Provide EITHER scene archive(s) OR source file(s)`);
+  }
+
+  //Check that everything _should_ be error-free
+  //We might still have fails because of race conditions or _things_, but it is preferable to have a preflight check
+  const errors = uploads.map(u=>u.scenes.filter(s=>s.action === "error")).flat();
+  for(let {error, name} of errors){
+    logger.error(error  ?? `Unspecified error on scene ${name}`);
+  }
+  // @FIXME should we clean up some things immediately when we abort due to planned errors?
+  if(errors.length) throw new ForbiddenError(`Insufficient permission on some scenes for this user. Aborting.`);
+
+  return await tasks.group(async function* createChildren(context){
+    for(let upload of uploads){
+      if(upload_scenes){
+        logger.debug("Extract uploaded scenes archive "+upload.filepath);
+        yield context.create({type: "extractScenesArchive", data: {filepath: upload.filepath}});
+      }
+    }
+  });
 }

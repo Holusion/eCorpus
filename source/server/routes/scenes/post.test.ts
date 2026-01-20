@@ -94,14 +94,13 @@ describe("POST /scenes", function(){
       .auth("alice", "12345678")
       .set("Content-Type", "application/zip")
       .send(zip.body)
-      .expect(200);
-  
-      expect(res.body).to.be.an("object");
-      expect(res.body.ok).to.deep.equal([
-        'foo',
-        'foo/articles/hello.html',
-        'foo/scene.svx.json'
+      .expect(200)
+      .expect("Content-Type", "application/json; charset=utf-8");
+
+      expect(res.body).to.deep.equal([
+        {action: "create", name: "foo"},
       ]);
+
       await expect(vfs.getScene("foo"), `expect scene "foo" to be restored`).to.be.fulfilled;
       let {id}= await vfs.getScene("foo");
       const doc = await vfs.getDoc(id);
@@ -267,11 +266,8 @@ describe("POST /scenes", function(){
           .send(zip.body)
           .expect(200);
 
-        expect(res.body).to.be.an("object");
-        expect(res.body.ok).to.deep.equal([
-          'foo',
-          'foo/articles/hello.html',
-          'foo/scene.svx.json'
+        expect(res.body).to.deep.equal([
+          {action: "create", name: "update"},
         ]);
         await expect(vfs.getScene("foo"), `expect scene "foo" to be restored`).to.be.fulfilled;
         let { id } = await vfs.getScene("foo");

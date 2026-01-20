@@ -295,6 +295,26 @@ describe("TaskScheduler", function(){
       await expect(scheduler.wait(t)).to.be.rejected;
     });
 
+    it("resolves with the task's output", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+      // Manually set task output in place of the task processor
+      await handle.run(`UPDATE tasks SET output = $1, status = 'success' WHERE task_id = $2`, [{foo: "bar", id: 2}, t]);
+      const output = await scheduler.wait(t);
+      expect(output).to.be.an("object");
+      expect(output).to.deep.equal({foo: "bar", id: 2});
+    });
+
+    it("recursively resolve when output is a number", async function(){
+      let t1 = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(t1,  {type: "delayTask", data: {time: 0}});
+      await handle.run(`UPDATE tasks SET output = $1, status = 'success' WHERE task_id = $2`, [t2, t1]);
+      await handle.run(`UPDATE tasks SET output = $1, status = 'success' WHERE task_id = $2`, [JSON.stringify({foo: "bar", id: 2}), t2]);
+
+      const output = await scheduler.wait(t1);
+      expect(output).to.be.an("object");
+      expect(output).to.deep.equal({foo: "bar", id: 2});
+    });
+
     it.skip("waits recursively", async function(){
       throw new Error("Unsupported");
     });

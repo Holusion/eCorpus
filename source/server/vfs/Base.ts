@@ -14,6 +14,8 @@ export default abstract class BaseVfs extends DbController{
   constructor(protected rootDir :string, db :Database){
     super(db);
   }
+
+  public get baseDir(){ return this.rootDir; }
   /**
    * Temporary directory to store in-transit files.
    * should be in the same volume as `Vfs.objectsDir` and `Vfs.artifactsDir`
@@ -39,6 +41,16 @@ export default abstract class BaseVfs extends DbController{
     }else{
       throw new NotFoundError(`No file matching ${f}`);
     }
+  }
+
+
+  /**
+   * Compute path to a file relative to {@link baseDir }. Accepts either absolute paths or paths that are already relative to baseDir.
+   * This is not a sanitize function and won't prevent bad paths from breaking out of baseDir.
+   * @param filepath 
+   */
+  public relative(filepath: string){
+    return path.relative(this.baseDir,  path.resolve(this.baseDir, filepath));
   }
 
   /**

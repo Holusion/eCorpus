@@ -60,6 +60,10 @@ export class TaskProcessor extends TaskListener{
     this.takeTask().catch((err)=>console.error("Failed to poll task pool :", err));
   }
 
+  /**
+   * Task processing routine.
+   * This is debounced so it is safe to call it multiple times when a task is already being processed
+   */
   takeTask = takeOne((async function takeTask(this: TaskProcessor){
     debug("Acquiring task");
     let id = await this.acquireTask();
@@ -118,6 +122,11 @@ export class TaskProcessor extends TaskListener{
     if(id == this.#current_task) this.#control.abort();
   }
 
+  /**
+   * @fixme should have a mechanism to wait for logs to complete before closing
+   * @param id Task ID to log for
+   * @param severity Logging severity
+   */
   wrapLog(id: number, severity: keyof TaskLogger,  message: string):void{
     this.appendTaskLog(id, severity, message).catch(e=>{
       if(this.started) console.error("Failed to write task log for #%d [%s]", id, severity, message);
@@ -127,6 +136,7 @@ export class TaskProcessor extends TaskListener{
 
   /**
    * Marks a task as completed
+   * Output is serialized using `JSON.stringify()`
    */
   async releaseTask(id: number, output: any = null){
     debug_outputs(`Release task #${id}`, output);
@@ -142,21 +152,23 @@ export class TaskProcessor extends TaskListener{
       try{
         await this.appendTaskLog(id, "error", message);
       }catch(e: any){
-        console.error("While trying to save task error log:", e);
+        console.error("While trying to save task error log:", e.message);
+        console.error("Message was :", msg);
       }
     }
     try{
       await this.setTaskStatus(id, "error");
-    }catch(e){
+    }catch(e:any){
         console.error("While trying to set task status:", e);
     }
   }
 
 
   /**
-   * Actual task processing.
+   * Process a task.
    * Throw as needed to be caught by this.errorTask
    * Upon completion, task is released.
+   * @throws {Error} if it fails to compose the task's inputs. Also forwards errors thrown by the task handler 
    */
   async processTask<T extends TaskType>({task, signal}: {task:TaskDefinition<TaskTypeData<T>>, signal: AbortSignal}){
     const handler = tasks[task.type as keyof typeof tasks] as TaskHandler<TaskTypeData<T>>;
@@ -188,7 +200,7 @@ export class TaskProcessor extends TaskListener{
       const missing = task.after.filter(id=>!inputs.has(id));
       throw new Error(`Expected ${task.after.length} inputs, but ${inputs.size} were returned. Received [${Array.from(inputs.keys()).join(", ")}]. Missing Task id${1< missing.length?"s":""}: [${missing.join(", ")}]`);
     }
-    debug(`Process task ${task.type}#${task.task_id}`);
+    debug(`Run task handler for ${task.type}#${task.task_id}`);
     return await handler({
       task,
       context,

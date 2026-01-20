@@ -76,6 +76,9 @@ export type GroupCallback = (context: TaskContextHandlers)=>Promise<number[]>|As
 export interface TaskHandlerParams<T extends TaskData>{
   task: TaskDefinition<T>;
   context: TaskHandlerContext;
+  /**
+   * Map of the task's `after` relation
+   */
   inputs: Map<number, any>;
 }
 
@@ -83,6 +86,7 @@ export type TaskHandler<T extends TaskData = TaskData, U = any> = (params:TaskHa
 
 export type TaskType =  keyof typeof tasks;
 export type TaskTypeData<T extends TaskType> = Parameters<(typeof tasks[T])>[0]["task"]["data"];
+export type TaskOutput<T extends TaskType> = Parameters<(typeof tasks[T])>[0]["task"]["output"];
 
 export interface TaskHandlerDefinition<T extends TaskData = TaskData>{
   readonly type: string;
@@ -107,4 +111,11 @@ export function requireFileInput(inputs:Map<number, any>){
     throw new Error(`No input file provided and none was found in task inputs\n${JSON.stringify([...inputs.entries()], null, 2)}`);
   }
   return file;
+}
+
+
+export interface ImportSceneResult{
+  name: string;
+  action: "create"|"update"|"error";
+  error?: string;
 }
