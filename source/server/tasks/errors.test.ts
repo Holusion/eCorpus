@@ -78,8 +78,8 @@ describe("Tasks errors", function(){
         expect(out).to.be.instanceOf(HTTPError);
         expect(out).to.have.property("code", 400);
         expect(out).to.have.property("message", "[400] The message");
-
-      })
+      });
+      
     });
 })
 })

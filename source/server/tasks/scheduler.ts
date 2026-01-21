@@ -1,10 +1,11 @@
 
 import { debuglog } from "node:util";
-import { HTTPError, InternalError, NotFoundError } from "../utils/errors.js";
+import { InternalError, NotFoundError } from "../utils/errors.js";
 import { TaskListener, TaskListenerParams } from "./listener.js";
-import { ETaskStatus, TaskStatus, TaskType } from "./types.js";
+import { TaskStatus } from "./types.js";
 import { on } from "node:events";
 import { isTimeInterval } from "../utils/format.js";
+import { RootTasksTreeNode, TasksTreeNode, parseNodes, getTaskDependencies, getGroupError, StoredTasksTreeNode, findNode } from "./tree.js";
 import { parseTaskError } from "./errors.js";
 
 
@@ -29,50 +30,6 @@ interface ListTasksParams{
   user_id?: number; 
 }
 
-
-
-export interface TasksTreeNode{
-  task_id: number;
-  type: TaskType;
-  status: TaskStatus;
-  groupStatus: TaskStatus;
-  after: number[];
-  ctime: Date;
-  output?:any;
-  children: TasksTreeNode[];
-}
-
-type StoredTasksTreeNode = Omit<TasksTreeNode, "ctime"|"children"|"groupStatus"|"after">&{
-  ctime: string|Date;
-  after?:number[];
-  children: StoredTasksTreeNode[];
-};
-
-export interface RootTasksTreeNode<T = TasksTreeNode> extends Omit<TasksTreeNode,"children"> {
-  author: string;
-  scene_name: string;
-  scene_id: string;
-  children: T[];
-}
-
-/**
- * Maps nodes as returned from the database to expected structures
- * @param n 
- */
-function parseNodes(n:StoredTasksTreeNode):TasksTreeNode
-function parseNodes(n:RootTasksTreeNode<StoredTasksTreeNode>):RootTasksTreeNode<TasksTreeNode>
-function parseNodes(n:StoredTasksTreeNode|RootTasksTreeNode<StoredTasksTreeNode>){
-  const children = n.children.map(n=>parseNodes(n));
-  let statusCode = children.reduce((status, c)=> Math.min(status, ETaskStatus[c.groupStatus]),  ETaskStatus[n.status]);
-  let groupStatus = ETaskStatus[statusCode] as TaskStatus;
-  return {
-    ...n, 
-    after: n.after??[],
-    ctime: new Date(n.ctime),
-    groupStatus,
-    children
-  } satisfies TasksTreeNode;
-}
 
 export class TaskScheduler extends TaskListener{
 
@@ -132,16 +89,16 @@ export class TaskScheduler extends TaskListener{
    * Given a task ID, return its task tree
    * Tree has the same shape as what would be returned by {@link getTasks()}
    */
-  async getTaskTree(id: number){
-     let tasks = (await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
+  async getTaskTree(id: number): Promise<RootTasksTreeNode<TasksTreeNode>>{
+     let tasks = await this.db.all<RootTasksTreeNode<StoredTasksTreeNode>>(`
       SELECT
         ${TaskScheduler._fragTaskTree}
       FROM
         tasks AS t
-        INNER JOIN scenes ON fk_scene_id = scene_id
-        INNER JOIN users ON fk_user_id = user_id
+        LEFT JOIN scenes ON fk_scene_id = scene_id
+        LEFT JOIN users ON fk_user_id = user_id
       WHERE task_id = $1
-    `, [id]));
+    `, [id]);
     if(tasks.length ==0) throw new NotFoundError(`No task found with id ${id}`);
     if( 1 < tasks.length) throw new InternalError(`getTaskTree somehow returned more than one task matching ${id}`);
     return tasks.map<RootTasksTreeNode<TasksTreeNode>>(parseNodes)[0];
@@ -169,8 +126,8 @@ export class TaskScheduler extends TaskListener{
       FROM
         cte_root_task
         INNER JOIN tasks AS t ON id = t.task_id
-        INNER JOIN scenes ON fk_scene_id = scene_id
-        INNER JOIN users ON fk_user_id = user_id
+        LEFT JOIN scenes ON fk_scene_id = scene_id
+        LEFT JOIN users ON fk_user_id = user_id
      
     `, [id]));
     if(tasks.length ==0) throw new NotFoundError(`No task found with id ${id}`);
@@ -178,47 +135,71 @@ export class TaskScheduler extends TaskListener{
     return tasks.map<RootTasksTreeNode<TasksTreeNode>>(parseNodes)[0];
   }
 
+  /**
+   * Iterate over a task's tree updates until stopped
+   * @param id The task ID to monitor
+   * @param timeout Optional time limit to wait before aborting
+   */
+  async *getTreeState(id: number, {timeout}: {timeout?:number} ={}): AsyncGenerator<TasksTreeNode, void, void>{
+    debug("Get tree state for "+ id);
+    const c = new AbortController();
+    if(timeout) setTimeout(c.abort, timeout);
+    try{
+      let it = on(this, "update", {signal: c.signal});
+      let tree = await this.getRootTree(id);
+      yield tree;
+      if(c.signal.aborted) return;
+      let ids = getTaskDependencies(tree);
+      for await (let [changed_id] of it){
+        if(changed_id !== id && ids.indexOf(changed_id) == -1) continue;
+        tree = await this.getRootTree(id);
+        yield tree;
+        ids = getTaskDependencies(tree);
+      }
+    }finally{
+      c.abort();
+    }
+  }
 
   /**
    * Waits for a task to complete and returns its output.
-   * recursion here is implicit and essentially redundant with the existing (explicit) mechanism of parent/child relationship.
-   *  We should probably rely on waiting for every child of a task being finished instead?
    * 
-   * @fixme This algorithm is bad™ because it makes it easy to have dangling children not accounted-for when this returns
+   * If the task or any of its inputs fails, this will be rejected.
+   * 
+   * @use {@link waitGroup} to wait for a task group to finish
    * @returns the task's output, resolved recursively if output was a dependant task's id
    */
   async wait(id: number) :Promise<any>{
-
-    const onResult = async ()=>{
-      const t = await this.getTask(id);
-      if(t.status == "error"){
-        throw parseTaskError(t.output);
-      }else if(t.status === "success"){
-        if(/^\d+$/.test(t.output)){
-          debug("recurse over returned task definition #%d", t.output);
-          return this.wait(parseInt(t.output));
+    debug(`wait for task #${id} to resolve`);
+    for await (let tree of this.getTreeState(id)){
+      const node = findNode(tree, id);
+      if(!node){
+        throw new Error(`Couldn't find node ${id} (child of #${tree.task_id})`);
+      }
+      if(node.status == "error"){
+        debug("Throw task error");
+        throw parseTaskError(node.output);
+      }else if(node.status === "success"){
+        if(/^\d+$/.test(node.output)){
+          debug("recurse over returned task definition #%d", node.output);
+          return await this.wait(parseInt(node.output));
         }else{
-          debug("Return task output for #%d:", id, t.output);
-          return t.output;
+          debug("Return task output for #%d:", id, node.output);
+          return node.output;
         }
-      }else{
-        throw new Error(`Task ${id} is not finished (${t.status})`);
+      }else if(node.status === "pending"){
+        debug("Node is pending. Checks dependencies");
+        //Check if any dependency has failed
+        for(let dep of getTaskDependencies(tree, id)){
+          const depNode = findNode(tree, dep);
+          if(!depNode) throw new Error(`Couldn't find node ${id} (child of #${tree.task_id})`);
+          if(depNode.status === "error"){
+            debug("Throw child error");
+            throw parseTaskError(depNode.output);
+          }
+        }
       }
     }
-    debug("wait for task #%d", id);
-    let it = on(this, "update");
-    let task = await this.db.get<{status: TaskStatus, output?:any}> (`SELECT status, output FROM tasks WHERE task_id = $1`, [id]);
-    if(!task){
-      throw new NotFoundError(`No task found with id ${id}`);
-    }
-    if(task.status === "error" || task.status === "success"){
-      return await onResult();
-    }
-    for await (let [taskId] of it){
-      if(taskId === id) return onResult();
-    }
-    // @ts-ignore
-    return;
   }
 
   /**

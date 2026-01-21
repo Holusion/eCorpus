@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { getLocals } from "../../../utils/locals.js";
-import { BadRequestError, NotFoundError } from "../../../utils/errors.js";
-import { RootTasksTreeNode, TasksTreeNode } from "../../../tasks/scheduler.js";
+import { RootTasksTreeNode, TasksTreeNode } from "../../../tasks/tree.js";
 import { queryToPage } from "../../../utils/query.js";
 
 
@@ -20,8 +19,9 @@ export function formatTaskTree(node: TasksTreeNodeDescription):string[]{
 export function groupTaskTree(nodes:RootTasksTreeNode[]){
   let scenes = new Map<string, RootTasksTreeNode[]>();
   for(let node of nodes){
-    if(!scenes.get(node.scene_name)?.push(node)){
-      scenes.set(node.scene_name,[node]);
+    const _name = node.scene_name ?? "<root>"
+    if(!scenes.get(_name)?.push(node)){
+      scenes.set(_name,[node]);
     }
   }
   return scenes;

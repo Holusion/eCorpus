@@ -98,6 +98,16 @@ describe("TaskScheduler", function(){
       let t2 = await scheduler.createChild(parent,  {type: "delayTask", data: {time: 0}, after: [t1]});
       await expect(scheduler.addRelation(t2, t1)).to.be.rejectedWith("check_no_cycles");
     });
+
+    it.skip("can't create relations to unrelated tasks", async function(){
+      //@FIXME This is currently not enforced but should be, because that would probably be a terrible thing to allow
+      // TaskScheduler.wait() will definitely throw on such a thing
+      const root1 = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+      const root2 = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
+
+      const t1 = await scheduler.createChild(root1, {type: "delayTask", data: {time: 0}, after: []});
+      await expect(scheduler.createChild(root2, {type: "delayTask", data: {time: 0}, after: [t1]})).to.be.rejected;
+    })
   });
 
   describe("getTasks()", function(){
@@ -279,15 +289,8 @@ describe("TaskScheduler", function(){
       await expect(scheduler.wait(t)).to.be.rejected;
     });
 
-    it("waits for a task to complete", async function(){
-      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0, value: "foo"}});
-      setTimeout(()=>{
-        scheduler.setTaskStatus(t, "success");
-      }, 5);
-      await expect(scheduler.wait(t)).to.be.fulfilled;
-    });
-
-    it("throws if tasks errors-out", async function(){
+    it("throws if tasks fails", async function(){
+      //Asynchronous failure
       let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0, value: "foo"}});
       setTimeout(()=>{
         scheduler.setTaskStatus(t, "error");
@@ -295,6 +298,14 @@ describe("TaskScheduler", function(){
       await expect(scheduler.wait(t)).to.be.rejected;
     });
 
+
+    it("waits for a task to complete", async function(){
+      let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0, value: "foo"}});
+      setTimeout(()=>{
+        scheduler.setTaskStatus(t, "success");
+      }, 5);
+      await expect(scheduler.wait(t)).to.be.fulfilled;
+    });
     it("resolves with the task's output", async function(){
       let t = await scheduler.create(scene_id, null,  {type: "delayTask", data: {time: 0}});
       // Manually set task output in place of the task processor
@@ -304,24 +315,38 @@ describe("TaskScheduler", function(){
       expect(output).to.deep.equal({foo: "bar", id: 2});
     });
 
-    it("recursively resolve when output is a number", async function(){
-      let t1 = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
-      let t2 = await scheduler.createChild(t1,  {type: "delayTask", data: {time: 0}});
-      await handle.run(`UPDATE tasks SET output = $1, status = 'success' WHERE task_id = $2`, [t2, t1]);
-      await handle.run(`UPDATE tasks SET output = $1, status = 'success' WHERE task_id = $2`, [JSON.stringify({foo: "bar", id: 2}), t2]);
+    describe("recursion", function(){
+      it("substitute output if it is a number", async function(){
+        let t1 = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
+        let t2 = await scheduler.createChild(t1,  {type: "delayTask", data: {time: 0}});
+        await scheduler.releaseTask(t1, t2);
+        await scheduler.releaseTask(t2, {foo: "bar", id: 2});
 
-      const output = await scheduler.wait(t1);
-      expect(output).to.be.an("object");
-      expect(output).to.deep.equal({foo: "bar", id: 2});
-    });
 
-    it.skip("waits recursively", async function(){
-      throw new Error("Unsupported");
-    });
+        const output = await scheduler.wait(t1);
+        expect(output).to.be.an("object");
+        expect(output).to.deep.equal({foo: "bar", id: 2});
+      });
+      
+      it("throws when chained task fails", async function(){
+        let t1 = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
+        let t2 = await scheduler.createChild(t1, {type: "delayTask", data: {time: 0}, after:[t1]});
+        await scheduler.releaseTask(t1, t2);
+        await scheduler.errorTask(t2, new Error("Some Error"));
+        await expect(scheduler.wait(t2)).to.be.rejectedWith(Error);
+      });
+      
+      it("throws when input task fails", async function(){
+        let t1 = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
+        let t2 = await scheduler.createChild(t1, {type: "delayTask", data: {time: 0}, after:[t1]});
+        //Here the parent task fails but we only wait for its child
+        await scheduler.errorTask(t1, new Error("Some Error"));
 
-    it.skip("throws when task dependencies errors out", async function(){
-      throw new Error("Unimplemented");
-    });
+        await expect(scheduler.wait(t2)).to.be.rejectedWith(Error);
+      });
+    })
+    
+
   });
 
   describe("getTaskTree()", function(){
@@ -352,6 +377,25 @@ describe("TaskScheduler", function(){
     it("throws on invalid id", async function(){
       await expect(scheduler.getTaskTree(-1)).to.be.rejectedWith(NotFoundError);
     });
+
+    it("get tasks not attached to a user", async function(){
+      let root = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(root,  {type: "delayTask", data: {time: 0}});
+      await scheduler.releaseTask(root, t2);
+      await scheduler.releaseTask(t2, {foo: "bar", id: 2});
+      let task = await scheduler.getTaskTree(root);
+      expect(task).to.have.property("author", null);
+      expect(task.children).to.have.length(1);
+    });
+    it("get tasks not attached to a scene", async function(){
+      let root = await scheduler.create(null, user_id, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(root,  {type: "delayTask", data: {time: 0}});
+      await scheduler.releaseTask(root, t2);
+      await scheduler.releaseTask(t2, {foo: "bar", id: 2});
+      let task = await scheduler.getTaskTree(root);
+      expect(task).to.have.property("scene_name", null);
+      expect(task.children).to.have.length(1);
+    });
   })
 
   describe("getRootTree()", function(){
@@ -371,6 +415,27 @@ describe("TaskScheduler", function(){
       let t2 = await scheduler.createChild(t1, {type: "delayTask", data: {time: 0}});
       const ref = await scheduler.getTaskTree(root);
       expect(await scheduler.getRootTree(root)).to.deep.equal(ref);
+    });
+
+    it("get tasks not attached to a user", async function(){
+      let root = await scheduler.create(scene_id, null, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(root,  {type: "delayTask", data: {time: 0}});
+      await scheduler.releaseTask(root, t2);
+      await scheduler.releaseTask(t2, {foo: "bar", id: 2});
+      let task = await scheduler.getRootTree(root);
+      expect(task).to.have.property("author", null);
+      expect(task.children).to.have.length(1);
+    });
+
+    it("get tasks not attached to a scene", async function(){
+      let root = await scheduler.create(null, user_id, {type: "delayTask", data: {time: 0}});
+      let t2 = await scheduler.createChild(root,  {type: "delayTask", data: {time: 0}});
+      await scheduler.releaseTask(root, t2);
+      await scheduler.releaseTask(t2, {foo: "bar", id: 2});
+      let task = await scheduler.getRootTree(root);
+
+      expect(task).to.have.property("scene_name", null);
+      expect(task.children).to.have.length(1);
     });
   })
 });

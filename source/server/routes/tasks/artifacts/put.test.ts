@@ -105,6 +105,7 @@ describe("PUT /tasks/artifacts/:id", function(){
 
     expect(body).to.have.property("status", "success");
     expect(body).to.have.property("output").to.deep.equal({
+      filepath: `artifacts/${task}/${filename}`,
       files: [filename],
       scenes: [],
     });
@@ -119,6 +120,6 @@ describe("PUT /tasks/artifacts/:id", function(){
       .set("Content-Range", `bytes 10-15/${size}`)
       .send(data)
       .expect(416);
-    expect(res.body).to.have.property("message", `Error: [416] Missing bytes 0-10`);
+    expect(res.body).to.have.property("message", `HTTPError: [416] Missing bytes 0-10`);
   });
 })

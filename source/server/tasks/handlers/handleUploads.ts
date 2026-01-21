@@ -168,14 +168,13 @@ export async function userUploads({task:{task_id, fk_user_id, data:{filename, si
 
   const ext = extname(filename).toLowerCase();
   if(ext == ".zip"){
-    logger.debug("Open zip file to list entries")
+    logger.debug(`Open ${filename} to list entries`);
     let zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(filepath, {lazyEntries: false, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
     zip.on("entry", (record)=>{
-
       files.push(record.fileName); 
     });
     await once(zip, "close");
-    logger.debug(`Found ${files.length} entries in zip`)
+    logger.debug(`Found ${files.length} entries in zip`);
   }else{
     files.push(filename);
   }

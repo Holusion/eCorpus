@@ -4,9 +4,8 @@ import wrap from "../../utils/wrapAsync.js";
 import { canRead, getHost, canWrite, getSession, getVfs, getUser, getLocals, canAdmin } from "../../utils/locals.js";
 import { Scene } from "../../vfs/index.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
-import { queryToPage } from "../../utils/query.js";
-import { TasksTreeNode } from "../../tasks/scheduler.js";
 import { TaskStatus } from "../../tasks/types.js";
+import { TasksTreeNode } from "../../tasks/tree.js";
 
 
 

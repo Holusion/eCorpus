@@ -179,13 +179,14 @@ export class TaskListener extends EventEmitter{
         WHERE task_id = $1 
         RETURNING *
       )
-      ${after?.length?`INSERT INTO 
-        tasks_relations (source, target)
-      SELECT 
-        source,
-        task.task_id
-      FROM task, unnest( $5::bigint[] ) as source
-      RETURNING target AS task_id
+      ${after?.length?`
+        INSERT INTO 
+          tasks_relations (source, target)
+        SELECT 
+          source,
+          task.task_id
+        FROM task, unnest( $5::bigint[] ) as source
+        RETURNING target AS task_id
       `: `SELECT task_id FROM task`}
     `, args);
     if(!task) throw new NotFoundError(`Parent task ${parent} not found`);

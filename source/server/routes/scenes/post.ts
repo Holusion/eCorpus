@@ -36,7 +36,7 @@ export function getFilename(headers: Request["headers"]) :string|undefined{
 
 
 export async function postRawZipfile(req: Request, res: Response){
-
+  console.log('Post zip')
   let vfs = getVfs(req);
   const requester = getUser(req);
   if (requester === null){ throw new UnauthorizedError("No identified user")}
@@ -58,8 +58,8 @@ export async function postRawZipfile(req: Request, res: Response){
 
   //Allow the task to proceed normally
   await taskScheduler.setTaskStatus(upload_task, "pending");
-  console.log("Process Uploaded file")
   const process_task = await taskScheduler.createChild(upload_task, {type: "processUploadedFiles", data: {}, after: [upload_task]});
+
   const output = await taskScheduler.wait(process_task);
   if(!Array.isArray(output)) throw new InternalError(`Unexpected output for upload processing task : ${JSON.stringify(output)}`);
   

@@ -267,7 +267,7 @@ describe("POST /scenes", function(){
           .expect(200);
 
         expect(res.body).to.deep.equal([
-          {action: "create", name: "update"},
+          {action: "update", name: "foo"},
         ]);
         await expect(vfs.getScene("foo"), `expect scene "foo" to be restored`).to.be.fulfilled;
         let { id } = await vfs.getScene("foo");
@@ -320,8 +320,10 @@ describe("POST /scenes", function(){
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
-      expect(res.body.failed_scenes).not.to.be.empty;
-      expect(res.body.failed_scenes).to.deep.equal({foo: "User cannot create a scene"});
+        expect(res.body).to.deep.equal({
+        code: 401,
+        message: `HTTPError: [401] Insufficient permissions on scene [foo] for this user. Aborting.`,
+      });
 
       await expect(vfs.getScene("foo")).to.be.rejectedWith(NotFoundError);
     });

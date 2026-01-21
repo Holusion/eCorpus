@@ -94,7 +94,7 @@ describe("/auth/login", function(){
     .expect(401)
     .expect({
       code: 401,
-      message: "Error: [401] Session Token expired. Please reauthenticate"
+      message: "HTTPError: [401] Session Token expired. Please reauthenticate"
     });
   });
 

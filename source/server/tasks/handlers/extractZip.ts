@@ -37,11 +37,13 @@ export async function extractScenesArchive({task: {fk_scene_id: scene_id, fk_use
   const requester = await userManager.getUserById(user_id);
 
   let zipError: Error;
+  logger.debug("Open Zip file");
+  const zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(path.join(vfs.baseDir, filepath!), {lazyEntries: true, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
+  const openZipEntry = (record:Entry)=> new Promise<Readable>((resolve, reject)=>zip.openReadStream(record, (err, rs)=>(err?reject(err): resolve(rs))));
+    
   logger.debug("Open database transaction");
   const results = await vfs.isolate(async (vfs)=>{
-    const zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(path.join(vfs.baseDir, filepath!), {lazyEntries: true, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
-    const openZipEntry = (record:Entry)=> new Promise<Readable>((resolve, reject)=>zip.openReadStream(record, (err, rs)=>(err?reject(err): resolve(rs))));
-    
+
     //Directory entries are optional in a zip file so we should handle their absence
     //We do this by maintaining a Map of scenes, and for each scene a Set of files
     let scenes = new Map<string, ImportSceneResult &{folders: Set<string>}>();
