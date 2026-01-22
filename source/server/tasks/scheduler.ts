@@ -1,16 +1,16 @@
 import { debuglog, format } from "node:util";
 import { Writable } from 'node:stream';
 import { HTTPError } from "../utils/errors.js";
-import { Database } from "../vfs/helpers/db.js";
+import { Database, DatabaseHandle } from "../vfs/helpers/db.js";
 import { Queue } from "./queue.js";
-import { CreateTaskParams, TaskContextHandlers, TaskData, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, } from "./types.js";
+import { CreateRunTaskParams, RunTaskParams, TaskContextHandlers, TaskData, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
 
 
 
 
-export class TaskScheduler extends TaskManager{
+export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerContext> extends TaskManager{
   readonly #queue = new Queue(4);
 
 
@@ -19,7 +19,7 @@ export class TaskScheduler extends TaskManager{
   }
 
 
-  constructor(protected _context :TaskSchedulerContext){
+  constructor(protected _context :TContext){
     super(_context.db);
   }
 
@@ -27,26 +27,25 @@ export class TaskScheduler extends TaskManager{
     await this.#queue.close();
   }
 
-
-  private async _run<T extends TaskData, U=any>(handler:TaskHandler<T, U>,task: TaskDefinition<T>, {signal:taskSignal}:{signal?:AbortSignal}= {}){
-    const work :TaskPackage<typeof handler> = async ({signal: queueSignal})=>{
+  private async _run<T extends TaskData, U=any>(handler:TaskHandler<T, U, TContext>,task: TaskDefinition<T>, {signal:taskSignal}:{signal?:AbortSignal}= {}){
+    const work :TaskPackage = async ({signal: queueSignal})=>{
       await using logger = createLogger(this.db, task.task_id);
-      const context = {
+      const context: TaskHandlerContext<TContext> = {
         ...this.context,
-        tasks: this.contextScheduler(),
+        tasks: this.childContext(task.task_id),
         logger,
         signal: taskSignal? (AbortSignal as any).any([taskSignal, queueSignal]): queueSignal,
-      } satisfies TaskHandlerContext;
+      };
 
       await this.setTaskStatus(task.task_id, "running");
       return await handler.call(context, {context, inputs: new Map(), task});
     }
     try{
       const output = await this.#queue.add(work);
-      this.releaseTask(task.task_id, output);
+      await this.releaseTask(task.task_id, output);
       return output;
     }catch(e: any){
-      this.errorTask(task.task_id, e).catch(e=> console.error("Failed to set task error : ", e));
+      await this.errorTask(task.task_id, e).catch(e=> console.error("Failed to set task error : ", e));
       throw e;
     }
   }
@@ -54,26 +53,21 @@ export class TaskScheduler extends TaskManager{
   /**
    * Registers a task to run immediately and wait for its completion
    */
-  async run<T extends TaskData, U=any>({scene_id=null, user_id=null, data, handler, signal}: CreateTaskParams<T, U>): Promise<U>{
-    const type = handler.name;
-    if(!type) throw new Error("Can't create an anonymous task");
-    const task = await this.create<T>(scene_id, user_id, {type, data, status: "pending"});
-    return await this._run(handler, task);
-  }
+  async run<T extends TaskData, U=any>({task, handler}: RunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U> ): Promise<U>;
+  async run<T extends TaskData, U=any>({scene_id, user_id, type, data, handler, signal}: CreateRunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U>): Promise<U>;
+  async run<T extends TaskData, U=any>(params: CreateRunTaskParams<T, U, TContext>|RunTaskParams<T,U, TContext>, callback?:TaskSettledCallback<U>): Promise<U>{
+    let task: TaskDefinition<T>;
+    if("task" in params){
+      task = params.task;
+    }else{
+      task = await this.create<T>({...params, type: params.type ?? params.handler.name});
+    }
+    const _p = this._run(params.handler, task);
 
-  /**
-   * Create a task and return immediately with the task id
-   * 
-   * The task will be run out-of-band
-   */
-  async queue<T extends TaskData, U=any>({scene_id=null, user_id=null, data, handler, signal}: CreateTaskParams<T, U>): Promise<number>{
-    const type = handler.name;
-    if(!type) throw new Error("Can't create an anonymous task");
-    const task = await this.create<T>(scene_id, user_id, {type, data, status: "pending"});
-    this._run(handler, task).catch((e)=>{
-      console.log("Asynchronous task error :", e);
-    });
-    return task.task_id;
+    if(typeof callback=== "function"){
+      _p.then((value)=>callback(null, value), (err)=>callback(err));
+    }
+    return _p;
   }
 
   /**
@@ -87,9 +81,10 @@ export class TaskScheduler extends TaskManager{
   /**
    * in-context task scheduling methods
    */
-  private contextScheduler(){
+  private childContext(id: number) :TaskContextHandlers&AsyncDisposable{
+
     return {
-      create: function <T extends TaskData, U=any>(p: CreateTaskParams<T, U>): Promise<U> {
+      create: function <T extends TaskData, U=any>(p: CreateRunTaskParams<T, U>): Promise<U> {
         throw new Error("Function not implemented.");
       },
       getTask: function <T extends TaskData = TaskData>(id: number): Promise<TaskDefinition<T>> {
@@ -97,6 +92,9 @@ export class TaskScheduler extends TaskManager{
       },
       group: function (cb: (context: TaskContextHandlers) => Promise<number[]> | AsyncGenerator<number, void, unknown>, remap?: any): Promise<number> {
         throw new Error("Function not implemented.");
+      },
+      async [Symbol.asyncDispose](){
+
       }
     }
   }

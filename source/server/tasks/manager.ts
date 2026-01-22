@@ -1,11 +1,15 @@
 import { debuglog } from "node:util";
-import { HTTPError } from "../utils/errors.js";
+import { HTTPError, NotFoundError } from "../utils/errors.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { serializeTaskError } from "./errors.js";
-import { TaskStatus, TaskData, TaskDefinition } from "./types.js";
+import { TaskStatus, TaskData, TaskDefinition, CreateTaskParams } from "./types.js";
 
 const debug_outputs = debuglog("tasks:outputs");
 
+/**
+ * Contains base interface to manage tasks: creation, status changes, etc...
+ * To be used through a {@link TaskScheduler} or directly for externally-managed tasks
+ */
 export class TaskManager{
   public get db(){
     return this._db;
@@ -44,8 +48,8 @@ export class TaskManager{
     }
   }
 
-  public async create<T extends TaskData = any>(scene: number|null, user_id : number|null, {type, data, status='pending'}: Pick<TaskDefinition<T>,"type"|"data"|"status">): Promise<TaskDefinition<T>>{
-    let args =  [scene, type, data, status, user_id];
+  public async create<T extends TaskData = any>({scene_id, user_id, type, data, status='pending'}: CreateTaskParams<T>): Promise<TaskDefinition<T>>{
+    let args =  [scene_id, type, data, status, user_id];
     let task = await this.db.get<TaskDefinition<T>>(`
       INSERT INTO tasks(fk_scene_id, type, data, status, fk_user_id)
       VALUES ($1, $2, $3, $4, $5) 
@@ -53,4 +57,34 @@ export class TaskManager{
     `, args);
     return task;
   }
+
+    public async getTask<T extends TaskDefinition>(id: number):Promise<T>{
+    let task = await this.db.get<T>(`
+      SELECT
+        fk_scene_id,
+        fk_user_id,
+        task_id,
+        ctime,
+        type,
+        parent,
+        data,
+        output,
+        status
+      FROM tasks
+      WHERE task_id = $1
+    `, [id]);
+    if(!task) throw new NotFoundError(`No task found with id ${id}`);
+    return task;
+  }
+
+  /**
+   * Deletes a task from the database
+   * Deletion will cascade to any dependents.
+   */
+  async deleteTask(id: number): Promise<boolean>{
+    let r = await this.db.run(`DELETE FROM tasks WHERE task_id = $1`, [id]);
+    if(r.changes !== 1) return false;
+    return true; 
+  }
+  
 }

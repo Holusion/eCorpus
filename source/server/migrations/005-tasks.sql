@@ -52,9 +52,5 @@ CREATE TABLE tasks_logs (
 DROP TABLE tasks_logs;
 DROP TYPE log_severity;
 
-
-DROP TABLE tasks_relations;
-DROP FUNCTION relation_has_cycle;
-
 DROP TABLE tasks;
 DROP TYPE task_status;

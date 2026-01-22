@@ -39,37 +39,55 @@ export interface TaskSchedulerContext{
   config: Config,
 }
 
-export interface TaskHandlerContext extends TaskSchedulerContext{
+export type TaskHandlerContext<T = TaskSchedulerContext> = T & {
   tasks: TaskContextHandlers,
   logger: ITaskLogger,
   signal: AbortSignal,
 };
 
 
-export interface TaskHandlerParams<T extends TaskData=TaskData>{
-  task: TaskDefinition<T>;
+export interface TaskHandlerParams<TData extends TaskData=TaskData, TContext = TaskSchedulerContext>{
+  task: TaskDefinition<TData>;
   inputs: Map<number, any>;
-  context: TaskHandlerContext;
+  context: TaskHandlerContext<TContext>;
 }
 
 /**
  * In the future we might want to support tasks that yield sub-tasks using return value `AsyncGenerator<TaskHandler, TReturn, void>`
  */
-export type TaskHandler<TData extends TaskData = TaskData, TReturn = any> = (this: TaskHandlerContext, params:TaskHandlerParams<TData>)=> Promise<TReturn>;
+export type TaskHandler<TData extends TaskData = TaskData, TReturn = any, TContext = TaskSchedulerContext> = (this: TaskHandlerContext<TContext>, params:TaskHandlerParams<TData, TContext>)=> Promise<TReturn>;
 
 /**
  * Bound TaskHandler work package
  */
-export type TaskPackage<T extends ( params:TaskHandlerParams<any>)=>Promise<any>> = (params: {signal: AbortSignal})=>ReturnType<T>;
+export type TaskPackage<T = any> = (params: {signal: AbortSignal})=>Promise<T>;
 
-export interface CreateTaskParams<T extends TaskData, U=any>{
-  handler: TaskHandler<T,U>;
+export interface CreateTaskParams<T extends TaskData>{
   data: T;
+  type: string;
   scene_id?: number|null;
   user_id?: number|null;
+  status?: TaskStatus;
+}
+
+export interface CreateRunTaskParams<TData extends TaskData, TReturn=any, TContext = TaskSchedulerContext> extends Omit<CreateTaskParams<TData>, "type">{
+  handler: TaskHandler<TData,TReturn, TContext>;
+  type?:string;
+  signal?: AbortSignal;
+  /** Can't create an immediately-running task with a status other than pending */
+  status?:"pending";
+}
+
+export interface RunTaskParams<TData extends TaskData, TReturn=any, TContext = TaskSchedulerContext>{
+  task: TaskDefinition<TData>;
+  handler: TaskHandler<TData, TReturn, TContext>;
   signal?: AbortSignal;
 }
 
+export interface TaskSettledCallback<T> {
+  (err:null, value:T):unknown
+  (err:any):unknown
+}
 
 export interface ITaskLogger{
   debug: (message?: any, ...optionalParams: any[]) => void,
@@ -81,7 +99,7 @@ export interface ITaskLogger{
 export type LogSeverity = keyof ITaskLogger;
 
 export interface TaskContextHandlers{
-  create<T extends TaskData, U=any>(p: CreateTaskParams<T, U>): Promise<U>;
+  create<T extends TaskData, U=any>(p: CreateRunTaskParams<T, U>): Promise<U>;
   getTask<T extends TaskData = TaskData>(id: number):Promise<TaskDefinition<T>>;
   /**
    * Creates a group and encapsulates any task N° returned from the inner function as a dependency of this group.

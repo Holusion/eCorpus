@@ -24,7 +24,7 @@ export class Queue{
   /**
    * Adds a task to the queue.
    */
-  add<T extends TaskHandler>(work: TaskPackage<T>):Promise<ReturnType<T>> {
+  add<T=any>(work: TaskPackage<T>):Promise<T> {
     if(this.#c.signal.aborted){
       throw new Error(`Queue is closed. Can't add new tasks`);
     }

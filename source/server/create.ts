@@ -10,6 +10,7 @@ import openDatabase from "./vfs/helpers/db.js";
 import Vfs from "./vfs/index.js";
 import defaultConfig from "./utils/config.js";
 import createServer from "./routes/index.js";
+import { TaskScheduler } from "./tasks/scheduler.js";
 
 
 const debug = debuglog("pg:connect");
@@ -17,6 +18,7 @@ const debug = debuglog("pg:connect");
 export interface Services{
   app: express.Application;
   vfs: Vfs;
+  taskScheduler: TaskScheduler;
   userManager: UserManager;
   close: ()=>Promise<void>;
 }
@@ -30,7 +32,7 @@ export default async function createService(config = defaultConfig) :Promise<Ser
   const vfs = await Vfs.Open(config.files_dir, {db});
   const userManager = new UserManager(db);
 
-
+  const taskScheduler = new TaskScheduler({db, vfs, userManager, config});
 
 
   if(config.clean_database){
@@ -49,6 +51,7 @@ export default async function createService(config = defaultConfig) :Promise<Ser
     userManager,
     fileDir: config.files_dir,
     vfs,
+    taskScheduler,
     config,
   });
 
@@ -56,7 +59,9 @@ export default async function createService(config = defaultConfig) :Promise<Ser
     app,
     vfs,
     userManager,
+    taskScheduler,
     async close(){
+      await taskScheduler.close();
       await vfs.close();
     }
   };
