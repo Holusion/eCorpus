@@ -9,18 +9,20 @@ import openDatabase, { Database } from "../vfs/helpers/db.js";
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
 import { TaskManager } from "./manager.js";
+import Vfs from "../vfs/index.js";
+import UserManager from "../auth/UserManager.js";
 
 describe("TaskManager", function(){
-  let db_uri: string, scene_id: number, handle: Database, client: Client;
+  let db_uri: string, scene_id: number, user_id: number, handle: Database;
 
     let listener :TaskManager;
   this.beforeAll(async function(){
     db_uri = await getUniqueDb(this.currentTest?.title.replace(/[^\w]/g, "_"));
     handle = await openDatabase({uri: db_uri});
-    let s = await handle.get(
-      "INSERT INTO scenes(scene_id, scene_name) VALUES ( $1, $2 ) RETURNING scene_id",
-    [Uid.make(), randomBytes(8).toString("base64url")]);
-    scene_id = s.scene_id;
+    const vfs = new Vfs("/dev/null", handle);
+    scene_id = await vfs.createScene(randomBytes(8).toString("base64url"));
+    const userManager = new UserManager(handle);
+    user_id = (await userManager.addUser(randomBytes(8).toString("base64url"), randomBytes(8).toString("base64url"))).uid;
   });
 
   this.afterAll(async function(){
@@ -41,7 +43,7 @@ describe("TaskManager", function(){
   //Non-connected functions that should work well in isolation
   it("create tasks", async function(){
     let task = await listener.create({
-      scene_id, 
+      scene_id: null, 
       user_id: null,
       type: "delayTask",
       data: {time: 0}
@@ -49,7 +51,28 @@ describe("TaskManager", function(){
     expect(task.task_id).to.be.a("number");
     expect(await handle.all("SELECT * FROM tasks")).to.have.length(1);
   });
-
+  
+  it("create a task attached to a scene", async function(){
+    let task = await listener.create({
+      scene_id, 
+      user_id: null,
+      type: "delayTask",
+      data: {time: 0}
+    });
+    expect(task.task_id).to.be.a("number");
+    expect(task.scene_id).to.equal(scene_id);
+  })
+  
+  it("create a task attached to a user", async function(){
+    let task = await listener.create({
+      scene_id: null, 
+      user_id,
+      type: "delayTask",
+      data: {time: 0}
+    });
+    expect(task.task_id).to.be.a("number");
+    expect(task.user_id).to.equal(user_id);
+  });
 
   it("update task status", async function(){
     let t = await listener.create({
@@ -74,6 +97,25 @@ describe("TaskManager", function(){
     
     let resolved = await listener.getTask(t.task_id);
     expect(resolved).to.deep.equal(t);
+  });
+
+  it("creates a task with a parent", async function(){
+    let parent = await listener.create({
+      scene_id,
+      user_id: null, 
+      type: "delayTask",
+      data: {time: 0}
+    });
+
+    let child = await listener.create({
+      scene_id,
+      user_id: null, 
+      type: "delayTask",
+      data: {time: 0},
+      parent: parent.task_id,
+    });
+
+    expect(child).to.have.property("parent", parent.task_id);
   });
   
 });

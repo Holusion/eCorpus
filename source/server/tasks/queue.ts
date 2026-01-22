@@ -1,5 +1,5 @@
 import EventEmitter from "node:events";
-import { TaskData, TaskHandler, TaskPackage } from "./types.js";
+import { TaskDataPayload, TaskHandler, TaskPackage } from "./types.js";
 
 
 
@@ -13,11 +13,13 @@ interface WorkPackage<T extends TaskHandler=any>{
 export class Queue{
   #queue: WorkPackage[] = [];
   #active = 0;
-  #limit: number;
   #c = new AbortController();
 
-  constructor(limit = Infinity) {
-    this.#limit = limit;
+  constructor(public limit = Infinity, public name?:string) {
+  }
+
+  toString(){
+    return `Queue(${this.limit}, ${this.name || "anonymous"})`
   }
 
 
@@ -41,7 +43,7 @@ export class Queue{
 
   #processNext(){
     // Stop if we are busy or if the queue is empty
-    if (this.#active >= this.#limit || this.#queue.length === 0 ) {
+    if (this.#active >= this.limit || this.#queue.length === 0 ) {
       return;
     }
 

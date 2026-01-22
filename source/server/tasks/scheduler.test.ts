@@ -2,26 +2,38 @@
 
 // Tests for tasks management
 // The system is a bit intricate and hard to test in isolation
-
+import timers from "timers/promises";
 import { Client } from "pg";
 import openDatabase, { Database, DatabaseHandle } from "../vfs/helpers/db.js";
 
 import { Uid } from "../utils/uid.js";
 import { randomBytes } from "node:crypto";
 import { TaskScheduler } from "./scheduler.js";
+import { CreateRunTaskParams, TaskDefinition } from "./types.js";
+import Vfs from "../vfs/index.js";
+import UserManager from "../auth/UserManager.js";
+
+
+const makeTask = (props:Partial<CreateRunTaskParams<any,unknown,{}>> = {})=>({
+      scene_id: null, user_id: null, data: {},
+      handler: ()=>Promise.resolve(),
+      ...props,
+    })
 
 describe("TaskScheduler", function(){
-  let db_uri: string, scene_id: number, handle: Database, client: Client;
+  let db_uri: string, scene_id: number, user_id: number, handle: Database, client: Client;
 
   //Create a taskScheduler with minimal context
   let scheduler :TaskScheduler<{db:DatabaseHandle}>;
   this.beforeAll(async function(){
     db_uri = await getUniqueDb(this.currentTest?.title.replace(/[^\w]/g, "_"));
     handle = await openDatabase({uri: db_uri});
-    let s = await handle.get(
-      "INSERT INTO scenes(scene_id, scene_name) VALUES ( $1, $2 ) RETURNING scene_id",
-    [Uid.make(), randomBytes(8).toString("base64url")]);
-    scene_id = s.scene_id;
+    const vfs = new Vfs("/dev/null", handle);
+    scene_id = await vfs.createScene(randomBytes(8).toString("base64url"));
+
+    const userManager = new UserManager(handle);
+    const user = await userManager.addUser("alice", "12345678", "admin");
+    user_id = user.uid;
   });
 
   this.afterAll(async function(){
@@ -107,6 +119,57 @@ describe("TaskScheduler", function(){
     const task = await scheduler.getTask(result);
     expect(task).to.have.property("status", "success");
     expect(task).to.have.property("type", "testTask");
+  });
+
+  it("data is never null inside a task", async function(){
+    let ok = false;
+    await scheduler.run(makeTask({handler: ({task})=>{
+      expect(task).to.have.property("data").an("object");
+      ok = true;
+    }}));
+    expect(ok, `Task seems to not have been run`).to.be.true;
+  });
+
+  it("won't deadlock itself", async function(){
+    scheduler.concurrency = 2;
+
+    let tasks = [];
+    for(let i = 0; i < 4; i++){
+      tasks.push(scheduler.run(makeTask({handler: async ()=>{
+        await timers.setTimeout(1);
+         await scheduler.run(makeTask());
+      }})));
+    }
+    await Promise.all(tasks);
+  });
+
+  it("nested tasks get their parent's attributes", async function(){
+    let children:Array<TaskDefinition> = [];
+    const parent_id = await scheduler.run(makeTask({
+      scene_id,
+      user_id,
+      handler: async function({task, context:{tasks}}){
+        //Using context object. We don't specify
+        await tasks.run(makeTask({handler: async ({task})=>{
+          children.push(task);
+        }}));
+
+        //Using external "scheduler", works as well thanks to the asyncStorage mechanism
+        await scheduler.run(makeTask({handler: async ({task})=>{
+          children.push(task);
+        }}));
+
+        return task.task_id;
+      }
+    }));
+    expect(parent_id).to.be.a("number");
+    expect(children).to.have.length(2);
+    for(let i = 0; i < children.length; i++){
+      const child = children[i];
+      expect(child).to.have.property("parent", parent_id);
+      expect(child).to.have.property("scene_id", scene_id);
+      expect(child).to.have.property("user_id", user_id);
+    }
   });
   
 });
