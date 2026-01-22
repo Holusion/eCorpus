@@ -69,7 +69,7 @@ global.dropDb = async function(uri: string){
 }
 
 global.createIntegrationContext = async function(c :Mocha.Context, config_override :Partial<Config>={}){
-  let {default:createServer} = await import("./routes/index.js");
+  let {default:createService} = await import("./create.js");
   let titleSlug = "t_"+ (c.currentTest?.title.replace(/[^\w]/g, "_") ?? `eCorpus_integration`)+"_"+randomBytes(4).toString("hex");
   c.db_uri = await getUniqueDb(titleSlug);
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
@@ -83,12 +83,13 @@ global.createIntegrationContext = async function(c :Mocha.Context, config_overri
     //Options we might want to customize
     config_override
   );
-  c.server = await createServer( c.config );
+  c.services = await createService( c.config );
+  c.server = c.services.app;
   return c.server.locals;
 }
 
 global.cleanIntegrationContext = async function(c :Mocha.Context){
-  await c.server.locals.vfs.close();
+  await c.services.close();
   await dropDb(c.db_uri);
   if(c.dir) await fs.rm(c.dir, {recursive: true});
 }
