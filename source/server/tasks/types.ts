@@ -3,9 +3,11 @@ import { Config } from "../utils/config.js";
 import { TDerivativeQuality } from "../utils/schema/model.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import type Vfs from "../vfs/index.js";
+import { TaskScheduler } from "./scheduler.js";
 
 
-export type TaskData = Record<string, any>;
+export type TaskData = Record<string, any>
+export type TaskDataPayload = undefined|TaskData;
 
 export type TaskStatus = 'initializing'|'pending'|'aborting'|'running'|'success'|'error';
 export enum ETaskStatus{
@@ -17,19 +19,24 @@ export enum ETaskStatus{
   'success',
 }
 
-export interface TaskDefinition<T extends TaskData = TaskData>{
-  fk_scene_id: number;
-  fk_user_id: number;
+
+/** 
+ * Task Creation parameters
+ */
+export interface TaskDefinition<TData extends TaskDataPayload = TaskDataPayload, TReturn = any>{
+  scene_id: number;
+  user_id: number;
   task_id: number;
   ctime: Date;
   type :string;
   parent: number|null;
   /** **Unordered** list of task requirements */
   after: number[];
-  data: T;
-  output: any;
+  data: TData extends undefined? {}: TData;
+  output: TReturn;
   status: TaskStatus;
-}
+};
+
 
 
 export interface TaskSchedulerContext{
@@ -40,45 +47,64 @@ export interface TaskSchedulerContext{
 }
 
 export type TaskHandlerContext<T = TaskSchedulerContext> = T & {
-  tasks: TaskContextHandlers,
+  tasks: TaskScheduler,
   logger: ITaskLogger,
   signal: AbortSignal,
 };
 
-
-export interface TaskHandlerParams<TData extends TaskData=TaskData, TContext = TaskSchedulerContext>{
+/**
+ * Parameters passed to a task handler when it is invoked
+ */
+export interface TaskHandlerParams<TData extends TaskDataPayload = TaskDataPayload, TContext = TaskSchedulerContext>{
   task: TaskDefinition<TData>;
-  inputs: Map<number, any>;
   context: TaskHandlerContext<TContext>;
 }
 
 /**
  * In the future we might want to support tasks that yield sub-tasks using return value `AsyncGenerator<TaskHandler, TReturn, void>`
  */
-export type TaskHandler<TData extends TaskData = TaskData, TReturn = any, TContext = TaskSchedulerContext> = (this: TaskHandlerContext<TContext>, params:TaskHandlerParams<TData, TContext>)=> Promise<TReturn>;
+export type TaskHandler<TData extends TaskDataPayload = TaskDataPayload, TReturn = any, TContext = TaskSchedulerContext> = (this: TaskHandlerContext<TContext>, params:TaskHandlerParams<TData, TContext>)=> TReturn|Promise<TReturn>;
 
 /**
  * Bound TaskHandler work package
  */
 export type TaskPackage<T = any> = (params: {signal: AbortSignal})=>Promise<T>;
 
-export interface CreateTaskParams<T extends TaskData>{
-  data: T;
-  type: string;
+
+type TaskDataRequirement<T extends TaskDataPayload> = T extends undefined 
+  ? { data?: never } 
+  : { data: T };
+
+
+type TaskCreateCommonParameters = {
   scene_id?: number|null;
   user_id?: number|null;
-  status?: TaskStatus;
+  parent?: number|null;
 }
 
-export interface CreateRunTaskParams<TData extends TaskData, TReturn=any, TContext = TaskSchedulerContext> extends Omit<CreateTaskParams<TData>, "type">{
-  handler: TaskHandler<TData,TReturn, TContext>;
-  type?:string;
+/**
+ * Parameters to create a task
+ */
+export type CreateTaskParams<TData extends TaskDataPayload> = TaskCreateCommonParameters &{
+  type: string;
+  status?: TaskStatus;
+  data: TData;
+};
+
+
+export type CreateRunTaskParams<TData extends TaskDataPayload, TReturn=any, TContext = TaskSchedulerContext> =
+ TaskCreateCommonParameters & TaskDataRequirement<TData> & {
+  handler: TaskHandler<TData, TReturn, TContext>;
+  type?: string;
+  status?:"pending";
   signal?: AbortSignal;
   /** Can't create an immediately-running task with a status other than pending */
-  status?:"pending";
-}
+};
 
-export interface RunTaskParams<TData extends TaskData, TReturn=any, TContext = TaskSchedulerContext>{
+/**
+ * Run a task that was previously created
+ */
+export interface RunTaskParams<TData extends TaskDataPayload, TReturn=any, TContext = TaskSchedulerContext>{
   task: TaskDefinition<TData>;
   handler: TaskHandler<TData, TReturn, TContext>;
   signal?: AbortSignal;
@@ -98,22 +124,7 @@ export interface ITaskLogger{
 
 export type LogSeverity = keyof ITaskLogger;
 
-export interface TaskContextHandlers{
-  create<T extends TaskData, U=any>(p: CreateRunTaskParams<T, U>): Promise<U>;
-  getTask<T extends TaskData = TaskData>(id: number):Promise<TaskDefinition<T>>;
-  /**
-   * Creates a group and encapsulates any task N° returned from the inner function as a dependency of this group.
-   * The group's output is an array of all its dependencies outputs.
-   * @param cb 
-   */
-  group(cb: (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>, remap?: any) :Promise<number>;
-}
-
-
-export type GroupCallback = (context: TaskContextHandlers)=>Promise<number[]>|AsyncGenerator<number,void,unknown>;
-
-
-export interface TaskHandlerDefinition<T extends TaskData = TaskData>{
+export interface TaskHandlerDefinition<T extends TaskDataPayload = TaskDataPayload>{
   readonly type: string;
   handle: TaskHandler<T>;
 };
@@ -124,23 +135,3 @@ export interface ProcessFileParams{
   preset: TDerivativeQuality;
 }
 
-export function requireFileInput(inputs:Map<number, any>){
-  let file:string|undefined = undefined;
-  for(let input of inputs.values()){
-    if(file){
-      throw new Error("More than one input could be used as input file");
-    }
-    if(typeof input === "string") file = input;
-  }
-  if(!file){
-    throw new Error(`No input file provided and none was found in task inputs\n${JSON.stringify([...inputs.entries()], null, 2)}`);
-  }
-  return file;
-}
-
-
-export interface ImportSceneResult{
-  name: string;
-  action: "create"|"update"|"error";
-  error?: string;
-}

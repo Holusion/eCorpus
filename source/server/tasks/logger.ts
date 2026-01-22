@@ -1,7 +1,9 @@
 import { Writable } from "node:stream";
 import { ITaskLogger, LogSeverity } from "./types.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
-import { format } from "node:util";
+import { debuglog, format } from "node:util";
+
+const debug = debuglog("tasks:logs");
 
 /**
  * Disposable logger that queues messages and waits for all logs to be flushed when closed
@@ -21,6 +23,7 @@ export function createLogger(db: DatabaseHandle, task_id: number){
   });
 
   function log(severity: LogSeverity, message: string){
+    debug(`[${severity.toUpperCase()}] ${message}`);
     stream.write({severity, message});
   }
 

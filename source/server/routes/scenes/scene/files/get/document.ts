@@ -20,7 +20,7 @@ export default async function handleGetDocument(req :Request, res :Response){
   }
 
   let data = Buffer.from(JSON.stringify(doc), "utf-8");
-  let hash = createHash("sha256").update(data).digest("base64url");
+  let hash = createHash("sha256").update(data as any).digest("base64url");
 
 
   res.set("ETag", hash);
