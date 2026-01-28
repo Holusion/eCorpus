@@ -28,7 +28,7 @@
         <div class="form-item">
           <label for="sceneSetupLanguage">{{i18n "labels.setupLocalization"}}</label>
           <select name="language" id="sceneSetupLanguage" >
-            {{#each languages}}
+            {{#each scene_languages}}
             <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
             {{/each}}
           </select>

@@ -261,6 +261,11 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
       {selected: lang === "fr", code: "fr", key: "lang.fr"},
       {selected: lang === "en", code: "en", key: "lang.en"},
     ],
+    scene_languages: [
+      {selected: lang === "fr", code: "fr", key: "lang.fr"},
+      {selected: lang === "en", code: "en", key: "lang.en"},
+      {selected: lang === "es", code: "es", key: "lang.es"},
+    ],
     user: user,
     location: req.originalUrl,
     search,
