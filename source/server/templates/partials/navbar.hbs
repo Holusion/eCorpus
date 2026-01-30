@@ -1,13 +1,11 @@
 <nav class="navbar-nav">
   <div class="nav-content">
-    <div class="brand">
-      <a class="brand" href="/">
-        <picture>
-          <source srcset="/dist/images/logo-sm.svg" media="(max-width: 576px)"/>
-          <img src="/dist/images/logo-full.svg" alt="Site Logo"/>
-        </picture>
-      </a>
-    </div>
+    <a class="logo" href="/">
+      <picture>
+        <source srcset="/dist/images/logo-sm.svg" media="(max-width: 576px)"/>
+        <img src="/dist/images/logo-full.svg" alt="Site Logo"/>
+      </picture>
+    </a>
     <div class="spacer"></div>
     <div class="navbar">
       {{# unless isSearchPage }}

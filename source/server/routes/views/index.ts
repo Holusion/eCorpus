@@ -33,7 +33,7 @@ routes.get("/", wrap(async (req, res)=>{
   const user = getUser(req);
   if(!user || user.level === "none"){
     return res.render("login", {
-      title: "eCorpus Home",
+      title: "Home",
       user: null,
     });
   }
@@ -60,7 +60,7 @@ routes.get("/", wrap(async (req, res)=>{
     })
   ])).map((scenes:Scene[])=> scenes.map(mapScene.bind(null, req)));
   res.render("home", {
-    title: "eCorpus Home",
+    title: "Home",
     recentChanges,
     userScenes,
     recentScenes,
@@ -127,7 +127,7 @@ routes.get("/tags", wrap(async (req, res)=>{
   }
  
   res.render("tags", {
-    title: "eCorpus Tags",
+    title: "Tags",
     tags: tags.filter(t=>t.scenes?.length),
     match,
     pager,
@@ -148,7 +148,7 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   res.render("tag", {
     layout: embedded? "embed": "main",
     embedded,
-    title: "eCorpus "+tag,
+    title: tag,
     tag,
     scenes,
   });
@@ -226,7 +226,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
   const validatedParams = ScenesVfs._validateSceneQuery(sceneParams);
   if((!validatedParams.access) && (u? u.level != "admin": true)) validatedParams.access = "read";
   res.render("search", {
-    title: "eCorpus Search",
+    title: "Search",
     scenes,
     params: validatedParams,
     isSearchPage: true, //Hide the navbar's search field because we otherwise have a duplicate "match" input
@@ -242,7 +242,7 @@ routes.get("/user", wrap(async (req, res)=>{
   }
   res.render("user/settings", {
     layout: "user",
-    title: "eCorpus User Settings",
+    title: "User Settings",
   });
 }));
 
@@ -255,7 +255,7 @@ routes.get("/user/groups", wrap(async (req, res)=>{
   const groups = await userManager.getGroupsOfUser(user?.uid);
   res.render("user/groups", {
     layout: "user",
-    title: "eCorpus User Settings",
+    title: "Group Settings — User",
     groups
   });
 }));
@@ -269,7 +269,7 @@ routes.get("/user/archives", wrap(async (req, res)=>{
   let archives = await vfs.getScenes(user.uid, {archived: true, author: user.username});
   res.render("user/archives", {
     layout: "user",
-    title: "eCorpus User Settings",
+    title: "Archives — User",
     archives,
   });
 }));
@@ -280,7 +280,7 @@ routes.use("/admin", isManage);
 routes.get("/admin", (req, res)=>{
   res.render("admin/home", {
     layout: "admin",
-    title: "eCorpus Administration",
+    title: "Administration",
   });
 });
 
@@ -290,7 +290,7 @@ routes.get("/admin/archives", isAdministrator, wrap(async (req, res)=>{
   let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
   res.render("admin/archives", {
     layout: "admin",
-    title: "eCorpus Administration: Archived scenes",
+    title: "Archived scenes — Administration",
     scenes,
   });
 }));
@@ -299,7 +299,7 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   let users = await getUserManager(req).getUsers();
   res.render("admin/users", {
     layout: "admin",
-    title: "eCorpus Administration: Users list",
+    title: "Users list — Administration",
     start: 0,
     end: 0 + users.length,
     total: users.length,
@@ -311,7 +311,7 @@ routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
   let groups = await getUserManager(req).getGroups();
   res.render("admin/groups", {
     layout: "admin",
-    title: "eCorpus Administration: Groups",
+    title: "Groups — Administration",
     start: 0,
     end: 0 + groups.length,
     total: groups.length,
@@ -323,7 +323,7 @@ routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
   const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
-    title: "eCorpus Administration: Instance Statistics",
+    title: "Instance Statistics — Administration",
     stats,
   });
 }));

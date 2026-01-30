@@ -5,7 +5,7 @@ import {hostname} from "os";
 const values = {
   node_env:["development", toString],
   public: [true, toBool],
-  brand: ["eCorpus", toString],
+  brand: ["", toString],
   port: [8000, toListenTarget ],
   force_migration: [false, toBool],
   clean_database: [true, toBool],

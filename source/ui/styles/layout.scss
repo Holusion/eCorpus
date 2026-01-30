@@ -228,7 +228,7 @@ section, .section{
 footer{
   color: var(--color-text);
   background-color: var(--color-section);
-  height: var(--nav-height);
+  min-height: var(--nav-height);
   padding-right: 105px;
   padding-left: 105px;
   position: relative;
@@ -239,9 +239,6 @@ footer{
     justify-content: center;
   }
   #change-locale{
-    position: absolute;
-    right: 0;
-    top: 0;
     height: var(--nav-height);
   }
 

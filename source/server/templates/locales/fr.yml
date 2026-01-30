@@ -98,7 +98,7 @@ fields:
     manage: Editeur
     admin: Administrateur
 nav:
-  tags: collection
+  tags: collections
   login: connexion
   administration: administration
   adminRecap: récapitulatif
@@ -212,6 +212,7 @@ leads:
   groupsList: Groupes {{start}}-{{end}}/{{total}}
   noArchives: Pas de scènes archivées
   noGroups: Cet utilisateur n'est ajouté à aucun groupe
+  poweredByECorpus: Propulsé par <a target="_blank" href="https://ecorpus.eu">eCorpus</a> sous license <a href="https://github.com/Holusion/eCorpus/blob/main/LICENSE.md">Apache-2.0</a>
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

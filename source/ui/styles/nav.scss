@@ -32,7 +32,8 @@ nav.navbar-nav {
   }
 
 
-  .brand {
+  .logo {
+    display: block;
     font-size: 1.1em;
     color: var(--color-secondary);
     font-family: var(--font-heading);
@@ -45,10 +46,13 @@ nav.navbar-nav {
     
     }
   }
-  .brand:hover {
+  .logo:hover {
     filter: opacity(80%);
   }
   
+  .brand{
+
+  }
 }
 
 nav{
@@ -71,6 +75,25 @@ nav{
       padding: 4px 10px !important;
     }
   }
+  
+  .nav-text, .nav-text-list{
+    align-self: center;
+    padding: .3rem 1ch;
+    a:hover{
+      color: var(--color-secondary-light);
+    }
+  }
+
+  .nav-text-list{
+    > .nav-text{
+      padding: 0;
+      white-space: nowrap;
+      &:not(:first-child):not(:empty)::before{
+        content: "— ";
+      }
+    }
+  }
+
   .nav-link{
     position: relative;
     flex-wrap: wrap;

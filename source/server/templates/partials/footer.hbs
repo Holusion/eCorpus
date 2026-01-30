@@ -1,13 +1,15 @@
 
 <footer>
   <nav>
-    <a class="nav-link" href="https://ecorpus.eu">{{i18n "nav.documentation"}}</a>
+    <div class="nav-text-list">
+      {{#if brand}}<span class="nav-text" style="font-weight: bold;">{{brand}}</span>{{/if}}
+      <span class="nav-text lg-only">{{{i18n "leads.poweredByECorpus" }}}</span>
+      <span class="nav-text"><a target="_blank" href="https://ecorpus.eu">{{i18n "nav.documentation"}}</a></span>
+      <span class="nav-text"><a  target="_blank" href="mailto:contact@holusion.com">{{i18n "nav.reportBug"}}</a></span>
+    </div>
 
-    <span class="nav-link" >Holusion © <a href="https://github.com/Holusion/e-thesaurus/blob/main/LICENSE.md">{{i18n "nav.license"}}</a></span>
-
-    <a class="nav-link" href="mailto:contact@holusion.com">{{i18n "nav.reportBug"}}</a>
     <form method="GET" id="change-locale" class="form-control nav-end" style="margin: auto 1rem;">
-      <div class="form-item" style="display: flex;flex-wrap: nowrap; align-items: center">
+      <div class="form-item" style="display: flex;flex-wrap: nowrap; align-items: center;flex-shrink: 0;">
         <ui-icon name="globe"></ui-icon>
         <select aria-label="{{i18n "labels.language"}}" name="lang" onchange="this.form.submit()">
           {{>inputs/option selected=(test lang "==" "en") value="en" text=(i18n "lang.en")}}
