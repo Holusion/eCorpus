@@ -15,7 +15,7 @@
 
 <link rel="icon" type="image/png" href="/dist/favicon.png" sizes="32x32"/>
 <link rel="shortcut icon" type="image/svg+xml" href="/dist/favicon.svg"/>
-<link rel="search" type="application/opensearchdescription+>xml" href="{{root_url}}services/opensearch.xml" title="{{#if brand}}{{ brand }}{{else}}eCorpus{{/if}}">
+<link rel="search" type="application/opensearchdescription+xml" href="{{root_url}}services/opensearch.xml" title="{{#if brand}}{{ brand }}{{else}}eCorpus{{/if}}">
 {{#if embeddable }}
 <link rel="alternate" type="application/json+oembed" href="{{root_url}}services/oembed?url={{encodeURIComponent canonical}}&format=json"/>
 <link rel="alternate" type="text/xml+oembed" href="{{root_url}}services/oembed?url={{encodeURIComponent canonical}}&format=xml"/>
@@ -29,8 +29,27 @@
     box-sizing: border-box;
     width: 100%;
     min-height: 100vh;
-    padding: var(--nav-height, 44px) 0 0 0;
     margin: 0;
-    display: block;
+  }
+
+  body.main-grid{
+    display: grid;
+    grid-template-columns: 1fr min(1200px, 100vw - .5rem ) 1fr;
+    grid-template-rows: var(--nav-height) auto min-content;
+    grid-template-areas: 
+      "navbar navbar navbar"
+      ". main ."
+      "footer footer footer";=
+  }
+
+  nav.navbar-nav{
+    grid-area: navbar;
+  }
+  main{
+    grid-area: main;
+  }
+
+  footer{
+    grid-area: footer;
   }
 </style>

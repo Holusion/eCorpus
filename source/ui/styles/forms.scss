@@ -10,8 +10,7 @@
   &.column{
     display:flex;
     align-items: stretch;
-    flex-direction: column;
-    gap: 10px;
+    gap: 5px;
   }
 
   .form-group{
@@ -24,7 +23,6 @@
     &.column{
       display:flex;
       align-items: stretch;
-      flex-direction: column;
       gap: 5px;
 
     }
@@ -273,3 +271,18 @@
     opacity: 0.7;
   }
 }
+
+//Checkbox that has a changing label depending of whether it's checked or not
+.checkbox-label{
+  display: none;
+  @at-root input[type="checkbox"]:checked ~ &.label-checked {
+    display: revert;
+  }
+  @at-root input[type="checkbox"]:not(:checked):not(:indeterminate) ~ &.label-unchecked {
+    display: revert;
+  }
+  @at-root input[type="checkbox"]:indeterminate ~ &.label-indeterminate {
+    display: revert;
+  }
+}
+

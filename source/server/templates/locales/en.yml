@@ -53,6 +53,7 @@ labels:
   databaseSchema: Database schema version
   show: show
   sceneType: Scene type
+  advancedSearch: Advanced search
 
 buttons:
   searchScene: search scenes

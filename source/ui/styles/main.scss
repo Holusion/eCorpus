@@ -8,14 +8,13 @@ html {
   color: var(--color-text);
 }
 
-main{
+main {
   position: relative;
   max-width: var(--col-width);
-  margin: auto;
+  flex: 1 0 auto;
 
   font-family: var(--font-body);
   color: var(--color-text);
-  min-height: calc(100vh - var(--nav-height) * 2);
   padding-top: .67em;
 }
 

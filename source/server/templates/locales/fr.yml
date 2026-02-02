@@ -53,6 +53,9 @@ labels:
   databaseSchema: Version du schéma de la base de données
   show: voir
   sceneType: Type de scène
+  advancedSearch: Recherche avancée
+  batchAddTag: Ajouter ce tag aux scènes sélectionnées
+  batchRmTag: Retirer ce tag des scènes sélectionnées
 
 buttons:
   searchScene: chercher une scène

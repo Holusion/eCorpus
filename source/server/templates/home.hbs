@@ -4,11 +4,13 @@
   <div class="grid-toolbar">
     <div class="section">
         <h4>{{i18n "titles.tools"}}</h4>
-        <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
-        <a class="btn btn-main" href="/ui/upload/">
-            {{i18n "buttons.upload"}}
-        </a>
-        <a class="btn btn-main" href="/ui/standalone/?lang={{lang}}">{{i18n "buttons.useStandalone"}}</a>
+        <div class="form-control column md-row sm-column" style="flex-wrap: wrap;">
+          <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
+          <a class="btn btn-main" href="/ui/upload/">
+              {{i18n "buttons.upload"}}
+          </a>
+          <a class="btn btn-main" href="/ui/standalone/?lang={{lang}}">{{i18n "buttons.useStandalone"}}</a>
+        </div>
     </div>
     <div class="section">
         <h3>{{i18n "titles.mtimeScenesSection" }}</h3>
