@@ -34,7 +34,7 @@
 
   body.main-grid{
     display: grid;
-    grid-template-columns: 1fr min(1200px, 100vw - .5rem ) 1fr;
+    grid-template-columns: 1fr minmax(auto, var(--col-width, 1320px)) 1fr;
     grid-template-rows: var(--nav-height) auto min-content;
     grid-template-areas: 
       "navbar navbar navbar"

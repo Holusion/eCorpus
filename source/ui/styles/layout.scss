@@ -101,7 +101,7 @@ section, .section{
 
 .main-grid{
   display: grid;
-  gap: .5rem;
+  gap: var(--grid-gap, .5rem);
   grid-auto-rows: auto;
   grid-template-columns: minmax(auto, 300px) 1fr;
   grid-template-areas: 
@@ -316,6 +316,10 @@ footer {
   display: none !important;
 }
 
+.hidden{
+  display: none !important;
+}
+
 // matched for large screens only
 @media screen and (min-width: 992px){
   .lg-hidden{
@@ -369,7 +373,7 @@ footer {
   .sm-hidden{
     display: none !important;
   }
-  .collapse-sm:not([aria-expanded="true"]){
+  .sm-collapse:not([aria-expanded="true"]){
     display: none !important;
   }
   .sm-absolute{

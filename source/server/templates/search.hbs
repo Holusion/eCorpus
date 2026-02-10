@@ -168,59 +168,59 @@
 
       }
     </style>
-    <form style="" id="scenes-selection">
+    {{#if scenes.length }}
+      <form style="" id="scenes-selection">
+        <div id="main-toolbar">
 
-      <div id="main-toolbar">
+          <label style="display: flex; gap: .5rem; align-items: end;">
+            <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
+            <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
+            <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>
+          </label>
+          <div id="main-actions" class="form-group">
+            <a class="btn btn-primary btn-small" download="" href="/scenes?limit=0&amp;format=zip" id="selection-download" disabled>
+              <span>{{i18n "buttons.downloadSelection" }}</span>
+            </a>
 
-        <label style="display: flex; gap: .5rem; align-items: end;">
-          <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
-          <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
-          <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>
-        </label>
-
-        <div id="main-actions" class="form-group">
-          <a class="btn btn-primary btn-small" download="" href="/scenes?limit=0&amp;format=zip" id="selection-download" disabled>
-            <span>{{i18n "buttons.downloadSelection" }}</span>
-          </a>
-
-          <button
-            class="btn btn-primary btn-small btn-icon btn-outline"
-            title="{{i18n "buttons.actions"}}"
-            type="button" aria-controls="extended-actions" aria-expanded="false"
-          >
-            <ui-icon class="if-collapsed" name="plus"></ui-icon>
-            <ui-icon class="if-expanded" name="minus"></ui-icon>
-          </button>
-          <div class="collapse" id="extended-actions">
-            <div class="form-control">
-              <label class="form-group">
-                {{ i18n "labels.batchTags"}}
-                <div class="row">
-                  <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
-                  <button id="add-tag" type="button" class="btn btn-small btn-success btn-addon"
-                    title="{{i18n "labels.batchAddTag"}}"
-                    aria-label="{{i18n "labels.batchAddTag"}}"
-                  >
-                    <ui-icon name="plus"></ui-icon>
-                    </button>
-                  <button id="remove-tag" type="button" class="btn btn-small btn-danger btn-addon" style="min-width:40px"
-                    title="{{i18n "labels.batchRmTag"}}"
-                    aria-label="{{i18n "labels.batchRmTag"}}"
-                  >
-                    <ui-icon name="minus"></ui-icon>
-                    </button>
-                  <datalist id="tagSuggestions">
-                    {{#each tagSuggestions }}
-                    <option value="{{.}}" />
-                    {{/each}}
-                  </datalist>
-                </div>
-              </label>
+            <button
+              class="btn btn-primary btn-small btn-icon btn-outline"
+              title="{{i18n "buttons.showActions"}}"
+              type="button" aria-controls="extended-actions" aria-expanded="false"
+            >
+              <ui-icon class="if-collapsed" name="plus"></ui-icon>
+              <ui-icon class="if-expanded" name="minus"></ui-icon>
+            </button>
+            <div class="collapse" id="extended-actions">
+              <div class="form-control">
+                <label class="form-group">
+                  {{ i18n "labels.batchTags"}}
+                  <div class="row">
+                    <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
+                    <button id="add-tag" type="button" class="btn btn-small btn-success btn-addon"
+                      title="{{i18n "labels.batchAddTag"}}"
+                      aria-label="{{i18n "labels.batchAddTag"}}"
+                    >
+                      <ui-icon name="plus"></ui-icon>
+                      </button>
+                    <button id="remove-tag" type="button" class="btn btn-small btn-danger btn-addon" style="min-width:40px"
+                      title="{{i18n "labels.batchRmTag"}}"
+                      aria-label="{{i18n "labels.batchRmTag"}}"
+                    >
+                      <ui-icon name="minus"></ui-icon>
+                      </button>
+                    <datalist id="tagSuggestions">
+                      {{#each tagSuggestions }}
+                      <option value="{{.}}" />
+                      {{/each}}
+                    </datalist>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </form>
+      </form>
+    {{/if}}
     {{#each scenes}}
       {{>sceneCard select_form="scenes-selection" }}
     {{/each}}

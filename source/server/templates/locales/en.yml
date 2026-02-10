@@ -54,6 +54,9 @@ labels:
   show: show
   sceneType: Scene type
   advancedSearch: Advanced search
+  batchTags: Change selection's tags
+  batchAddTag: Add this tag to selected scenes
+  batchRmTag: Remove this tag from selected scenes
 
 buttons:
   searchScene: search scenes
@@ -75,6 +78,8 @@ buttons:
   deselectAll: Deselect all
   submit: Send
   createUser: Create
+  showActions: Show actions
+
 fields:
   name: name
   author: author

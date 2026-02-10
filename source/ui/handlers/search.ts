@@ -145,7 +145,7 @@ function registerBatchToggle(toggle: HTMLInputElement, selection: SelectionManag
   
   selection.listen("update", function onUpdate({detail:{selection, total}}:SelectionEvent){
     toggle.indeterminate = selection.length != 0 && selection.length != total;
-    toggle.checked = selection.length == total;
+    toggle.checked = selection.length && selection.length == total;
   });
 
 }
@@ -205,7 +205,10 @@ function registerBatchTag({tagName, addTag, removeTag}:BatchTagElements, selecti
 
   function act(action:"create"|"delete"){
     const body: { name: string, scene: number, action: "create" | "delete" }[] = [...selection].map(
-      (item) => { return { name: tagName.value, scene: parseInt(item.value), action: "delete" } });
+      (item) => { 
+        console.log("Item:", item.value);
+        return { name: tagName.value, scene: parseInt(item.value), action }
+       });
 
     fetch("../../tags", {
       method: "PATCH",
@@ -215,49 +218,28 @@ function registerBatchTag({tagName, addTag, removeTag}:BatchTagElements, selecti
       }
     }).then((response) => {
       if (!response.ok) {
-        notify(`Tag could not be deleted. ${response.statusText}`, "error", 4000);
+        notify(`Tag could not be ${action}d. ${response.statusText}`, "error", 4000);
       } else {
-        notify(`Tag ${tagName.value} was deleted`, "success", 4000);
+        notify(`Tag ${tagName.value} was ${action}d`, "success", 4000);
         tagName.value = "";
       }
     }, (e) => {
       console.log("Error", e);
-      notify(`Tag could not be deleted.`, "error", 4000);
+      notify(`Tag could not be ${action}d.`, "error", 4000);
     });
   }
 
   addTag.addEventListener("click", function onAdd(ev: MouseEvent){
     ev.preventDefault();
     if (tagName.value.length > 0) {
-      const body: { name: string, scene: number, action: "create" | "delete" }[] = [...selection].map(
-        (scene) => { return { name: tagName.value, scene: parseInt(scene as any), action: "create" } }
-      );
-      const req = new Request("../../tags", {
-        method: "PATCH",
-        body: JSON.stringify(body),
-        headers: {
-          "Content-Type": "application/json;charset=UTF-8",
-        }
-      })
-      window.fetch(req).then((response) => {
-        if (!response.ok) {
-          notify(`Tag could not be added. ${(response.json())}`, "error", 4000);
-        } else {
-          notify(`Tag ${tagName.value} was added`, "success", 4000);
-          tagName.value = "";
-        }
-      }).catch((e) => {
-        console.log("Error", e);
-        notify(`Tag could not be added.`, "error", 4000);
-      }
-      )
+      act("create");
     }
   });
 
   removeTag.addEventListener("click", function onRemove(ev: MouseEvent){
     ev.preventDefault();
     if (tagName.value.length > 0) {
-
+      act("delete");
     }
   })
 }
@@ -269,13 +251,17 @@ function registerBatchTag({tagName, addTag, removeTag}:BatchTagElements, selecti
 (function registerSearchTools(){
 
   const selection = new SelectionManager();
-
+  const scenes = document.querySelectorAll<HTMLElement>(".scene-card[id|=scene]");
+  if(!scenes.length){
+    console.debug("No search results found on page. Search actions are disabled");
+    return;
+  }
   const form = document.querySelector("#scenes-selection");
-  if(!form) throw new Error("No form matching #scenes-selection found on this page");
+  if(!form && scenes) throw new Error("No form matching #scenes-selection found on this page");
   if(!(form instanceof HTMLFormElement)) throw new Error("Matched element is not a form");
   //registerForm(form, selection);
 
-  for(const card of document.querySelectorAll<HTMLElement>(".scene-card[id|=scene]")){
+  for(const card of scenes){
     registerSceneCard(card, selection);
   }
 

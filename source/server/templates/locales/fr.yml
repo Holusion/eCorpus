@@ -54,6 +54,7 @@ labels:
   show: voir
   sceneType: Type de scène
   advancedSearch: Recherche avancée
+  batchTags: Change selection's tags
   batchAddTag: Ajouter ce tag aux scènes sélectionnées
   batchRmTag: Retirer ce tag des scènes sélectionnées
 
@@ -77,6 +78,8 @@ buttons:
   deselectAll: Déselectionner tout
   submit: Envoyer
   createUser: Créer
+  showActions: Afficher les actions
+
 fields:
   name: nom
   author: auteur

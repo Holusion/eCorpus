@@ -29,7 +29,7 @@ for (const btn of document.querySelectorAll<HTMLElement>('[role="button"][aria-c
   btn.addEventListener("click", onToggleClick.bind(null, btn));
   const state = window.history.state ?? {};
   let btnState :boolean;
-  if(btn.id && state[btn.id]){
+  if(btn.id && btn.dataset.persistent != "false" && state[btn.id]){
     btnState = state[btn.id] == "expanded";
   }else{
     btnState = btn.getAttribute("aria-expanded") == "true"
