@@ -1,42 +1,63 @@
-<h2>{{i18n "titles.upload"}}</h2>
 
-<upload-form>
-  <form class="form-control" aria-labelledby="upload-form-title">
+<div class="main-container">
+  
+  <h2>{{i18n "titles.upload"}}</h2>
+  <div class="grid-content">
     <section class="container">
-      <h3 id="upload-form-title">{{i18n "titles.createOrUpdateScene"}}                  
-        {{#> popover id="upload-tooltip" type="button" }}{{i18n "tooltips.upload"}}{{/popover}}
-        </h3>
-      <div class="form-group">
-        <div class="form-item">
-          <label class="upload-btn" for="fileUpload">{{i18n "labels.selectFile_s"}} (glb, zip)</label>
-          <input 
-              role="button"
-              class="dropzone"
-              id="fileUpload" 
-              type="file"
-              name="files"
-              multiple
-            />
-        </div>
-      </div>
-      <div class="form-group inline" style="gap: .5rem;" >
-        <div class="form-item" style="flex: 1 1 auto;">
-          <label for="sceneTitle">{{i18n "labels.sceneTitle"}} ({{i18n "labels.optional"}}, {{ i18n "labels.ignoredIfMultipleScenes"}})</label>
-          <input id="sceneTitle" type="text" name="name">
-        </div>
-        
-        <div class="form-item">
-          <label for="sceneSetupLanguage">{{i18n "labels.setupLocalization"}}</label>
-          <select name="language" id="sceneSetupLanguage" >
-            {{#each scene_languages}}
-            <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
-            {{/each}}
-          </select>
-        </div>
-        <div class="form-item" style="align-self: end; justify-self: end">
-          <button class="btn btn-main" type="submit" role="submit" >{{i18n "buttons.upload"}}</button>
-        </div>
-      </div>
+      
+      <upload-manager class="form-control">
+        <h3 slot="title" id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
+        <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
+        <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
+        <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
+        <form slot="upload-form" class="form-control form-grid" aria-labelledby="upload-form-title">
+          <div class="form-row">
+
+            <div class="form-group">
+              <div class="form-item">
+                <label for="sceneName">
+                  {{i18n "labels.sceneName"}}
+                  {{#> popover id="sceneName"}}{{i18n "leads.uploadName" }}{{/popover}}
+                </label>
+                <input id="sceneName" required minlength="3" type="text" name="name">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-item">
+                <label for="sceneSetupLanguage">
+                  {{i18n "labels.setupLocalization"}}
+                  {{#> popover id="sceneSetupLanguage" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
+                </label>
+                <select name="language" id="sceneSetupLanguage" >
+                  {{#each languages}}
+                  <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
+                  {{/each}}
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="form-row">
+            <h4>{{i18n "titles.advancedConfiguration"}}</h4>
+            <div class="form-item inline" style="justify-content: end;">
+              <label for="sceneOptimize">
+                {{i18n "labels.optimizeModel"}}
+              {{#> popover id="sceneOptimize" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
+              </label>
+              <input id="sceneOptimize" type="checkbox" name="optimize"/>
+            </div>
+          </div>
+
+
+
+        </form>
+
+        <button slot="submit" role="submit" class="btn btn-main">{{i18n "buttons.upload"}}</button>
+        <span slot="upload-errors">{{i18n "leads.uploadErrors"}}</span>
+      </upload-manager>
+
     </section>
-  </form>
-</upload-form>
+  </div>
+</div>
