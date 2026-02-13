@@ -5,6 +5,11 @@ import { Queue } from "./queue.js";
 import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
+import { BadRequestError, InternalError } from "../utils/errors.js";
+
+
+import * as userHandlers from "./handlers/index.js";
+// Note: previously used stream/once for generator bridge; no longer required for Promise.all-style group
 
 
 const debug = debuglog("tasks:scheduler");
@@ -30,6 +35,15 @@ type NestContextProps = {
   concurrency: number;
 }
 
+// Work must be a callable that, when invoked inside `nest`, returns
+// an iterable of promises. This ensures the promises are created
+// in the nested async context (covers both factory functions and
+// generator functions — calling them produces an iterator).
+type GroupWorkload<T> = () => Iterable<Promise<T>>;
+export function isUserHandlerType(t: string):t is keyof typeof userHandlers{
+  return t in userHandlers;
+}
+
 
 export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerContext> extends TaskManager{
   //Do not use "real" private members here because they would be missed by Object.create
@@ -48,6 +62,9 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
     this.rootQueue.limit = value;
   }
 
+  public get closed(){
+    return this.rootQueue.closed;
+  }
 
   constructor(protected _context :TContext){
     super(_context.db);
@@ -67,9 +84,13 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
     }
   }
 
-  async close(){
+  /**
+   * Close the scheduler gracefully
+   * @param timeoutMs Maximum time to wait for active tasks to complete. Defaults to 30 seconds.
+   */
+  async close(timeoutMs?: number){
+    await this.rootQueue.close(timeoutMs);
     super.close();
-    await this.rootQueue.close();
   }
   /**
    * Retrieve the current async context
@@ -101,7 +122,7 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
         logger,
       };
 
-      await this.setTaskStatus(task.task_id, "running");
+      await this.takeTask(task.task_id);
       return await this.nest({concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext}, handler.bind(context),  {context, task})
     }
     
@@ -136,7 +157,9 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
   async run<T extends TaskDataPayload, U=any>(params: CreateRunTaskParams<T, U, TContext>|RunTaskParams<T,U, TContext>, callback?:TaskSettledCallback<U>): Promise<U>{
     let task: TaskDefinition<T>;
     if("task" in params){
-      task = params.task;
+      //We allow externally-created tasks here. But we want to limit error sources so we re-fetch the task anyway
+      //If this ends up being used in practice, we may need perform validation that the given task actually matches the stored one.
+      task = await this.getTask(params.task.task_id);
     }else{
       //We use context to inherit parent, user_id and scene_id
       //But if different values are explicitly specified it's possible to "break out"
@@ -159,7 +182,26 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
   }
 
   /**
+   * Run a user-created task. Does not check for permissions
+   * @param task_id 
+   */
+  async runUserTask(task:TaskDefinition){
+    // _run will check that status is in ('pending', 'initializing') again when it executes the callback
+    // Here we just check against usage errors
+    if(task.status !== "initializing") throw new InternalError(`Task #${task.task_id} has status: ${task.status}. It can't be started`);
+    if(!isUserHandlerType(task.type)) throw new BadRequestError(`Task type ${task.type} can not be user-created`);
+    if(debug.enabled){
+      let text = `Run user task ${task.type}#${task.task_id}`;
+      if(task.scene_id) text += ` on scene ${task.scene_id}`;
+      if(task.user_id) text+= ` for user ${task.user_id}`;
+      debug(text);
+    }
+    return await this.run({task, handler: userHandlers[task.type] as any});
+  }
+
+  /**
    * Create a task with async-context awareness
+   * This is exposed in case it is ever needed but it's probably always better to call {@link TaskScheduler.run}
    * {@link TaskManager.create} for the base method
    */
   override async create<T extends TaskDataPayload = any>(params: CreateTaskParams<T>): Promise<TaskDefinition<T>> {
@@ -182,17 +224,26 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
   /**
    * Sometimes we want the concurrency settings to be ignored.
    * This creates an internal context with infinite concurrency that allows everything to run in parallel
+   * @TODO : allow generators here
    */
-  async group(work: ()=>Promise<unknown>){
-      const async_ctx = this.context();
-      if(async_ctx.parent?.logger){
-        async_ctx.parent.logger.debug(`Create tasks group`);
-      }
-      this.nest({
-        name: `${async_ctx.queue.name}[GROUP]`,
-        parent: async_ctx.parent,
-        concurrency: Infinity
-      }, work);
+  // Accept either a generator function or a factory that returns an iterable of promises.
+  group<T>(work: () => Generator<Promise<T>, any, any>): Promise<T[]>;
+  group<T>(work: () => Iterable<Promise<T>>): Promise<T[]>;
+  group<T>(work: () => Generator<Promise<T>, any, any>|Iterable<Promise<T>>): Promise<T[]> {
+    const async_ctx = this.context();
+    if (async_ctx.parent?.logger) {
+      async_ctx.parent.logger.debug(`Create tasks group`);
+    }
+
+    if (typeof work !== 'function') throw new TypeError('group expects a function (factory or generator function)');
+
+    // Run once inside nest so the iterable is created and consumed in the nested async context
+    return this.nest({ name: `${async_ctx.queue.name}[GROUP]`, parent: async_ctx.parent, concurrency: Infinity }, async () => {
+      const iterable = (work as () => Iterable<Promise<T>>)();
+      // materialize inside nested context so iterator.next() runs under nest
+      const arr = [...iterable];
+      return await Promise.all(arr);
+    }) as unknown as Promise<T[]>;
   }
 
 }

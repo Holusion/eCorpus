@@ -8,6 +8,7 @@ import { toAccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { TaskHandlerParams } from "../types.js";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
+import { extractScenesArchive, ImportSuccessResult } from "./extractZip.js";
 
 
 
@@ -18,7 +19,7 @@ export interface ImportSceneResult{
 }
 
 export interface UploadHandlerParams{
-  filepath: string;
+  filename: string;
   size: number;
 }
 
@@ -33,12 +34,12 @@ export interface UserUploadResult{
  * @param param0 
  * @returns 
  */
-export async function parseUserUpload({task:{task_id, user_id, data:{filepath, size}}, context: {vfs, userManager, logger}}:TaskHandlerParams<UploadHandlerParams>):Promise<UserUploadResult>{
+export async function parseUserUpload({task:{task_id, user_id, data:{filename, size}}, context: {vfs, userManager, logger}}:TaskHandlerParams<UploadHandlerParams>):Promise<UserUploadResult>{
 
   let files :string[] = [];
   logger.debug("Requester :", user_id);
   const requester = await userManager.getUserById(user_id);
-  const filename = path.basename(filepath);
+  const filepath = path.join(vfs.getTaskWorkspace(task_id), filename);
   logger.debug(`Checking size of uploaded file ${filepath}`);
   let diskSize: number;
   try{
@@ -104,11 +105,17 @@ export async function parseUserUpload({task:{task_id, user_id, data:{filepath, s
 
 
 
+export interface ProcessUploadedFilesParams{
+  files: UserUploadResult[];
+  name?: string;
+  lang?: string;
+}
+
 /**
  * Process file(s) that have been uploaded through `userUploads` task(s).
- * The file(s) are expected to come from previous tasks' outputs
+ * The file(s) are expected to come from previous tasks
  */
-export async function processUploadedFiles({context:{vfs, logger}, task: {data:{files}}}: TaskHandlerParams<{files:UserUploadResult[]}>):Promise<void>{
+export async function processUploadedFiles({context:{tasks, logger}, task: {data:{files, name, lang}}}: TaskHandlerParams<ProcessUploadedFilesParams>):Promise<ImportSuccessResult[]>{
 
   if(!files.length) throw new BadRequestError(`This task requires at least one source file`);
 
@@ -118,6 +125,9 @@ export async function processUploadedFiles({context:{vfs, logger}, task: {data:{
   // In reality we _could_ probably, though we'd have to think carefully about edge cases?
   if( upload_scenes && upload_files ){
     throw new BadRequestError(`Can't do mixed-content processing. Provide EITHER scene archive(s) OR source file(s)`);
+  }
+  if(upload_files && (!name || !lang)){
+    throw new BadRequestError(`scene name and default language are required when creating a scene from a set files`);
   }
 
   //Check that everything _should_ be error-free
@@ -132,14 +142,16 @@ export async function processUploadedFiles({context:{vfs, logger}, task: {data:{
     throw new UnauthorizedError(`Insufficient permissions on scene${1 < errors.length?"s":""} [${errors.slice(0, 3).map(({name})=>name)}${3 < errors.length?", ...":""}] for this user. Aborting.`);
   }
 
-  /**
-  return await tasks.group(async function* createChildren(context){
+  const results =  await tasks.group(function* createChildren(){
     for(let upload of files){
       if(upload_scenes){
         logger.debug("Extract uploaded scenes archive "+upload.filepath);
-        //yield context.create({type: "extractScenesArchive", data: {filepath: upload.filepath}});
+        yield tasks.run({
+          data: {filepath: upload.filepath},
+          handler: extractScenesArchive,
+        });
       }
     }
   });
-  //*/
+  return results.flat();
 }

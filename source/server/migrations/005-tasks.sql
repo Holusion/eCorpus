@@ -18,23 +18,6 @@ CREATE TABLE tasks (
   status task_status NOT NULL DEFAULT 'pending'
 );
 
-
--- create a trigger that will notify clients on every task update
-CREATE OR REPLACE FUNCTION tasks_status_notify()
-RETURNS trigger AS $$
-BEGIN
-	PERFORM pg_notify( 'tasks_' || NEW.status, NEW.task_id::text);
-	RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER tasks_status
-	AFTER INSERT OR UPDATE OF status
-	ON tasks
-	FOR EACH ROW
-EXECUTE PROCEDURE tasks_status_notify();
-
-
 CREATE TYPE log_severity AS ENUM('debug', 'log', 'warn', 'error');
 
 CREATE TABLE tasks_logs (

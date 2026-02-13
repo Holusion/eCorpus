@@ -1,4 +1,5 @@
 import EventEmitter from "node:events";
+import timers from "node:timers/promises";
 import { TaskDataPayload, TaskHandler, TaskPackage } from "./types.js";
 
 
@@ -14,6 +15,7 @@ export class Queue{
   #queue: WorkPackage[] = [];
   #active = 0;
   #c = new AbortController();
+  #settleResolve: (() => void) | null = null;
 
   constructor(public limit = Infinity, public name?:string) {
   }
@@ -38,6 +40,11 @@ export class Queue{
 
   #onSettled = ()=>{
     this.#active--;
+    // Notify waiters if all active tasks have completed
+    if(this.#active === 0 && this.#settleResolve){
+      this.#settleResolve();
+      this.#settleResolve = null;
+    }
     this.#processNext();
   }
 
@@ -58,23 +65,40 @@ export class Queue{
   }
 
   /**
-   * Close the queue
-   * @todo Add a more graceful close that waits for jobs to complete instead of cancelling
+   * Close the queue gracefully
+   * Waits for active tasks to complete before aborting pending ones
+   * @param timeoutMs Maximum time to wait for active tasks. Defaults to 30 seconds.
    */
-  async close(){
+  async close(timeoutMs: number = 1000){
     if(this.#c.signal.aborted){
       throw new Error(`Queue is already closed.`);
     }
+    // Now abort and reject pending tasks
     this.#c.abort();
+    //Empty the queue (work not yet started)
     for (let item of this.#queue){
-      item.reject(this.#c.signal.reason);
+      item.reject(this.#c.signal.reason ?? new Error("Queue closed"));
     }
     this.#queue = [];
-    //@FIXME We do not actually wait for jobs to be cancelled!
-    //Jobs that incompletely implement the cancellation interface could still complete after close().
+    //Return immediately if no jobs are currently processed
+    if(this.#active == 0) return;
+    //Otherwise wait for timeout to let jobs resolve properly
+    await new Promise<void>((resolve, reject)=>{
+      const _t = setTimeout(()=>{
+        this.#settleResolve = null;
+        reject(new Error(`Queue close timeout: active tasks did not complete within ${timeoutMs}ms`));
+      }, timeoutMs);
+      this.#settleResolve = ()=>{
+        clearTimeout(_t);
+        resolve();
+      };
+
+    });
+
   }
   
   // Optional getters for observability
   get pendingCount() { return this.#queue.length; }
   get activeCount() { return this.#active; }
+  get closed(){ return this.#c.signal.aborted; }
 }
