@@ -6,5 +6,5 @@ import "./styles/globals.scss";
 import "./screens/SceneHistory";
 
 import "./composants/SubmitFragment";
-import "./composants/UploadForm";
+import "./composants/UploadManager";
 import "./composants/SceneSelectionForm";
