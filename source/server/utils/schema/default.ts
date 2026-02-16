@@ -1,3 +1,6 @@
+import { IDocument, IScene } from "./document.js";
+import { ISetup } from "./setup.js";
+
 /**
  * Copied from DPO-Voyager
  * 
@@ -136,12 +139,11 @@ const default_doc = {
         "type": "environment"
     }]
 } as const;
-
 /**
  * This is a workaround for JSON imports syntax changing every other day and the fact we _might_ mutate the document in place one returned
  * @returns a pristine default document that we are free to mutate or otherwise modify
  */
-export default async function getDefaultDocument(){
+export default function getDefaultDocument(): IDocument&{nodes:number[], scene: 0,scenes:[IScene], setups:[ISetup]}{
 /** @fixme structuredClone is only available starting with node-17. Remove this check once node-16 support is dropped */
 //@ts-ignore 
 return (typeof structuredClone ==="function")?structuredClone(default_doc) : JSON.parse(JSON.stringify(default_doc));

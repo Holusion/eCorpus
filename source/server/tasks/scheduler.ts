@@ -7,8 +7,6 @@ import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
 import { BadRequestError, InternalError } from "../utils/errors.js";
 
-
-import * as userHandlers from "./handlers/index.js";
 // Note: previously used stream/once for generator bridge; no longer required for Promise.all-style group
 
 
@@ -33,15 +31,6 @@ type NestContextProps = {
    * Infinity can be provided if we don't care.
    */
   concurrency: number;
-}
-
-// Work must be a callable that, when invoked inside `nest`, returns
-// an iterable of promises. This ensures the promises are created
-// in the nested async context (covers both factory functions and
-// generator functions — calling them produces an iterator).
-type GroupWorkload<T> = () => Iterable<Promise<T>>;
-export function isUserHandlerType(t: string):t is keyof typeof userHandlers{
-  return t in userHandlers;
 }
 
 
@@ -214,22 +203,6 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
     return _p;
   }
 
-  /**
-   * Run a user-created task. Does not check for permissions.
-   */
-  async runUserTask(task: TaskDefinition, opts :RunOptions = {}){
-    // _run will check that status is in ('pending', 'initializing') again when it executes the callback
-    // Here we just check against usage errors
-    if(task.status !== "initializing") throw new InternalError(`Task #${task.task_id} has status: ${task.status}. It can't be started`);
-    if(!isUserHandlerType(task.type)) throw new BadRequestError(`Task type ${task.type} can not be user-created`);
-    if(debug.enabled){
-      let text = `Run user task ${task.type}#${task.task_id}`;
-      if(task.scene_id) text += ` on scene ${task.scene_id}`;
-      if(task.user_id) text+= ` for user ${task.user_id}`;
-      debug(text);
-    }
-    return await this.runTask({...opts, task, handler: userHandlers[task.type] as any});
-  }
 
   /**
    * Create a task with async-context awareness

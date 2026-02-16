@@ -52,6 +52,10 @@ export default abstract class BaseVfs extends DbController{
     return path.relative(this.baseDir,  path.resolve(this.baseDir, filepath));
   }
 
+  public absolute(filepath: string){
+    return path.isAbsolute(filepath)? filepath: path.resolve(this.baseDir, filepath);
+  }
+
 
 
   /**
