@@ -10,7 +10,7 @@ import uid, { Uid } from "../../utils/uid.js";
 
 import { pipeline } from "stream/promises";
 import { Dictionary } from "../../utils/schema/types.js";
-import { ImportSceneResult, parseUserUpload, UserUploadResult } from "../../tasks/handlers/uploads.js";
+import { ImportSceneResult, parseUserUpload, ParsedUserUpload } from "../../tasks/handlers/uploads.js";
 import { extractScenesArchive } from "../../tasks/handlers/extractZip.js";
 
 

@@ -1,13 +1,16 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
-import { BadRequestError } from "../../utils/errors.js";
+import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
+import { debuglog } from "util";
 
+
+const debug = debuglog("http:views");
 
 
 function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
@@ -67,11 +70,44 @@ routes.get("/", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/upload", (req, res)=>{
+
+
+
+
+routes.get("/upload", wrap(async (req, res)=>{
+  const requester = getUser(req);
+  const taskScheduler = getTaskScheduler(req);
+  const vfs = getVfs(req);
+  const {task} = req.query;
+  //Maybe we shouldn't fail on bad parameters and redirect to a blank page or just ignore them
+  const ids = [task].flat().filter<string>(t=>typeof t === "string").map(t=>parseInt(t));
+  if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
+    throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
+  }
+  debug("Render previous upload tasks : ", ids);
+  let tasks = await Promise.all(ids.map(id=> taskScheduler.getTask(id)));
+  let scenes = [];
+  for(let task of tasks){
+    if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
+      //This in particular might be problematic if someone ever links to a "used" upload page.
+      //Do we really want the user to get an error or (if admin) to land on those results?
+      throw new ForbiddenError(`Not allowed to see results of task #${task.task_id}`);
+    }
+    if(task.status === "error"){
+      console.warn("Unsupported task error reporting");
+    }else if(typeof task.output === "number"){
+      const scene = await vfs.getScene(task.output);
+      scenes.push({name: scene.name, id: scene.id, action: "create"});
+    }else{
+      console.warn("Unsupported output, not an upload task?", task);
+    }
+  }
+  
   res.render("upload", {
     title: "eCorpus: Create new scene",
+    scenes,
   });
-})
+}))
 
 routes.get("/tags", wrap(async (req, res)=>{
   const vfs = getVfs(req);

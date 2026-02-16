@@ -7,9 +7,9 @@ import { BadRequestError, LengthRequiredError, RangeNotSatisfiableError, Unautho
 import { TaskDefinition } from "../../../../tasks/types.js";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
-import { parseUserUpload, UploadHandlerParams, UserUploadResult } from "../../../../tasks/handlers/uploads.js";
+import { parseUserUpload, UploadHandlerParams, ParsedUserUpload } from "../../../../tasks/handlers/uploads.js";
 
-export function isUploadTask(t:TaskDefinition<any>) : t is TaskDefinition<UploadHandlerParams, UserUploadResult>{
+export function isUploadTask(t:TaskDefinition<any>) : t is TaskDefinition<UploadHandlerParams, ParsedUserUpload>{
   return t.type === parseUserUpload.name;
 }
 
@@ -49,7 +49,7 @@ export async function putTaskArtifact(req: Request, res: Response){
 
   //Call this once the upload has completed
   async function processUpload(){
-    await taskScheduler.runUserTask(task, {immediate: true});
+    await taskScheduler.runTask({ task, immediate: true, handler: parseUserUpload as any });
   }
 
   const filepath = path.join(vfs.getTaskWorkspace(task.task_id), filename);
