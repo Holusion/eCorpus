@@ -4,65 +4,35 @@ import { customElement, state } from "lit/decorators.js";
 import Notification from "./Notification";
 import { formatBytes, binaryUnit } from "./Size";
 import HttpError from "../state/HttpError";
+import { SceneUploadResult, Uploader, UploadOperation } from "../state/uploader";
 
-// @FIXME use more like 100MB in production
-const CHUNK_SIZE = 10000000;
 
-type SceneUploadResult = {name: string, action: "create"|"update"|"error"}
-
-interface UploadOperation{
-  //Unique ID of the upload. Might be different from "name" when we upload a scene zip
-  id: string;
-  filename: string;
-  /** The file to upload. Should be required? */
-  file?: File;
-  /** When the file is an archive we will store the list of files it contains here */
-  files?:string[];
-  scenes?: SceneUploadResult[];
-  //An array to be able to show a list of imported scenes in case of zip uploads
-  error ?:{code?:number, name?: string, message:string};
-  done :boolean;
-  active ?:boolean;
-  task_id?:number;
-  total ?:number;
-  progress :number;
-  signal: AbortSignal;
-  abort: ()=>void;
-}
-
-interface ParsedUploadTaskOutput{
-  scenes: SceneUploadResult[],
-  files: string[],
-}
 
 
 @customElement("upload-manager")
 export default class UploadManager extends LitElement{
   //static shadowRootOptions = {...LitElement.shadowRootOptions, delegatesFocus: true};
-
-  /**
-   * List of upload operations
-   * We use an array instead of a Map or Set because we expect this list to stay stable through updates
-   */
-  @state()
-  uploads :readonly UploadOperation[] = [];
-
+  private uploader = new Uploader(this);
   @state()
   busy: boolean = false;
+
+  @state()
+  error:string|null = null;
+
+  @state()
+  scenes
 
   connectedCallback(): void {
     super.connectedCallback();
     // We register a number of global events that might influence app behaviour
     window.addEventListener("drop", this.handleGlobalDrop);
     window.addEventListener("dragover", this.handleGlobalDragover);
-    window.addEventListener("online", this.handleGlobalOnline);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener("drop", this.handleGlobalDrop);
     window.removeEventListener("dragover", this.handleGlobalDragover);
-    window.removeEventListener("online", this.handleGlobalOnline);
   }
 
   /**
@@ -85,155 +55,8 @@ export default class UploadManager extends LitElement{
       e.dataTransfer.dropEffect = "none";
     }
   }
-  /**
-   * Listen for the global "online" event to resume downloads that had a NETWORK_ERR
-   */
-  private handleGlobalOnline = ()=>{
-    this.uploads = this.uploads.map(u=>{
-      if(u.error && u.error.code == DOMException.NETWORK_ERR) return {...u, error: undefined};
-      else return u;
-    });
-    this.processUploads();
-  }
-
-  /**
-   * Remove a download operation
-   * @param name scene name that uniquely identifies the operation
-   */
-  splice(id: string):void;
-  /**
-   * Amend a running download operation
-   * @param name scene name that uniquely identifies the operation
-   * @param changes partial object to merge into operation
-   */
-  splice(id: string, obj :Partial<UploadOperation>):void
-  splice(id: string, changes?: Partial<UploadOperation>) {
-    this.uploads = this.uploads.map(current => {
-      if (current.id !== id) return current;
-      else if (changes && current) return { ...current, ...changes };
-      else return undefined;
-    }).filter(u=>!!u);
-  }
-
-  async initUpload(task: UploadOperation) :Promise<number>{
-    console.debug("Initializing upload task for %s", task.filename);
-
-    const res = await fetch(`/tasks`, {
-      method: "POST",
-      signal: task.signal,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "parseUserUpload",
-        status: "initializing",
-        data:{
-          filename: task.filename,
-          size: task.total,
-        }
-      }),
-    });
-    await HttpError.okOrThrow(res);
-    const body = await res.json()
-    if(typeof body.task_id !== "number"){
-      console.warn("Can't use body:", body);
-      throw new HttpError(500,  "Server answered with an unreadable task identifier");
-    }
-    return body.task_id;
-  }
 
 
-  async finalizeUpload(task: UploadOperation) :Promise<ParsedUploadTaskOutput>{
-    const res = await fetch(`/tasks/${task.task_id}`, {
-      method: "GET",
-      headers:{"Content-Type": "application/json"},
-    });
-    await HttpError.okOrThrow(res);
-    const body = await res.json();
-    if(!body.output || typeof body.output !== "object" || !Array.isArray(body.output.scenes) || !Array.isArray(body.output.files)){
-      console.warn("Unexpected format for scene output:", body);
-      throw new Error("Invalid response body");
-    }
-
-    return body.output;
-  }
-
-  /**
-   * Process queued uploads up to a max of 5 concurrent requests
-   */
-  private processUploads(){
-    const inFlight = this.uploads.filter(u=>u.active && (!u.done && !u.error)).length;
-    if(2 <= inFlight) return;
-    const task = this.uploads.find(u=>!u.active && !u.done && !u.error);
-    if(!task) return;
-
-    if(!task.file){
-      Notification.show(`Can't upload : No file provided`, "error", 4000);
-      return;
-    }
-
-    const starting_offset = task.progress;
-    const end_offset = Math.min(task.progress+CHUNK_SIZE, task.total)
-    const chunk = task.file.slice(task.progress, end_offset);
-
-    const update :((changes :Partial<UploadOperation>)=>void) = this.splice.bind(this, task.id);
-    const setError = (err: Error|{code: number, message: string})=>{
-      console.error("Upload request failed :", err);
-      update({active: false, progress: starting_offset, error: err});
-    }
-    update({active: true});
-    //Initialize upload
-    if(typeof task.task_id === "undefined"){
-      this.initUpload(task).then(
-        (id)=> update({active: false, task_id: id}), 
-        setError,
-      );
-      return;
-    }
-
-    let xhr = new XMLHttpRequest();
-    task.signal.addEventListener("abort", xhr.abort)
-    xhr.onload = ()=>{
-      if (299 < xhr.status) {
-        const fail_response = JSON.parse(xhr.responseText) as { message?: string };
-        console.error("Upload Request failed :", fail_response.message ? fail_response.message : xhr.statusText)
-        setError({code: xhr.status, message: fail_response.message ? fail_response.message : xhr.statusText});
-      }else if(xhr.status === 201){
-        this.finalizeUpload(task).then((output)=>{
-          console.debug("Finalized upload task. Parsed content :", output);
-          update({active: false, progress: task.total, done: true, ...output});
-        }, setError);
-      }else{
-        console.debug("Chunk uploaded. Set progress to :", end_offset);
-        update({active: false, progress: end_offset});
-      }
-    }
-
-    xhr.upload.onprogress = (evt)=>{
-        if(evt.lengthComputable){
-          console.debug("Progress event : %d (%d)", starting_offset + evt.loaded, evt.loaded);
-          update({progress: starting_offset + evt.loaded});
-        }
-    }
-    xhr.ontimeout = function(ev){
-      console.log("XHR Timeout", ev);
-    }
-    xhr.onerror = function onUploadError(ev){
-      console.log("XHR Error", ev);
-      setError({ code: xhr.status ||DOMException.NETWORK_ERR, message: xhr.response.message || xhr.statusText || navigator.onLine? "Server is unreachable": "Disconnected" });
-    }
-
-    xhr.onabort = function onUploadAbort(){
-      setError({ code: 20, name: "AbortError", message: "Upload was aborted"});
-    }
-
-    let url = new URL(`/tasks/${task.task_id}/artifact`, window.location.href);
-
-
-    xhr.open('PUT', url);
-    xhr.setRequestHeader("Content-Range", `bytes ${starting_offset}-${end_offset-1}/${task.total}`);
-    xhr.send(chunk);
-  }
 
   handleSubmit = (ev:MouseEvent)=>{
     ev.preventDefault();
@@ -244,72 +67,45 @@ export default class UploadManager extends LitElement{
       Notification.show("Upload form is invalid", "warning", 1500);
       return;
     }
-    console.log("Submit, form :", data, this.uploads);
+    const tasks = this.uploader.uploads.map(u=>u.task_id)
+    console.log("Submit, form :", data, tasks);
     this.busy = true;
+    this.error = null;
     fetch("/tasks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json; charset=utf-8"
       },
       body: JSON.stringify({
-        type: "processUploadedFiles",
-        status: "pending", //Execute immediately
+        type: "createSceneFromFiles",
         data: {
-          files: this.uploads.map(u=>u.task_id),
-          scene: data.get("name"),
-          lang: data.get("lang"),
+          tasks,
+          name: data.get("name"),
+          language: data.get("language")?.toString().toUpperCase(),
+          options: {
+            optimize: data.get("optimize") ?? false
+          }
         }
       })
     }).then(async (res)=>{
       await HttpError.okOrThrow(res);
+      let task = await res.json();
+      console.log("Body : ", task);
+      if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
+      const u = new URL(window.location.href);
+      u.searchParams.append("task", task.task_id);
+      window.location.href = u.toString();
     }).catch((e)=>{
       console.error(e);
-      Notification.show(e.message, "error", 10000);
+      this.error = e.message;
     }).finally(()=> this.busy = false);
     //Reset everything
-    form.reset();
     return false;
   }
 
 
-  protected uploadFile(file: File) :UploadOperation{
-    const c = new AbortController();
-    const task :UploadOperation = {
-      id: file.name,
-      filename: file.name,
-      file,
-      done: false,
-      active: false,
-      progress: 0,
-      total: file.size,
-      signal: c.signal,
-      abort: ()=> {
-        c.abort();
-        this.splice(file.name, {error: {message: "Upload was aborted"}});
-      }
-    };
-    return task;
-  }
 
-  /**
-   * Handles a list of files that was submitted through dragdrop or the file input
-   * @param files 
-   */
-  protected handleFiles(files: Iterable<File>): void{
-    const uploads = new Map<string, UploadOperation>(this.uploads.map(u=>([u.id, u])));
-    for(let file of files){
-      console.log("Handle file : ", file);
-      const prev = uploads.get(file.name);
-      if(prev){
-        if(!prev.done && ! prev.error) prev.abort();
-        // @fixme remove from server?
-        uploads.delete(file.name);
-      }
 
-      uploads.set(file.name, this.uploadFile(file));
-    }
-    this.uploads = Array.from(uploads.values());
-  }
 
   /**
    * Handles files being dropped onto the upload zone
@@ -320,7 +116,7 @@ export default class UploadManager extends LitElement{
     this.classList.remove("drag-active");
     console.log("Drop :", ev.dataTransfer.files);
     // @todo add the files
-    this.handleFiles(ev.dataTransfer.files);
+    this.uploader.handleFiles(ev.dataTransfer.files);
   }
 
   public ondragover = (ev: DragEvent)=>{
@@ -339,7 +135,7 @@ export default class UploadManager extends LitElement{
    */
   protected handleChange = (ev: Event)=>{
     ev.preventDefault();
-    this.handleFiles((ev.target as HTMLInputElement).files);
+    this.uploader.handleFiles((ev.target as HTMLInputElement).files);
   }
 
   /**
@@ -361,14 +157,14 @@ export default class UploadManager extends LitElement{
 
 
   protected update(changedProperties: PropertyValues): void {
-    if(changedProperties.has("uploads")){
-      this.processUploads();
-      if(this._defaultTitle == ""){
-        const models = this.uploads.filter(u=>/\.(glb|gltf|blend|obj|stl|ply)$/i.test(u.filename));
-        if(models.length  && !!this.nameInput){
-          this._defaultTitle  = models[0].filename.split(".").slice(0, -1).join(".");
-          if(this.nameInput?.value == "") this.nameInput.value = this._defaultTitle;
-        }
+    const models = this.uploader.uploads.filter(u=>u.filetype === "model" || u.filetype === "source");
+    const defaultTitle = models[0]?.filename.split(".").slice(0, -1).join(".") ?? "";
+
+    if(this._defaultTitle != defaultTitle && !this.uploader.has_pending_uploads){
+      console.log("Assign default title %s to ", defaultTitle, ["", defaultTitle].indexOf(this.nameInput.value) != -1, this.nameInput)
+      if(this.nameInput){
+        if(["", this._defaultTitle].indexOf(this.nameInput.value) != -1) this.nameInput.value = defaultTitle;
+        this._defaultTitle  = defaultTitle
       }
     }
     super.update(changedProperties);
@@ -388,7 +184,7 @@ export default class UploadManager extends LitElement{
             Notification.show(`Failed to delete upload task for ${u.filename}. Data may remain on the server`, "warning", 10000);
             console.warn(err)
           });
-        this.splice(u.id);
+        this.uploader.remove(u.id);
       }else{
         console.log("Abort upload: ", u.id);
         u.abort();
@@ -411,7 +207,10 @@ export default class UploadManager extends LitElement{
     return html`
     <li class="upload-line upload-${state}">
       <span class="upload-state">${stateText}</span>
-      <span class="upload-filename">${u.filename}</span>
+      <span class="upload-filetype filetype-${u.filetype?.[0]}">${u.filetype?.[0].toUpperCase() ?? ""}</span>
+      <span class="upload-filename">
+        ${u.filename}
+      </span>
       <span class="upload-progress">${progress}</span>
       <span class="upload-action action-cancel" title="${u.done?"remove":"abort"} upload" @click=${onActionClick}>🗙</span>
     </li>
@@ -423,17 +222,17 @@ export default class UploadManager extends LitElement{
    * The submit button is shown only when all uploads have settled.
    */
   private renderSceneCreationForm(){
-    const has_pending_uploads = this.uploads.some(u=>!u.done && !u.error );
-    const has_errors = this.uploads.some(u=>!!u.error && u.error.name !== "AbortError" );
-    return html`<slot name="upload-form" ?disabled=${has_pending_uploads|| this.busy}></slot>
-      <div class="submit-container" style="display:flex; justify-content: end; gap: .5rem;">
+    const has_model = this.uploader.uploads.findIndex(u=>u.filetype === "model" || u.filetype === "source") !== -1
+    return html`<slot name="upload-form" ?disabled=${this.uploader.has_pending_uploads|| this.busy}></slot>
+      <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">
+        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
-          if(has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
-          else if(has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
-          else if(this.uploads.length) return html`<slot name="submit" @click=${this.handleSubmit} ?disabled=${has_pending_uploads}><button>Submit</button></slot>`
+          if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
+          else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
+          else if(this.uploader.size && has_model) return html`<slot name="submit" @click=${this.handleSubmit} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
+          else if(this.uploader.size) return html`<slot name="no-model">Provide at least one model</slot>`
           else return null;
         })()}
-        
       </div>
     `;
   }
@@ -445,7 +244,7 @@ export default class UploadManager extends LitElement{
     return html`
       <slot name="scenes-list-title">Scenes:</slot>
       <ul class="scenes-list-actions">
-        ${this.uploads.map(u=>(u.scenes?.map(s=>html`<li><span class="scene-action scene-action-${s.action}">[${s.action.toUpperCase()}]</span> ${s.name}</li>`)) ?? [])}
+        ${this.uploader.uploads.map(u=>(u.scenes?.map(s=>html`<li><span class="scene-action scene-action-${s.action}">[${s.action.toUpperCase()}]</span> ${s.name}</li>`)) ?? [])}
       </ul>
       <button>MAKE ME!</button>
     `;
@@ -459,23 +258,24 @@ export default class UploadManager extends LitElement{
   }
 
   protected render(): unknown {
-    const is_active = this.uploads.some(u=>!u.done && !u.error );
-    const scene_archives = this.uploads.filter(u=>u.scenes?.length);
+    const uploads = this.uploader.uploads;
+    const is_active = uploads.some(u=>!u.done && !u.error );
+    const scene_archives = uploads.filter(u=>u.filetype === "archive");
     let form_content :TemplateResult|null = null;
-    if(scene_archives.length && scene_archives.length == this.uploads.length){
+    if(scene_archives.length && scene_archives.length == uploads.length){
       form_content = this.renderScenesContentSummary();
     }else if(scene_archives.length){
       form_content = this.renderMixedContentWarning();
-    }else if(this.uploads.length){
+    }else if(uploads.length){
       form_content = this.renderSceneCreationForm();
     }else{
       form_content = html`<slot name="upload-lead">Start uploading files in the box above.</slot>`
     }
     return html`
       <slot name="title"  id="upload-form-title">Create or Update a scene</slot>
-      <div id="drop-zone" class="dropzone  ${is_active?" active":""}${this.uploads.length?"":" empty"}">
+      <div id="drop-zone" class="dropzone  ${is_active?" active":""}${uploads.length?"":" empty"}">
         <ul class="upload-list">
-          ${this.uploads.map(this.renderUploadItem)}
+          ${uploads.map(this.renderUploadItem)}
         </ul>
         <label>
           <slot class="drop-label" name="drop-label">Drop files here</slot>
@@ -558,6 +358,27 @@ export default class UploadManager extends LitElement{
 
         &:not(:last-child){
           border-bottom: 2px solid #00000010;
+        }
+
+        .upload-filetype{
+          font-family: monospace;
+          font-weight: bold;
+          align-self: center;
+          &:not(:empty)::before{
+            content: "[";
+          }
+          &:not(:empty)::after{
+            content: "]";
+          }
+          &.filetype-u{
+            color: var(--color-info);
+          }
+          &.filetype-s{
+            color: var(--color-warning);
+          }
+          &.filetype-m{
+            color: var(--color-success);
+          }
         }
 
         .upload-filename{
