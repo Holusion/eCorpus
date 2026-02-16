@@ -2,7 +2,7 @@
 
 import { Request, RequestHandler, Response, NextFunction } from "express";
 
-interface AsyncRequestHandler{
+export interface AsyncRequestHandler{
   (
     req: Request,
     res:  Response,

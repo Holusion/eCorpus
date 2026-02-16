@@ -3,13 +3,72 @@
   
   <h2>{{i18n "titles.upload"}}</h2>
   <div class="grid-content">
+    {{#if scenes.length }}
     <section class="container">
-      
+      <h3>{{i18n "titles.createdScenes" }}</h3>
+      <a href="." class="text-error" style="position: absolute; top:.5rem; right:.5rem; text-decoration: none;">🗙</a>
+
+      <style>
+        .scenes-container {
+          > .scene-line{
+            grid-column: 1 / span 3;
+            display: grid;
+            grid-template-rows: auto;
+            grid-template-columns: subgrid;
+            padding: .5rem 0;
+            &:hover{
+              background-color: var(--color-highlight);
+
+            }
+            > a{
+              align-content: flex-start;
+              display: flex;
+              font-weight: bolder;
+              text-decoration: none;
+              &:hover{
+                color: var(--color-secondary-light);
+              }
+            }
+          }
+          
+        }
+      </style>
+      <div class="scenes-container" style="display: grid;grid-template-columns: 1fr max-content max-content;gap: 0.5em;">
+        {{#each scenes}}
+          {{#if error }}
+            <span class="text-error" style="grid-column: 1 / span 3;">{{ error }}</span>
+          {{else}}
+            <div class="scene-line">
+              <a href="/ui/scenes/{{ encodeURIComponent name }}" class="card-header">
+                <ui-icon name="list"></ui-icon><span>&nbsp;{{name}}</span>
+              </a>
+              <a class="tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/view" >
+                <ui-icon name="eye"></ui-icon>
+                <span class="tool-text">{{i18n "labels.view"}}</span>
+              </a>
+              <a class="tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
+                <ui-icon name="edit"></ui-icon>
+                <span class="tool-text">{{i18n "labels.edit"}}</span>
+              </a>
+            </div>
+            
+          {{/if}}
+        {{/each}}
+      </div>
+    </section>
+
+    {{/if}}
+    <section class="container">
       <upload-manager class="form-control">
+
         <h3 slot="title" id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
+
         <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
+
         <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
+
         <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
+
         <form slot="upload-form" class="form-control form-grid" aria-labelledby="upload-form-title">
           <div class="form-row">
 
@@ -19,7 +78,7 @@
                   {{i18n "labels.sceneName"}}
                   {{#> popover id="sceneName"}}{{i18n "leads.uploadName" }}{{/popover}}
                 </label>
-                <input id="sceneName" required minlength="3" type="text" name="name">
+                <input id="sceneName" autocomplete="off" minlength="3" type="text" name="name">
               </div>
             </div>
 
@@ -54,7 +113,8 @@
 
         </form>
 
-        <button slot="submit" role="submit" class="btn btn-main">{{i18n "buttons.upload"}}</button>
+        <button slot="submit-scenes" role="submit" class="btn btn-main">{{i18n "buttons.uploadScene"}}</button>
+        <button slot="submit-archives" role="submit" class="btn btn-main">{{i18n "buttons.uploadArchive"}}</button>
         <span slot="upload-errors">{{i18n "leads.uploadErrors"}}</span>
       </upload-manager>
 

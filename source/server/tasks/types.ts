@@ -1,6 +1,7 @@
 import type UserManager from "../auth/UserManager.js";
 import { Config } from "../utils/config.js";
 import { TDerivativeQuality } from "../utils/schema/model.js";
+import { RootRelativePath } from "../vfs/Base.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import type Vfs from "../vfs/index.js";
 import { TaskScheduler } from "./scheduler.js";
@@ -18,6 +19,7 @@ export enum ETaskStatus{
   'pending',
   'success',
 }
+
 
 
 /** 
@@ -82,6 +84,12 @@ type TaskCreateCommonParameters = {
   parent?: number|null;
 }
 
+export interface RunOptions{
+  signal?:AbortSignal;
+  immediate?:boolean;
+}
+
+
 /**
  * Parameters to create a task
  */
@@ -97,6 +105,7 @@ export type CreateRunTaskParams<TData extends TaskDataPayload, TReturn=any, TCon
   handler: TaskHandler<TData, TReturn, TContext>;
   type?: string;
   status?:"pending";
+  immediate?: boolean;
   signal?: AbortSignal;
   /** Can't create an immediately-running task with a status other than pending */
 };
@@ -107,6 +116,7 @@ export type CreateRunTaskParams<TData extends TaskDataPayload, TReturn=any, TCon
 export interface RunTaskParams<TData extends TaskDataPayload, TReturn=any, TContext = TaskSchedulerContext>{
   task: TaskDefinition<TData>;
   handler: TaskHandler<TData, TReturn, TContext>;
+  immediate?: boolean;
   signal?: AbortSignal;
 }
 
@@ -130,8 +140,17 @@ export interface TaskHandlerDefinition<T extends TaskDataPayload = TaskDataPaylo
 };
 
 
-export interface ProcessFileParams{
-  file?:string;
-  preset: TDerivativeQuality;
+// Common task data types
+export interface FileArtifact extends TaskData{
+  fileLocation: RootRelativePath
 }
 
+export function isArtifactTask(output:TaskData):output is FileArtifact{
+  return typeof output?.fileLocation == "string";
+}
+
+
+
+export interface ProcessFileParams extends FileArtifact{
+  preset: TDerivativeQuality;
+}

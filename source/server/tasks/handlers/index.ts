@@ -1,5 +1,4 @@
-/**
- * Gather all handlers that can be called from user-created tasks
- */
 
-export {processUploadedFiles, parseUserUpload} from "./uploads.js";
+export {createSceneFromFiles, parseUserUpload} from "./uploads.js";
+
+export {extractScenesArchives} from "./extractZip.js";

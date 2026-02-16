@@ -2,13 +2,11 @@ import {debuglog} from "node:util";
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { Queue } from "./queue.js";
-import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
+import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunOptions, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
 import { BadRequestError, InternalError } from "../utils/errors.js";
 
-
-import * as userHandlers from "./handlers/index.js";
 // Note: previously used stream/once for generator bridge; no longer required for Promise.all-style group
 
 
@@ -35,19 +33,12 @@ type NestContextProps = {
   concurrency: number;
 }
 
-// Work must be a callable that, when invoked inside `nest`, returns
-// an iterable of promises. This ensures the promises are created
-// in the nested async context (covers both factory functions and
-// generator functions — calling them produces an iterator).
-type GroupWorkload<T> = () => Iterable<Promise<T>>;
-export function isUserHandlerType(t: string):t is keyof typeof userHandlers{
-  return t in userHandlers;
-}
-
 
 export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerContext> extends TaskManager{
   //Do not use "real" private members here because they would be missed by Object.create
-  /** Work queue. One should never use this directly */
+  /** 
+   * Work queue. used internally by {@link TaskScheduler.run} to run jobs
+   * */
   private readonly rootQueue = new Queue(4, "root");
 
 
@@ -69,7 +60,8 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
   constructor(protected _context :TContext){
     super(_context.db);
 
-    //AsyncLocalStorage is here instead of as a class member because we want to only use it through the interfaces provided below
+    //AsyncLocalStorage is here instead of as a class member
+    // because we want to only use it through the interfaces provided below
     const asyncStore = new AsyncLocalStorage();
     this.context = () =>{
       return (asyncStore.getStore() as any ?? {queue: this.rootQueue, parent: null}) satisfies AsyncContext;
@@ -101,11 +93,30 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
   public readonly context: () => AsyncContext;
   /**
    * Run `work` inside a new async context with the given name and concurrency settings
+   * Calls to {@link TaskScheduler._run} within this async context will resolve to the nested Queue
    */
   public readonly nest: <T extends any[]= any[], U=any>(props:NestContextProps, work:(...args: T)=>U, ...args: T)=>Promise<U>;
 
 
-  private async _run<T extends TaskDataPayload, U=any>(handler:TaskHandler<T, U, TContext>,task: TaskDefinition<T>, {signal:taskSignal}:{signal?:AbortSignal}= {}){
+  /**
+   * Internal task running handler.
+   * 
+   * Builds a context and actually schedule the task, handling the status change from `"pending"` to `"running"` and to `"complete"|"error"`
+   * 
+   * Unless there is a problem with the database connection, the task is guaranteed to end up with `status = "complete"|"error"`
+   * @param handler Handler functionthat will perform the job
+   * @param task Task definition
+   * @param param2 Additional options for the task runner
+   * @param param2.immediate jumps the queue and run the task immediately regardless of concurrency settings
+   * @returns 
+   */
+  private async _run<T extends TaskDataPayload, U=any>(
+    handler:TaskHandler<T, U, TContext>, 
+    task: TaskDefinition<T>,
+    {signal:taskSignal, immediate }: RunOptions= {}
+  ){
+    // Create a wrapper function around the handler to provide the task's execution context
+    // and set its status
     const work :TaskPackage = async ({signal: queueSignal})=>{
       await using logger = createLogger(this.db, task.task_id);
       const context: TaskHandlerContext<TContext> = {
@@ -123,57 +134,52 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
       };
 
       await this.takeTask(task.task_id);
-      return await this.nest({concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext}, handler.bind(context),  {context, task})
-    }
-    
-    try{
-      const async_ctx = this.context();
-      //Custom name for work to be shown in stack traces
-      Object.defineProperty(work, 'name', { value: `TaskScheduler.payload<${task.type}>(${task.task_id})@${async_ctx.queue.name}` });
-      if(async_ctx.parent?.logger){
-        async_ctx.parent.logger.debug(`Schedule child task ${task.type}#${task.task_id}`);
+      try{
+        const output = await this.nest({concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext}, handler.bind(context),  {context, task})
+        await this.releaseTask(task.task_id, output);
+        return output;
+      }catch(e:any){
+        //Here we might make an exception if e.name === "AbortError" and the database is closed
+        await this.errorTask(task.task_id, e).catch(e=> console.error("Failed to set task error : ", e));
+        throw e;
       }
-      debug("Schedule work for task #%d on Queue(%s)", task.task_id, async_ctx.queue.name);
-      const output = await async_ctx.queue.add(work);
-      await this.releaseTask(task.task_id, output);
-      return output;
-    }catch(e: any){
-      //Here we might make an exception if e.name === "AbortError" and the database is closed
-      await this.errorTask(task.task_id, e).catch(e=> console.error("Failed to set task error : ", e));
-      throw e;
     }
+
+    const async_ctx = this.context();
+    //Custom name for work to be shown in stack traces
+    Object.defineProperty(work, 'name', { value: `TaskScheduler.payload<${task.type}>(${task.task_id})@${async_ctx.queue.name}` });
+    if(async_ctx.parent?.logger){
+      async_ctx.parent.logger.debug(`Schedule child task ${task.type}#${task.task_id}`);
+    }
+    debug("Schedule work for task #%d on Queue(%s)", task.task_id, async_ctx.queue.name);
+    return await (immediate? async_ctx.queue.unshift(work) : async_ctx.queue.add(work));
   }
 
   /**
-   * Registers a task to run as soon as possible and wait for its completion
+   * Registers a task to run as soon as possible and wait for its completion.
+   * 
    * It's OK to ignore the returned promise if a callback is provided to at least properly log the error
    * 
    * `TaskScheduler.run()` uses async context tracking to inherit **scene_id**, **user_id** and **parent** from it's context
    * However those can still be forced to another value if deemed necessary.
    * Whether or not this override is desirable is yet unclear.
    */
-  async run<T extends TaskDataPayload, U=any>({task, handler}: RunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U> ): Promise<U>;
-  async run<T extends TaskDataPayload, U=any>({scene_id, user_id, type, data, handler, signal}: CreateRunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U>): Promise<U>;
-  async run<T extends TaskDataPayload, U=any>(params: CreateRunTaskParams<T, U, TContext>|RunTaskParams<T,U, TContext>, callback?:TaskSettledCallback<U>): Promise<U>{
-    let task: TaskDefinition<T>;
-    if("task" in params){
-      //We allow externally-created tasks here. But we want to limit error sources so we re-fetch the task anyway
-      //If this ends up being used in practice, we may need perform validation that the given task actually matches the stored one.
-      task = await this.getTask(params.task.task_id);
-    }else{
-      //We use context to inherit parent, user_id and scene_id
-      //But if different values are explicitly specified it's possible to "break out"
-      //Whether or not this is 
-      const {parent} = this.context();
-      task = await this.create<T>({
-        ...params,
-        data: params.data as any,
-        type: (params.type ?? params.handler.name) as string,
-        status: "pending" as TaskStatus,
-        parent: parent?.task_id ?? null,
-      });
-    }
-    const _p = this._run( params.handler, task);
+  async run<T extends TaskDataPayload, U=any>(
+    params: CreateRunTaskParams<T, U, TContext>,
+    callback?:TaskSettledCallback<U>
+  ): Promise<U>{
+    //We use context to inherit parent, user_id and scene_id
+    //But if different values are explicitly specified it's possible to "break out"
+    //Whether or not this is 
+    const {parent} = this.context();
+    const task : TaskDefinition<T>= await this.create<T>({
+      ...params,
+      data: params.data as any,
+      type: (params.type ?? params.handler.name) as string,
+      status: "pending" as TaskStatus,
+      parent: parent?.task_id ?? null,
+    });
+    const _p = this._run( params.handler, task, {signal: params.signal, immediate: params.immediate});
 
     if(typeof callback=== "function"){
       _p.then((value)=>callback(null, value), (err)=>callback(err));
@@ -181,23 +187,22 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
     return _p;
   }
 
+
   /**
-   * Run a user-created task. Does not check for permissions
-   * @param task_id 
+   * Run a handler on an externally-created task definition
+   * 
+   * This is less safe than {@link TaskScheduler.run} because we _trust_ the task definition to be up to date. It's an error to call it with a stale task definition. 
+   * @param param0 
+   * @param callback 
    */
-  async runUserTask(task:TaskDefinition){
-    // _run will check that status is in ('pending', 'initializing') again when it executes the callback
-    // Here we just check against usage errors
-    if(task.status !== "initializing") throw new InternalError(`Task #${task.task_id} has status: ${task.status}. It can't be started`);
-    if(!isUserHandlerType(task.type)) throw new BadRequestError(`Task type ${task.type} can not be user-created`);
-    if(debug.enabled){
-      let text = `Run user task ${task.type}#${task.task_id}`;
-      if(task.scene_id) text += ` on scene ${task.scene_id}`;
-      if(task.user_id) text+= ` for user ${task.user_id}`;
-      debug(text);
+  async runTask<T extends TaskDataPayload, U=any>({task, signal, handler}: RunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U> ): Promise<U>{
+    const _p = this._run( handler, task, {signal: signal, immediate: false});
+    if(typeof callback=== "function"){
+      _p.then((value)=>callback(null, value), (err)=>callback(err));
     }
-    return await this.run({task, handler: userHandlers[task.type] as any});
+    return _p;
   }
+
 
   /**
    * Create a task with async-context awareness

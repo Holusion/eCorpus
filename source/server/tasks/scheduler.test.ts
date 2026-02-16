@@ -12,6 +12,7 @@ import { TaskScheduler } from "./scheduler.js";
 import { CreateRunTaskParams, TaskDefinition } from "./types.js";
 import Vfs from "../vfs/index.js";
 import UserManager from "../auth/UserManager.js";
+import EventEmitter, { once } from "node:events";
 
 
 const makeTask = (props:Partial<CreateRunTaskParams<any,unknown,{}>> = {})=>({
@@ -77,7 +78,8 @@ describe("TaskScheduler", function(){
       type: "testTask",
       data: {},
     });
-    const output = await scheduler.run({task, handler: async ({task})=> task.task_id});
+    
+    const output = await scheduler.runTask({task, handler: async ({task})=> task.task_id});
     expect(output).to.equal(task.task_id);
 
     task = await scheduler.getTask(output);
@@ -148,6 +150,25 @@ describe("TaskScheduler", function(){
       ok = true;
     }}));
     expect(ok, `Task seems to not have been run`).to.be.true;
+  });
+
+  it("propagates abort signals", async function(){
+    let progress = new EventEmitter();
+    let c = new AbortController();
+    const runningTask = scheduler.run({
+      scene_id: null,
+      user_id: null,
+      data: {},
+      signal: c.signal,
+      handler: async ({context:{signal}})=>{
+        progress.emit("start");
+        await timers.setTimeout(1000, null, {signal}); // Slow task, with abort
+        return "task1";
+      }
+    });
+    await once(progress, "start");
+    c.abort();
+    await expect(runningTask).to.be.rejected;
   });
 
   it("won't deadlock itself", async function(){
@@ -409,7 +430,7 @@ describe("TaskScheduler", function(){
     
     scheduler.concurrency = 1;
     
-    let task1Executed = false;
+    let task1Executed = new EventEmitter();
     let task2Executed = false;
     
     // Task 1: Will be running when we close
@@ -418,8 +439,8 @@ describe("TaskScheduler", function(){
       user_id: null,
       data: {},
       handler: async ({context:{signal}})=>{
-        task1Executed = true;
-        await timers.setTimeout(100, {signal}); // Slow task, with abort
+        task1Executed.emit("start");
+        await timers.setTimeout(1000, null, {signal}); // Slow task, with abort
         return "task1";
       }
     });
@@ -436,15 +457,14 @@ describe("TaskScheduler", function(){
     });
     
     // Give task1 time to start executing
-    await timers.setTimeout(10);
+    await once(task1Executed, "start");
+    expect(task2Executed).to.be.false;
     
-    // Close scheduler - task1 should be allowed to complete, task2 should be rejected
-    await scheduler.close(1000);
+    // Close scheduler
+    await scheduler.close(100);
     
-    // The running task should have completed successfully
-    const result1 = await runningTask;
-    expect(result1).to.equal("task1");
-    expect(task1Executed).to.be.true;
+    // The running task should abort
+    await expect(runningTask).to.be.rejectedWith("aborted");
     
     // The pending task should be rejected
     await expect(pendingTask).to.be.rejected;

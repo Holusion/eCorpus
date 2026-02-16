@@ -85,3 +85,7 @@ export function parseMagicBytes(src: Buffer|Uint8Array) :string{
 
   return "application/octet-stream";
 }
+
+export function isModelType(filename: string):boolean{
+  return /\.(?:obj|stl|ply|gltf|blend)$/i.test(filename);
+}

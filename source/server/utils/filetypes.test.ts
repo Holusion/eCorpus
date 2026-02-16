@@ -18,12 +18,30 @@ describe("getMimeType",function(){
     expect(getMimeType("foo.glb")).to.equal("model/gltf-binary");
   });
 
+  it("model/obj", function(){
+    // Not widely used, but recognized 
+    // by IANA See: https://www.iana.org/assignments/media-types/media-types.xhtml#model
+    expect(getMimeType("foo.obj")).to.equal("model/obj");
+    expect(getMimeType("foo.mtl")).to.equal("model/mtl")
+  });
+
+  it("model/stl", function(){
+    expect(getMimeType("foo.stl")).to.equal("model/stl");
+  });
+
+  it("model/vnd.usdz+zip", function(){
+    expect(getMimeType("foo.usdz")).to.equal("model/vnd.usdz+zip");
+  })
+
   it("text/html", function(){
     expect(getMimeType("foo.html")).to.equal("text/html");
   });
 
   it("defaults to application/octet-stream", function(){
     expect(getMimeType("foo.bar")).to.equal("application/octet-stream");
+    //Test expectations for known file types
+    expect(getMimeType("foo.ply")).to.equal("application/octet-stream");
+    expect(getMimeType("foo.blend")).to.equal("application/octet-stream");
   })
 });
 

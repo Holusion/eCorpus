@@ -98,7 +98,13 @@ export function parse_glTF({meshes = [], accessors = []}:JSONglTF) :SceneDescrip
 
 
 
-
+/**
+ * Opens a GLB file, reads its JSON portion and parse it through {@link parse_glTF}
+ * 
+ * For large models, this is much more efficient than using `@gltf-transform` because it only reads what's needed
+ * @param filePath 
+ * @returns 
+ */
 export async function parse_glb(filePath :string) :Promise<GlbDescription>{
   let res :MeshDescription = {} as any;
   let handle = await fs.open(filePath, "r");

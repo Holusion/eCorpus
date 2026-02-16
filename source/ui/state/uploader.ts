@@ -12,7 +12,8 @@ export interface UploadOperation{
   //Unique ID of the upload. Might be different from "name" when we upload a scene zip
   id: string;
   filename: string;
-  filetype?: "archive"|"model"|"source"|"unknown";
+  mime?: string;
+  isModel?: boolean;
   /** The file to upload. Should be required? */
   file?: File;
   /** When the file is an archive we will store the list of files it contains here */
@@ -30,7 +31,7 @@ export interface UploadOperation{
 }
 
 export interface ParsedUploadTaskOutput{
-  filetype: "archive"|"model",
+  mime: string,
   scenes?: SceneUploadResult[],
   files?: string[],
 }
@@ -200,7 +201,7 @@ export class Uploader implements ReactiveController{
     });
     await HttpError.okOrThrow(res);
     const body = await res.json();
-    if(!body.output || typeof body.output !== "object" || !body.output.filetype){
+    if(!body.output || typeof body.output !== "object" || !body.output.mime){
       console.warn("Unexpected format for scene output:", body);
       throw new Error("Invalid response body");
     }

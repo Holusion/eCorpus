@@ -58,7 +58,7 @@ export default class UploadManager extends LitElement{
 
 
 
-  handleSubmit = (ev:MouseEvent)=>{
+  createScene = (ev:MouseEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
     const form = this.uploadForm;
@@ -90,20 +90,50 @@ export default class UploadManager extends LitElement{
     }).then(async (res)=>{
       await HttpError.okOrThrow(res);
       let task = await res.json();
-      console.log("Body : ", task);
       if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
       const u = new URL(window.location.href);
       u.searchParams.append("task", task.task_id);
+      //Reload the page
       window.location.href = u.toString();
     }).catch((e)=>{
       console.error(e);
       this.error = e.message;
     }).finally(()=> this.busy = false);
-    //Reset everything
     return false;
   }
 
 
+  extractArchives = (ev:MouseEvent)=>{
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.busy = true;
+    this.error = null;
+    const tasks = this.uploader.uploads.map(u=>u.task_id);
+    fetch("/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      body: JSON.stringify({
+        type: "extractScenesArchives",
+        data: {
+          tasks,
+        }
+      })
+    }).then(async (res)=>{
+      await HttpError.okOrThrow(res);
+      let task = await res.json();
+      if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
+      const u = new URL(window.location.href);
+      //Remove any existing "task" parameters to avoid confusion about what was imported
+      u.searchParams.set("task", task.task_id);
+      //Reload the page
+      window.location.href = u.toString();
+    }).catch((e)=>{
+      console.error(e);
+      this.error = e.message;
+    }).finally(()=> this.busy = false);
+  }
 
 
 
@@ -157,7 +187,7 @@ export default class UploadManager extends LitElement{
 
 
   protected update(changedProperties: PropertyValues): void {
-    const models = this.uploader.uploads.filter(u=>u.filetype === "model" || u.filetype === "source");
+    const models = this.uploader.uploads.filter(u=>u.isModel);
     const defaultTitle = models[0]?.filename.split(".").slice(0, -1).join(".") ?? "";
 
     if(this._defaultTitle != defaultTitle && !this.uploader.has_pending_uploads){
@@ -192,6 +222,7 @@ export default class UploadManager extends LitElement{
     }
     let state = "pending";
     let stateText: TemplateResult|string = html`<span class="loader"></span>`;
+    let filetype: TemplateResult|null = null;
     let unit = binaryUnit(u.total);
     let progress = `${formatBytes(u.progress, unit)}/${formatBytes(u.total)}`;
     if(u.error){
@@ -203,12 +234,36 @@ export default class UploadManager extends LitElement{
       stateText = "✓";
       progress = formatBytes(u.total);
     }
+    if(u.isModel){
+      filetype = html`<span class="upload-filetype filetype-${u.mime ==="model/gltf-binary"?"glb":"source"}">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          width="16" height="16" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+        >
+          <path d="M14.5 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.8"></path>
+          <path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M11.7 14.2 7 17l-4.7-2.8"></path>
+          <path d="M3 13.1a2 2 0 0 0-.999 1.76v3.24a2 2 0 0 0 .969 1.78L6 21.7a2 2 0 0 0 2.03.01L11 19.9a2 2 0 0 0 1-1.76V14.9a2 2 0 0 0-.97-1.78L8 11.3a2 2 0 0 0-2.03-.01z"></path>
+          <path d="M7 17v5"></path>
+        /svg>
+      </span>`
+    }else if(u.scenes?.length){
+      filetype = html`<span class="upload-filetype filetype-archive">
+        <svg xmlns="http://www.w3.org/2000/svg"
+        width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        >
+          <path d="M13.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v11.5"/>
+          <path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 12v-1"/><path d="M8 18v-2"/>
+          <path d="M8 7V6"/>
+          <circle cx="8" cy="20" r="2"/>
+        </svg>
+      </span>`
+    }
 
     return html`
     <li class="upload-line upload-${state}">
       <span class="upload-state">${stateText}</span>
-      <span class="upload-filetype filetype-${u.filetype?.[0]}">${u.filetype?.[0].toUpperCase() ?? ""}</span>
       <span class="upload-filename">
+        ${filetype}
         ${u.filename}
       </span>
       <span class="upload-progress">${progress}</span>
@@ -217,19 +272,19 @@ export default class UploadManager extends LitElement{
   `;
   }
 
+
   /**
    * When it looks like the user is uploading model(s) for a scene creation, show this form.
    * The submit button is shown only when all uploads have settled.
    */
   private renderSceneCreationForm(){
-    const has_model = this.uploader.uploads.findIndex(u=>u.filetype === "model" || u.filetype === "source") !== -1
+    const can_submit = this.uploader.uploads.findIndex(u=>u.isModel) !== -1;
     return html`<slot name="upload-form" ?disabled=${this.uploader.has_pending_uploads|| this.busy}></slot>
-      <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">
-        <div style="color:var(--color-error);">${this.error}</div>
+      <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
           if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
           else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
-          else if(this.uploader.size && has_model) return html`<slot name="submit" @click=${this.handleSubmit} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
+          else if(this.uploader.size && can_submit) return html`<slot name="submit-scenes" @click=${this.createScene} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
           else if(this.uploader.size) return html`<slot name="no-model">Provide at least one model</slot>`
           else return null;
         })()}
@@ -241,12 +296,20 @@ export default class UploadManager extends LitElement{
    * Renders the details of zipfiles contents
    */
   private renderScenesContentSummary(){
+    const can_submit = this.uploader.uploads.findIndex(u=>u.scenes?.length) !== -1;
     return html`
       <slot name="scenes-list-title">Scenes:</slot>
       <ul class="scenes-list-actions">
         ${this.uploader.uploads.map(u=>(u.scenes?.map(s=>html`<li><span class="scene-action scene-action-${s.action}">[${s.action.toUpperCase()}]</span> ${s.name}</li>`)) ?? [])}
       </ul>
-      <button>MAKE ME!</button>
+       <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
+        ${(()=>{
+          if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
+          else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
+          else if(this.uploader.size && can_submit) return html`<slot name="submit-archives" @click=${this.extractArchives} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
+          else return null;
+        })()}
+      </div>
     `;
   }
 
@@ -260,7 +323,7 @@ export default class UploadManager extends LitElement{
   protected render(): unknown {
     const uploads = this.uploader.uploads;
     const is_active = uploads.some(u=>!u.done && !u.error );
-    const scene_archives = uploads.filter(u=>u.filetype === "archive");
+    const scene_archives = uploads.filter(u=>u.mime === "application/zip");
     let form_content :TemplateResult|null = null;
     if(scene_archives.length && scene_archives.length == uploads.length){
       form_content = this.renderScenesContentSummary();
@@ -364,19 +427,10 @@ export default class UploadManager extends LitElement{
           font-family: monospace;
           font-weight: bold;
           align-self: center;
-          &:not(:empty)::before{
-            content: "[";
-          }
-          &:not(:empty)::after{
-            content: "]";
-          }
-          &.filetype-u{
-            color: var(--color-info);
-          }
-          &.filetype-s{
+          &.filetype-source{
             color: var(--color-warning);
           }
-          &.filetype-m{
+          &.filetype-glb{
             color: var(--color-success);
           }
         }

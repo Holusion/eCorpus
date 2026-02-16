@@ -1,16 +1,18 @@
-
+import fs from "fs/promises";
 import request from "supertest";
 
-import User from "../../../auth/User.js";
-import UserManager from "../../../auth/UserManager.js";
-import Vfs from "../../../vfs/index.js";
+import User from "../../../../auth/User.js";
+import UserManager from "../../../../auth/UserManager.js";
+import Vfs from "../../../../vfs/index.js";
 import { randomBytes, randomInt } from "node:crypto";
+import path from "node:path";
+import { fixturesDir } from "../../../../__test_fixtures/fixtures.js";
 
 
 
 
 
-describe("PUT /tasks/artifacts/:id", function(){
+describe("PUT /tasks/:id/artifact", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
   let filename: string, size: number, task: number;
 
@@ -27,25 +29,31 @@ describe("PUT /tasks/artifacts/:id", function(){
   });
 
   this.beforeEach(async function(){
-      filename = randomBytes(4).toString("hex")+".bin";
-      size = randomInt(16, 512);
-      const {body} = await request(this.server).post(`/tasks`)
-      .auth("alice", "12345678")
-      .set("Content-Type", "application/json")
-      .send({filename, size})
-      .expect(200);
-      expect(body).to.have.property("task_id").a("number");
-      task = body.task_id;
+    //Create a task for each test
+    filename = randomBytes(4).toString("hex")+".bin";
+    size = randomInt(16, 512);
+    const {body} = await request(this.server).post(`/tasks`)
+    .auth("alice", "12345678")
+    .set("Content-Type", "application/json")
+    .send({
+      type: "parseUserUpload",
+      data: {filename, size},
+      status: "initializing",
+    })
+    .expect(201);
+    expect(body).to.have.property("task_id").a("number");
+    task = body.task_id;
   });
 
   it("Can handle a single-chunk upload (no headers)", async function(){
     const data = randomBytes(size);
-    await request(this.server).put(`/tasks/artifacts/${task}`)
+    await request(this.server).put(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
     .send(data)
     .expect(201);
 
-    const {body} = await request(this.server).get(`/tasks/artifacts/${task}`)
+    console.log("GET to :", `/tasks/${task}/artifact`)
+    const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
     .expect(200);
 
@@ -54,14 +62,14 @@ describe("PUT /tasks/artifacts/:id", function(){
 
   it("Can handle a single-chunk upload (chunk headers)", async function(){
     const data = randomBytes(size);
-    await request(this.server).put(`/tasks/artifacts/${task}`)
+    await request(this.server).put(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
     .set("Content-Length", size.toString())
     .set("Content-Range", `bytes 0-${size-1 /*end is inclusive*/}/${size}`)
     .send(data)
     .expect(201);
 
-    const {body} = await request(this.server).get(`/tasks/artifacts/${task}`)
+    const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
     .expect(200);
 
@@ -75,7 +83,7 @@ describe("PUT /tasks/artifacts/:id", function(){
     let chunkSize = Math.floor(size / 4);
     while(offset < size){
       const len = Math.min(size - offset, chunkSize);
-      await request(this.server).put(`/tasks/artifacts/${task}`)
+      await request(this.server).put(`/tasks/${task}/artifact`)
       .auth("alice", "12345678")
       .set("Content-Length", len.toString())
       .set("Content-Range", `bytes ${offset}-${offset+len-1 /*end is inclusive*/}/${size}`)
@@ -84,7 +92,7 @@ describe("PUT /tasks/artifacts/:id", function(){
       offset += len;
     }
 
-    const {body} = await request(this.server).get(`/tasks/artifacts/${task}`)
+    const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
     .expect(200);
 
@@ -93,27 +101,26 @@ describe("PUT /tasks/artifacts/:id", function(){
 
   it("can parse uploaded contents (simple)", async function(){
     const data = randomBytes(size);
-    await request(this.server).put(`/tasks/artifacts/${task}`)
+    await request(this.server).put(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
     .send(data)
     .expect(201);
 
-    const {body} = await request(this.server).get(`/tasks/task/${task}`)
+    const {body} = await request(this.server).get(`/tasks/${task}`)
     .auth("alice", "12345678")
     .expect(200);
 
     expect(body).to.have.property("status", "success");
     expect(body).to.have.property("output").to.deep.equal({
-      filepath: `artifacts/${task}/${filename}`,
-      files: [filename],
-      scenes: [],
+      fileLocation: `artifacts/${task}/${filename}`,
+      isModel: false,
+      mime: "application/octet-stream",
     });
   });
 
   it("rejects out-of-order bytes", async function(){
     const data = randomBytes(6);
-    console.log()
-    const res = await request(this.server).put(`/tasks/artifacts/${task}`)
+    const res = await request(this.server).put(`/tasks/${task}/artifact`)
       .auth("alice", "12345678")
       .set("Content-Length", '6')
       .set("Content-Range", `bytes 10-15/${size}`)

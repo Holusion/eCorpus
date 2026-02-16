@@ -3,6 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE TYPE task_status AS ENUM ('error', 'initializing', 'running', 'pending', 'success');
+CREATE TYPE log_severity AS ENUM('debug', 'log', 'warn', 'error');
 
 CREATE TABLE tasks (
   task_id BIGSERIAL PRIMARY KEY,
@@ -18,7 +19,6 @@ CREATE TABLE tasks (
   status task_status NOT NULL DEFAULT 'pending'
 );
 
-CREATE TYPE log_severity AS ENUM('debug', 'log', 'warn', 'error');
 
 CREATE TABLE tasks_logs (
   log_id BIGSERIAL PRIMARY KEY, -- ensure consistent ordering
@@ -28,12 +28,16 @@ CREATE TABLE tasks_logs (
   message TEXT NOT NULL
 );
 
+-- Index to speed up lookups on logs insertion
+CREATE INDEX idx_tasks_logs_fk_task_id ON tasks_logs(fk_task_id);
+
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
 
 DROP TABLE tasks_logs;
-DROP TYPE log_severity;
 
 DROP TABLE tasks;
+
 DROP TYPE task_status;
+DROP TYPE log_severity;

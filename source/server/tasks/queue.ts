@@ -13,8 +13,15 @@ interface WorkPackage<T extends TaskHandler=any>{
 
 export class Queue{
   #queue: WorkPackage[] = [];
-  #active = 0;
+  /**
+   * Pointer to the jobs currently running. Allows force-stop in close()
+   */
+  #current = new Set<WorkPackage>();
   #c = new AbortController();
+
+  /**
+   * Callback defined when queue is closing
+   */
   #settleResolve: (() => void) | null = null;
 
   constructor(public limit = Infinity, public name?:string) {
@@ -27,6 +34,7 @@ export class Queue{
 
   /**
    * Adds a task to the queue.
+   * The task will wait for an open slot before starting
    */
   add<T=any>(work: TaskPackage<T>):Promise<T> {
     if(this.#c.signal.aborted){
@@ -38,30 +46,47 @@ export class Queue{
     });
   }
 
-  #onSettled = ()=>{
-    this.#active--;
-    // Notify waiters if all active tasks have completed
-    if(this.#active === 0 && this.#settleResolve){
-      this.#settleResolve();
-      this.#settleResolve = null;
+  /**
+   * Jumps the queue and start processing a job immediately
+   * 
+   * It is still counted in {@link Queue.activeCount}, but will ignore the queue's concurrency limit.
+   */
+  unshift<T=any>(work: TaskPackage<T>):Promise<T> {
+    if(this.#c.signal.aborted){
+      throw new Error(`Queue is closed. Can't add new tasks`);
     }
-    this.#processNext();
+    return new Promise((resolve, reject) => {
+      this.#run({ work, resolve, reject });
+    });
+  }
+
+  #run(job: WorkPackage<any>){
+    this.#current.add(job);
+
+    //Execute the job. When it settles, check if it was interrupted before calling the resolvers
+    Promise.resolve(job.work({signal: this.#c.signal}))
+    .then(result => {
+      if(this.#current.delete(job)) job.resolve(result);
+    }, error =>{
+      if(this.#current.delete(job)) job.reject(error);
+    })
+    .finally(()=>{
+      // Notify waiters if all active tasks have completed
+      if(this.#current.size === 0 && this.#settleResolve){
+        this.#settleResolve();
+        this.#settleResolve = null;
+      }
+      this.#processNext();
+    });
   }
 
   #processNext(){
     // Stop if we are busy or if the queue is empty
-    if (this.#active >= this.limit || this.#queue.length === 0 ) {
+    if (this.#current.size >= this.limit || this.#queue.length === 0 ) {
       return;
     }
-
     // 3. Dequeue the next task
-    this.#active++;
-    const { work, resolve, reject } = this.#queue.shift()!;
-
-    Promise.resolve(work({signal: this.#c.signal}))
-      .then(result => resolve(result))
-      .catch(error => reject(error))
-      .finally(this.#onSettled);
+    this.#run(this.#queue.shift()!);
   }
 
   /**
@@ -81,24 +106,35 @@ export class Queue{
     }
     this.#queue = [];
     //Return immediately if no jobs are currently processed
-    if(this.#active == 0) return;
+    if(this.#current.size == 0) return;
     //Otherwise wait for timeout to let jobs resolve properly
     await new Promise<void>((resolve, reject)=>{
       const _t = setTimeout(()=>{
         this.#settleResolve = null;
-        reject(new Error(`Queue close timeout: active tasks did not complete within ${timeoutMs}ms`));
+        //Force-reject any running jobs
+        for(let job of this.#current){
+          job.reject(new Error(`Queue close timeout: task did not stop within ${timeoutMs}ms`));
+        }
+        this.#current.clear();
+        resolve();
       }, timeoutMs);
+
       this.#settleResolve = ()=>{
         clearTimeout(_t);
         resolve();
       };
 
     });
-
   }
-  
-  // Optional getters for observability
+  /**
+   * Number of jobs waiting for an execution slot
+   */
   get pendingCount() { return this.#queue.length; }
-  get activeCount() { return this.#active; }
+  /**
+   * Number of jobs currently being executed
+   * It's possible to have `limit < activeCount` if {@link Queue.unshift} is used.
+   */
+  get activeCount() { return this.#current.size; }
+  /** true if Queue has been closed */
   get closed(){ return this.#c.signal.aborted; }
 }

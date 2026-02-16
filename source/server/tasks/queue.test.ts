@@ -1,3 +1,4 @@
+import timers from "node:timers/promises";
 import { Queue } from "./queue.js";
 
 
@@ -21,7 +22,32 @@ describe("Queue", function(){
       expect(()=>q.add(()=>Promise.resolve())).to.throw("Can't add new tasks");
     });
 
-    it.skip("cancels running jobs")
+    it("cancels running jobs", async function(){
+      let result: any;
+      let _op = q.add(async ({signal})=>{
+        try{
+          await timers.setTimeout(1000, null, {signal})
+          result = "ok";
+        }catch(e: any){
+          result = e.name;
+          throw e;
+        }
+      }).catch(e=> e);
+
+      //Shouldn't throw despite the task throwing an AbortError
+      await q.close(100);
+      expect(result).to.equal("AbortError");
+      expect(await _op).to.have.property("name", "AbortError");
+    })
+    
+    it("force quit jobs after a timeout", async function(){
+      let result: any;
+      let _op = q.add(async ({signal})=>timers.setTimeout(100, null, /*no signal support */));
+
+      //Shouldn't throw despite the task throwing an AbortError
+      await q.close(1);
+      await expect(_op).to.be.rejectedWith("Queue close timeout")
+    })
   });
 
   describe("add()", function(){
