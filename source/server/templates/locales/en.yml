@@ -60,7 +60,8 @@ labels:
 
 buttons:
   searchScene: search scenes
-  upload: create a scene
+  uploadScene: create the scene
+  uploadArchive: extract
   useStandalone: use standalone mode
   logout: Disconnect
   next: "Next Page"

@@ -16,8 +16,8 @@ export async function getTask(req: Request, res: Response){
   let task = await taskScheduler.getTask(id);
 
   if(requester.level !== "admin" 
-    && task.fk_user_id !== requester.uid 
-    && toAccessLevel(await userManager.getAccessRights(task.fk_scene_id, requester.uid)) < toAccessLevel("read")
+    && task.user_id !== requester.uid 
+    && toAccessLevel(await userManager.getAccessRights(task.scene_id, requester.uid)) < toAccessLevel("read")
   ){
     throw new UnauthorizedError(`Read rights are required to delete tasks`);
   }
