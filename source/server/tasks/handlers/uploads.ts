@@ -7,7 +7,7 @@ import { isUserAtLeast } from "../../auth/User.js";
 import { toAccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { TaskHandlerParams } from "../types.js";
-import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
+import { BadRequestError, InternalError, UnauthorizedError } from "../../utils/errors.js";
 import { extractScenesArchive, ImportSuccessResult } from "./extractZip.js";
 
 
@@ -20,6 +20,7 @@ export interface ImportSceneResult{
 
 export interface UploadHandlerParams{
   filename: string;
+  mime?: string;
   size: number;
 }
 
@@ -106,52 +107,40 @@ export async function parseUserUpload({task:{task_id, user_id, data:{filename, s
 
 
 export interface ProcessUploadedFilesParams{
-  files: UserUploadResult[];
-  name?: string;
-  lang?: string;
+  tasks: number[];
+  name: string;
+  lang: string;
 }
 
 /**
  * Process file(s) that have been uploaded through `userUploads` task(s).
  * The file(s) are expected to come from previous tasks
  */
-export async function processUploadedFiles({context:{tasks, logger}, task: {data:{files, name, lang}}}: TaskHandlerParams<ProcessUploadedFilesParams>):Promise<ImportSuccessResult[]>{
+export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: {user_id, data:{tasks:source_ids, name, lang}}}: TaskHandlerParams<ProcessUploadedFilesParams>):Promise<number>{
+  if(!user_id) throw new InternalError(`Can't create an anonymous scene. Provide a user`);
+  if(!name) throw new BadRequestError(`Can't create a scene without a name`);
+  if(!lang) throw new BadRequestError(`Default language is required for scene creation`);
+  if(!source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
 
-  if(!files.length) throw new BadRequestError(`This task requires at least one source file`);
-
-  const upload_scenes =  files.findIndex(u=>u.scenes.length) !== -1 //A file containing at least one complete scene
-  const upload_files = files.findIndex(u=>!u.scenes.length) !== -1 // A file NOT containing any complete scene
-  // Don't allow mixed-content. ie. a scene archive with some asset files
-  // In reality we _could_ probably, though we'd have to think carefully about edge cases?
-  if( upload_scenes && upload_files ){
-    throw new BadRequestError(`Can't do mixed-content processing. Provide EITHER scene archive(s) OR source file(s)`);
+  for(const task_id of source_ids){
+    if(!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
   }
-  if(upload_files && (!name || !lang)){
-    throw new BadRequestError(`scene name and default language are required when creating a scene from a set files`);
-  }
+  const source_tasks = await Promise.all(source_ids.map(id=> tasks.getTask<UploadHandlerParams, UserUploadResult>(id)));
 
-  //Check that everything _should_ be error-free
-  //We might still have fails because of race conditions or _things_, but it is preferable to have a preflight check
-  const errors = files.map(u=>u.scenes.filter(s=>s.action === "error")).flat();
-  for(let {error, name} of errors){
-    logger.error(error  ?? `Unspecified error on scene ${name}`);
-  }
+  const scene = await vfs.createScene(name, user_id);
 
-  // @FIXME should we clean up some things immediately when we abort due to planned errors?
-  if(errors.length){
-    throw new UnauthorizedError(`Insufficient permissions on scene${1 < errors.length?"s":""} [${errors.slice(0, 3).map(({name})=>name)}${3 < errors.length?", ...":""}] for this user. Aborting.`);
-  }
+  // @TODO: reparent everything to this task and this task to the created scene for better discoverability
 
-  const results =  await tasks.group(function* createChildren(){
-    for(let upload of files){
-      if(upload_scenes){
-        logger.debug("Extract uploaded scenes archive "+upload.filepath);
-        yield tasks.run({
-          data: {filepath: upload.filepath},
-          handler: extractScenesArchive,
-        });
-      }
+  for(let task of source_tasks){
+    const {filename, mime} = task.data;
+    const artifact = task.output.filepath;
+    if(/\.zip/i.test(artifact)){
+      logger.warn("in-scene Zip extraction is not yet implemented. Aborting");
     }
-  });
-  return results.flat();
+    logger.debug("Copy uploaded file "+artifact);
+    await vfs.copyFile(artifact, {scene, name: filename, user_id });
+  }
+
+  //TODO cleanup: unlink tasks artifacts
+  return scene;
 }
