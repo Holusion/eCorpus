@@ -79,7 +79,7 @@ describe("TaskScheduler", function(){
       data: {},
     });
     
-    const output = await scheduler.run({task, handler: async ({task})=> task.task_id});
+    const output = await scheduler.runTask({task, handler: async ({task})=> task.task_id});
     expect(output).to.equal(task.task_id);
 
     task = await scheduler.getTask(output);

@@ -34,6 +34,7 @@ export class Queue{
 
   /**
    * Adds a task to the queue.
+   * The task will wait for an open slot before starting
    */
   add<T=any>(work: TaskPackage<T>):Promise<T> {
     if(this.#c.signal.aborted){
@@ -45,15 +46,21 @@ export class Queue{
     });
   }
 
-
-  #processNext(){
-    // Stop if we are busy or if the queue is empty
-    if (this.#current.size >= this.limit || this.#queue.length === 0 ) {
-      return;
+  /**
+   * Jumps the queue and start processing a job immediately
+   * 
+   * It is still counted in {@link Queue.activeCount}, but will ignore the queue's concurrency limit.
+   */
+  unshift<T=any>(work: TaskPackage<T>):Promise<T> {
+    if(this.#c.signal.aborted){
+      throw new Error(`Queue is closed. Can't add new tasks`);
     }
+    return new Promise((resolve, reject) => {
+      this.#run({ work, resolve, reject });
+    });
+  }
 
-    // 3. Dequeue the next task
-    const job = this.#queue.shift()!;
+  #run(job: WorkPackage<any>){
     this.#current.add(job);
 
     //Execute the job. When it settles, check if it was interrupted before calling the resolvers
@@ -71,6 +78,15 @@ export class Queue{
       }
       this.#processNext();
     });
+  }
+
+  #processNext(){
+    // Stop if we are busy or if the queue is empty
+    if (this.#current.size >= this.limit || this.#queue.length === 0 ) {
+      return;
+    }
+    // 3. Dequeue the next task
+    this.#run(this.#queue.shift()!);
   }
 
   /**
@@ -116,6 +132,7 @@ export class Queue{
   get pendingCount() { return this.#queue.length; }
   /**
    * Number of jobs currently being executed
+   * It's possible to have `limit < activeCount` if {@link Queue.unshift} is used.
    */
   get activeCount() { return this.#current.size; }
   /** true if Queue has been closed */

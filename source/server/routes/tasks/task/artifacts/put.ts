@@ -2,14 +2,15 @@ import { Request, Response } from "express";
 import parseRange from "range-parser";
 import path from "node:path";
 import { stat } from "node:fs/promises";
-import { getVfs, getUser, getTaskScheduler } from "../../../utils/locals.js";
-import { BadRequestError, LengthRequiredError, RangeNotSatisfiableError, UnauthorizedError } from "../../../utils/errors.js";
-import { TaskDefinition } from "../../../tasks/types.js";
+import { getVfs, getUser, getTaskScheduler } from "../../../../utils/locals.js";
+import { BadRequestError, LengthRequiredError, RangeNotSatisfiableError, UnauthorizedError } from "../../../../utils/errors.js";
+import { TaskDefinition } from "../../../../tasks/types.js";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
+import { parseUserUpload, UploadHandlerParams, UserUploadResult } from "../../../../tasks/handlers/uploads.js";
 
-export function isUploadTask(t:TaskDefinition<any>) : boolean{
-  return t.type === "userUploads";
+export function isUploadTask(t:TaskDefinition<any>) : t is TaskDefinition<UploadHandlerParams, UserUploadResult>{
+  return t.type === parseUserUpload.name;
 }
 
 /**
@@ -19,23 +20,23 @@ export function isUploadTask(t:TaskDefinition<any>) : boolean{
  * 
  * @see {@link https://docs.cloud.google.com/storage/docs/performing-resumable-uploads?hl=fr#chunked-upload Google Cloud Storage: Chunked upload} for a similar feature
  */
-export async function putUploadTask(req: Request, res: Response){
+export async function putTaskArtifact(req: Request, res: Response){
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
   const requester = getUser(req)!;
   const {id:idString} = req.params;
   const id = parseInt(idString);
   const task = await taskScheduler.getTask(id);
-  if(task.fk_user_id !== requester.uid){
+  if(task.user_id !== requester.uid){
     throw new UnauthorizedError(`This task does not belong to this user`);
   }
   if(!isUploadTask(task)){
     throw new BadRequestError(`Task ${id} is not a user upload task`);
+  }else if(!(typeof task.data?.filename === "string" && typeof task.data?.size === "number")){
+    throw new BadRequestError(`Invalid task data: ${typeof task.data} ${JSON.stringify(task.data)}`);
   }
 
-
   const {filename, size: filesize} = task.data;
-  const filepath = path.join(vfs.getTaskWorkspace(task.task_id), filename);
   const contentRange = req.get("Content-Range");
 
   const contentLength = parseInt(req.get("Content-Length")!);
@@ -46,12 +47,12 @@ export async function putUploadTask(req: Request, res: Response){
   }
 
 
+  //Call this once the upload has completed
   async function processUpload(){
-    await taskScheduler.run({
-      task,
-      handler: createUserUploadParser(),
-    })
+    await taskScheduler.runUserTask(task, {immediate: true});
   }
+
+  const filepath = path.join(vfs.getTaskWorkspace(task.task_id), filename);
 
   if(!contentRange){
     const ws = createWriteStream(filepath)
@@ -108,6 +109,7 @@ export async function putUploadTask(req: Request, res: Response){
   res.set("Range", `bytes=0-${end}/${filesize}`);
 
   if(end == filesize - 1){
+    //Upload is complete
     await processUpload();
     res.status(201);
     res.format({
@@ -119,6 +121,7 @@ export async function putUploadTask(req: Request, res: Response){
       }
     });
   }else{
+    //Partial Content
     res.status(206);
     res.format({
       "text/plain": ()=>{
@@ -129,8 +132,4 @@ export async function putUploadTask(req: Request, res: Response){
       }
     });
   }
-}
-
-function createUserUploadParser(): import("../../../tasks/types.js").TaskHandler<import("../../../tasks/types.js").TaskData, any, import("../../../tasks/types.js").TaskSchedulerContext> {
-  throw new Error("Function not implemented.");
 }

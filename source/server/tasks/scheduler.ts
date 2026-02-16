@@ -2,7 +2,7 @@ import {debuglog} from "node:util";
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { Queue } from "./queue.js";
-import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
+import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunOptions, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
 import { BadRequestError, InternalError } from "../utils/errors.js";
@@ -115,11 +115,16 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
    * Builds a context and actually schedule the task, handling the status change from `"pending"` to `"running"` and to `"complete"|"error"`
    * 
    * Unless there is a problem with the database connection, the task is guaranteed to end up with `status = "complete"|"error"`
+   * @param handler Handler functionthat will perform the job
+   * @param task Task definition
+   * @param param2 Additional options for the task runner
+   * @param param2.immediate jumps the queue and run the task immediately regardless of concurrency settings
+   * @returns 
    */
   private async _run<T extends TaskDataPayload, U=any>(
     handler:TaskHandler<T, U, TContext>, 
     task: TaskDefinition<T>,
-    {signal:taskSignal}:{signal?:AbortSignal}= {}
+    {signal:taskSignal, immediate }: RunOptions= {}
   ){
     // Create a wrapper function around the handler to provide the task's execution context
     // and set its status
@@ -158,7 +163,7 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
       async_ctx.parent.logger.debug(`Schedule child task ${task.type}#${task.task_id}`);
     }
     debug("Schedule work for task #%d on Queue(%s)", task.task_id, async_ctx.queue.name);
-    return await async_ctx.queue.add(work);
+    return await (immediate? async_ctx.queue.unshift(work) : async_ctx.queue.add(work));
   }
 
   /**
@@ -170,31 +175,22 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
    * However those can still be forced to another value if deemed necessary.
    * Whether or not this override is desirable is yet unclear.
    */
-  async run<T extends TaskDataPayload, U=any>(params: RunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U> ): Promise<U>;
-  async run<T extends TaskDataPayload, U=any>(params: CreateRunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U>): Promise<U>;
   async run<T extends TaskDataPayload, U=any>(
-    params: CreateRunTaskParams<T, U, TContext>|RunTaskParams<T,U, TContext>,
+    params: CreateRunTaskParams<T, U, TContext>,
     callback?:TaskSettledCallback<U>
   ): Promise<U>{
-    let task: TaskDefinition<T>;
-    if("task" in params){
-      //We allow externally-created tasks here. But we want to limit error sources so we re-fetch the task anyway
-      //If this ends up being used in practice, we may need perform validation that the given task actually matches the stored one.
-      task = await this.getTask(params.task.task_id);
-    }else{
-      //We use context to inherit parent, user_id and scene_id
-      //But if different values are explicitly specified it's possible to "break out"
-      //Whether or not this is 
-      const {parent} = this.context();
-      task = await this.create<T>({
-        ...params,
-        data: params.data as any,
-        type: (params.type ?? params.handler.name) as string,
-        status: "pending" as TaskStatus,
-        parent: parent?.task_id ?? null,
-      });
-    }
-    const _p = this._run( params.handler, task, {signal: params.signal});
+    //We use context to inherit parent, user_id and scene_id
+    //But if different values are explicitly specified it's possible to "break out"
+    //Whether or not this is 
+    const {parent} = this.context();
+    const task : TaskDefinition<T>= await this.create<T>({
+      ...params,
+      data: params.data as any,
+      type: (params.type ?? params.handler.name) as string,
+      status: "pending" as TaskStatus,
+      parent: parent?.task_id ?? null,
+    });
+    const _p = this._run( params.handler, task, {signal: params.signal, immediate: params.immediate});
 
     if(typeof callback=== "function"){
       _p.then((value)=>callback(null, value), (err)=>callback(err));
@@ -202,11 +198,26 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
     return _p;
   }
 
+
   /**
-   * Run a user-created task. Does not check for permissions
-   * @param task_id 
+   * Run a handler on an externally-created task definition
+   * 
+   * This is less safe than {@link TaskScheduler.run} because we _trust_ the task definition to be up to date. It's an error to call it with a stale task definition. 
+   * @param param0 
+   * @param callback 
    */
-  async runUserTask(task:TaskDefinition){
+  async runTask<T extends TaskDataPayload, U=any>({task, signal, handler}: RunTaskParams<T, U, TContext>, callback?:TaskSettledCallback<U> ): Promise<U>{
+    const _p = this._run( handler, task, {signal: signal, immediate: false});
+    if(typeof callback=== "function"){
+      _p.then((value)=>callback(null, value), (err)=>callback(err));
+    }
+    return _p;
+  }
+
+  /**
+   * Run a user-created task. Does not check for permissions.
+   */
+  async runUserTask(task: TaskDefinition, opts :RunOptions = {}){
     // _run will check that status is in ('pending', 'initializing') again when it executes the callback
     // Here we just check against usage errors
     if(task.status !== "initializing") throw new InternalError(`Task #${task.task_id} has status: ${task.status}. It can't be started`);
@@ -217,7 +228,7 @@ export class TaskScheduler<TContext extends {db:DatabaseHandle} = TaskSchedulerC
       if(task.user_id) text+= ` for user ${task.user_id}`;
       debug(text);
     }
-    return await this.run({task, handler: userHandlers[task.type] as any});
+    return await this.runTask({...opts, task, handler: userHandlers[task.type] as any});
   }
 
   /**

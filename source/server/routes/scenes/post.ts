@@ -46,17 +46,19 @@ export async function postRawZipfile(req: Request, res: Response){
   const output = await taskScheduler.run<undefined>({
     scene_id: null,
     user_id: requester.uid,
+    type: "handlePostScene",
+    immediate: true,
     handler: async function handlePostScene({task, context:{vfs, logger}}) :Promise<ImportSceneResult[]>{
       const dir = await vfs.createTaskWorkspace(task.task_id);
       const abs_filepath = path.join(dir, filename);
       const relPath = vfs.relative(abs_filepath);
-      logger.log("Write upload artifact to :", relPath);
+      logger.log("Write upload file to :", relPath);
       const ws = createWriteStream(abs_filepath);
       await pipeline(
         req,
         ws,
       );
-      logger.log("artifact uploaded to :", relPath);
+      logger.log("file uploaded to :", relPath);
       return await taskScheduler.run({
         scene_id: null,
         user_id: requester.uid,

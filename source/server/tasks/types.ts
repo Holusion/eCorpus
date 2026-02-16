@@ -83,6 +83,12 @@ type TaskCreateCommonParameters = {
   parent?: number|null;
 }
 
+export interface RunOptions{
+  signal?:AbortSignal;
+  immediate?:boolean;
+}
+
+
 /**
  * Parameters to create a task
  */
@@ -98,6 +104,7 @@ export type CreateRunTaskParams<TData extends TaskDataPayload, TReturn=any, TCon
   handler: TaskHandler<TData, TReturn, TContext>;
   type?: string;
   status?:"pending";
+  immediate?: boolean;
   signal?: AbortSignal;
   /** Can't create an immediately-running task with a status other than pending */
 };
@@ -108,6 +115,7 @@ export type CreateRunTaskParams<TData extends TaskDataPayload, TReturn=any, TCon
 export interface RunTaskParams<TData extends TaskDataPayload, TReturn=any, TContext = TaskSchedulerContext>{
   task: TaskDefinition<TData>;
   handler: TaskHandler<TData, TReturn, TContext>;
+  immediate?: boolean;
   signal?: AbortSignal;
 }
 
