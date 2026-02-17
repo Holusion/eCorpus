@@ -21,7 +21,7 @@ const values = {
   contact_email: [({hostname}:{hostname: string})=> "noreply@"+hostname, toString],
   smart_host: ["smtp://localhost:25", toString],
   verbose: [false, toBool],
-  build_ref: [undefined, toString],
+  build_ref: ["dev", toString],
 
   experimental: [false, toBool],
   /// FEATURE FLAGS ///

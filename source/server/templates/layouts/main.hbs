@@ -2,10 +2,6 @@
 <html lang="{{lang}}">
   <head>
     {{> head }}
-
-    <link rel="stylesheet" href="/dist/css/theme.css">
-    <link rel="stylesheet" href="/dist/css/corpus.css">
-
   </head>
   <body class="main-grid">
   {{> navbar }}
@@ -13,6 +9,6 @@
     {{{body}}}
   </main>
   {{> footer }}
-  <script src="/dist/js/corpus.js"></script>
+  <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
   </body>
 </html>
