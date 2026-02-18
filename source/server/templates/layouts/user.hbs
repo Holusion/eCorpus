@@ -2,12 +2,8 @@
 <html>
   <head>
     {{> head }}
-
-    <link rel="stylesheet" href="/dist/css/theme.css">
-    <link rel="stylesheet" href="/dist/css/corpus.css">
-
   </head>
-  <body>
+  <body class="main-grid">
     {{> navbar }}
     <main class="admin-panel">
       <h1>{{i18n "titles.userSettings"}}</h1>
@@ -23,6 +19,6 @@
       </div>
     </main>
     {{> footer }}
-    <script src="/dist/js/corpus.js"></script>
+    <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
   </body>
 </html>

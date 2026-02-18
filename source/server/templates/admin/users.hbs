@@ -1,6 +1,6 @@
 
 <div style="margin-bottom: 1.5rem; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: end;">
-  <h1>{{i18n "titles.userManager"}}</h2>
+  <h1>{{i18n "titles.userManager"}}</h1>
    {{#if (test @root.user.level "==" "admin")}}
     <button class="btn btn-main" onclick="document.querySelector('#create-user-modal').showModal()">
       <ui-icon name="plus"></ui-icon>

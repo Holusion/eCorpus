@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
         "target": "es2017",
-        "module": "es2020",
+        "module": "esnext",
         "sourceMap": true,
         //"strict": true,
         "esModuleInterop": true,
         "resolveJsonModule": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         //"noUnusedLocals": true,
         "experimentalDecorators": true,
         "baseUrl": ".",

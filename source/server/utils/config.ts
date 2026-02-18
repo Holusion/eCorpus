@@ -5,7 +5,7 @@ import {hostname} from "os";
 const values = {
   node_env:["development", toString],
   public: [true, toBool],
-  brand: ["eCorpus", toString],
+  brand: ["", toString],
   port: [8000, toListenTarget ],
   force_migration: [false, toBool],
   clean_database: [true, toBool],
@@ -19,9 +19,9 @@ const values = {
   trust_proxy: [true, toBool],
   hostname: [hostname(), toString],
   contact_email: [({hostname}:{hostname: string})=> "noreply@"+hostname, toString],
-  smart_host: ["smtp://localhost", toString],
+  smart_host: ["smtp://localhost:25", toString],
   verbose: [false, toBool],
-  build_ref: [undefined, toString],
+  build_ref: ["dev", toString],
 
   experimental: [false, toBool],
   /// FEATURE FLAGS ///

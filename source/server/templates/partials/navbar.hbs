@@ -1,15 +1,13 @@
-<nav class="navbar-nav">
+<nav id="main-navbar" class="navbar-nav">
   <div class="nav-content">
-    <div class="brand">
-      <a class="brand" href="/">
-        <picture>
-          <source srcset="/dist/images/logo-sm.svg" media="(max-width: 576px)"/>
-          <img src="/dist/images/logo-full.svg" alt="Site Logo"/>
-        </picture>
-      </a>
-    </div>
+    <a class="logo" href="/">
+      <picture>
+        <source srcset="/dist/images/logo-sm.svg" media="(max-width: 576px)"/>
+        <img src="/dist/images/logo-full.svg" alt="Site Logo"/>
+      </picture>
+    </a>
     <div class="spacer"></div>
-    <div class="navbar">
+    <div id="main-navbar-links" popover="" class="navbar">
       {{# unless isSearchPage }}
       <form id="nav-search" class="form-control " method="get" action="/ui/scenes/">
         <div class="form-item nav-input">
@@ -31,5 +29,10 @@
         {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}
       {{/if}}
     </div>
+    <button id="main-navbar-collapse-toggle" class="btn btn-transparent text-primary"  style="padding: 0 1rem"
+      type="button" popovertarget="main-navbar-links" aria-label="Toggle navigation">
+      <ui-icon class="if-expanded" name="minus"></ui-icon>
+      <ui-icon class="if-collapsed" name="plus"></ui-icon>
+    </button>
   </div>
 </nav>

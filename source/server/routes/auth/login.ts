@@ -84,7 +84,7 @@ export async function getLogin(req :Request, res:Response){
       if(requester && requester.level !== "none") return res.redirect(302, redirect ?redirect.pathname: "/ui/");
       useTemplateProperties(req, res, ()=>{
         res.render("login", {
-          title: "eCorpus Login",
+          title: "Login",
           user: null,
           redirect,
         });

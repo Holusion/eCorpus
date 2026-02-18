@@ -2,9 +2,6 @@
 <html lang="{{lang}}">
   <head>
     {{> head }}
-
-    <link rel="stylesheet" href="/dist/css/theme.css">
-    <link rel="stylesheet" href="/dist/css/corpus.css">
     <style>
       body{
         padding: 0;
@@ -18,6 +15,6 @@
   <main>
     {{{body}}}
   </main>
-  <script src="/dist/js/corpus.js"></script>
+  <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
   </body>
 </html>

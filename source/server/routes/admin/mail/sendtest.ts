@@ -35,7 +35,7 @@ export default async function handleMailtest(req :Request, res :Response){
 
   let out = await sendmail({
     to, 
-    subject: config.brand+" test email", 
+    subject: (config.brand || "eCorpus")+" test email", 
     html: mail_content
   });
 
