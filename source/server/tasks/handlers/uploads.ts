@@ -1,18 +1,19 @@
 import { once } from "node:events";
-import { stat } from "node:fs/promises";
+import fs from "node:fs/promises";
 import path from "node:path";
 
 import yauzl, { ZipFile } from "yauzl";
 import { isUserAtLeast } from "../../auth/User.js";
 import { toAccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
-import { TaskHandlerParams } from "../types.js";
+import { FileArtifact, TaskHandlerParams } from "../types.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
 import getDefaultDocument from "../../utils/schema/default.js";
 import { parse_glb } from "../../utils/glTF.js";
 import uid from "../../utils/uid.js";
 import { toGlb } from "./toGlb.js";
-import { getMimeType } from "../../utils/filetypes.js";
+import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
+import { TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
 
 
 
@@ -27,23 +28,19 @@ export interface UploadHandlerParams{
   size: number;
 }
 
-export interface UploadedFile{
-  filepath: string;
+export interface UploadedFile extends FileArtifact{
   mime: string;
 }
 
-export interface UnknownFileResult extends UploadedFile{
-  filetype: "unknown";
-}
-
-export interface ParsedArchiveResult extends UploadedFile {
-  filetype: "archive";
+export interface UploadedArchive extends UploadedFile {
+  mime: "application/zip";
   files: string[];
   scenes: ImportSceneResult[];
 }
 
-export interface ParsedModelResult extends UploadedFile {
-  filetype: "model";
+export interface UploadedBinaryModel extends UploadedFile {
+  mime: "model/gltf-binary";
+  isModel: boolean;
   name?: string;
   byteSize: number;
   numFaces: number;
@@ -51,20 +48,24 @@ export interface ParsedModelResult extends UploadedFile {
   bounds: Awaited<ReturnType<typeof parse_glb>>["bounds"];
 }
 
-export interface ParsedSourceResult extends UploadedFile{
-  filetype: "source";
+export interface UploadedUsdModel extends UploadedFile{
+  mime: "model/vnd.usdz+zip";
 }
 
-export type ParsedUserUpload = UnknownFileResult|ParsedArchiveResult|ParsedModelResult|ParsedSourceResult;
+export interface UploadedSource extends UploadedFile{
+  isModel: boolean;
+}
+
+export type ParsedUserUpload = UploadedArchive|UploadedBinaryModel|UploadedSource;
 
 
 
-async function parseUploadedArchive({task:{task_id, user_id, data:{filepath}}, context: {vfs, userManager, logger}}:TaskHandlerParams<{filepath: string}>):Promise<ParsedArchiveResult>{
+async function parseUploadedArchive({task:{task_id, user_id, data:{fileLocation}}, context: {vfs, userManager, logger}}:TaskHandlerParams<FileArtifact>):Promise<UploadedArchive>{
   const requester = await userManager.getUserById(user_id);
-  const filename = path.basename(filepath);
+  const filename = path.basename(fileLocation);
   let files :string[] = [];
-  logger.debug(`Open ${filepath} to list entries`);
-  let zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(vfs.absolute(filepath), {lazyEntries: false, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
+  logger.debug(`Open ${fileLocation} to list entries`);
+  let zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(vfs.absolute(fileLocation), {lazyEntries: false, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
   zip.on("entry", (record)=>{
     files.push(record.fileName); 
   });
@@ -96,24 +97,28 @@ async function parseUploadedArchive({task:{task_id, user_id, data:{filepath}}, c
     scenes.push({name: scene, action, error: error!});
   }
   return {
-    filetype: "archive",
-    mime: getMimeType(filepath),
-    filepath,
+    mime: "application/zip",
+    fileLocation,
     files: files,
     scenes
   };
 }
 
 
-async function parseUploadedModel({task: {data: {filepath}}, context: {logger, vfs}}:TaskHandlerParams<{filepath: string}>):Promise<ParsedModelResult>{
-  
-  const meta = await parse_glb(vfs.absolute(filepath));
+async function parseUploadedModel({task: {data: {fileLocation}}, context: {logger, vfs}}:TaskHandlerParams<FileArtifact>):Promise<UploadedBinaryModel>{
+  const filepath = vfs.absolute(fileLocation);
+  logger.debug("Check mime type of "+fileLocation);
+  const mime = await readMagicBytes(filepath);
+  if(mime !== "model/gltf-binary"){
+    throw new InternalError("This does not look like a GLB file");
+  }
+  const meta = await parse_glb(filepath);
   logger.log(`Parsed glb with ${meta.meshes.length} models`);
-  logger.warn("Using placeholder imageSize: Not compatible with LOD mode");
+  logger.warn("Using placeholder imageSize of 8192: Not compatible with LOD mode");
   return {
-    filepath,
-    mime: getMimeType(filepath),
-    filetype: "model",
+    fileLocation,
+    mime,
+    isModel: true,
     name: meta.meshes.find(m=>m.name)?.name,
     bounds: meta.bounds,
     byteSize: meta.byteSize,
@@ -128,18 +133,18 @@ async function parseUploadedModel({task: {data: {filepath}}, context: {logger, v
  * @returns 
  */
 export async function parseUserUpload({task:{task_id, user_id, data:{filename, size}}, context: {vfs, tasks, userManager, logger}}:TaskHandlerParams<UploadHandlerParams>):Promise<ParsedUserUpload>{
-  const filepath = vfs.relative(path.join(vfs.getTaskWorkspace(task_id), filename));
+  const fileLocation = vfs.relative(path.join(vfs.getTaskWorkspace(task_id), filename));
 
-  logger.debug(`Checking size of uploaded file ${filepath}`);
+  logger.debug(`Checking size of uploaded file ${fileLocation}`);
   let diskSize: number;
   try{
-    const stats=  await stat(vfs.absolute(filepath));
+    const stats=  await fs.stat(vfs.absolute(fileLocation));
     diskSize = stats.size;
   }catch(e:any){
     if(e.code === "ENOENT"){
-      logger.error(`File ${filepath} does not exist. Maybe it wasn't uploaded properly?`);
+      logger.error(`File ${fileLocation} does not exist. Maybe it wasn't uploaded properly?`);
     }
-      throw e;
+    throw e;
   }
   if(diskSize != size){
     throw new Error(`Expected a file of size ${size}, found ${diskSize}`);
@@ -148,29 +153,22 @@ export async function parseUserUpload({task:{task_id, user_id, data:{filename, s
 
   const mime = getMimeType(filename);
 
-  const nameslug = filename.toLowerCase();
-  if(nameslug.endsWith(".zip")){
+  if(mime === "application/zip"){
     return await tasks.run({
-      data: { filepath },
+      data: { fileLocation },
       handler: parseUploadedArchive,
     });
-  }else if (nameslug.endsWith(".glb")){
+  }else if (mime == "model/gltf-binary"){
     return await tasks.run({
-      data: {filepath},
+      data: {fileLocation},
       handler: parseUploadedModel,
-    })
-  }else if( /\.(?:obj|stl|ply)$/i.test(nameslug)){
-    return {
-      filepath,
-      filetype: "source",
-      mime,
-    }
+    });
   }else{
     return {
-      filepath,
-      filetype: "unknown",
       mime,
-    } satisfies UnknownFileResult;
+      fileLocation,
+      isModel: isModelType(filename),
+    }
   }
 
   // @FIXME maybe we should already delete the file if it has errors?
@@ -201,7 +199,7 @@ function isSceneLanguage(l:any) :l is SceneLanguage{
  * Process file(s) that have been uploaded through `userUploads` task(s).
  * The file(s) are expected to come from previous tasks
  */
-export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: {user_id, data:{tasks:source_ids, name, language, options}}}: TaskHandlerParams<ProcessUploadedFilesParams>):Promise<number>{
+export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: {user_id, task_id, data:{tasks:source_ids, name, language, options}}}: TaskHandlerParams<ProcessUploadedFilesParams>):Promise<number>{
   if(!user_id) throw new InternalError(`Can't create an anonymous scene. Provide a user`);
   if(!name) throw new BadRequestError(`Can't create a scene without a name`);
   if(!language) throw new BadRequestError(`Default language is required for scene creation`);
@@ -212,53 +210,72 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
     if(!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
   }
   const source_tasks = await Promise.all(source_ids.map(id=> tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
+  const failed_tasks = source_tasks.filter(t=>t.status !== "success");
+  const invalid_outputs = source_tasks.filter(t=>typeof t.output.filepath !== "string" || typeof t.output.mime !== "string");
+  if(failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length?"s":""} ${failed_tasks.map(t=>t.task_id).join(", ")} has not completed successfully`);
+  if(invalid_outputs.length) throw new BadRequestError(`Source task${1 < invalid_outputs.length?"s":""} ${invalid_outputs.map(t=>t.task_id).join(", ")} did not output a file`);
 
-  for (let task of source_tasks){
-    if(task.status !== "success") throw new BadRequestError(`Source task #${task.task_id} has not completed successfully`);
+  //If some source models are present, copy all files to the task's workspace
+  let sources :Array<ParsedUserUpload> = source_tasks.map(t=>t.output);
+  if(source_tasks.some(t=>(t.output as UploadedSource).isModel)){
+    const dir = await vfs.createTaskWorkspace(task_id);
+    sources = await Promise.all(source_tasks.map(async ({output})=>{
+      const filepath = vfs.absolute(output.filepath);
+      const dest = path.join(dir, path.basename(filepath));
+      await fs.link(filepath, dest);
+      return {
+        ...output,
+        filepath: dest,
+      } satisfies ParsedUserUpload;
+    }));
   }
 
   const scene_id = await vfs.createScene(name, user_id);
 
   // @TODO: reparent everything to this task and this task to the created scene for better discoverability
-  const models :Array<ParsedModelResult> = [];
+  const models :Array<DocumentModel> = [];
   // We could probably return the scene ID from here and let this all be out-of-band
-  for(let task of source_tasks){
-    const {filename} = task.data;
-    const {filepath, mime, filetype} = task.output;
-    if(filetype === "archive"){
+  for(let source of sources){
+    const filepath = vfs.absolute(source.filepath);
+    const filename = path.basename(filepath);
+    if(source.mime === "application/zip"){
       logger.warn("in-scene Zip extraction is not yet implemented. Skipped.");
       continue;
-    }
-
-    if(filetype == "model"){
+    }else if(source.mime === "model/gltf-binary"){
       if(options.optimize){
         logger.warn("Should optimize artifact");
       }
       logger.debug("Copy uploaded model %s to %s", filepath, filename);
-      await vfs.copyFile(vfs.absolute(filepath), {scene: scene_id, name: filename, user_id, mime });
-      models.push({...task.output as any, filepath: filename});
-    }else if (filetype == "source"){
-      logger.debug("Convert source file %s (%s)", filepath, mime);
-      const dest = await tasks.run({
-        data: {filepath},
-        handler: toGlb,
+      await vfs.copyFile(filepath, {scene: scene_id, name: filename, user_id, mime: source.mime });
+      models.push({
+        ...(source as UploadedBinaryModel),
+        filepath: filename,
+        quality: "High",
+        usage: "Web3D"
       });
-      logger.debug("Copy Converted source file to %s", dest);
-
-      const meta = await tasks.run({
-        handler: parseUploadedModel,
-        data: {
-          filepath: dest,
-        }
-      });
-      logger.debug("Parsed converted file :", meta);
-
-      const destname = path.basename(dest);
-      await vfs.copyFile(vfs.absolute(dest), {scene: scene_id, name: destname, user_id, mime: meta.mime });
-      models.push({...meta, filepath: destname});
     }else{
-      logger.debug("Copy uploaded file %s to %s", filepath, filename);
-      await vfs.copyFile(vfs.absolute(filepath), {scene: scene_id, name: filename, user_id, mime });
+      logger.debug("Copy source file %s (%s)", filepath, source.mime);
+      const file = await vfs.copyFile(filepath, {scene: scene_id, name: filename, user_id, mime: source.mime });
+      if(!file.hash) throw new BadRequestError(`File ${source.filepath} is empty`);
+      if((source as UploadedSource).isModel){
+        const dest = await tasks.run({
+          data: {fileLocation: vfs.relative(filepath)},
+          handler: toGlb,
+        });
+        logger.debug("Copy Converted source file to %s", dest);
+
+        const meta = await tasks.run({
+          handler: parseUploadedModel,
+          data: {
+            fileLocation: dest,
+          }
+        });
+        logger.debug("Parsed converted file :", meta);
+
+        const destname = path.basename(dest);
+        await vfs.copyFile(vfs.absolute(dest), {scene: scene_id, name: destname, user_id, mime: meta.mime });
+        models.push({...meta, quality: "High", usage: "Web3D", filepath: destname});
+      }
     }
   }
 
@@ -274,9 +291,10 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
   return scene_id;
 }
 
+type DocumentModel = UploadedBinaryModel&{quality:TDerivativeQuality, usage: TDerivativeUsage};
 interface GetDocumentParams{
   scene :string;
-  models :ParsedModelResult[];
+  models :Array<DocumentModel>;
   language?:SceneLanguage;
 }
 
@@ -297,8 +315,8 @@ export async function createDocumentFromFiles(
       "units": "m", //glTF specification says it's always meters. It's what blender do.
       "boundingBox": model.bounds,
       "derivatives":[{
-        "usage": "Web3D",
-        "quality": "High",
+        "usage": model.usage,
+        "quality": model.quality,
         "assets": [
           {
             "uri": encodeURIComponent(model.filepath),

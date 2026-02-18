@@ -8,6 +8,11 @@ import { mkdir } from "fs/promises";
 
 export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
 
+/**
+ * Branded type to make a distinction between absolute path and ROOT_DIR relative paths
+ */
+export type RootRelativePath = string & {_brand: "RootRelativePath"};
+
 export default abstract class BaseVfs extends DbController{
 
   constructor(protected rootDir :string, db :Database){
@@ -49,10 +54,10 @@ export default abstract class BaseVfs extends DbController{
    * @param filepath 
    */
   public relative(filepath: string){
-    return path.relative(this.baseDir,  path.resolve(this.baseDir, filepath));
+    return path.relative(this.baseDir,  path.resolve(this.baseDir, filepath)) as RootRelativePath;
   }
 
-  public absolute(filepath: string){
+  public absolute(filepath: RootRelativePath|string){
     return path.isAbsolute(filepath)? filepath: path.resolve(this.baseDir, filepath);
   }
 

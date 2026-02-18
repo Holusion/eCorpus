@@ -35,6 +35,7 @@ def import_mesh(filepath):
         '.ply': bpy.ops.wm.ply_import,
         '.stl': bpy.ops.wm.stl_import,
         '.fbx': bpy.ops.import_scene.fbx,
+        '.blend': bpy.ops.wm.open_mainfile,
     }
 
     stdout = io.StringIO()
@@ -62,6 +63,7 @@ clean()
 try: 
     
     stdout = import_mesh(args.input)
+    print("Imported source file. Starting conversion")
     if len(bpy.data.objects) == 0:
         # likely invalid file error, not an easy way to capture this from Blender
         fail(stdout.replace("\n", "; "))

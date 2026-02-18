@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { once } from "node:events";
-import { TaskHandlerParams } from "../types.js";
+import { FileArtifact, TaskHandlerParams } from "../types.js";
 import yauzl, { Entry, ZipFile } from "yauzl";
 import path from "node:path";
 import { isUserAtLeast } from "../../auth/User.js";
@@ -10,6 +10,7 @@ import { toAccessLevel } from "../../auth/UserManager.js";
 import { getMimeType } from "../../utils/filetypes.js";
 import { text } from "node:stream/consumers";
 import { finished } from "node:stream/promises";
+import { UploadHandlerParams, ParsedUserUpload, UploadedArchive, UploadedFile } from "./uploads.js";
 
 
 
@@ -21,30 +22,26 @@ interface ImportErrorResult{
   name: string;
   action: "error";
   error: HTTPError|Error;
-
 }
 type ImportSceneResult = ImportSuccessResult|ImportErrorResult;
 
-interface ExtractZipParams{
-  /**filepath, relative to Vfs.baseDir */
-  filepath: string,
-}
 
 /**
  * Analyze an uploaded file and create child tasks accordingly
  */
-export async function extractScenesArchive({task: {scene_id: scene_id, user_id: user_id, data: {filepath}}, context:{vfs, logger, userManager, tasks}}:TaskHandlerParams<ExtractZipParams>):Promise<ImportSuccessResult[]>{
-  if(!filepath || typeof filepath !== "string") throw new Error(`invalid filepath provided`);
-
+export async function extractScenesArchive({task: {scene_id: scene_id, user_id: user_id, data: {fileLocation}}, context:{vfs, logger, userManager, tasks}}:TaskHandlerParams<FileArtifact>):Promise<ImportSuccessResult[]>{
+  if(!fileLocation || typeof fileLocation !== "string") throw new Error(`invalid fileLocation provided`);
+  const filepath = vfs.absolute(fileLocation);
   if(!user_id) throw new Error(`This task requires an authenticated user`);
   const requester = await userManager.getUserById(user_id);
 
   let zipError: Error;
   logger.debug("Open Zip file");
-  const zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(path.join(vfs.baseDir, filepath!), {lazyEntries: true, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
+  const zip = await new Promise<ZipFile>((resolve,reject)=>yauzl.open(filepath, {lazyEntries: true, autoClose: true}, (err, zip)=>(err?reject(err): resolve(zip))));
   const openZipEntry = (record:Entry)=> new Promise<Readable>((resolve, reject)=>zip.openReadStream(record, (err, rs)=>(err?reject(err): resolve(rs))));
     
   logger.debug("Open database transaction");
+  const ts = Date.now();
   const results = await vfs.isolate(async (vfs)=>{
     //Directory entries are optional in a zip file so we should handle their absence
     //We do this by maintaining a Map of scenes, and for each scene a Set of files
@@ -85,9 +82,16 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
         }
         scenes.set(scene, {folders: new Set(), ...result});
       }
-      if(has_errors) return;
-      const _s = scenes.get(scene);
+      //Don't create the files if any scene is rejected: The transaction will be reverted anyways
+      if(has_errors) return; 
+
+      const _s = scenes.get(scene); //having a scene not registered in this map is not supposed to happen. Something would be seriously wrong
       if(!_s || _s.action === "error") throw new Error(`Scene ${scene} wasn't properly checked for permissions`);
+
+
+
+      // Proceed with content creation. Start with folders
+      // We have to manually re-create the structure because folder entries are optional in zip archives
       const { folders } = _s;
       if (!name) return;
       let dirpath = "";
@@ -122,8 +126,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
         let mime = getMimeType(name);
         if (mime.startsWith('text/')){
           await vfs.writeDoc(await text(rs), {user_id: requester.uid, scene, name, mime});
-        }
-        else {
+        } else {
           await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime});
         }
       }
@@ -138,7 +141,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
       });
     });
     zip.readEntry();
-    logger.debug("Start extracting zip");
+    logger.debug("Start extracting zip entries");
     await once(zip, "close");
     if(zipError){
       logger.error("Zip extraction encountered an error. This is most probably due to an invalid zip");
@@ -155,14 +158,50 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
           throw new  UnauthorizedError(
             `Multiple unauthorized scenes : ${errors.map(r=>r.name).join(",")}`
           );
-        } else{
+        } else {
           throw new InternalError(`Mixed errors : ${errors.map(r=>r.error.message).join(", ")}`)
         }
       }
     }else{
-      logger.debug("zip file closed");
+      logger.debug("zip file closed successfully. Running database triggers.");
       return results as ImportSuccessResult[];
     }
   });
+
+  logger.log("Database transaction took %dms", Date.now()- ts);
   return results;
 };
+
+export function isUploadedArchive(t: UploadedFile): t is UploadedArchive {
+  return t.mime == "application/zip" && (t as any).scenes?.length;
+}
+
+export async function extractScenesArchives({ context: { tasks, logger }, task: { data: { tasks: source_ids } } }: TaskHandlerParams<{ tasks: number[]; }>): Promise<ImportSuccessResult[]> {
+  if (!source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
+
+  for (const task_id of source_ids) {
+    if (!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
+  }
+  const source_tasks = await Promise.all(source_ids.map(id => tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
+  const failed_tasks = source_tasks.filter(t => t.status !== "success");
+  const invalid_outputs = source_tasks.filter(t => !isUploadedArchive(t.output));
+  if (failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length ? "s" : ""} ${failed_tasks.map(t => t.task_id).join(", ")} has not completed successfully`);
+  if (invalid_outputs.length) throw new BadRequestError(`Source task${1 < invalid_outputs.length ? "s" : ""} ${invalid_outputs.map(t => t.task_id).join(", ")} did not output a zip file`);
+
+  const archives = source_tasks.map(t => t.output as UploadedArchive);
+  // Unfortunately here it's possible to have partial failures if we have more than one file.
+  // it could be prevented with async-context support for database transactions
+  if(1 < archives.length) logger.warn(`Importing more than once archive file. Partial failures are possible`);
+
+  let results = [];
+  for (let archive of archives) {
+    results.push(...await tasks.run({
+      handler: extractScenesArchive,
+      data: {
+        fileLocation: archive.fileLocation,
+      }
+    }));
+  }
+  return results;
+}
+

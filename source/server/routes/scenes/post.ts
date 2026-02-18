@@ -62,7 +62,7 @@ export async function postRawZipfile(req: Request, res: Response){
       return await taskScheduler.run({
         scene_id: null,
         user_id: requester.uid,
-        data: {filepath: relPath, size},
+        data: {fileLocation: relPath, size},
         handler: extractScenesArchive,
       });
     }

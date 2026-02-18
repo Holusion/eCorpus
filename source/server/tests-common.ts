@@ -89,7 +89,7 @@ global.createIntegrationContext = async function(c :Mocha.Context, config_overri
 }
 
 global.cleanIntegrationContext = async function(c :Mocha.Context){
-  await c.services.close();
+  await c.services?.close();
   await dropDb(c.db_uri);
   if(c.dir) await fs.rm(c.dir, {recursive: true});
 }

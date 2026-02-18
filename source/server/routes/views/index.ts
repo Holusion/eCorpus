@@ -80,26 +80,41 @@ routes.get("/upload", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const {task} = req.query;
   //Maybe we shouldn't fail on bad parameters and redirect to a blank page or just ignore them
-  const ids = [task].flat().filter<string>(t=>typeof t === "string").map(t=>parseInt(t));
+  const ids = [task].flat().filter(t=>typeof t === "string").map(t=>parseInt(t as string));
   if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
     throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
   }
   debug("Render previous upload tasks : ", ids);
   let tasks = await Promise.all(ids.map(id=> taskScheduler.getTask(id)));
-  let scenes = [];
+  let scenes: Array<{name: string,  action: "create"|"update"}|{error: string, action: "error"}> = [];
   for(let task of tasks){
     if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
-      //This in particular might be problematic if someone ever links to a "used" upload page.
-      //Do we really want the user to get an error or (if admin) to land on those results?
-      throw new ForbiddenError(`Not allowed to see results of task #${task.task_id}`);
+      scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error"});
     }
-    if(task.status === "error"){
-      console.warn("Unsupported task error reporting");
-    }else if(typeof task.output === "number"){
+    if(task.status !== "success"){
+      console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
+      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${task.output?.message? " "+task.output.message: ""}`, action: "error"});
+    }else if(task.type === "createSceneFromFiles"){
+      if(typeof task.output == "number"){
+        console.warn("Unexpected output for %s :", task.type, task.output);
+        scenes.push({error: `Unexpected output for ${task.type}`, action: "error"});
+        continue;
+      }
       const scene = await vfs.getScene(task.output);
-      scenes.push({name: scene.name, id: scene.id, action: "create"});
+      scenes.push({name: scene.name, action: "create"});
+    }else if(task.type === "extractScenesArchives"){
+      if(!Array.isArray(task.output)){
+        console.warn("Unexpected output for %s :", task.type, task.output);
+        scenes.push({error: `Unexpected output for ${task.type}`, action: "error"});
+        continue;
+      }
+      for(let {action, name } of task.output){
+        console.log("Push :", action, name);
+        scenes.push({action, name});
+      }
     }else{
-      console.warn("Unsupported output, not an upload task?", task);
+      console.warn("Unsupported task type: %s. not an upload task?", task.type);
+      scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error"});
     }
   }
   

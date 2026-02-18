@@ -1,10 +1,12 @@
-
+import fs from "fs/promises";
 import request from "supertest";
 
 import User from "../../../../auth/User.js";
 import UserManager from "../../../../auth/UserManager.js";
 import Vfs from "../../../../vfs/index.js";
 import { randomBytes, randomInt } from "node:crypto";
+import path from "node:path";
+import { fixturesDir } from "../../../../__test_fixtures/fixtures.js";
 
 
 
@@ -38,7 +40,7 @@ describe("PUT /tasks/:id/artifact", function(){
       data: {filename, size},
       status: "initializing",
     })
-    .expect(200);
+    .expect(201);
     expect(body).to.have.property("task_id").a("number");
     task = body.task_id;
   });
@@ -110,15 +112,14 @@ describe("PUT /tasks/:id/artifact", function(){
 
     expect(body).to.have.property("status", "success");
     expect(body).to.have.property("output").to.deep.equal({
-      filepath: `artifacts/${task}/${filename}`,
-      files: [filename],
-      scenes: [],
+      fileLocation: `artifacts/${task}/${filename}`,
+      isModel: false,
+      mime: "application/octet-stream",
     });
   });
 
   it("rejects out-of-order bytes", async function(){
     const data = randomBytes(6);
-    console.log()
     const res = await request(this.server).put(`/tasks/${task}/artifact`)
       .auth("alice", "12345678")
       .set("Content-Length", '6')

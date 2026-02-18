@@ -53,6 +53,20 @@ describe("Vfs", function(){
     it("works with paths that are already relative", function(){
       expect(vfs.relative("test.bin")).to.equal("test.bin");
     });
+  });
+
+  describe("absolute()", function(){
+    let vfs: Vfs;
+    this.beforeEach(function(){
+      vfs = new Vfs("/path/to/data", {} as any);
+    })
+    it("don't touch absoltue paths", function(){
+      expect(vfs.absolute("/something/foo/bar")).to.equal("/something/foo/bar");
+    });
+    it("resolves paths from root dir", function(){
+      expect(vfs.absolute("scenes/foo.txt")).to.equal("/path/to/data/scenes/foo.txt");
+    });
+    
   })
   describe("", function(){
     this.beforeEach(async function(){

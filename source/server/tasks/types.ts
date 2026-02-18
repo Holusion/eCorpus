@@ -1,6 +1,7 @@
 import type UserManager from "../auth/UserManager.js";
 import { Config } from "../utils/config.js";
 import { TDerivativeQuality } from "../utils/schema/model.js";
+import { RootRelativePath } from "../vfs/Base.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import type Vfs from "../vfs/index.js";
 import { TaskScheduler } from "./scheduler.js";
@@ -144,3 +145,12 @@ export interface ProcessFileParams{
   preset: TDerivativeQuality;
 }
 
+
+// Common task data types
+export interface FileArtifact extends TaskData{
+  fileLocation: RootRelativePath
+}
+
+export function isArtifactTask(output:TaskData):output is FileArtifact{
+  return typeof output?.fileLocation == "string";
+}

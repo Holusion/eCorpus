@@ -55,7 +55,8 @@ labels:
 
 buttons:
   searchScene: chercher une scène
-  upload: créer une scène
+  uploadScene: créer une scène
+  uploadArchive: extraire
   download: Télécharger la scène
   downloadSelection: Télécharger la sélection
   useStandalone: utiliser le mode Standalone
