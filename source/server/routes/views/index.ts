@@ -519,6 +519,21 @@ routes.get("/standalone", (req, res)=>{
 });
 
 
+routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
+  const taskScheduler = getTaskScheduler(req);
+  const id = parseInt(req.params.id);
+  const validLevels = ["debug", "log", "warn", "error"] as const;
+  type Level = typeof validLevels[number];
+  const rawLevel = req.query.level as string | undefined;
+  const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "debug";
+  const {root, logs} = await taskScheduler.getTaskTree(id, {level});
+  res.render("task", {
+    title: `Task #${id} — ${root.type}`,
+    root,
+    logs,
+    level,
+  });
+}));
 
 
 export default routes;

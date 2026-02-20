@@ -265,4 +265,138 @@ describe("TaskManager", function(){
     expect(retrieved.output).to.be.an("object");
     expect(retrieved.output).to.deep.equal(testOutput);
   });
+
+  describe("getTaskTree()", function(){
+    it("returns the root task with empty logs when there are none", async function(){
+      const root = await listener.create({scene_id: null, user_id: null, type: "root", data: {}});
+      const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
+
+      expect(logs).to.deep.equal([]);
+      expect(rootNode.task_id).to.equal(root.task_id);
+      expect(rootNode.children).to.deep.equal([]);
+    });
+
+    it("throws NotFoundError for a non-existent task id", async function(){
+      await expect(listener.getTaskTree(99999)).to.be.rejectedWith(NotFoundError);
+    });
+
+    it("returns logs for a single task, ordered by log_id ASC", async function(){
+      const root = await listener.create({scene_id: null, user_id: null, type: "root", data: {}});
+
+      await handle.run(
+        `INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'first'), ($1, 'warn', 'second')`,
+        [root.task_id]
+      );
+
+      const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
+
+      expect(rootNode.children).to.deep.equal([]);
+      expect(logs).to.have.length(2);
+      expect(logs[0].message).to.equal("first");
+      expect(logs[1].message).to.equal("second");
+      expect(logs[0].log_id).to.be.lessThan(logs[1].log_id);
+      expect(logs[0].task_id).to.equal(root.task_id);
+      expect(logs[1].task_id).to.equal(root.task_id);
+    });
+
+    it("returns parent and direct children with their respective logs", async function(){
+      const root = await listener.create({scene_id: null, user_id: null, type: "root", data: {}});
+      const child1 = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: root.task_id});
+      const child2 = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: root.task_id});
+
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'root-log')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'child1-log')`, [child1.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'error', 'child2-log')`, [child2.task_id]);
+
+      const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
+
+      // All logs present, ordered by log_id
+      expect(logs).to.have.length(3);
+      const logIds = logs.map(l => l.log_id);
+      expect(logIds).to.deep.equal([...logIds].sort((a, b) => a - b));
+
+      // Root node carries both children
+      expect(rootNode.children.map(c => c.task_id).sort()).to.deep.equal([child1.task_id, child2.task_id].sort());
+
+      // Children carry the parent id and no children of their own
+      const childNode1 = rootNode.children.find(c => c.task_id === child1.task_id)!;
+      expect(childNode1.parent).to.equal(root.task_id);
+      expect(childNode1.children).to.deep.equal([]);
+    });
+
+    it("fetches deeply nested (grandchild) tasks recursively", async function(){
+      const root  = await listener.create({scene_id: null, user_id: null, type: "root",       data: {}});
+      const child = await listener.create({scene_id: null, user_id: null, type: "child",      data: {}, parent: root.task_id});
+      const grand = await listener.create({scene_id: null, user_id: null, type: "grandchild", data: {}, parent: child.task_id});
+
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'grand-log')`, [grand.task_id]);
+
+      const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
+
+      // Log comes from the grandchild
+      expect(logs).to.have.length(1);
+      expect(logs[0].task_id).to.equal(grand.task_id);
+
+      // Graph is properly linked: root -> child -> grandchild
+      expect(rootNode.children).to.have.length(1);
+      const childNode = rootNode.children[0];
+      expect(childNode.task_id).to.equal(child.task_id);
+      expect(childNode.children).to.have.length(1);
+      expect(childNode.children[0].task_id).to.equal(grand.task_id);
+    });
+
+    it("does not include tasks outside the requested subtree", async function(){
+      const root     = await listener.create({scene_id: null, user_id: null, type: "root",    data: {}});
+      const child    = await listener.create({scene_id: null, user_id: null, type: "child",   data: {}, parent: root.task_id});
+      const unrelated = await listener.create({scene_id: null, user_id: null, type: "other",  data: {}});
+
+      // Fetching only the child subtree should not include root or unrelated
+      const {root: subtreeRoot} = await listener.getTaskTree(child.task_id);
+      expect(subtreeRoot.task_id).to.equal(child.task_id);
+      expect(subtreeRoot.parent).to.equal(root.task_id); // parent id is preserved
+      expect(subtreeRoot.children).to.deep.equal([]);    // but parent node is not included
+    });
+
+    it("logs from all tasks in the tree are merged and sorted by log_id", async function(){
+      const root  = await listener.create({scene_id: null, user_id: null, type: "root",  data: {}});
+      const child = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: root.task_id});
+
+      // Interleave inserts from different tasks to test global ordering
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'a')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'b')`, [child.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'c')`, [root.task_id]);
+
+      const {logs} = await listener.getTaskTree(root.task_id);
+
+      expect(logs).to.have.length(3);
+      const logIds = logs.map(l => l.log_id);
+      expect(logIds).to.deep.equal([...logIds].sort((a, b) => a - b));
+      expect(logs.map(l => l.message)).to.deep.equal(['a', 'b', 'c']);
+    });
+
+    it("filters logs by minimum severity level", async function(){
+      const root = await listener.create({scene_id: null, user_id: null, type: "root", data: {}});
+
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'debug', 'msg-debug')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log',   'msg-log')`,   [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'warn',  'msg-warn')`,  [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'error', 'msg-error')`, [root.task_id]);
+
+      // no filter → all four lines
+      const {logs: all} = await listener.getTaskTree(root.task_id);
+      expect(all.map(l => l.message)).to.deep.equal(['msg-debug', 'msg-log', 'msg-warn', 'msg-error']);
+
+      // level: 'log' → excludes 'debug'
+      const {logs: fromLog} = await listener.getTaskTree(root.task_id, {level: 'log'});
+      expect(fromLog.map(l => l.message)).to.deep.equal(['msg-log', 'msg-warn', 'msg-error']);
+
+      // level: 'warn' → only warn and error
+      const {logs: fromWarn} = await listener.getTaskTree(root.task_id, {level: 'warn'});
+      expect(fromWarn.map(l => l.message)).to.deep.equal(['msg-warn', 'msg-error']);
+
+      // level: 'error' → only errors
+      const {logs: fromError} = await listener.getTaskTree(root.task_id, {level: 'error'});
+      expect(fromError.map(l => l.message)).to.deep.equal(['msg-error']);
+    });
+  });
 });

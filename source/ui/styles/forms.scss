@@ -20,6 +20,9 @@
       display:flex;
       justify-content: stretch;
       flex-direction: row;
+      .form-item > select{
+        width: auto;
+      }
     }
     &.column{
       display:flex;

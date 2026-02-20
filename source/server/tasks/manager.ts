@@ -2,7 +2,7 @@ import { debuglog } from "node:util";
 import { BadRequestError, HTTPError, NotFoundError } from "../utils/errors.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { serializeTaskError } from "./errors.js";
-import { TaskStatus, TaskDataPayload, TaskDefinition, CreateTaskParams } from "./types.js";
+import { TaskStatus, TaskDataPayload, TaskDefinition, CreateTaskParams, TaskNode, TaskLogEntry, TaskTreeResult, LogSeverity } from "./types.js";
 
 const debug_status = debuglog("tasks:status");
 const debug_logs = debuglog("tasks:logs");
@@ -102,6 +102,21 @@ export class TaskManager{
     status
    `;
 
+  // Same as #taskColumns but with every column qualified by the tasks table alias,
+  // needed inside recursive CTEs where tasks is joined against a CTE that also
+  // exposes task_id (causing an "ambiguous column" error in PostgreSQL).
+  static #qualifiedTaskColumns = `
+    tasks.fk_scene_id AS scene_id,
+    tasks.fk_user_id AS user_id,
+    tasks.task_id,
+    tasks.ctime,
+    tasks.type,
+    tasks.parent,
+    tasks.data,
+    tasks.output,
+    tasks.status
+   `;
+
   public async create<T extends TaskDataPayload = any>({scene_id, user_id, type, data, status='pending', parent=null}: CreateTaskParams<T>): Promise<TaskDefinition<T>>{
     let args =  [scene_id, type, data ?? {}, status, user_id, parent];
     let task = await this.db.all<TaskDefinition<T>>(`
@@ -122,6 +137,150 @@ export class TaskManager{
     `, [id]);
     if(!task.length) throw new NotFoundError(`No task found with id ${id}`);
     return task[0];
+  }
+
+  /**
+   * Returns all log lines for a single task, ordered by `log_id ASC`.
+   * @throws {NotFoundError} if no task with `id` exists
+   */
+  public async getLogs(id: number): Promise<TaskLogEntry[]> {
+    // Verify task existence first so callers get a proper NotFoundError
+    await this.getTask(id);
+    return this.db.all<TaskLogEntry>(`
+      SELECT
+        log_id,
+        fk_task_id AS task_id,
+        timestamp,
+        severity,
+        message
+      FROM tasks_logs
+      WHERE fk_task_id = $1
+      ORDER BY log_id ASC
+    `, [id]);
+  }
+
+  /**
+   * Fetches a task by id together with **all descendants** (tasks whose `parent`
+   * chain leads back to `id`), and every log line produced by any of those tasks.
+   *
+   * The query is issued as a **single atomic statement** using a recursive CTE so
+   * the result is a consistent snapshot even under concurrent writes.
+   *
+   * Returned structure:
+   * - `root` – the requested {@link TaskNode} with descendants nested under `children`.
+   * - `logs` – flat array of {@link TaskLogEntry} ordered by `log_id ASC`,
+   *   optionally filtered to lines at or above `options.level`.
+   *
+   * @param options.level  Minimum severity to include. Defaults to `'debug'` (all lines).
+   *                       Severity order: `debug` < `log` < `warn` < `error`.
+   * @throws {NotFoundError} when no task with `id` exists
+   */
+  public async getTaskTree<TData extends TaskDataPayload = any, TReturn = any>(
+    id: number,
+    options?: { level?: LogSeverity }
+  ): Promise<TaskTreeResult<TData, TReturn>> {
+    /*
+     * One atomic query:
+     *   1. Recursive CTE `tree` walks the task graph depth-first.
+     *   2. Left-join with tasks_logs to pull every log line in the same pass,
+     *      filtered by minimum severity using PostgreSQL's ENUM ordering.
+     *   3. The outer SELECT returns every (task, log?) pair; rows with no
+     *      matching logs still appear once thanks to LEFT JOIN.
+     *
+     * Post-processing in JS is O(n) and avoids a second round-trip.
+     */
+    const level: LogSeverity = options?.level ?? 'debug';
+    const rows = await this.db.all<{
+      // task columns
+      scene_id: number;
+      user_id: number;
+      task_id: number;
+      ctime: Date;
+      type: string;
+      parent: number | null;
+      data: TData extends undefined ? {} : TData;
+      output: TReturn;
+      status: string;
+      // log columns (nullable – task may have no logs)
+      log_id: number | null;
+      log_task_id: number | null;
+      timestamp: Date | null;
+      severity: string | null;
+      message: string | null;
+    }>(`
+      WITH RECURSIVE tree AS (
+        SELECT ${TaskManager.#taskColumns}
+        FROM tasks
+        WHERE task_id = $1
+
+        UNION ALL
+
+        SELECT ${TaskManager.#qualifiedTaskColumns}
+        FROM tasks
+        INNER JOIN tree ON tasks.parent = tree.task_id
+      )
+      SELECT
+        tree.*,
+        tl.log_id,
+        tl.fk_task_id  AS log_task_id,
+        tl.timestamp,
+        tl.severity,
+        tl.message
+      FROM tree
+      LEFT JOIN tasks_logs tl ON tl.fk_task_id = tree.task_id
+                              AND tl.severity >= $2::log_severity
+      ORDER BY tl.log_id ASC NULLS FIRST
+    `, [id, level]);
+
+    if (!rows.length) {
+      throw new NotFoundError(`No task found with id ${id}`);
+    }
+
+    // --- assemble tasks (deduplicate by task_id) and logs (deduplicate by log_id) ---
+    const taskMap = new Map<number, TaskNode<TData, TReturn>>();
+    const logs: TaskLogEntry[] = [];
+    const seenLogIds = new Set<number>();
+
+    for (const row of rows) {
+      if (!taskMap.has(row.task_id)) {
+        taskMap.set(row.task_id, {
+          scene_id: row.scene_id,
+          user_id: row.user_id,
+          task_id: row.task_id,
+          ctime: row.ctime,
+          type: row.type,
+          parent: row.parent,
+          after: [],
+          data: row.data,
+          output: row.output,
+          status: row.status as any,
+          children: [],
+        });
+      }
+
+      if (row.log_id !== null && !seenLogIds.has(row.log_id)) {
+        seenLogIds.add(row.log_id);
+        logs.push({
+          log_id: row.log_id,
+          task_id: row.log_task_id!,
+          timestamp: row.timestamp!,
+          severity: row.severity as any,
+          message: row.message!,
+        });
+      }
+    }
+
+    // Wire up children and find the root (the node whose parent is not in the tree)
+    let root: TaskNode<TData, TReturn> | undefined;
+    for (const node of taskMap.values()) {
+      if (node.parent !== null && taskMap.has(node.parent)) {
+        taskMap.get(node.parent)!.children.push(node);
+      } else {
+        root = node;
+      }
+    }
+
+    return { root: root!, logs };
   }
 
   /**

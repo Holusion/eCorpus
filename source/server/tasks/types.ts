@@ -134,6 +134,43 @@ export interface ITaskLogger{
 
 export type LogSeverity = keyof ITaskLogger;
 
+/**
+ * A single log line produced by a task
+ */
+export interface TaskLogEntry{
+  log_id: number;
+  task_id: number;
+  timestamp: Date;
+  severity: LogSeverity;
+  message: string;
+}
+
+/**
+ * A task node in the tree, carrying its direct children.
+ * The `parent` field allows reconstructing the graph from a flat list if needed.
+ */
+export interface TaskNode<TData extends TaskDataPayload = TaskDataPayload, TReturn = any>
+  extends TaskDefinition<TData, TReturn> {
+  children: TaskNode<TData, TReturn>[];
+}
+
+/**
+ * Result returned by {@link TaskManager.getTaskTree}.
+ *
+ * - `root` is the requested task as a {@link TaskNode}; its `children` array
+ *   contains the direct children, each of which recursively carries their own
+ *   `children`, forming a proper tree.  The `parent` field on every node is
+ *   preserved so the tree can also be flattened back to a list if needed.
+ * - `logs` is a **flat, ordered array** of every log line produced by any task in
+ *   the tree, sorted by `log_id ASC` (i.e. insertion order).
+ */
+export interface TaskTreeResult<TData extends TaskDataPayload = TaskDataPayload, TReturn = any>{
+  /** The requested task, with descendants nested under `children` recursively */
+  root: TaskNode<TData, TReturn>;
+  /** All log lines from every task in the tree, ordered by log_id ASC */
+  logs: TaskLogEntry[];
+}
+
 export interface TaskHandlerDefinition<T extends TaskDataPayload = TaskDataPayload>{
   readonly type: string;
   handle: TaskHandler<T>;

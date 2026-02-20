@@ -1,0 +1,151 @@
+<style>
+  .task-tree {
+    font-family: var(--font-mono, monospace);
+    container-type: inline-size;
+    > .task-node:first-child {
+      margin-left: 0;
+      border-left: none;
+    }
+  }
+
+  .task-node {
+    margin: 0;
+    padding: .25rem .5rem;
+    border-left: 2px solid var(--color-element, #444);
+    margin-left: .5rem;
+  }
+
+  .task-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    padding: .25rem 0;
+  }
+
+  .task-id   { color: var(--color-secondary, #aaa); }
+  .task-type { font-weight: bold; }
+  .task-status {
+    padding: .1em .45em;
+    border-radius: .25em;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  .status-pending, .status-initializing { background: var(--color-element, #444); color: var(--color-light, #eee); }
+  .status-running   { background: #2a6baa; color: #fff; }
+  .status-success   { background: #2a7a4b; color: #fff; }
+  .status-error     { background: #a03030; color: #fff; }
+  .status-aborting  { background: #7a5a20; color: #fff; }
+
+  .task-children { margin-top: .25rem; }
+
+  .logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono, monospace);
+  }
+  .logs-table th {
+    text-align: left;
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--color-element, #444);
+    color: var(--color-primary, #aaa);
+    font-weight: bold;
+    font-size: 110%;
+  }
+  .logs-table td {
+    padding: .2rem .5rem;
+    vertical-align: top;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
+  }
+  .log-task-id  { color: #aaa; white-space: nowrap; width: 1%; }
+  .log-time     { color:  #aaa; white-space: nowrap; width: 1%; }
+  .log-level    { white-space: nowrap; width: 1%; }
+  .log-debug    { color: var(--color-info, #aaa); }
+  .log-log      { color: var(--color-light, #eee); }
+  .log-warn     { color: #d4a030; }
+  .log-error    { color: #e05050; }
+  .log-message  { white-space: pre-wrap; word-break: break-all; width: 100%; }
+</style>
+
+<div class="main-container">
+
+  <h1>Task #{{root.task_id}} &mdash; <span class="task-type">{{root.type}}</span></h1>
+
+  {{#if root.scene_id}}
+    <p style="color: var(--color-secondary)">Scene #{{root.scene_id}}</p>
+  {{/if}}
+
+  <section class="container">
+    <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+      <h2>{{i18n "titles.taskTree"}}</h2>
+      {{#if root.parent}}<span>Child of <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a></span>{{/if}}
+    </div>
+    <div class="task-tree">
+      {{> taskNode root}}
+    </div>
+  </section>
+
+  <section class="container" style="margin-top: 1.5rem">
+    <div style="display:flex; align-items:baseline; justify-content: space-between; gap:1rem; flex-wrap:wrap;">
+      <h2 style="margin-bottom:.5rem">{{i18n "titles.logs" default="Logs"}} <small style="font-weight:normal;color:var(--color-secondary)">({{logs.length}})</small></h2>
+      <form class="form-control" method="GET" style="margin-bottom:.75rem">
+        <div class="form-group inline">
+          <label class="form-item">
+            {{i18n "fields.minLevel" default="Min level"}}
+            <select name="level" autocomplete="off" onchange="this.form.submit()">
+              <option value="debug"  {{#if (test level "==" "debug" )}}selected{{/if}}>debug</option>
+              <option value="log"    {{#if (test level "==" "log"   )}}selected{{/if}}>log</option>
+              <option value="warn"   {{#if (test level "==" "warn"  )}}selected{{/if}}>warn</option>
+              <option value="error"  {{#if (test level "==" "error" )}}selected{{/if}}>error</option>
+            </select>
+          </label>
+        </div>
+      </form>
+    </div>
+    {{#if logs.length}}
+    <div style="overflow-x: auto">
+      <table class="logs-table">
+        <thead>
+          <tr>
+            <th>time</th>
+            <th>task</th>
+            <th>level</th>
+            <th>message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each logs}}
+          <tr id="log-{{log_id}}" class="log-{{severity}}">
+            <td class="log-time">{{dateString timestamp}}</td>
+            <td class="log-task-id">#{{task_id}}</td>
+            <td class="log-level log-{{severity}}">{{severity}}</td>
+            <td class="log-message">{{message}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      <p style="color: var(--color-secondary)">{{i18n "labels.noLogs" default="No logs."}}</p>
+    {{/if}}
+  </section>
+
+</div>
+
+{{!-- Recursive partial for task nodes --}}
+{{#*inline "taskNode"}}
+<div class="task-node">
+  <div class="task-header">
+    <a href="/ui/tasks/{{task_id}}" class="task-id">#{{task_id}}</a>
+    <span class="task-type">{{type}}</span>
+    <span class="task-status status-{{status}}">{{status}}</span>
+  </div>
+  {{#if children.length}}
+  <div class="task-children">
+    {{#each children}}
+      {{> taskNode this}}
+    {{/each}}
+  </div>
+  {{/if}}
+</div>
+{{/inline}}
