@@ -201,12 +201,12 @@ export class Uploader implements ReactiveController{
     });
     await HttpError.okOrThrow(res);
     const body = await res.json();
-    if(!body.output || typeof body.output !== "object" || !body.output.mime){
+    if(!body?.task?.output || typeof body.task.output !== "object" || !body.task.output.mime){
       console.warn("Unexpected format for scene output:", body);
       throw new Error("Invalid response body");
     }
 
-    return body.output;
+    return body.task.output;
   }
 
   
