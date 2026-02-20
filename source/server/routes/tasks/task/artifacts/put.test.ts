@@ -110,8 +110,8 @@ describe("PUT /tasks/:id/artifact", function(){
     .auth("alice", "12345678")
     .expect(200);
 
-    expect(body).to.have.property("status", "success");
-    expect(body).to.have.property("output").to.deep.equal({
+    expect(body).to.have.property("task").to.have.property("status", "success");
+    expect(body).to.have.property("task").to.have.property("output").to.deep.equal({
       fileLocation: `artifacts/${task}/${filename}`,
       isModel: false,
       mime: "application/octet-stream",

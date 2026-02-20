@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -519,6 +519,75 @@ routes.get("/standalone", (req, res)=>{
 });
 
 
+routes.get("/tasks", wrap(async (req, res) => {
+  const user = getUser(req);
+  if (!user || user.level === "none") {
+    throw new ForbiddenError("You must be logged in to view your tasks");
+  }
+  const taskScheduler = getTaskScheduler(req);
+  // Parse and validate query params
+  const rawOwner = typeof req.query.owner === 'string' ? req.query.owner : undefined;
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+
+  // owner: 'mine'|'all' (only admins may request 'all')
+  const owner = rawOwner === 'all' ? 'all' : 'mine';
+  if (owner === 'all' && user.level !== 'admin') {
+    throw new ForbiddenError("Only administrators can list all users' tasks");
+  }
+
+  // status: 'all'|'success'|'error'
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if(rawStatus && status !== rawStatus){
+    throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  }
+  // type: optional string, limit length to avoid abuse
+  let type: string | undefined = undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+
+  // rootOnly: optional boolean flag controlling whether only root tasks are returned.
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+
+  const userId = owner === 'mine' ? user.uid : undefined;
+
+  const tasks = await taskScheduler.getTasks({ user_id: userId, type, status, rootOnly });
+  console.log("Root : ", typeof rootOnly, rootOnly)
+  res.render("tasks", {
+    title: "My tasks",
+    tasks,
+    params: { owner, type, status, rootOnly },
+  });
+}));
+
+routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
+  const {
+    taskScheduler,
+    userManager,
+    vfs,
+    requester
+  } = getLocals(req);
+  const id = parseInt(req.params.id);
+  const validLevels = ["debug", "log", "warn", "error"] as const;
+  type Level = typeof validLevels[number];
+  const rawLevel = req.query.level as string | undefined;
+  const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "log";
+  const {root, logs} = await taskScheduler.getTaskTree(id, {level});
+
+  const owner = root.user_id? (root.user_id == requester?.uid ?requester.username :(await userManager.getUserById(root.user_id)).username):null;
+  const scene = root.scene_id? (await vfs.getScene(root.scene_id)).name : null;
+  res.render("task", {
+    title: `Task #${id} — ${root.type}`,
+    root,
+    logs,
+    level,
+    owner,
+    scene,
+  });
+}));
 
 
 export default routes;

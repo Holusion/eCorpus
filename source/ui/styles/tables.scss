@@ -5,8 +5,21 @@ table.list-table {
   width: 100%;
   display: table;
 
+  @at-root section > &{
+    --m: calc(var(--section-padding) * -1);
+    margin: 0 var(--m);
+    width: calc(-2 * var(--m) + 100%);
+    &:first-child{
+      margin-top: var(--m);
+    }
+    &:last-child{
+      margin-bottom: var(--m);
+    }
+  }
+
   background: var(--color-element);
   color: var(--color-text);
+
 
   tbody tr:nth-child(2n+1){
     background: var(--color-section);
@@ -43,6 +56,12 @@ table.list-table {
     border-left: 0;
     border-right: 0;
     white-space: nowrap;
+    &.compact{
+      width: 1%;
+    }
+    &.mono{
+      font-family: var(--font-mono, monospace);
+    }
   }
   tbody tr:hover{
     background: var(--color-dark);
