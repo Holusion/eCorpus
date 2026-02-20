@@ -95,7 +95,7 @@ routes.get("/upload", wrap(async (req, res)=>{
       console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
       scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${task.output?.message? " "+task.output.message: ""}`, action: "error"});
     }else if(task.type === "createSceneFromFiles"){
-      if(typeof task.output == "number"){
+      if(typeof task.output !== "number"){
         console.warn("Unexpected output for %s :", task.type, task.output);
         scenes.push({error: `Unexpected output for ${task.type}`, action: "error"});
         continue;

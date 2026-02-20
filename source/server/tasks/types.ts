@@ -140,12 +140,6 @@ export interface TaskHandlerDefinition<T extends TaskDataPayload = TaskDataPaylo
 };
 
 
-export interface ProcessFileParams{
-  file?:string;
-  preset: TDerivativeQuality;
-}
-
-
 // Common task data types
 export interface FileArtifact extends TaskData{
   fileLocation: RootRelativePath
@@ -153,4 +147,10 @@ export interface FileArtifact extends TaskData{
 
 export function isArtifactTask(output:TaskData):output is FileArtifact{
   return typeof output?.fileLocation == "string";
+}
+
+
+
+export interface ProcessFileParams extends FileArtifact{
+  preset: TDerivativeQuality;
 }

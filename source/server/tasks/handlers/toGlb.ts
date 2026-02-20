@@ -1,6 +1,6 @@
 import path from "node:path";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
-import { runBlenderScript } from "./exec.js";
+import { runBlenderScript } from "./runBlenderScript.js";
 
 
 export async function toGlb({context: {tasks, vfs, logger}, task:{task_id, data:{fileLocation}}}:TaskHandlerParams<FileArtifact>){
