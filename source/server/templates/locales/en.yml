@@ -57,6 +57,16 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Add this tag to selected scenes
   batchRmTag: Remove this tag from selected scenes
+  sceneName: Scene name
+  mine: Mine
+  all: All
+  success: Success
+  error: Error
+  allTasks: All tasks
+  rootOnly: Root tasks only
+  noTasks: No tasks found.
+  noLogs: No logs.
+  optimizeModel: Optimize models
 
 buttons:
   searchScene: search scenes
@@ -104,6 +114,12 @@ fields:
     create: Creator
     manage: Editor
     admin: Administrator
+  owner: Owner
+  parent: Parent
+  scene: Scene
+  type: Type
+  status: Status
+  minLevel: Min level
 nav:
   tags: collections
   login: connection
@@ -151,6 +167,11 @@ titles:
   modifiedToday: Scenes modified today
   buildRef: Current version
   previewEmail: Preview email templates
+  createdScenes: Created scenes
+  myTasks: My tasks
+  taskTree: Task tree
+  logs: Logs
+  advancedConfiguration: Advanced configuration
 
 tooltips:
   showPassword: Show the password's text
@@ -215,6 +236,18 @@ leads:
   noArchives: No archived scenes
   noGroups: This user has not been added to any group
   poweredByECorpus: Powered by <a target="_blank" href="https://ecorpus.eu">eCorpus</a> under the <a href="https://github.com/Holusion/eCorpus/blob/main/LICENSE.md">Apache-2.0</a> license
+  uploadFiles: Drop your files here
+  uploadMixedContent: >
+    Uploaded files are a mix of scenes archive and regular files. Mixed content can't be handled in a single operation.
+  uploadName: >
+    This will be the URL name of the created scene.
+    It is language-independent. You will be able to create a title for each language later.
+  uploadLanguage: The scene's default language
+  uploadOptimize: Optimize 3D models for better performance. This may take a bit more time.
+  uploadErrors: >
+    Some errors were encountered while processing the uploaded files. Please check errors above.
+
+
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

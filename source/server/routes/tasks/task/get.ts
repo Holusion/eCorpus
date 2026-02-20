@@ -2,6 +2,12 @@ import { Request, Response } from "express";
 import { UnauthorizedError } from "../../../utils/errors.js";
 import { getLocals, getUser } from "../../../utils/locals.js";
 import { toAccessLevel } from "../../../auth/UserManager.js";
+import { TaskDefinition, TaskDataPayload, TaskLogEntry } from "../../../tasks/types.js";
+
+export interface TaskResponse<TData extends TaskDataPayload = TaskDataPayload, TReturn = any>{
+  task: TaskDefinition<TData, TReturn>;
+  logs: TaskLogEntry[];
+}
 
 
 export async function getTask(req: Request, res: Response){
@@ -21,5 +27,6 @@ export async function getTask(req: Request, res: Response){
   ){
     throw new UnauthorizedError(`Read rights are required to delete tasks`);
   }
-  res.status(200).send(task);
+  const logs = await taskScheduler.getLogs(id);
+  res.status(200).send({task, logs});
 }

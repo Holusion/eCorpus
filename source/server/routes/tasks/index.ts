@@ -10,6 +10,7 @@ import bodyParser from "body-parser";
 import { getTaskArtifact } from "./task/artifacts/get.js";
 import { getTask } from "./task/get.js";
 import { deleteTask } from "./task/delete.js";
+import { getTaskTree } from "./task/tree/get.js";
 import { UnauthorizedError } from "../../utils/errors.js";
 import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
 
@@ -43,11 +44,12 @@ function taskAccess(name:AccessType){
         return next();
       }
     }).catch(next);
-} 
+  } 
 }
 
 
 router.get("/:id(\\d+)", isUser, wrap(getTask));
+router.get("/:id(\\d+)/tree", taskAccess("read"), wrap(getTaskTree));
 router.delete("/:id(\\d+)", taskAccess("admin"), wrap(deleteTask));
 router.put("/:id(\\d+)/artifact", taskAccess("admin"),  wrap(putTaskArtifact));
 router.get("/:id(\\d+)/artifact", taskAccess("read"), wrap(getTaskArtifact));
