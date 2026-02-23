@@ -284,6 +284,68 @@ export class TaskManager{
   }
 
   /**
+   * Returns all **root** tasks (tasks without a parent) created by a given user,
+   * ordered by creation time descending (newest first).
+   *
+   * Only root tasks are returned because child tasks are accessible via
+   * {@link getTaskTree} from their parent. Returning the full flat list would
+   * duplicate every child in the summary and make the view noisy.
+   *
+   * @param userId  The `uid` of the user whose tasks to fetch.
+   */
+  /**
+   * Generic task listing with optional filters.
+   *
+   * Options:
+   * - `user_id` : filter by `fk_user_id`
+   * - `type`    : regular expression match against `type` column
+   * - `scene_id`: filter by `fk_scene_id`
+   *
+   * Returns tasks ordered by `ctime DESC` (newest first).
+   */
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; rootOnly?: boolean; status?: 'success'|'error'|'all' } = {}): Promise<import("./types.js").TaskListItem[]> {
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (options.user_id != null) {
+      where.push(`fk_user_id = $${params.push(options.user_id)}`);
+    }
+
+    if (options.scene_id != null) {
+      where.push(`fk_scene_id = $${params.push(options.scene_id)}`);
+    }
+
+
+    if (options.type) {
+      // Exact match on `type` (previously supported regex). Use equality to
+      // avoid surprising regex semantics and to keep behavior predictable.
+      where.push(`type = $${params.push(options.type)}`);
+    }
+
+    // By default, return only root tasks (no parent). Caller can set `rootOnly: false`
+    // to include child tasks as well. This preserves previous summary behaviour.
+    if (options.rootOnly !== false) {
+      where.push(`parent IS NULL`);
+    }
+
+    // Status filter: 'success' or 'error' or 'all' (no filter)
+    if (options.status && options.status !== 'all') {
+      where.push(`status = $${params.push(options.status)}`);
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    return this.db.all<import("./types.js").TaskListItem>(`
+      SELECT ${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner
+      FROM tasks
+      LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
+      LEFT JOIN users ON users.user_id = tasks.fk_user_id
+      ${whereClause}
+      ORDER BY tasks.ctime DESC
+    `, params);
+  }
+
+  /**
    * Deletes a task from the database
    * Deletion will cascade to any dependents.
    */

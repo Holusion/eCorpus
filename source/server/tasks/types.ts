@@ -155,6 +155,19 @@ export interface TaskNode<TData extends TaskDataPayload = TaskDataPayload, TRetu
 }
 
 /**
+ * Task list item returned by `getTasks()` in summary views.
+ *
+ * Includes nullable `scene` and `owner` fields which map to the referenced
+ * `scenes.scene_name` and `users.username` respectively. These fields may be
+ * `null` when the task has no linked scene or user.
+ */
+export interface TaskListItem<TData extends TaskDataPayload = TaskDataPayload, TReturn = any>
+  extends TaskDefinition<TData, TReturn> {
+  scene: string | null;
+  owner: string | null;
+}
+
+/**
  * Result returned by {@link TaskManager.getTaskTree}.
  *
  * - `root` is the requested task as a {@link TaskNode}; its `children` array

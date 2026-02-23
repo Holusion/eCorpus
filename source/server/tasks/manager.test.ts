@@ -399,4 +399,34 @@ describe("TaskManager", function(){
       expect(fromError.map(l => l.message)).to.deep.equal(['msg-error']);
     });
   });
+
+  describe("getTasks()", function(){
+    it("returns only root tasks by default when filtering by user", async function(){
+      const root = await listener.create({scene_id: null, user_id, type: "root", data: {}});
+      const child = await listener.create({scene_id: null, user_id, type: "child", data: {}, parent: root.task_id});
+
+      const tasks = await listener.getTasks({ user_id });
+      expect(tasks).to.have.length(1);
+      expect(tasks[0].task_id).to.equal(root.task_id);
+    });
+
+    it("returns child tasks as well when rootOnly is false", async function(){
+      const root = await listener.create({scene_id: null, user_id, type: "root", data: {}});
+      const child = await listener.create({scene_id: null, user_id, type: "child", data: {}, parent: root.task_id});
+
+      const tasks = await listener.getTasks({ user_id, rootOnly: false });
+      // both root and child should be returned
+      const ids = tasks.map(t => t.task_id).sort((a,b)=>a-b);
+      expect(ids).to.deep.equal([root.task_id, child.task_id].sort((a,b)=>a-b));
+    });
+
+    it("applies exact type matching", async function(){
+      const a = await listener.create({scene_id: null, user_id, type: "delayTask", data: {}});
+      const b = await listener.create({scene_id: null, user_id, type: "other", data: {}});
+
+      const tasks = await listener.getTasks({ user_id, type: 'delayTask' });
+      expect(tasks).to.have.length(1);
+      expect(tasks[0].type).to.equal('delayTask');
+    });
+  });
 });
