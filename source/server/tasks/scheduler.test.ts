@@ -424,8 +424,6 @@ describe("TaskScheduler", function(){
   });
 
   it("closing scheduler with pending tasks cleans up properly", async function(){
-    // PURPOSE: Verify that if we close the scheduler while tasks are still
-    // pending, we don't leak resources or leave zombie tasks hanging.
     this.timeout(5000);
     
     scheduler.concurrency = 1;
@@ -443,9 +441,6 @@ describe("TaskScheduler", function(){
         return "task1";
       }
     });
-    
-
-    
     // Give task1 time to start executing
     await once(task1Executed, "start");
     
