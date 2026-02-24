@@ -9,13 +9,14 @@ import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { FileArtifact, TaskDefinition, TaskHandlerParams } from "../types.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
 import getDefaultDocument from "../../utils/schema/default.js";
-import { parse_glb } from "../../utils/glTF.js";
 import uid from "../../utils/uid.js";
 import { toGlb } from "./toGlb.js";
 import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
 import { TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
 import { optimizeGlb } from "./optimizeGlb.js";
 import { IDocument } from "../../utils/schema/document.js";
+import { inspectGlb } from "./inspectGlb.js";
+import { Bounds } from "../../utils/gltf/inspect.js";
 
 
 
@@ -47,7 +48,7 @@ export interface UploadedBinaryModel extends UploadedFile {
   byteSize: number;
   numFaces: number;
   imageSize: number;
-  bounds: Awaited<ReturnType<typeof parse_glb>>["bounds"];
+  bounds: Bounds;
 }
 
 export interface UploadedUsdModel extends UploadedFile{
@@ -114,25 +115,30 @@ async function parseUploadedArchive({task:{task_id, user_id, data:{fileLocation}
 }
 
 
-async function parseUploadedModel({task: {data: {fileLocation}}, context: {logger, vfs}}:TaskHandlerParams<FileArtifact>):Promise<UploadedBinaryModel>{
+async function parseUploadedModel({task: {data: {fileLocation}}, context: {logger, tasks, vfs}}:TaskHandlerParams<FileArtifact>):Promise<UploadedBinaryModel>{
   const filepath = vfs.absolute(fileLocation);
   logger.debug("Check mime type of "+fileLocation);
   const mime = await readMagicBytes(filepath);
   if(mime !== "model/gltf-binary"){
     throw new InternalError("This does not look like a GLB file");
   }
-  const meta = await parse_glb(filepath);
-  logger.log(`Parsed glb with ${meta.meshes.length} models`);
-  logger.warn("Using placeholder imageSize of 8192: Not compatible with LOD mode");
+  const meta = await tasks.run({
+    handler: inspectGlb,
+    data: {fileLocation}
+  });
+
+  const stats = await fs.stat(filepath);
+
+  logger.log(`Parsed glb file ${fileLocation}`);
   return {
     fileLocation,
     mime,
     isModel: true,
-    name: meta.meshes.find(m=>m.name)?.name,
+    name: meta.name,
     bounds: meta.bounds,
-    byteSize: meta.byteSize,
-    numFaces: meta.meshes.reduce((acc, m)=> acc+m.numFaces, 0),
-    imageSize: 8192
+    imageSize: meta.imageSize,
+    numFaces: meta.numFaces,
+    byteSize: stats.size,
   }
 }
 
@@ -269,7 +275,7 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
     await vfs.copyFile(filepath, {scene: scene_id, name: filename, user_id, mime });
     models.push({
       ...(source as UploadedBinaryModel),
-      filepath: filename,
+      uri: filename,
       quality: "High",
       usage: "Web3D"
     });
@@ -322,11 +328,25 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
   return scene_id;
 }
 
-type DocumentModel = UploadedBinaryModel&{quality:TDerivativeQuality, usage: TDerivativeUsage};
+interface DocumentModel {
+  name?: string;
+  /**
+   * Uri is slightly misleading as it's "relative to scene root"
+   * `uri` **WILL** be urlencoded by {@link createDocumentFromFiles} so it should be given in clear text
+   */
+  uri: string;
+  byteSize: number;
+  numFaces: number;
+  imageSize: number;
+  bounds: Bounds;
+  quality:TDerivativeQuality;
+  usage: TDerivativeUsage;
+};
+
 interface GetDocumentParams{
   scene :string;
   models :Array<DocumentModel>;
-  language?:SceneLanguage;
+  language:SceneLanguage|undefined;
 }
 
 
@@ -350,7 +370,7 @@ export async function createDocumentFromFiles(
         "quality": model.quality,
         "assets": [
           {
-            "uri": encodeURIComponent(model.filepath),
+            "uri": encodeURIComponent(model.uri),
             "type": "Model",
             "byteSize": model.byteSize,
             "numFaces": model.numFaces,

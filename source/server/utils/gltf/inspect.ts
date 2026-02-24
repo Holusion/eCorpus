@@ -2,12 +2,14 @@ import {getBounds, getPrimitiveVertexCount, VertexCountMethod} from '@gltf-trans
 
 import { Document, ImageUtils, PropertyType } from '@gltf-transform/core';
 
+export interface Bounds {
+  min: [number, number, number], 
+  max: [number, number, number],
+}
+
 export interface SceneDescription{
   name: string,
-  bounds :{ 
-    min: [number, number, number], 
-    max: [number, number, number]
-  },
+  bounds: Bounds,
   imageSize: number,
   numFaces: number,
   extensions: string[],
@@ -31,7 +33,7 @@ export function inspectDocument(document: Document): SceneDescription{
   }
 
   let imageSize = getMaxDiffuseSize(document);
-
+  document
 
   return {
     name,
