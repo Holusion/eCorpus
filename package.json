@@ -3,13 +3,14 @@
   "version": "0.0.1",
   "description": "3D model database and content management system with integrated annotations and stories 3D editor",
   "scripts": {
-    "start": "cd source/server/ && ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start",
-    "test": "cd source/server/ && npm test",
-    "build-ui": "cd source/ui && npm run build",
-    "build-server": "cd source/server && npm run build",
-    "watch-server": "cd source/server && npm run watch",
-    "watch-ui": "cd source/ui && npm run watch",
-    "watch": "CLEAN_DATABASE=0 NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon npm start\""
+    "start": "ROOT_DIR=\"$PWD\" EXPERIMENTAL=1 npm --prefix source/server/ start",
+    "test": "npm --prefix source/server/  test",
+    "build-ui": "npm --prefix source/ui/  run build",
+    "build-server": "npm  --prefix source/server/ run build",
+    "watch-server": "npm --prefix source/server/ run watch",
+    "watch-ui": "npm --prefix source/ui/  run watch",
+    "watch": "CLEAN_DATABASE=0 NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon npm start\"",
+    "postinstall": "find \"$npm_config_local_prefix/source\" -mindepth 1 -maxdepth 1 -type d -exec npm --prefix {} i \\;"
   },
   "author": "Holusion <contact@holusion.com>",
   "license": "Apache-2.0",
