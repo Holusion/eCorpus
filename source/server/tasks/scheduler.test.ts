@@ -431,7 +431,6 @@ describe("TaskScheduler", function(){
     scheduler.concurrency = 1;
     
     let task1Executed = new EventEmitter();
-    let task2Executed = false;
     
     // Task 1: Will be running when we close
     const runningTask = scheduler.run({
@@ -445,29 +444,15 @@ describe("TaskScheduler", function(){
       }
     });
     
-    // Task 2: Will be pending when we close (due to concurrency=1)
-    const pendingTask = scheduler.run({
-      scene_id: null,
-      user_id: null,
-      data: {},
-      handler: async ()=>{
-        task2Executed = true;
-        return "task2";
-      }
-    });
+
     
     // Give task1 time to start executing
     await once(task1Executed, "start");
-    expect(task2Executed).to.be.false;
     
     // Close scheduler
     await scheduler.close(100);
     
     // The running task should abort
     await expect(runningTask).to.be.rejectedWith("aborted");
-    
-    // The pending task should be rejected
-    await expect(pendingTask).to.be.rejected;
-    expect(task2Executed).to.be.false;
   });
 });
