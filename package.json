@@ -5,10 +5,10 @@
   "scripts": {
     "start": "cd source/server/ && ROOT_DIR=\"$(pwd)/../..\" EXPERIMENTAL=1 npm start",
     "test": "cd source/server/ && npm test",
-    "build-ui": "cd source/ui && webpack --mode=production",
-    "build-server": "tsc -b source/server",
-    "watch-server": "tsc -b source/server --watch",
-    "watch-ui": "cd source/ui && webpack --watch --mode=development",
+    "build-ui": "cd source/ui && npm run build",
+    "build-server": "cd source/server && npm run build",
+    "watch-server": "cd source/server && npm run watch",
+    "watch-ui": "cd source/ui && npm run watch",
     "watch": "CLEAN_DATABASE=0 NODE_ENV=development concurrently -k --prefixColors auto --names \"ts,ui,eC\" \"npm run watch-server -- --preserveWatchOutput\" \"npm run watch-ui\" \"nodemon npm start\""
   },
   "author": "Holusion <contact@holusion.com>",
@@ -18,10 +18,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "nodemon": "^3.1.9",
-    "typescript": "^5.7.3",
-    "webpack": "^5.88.1",
-    "webpack-cli": "^4.9.2"
+    "nodemon": "^3.1.9"
   },
   "nodemonConfig": {
     "delay": 100,
