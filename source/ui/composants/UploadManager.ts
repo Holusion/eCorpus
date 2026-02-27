@@ -19,9 +19,6 @@ export default class UploadManager extends LitElement{
   @state()
   error:string|null = null;
 
-  @state()
-  scenes
-
   connectedCallback(): void {
     super.connectedCallback();
     // We register a number of global events that might influence app behaviour
@@ -260,7 +257,7 @@ export default class UploadManager extends LitElement{
     }
 
     return html`
-    <li class="upload-line upload-${state}">
+    <li id="upload-${u.filename.replace(/[^-_a-z0-9]/g,"_")}" class="upload-line upload-${state}">
       <span class="upload-state">${stateText}</span>
       <span class="upload-filename">
         ${filetype}
@@ -300,7 +297,10 @@ export default class UploadManager extends LitElement{
     return html`
       <slot name="scenes-list-title">Scenes:</slot>
       <ul class="scenes-list-actions">
-        ${this.uploader.uploads.map(u=>(u.scenes?.map(s=>html`<li><span class="scene-action scene-action-${s.action}">[${s.action.toUpperCase()}]</span> ${s.name}</li>`)) ?? [])}
+        ${this.uploader.uploads.map(u=>(u.scenes?.map(s=>html`<li>
+          <span class="scene-action scene-action-${s.action}">[${s.action.toUpperCase()}]</span>
+          ${s.name}
+        </li>`)) ?? null)}
       </ul>
        <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
@@ -341,8 +341,9 @@ export default class UploadManager extends LitElement{
           ${uploads.map(this.renderUploadItem)}
         </ul>
         <label>
-          <slot class="drop-label" name="drop-label">Drop files here</slot>
+          <slot class="drop-label" id="files-input-label" name="drop-label">Drop files here</slot>
           <input @change=${this.handleChange}
+            aria-labelledby="files-input-label"
             class="dropzone-input"
             role="button"
             id="fileUpload" 

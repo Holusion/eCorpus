@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,6 +35,8 @@ services:
   test: #run end-to-end tests when selected
     build:
       context: source/e2e
+      args:
+        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION:-1.49.1}
     depends_on:
       app:
         condition: service_healthy

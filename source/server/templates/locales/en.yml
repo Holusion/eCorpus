@@ -70,7 +70,7 @@ labels:
 
 buttons:
   searchScene: search scenes
-  uploadScene: create the scene
+  uploadScene: create a scene
   uploadArchive: extract
   useStandalone: use standalone mode
   logout: Disconnect
@@ -254,3 +254,5 @@ errors:
   "Password not provided": Password not provided
   "Bad password": Invalid password
   "Username not found": Invalid Username
+  "requireCreate": "{{what}} requires \"create\" rights"
+  "requireUser": "Authentication is required for {{what}}"

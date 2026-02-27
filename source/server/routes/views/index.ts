@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -75,7 +75,15 @@ routes.get("/", wrap(async (req, res)=>{
 
 
 routes.get("/upload", wrap(async (req, res)=>{
+  const {templates}= getLocals(req);
   const requester = getUser(req);
+  if(!isUserAtLeast(requester!, "create")){
+    return res.status(401).render("error", { 
+      error: {
+        message: templates.t(requester? "errors.requireCreate": "errors.requireUser", {lng: res.locals.lang, what: "/ui/upload"})
+      },
+    });
+  }
   const taskScheduler = getTaskScheduler(req);
   const vfs = getVfs(req);
   const {task} = req.query;

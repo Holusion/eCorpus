@@ -210,13 +210,18 @@ jobs:
           submodules: recursive
       - name: build containers
         run: |
+          export PLAYWRIGHT_VERSION=$(node -e "const l=require('./source/e2e/package-lock.json'); console.log(l.packages['node_modules/@playwright/test'].version)")
           docker compose build
+          docker compose build test
       - name: run end to end tests
         # to repeatedly test this locally,
         # run `docker compose down -v` to reset volumes between runs
         run: |
+          export APP_PORT=0
           docker compose up -y \
           --force-recreate \
+          --always-recreate-deps \
+          --renew-anon-volumes \
           --no-color \
           --exit-code-from test \
           test

@@ -9,7 +9,7 @@ export interface Bounds {
 
 export interface SceneDescription{
   name: string,
-  bounds: Bounds,
+  bounds: Bounds | null,
   imageSize: number,
   numFaces: number,
   extensions: string[],
@@ -19,21 +19,21 @@ export function inspectDocument(document: Document): SceneDescription{
   const root = document.getRoot();
   const scene = root.getDefaultScene();
   const name = scene?.listChildren().map((node=>node.getName())).find(n=>!!n) ?? scene?.getName() ?? '';
-  if(!scene) throw new Error("Empty glb (no root scene)");
   const extensions = root.listExtensionsUsed().map(e=>e.extensionName);
-  const bounds = getBounds(scene);
+  const rawBounds = scene ? getBounds(scene) : null;
+  const bounds = Number.isFinite(rawBounds?.min[0]) ? rawBounds : null;
   let numFaces = 0;
   for(const mesh of root.listMeshes()){
     for(let primitive of mesh.listPrimitives()){
       const mode = primitive.getMode();
       if(mode < 4) continue; // POINTS and LINES* have no faces
+      if(!primitive.getAttribute("POSITION")) continue; // no geometry data
       numFaces += Math.floor(getPrimitiveVertexCount(primitive, VertexCountMethod.RENDER) / 3);
       if(4 < mode) numFaces -= 2; //TRIANGLES_STRIP and TRIANGLE_FAN have two shared vertices
     }
   }
 
   let imageSize = getMaxDiffuseSize(document);
-  document
 
   return {
     name,

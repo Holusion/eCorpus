@@ -13,12 +13,15 @@ export type CreateSceneOptions = {
   autoDelete?:boolean,
 }
 
+type AccessLevel = "use" | "create" | "admin";
+
+type UniqueAccount = {username:string, password:string, uid:number};
+
 type TestFixture = {
   adminPage:Page,
   userPage:Page,
   createScene:(opts?:CreateSceneOptions)=>Promise<string>,
-  uniqueAccount: {username:string, password:string, uid:number},
-
+  uniqueAccount: (level?:AccessLevel)=>Promise<UniqueAccount>,
 }
 
 export {expect} from "@playwright/test";
@@ -70,16 +73,18 @@ export const test = base.extend<TestFixture>({
     await ctx.close();
   },
   uniqueAccount: async ({browser}, use)=>{
+    let adminContext = await browser.newContext({storageState: "playwright/.auth/admin.json"});
+
+    await use(async (level :AccessLevel = "create")=>{
       let username = `testUserLogin${randomBytes(2).readUInt16LE().toString(36)}`;
       let password = randomBytes(16).toString("base64");
-      let adminContext = await browser.newContext({storageState: "playwright/.auth/admin.json"});
       //Create a user for this specific test
-      let res = await  adminContext.request.post("/users", {
+      let res = await adminContext.request.post("/users", {
         data: JSON.stringify({
           username,
           email: `${username}@example.com`,
           password,
-          level: "create",
+          level,
         }),
         headers:{
           "Content-Type": "application/json",
@@ -87,8 +92,10 @@ export const test = base.extend<TestFixture>({
       });
       let body = JSON.parse(await res.text());
       expect(body).toHaveProperty("uid");
-      let uid :number =body.uid;
-      await use({username, password, uid});
-      await adminContext.close();
-    },
+      let uid :number = body.uid;
+      return {username, password, uid};
+    });
+
+    await adminContext.close();
+  }
 });
