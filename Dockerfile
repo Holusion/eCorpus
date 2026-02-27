@@ -35,13 +35,6 @@ RUN apt-get -qqy update && apt-get -qqy install  --no-install-recommends \
   curl \
   && rm -rf /var/lib/apt/lists/* /var/tmp/*
 
-#Install blender
-RUN curl -fsSL -o "/tmp/blender.tar.xz" "https://download.blender.org/release/Blender4.5/blender-4.5.4-linux-x64.tar.xz" \
-    && mkdir -p /usr/local/lib/blender /usr/local/bin \
-    && tar -xf "/tmp/blender.tar.xz" -C /usr/local/lib/blender --strip-components=1 \
-    && ln -s /usr/local/lib/blender/blender /usr/local/bin/blender \
-    && rm -rf /tmp/*
-
 #Install ktx
 RUN curl -fsSL -o "/tmp/KTX-Software-Linux-x86_64.tar.bz2" "https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.tar.bz2"\
   && tar -xf "/tmp/KTX-Software-Linux-x86_64.tar.bz2" -C /usr/local/ --strip-components=1 \

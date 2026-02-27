@@ -4,8 +4,8 @@
   <h2>{{i18n "titles.upload"}}</h2>
   <div class="grid-content">
     {{#if scenes.length }}
-    <section class="container">
-      <h3>{{i18n "titles.createdScenes" }}</h3>
+    <section class="container" aria-labelledby="createdScenes-heading">
+      <h3 id="createdScenes-heading">{{i18n "titles.createdScenes" }}</h3>
       <a href="." class="text-error" style="position: absolute; top:.5rem; right:.5rem; text-decoration: none;">🗙</a>
 
       <style>
@@ -76,7 +76,7 @@
               <div class="form-item">
                 <label for="sceneName">
                   {{i18n "labels.sceneName"}}
-                  {{#> popover id="sceneName"}}{{i18n "leads.uploadName" }}{{/popover}}
+                  {{#> popover id="sceneName-tooltip"}}{{i18n "leads.uploadName" }}{{/popover}}
                 </label>
                 <input id="sceneName" autocomplete="off" minlength="3" type="text" name="name">
               </div>
@@ -86,7 +86,7 @@
               <div class="form-item">
                 <label for="sceneSetupLanguage">
                   {{i18n "labels.setupLocalization"}}
-                  {{#> popover id="sceneSetupLanguage" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
+                  {{#> popover id="sceneSetupLanguage-tooltip" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
                 </label>
                 <select name="language" id="sceneSetupLanguage" >
                   {{#each languages}}
@@ -103,7 +103,7 @@
             <div class="form-item inline" style="justify-content: end;">
               <label for="sceneOptimize">
                 {{i18n "labels.optimizeModel"}}
-              {{#> popover id="sceneOptimize" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
+              {{#> popover id="sceneOptimize-tooltip" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
               </label>
               <input id="sceneOptimize" type="checkbox" name="optimize"/>
             </div>

@@ -10,4 +10,3 @@ import "./handlers/toggle";
 import "./composants/SubmitFragment";
 
 import "./composants/UploadManager";
-import "./composants/SceneSelectionForm";

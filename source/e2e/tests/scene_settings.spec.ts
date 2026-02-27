@@ -1,8 +1,4 @@
-import path from "node:path";
-import fs from "node:fs/promises";
-
-
-import { expect, test } from '../fixtures';
+import { expect, test } from '../fixtures.js';
 import { randomUUID } from "node:crypto";
 
 

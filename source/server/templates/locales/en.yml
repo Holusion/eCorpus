@@ -57,10 +57,11 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Add this tag to selected scenes
   batchRmTag: Remove this tag from selected scenes
+  sceneName: Scene name
 
 buttons:
   searchScene: search scenes
-  uploadScene: create the scene
+  uploadScene: create a scene
   uploadArchive: extract
   useStandalone: use standalone mode
   logout: Disconnect
@@ -151,6 +152,7 @@ titles:
   modifiedToday: Scenes modified today
   buildRef: Current version
   previewEmail: Preview email templates
+  createdScenes: Created scenes
 
 tooltips:
   showPassword: Show the password's text
@@ -221,3 +223,5 @@ errors:
   "Password not provided": Password not provided
   "Bad password": Invalid password
   "Username not found": Invalid Username
+  "requireCreate": "{{what}} requires \"create\" rights"
+  "requireUser": "Authentication is required for {{what}}"

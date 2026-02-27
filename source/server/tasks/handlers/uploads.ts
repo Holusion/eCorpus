@@ -12,7 +12,7 @@ import getDefaultDocument from "../../utils/schema/default.js";
 import uid from "../../utils/uid.js";
 import { toGlb } from "./toGlb.js";
 import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
-import { TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
+import { IAsset, IModel, TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
 import { optimizeGlb } from "./optimizeGlb.js";
 import { IDocument } from "../../utils/schema/document.js";
 import { inspectGlb } from "./inspectGlb.js";
@@ -48,7 +48,7 @@ export interface UploadedBinaryModel extends UploadedFile {
   byteSize: number;
   numFaces: number;
   imageSize: number;
-  bounds: Bounds;
+  bounds: Bounds | null;
 }
 
 export interface UploadedUsdModel extends UploadedFile{
@@ -251,6 +251,9 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
 
   const scene_id = await vfs.createScene(name, user_id);
 
+  /**
+   * Optimize the model if requested and perform the final move to its destination path
+   */
   async function moveModel(source: UploadedBinaryModel){
     let filepath = vfs.absolute(source.fileLocation);
     let filename = path.basename(filepath);
@@ -299,12 +302,12 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
         data: {fileLocation: vfs.relative(filepath)},
         handler: toGlb,
       });
-      logger.debug("Copy Converted source file to %s", dest);
+      logger.debug("Copy Converted source file to %s", dest.fileLocation);
 
       const meta = await tasks.run({
         handler: parseUploadedModel,
         data: {
-          fileLocation: dest,
+          fileLocation: dest.fileLocation,
         }
       });
       logger.debug("Parsed converted file :", meta);
@@ -328,7 +331,7 @@ export async function createSceneFromFiles({context:{tasks, vfs, logger}, task: 
   return scene_id;
 }
 
-interface DocumentModel {
+export interface DocumentModel {
   name?: string;
   /**
    * Uri is slightly misleading as it's "relative to scene root"
@@ -338,7 +341,7 @@ interface DocumentModel {
   byteSize: number;
   numFaces: number;
   imageSize: number;
-  bounds: Bounds;
+  bounds: Bounds|null;
   quality:TDerivativeQuality;
   usage: TDerivativeUsage;
 };
@@ -354,7 +357,7 @@ interface GetDocumentParams{
 export async function createDocumentFromFiles(
   {
     task: {
-      data:{scene, models, language}
+      data:{scene, models, language = "EN"}
     },
   }: TaskHandlerParams<GetDocumentParams>): Promise<IDocument>{
 
@@ -362,24 +365,28 @@ export async function createDocumentFromFiles(
   //dumb inefficient Deep copy because we want to mutate the doc in-place
   document.models ??= [];
   for(let model of models){
-    const index = document.models.push({
+    const asset :IAsset = {
+      "uri": encodeURIComponent(model.uri),
+      "type": "Model",
+    }
+    for(const k of ["byteSize", "numFaces", "imageSize"]  as const){
+      //Ignore values that does not match schema for those properties
+      if(!Number.isInteger(model[k]) || model[k] < 1) continue;
+      asset[k] = model[k];
+    }
+    const _m:IModel = {
       "units": "m", //glTF specification says it's always meters. It's what blender do.
-      "boundingBox": model.bounds,
       "derivatives":[{
         "usage": model.usage,
         "quality": model.quality,
-        "assets": [
-          {
-            "uri": encodeURIComponent(model.uri),
-            "type": "Model",
-            "byteSize": model.byteSize,
-            "numFaces": model.numFaces,
-            "imageSize": model.imageSize,
-          }
-        ]
+        "assets": [asset]
       }],
       "annotations":[],
-    }) -1;
+    }
+    if(Array.isArray(model.bounds)){
+      _m.boundingBox = model.bounds;
+    }
+    const index = document.models.push(_m) -1;
     const nodeIndex = document.nodes.push({
       "id": uid(),
       "name": model.name ?? scene,
@@ -389,19 +396,16 @@ export async function createDocumentFromFiles(
   }
   
 
-  if(language){
-    document.setups[0].language = {language: language};
-    document.metas ??= [];
-    const meta_index = document.metas.push({
-      "collection": {
-        "titles": {
-          [language]: scene,
-        }
-      },
-    }) -1;
-    document.scenes[document.scene].meta = meta_index;
-  }
-
+  document.setups[0].language = {language: language};
+  document.metas ??= [];
+  const meta_index = document.metas.push({
+    "collection": {
+      "titles": {
+        [language]: scene,
+      }
+    },
+  }) -1;
+  document.scenes[document.scene].meta = meta_index;
 
   return document
 }

@@ -8,7 +8,7 @@ import { createDocumentFromFiles } from "../../../tasks/handlers/uploads.js";
 const sceneLanguages = ["EN", "ES", "DE", "NL", "JA", "FR", "HAW"] as const;
 type SceneLanguage = typeof sceneLanguages[number];
 function isSceneLanguage(l:any) :l is SceneLanguage|undefined{
-  return typeof l === "undefined" || sceneLanguages.indexOf(l.toUpperCase()) !== -1;
+  return typeof l === "undefined" || sceneLanguages.indexOf(l) !== -1;
 }
 
 
@@ -22,14 +22,14 @@ export default async function postScene(req :Request, res :Response){
   const {vfs, taskScheduler} = getLocals(req);
   let user_id = getUserId(req);
   let {scene} = req.params;
-  let {language} = req.query;
-  
+  const {language: queryLanguage} = req.query;
   if(req.is("multipart")|| req.is("application/x-www-form-urlencoded")){
     throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
   }
-  if(!isSceneLanguage(language)){
-    throw new BadRequestError(`Invalid scene language requested: ${language}`)
+  if(queryLanguage && (typeof queryLanguage !== "string" || !isSceneLanguage(queryLanguage.toUpperCase()))){
+    throw new BadRequestError(`Invalid scene language requested: ${queryLanguage}`)
   }
+  const language = queryLanguage?.toUpperCase() as SceneLanguage|undefined;
   if(!user_id){
     throw new UnauthorizedError("Requires authenticated user");
   }
@@ -39,10 +39,13 @@ export default async function postScene(req :Request, res :Response){
     scene_id,
     user_id,
     type: "postScene",
-    data: {},
+    data: {
+      language,
+      scene,
+    },
     handler: async function postsSceneHandler({context: {logger, vfs}}){
       logger.debug("Draining the HTTP request into scene space");
-      let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `models/${scene}.glb`});
+      let f = await vfs.writeFile(req, {user_id, scene: scene,  mime:"model/gltf-binary", name: `${scene}.glb`});
       if(f.size ==0 || !f.hash) throw new BadRequestError(`Body was empty. Can't create a scene.`); 
       logger.debug("Parse the created file");
       const meta = await taskScheduler.run({

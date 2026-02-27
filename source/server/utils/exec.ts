@@ -63,24 +63,6 @@ export interface RunCommandOpts extends SpawnOptionsWithoutStdio {
   logger: ITaskLogger;
 }
 
-
-/**
- * Spawn blender to get its version string and parse the result
- */
-export async function getBlenderVersion(): Promise<string> {
-
-  const { stdout, stderr } = await run('blender', ['--version']);
-
-  const versionMatch = stdout.match(/^Blender (\d+.\d+.\d+[^\s]*)/gm);
-
-  if (!versionMatch) {
-    throw new Error(
-      `Unable to find "blender" version. Confirm Blender is installed.`
-    );
-  }
-  return versionMatch[1];
-}
-
 /**
  * spawn the ktx utility to get its version string and parse it
  */
