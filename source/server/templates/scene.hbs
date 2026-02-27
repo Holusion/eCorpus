@@ -224,17 +224,17 @@
                 <td class="text-main">{{i18n (join "fields." access) access}} </td>
                 {{else if (test (test username "==" @root.user.username) "&&" (test "!" (test @root.user.level "=="
                 "admin")))}}
-                <td class="text-primary" title="{{i18n "labels.username"}}">{{groupName}}</td>
+                <td class="text-primary" title="{{i18n "labels.group"}}">{{groupName}}</td>
                 <td class="text-muted" title="{{i18n "leads.canNotChangeSelfAccess"}}">{{i18n (join "fields." access)
                   access}}</td>
                 {{else }}
-                <td title="{{i18n "labels.username"}}">{{groupName}}</td>
+                <td title="{{i18n "labels.group"}}">{{groupName}}</td>
                 <td class="form-control">
                   <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
                     action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
                     onsubmit="window.location.reload()">
                     <form class="form-item" style="flex-grow: 1;" autocomplete="off">
-                      <input type="hidden" name="username" value="{{username}}" />
+                      <input type="hidden" name="groupName" value="{{groupName}}" />
                       <select name="access" aria-label="{{i18n "labels.permission"}}">
                         {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n
                         "fields.removeSpecificAccess")}}
