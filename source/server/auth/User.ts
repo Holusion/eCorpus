@@ -10,12 +10,18 @@ export enum UserLevels{
 export const UserRoles = ["none", "use", "create", "manage", "admin"] as const;
 export type UserRole = typeof UserRoles[number];
 
-export function isUserRole(s: string) :s is UserRole{
-  return UserRoles.indexOf(s as any) !== -1;
+export function isUserRole(s: any) :s is UserRole{
+  return UserRoles.indexOf(s) !== -1;
 }
 
-export function isUserAtLeast(user: SafeUser, role: UserRole) {
-  return UserRoles.indexOf(user.level) >= UserRoles.indexOf(role);
+export function isUserAtLeast(user: SafeUser|Pick<User, "level">|null, role: UserRole) {
+  if(!user || !("level" in user)){
+    return role === "none";
+  }
+  const ref = UserRoles.indexOf(role);
+  const index = UserRoles.indexOf(user.level);
+  if(index === -1 || ref === -1) return false;
+  return  index >= ref;
 }
 
 export interface SafeUser{
