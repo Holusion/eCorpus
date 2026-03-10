@@ -26,8 +26,8 @@ export enum ETaskStatus{
  * Task Creation parameters
  */
 export interface TaskDefinition<TData extends TaskDataPayload = TaskDataPayload, TReturn = any>{
-  scene_id: number;
-  user_id: number;
+  scene_id: number|null;
+  user_id: number|null;
   task_id: number;
   ctime: Date;
   type :string;

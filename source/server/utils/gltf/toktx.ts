@@ -104,10 +104,10 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 
       if (options.slots && !slots.find((slot) => slot.match(options.slots))) {
         logger.debug(`${prefix}: Skipping, [${slots.join(', ')}] excluded by "slots" parameter.`);
-        return;
+        continue;
       }else if (srcMimeType === 'image/ktx2') {
         logger.debug(`${prefix}: Skipping, already KTX.`);
-        return;
+        continue;
       }
 
       let srcImage = texture.getImage()!;
@@ -119,7 +119,7 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 
       if (!srcImage || !srcSize || !srcBytes) {
         logger.warn(`${prefix}: Skipping, unreadable texture.`);
-        return;
+        continue;
       }
 
       //Resize

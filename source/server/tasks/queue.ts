@@ -92,7 +92,7 @@ export class Queue{
   /**
    * Close the queue gracefully
    * Waits for active tasks to complete before aborting pending ones
-   * @param timeoutMs Maximum time to wait for active tasks. Defaults to 30 seconds.
+   * @param timeoutMs Maximum time to wait for active tasks. Defaults to 1 second.
    */
   async close(timeoutMs: number = 1000){
     if(this.#c.signal.aborted){
