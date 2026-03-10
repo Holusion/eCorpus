@@ -11,7 +11,7 @@ const debug = debuglog("tasks:logs");
  * @param debounceMs max time to wait before flushing writes
  */
 export function createBatcher(batchSize: number, debounceMs: number) {
-  let buffer: Array<{severity: LogSeverity; message: string}> = [];
+  let buffer: Array<{ severity: LogSeverity; message: string }> = [];
   let timer: NodeJS.Timeout | null = null;
 
   return new Transform({
@@ -53,58 +53,53 @@ export function createBatcher(batchSize: number, debounceMs: number) {
  * @param task_id 
  * @returns 
  */
-export function createInserter(db: DatabaseHandle, task_id: number){
+export function createInserter(db: DatabaseHandle, task_id: number) {
   return new Writable({
     objectMode: true,
-    write: async (batch: Array<{severity: LogSeverity; message: string, timestamp: Date}>, _, cb) => {
-      try {
-        const severities: LogSeverity[] =[];
-        const messages: string[] = [];
-        const timestamps: Date[] = [];
-        for(let log of batch){
-          severities.push(log.severity);
-          messages.push(log.message);
-          timestamps.push(log.timestamp);
-        }
-        
-        await db.run(`
-          INSERT INTO tasks_logs(fk_task_id, severity, message) 
-          SELECT $1, *
-          FROM UNNEST($2::log_severity[], $3::text[]) AS t(severity, message)`,
-          [task_id, severities, messages]
-        );
-        cb();
-      } catch (err) {
-        cb(err as Error);
+    write(batch: Array<{ severity: LogSeverity; message: string, timestamp: Date }>, _, cb) {
+      const severities: LogSeverity[] = [];
+      const messages: string[] = [];
+      const timestamps: Date[] = [];
+      for (let log of batch) {
+        severities.push(log.severity);
+        messages.push(log.message);
+        timestamps.push(log.timestamp);
       }
+
+      db.run(`
+        INSERT INTO tasks_logs(fk_task_id, severity, message) 
+        SELECT $1, *
+        FROM UNNEST($2::log_severity[], $3::text[]) AS t(severity, message)`,
+        [task_id, severities, messages]
+      ).then(() => cb(), cb);
     }
-  })
+  });
 }
 
 /**
  * Disposable logger that batches log inserts using Transform streams
  * Reduces database lock contention by grouping multiple inserts
  */
-export function createLogger(db: DatabaseHandle, task_id: number){
+export function createLogger(db: DatabaseHandle, task_id: number) {
   const batcher = createBatcher(10, 100);
 
   const inserter = createInserter(db, task_id);
 
   batcher.pipe(inserter);
 
-  function log(severity: LogSeverity, message: string){
+  function log(severity: LogSeverity, message: string) {
     debug(`[${severity.toUpperCase()}] ${message}`);
-    batcher.write({severity, message, timestamp: new Date()});
+    batcher.write({ severity, message, timestamp: new Date() });
   }
 
   return {
-    debug: (...args:any[])=>log('debug', format(...args)),
-    log: (...args:any[])=>log('log', format(...args)),
-    warn: (...args:any[])=>log('warn', format(...args)),
-    error: (...args:any[])=>log('error', format(...args)),
+    debug: (...args: any[]) => log('debug', format(...args)),
+    log: (...args: any[]) => log('log', format(...args)),
+    warn: (...args: any[]) => log('warn', format(...args)),
+    error: (...args: any[]) => log('error', format(...args)),
     [Symbol.asyncDispose]: async function (): Promise<void> {
       // Close both streams and wait for them to finish
-      batcher.end();
+      batcher.end(); //We expect batcher.end to be effective immediately and never throw, so we don't wait for it
       await new Promise<void>((resolve, reject) => {
         inserter.on('finish', resolve);
         inserter.on('error', reject);

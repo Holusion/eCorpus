@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import obj2gltf from "obj2gltf";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { getMimeType } from "../../utils/filetypes.js";
@@ -19,9 +20,9 @@ export async function toGlb({context: {tasks, vfs, logger}, task:{task_id, data:
 }
 
 export async function objToGlb({context: {vfs}, task: {task_id, data:{fileLocation}}}:TaskHandlerParams<FileArtifact>):Promise<FileArtifact>{
-  const {default: obj2gltf} = await import("obj2gltf");
+
   const inputFilename = path.basename(fileLocation);
-  const destFilename = (/\.obj/i.test(inputFilename)? inputFilename.slice(-4): inputFilename) + ".glb"
+  const destFilename = (/\.obj$/i.test(inputFilename)? inputFilename.slice(0, -4): inputFilename) + ".glb"
   const dir = await vfs.createTaskWorkspace(task_id);
   const destPath = path.join(dir, destFilename);
   const gltfBuffer = await obj2gltf(vfs.absolute(fileLocation), {
