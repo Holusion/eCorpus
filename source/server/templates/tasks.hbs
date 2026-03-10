@@ -30,10 +30,10 @@
       </label>
 
       <label class="form-item">
-        {{i18n "fields.rootOnly" default="Scope"}}
+        {{i18n "labels.rootOnly"}}
         <select name="rootOnly" onchange="this.form.submit()">
-          <option value="true" {{#if params.rootOnly}}selected{{/if}}>{{i18n "labels.rootsOnly" default="Roots only"}}</option>
-          <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks" default="All tasks"}}</option>
+          <option value="true" {{#if params.rootOnly}}selected{{/if}}>{{i18n "labels.rootOnly"}}</option>
+          <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks"}}</option>
         </select>
       </label>
     </form>

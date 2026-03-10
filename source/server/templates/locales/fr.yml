@@ -57,6 +57,15 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Ajouter ce tag aux scènes sélectionnées
   batchRmTag: Retirer ce tag des scènes sélectionnées
+  mine: Mes tâches
+  all: Tous
+  success: Succès
+  error: Erreur
+  allTasks: Toutes les tâches
+  rootOnly: Parents uniquement
+  noTasks: Aucune tâche trouvée.
+  noLogs: Aucun journal.
+  optimizeModel: Optimiser les modèles
 
 buttons:
   searchScene: chercher une scène
@@ -104,6 +113,12 @@ fields:
     create: Créateur
     manage: Editeur
     admin: Administrateur
+  owner: Propriétaire
+  parent: Parent
+  scene: Scène
+  type: Type
+  status: Statut
+  minLevel: Niveau min
 nav:
   tags: collections
   login: connexion
@@ -151,6 +166,10 @@ titles:
   modifiedToday: Scènes modifiées aujourd'hui
   buildRef: Version actuelle
   previewEmail: Voir les templates d'emails
+  myTasks: Mes tâches
+  taskTree: Arbre des tâches
+  logs: Journaux
+  advancedConfiguration: Configuration avancée
 
 tooltips:
   showPassword: Montrer le texte du mot de passe
@@ -220,6 +239,19 @@ leads:
   noArchives: Pas de scènes archivées
   noGroups: Cet utilisateur n'est ajouté à aucun groupe
   poweredByECorpus: Propulsé par <a target="_blank" href="https://ecorpus.eu">eCorpus</a> sous license <a href="https://github.com/Holusion/eCorpus/blob/main/LICENSE.md">Apache-2.0</a>
+  uploadFiles: Déposez vos fichiers ici
+  uploadMixedContent: >
+    Impossible de traiter cet ensemble: Les fichiers déposés sont un mélange d'archives de scènes et de fichiers individuels.
+  uploadName: >
+    Ce nom sera utilisé dans l'URL de la scène créée.
+    Il est indépendant de la langue utilisée.
+    Il sera possible de créer un titre par langue plus tard.
+  uploadLanguage: La langue principale de la scène.
+  uploadOptimize: Optimiser les modèles pour une meilleure performance. Cela peut prendre un peu plus de temps.
+  uploadErrors: >
+    Des erreurs sont survenues pendant le transfert des fichiers.
+    Veuillez vérifier les messages ci-dessus et corriger les problèmes avant de continuer.
+
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni
