@@ -9,7 +9,7 @@ import sendmail from "../../utils/mails/send.js";
  * Handler for login flow. Used for automated AND interactive login flows, which makes it a bit more complicated
  * Due to this, it handles (most of) its own errors contrary to most handlers. 
  */
-export function postLogin(req :Request, res :Response, next :NextFunction){
+export async function postLogin(req :Request, res :Response){
   const {sessionMaxAge} = getLocals(req);
   let userManager = getUserManager(req);
   let {redirect} = req.query;
@@ -19,43 +19,19 @@ export function postLogin(req :Request, res :Response, next :NextFunction){
   else if(typeof username !="string") throw new BadRequestError("Bad username format");
   if(!password) throw new BadRequestError("Password not provided");
   else if(typeof password !="string") throw new BadRequestError("Bad password format");
-
-  userManager.getUserByNamePassword(username, password).then(user=>{
-    let safeUser = User.safe(user);
-    Object.assign(
-      (req as any).session as any,
-      {expires: Date.now() + sessionMaxAge},
-      safeUser
-    );
-    return safeUser;
-  }).then((safeUser)=>{
-    if(redirect && typeof redirect === "string"){
-      return res.redirect(302, validateRedirect(req, redirect).toString());
-    }else{
-      res.format({
-        "application/json": ()=> {
-          res.status(200).send(safeUser);
-        },
-        "text/html": ()=>{
-          res.redirect(302, "/ui/");
-        },
-        "text/plain": ()=>{
-          res.status(200).send(`${safeUser.username} (${safeUser.uid})`);
-        },
-      });
-    }
-
-  }, (e)=>{
-    if(e instanceof NotFoundError){
+  let user: User;
+  try{
+    user = await userManager.getUserByNamePassword(username, password);
+  }catch(e: any){
+    if(e instanceof NotFoundError){ //cast NotFound as Unauthorized
       e = new UnauthorizedError(`Username not found`);
     }
     const code :number = e.code ?? 500;
     const rawMessage = (e instanceof HTTPError)? e.message.slice(6): e.message;
     res.status(code);
-
     res.format({
       "application/json": ()=> {
-        res.status(200).send({ code, message: `${e.name}: ${e.message}` });
+        res.send({ code, message: `${e.name}: ${e.message}` });
       },
       "text/html": ()=>{
         res.render("login", {
@@ -63,10 +39,36 @@ export function postLogin(req :Request, res :Response, next :NextFunction){
         });
       },
       "text/plain": ()=>{
-        res.status(code).send(e.message);
+        res.send(e.message);
       },
     });
-  }).catch(next);
+    return; //Stop here.
+  }
+
+  let safeUser = User.safe(user);
+
+  //Update user session accordingly
+  Object.assign(
+    (req as any).session as any,
+    {expires: Date.now() + sessionMaxAge},
+    safeUser
+  );
+
+  if(redirect && typeof redirect === "string"){
+    return res.redirect(302, validateRedirect(req, redirect).toString());
+  }else{
+    res.format({
+      "application/json": ()=> {
+        res.status(200).send(safeUser);
+      },
+      "text/html": ()=>{
+        res.redirect(302, "/ui/");
+      },
+      "text/plain": ()=>{
+        res.status(200).send(`${safeUser.username} (${safeUser.uid})`);
+      },
+    });
+  }
 }
 
 export async function getLogin(req :Request, res:Response){
