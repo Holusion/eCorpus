@@ -159,7 +159,7 @@ export class Uploader implements ReactiveController{
       signal: c.signal,
       abort: ()=> {
         c.abort();
-        this.splice(file.name, {error: {message: "Upload was aborted"}});
+        this.splice(file.name, {error: {name: "AbortError", message: "Upload was aborted"}});
       }
     };
     return task;
@@ -244,12 +244,19 @@ export class Uploader implements ReactiveController{
     }
 
     let xhr = new XMLHttpRequest();
-    task.signal.addEventListener("abort", xhr.abort)
+    task.signal.addEventListener("abort", xhr.abort.bind(xhr))
     xhr.onload = ()=>{
       if (299 < xhr.status) {
-        const fail_response = JSON.parse(xhr.responseText) as { message?: string };
-        console.error("Upload Request failed :", fail_response.message ? fail_response.message : xhr.statusText)
-        setError({code: xhr.status, message: fail_response.message ? fail_response.message : xhr.statusText});
+        let message = xhr.statusText;
+        const contentType = xhr.getResponseHeader("Content-Type") || "";
+        if (contentType.includes("application/json")) {
+          const fail_response = JSON.parse(xhr.responseText) as { message?: string };
+          if (fail_response.message) message = fail_response.message;
+        } else if (xhr.responseText) {
+          message = xhr.responseText.slice(0, 300);
+        }
+        console.error("Upload Request failed :", message);
+        setError({code: xhr.status, message});
       }else if(xhr.status === 201){
         this.finalizeUpload(task).then((output)=>{
           console.debug("Finalized upload task. Parsed content :", output);
@@ -272,7 +279,7 @@ export class Uploader implements ReactiveController{
     }
     xhr.onerror = function onUploadError(ev){
       console.log("XHR Error", ev);
-      setError({ code: xhr.status ||DOMException.NETWORK_ERR, message: xhr.response.message || xhr.statusText || navigator.onLine? "Server is unreachable": "Disconnected" });
+      setError({ code: xhr.status ||DOMException.NETWORK_ERR, message: xhr.response.message || xhr.statusText || (navigator.onLine? "Server is unreachable": "Disconnected") });
     }
 
     xhr.onabort = function onUploadAbort(){
@@ -286,6 +293,4 @@ export class Uploader implements ReactiveController{
     xhr.setRequestHeader("Content-Range", `bytes ${starting_offset}-${end_offset-1}/${task.total}`);
     xhr.send(chunk);
   }
-
-
 }

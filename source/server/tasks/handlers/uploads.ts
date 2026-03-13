@@ -69,6 +69,7 @@ function isUploadedBinaryModel(output: UploadedFile): output is UploadedBinaryMo
 }
 
 async function parseUploadedArchive({ task: { task_id, user_id, data: { fileLocation } }, context: { vfs, userManager, logger } }: TaskHandlerParams<FileArtifact>): Promise<UploadedArchive> {
+  if(typeof user_id !== "number") throw new Error("File upload require an owner. No user_id provided");
   const requester = await userManager.getUserById(user_id);
   const filename = path.basename(fileLocation);
   let files: string[] = [];

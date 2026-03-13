@@ -18,7 +18,8 @@ export async function deleteTask(req: Request, res: Response){
 
   if(requester.level !== "admin" 
     && task.user_id !== requester.uid 
-    && (await userManager.getAccessRights(task.scene_id, requester.uid)) != "admin"
+    && (!task.scene_id
+      || await userManager.getAccessRights(task.scene_id, requester.uid)) != "admin"
   ){
     throw new UnauthorizedError(`Administrative rights are required to delete tasks`);
   }

@@ -98,6 +98,7 @@ routes.get("/upload", wrap(async (req, res)=>{
   for(let task of tasks){
     if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
       scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error"});
+      continue;
     }
     if(task.status !== "success"){
       console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
@@ -117,12 +118,12 @@ routes.get("/upload", wrap(async (req, res)=>{
         continue;
       }
       for(let {action, name } of task.output){
-        console.log("Push :", action, name);
         scenes.push({action, name});
       }
     }else{
       console.warn("Unsupported task type: %s. not an upload task?", task.type);
       scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error"});
+      continue;
     }
   }
   
@@ -563,7 +564,6 @@ routes.get("/tasks", wrap(async (req, res) => {
   const userId = owner === 'mine' ? user.uid : undefined;
 
   const tasks = await taskScheduler.getTasks({ user_id: userId, type, status, rootOnly });
-  console.log("Root : ", typeof rootOnly, rootOnly)
   res.render("tasks", {
     title: "My tasks",
     tasks,
