@@ -43,7 +43,7 @@ router.post("/login",
   useJSON,
   useURLEncoded,
   useTemplateProperties,
-  postLogin,
+  wrap(postLogin),
 );
 router.get("/login/:username/link", isAdministrator, wrap(getLoginLink));
 router.post("/login/:username/link", either(isAdministrator, rateLimit({

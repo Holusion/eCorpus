@@ -127,6 +127,29 @@ describe("/auth/login", function(){
     .expect(400);
     expect(res.body).to.have.property("message").match(/Bad username format/i);
   });
+
+  it("returns unauthorized status for bad password", async function(){
+    this.agent = request.agent(this.server);
+    const res = await this.agent.post("/auth/login")
+    .send({username: user.username, password: "badPassword"})
+    .set("Content-Type", "application/json")
+    .set("Accept", "application/json")
+    .expect(401);
+
+    expect(res.body).to.have.property("code", 401);
+    expect(res.body).to.have.property("message").match(/Bad password/i);
+  });
+    it("returns unauthorized status for bad password", async function(){
+    this.agent = request.agent(this.server);
+    const res = await this.agent.post("/auth/login")
+    .send({username: "badUsername", password: "12345678"})
+    .set("Content-Type", "application/json")
+    .set("Accept", "application/json")
+    .expect(401);
+
+    expect(res.body).to.have.property("code", 401);
+    expect(res.body).to.have.property("message").match(/Username not found/i);
+  });
   
   it("can logout", async function(){
     let agent = request.agent(this.server);
