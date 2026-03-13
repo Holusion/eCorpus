@@ -540,7 +540,7 @@ describe("UserManager methods", function(){
       })
       this.beforeEach(async function () {
         group = await userManager.addGroup("foo-grant-" + (++_id).toString(16).padStart(4, "0"));
-        userManager.addMemberToGroup(member.uid, group.groupUid);
+        await userManager.addMemberToGroup(member.uid, group.groupUid);
       });
 
       it("can set group permissions by groupName", async function () {
