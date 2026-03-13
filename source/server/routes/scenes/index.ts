@@ -39,7 +39,7 @@ router.use((req, res, next)=>{
 router.get("/", wrap(getScenes));
 router.propfind("/", wrap(handlePropfind));
 // additional checks are used in postScenes to allow people to overrite scenes they have write access on
-  router.post("/", isUser, wrap(handlePostScenes));
+router.post("/", isUser, bodyParser.json(), wrap(handlePostScenes));
 
 //allow POST outside of canRead : overwrite permissions are otherwise checked
 router.post("/:scene", isCreator, wrap(handlePostScene));

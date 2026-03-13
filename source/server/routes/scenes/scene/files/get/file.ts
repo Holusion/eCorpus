@@ -2,7 +2,7 @@ import {pipeline} from "node:stream/promises";
 
 import { Request, Response } from "express";
 import { getVfs, getFileParams } from "../../../../../utils/locals.js";
-import { BadRequestError, RangeNotSatisfiable} from "../../../../../utils/errors.js";
+import { BadRequestError, RangeNotSatisfiableError} from "../../../../../utils/errors.js";
 
 async function handleGetFileRange(req :Request, res :Response){
   const vfs = getVfs(req);
@@ -24,9 +24,9 @@ async function handleGetFileRange(req :Request, res :Response){
   if (end && end > file.size){
     res.set("Content-Range", "bytes */" + file.size);
     if(startRange.length > 0){
-      throw new RangeNotSatisfiable("Range Not Satisfiable: end after end of file")
+      throw new RangeNotSatisfiableError("Range Not Satisfiable: end after end of file")
     }else{
-      throw new RangeNotSatisfiable("Range Not Satisfiable: Suffix-length is bigger than lenght of file")
+      throw new RangeNotSatisfiableError("Range Not Satisfiable: Suffix-length is bigger than lenght of file")
     }
   }
 

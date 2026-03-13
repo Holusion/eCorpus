@@ -2,7 +2,7 @@ import path from "node:path";
 import fs, { readFile } from "node:fs/promises";
 import { randomBytes, randomUUID } from "node:crypto";
 
-import { test, expect } from '../fixtures';
+import { test, expect } from '../fixtures.js';
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
@@ -13,9 +13,12 @@ const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 //Runs with a per-test storageState, in locale "cimode"
 test.use({ storageState: { cookies: [], origins: [] }, locale: "cimode" });
 
-test.beforeEach(async ({page, uniqueAccount:{username, password}})=>{
+let account: {username:string, password:string, uid:number};
+
+test.beforeEach(async ({page, uniqueAccount})=>{
+  account = await uniqueAccount();
   let res = await page.request.post("/auth/login", {
-    data: JSON.stringify({username, password}),
+    data: JSON.stringify({username: account.username, password: account.password}),
     headers:{
       "Content-Type": "application/json",
     }
@@ -33,9 +36,9 @@ test("can read user settings page", async function({page}){
 });
 
 
-test("can change email", async ({page, uniqueAccount})=>{
+test("can change email", async ({page})=>{
   //Ensure this is unique, otherwise it is rejected
-  let new_email = `${uniqueAccount.username}-replacement@example2.com`
+  let new_email = `${account.username}-replacement@example2.com`
   await page.goto("/ui/user/");
   const form = page.getByRole("form", {name: "titles.userProfile"});
   await expect(form).toBeVisible();
@@ -53,7 +56,8 @@ test("can change email", async ({page, uniqueAccount})=>{
   await expect(emailField).toHaveValue(new_email);
 });
 
-test("can change password", async ({baseURL, page, uniqueAccount:{username, password}})=>{
+test("can change password", async ({baseURL, page})=>{
+  const {username, password} = account;
   const new_password = randomBytes(10).toString("base64");
 
   let res = await fetch(new URL(`/auth/login`, baseURL), {
@@ -109,7 +113,8 @@ test("can logout", async ({page})=>{
   expect(await res.json()).toHaveProperty("level", "none");
 });
 
-test("can show archived scenes", async ({page, uniqueAccount:{username}})=>{
+test("can show archived scenes", async ({page})=>{
+  const {username} = account;
   const name = randomUUID();
   const fs = await import("node:fs/promises");
   const data = await fs.readFile(path.join(fixtures, "cube.glb"))

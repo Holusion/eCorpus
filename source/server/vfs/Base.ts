@@ -1,11 +1,17 @@
 
-import open, {Database, DbController} from "./helpers/db.js";
+import {Database, DbController} from "./helpers/db.js";
 import path from "path";
-import { InternalError, NotFoundError } from "../utils/errors.js";
+import { NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
+import { mkdir } from "fs/promises";
 
 
 export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
+
+/**
+ * Branded type to make a distinction between absolute path and ROOT_DIR relative paths
+ */
+export type RootRelativePath = string & {_brand: "RootRelativePath"};
 
 export default abstract class BaseVfs extends DbController{
 
@@ -13,8 +19,23 @@ export default abstract class BaseVfs extends DbController{
     super(db);
   }
 
+  public get baseDir(){ return this.rootDir; }
+  /**
+   * Temporary directory to store in-transit files.
+   * should be in the same volume as `Vfs.objectsDir` and `Vfs.artifactsDir`
+   * to ensure files can be moved atomically between those folders.
+   */
   public get uploadsDir(){ return path.join(this.rootDir, "uploads"); }
+  /**
+   * Main objects directory
+   */
   public get objectsDir(){ return path.join(this.rootDir, "objects"); }
+  /**
+   * Secondary directory used to store task artifacts
+   * Those are not considered long-term persistent: They can be cleaned-up to save space.
+   * On the other hand, they _shouldn't_ be cleaned before their referencing task
+   */
+  public get artifactsDir(){ return path.join(this.rootDir, "artifacts"); }
 
   public filepath(f :FileProps|string|{hash:string}){
     if(typeof f ==="string"){
@@ -24,6 +45,35 @@ export default abstract class BaseVfs extends DbController{
     }else{
       throw new NotFoundError(`No file matching ${f}`);
     }
+  }
+
+
+  /**
+   * Compute path to a file relative to {@link baseDir }. Accepts either absolute paths or paths that are already relative to baseDir.
+   * This is not a sanitize function and won't prevent bad paths from breaking out of baseDir.
+   * @param filepath 
+   */
+  public relative(filepath: string){
+    return path.relative(this.baseDir,  path.resolve(this.baseDir, filepath)) as RootRelativePath;
+  }
+
+  public absolute(filepath: RootRelativePath|string){
+    return path.isAbsolute(filepath)? filepath: path.resolve(this.baseDir, filepath);
+  }
+
+
+
+  /**
+   * Create an artifact directory for this task
+   */
+  public async createTaskWorkspace(id: number){
+    const dir = this.getTaskWorkspace(id);
+    await mkdir( dir, {recursive: true});
+    return dir;
+  }
+
+  public getTaskWorkspace(id: number){
+    return path.join(this.artifactsDir, id.toString(10));
   }
 
   abstract close() :Promise<any>;

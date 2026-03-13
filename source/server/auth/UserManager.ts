@@ -180,13 +180,20 @@ export default class UserManager extends DbController {
     ]);
   }
 
+  /**
+   * Get a user using its unique identifier
+   * @throws {NotFoundError} if user_id is not found
+   */
+  async getUserById(user_id: number) :Promise<User>{
+    let u = await this.db.get<StoredUser>(`SELECT * FROM users WHERE user_id = $1`, [ user_id ]);
+    if(!u) throw new NotFoundError(`no user with user_id ${user_id}`);
+    return UserManager.deserialize(u);
+  }
 
   /**
-   * Reads users file and checks users validity.
-   * Also allow requests by email
+   * Also allow requests by username or email
    * @throws {BadRequestError} is username is invalid
    * @throws {NotFoundError} is username is not found
-   * @throws {Error} if fs.readFile fails (generally with error.code == ENOENT)
    */
   async getUserByName(username : string) :Promise<User>{
     if(!UserManager.isValidUserName(username) && username.indexOf("@")== -1) throw new BadRequestError(`Invalid user name`);
