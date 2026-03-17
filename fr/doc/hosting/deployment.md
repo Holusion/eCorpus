@@ -86,6 +86,54 @@ volumes:
 
 eCorpus peut être exécuté en dehors d'un conteneur si les utilitaires nécessaires sont présents et qu'un accès à une base de données `PosgreSQL` est configuré.
 
+### Configuration de la base de données
+
+Une base de données PostgreSQL (`>= 15`) est nécessaire. La connexion à la base de données doit être configurée via la variable d'environnement `DATABASE_URI`, 
+
+Alternativement, l'ensemble `PGHOST`, `PGPORT`, `PGUSER` (par défaut `$USER`), `PGDATABASE` (par défaut `$USER`) et `PGPASSWORD` (par défaut vide) peut être utilisé.
+
+La viariable DATABASE_URI peut inclure toutes les options de connexion à la base de données :
+
+```
+postgresql://user:password@localhost:5432/mydatabase
+# Authentification par certificats SSL :
+postgres://host.docker.internal:5432/mydatabase?user=myuser&sslmode=verify-full&sslrootcert=/path/to/ca.pem&sslcert=/path/to/client-cert.pem&sslkey=/path/to/client-key.pem"
+# ou via un socket Unix
+socket:///var/run/postgresql/?db=mydatabase
+```
+
+
+### Utiliser la dernière release
+
+Voir la liste des [releases](https://github.com/Holusion/eCorpus/releases/) sur GitHub.
+
+```bash
+curl -XGET -L https://github.com/Holusion/eCorpus/releases/download/v0.1.0/eCorpus-v0.1.0.zip
+unzip eCorpus.zip
+cd eCorpus
+npm i --omit=dev
+npm start
+```
+
+Eventuellement, configurer un service systemd pour exécuter l'application en arrière-plan:
+
+```
+[Unit]
+Description=Ecorpus instance
+After=network.target
+
+[Service]
+WorkingDirectory=/path/to/eCorpus
+ExecStart=npm start
+
+[Install]
+WantedBy=default.target
+```
+
+Voir la documentation des [variables d'environnement](/fr/doc/hosting/configuration) pour plus de détails sur la configuration de l'instance.
+
+### Installer depuis la branche de développement
+
 ```bash
 git clone --filter=blob:none --recurse-submodules https://github.com/Holusion/eCorpus
 cd eCorpus
