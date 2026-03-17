@@ -76,6 +76,60 @@ function isExperimental({experimental}: {experimental: boolean}) :boolean{
 
 
 
+/**
+ * Constructs a PostgreSQL connection URI from environment variables.
+ * 
+ * Uses Unix domain socket for local development (when no PGHOST or PGPASSWORD),
+ * or TCP connection (when either PGHOST or PGPASSWORD is set).
+ * 
+ * @param _config - Unused parameter (kept for BuildKey compatibility)
+ * @param env - NodeJS environment variables object to parse
+ * 
+ * @returns A PostgreSQL connection URI string
+ * 
+ * @example
+ * // Socket mode (local development)
+ * parsePGEnv({}, {}) 
+ * // → "socket:///var/run/postgresql/"
+ * 
+ * parsePGEnv({}, { PGDATABASE: "mydb" })
+ * // → "socket:///var/run/postgresql/?db=mydb"
+ * 
+ * @example
+ * // TCP mode with host
+ * parsePGEnv({}, { PGHOST: "db.example.com" })
+ * // → "postgres://db.example.com:5432/{SYSTEM_USER}"
+ * 
+ * @example
+ * // TCP mode with full config
+ * parsePGEnv({}, {
+ *   PGHOST: "db.example.com",
+ *   PGPORT: "5433",
+ *   PGUSER: "appuser",
+ *   PGPASSWORD: "secret",
+ *   PGDATABASE: "myapp"
+ * })
+ * // → "postgres://appuser:secret@db.example.com:5433/myapp"
+ * 
+ * @remarks
+ * 
+ * **Socket Mode:** Activated when NEITHER PGHOST nor PGPASSWORD are present.
+ * - Uses local Unix domain socket at `/var/run/postgresql/`
+ * - Variables PGUSER, PGPORT are ignored
+ * - PGDATABASE becomes a query parameter if specified
+ * - Requires local PostgreSQL cluster with trust authentication
+ * 
+ * **TCP Mode:** Activated when either PGHOST or PGPASSWORD is set.
+ * - Defaults: localhost:5432 with user from process.env.USER
+ * - Override with PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE env vars
+ * 
+ * **Important Implementation Notes:**
+ * - Uses `process.env.USER` directly (bypasses passed `env` parameter) for default user
+ * - PGPORT is handled as string, not validated as numeric
+ * - Special characters in passwords are URL-encoded automatically
+ * - Empty string env values may cause unexpected behavior (not validated)
+ * - PGPASSWORD alone (without PGHOST) will connect to localhost with password (TCP mode)
+ */
 function parsePGEnv(_config:Partial<Config>, env :NodeJS.ProcessEnv ){
   const envMap = {
     hostname: "PGHOST",
@@ -85,10 +139,12 @@ function parsePGEnv(_config:Partial<Config>, env :NodeJS.ProcessEnv ){
     pathname: "PGDATABASE",
   } as const satisfies Partial<Record<keyof Omit<URL, "toString">, string>>;
 
-  if(!env[envMap.hostname] && !env[envMap.password!]){
+  // Socket mode: no host AND no password → use Unix domain socket for local development
+  if(!env[envMap.hostname] && !env[envMap.password]){
     return `socket:///var/run/postgresql/${env[envMap.pathname]? `?db=${env[envMap.pathname]}`:""}`;
   }
 
+  // TCP mode: either host or password present → connect via TCP
   const db_uri = new URL(`postgres://localhost:5432/${process.env["USER"]}`);
   for(let [key, name] of Object.entries(envMap)){
     if(!env[name]) continue;
