@@ -1,0 +1,105 @@
+/* Shared styles for task views (compiled/copied to /dist/css/tasks.css by build)
+   Rules are chosen to prefer the definitions originally in `task.hbs` when conflicts arise.
+*/
+
+/* Task node/tree */
+.task-tree {
+  font-family: var(--font-mono, monospace);
+  container-type: inline-size;
+  > .task-node {
+    margin-left: 0;
+    border-left: none;
+  }
+}
+.task-node {
+  margin: 0;
+  padding: .25rem .5rem;
+  border-left: 2px solid var(--color-element, #444);
+  margin-left: .5rem;
+}
+.task-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .25rem 0;
+}
+.task-id   { color: var(--color-secondary, #aaa); }
+.task-type { font-weight: bold; }
+.task-children { margin-top: .25rem; }
+
+/* Status badges (preferred definitions from task.hbs)
+   Keep these synchronized with other UI components that use the same classes. */
+.task-status {
+  padding: .1em .45em;
+  border-radius: .25em;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: .8em;
+  &.task-status-large{
+    padding: .5rem ;
+    width: 75px;
+    text-align: center;
+  }
+}
+
+.status-pending, .status-initializing { background: var(--color-element, #444); color: var(--color-light, #eee); }
+.status-running   { background: #2a6baa; color: #fff; }
+.status-success   { background: #2a7a4b; color: #fff; }
+.status-error     { background: #a03030; color: #fff; }
+.status-aborting  { background: #7a5a20; color: #fff; }
+
+/* Tasks list table */
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .9em;
+}
+
+.tasks-table th {
+  text-align: left;
+  padding: .4rem .6rem;
+  border-bottom: 2px solid var(--color-element, #444);
+  white-space: nowrap;
+}
+
+.tasks-table td {
+  padding: .3rem .6rem;
+  vertical-align: middle;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
+}
+
+/* Logs table */
+.logs-table {
+  font-family: var(--font-mono, monospace);
+}
+
+.logs-table th {
+  text-align: left;
+  padding: .3rem .5rem;
+  border-bottom: 1px solid var(--color-element, #444);
+  color: var(--color-primary, #aaa);
+  font-weight: bold;
+  font-size: 110%;
+}
+.logs-table td {
+  padding: .2rem .5rem;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
+}
+
+.log-task-id  { color: #aaa; white-space: nowrap; width: 1%; }
+.log-time     { color:  #aaa; white-space: nowrap; width: 1%; }
+.log-level    { white-space: nowrap; width: 1%; }
+.log-debug    { color: var(--color-info, #aaa); }
+.log-log      { color: var(--color-light, #eee); }
+.log-warn     { color: #d4a030; }
+.log-error    { color: #e05050; }
+.log-message  { white-space: pre-wrap; word-break: break-all; width: 100%; }
+
+/* Small responsive helpers */
+@media (max-width: 640px) {
+  .task-header { gap: .25rem; }
+  .tasks-table th, .tasks-table td { padding: .25rem .4rem; }
+  .logs-table th, .logs-table td { padding: .15rem .4rem; }
+}

@@ -21,18 +21,18 @@ function reducePropfind(text:string) :ReducedWebDAVProps[]{
   const multistatus = root.elements[0];
   expect(multistatus).toHaveProperty("name", "D:multistatus");
   const responses = multistatus.elements;
-  return responses.map(({elements})=>{
-    const href = elements.find(e=>e.name === "D:href");
-    expect(href, `find D:href in ${elements.map(p=>p.name)}`).toBeTruthy();
+  return responses.map(({elements}:any)=>{
+    const href = elements.find((e: any)=>e.name === "D:href");
+    expect(href, `find D:href in ${elements.map((p:any)=>p.name)}`).toBeTruthy();
     let item: ReducedWebDAVProps = {
-      path: new URL(href.elements.find(e=>e.type === "text").text).pathname,
+      path: new URL(href.elements.find((e: any)=>e.type === "text").text).pathname,
     };
 
-    const propstat = elements.find(e=>e.name === "D:propstat");
-    expect(propstat, `find D:propstat in ${elements.map(p=>p.name)}`).toBeTruthy();
-    const props = propstat.elements.find(e=>e.name === "D:prop");
+    const propstat = elements.find((e: any)=>e.name === "D:propstat");
+    expect(propstat, `find D:propstat in ${elements.map((p: any)=>p.name)}`).toBeTruthy();
+    const props = propstat.elements.find((e: any)=>e.name === "D:prop");
     for(const el of props.elements){
-      const content = el.elements?.find(e=>e.type ==="text")?.text;
+      const content = el.elements?.find((e: any)=>e.type ==="text")?.text;
       switch(el.name){
         case "D:getetag":
           item.etag = content;
@@ -78,23 +78,27 @@ test("uploads a scene zip", async ({page, request})=>{
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
-  await expect(f).toBeVisible();
-  await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
+
+
+  await page.locator("input[type=\"file\"]").setInputFiles({
     name: "scene.zip",
     mimeType: "application/zip",
     buffer: body,
   });
-  await f.getByRole("button", {name: "buttons.upload"}).click();
+
+  //We expect to see a list of scenes that will be uploaded
+  //In our case we expect "create" status since the scene has been deleted
+
+  await page.getByRole("button", {name: "buttons.upload"}).click();
 
 
-  const uploads = page.getByRole("region", {name: "uploads"});
+  const uploads = page.getByRole("region", {name: "titles.createdScenes"});
   await expect(uploads).toBeVisible();
   //Don't check for actual progress bar visibility because that could be too quick to register
   const link = uploads.getByRole("link", {name: name});
   await link.click();
   await expect(page).toHaveURL(`/ui/scenes/${name}`);
-  await expect(page.getByRole("heading", {name})).toBeVisible();
+  await expect(page.getByRole("heading", {name, }).first()).toBeVisible();
 });
 
 
@@ -127,27 +131,34 @@ test("uploads a multi-scene zip", async ({page, request})=>{
 
   let body = await res.body();
 
-  await Promise.all(names.map(async (name)=>{
-    //Delete the scene
-    res = await request.delete(`/scenes/${name}?archive=false`);
-    await expect(res).toBeOK();
-  }));
-
+  //Delete the first scene
+  res = await request.delete(`/scenes/${names[0]}?archive=false`);
+  await expect(res).toBeOK();
 
 
   await page.goto("/ui/upload");
 
-  const f = page.getByRole("form", {name: "titles.createOrUpdateScene"});
-  await expect(f).toBeVisible();
-  await f.getByRole("button", {name: "labels.selectFile"}).setInputFiles({
+
+
+  await page.locator("input[type=\"file\"]").setInputFiles({
     name: "scene.zip",
     mimeType: "application/zip",
     buffer: body,
   });
-  await f.getByRole("button", {name: "buttons.upload"}).click();
+
+  const btn = page.getByRole("button", {name: "buttons.upload"});
+
+  await expect(btn).toBeVisible();
+
+  //Expect first scene to be "create", because we just deleted it. Second scene should be "update"
+  await expect(page.getByText(`[CREATE] ${names[0]}`)).toBeVisible();
+  await expect(page.getByText(`[UPDATE] ${names[1]}`)).toBeVisible();
 
 
-  const uploads = page.getByRole("region", {name: "uploads"});
+  await btn.click();
+
+
+  const uploads = page.getByRole("region", {name: "titles.createdScenes"});
   for (let name of names){
     await expect(uploads).toBeVisible();
     //Don't check for actual progress bar visibility because that could be too quick to register

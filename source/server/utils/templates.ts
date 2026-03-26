@@ -174,6 +174,14 @@ export default class Templates{
     return this.#dir;
   }
 
+  /**
+   * Get the translate function of the templates renderer
+   * Useful to translate a string of text outside of templates eg: when reporting an error
+   */
+  get t(){
+    return this.#i18n.t;
+  }
+
 
   async listPartials(dir = this.#partialsDir) :Promise<string[]>{
     if(this.#partials) return this.#partials;

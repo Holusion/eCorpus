@@ -1,0 +1,88 @@
+
+<div class="main-container">
+
+  <h1>
+    Task #{{root.task_id}} &mdash; <span class="task-type">{{root.type}}</span>
+    <a href="." class="title-caret" aria-label="go back">
+      ‹
+    </a>
+  </h1>
+
+  {{#if root.scene_id}}
+    <p style="color: var(--color-secondary)">Scene #{{root.scene_id}}</p>
+  {{/if}}
+
+  <section>
+    <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+      <h2>{{i18n "titles.taskTree"}}</h2>
+      {{#if root.parent}}<span>Child of <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a></span>{{/if}}
+    </div>
+    <div class="task-tree">
+      {{> taskNode root}}
+    </div>
+  </section>
+
+  <section style="margin-top: 1.5rem">
+    <div style="display:flex; align-items:baseline; justify-content: space-between; gap:1rem; flex-wrap:wrap;">
+      <h2 style="margin-bottom:.5rem">{{i18n "titles.logs" default="Logs"}} <small style="font-weight:normal;color:var(--color-secondary)">({{logs.length}})</small></h2>
+      <form class="form-control" method="GET" style="margin-bottom:.75rem">
+        <div class="form-group inline">
+          <label class="form-item">
+            {{i18n "fields.minLevel" default="Min level"}}
+            <select name="level" autocomplete="off" onchange="this.form.submit()">
+              <option value="debug" {{#if (test level "==" "debug" )}}selected{{/if}}>debug</option>
+              <option value="log"   {{#if (test level "==" "log" )}}selected{{/if}}>log</option>
+              <option value="warn"  {{#if (test level "==" "warn"  )}}selected{{/if}}>warn</option>
+              <option value="error" {{#if (test level "==" "error" )}}selected{{/if}}>error</option>
+            </select>
+          </label>
+        </div>
+      </form>
+    </div>
+    {{#if logs.length}}
+    <div style="overflow-x: auto">
+      <table class="list-table compact logs-table">
+        <thead>
+          <tr>
+            <th>time</th>
+            <th>task</th>
+            <th>level</th>
+            <th>message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each logs}}
+          <tr id="log-{{log_id}}" class="log-{{severity}}">
+            <td class="log-time">{{dateString timestamp}}</td>
+            <td class="log-task-id">#{{task_id}}</td>
+            <td class="log-level log-{{severity}}">{{severity}}</td>
+            <td class="log-message">{{message}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      <p style="color: var(--color-secondary)">{{i18n "labels.noLogs" default="No logs."}}</p>
+    {{/if}}
+  </section>
+
+</div>
+
+{{!-- Recursive partial for task nodes --}}
+{{#*inline "taskNode"}}
+<div class="task-node">
+  <div class="task-header">
+    <a href="/ui/tasks/{{task_id}}" class="task-id">#{{task_id}}</a>
+    <span class="task-type">{{type}}</span>
+    <span class="task-status status-{{status}}">{{status}}</span>
+  </div>
+  {{#if children.length}}
+  <div class="task-children">
+    {{#each children}}
+      {{> taskNode this}}
+    {{/each}}
+  </div>
+  {{/if}}
+</div>
+{{/inline}}

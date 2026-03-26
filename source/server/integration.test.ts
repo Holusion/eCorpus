@@ -67,11 +67,11 @@ describe("Web Server Integration", function(){
         .set("Content-Type", "application/octet-stream")
         .send(content)
         expect(r.status, `Expected status code 201 but received [${r.status}]: ${r.text}`).to.equal(201);
-        let res = await this.agent.get("/scenes/bar/models/bar.glb").expect(200);
+        let res = await this.agent.get("/scenes/bar/bar.glb").expect(200);
         expect(res.text.slice(0,4).toString()).to.equal("glTF");
         expect(res.text.length).to.equal(content.length);
 
-        let {body:doc} = await this.agent.get("/scenes/bar/bar.svx.json").expect(200);
+        let {body:doc} = await this.agent.get("/scenes/bar/scene.svx.json").expect(200);
         expect(doc).to.have.property("models").an("array").to.have.length(1);
       });
 
