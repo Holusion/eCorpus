@@ -86,6 +86,7 @@ export function createLogger(db: DatabaseHandle, task_id: number) {
   const inserter = createInserter(db, task_id);
 
   batcher.pipe(inserter);
+  batcher.on("error", (err) => inserter.destroy(err));
 
   function log(severity: LogSeverity, message: string) {
     debug(`[${severity.toUpperCase()}] ${message}`);

@@ -2,9 +2,6 @@ import { Request, Response } from "express";
 import { getVfs, getUser, getTaskScheduler } from "../../../../utils/locals.js";
 import { MethodNotAllowedError, NotImplementedError, UnauthorizedError } from "../../../../utils/errors.js";
 
-import { isUploadTask } from "./put.js";
-import path from "node:path";
-import { UploadHandlerParams } from "../../../../tasks/handlers/uploads.js";
 import { isArtifactTask } from "../../../../tasks/types.js";
 
 

@@ -2,7 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 
 import wrap from "../../utils/wrapAsync.js";
 
-import { canAdmin, canRead, getLocals, getUser, isCreator, isUser } from "../../utils/locals.js";
+import { getLocals, getUser, isCreator, isUser } from "../../utils/locals.js";
 
 import { createUserTask } from "./post.js";
 import { putTaskArtifact } from "./task/artifacts/put.js";
@@ -26,7 +26,6 @@ function taskAccess(name: AccessType) {
   const minLevel = toAccessLevel(name);
   return function taskAccessMiddleware(req: Request, res: Response, next: NextFunction) {
     const {
-      vfs,
       taskScheduler,
       userManager,
     } = getLocals(req);

@@ -61,7 +61,6 @@ export async function postRawZipfile(req: Request, res: Response) {
 export default async function postScenes(req: Request, res: Response) {
   const requester = getUser(req);
   if (requester === null) { throw new UnauthorizedError("No identified user") }
-  let userManager = getUserManager(req);
 
   if (req.is("multipart") || req.is("application/x-www-form-urlencoded")) {
     throw new BadRequestError(`Form data is not supported on this route. Provide a raw Zip attachment`);

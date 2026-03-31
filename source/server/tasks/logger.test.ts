@@ -161,6 +161,34 @@ describe("createBatcher", function () {
 });
 
 
+describe("createBatcher error propagation", function () {
+  /**
+   * Regression test for error forwarding in logger/batcher
+   * This test would time out without the error handler.
+   */
+  it("batcher error is forwarded to the sink when an error handler bridges them", function (done) {
+    this.timeout(500);
+
+    const batcher = createBatcher(10, 5000);
+
+    const sink = new Writable({
+      objectMode: true,
+      write(_chunk, _enc, cb) { cb(); },
+    });
+
+    batcher.pipe(sink);
+    // This is the line under test — remove it and this test hangs until timeout
+    batcher.on("error", (err) => sink.destroy(err));
+
+    sink.on("error", (err) => {
+      expect(err.message).to.equal("simulated batcher failure");
+      done();
+    });
+
+    batcher.destroy(new Error("simulated batcher failure"));
+  });
+});
+
 describe("createLogger (integration)", function () {
   let db_uri: string, handle: Database, task_id: number;
 

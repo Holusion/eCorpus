@@ -1,11 +1,9 @@
-import fs from "fs/promises";
 import request from "supertest";
 
 import User from "../../../../auth/User.js";
 import UserManager from "../../../../auth/UserManager.js";
 import Vfs from "../../../../vfs/index.js";
 import { randomBytes, randomInt } from "node:crypto";
-import path from "node:path";
 import { fixturesDir } from "../../../../__test_fixtures/fixtures.js";
 
 

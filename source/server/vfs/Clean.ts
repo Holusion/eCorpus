@@ -33,8 +33,13 @@ export default abstract class CleanVfs extends BaseVfs{
     let loose = [];
     for await (let object of it){
       await timers.setTimeout(randomInt(1));
+<<<<<<< HEAD
       let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
       if(!row || row.count == 0 ){
+=======
+      let rows = await this.db.all(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
+      if(!rows || rows.length == 0 || rows[0].count == 0){
+>>>>>>> 39d25d9 (fixup clean count)
         //try to prevent race conditions by ensuring file is old enough
         const stat = await fs.stat(this.getPath({hash: object.name}));
         if(stat.mtime.valueOf() < Date.now() - 3600){
