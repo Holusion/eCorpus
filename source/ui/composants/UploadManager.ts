@@ -13,6 +13,7 @@ import { SceneUploadResult, Uploader, UploadOperation } from "../state/uploader"
 export default class UploadManager extends LitElement{
   //static shadowRootOptions = {...LitElement.shadowRootOptions, delegatesFocus: true};
   private uploader = new Uploader(this);
+  private dragCounter = 0;
   @state()
   busy: boolean = false;
 
@@ -21,44 +22,18 @@ export default class UploadManager extends LitElement{
 
   connectedCallback(): void {
     super.connectedCallback();
-    // We register a number of global events that might influence app behaviour
-    window.addEventListener("drop", this.handleGlobalDrop);
-    window.addEventListener("dragover", this.handleGlobalDragover);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    window.removeEventListener("drop", this.handleGlobalDrop);
-    window.removeEventListener("dragover", this.handleGlobalDragover);
-  }
 
-  /**
-   * Prevent default action on drop at the window level when files are dropped in the page
-   */
-  private handleGlobalDrop = (e: DragEvent)=>{
-    if(e.defaultPrevented) return;
-    if([...e.dataTransfer.items].every((item) => item.kind !== "file")) return;
-    e.preventDefault();
-    this.classList.remove("drag-active");
   }
-
-  /**
-   * Prevent default action on drop at the window level when files are dragged through the page
-   */
-  private handleGlobalDragover = (e: DragEvent)=>{
-    if([...e.dataTransfer.items].every((item) => item.kind !== "file")) return;
-    e.preventDefault();
-    if (!this.shadowRoot.contains(e.target as Node)) {
-      e.dataTransfer.dropEffect = "none";
-    }
-  }
-
 
 
   createScene = (ev:MouseEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
-    const form = this.uploadForm;
+    const form = this.uploadForm!;
     const data= new FormData(form);
     if(!form.checkValidity()){
       Notification.show("Upload form is invalid", "warning", 1500);
@@ -136,33 +111,50 @@ export default class UploadManager extends LitElement{
 
   /**
    * Handles files being dropped onto the upload zone
-   * @fixme files is empty?
    */
-  public ondrop = (ev: DragEvent)=>{
+  public handleDrop = (ev: DragEvent)=>{
     ev.preventDefault();
+    ev.stopPropagation();
+    this.dragCounter = 0;
     this.classList.remove("drag-active");
-    console.log("Drop :", ev.dataTransfer.files);
-    // @todo add the files
-    this.uploader.handleFiles(ev.dataTransfer.files);
+    
+    console.log("Drop :", ev, ev.dataTransfer?.files);
+    this.uploader.handleFiles(ev.dataTransfer?.files!);
   }
 
-  public ondragover = (ev: DragEvent)=>{
+  public handleDragover = (ev: DragEvent)=>{
     ev.preventDefault();
-    ev.dataTransfer.dropEffect = "copy";
-    this.classList.add("drag-active");
+    if(ev.dataTransfer) ev.dataTransfer.dropEffect = "copy";
   }
 
-  public ondragleave = (ev: DragEvent)=>{
-    this.classList.remove("drag-active");
+  public handleDragenter = (ev: DragEvent)=>{
+    ev.preventDefault();
+    if(!ev.dataTransfer?.types?.includes('Files')) return;
+    if(!this.dragCounter){
+      this.classList.add("drag-active");
+    }
+    this.dragCounter++; //prevents overlay flickering with multiple enter/leave events
   }
 
+  public handleDragleave = (ev: DragEvent)=>{
+    ev.preventDefault();
+    this.dragCounter--;
+    if( this.dragCounter <= 0){
+      this.dragCounter = 0;
+      this.classList.remove("drag-active");
+    }
+  }
+  
   /**
    * Handles "change" events in the file input
    * @param ev 
    */
   protected handleChange = (ev: Event)=>{
     ev.preventDefault();
-    this.uploader.handleFiles((ev.target as HTMLInputElement).files);
+    ev.stopPropagation();
+    this.dragCounter = 0;
+    this.classList.remove("drag-active");
+    this.uploader.handleFiles((ev.target as HTMLInputElement).files!);
   }
 
   /**
@@ -173,12 +165,12 @@ export default class UploadManager extends LitElement{
    * slotted element selector to edit proposed scene title
    */
   get nameInput() :HTMLInputElement|undefined{
-    const slot = this.shadowRoot.querySelector<HTMLSlotElement>('slot[name="upload-form"]');
+    const slot = this.shadowRoot!.querySelector<HTMLSlotElement>('slot[name="upload-form"]');
     return slot?.assignedElements().map(e=> e.querySelector<HTMLInputElement>(`input[name="name"]`)).filter(n=>!!n)[0];
   }
 
   get uploadForm() :HTMLFormElement|undefined{
-    const slot = this.shadowRoot.querySelector<HTMLSlotElement>('slot[name="upload-form"]');
+    const slot = this.shadowRoot!.querySelector<HTMLSlotElement>('slot[name="upload-form"]');
     return slot?.assignedElements().map(e=> e instanceof HTMLFormElement? e: e.querySelector<HTMLFormElement>(`FORM`)).filter(n=>!!n)[0];
   }
 
@@ -188,7 +180,7 @@ export default class UploadManager extends LitElement{
     const defaultTitle = models[0]?.filename.split(".").slice(0, -1).join(".") ?? "";
 
     if(this._defaultTitle != defaultTitle && !this.uploader.has_pending_uploads){
-      console.log("Assign default title %s to ", defaultTitle, ["", defaultTitle].indexOf(this.nameInput.value) != -1, this.nameInput)
+      console.log("Assign default title %s to ", defaultTitle, ["", defaultTitle].indexOf(this.nameInput?.value!) != -1, this.nameInput)
       if(this.nameInput){
         if(["", this._defaultTitle].indexOf(this.nameInput.value) != -1) this.nameInput.value = defaultTitle;
         this._defaultTitle  = defaultTitle
@@ -220,8 +212,8 @@ export default class UploadManager extends LitElement{
     let state = "pending";
     let stateText: TemplateResult|string = html`<span class="loader"></span>`;
     let filetype: TemplateResult|null = null;
-    let unit = binaryUnit(u.total);
-    let progress = `${formatBytes(u.progress, unit)}/${formatBytes(u.total)}`;
+    let unit = binaryUnit(u.total ?? 0);
+    let progress = `${formatBytes(u.progress, unit)}/${formatBytes(u.total ?? 0)}`;
     if(u.error){
       state = "error";
       stateText = "⚠";
@@ -229,7 +221,7 @@ export default class UploadManager extends LitElement{
     }else if(u.done){
       state = "done";
       stateText = "✓";
-      progress = formatBytes(u.total);
+      progress = formatBytes(u.total?? 0);
     }
     if(u.isModel){
       filetype = html`<span class="upload-filetype filetype-${u.mime ==="model/gltf-binary"?"glb":"source"}">
@@ -336,13 +328,18 @@ export default class UploadManager extends LitElement{
     }
     return html`
       <slot name="title"  id="upload-form-title">Create or Update a scene</slot>
-      <div id="drop-zone" class="dropzone  ${is_active?" active":""}${uploads.length?"":" empty"}">
+      <div id="drop-zone"
+        @dragenter=${this.handleDragenter}
+        @dragleave=${this.handleDragleave}
+        @dragover=${this.handleDragover}
+        @drop=${this.handleDrop}
+        class="dropzone  ${is_active?" active":""}${uploads.length?"":" empty"}">
         <ul class="upload-list">
           ${uploads.map(this.renderUploadItem)}
         </ul>
         <label>
           <slot class="drop-label" id="files-input-label" name="drop-label">Drop files here</slot>
-          <input @change=${this.handleChange}
+          <input  @change=${this.handleChange}
             aria-labelledby="files-input-label"
             class="dropzone-input"
             role="button"
@@ -376,12 +373,17 @@ export default class UploadManager extends LitElement{
       input[type=file] {
         display: none;
       }
+      ::slotted(*) {
+        pointer-events: none;
+        user-select: none;
+      }
     }
 
     
     :host(.drag-active) .dropzone{
-      border: 1px dotted #99999988;
-      background-color: #99999905;
+      border: 2px dotted var(--color-secondary-light);
+      margin: -1px;
+      background-color: var(--color-highlight);
     }
 
 
@@ -446,6 +448,8 @@ export default class UploadManager extends LitElement{
         
 
         .upload-action{
+
+          pointer-events: auto;
           cursor: pointer;
           &.action-cancel{
             color: var(--color-error);
