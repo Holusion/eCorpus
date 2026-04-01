@@ -2,20 +2,18 @@
 <div class="main-container task-summary">
   <div class="task-title-bar">
     <h1>
-      Task #{{root.task_id}} &mdash; <span class="task-type">{{root.type}}</span>
-      <a href="." class="title-caret" aria-label="go back">
-        ‹
-      </a>
+      Task #{{root.task_id}} <span class="task-type sm-hidden">&mdash; {{root.type}}</span>
     </h1>
-  </div>
 
-  {{#if root.scene_id}}
-    <p style="color: var(--color-secondary)">Scene #{{root.scene_id}}</p>
-  {{/if}}
+    {{#if root.scene_id}}
+      <h2 class="title-right" style="margin: 0; flex-grow: 1;">Scene: <a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a></h2>
+    {{/if}}
+
+  </div>
 
   <section>
     <div style="display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap;">
-      <h2>{{i18n "titles.taskTree"}}</h2>
+      <h3>{{i18n "titles.taskTree"}}</h3>
       <span class="task-status status-{{root.status}}" style="padding: .5rem">{{root.status}}</span>
     </div>
     {{#if root.parent}}<h3>{{i18n "labels.childOf"}} <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a></h3>{{/if}}
@@ -32,7 +30,7 @@
 
   <section style="margin-top: 1.5rem">
     <div style="display:flex; align-items:baseline; justify-content: space-between; gap:1rem; flex-wrap:wrap;">
-      <h2 style="margin-bottom:.5rem">{{i18n "titles.logs" default="Logs"}} <small style="font-weight:normal;color:var(--color-secondary)">({{logs.length}})</small></h2>
+      <h3 style="margin-bottom:.5rem">{{i18n "titles.logs" default="Logs"}} <small style="font-weight:normal;color:var(--color-secondary)">({{logs.length}})</small></h3>
       <form class="form-control" method="GET" style="margin-bottom:.75rem">
         <div class="form-group inline">
           <label class="form-item">

@@ -8,6 +8,7 @@ import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { debuglog } from "util";
+import { TaskDefinition } from "../../tasks/types.js";
 
 
 const debug = debuglog("http:views");
@@ -93,9 +94,26 @@ routes.get("/upload", wrap(async (req, res)=>{
     throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
   }
   debug("Render previous upload tasks : ", ids);
-  let tasks = await Promise.all(ids.map(id=> taskScheduler.getTask(id)));
-  let scenes: Array<{name: string,  action: "create"|"update", task_id: number}|{error: string, action: "error",  task_id: number|null}> = [];
+  type TaskScene = {name: string,  action: "create"|"update", task_id: number}
+  type TaskError =  {error: string, action: "error",  task_id: number|null}
+  type TaskLine = TaskScene|TaskError;
+  let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
+    try{
+      return await taskScheduler.getTask(id);
+    }catch(e:any){
+      return {
+        error: e.message,
+        action: "error",
+        task_id: id
+      } satisfies TaskError;
+    }
+  }));
+  let scenes: Array<TaskLine> = [];
   for(let task of tasks){
+    if("error" in task){
+      scenes.push(task)
+      continue
+    }
     if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
       scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error", task_id: null});
       continue;
@@ -637,6 +655,7 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
     && root.output.name.indexOf("Error") != -1){
       taskOutputType = "error";
   }
+
   res.render("task", {
     title: `Task #${id} — ${root.type}`,
     root,

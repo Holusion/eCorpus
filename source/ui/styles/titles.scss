@@ -28,7 +28,13 @@ h1{
 h2{
   border-left: 0.7rem solid var(--color-primary);
   @include text-colors {
-    border-left-color: currentColor;
+    border-color: currentColor;
   }
   padding: 0.5rem 0 0 0.8rem;
+  &.title-right{
+    text-align: right;
+    border-left: 0;
+    border-right: 0.7rem solid var(--color-primary);
+    padding-right: 0.8rem;
+  }
 }
