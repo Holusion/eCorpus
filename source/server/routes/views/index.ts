@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, canAdmin, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -425,7 +425,16 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
       }
   }
 
-  res.render("scene", {
+  const access = res.locals.access as string;
+  let hasTasks = false;
+  if (access === "admin") {
+    const taskScheduler = getTaskScheduler(req);
+    const sceneTasks = await taskScheduler.getTasks({ scene_id: scene.id, rootOnly: true });
+    hasTasks = sceneTasks.length > 0;
+  }
+  console.log("Scene tasks:", hasTasks, access);
+
+  res.render("scene/scene", {
     title: `eCorpus: ${scene.name}`,
     displayedTitle,
     displayedIntro,
@@ -434,6 +443,36 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     groupPermissions,
     userPermissions,
     tagSuggestions,
+    hasTasks,
+  });
+}));
+
+routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
+  const { scene: scene_name } = req.params;
+  const vfs = getVfs(req);
+  const taskScheduler = getTaskScheduler(req);
+
+  const scene = mapScene(req, await vfs.getScene(scene_name));
+
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+
+  const tasks = await taskScheduler.getTasks({ scene_id: scene.id, type, status, rootOnly });
+
+  res.render("scene/tasks", {
+    title: `Tasks — ${scene.name}`,
+    scene,
+    tasks,
+    params: { type, status, rootOnly },
   });
 }));
 
@@ -456,7 +495,7 @@ routes.get("/scenes/:scene/view", (req, res)=>{
   }
 
 
-  res.render("explorer", {
+  res.render("scene/explorer", {
     title: `${scene}: Explorer`,
     layout: "viewer",
     scene,
@@ -474,7 +513,7 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
   let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
 
-  res.render("story", {
+  res.render("scene/story", {
     title: `${scene}: Story Editor`,
     layout: "viewer",
     scene,
@@ -490,7 +529,7 @@ routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   let {scene:scene_name} = req.params;
   let scene = await vfs.getScene(scene_name);
   
-  res.render("history", {
+  res.render("scene/history", {
     title: `eCorpus: History of ${scene_name}`,
     name: scene_name,
     canAdmin: res.locals.access === "admin",
@@ -504,7 +543,7 @@ routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
   let scene = await vfs.getScene(scene_name);
   let thumb = new URL(`/scenes/${encodeURIComponent(scene_name)}/scene-image-thumb.jpg`, getHost(req));
   
-  res.render("explorer", {
+  res.render("scene/explorer", {
     title: `eCorpus: History of ${scene_name}`,
     layout: "viewer",
     scene: scene_name,
@@ -518,7 +557,7 @@ routes.get("/standalone", (req, res)=>{
   let host = getHost(req);
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
 
-  res.render("story", {
+  res.render("scene/story", {
     layout: "viewer",
     title: `Standalone Story`,
     mode: "Standalone",
