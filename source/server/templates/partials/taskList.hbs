@@ -1,84 +1,84 @@
 
-<form class="form-control" method="GET" style="margin-bottom:.75rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
-  <label class="form-item">
-    {{i18n "fields.type" default="Type"}}
-    <input name="type" type="search" value="{{params.type}}" placeholder="eg. delayTask" />
-  </label>
+<section>
+  <form class="form-control" method="GET" style="margin-bottom:.75rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+    <label class="form-item">
+      {{i18n "fields.type" default="Type"}}
+      <input name="type" type="search" value="{{params.type}}" placeholder="eg. delayTask" />
+    </label>
 
-  <label class="form-item">
-    {{i18n "fields.status" default="Status"}}
-    <select name="status" onchange="this.form.submit()">
-      <option value="all" {{#if (test params.status "==" "all")}}selected{{/if}}>{{i18n "labels.all" default="all"}}</option>
-      <option value="success" {{#if (test params.status "==" "success")}}selected{{/if}}>{{i18n "labels.success" default="success"}}</option>
-      <option value="error" {{#if (test params.status "==" "error")}}selected{{/if}}>{{i18n "labels.error" default="error"}}</option>
-    </select>
-  </label>
+    <label class="form-item">
+      {{i18n "fields.status" default="Status"}}
+      <select name="status" onchange="this.form.submit()">
+        <option value="all" {{#if (test params.status "==" "all")}}selected{{/if}}>{{i18n "labels.all" default="all"}}</option>
+        <option value="success" {{#if (test params.status "==" "success")}}selected{{/if}}>{{i18n "labels.success" default="success"}}</option>
+        <option value="error" {{#if (test params.status "==" "error")}}selected{{/if}}>{{i18n "labels.error" default="error"}}</option>
+      </select>
+    </label>
 
-  <label class="form-item">
-    {{i18n "labels.taskTypes"}}
-    <select name="rootOnly" onchange="this.form.submit()">
-      <option value="true" {{#if params.rootOnly}}selected{{/if}}>{{i18n "labels.rootOnly"}}</option>
-      <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks"}}</option>
-    </select>
-  </label>
-</form>
-{{#if tasks.length}}
-  <div class="tasks-table-wrap">
-  <table class="list-table tasks-table">
-    <thead>
-      <tr>
-        <th>{{i18n "fields.ctime"}}</th>
-        {{#unless params.rootOnly }}<th>{{i18n "fields.parent"}}</th>{{/unless}}
-        {{#if showUser}}<th>{{i18n "fields.owner"}}</th>{{/if}}
-        <th>{{i18n "fields.scene"}}</th>
-        <th>{{i18n "fields.type"}}</th>
-        <th>{{i18n "fields.status"}}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{#each tasks}}
-      <tr>
-        <td class="col-ctime compact">{{dateString ctime}}</td>
-        {{#unless @root.params.rootOnly }}
-          <td class="col-parent compact">
-            {{#if parent}}
-              <a href="/ui/tasks/{{ parent }}">#{{ parent }}</a>
-            {{else}}
-              &mdash;
-            {{/if}}
-          </td>
-        {{/unless}}
-        {{#if ../showUser }}
-          <td class="col-user compact">
-            {{#if user_id}}
-              <a href="/ui/tasks?user={{user_id}}">{{owner}}</a>
-            {{else}}
-              &mdash;
-            {{/if}}
-          </td>
-        {{/if}}
-        <td class="col-scene">
-          {{#if scene}}
-            <a href="/ui/scenes/{{encodeURIComponent scene}}">{{ scene }}</a>
-          {{else}}
-            &mdash;
+    <label class="form-item">
+      {{i18n "labels.taskTypes"}}
+      <select name="rootOnly" onchange="this.form.submit()">
+        <option value="true" {{#if params.rootOnly}}selected{{/if}}>{{i18n "labels.rootOnly"}}</option>
+        <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks"}}</option>
+      </select>
+    </label>
+  </form>
+  {{#if tasks.length}}
+    <table class="list-table tasks-table">
+      <thead>
+        <tr>
+          <th>{{i18n "fields.ctime"}}</th>
+          {{#unless params.rootOnly }}<th>{{i18n "fields.parent"}}</th>{{/unless}}
+          {{#if showUser}}<th>{{i18n "fields.owner"}}</th>{{/if}}
+          <th>{{i18n "fields.scene"}}</th>
+          <th>{{i18n "fields.type"}}</th>
+          <th>{{i18n "fields.status"}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each tasks}}
+        <tr>
+          <td class="col-ctime compact">{{dateString ctime}}</td>
+          {{#unless @root.params.rootOnly }}
+            <td class="col-parent compact">
+              {{#if parent}}
+                <a href="/ui/tasks/{{ parent }}">#{{ parent }}</a>
+              {{else}}
+                &mdash;
+              {{/if}}
+            </td>
+          {{/unless}}
+          {{#if @root.showUser }}
+            <td class="col-user compact">
+              {{#if user_id}}
+                <a href="/ui/tasks?user={{user_id}}">{{owner}}</a>
+              {{else}}
+                &mdash;
+              {{/if}}
+            </td>
           {{/if}}
-        </td>
-        <td class="col-type">
-          <a href="/ui/tasks/{{task_id}}">
-            {{type}}#{{task_id}}
-          </a>
-        </td>
-        <td class="col-status compact" style="padding: 0 15px">
-          <a href="/ui/tasks/{{task_id}}" class="task-status task-status-large status-{{status}}" style="display:block; text-decoration: none">
-            {{status}}
-          </a>
-        </td>
-      </tr>
-      {{/each}}
-    </tbody>
-  </table>
-  </div>
-{{else}}
-  <p style="color: var(--color-secondary)">{{i18n "labels.noTasks" default="No tasks found."}}</p>
-{{/if}}
+          <td class="col-scene">
+            {{#if scene}}
+              <a href="/ui/scenes/{{encodeURIComponent scene}}">{{ scene }}</a>
+            {{else}}
+              &mdash;
+            {{/if}}
+          </td>
+          <td class="col-type">
+            <a href="/ui/tasks/{{task_id}}">
+              {{type}}#{{task_id}}
+            </a>
+          </td>
+          <td class="col-status compact" style="padding: 0 15px">
+            <a href="/ui/tasks/{{task_id}}" class="task-status task-status-large status-{{status}}" style="display:block; text-decoration: none">
+              {{status}}
+            </a>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <p style="color: var(--color-secondary)">{{i18n "labels.noTasks" default="No tasks found."}}</p>
+  {{/if}}
+</section>

@@ -6,7 +6,7 @@ import { Scene } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
-import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
+import { BadRequestError } from "../../utils/errors.js";
 import { debuglog } from "util";
 
 
@@ -528,46 +528,51 @@ routes.get("/standalone", (req, res)=>{
 });
 
 
-routes.get("/tasks", wrap(async (req, res) => {
+routes.get("/user/tasks", wrap(async (req, res) => {
   const user = getUser(req);
-  if (!user || user.level === "none") {
-    throw new ForbiddenError("You must be logged in to view your tasks");
+  if (user == null || UserRoles.indexOf(user.level) < 1) {
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tasks")}`);
   }
   const taskScheduler = getTaskScheduler(req);
-  // Parse and validate query params
-  const rawOwner = typeof req.query.owner === 'string' ? req.query.owner : undefined;
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
-
-  // owner: 'mine'|'all' (only admins may request 'all')
-  const owner = rawOwner === 'all' ? 'all' : 'mine';
-  if (owner === 'all' && user.level !== 'admin') {
-    throw new ForbiddenError("Only administrators can list all users' tasks");
-  }
-
-  // status: 'all'|'success'|'error'
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
-  if(rawStatus && status !== rawStatus){
-    throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  }
-  // type: optional string, limit length to avoid abuse
-  let type: string | undefined = undefined;
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  let type: string | undefined;
   if (rawType) {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-
-  // rootOnly: optional boolean flag controlling whether only root tasks are returned.
-  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
-
-  const userId = owner === 'mine' ? user.uid : undefined;
-
-  const tasks = await taskScheduler.getTasks({ user_id: userId, type, status, rootOnly });
-  res.render("tasks", {
-    title: "My tasks",
+  const tasks = await taskScheduler.getTasks({ user_id: user.uid, type, status, rootOnly });
+  res.render("user/tasks", {
+    layout: "user",
+    title: "My Tasks — User",
     tasks,
-    params: { owner, type, status, rootOnly },
+    params: { type, status, rootOnly },
+  });
+}));
+
+routes.get("/admin/tasks", isAdministrator, wrap(async (req, res) => {
+  const taskScheduler = getTaskScheduler(req);
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+  const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly });
+  res.render("admin/tasks", {
+    layout: "admin",
+    title: "Tasks — Administration",
+    tasks,
+    params: { type, status, rootOnly },
   });
 }));
 
