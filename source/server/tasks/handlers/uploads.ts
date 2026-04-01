@@ -286,8 +286,16 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
     });
   }
 
+  await tasks.setTaskScene(task_id, scene_id);
+  logger.debug("Reparent source tasks");
+  for(let source_task of source_tasks){
+    if(source_task.parent){
+      logger.warn(`Source task ${source_task.task_id} is already a child of ${source_task.parent}. Skipping`);
+    }
+    //Will retroactively set scene_id too.
+    await tasks.setTaskParent(source_task.task_id, task_id);
+  }
 
-  /** @FIXME : reparent everything to this task and this task to the created scene for better discoverability */
   const models: Array<DocumentModel> = [];
   // We could probably return the scene ID from here and let this all be out-of-band
   for (let source of sources) {

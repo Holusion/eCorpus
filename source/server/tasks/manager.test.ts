@@ -32,11 +32,8 @@ describe("TaskManager", function(){
   });
 
   this.beforeEach(async function(){
-    await Promise.all([
-      handle.run(`DELETE FROM tasks`),
-      handle.run(`DELETE FROM tasks_logs`),
-    ]);
-    
+    await handle.run(`DELETE FROM tasks`);
+    //No need to clean logs because they have a ON DELETE CASCADE relation
     listener = new TaskManager(handle);
   })
 
@@ -397,6 +394,130 @@ describe("TaskManager", function(){
       // level: 'error' → only errors
       const {logs: fromError} = await listener.getTaskTree(root.task_id, {level: 'error'});
       expect(fromError.map(l => l.message)).to.deep.equal(['msg-error']);
+    });
+
+    describe("cycles handling", function(){
+      // cycles shouldn't ever happen
+      // but there is no built-in cycle prevention in the table: only safeguards on `setTaskParent` 
+      // we don't want to crash the server if a bug ever allows one
+
+      it("root is undefined when every node in the result has a parent in the tree", async function(){
+        // In a pure cycle every node's parent IS in taskMap, so the wiring loop never
+        // finds a node without a known parent — root is left undefined.
+        const a = await listener.create({scene_id: null, user_id: null, type: "cycle-a", data: {}});
+        const b = await listener.create({scene_id: null, user_id: null, type: "cycle-b", data: {}, parent: a.task_id});
+        await handle.run(`UPDATE tasks SET parent = $1 WHERE task_id = $2`, [b.task_id, a.task_id]);
+
+        const {root} = await listener.getTaskTree(a.task_id);
+        expect(root).to.be.undefined;
+      });
+
+      it("collects logs from all reachable nodes including normal children of cyclic nodes", async function(){
+        // A↔B is the cycle; C is a regular child of A (no cycle involvement).
+        // Logs from all three must appear in the result even though root is undefined.
+        const a = await listener.create({scene_id: null, user_id: null, type: "cycle-a", data: {}});
+        const b = await listener.create({scene_id: null, user_id: null, type: "cycle-b", data: {}, parent: a.task_id});
+        const c = await listener.create({scene_id: null, user_id: null, type: "normal-c", data: {}, parent: a.task_id});
+        await handle.run(`UPDATE tasks SET parent = $1 WHERE task_id = $2`, [b.task_id, a.task_id]);
+
+        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'log-a')`, [a.task_id]);
+        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'log-b')`, [b.task_id]);
+        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'log-c')`, [c.task_id]);
+
+        const {logs} = await listener.getTaskTree(a.task_id);
+        expect(logs.map(l => l.message).sort()).to.deep.equal(['log-a', 'log-b', 'log-c']);
+      });
+    });
+  });
+
+
+  describe("setTaskScene()", function(){
+    it("sets scene_id on a task that has none", async function(){
+      const task = await listener.create({scene_id: null, user_id: null, type: "test", data: {}});
+      await listener.setTaskScene(task.task_id, scene_id);
+      const updated = await listener.getTask(task.task_id);
+      expect(updated.scene_id).to.equal(scene_id);
+    });
+
+    it("throws NotFoundError for a non-existent task id", async function(){
+      await expect(listener.setTaskScene(99999, scene_id)).to.be.rejectedWith(NotFoundError);
+    });
+
+    it("throws BadRequestError when scene_id is already set", async function(){
+      const task = await listener.create({scene_id, user_id: null, type: "test", data: {}});
+      await expect(listener.setTaskScene(task.task_id, scene_id)).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("throws BadRequestError on a second call even with the same scene value", async function(){
+      const task = await listener.create({scene_id: null, user_id: null, type: "test", data: {}});
+      await listener.setTaskScene(task.task_id, scene_id);
+      // Second call must be rejected even though the value is identical
+      await expect(listener.setTaskScene(task.task_id, scene_id)).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("sets scene_id on a task whose parent has no scene", async function(){
+      const parent = await listener.create({scene_id: null, user_id: null, type: "parent", data: {}});
+      const child  = await listener.create({scene_id: null, user_id: null, type: "child",  data: {}, parent: parent.task_id});
+      await listener.setTaskScene(child.task_id, scene_id);
+      const updated = await listener.getTask(child.task_id);
+      expect(updated.scene_id).to.equal(scene_id);
+    });
+
+    it("throws BadRequestError when the task's parent already has a scene", async function(){
+      const parent = await listener.create({scene_id, user_id: null, type: "parent", data: {}});
+      const child  = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: parent.task_id});
+      await expect(listener.setTaskScene(child.task_id, scene_id)).to.be.rejectedWith(BadRequestError);
+    });
+  });
+
+  describe("setTaskParent()", function(){
+    it("sets parent on a task that has none", async function(){
+      const parent = await listener.create({scene_id: null, user_id: null, type: "parent", data: {}});
+      const child  = await listener.create({scene_id: null, user_id: null, type: "child",  data: {}});
+      await listener.setTaskParent(child.task_id, parent.task_id);
+      const updated = await listener.getTask(child.task_id);
+      expect(updated.parent).to.equal(parent.task_id);
+    });
+
+    it("throws NotFoundError for a non-existent task id", async function(){
+      const parent = await listener.create({scene_id: null, user_id: null, type: "parent", data: {}});
+      await expect(listener.setTaskParent(99999, parent.task_id)).to.be.rejectedWith(NotFoundError);
+    });
+
+    it("throws BadRequestError when parent is already set", async function(){
+      const p1 = await listener.create({scene_id: null, user_id: null, type: "p", data: {}});
+      const p2 = await listener.create({scene_id: null, user_id: null, type: "p", data: {}});
+      const child = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: p1.task_id});
+      await expect(listener.setTaskParent(child.task_id, p2.task_id)).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("throws BadRequestError when parent === id (self-reference)", async function(){
+      const task = await listener.create({scene_id: null, user_id: null, type: "test", data: {}});
+      await expect(listener.setTaskParent(task.task_id, task.task_id)).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("throws an error when the referenced parent task does not exist (FK violation)", async function(){
+      const task = await listener.create({scene_id: null, user_id: null, type: "test", data: {}});
+      await expect(listener.setTaskParent(task.task_id, 99999)).to.be.rejected;
+    });
+
+    describe("cycle prevention", function(){
+      it("2-node cycle: A → B → A", async function(){
+        // A.parent = null initially; B.parent = A (created normally).
+        // setTaskParent(A, B) closes the cycle: A↔B.
+        const a = await listener.create({scene_id: null, user_id: null, type: "cycle-a", data: {}});
+        const b = await listener.create({scene_id: null, user_id: null, type: "cycle-b", data: {}, parent: a.task_id});
+        await expect(listener.setTaskParent(a.task_id, b.task_id)).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("3-node cycle: A→B→C→A", async function(){
+        const a = await listener.create({scene_id: null, user_id: null, type: "cycle-a", data: {}});
+        const b = await listener.create({scene_id: null, user_id: null, type: "cycle-b", data: {}});
+        const c = await listener.create({scene_id: null, user_id: null, type: "cycle-c", data: {}});
+        await listener.setTaskParent(b.task_id, a.task_id); // B.parent = A
+        await listener.setTaskParent(c.task_id, b.task_id); // C.parent = B
+        await expect(listener.setTaskParent(a.task_id, c.task_id)).to.be.rejectedWith(BadRequestError); // A.parent = C ← closes cycle
+      });
     });
   });
 

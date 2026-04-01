@@ -218,7 +218,7 @@ export class TaskManager{
         SELECT ${TaskManager.#qualifiedTaskColumns}
         FROM tasks
         INNER JOIN tree ON tasks.parent = tree.task_id
-      )
+      ) CYCLE task_id SET is_cycle USING cycle_path
       SELECT
         tree.*,
         tl.log_id,
@@ -229,6 +229,7 @@ export class TaskManager{
       FROM tree
       LEFT JOIN tasks_logs tl ON tl.fk_task_id = tree.task_id
                               AND tl.severity >= $2::log_severity
+      WHERE NOT tree.is_cycle
       ORDER BY tl.log_id ASC NULLS FIRST
     `, [id, level]);
 
@@ -346,6 +347,78 @@ export class TaskManager{
       ${whereClause}
       ORDER BY tasks.task_id DESC
     `, params);
+  }
+
+  /**
+   * Retroactively associates a task with a scene.
+   * Only works when `fk_scene_id` is currently `NULL` — calling this on a task
+   * that already has a scene is an error.
+   *
+   * The parent-scene check is folded into the UPDATE predicate so there is no
+   * race condition: the row is only updated when the task has no scene yet AND
+   * (it has no parent OR the parent's scene is also NULL).
+   *
+   * @throws {NotFoundError}   when no task with `id` exists
+   * @throws {BadRequestError} when the task already has a scene assigned
+   * @throws {BadRequestError} when the task's parent already has a scene assigned
+   */
+  public async setTaskScene(id: number, scene_id: number): Promise<void> {
+    const r = await this.db.run(`
+      UPDATE tasks
+      SET fk_scene_id = $2
+      WHERE task_id = $1
+        AND fk_scene_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM tasks p
+          WHERE p.task_id = (SELECT parent FROM tasks WHERE task_id = $1)
+            AND p.fk_scene_id IS NOT NULL
+        )
+    `, [id, scene_id]);
+    if (!r.changes) {
+      const t = await this.getTask(id); // throws NotFoundError if missing
+      if (t.scene_id !== null) throw new BadRequestError(`Task #${id} already has scene_id ${t.scene_id}`);
+      throw new BadRequestError(`Task #${id} cannot be assigned a scene because its parent already has one`);
+    }
+  }
+
+  /**
+   * Retroactively sets the parent of a task.
+   * Only works when `parent` is currently `NULL` — calling this on a task
+   * that already has a parent is an error.
+   * 
+   * It will retroactively propagate `fk_scene_id` and `fk_user_id` if NULL. Any existing value will however silently be kept.
+   *
+   * The cycle check and the UPDATE are issued as a single atomic statement:
+   * a recursive CTE walks the ancestor chain of `parent`; if `id` appears
+   * in that chain the UPDATE is skipped and a BadRequestError is thrown.
+   *
+   * @throws {BadRequestError} when `parent === id` (self-reference)
+   * @throws {NotFoundError}   when no task with `id` exists
+   * @throws {BadRequestError} when the task already has a parent assigned
+   * @throws {BadRequestError} when the assignment would create a cycle
+   * @throws {Error}           when the referenced parent task does not exist (FK violation)
+   */
+  public async setTaskParent(id: number, parent: number): Promise<void> {
+    if (parent === id) throw new BadRequestError(`Task #${id} cannot be its own parent`);
+    const r = await this.db.run(`
+      WITH RECURSIVE ancestors AS (
+        SELECT task_id, parent FROM tasks WHERE task_id = $2
+        UNION ALL
+        SELECT t.task_id, t.parent FROM tasks t JOIN ancestors a ON t.task_id = a.parent
+      )
+      UPDATE tasks
+      SET parent      = $2,
+          fk_scene_id = COALESCE(tasks.fk_scene_id, (SELECT fk_scene_id FROM tasks WHERE task_id = $2)),
+          fk_user_id  = COALESCE(tasks.fk_user_id,  (SELECT fk_user_id  FROM tasks WHERE task_id = $2))
+      WHERE task_id = $1
+        AND parent IS NULL
+        AND NOT EXISTS (SELECT 1 FROM ancestors WHERE task_id = $1)
+    `, [id, parent]);
+    if (!r.changes) {
+      const t = await this.getTask(id); // throws NotFoundError if missing
+      if (t.parent !== null) throw new BadRequestError(`Task #${id} already has parent ${t.parent}`);
+      throw new BadRequestError(`Setting parent #${parent} on task #${id} would create a cycle`);
+    }
   }
 
   /**
