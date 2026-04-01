@@ -221,23 +221,34 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
   if (failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length ? "s" : ""} #${failed_tasks.map(t => t.task_id).join(", #")} has not completed successfully`);
   if (invalid_outputs.length) {
     for (let t of invalid_outputs) {
-      console.log(`Task ${t.type}#${t.task_id} can't be used as a scene source: Output is ${JSON.stringify(t.output)}`);
+      logger.log(`Task ${t.type}#${t.task_id} can't be used as a scene source: Output is ${JSON.stringify(t.output)}`);
     }
     throw new BadRequestError(`Source task${1 < invalid_outputs.length ? "s" : ""} ${invalid_outputs.map(t => `${t.type}#${t.task_id}`).join(", ")} did not output a file`);
   }
   //If some source models are present, copy all files to the task's workspace
-  let sources: Array<ParsedUserUpload> = source_tasks.map(t => t.output);
+  //So they are locally available for references
+  let sources: Array<ParsedUserUpload>;
   if (source_tasks.some(t => (t.output as UploadedSource).isModel)) {
-    const dir = await vfs.createTaskWorkspace(task_id);
-    sources = await Promise.all(source_tasks.map(async ({ output }) => {
-      const filepath = vfs.absolute(output.fileLocation);
-      const dest = path.join(dir, path.basename(filepath));
-      await fs.link(filepath, dest);
-      return {
+    const dir = await vfs.createTaskWorkspace(task_id, true);
+    logger.debug(`Import source file${1 < source_tasks.length?"s":""} from ${source_tasks.length} source${1 < source_tasks.length?"s":""}`);
+
+    let _files = await fs.readdir(dir);
+    if(_files.length) logger.warn(`Task workspace  ${dir} contains : `, _files);
+
+    sources = []
+    for(let {output} of source_tasks){
+      const srcFile = vfs.absolute(output.fileLocation);
+      const dest = path.join(dir, path.basename(srcFile));
+      logger.debug(`hard-link source model ${srcFile} to task workspace`);
+      await fs.link(srcFile, dest);
+      logger.debug(`hard-linked source model ${srcFile} to task workspace`);
+      sources.push({
         ...output,
         fileLocation: vfs.relative(dest)
-      } satisfies ParsedUserUpload;
-    }));
+      } satisfies ParsedUserUpload);
+    }
+  }else{
+    sources = source_tasks.map(t => t.output);
   }
 
   const scene_id = await vfs.createScene(name, user_id);
@@ -276,7 +287,7 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
   }
 
 
-  // @TODO: reparent everything to this task and this task to the created scene for better discoverability
+  /** @FIXME : reparent everything to this task and this task to the created scene for better discoverability */
   const models: Array<DocumentModel> = [];
   // We could probably return the scene ID from here and let this all be out-of-band
   for (let source of sources) {

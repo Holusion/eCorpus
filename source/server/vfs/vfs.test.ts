@@ -2136,6 +2136,86 @@ describe("Vfs", function(){
             expect(report).to.equal("File 0qhPS4tlCTfsj3PNi-LHSt1akRumTfJ0WO2CKdqASiY can't be read on disk (can't fix). Some data have been lost!")
           });
         })
+
+        describe("createTaskWorkspace()", function(){
+
+          it("creates a workspace directory for a new task", async function(){
+            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'pending') RETURNING task_id`);
+            const task_id: number = rows[0].task_id;
+            const dir = await vfs.createTaskWorkspace(task_id);
+            await expect(fs.access(dir)).to.be.fulfilled;
+          });
+
+          it("wipe=false: returns existing workspace untouched", async function(){
+            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'pending') RETURNING task_id`);
+            const task_id: number = rows[0].task_id;
+            const dir = await vfs.createTaskWorkspace(task_id);
+            await fs.writeFile(path.join(dir, "existing.txt"), "data");
+
+            const dir2 = await vfs.createTaskWorkspace(task_id, false);
+            expect(dir2).to.equal(dir);
+            await expect(fs.access(path.join(dir, "existing.txt"))).to.be.fulfilled;
+          });
+
+          it("wipe=true: clears all files and subdirectories from existing workspace", async function(){
+            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'pending') RETURNING task_id`);
+            const task_id: number = rows[0].task_id;
+            const dir = await vfs.createTaskWorkspace(task_id);
+            await fs.writeFile(path.join(dir, "file.glb"), "model data");
+            await fs.mkdir(path.join(dir, "subdir"));
+
+            const dir2 = await vfs.createTaskWorkspace(task_id, true);
+            expect(dir2).to.equal(dir);
+            await expect(fs.access(dir)).to.be.fulfilled;
+            const files = await fs.readdir(dir);
+            expect(files).to.have.length(0);
+          });
+
+          it("rethrows errors other than EEXIST", async function(){
+            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'pending') RETURNING task_id`);
+            const task_id: number = rows[0].task_id;
+            await fs.writeFile(vfs.getTaskWorkspace(task_id), "not a directory");
+            await expect(vfs.createTaskWorkspace(task_id)).to.be.rejectedWith("ENOTDIR");
+          });
+
+        });
+
+        describe("cleanTaskArtifacts()", function(){
+          it("returns undefined when artifactsDir is empty", async function(){
+            const report = await vfs.cleanTaskArtifacts();
+            expect(report).to.be.undefined;
+          });
+
+          it("removes directories for tasks that no longer exist", async function(){
+
+            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'running') RETURNING task_id`);
+            const task_id: number = rows[0].task_id;
+            const dir = await vfs.createTaskWorkspace(task_id);
+            await expect(fs.access(dir)).to.be.fulfilled;
+
+            await vfs._db.run(`DELETE FROM tasks WHERE task_id = $1`, [task_id]);
+            const report = await vfs.cleanTaskArtifacts();
+            expect(report).to.equal("Cleaned 1 stale artifact directory");
+            await expect(fs.access(dir)).to.be.rejectedWith("ENOENT");
+          });
+
+          it("keeps directories for tasks that still exist", async function(){
+
+            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'running') RETURNING task_id`);
+            const task_id: number = rows[0].task_id;
+            const dir = await vfs.createTaskWorkspace(task_id);
+            const report = await vfs.cleanTaskArtifacts();
+            expect(report).to.be.undefined;
+            await expect(fs.access(dir)).to.be.fulfilled;
+          });
+
+          it("ignores non-numeric entries in artifactsDir", async function(){
+            await fs.mkdir(path.join(vfs.artifactsDir, "not-a-task-id"), {recursive: true});
+            const report = await vfs.cleanTaskArtifacts();
+            expect(report).to.be.undefined;
+            await expect(fs.access(path.join(vfs.artifactsDir, "not-a-task-id"))).to.be.fulfilled;
+          });
+        });
       });
     });
   });

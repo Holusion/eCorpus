@@ -587,9 +587,18 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
 
   const owner = root.user_id? (root.user_id == requester?.uid ?requester.username :(await userManager.getUserById(root.user_id)).username):null;
   const scene = root.scene_id? (await vfs.getScene(root.scene_id)).name : null;
+  let taskOutputType:string = typeof root.output;
+  if(taskOutputType === "object" && root.output
+    && typeof root.output.name === "string" 
+    && root.output.name.indexOf("Error") != -1){
+      taskOutputType = "error";
+  }
   res.render("task", {
     title: `Task #${id} — ${root.type}`,
     root,
+    taskData: JSON.stringify(root.data, null, 2),
+    taskOutput: JSON.stringify(root.output, null, 2),
+    taskOutputType,
     logs,
     level,
     owner,

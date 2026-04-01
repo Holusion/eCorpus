@@ -3,7 +3,7 @@ import {Database, DbController} from "./helpers/db.js";
 import path from "path";
 import { NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
-import { mkdir } from "fs/promises";
+import { mkdir, rm, readdir } from "fs/promises";
 
 
 export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
@@ -65,10 +65,24 @@ export default abstract class BaseVfs extends DbController{
 
   /**
    * Create an artifact directory for this task
+   * @param id the task id
+   * @param wipe force-clean the task's workspace if it already exists
    */
-  public async createTaskWorkspace(id: number){
+  public async createTaskWorkspace(id: number, wipe=true): Promise<string>{
     const dir = this.getTaskWorkspace(id);
-    await mkdir( dir, {recursive: true});
+    try {
+      await mkdir(dir, {recursive: false});
+    } catch(e: any) {
+      if(e.code === "EEXIST") {
+        if(!wipe) return dir;
+        const entries = await readdir(dir);
+        await Promise.all(entries.map(entry =>
+          rm(path.join(dir, entry), {recursive: true, force: true})
+        ));
+      } else {
+        throw e;
+      }
+    }
     return dir;
   }
 

@@ -373,10 +373,6 @@ export default class UploadManager extends LitElement{
       input[type=file] {
         display: none;
       }
-      ::slotted(*) {
-        pointer-events: none;
-        user-select: none;
-      }
     }
 
     

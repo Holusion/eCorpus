@@ -41,10 +41,13 @@ table.list-table {
       padding: 5px;
     }
   }
+  thead{
+    position: sticky;
+    background: var(--color-element);
+    top: 0;
+  }
 
   th {
-    position: sticky;
-    top: 0;
     font-size: 1.2rem;
     font-weight: bold;
     padding: 1.2rem 1rem 0.8rem;

@@ -279,6 +279,9 @@ export class TaskManager{
         root = node;
       }
     }
+    for (const node of taskMap.values()) {
+      node.children.sort((a, b) => a.task_id - b.task_id);
+    }
 
     return { root: root!, logs };
   }
@@ -341,7 +344,7 @@ export class TaskManager{
       LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
       LEFT JOIN users ON users.user_id = tasks.fk_user_id
       ${whereClause}
-      ORDER BY tasks.ctime DESC
+      ORDER BY tasks.task_id DESC
     `, params);
   }
 
