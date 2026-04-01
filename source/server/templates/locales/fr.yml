@@ -61,11 +61,13 @@ labels:
   all: Tous
   success: Succès
   error: Erreur
+  taskTypes: Types de tâches
   allTasks: Toutes les tâches
-  rootOnly: Parents uniquement
+  rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.
   noLogs: Aucun journal.
   optimizeModel: Optimiser les modèles
+  childOf: Dépends de
 
 buttons:
   searchScene: chercher une scène

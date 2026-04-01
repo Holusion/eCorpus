@@ -62,11 +62,13 @@ labels:
   all: All
   success: Success
   error: Error
+  taskTypes: Task types
   allTasks: All tasks
-  rootOnly: Root tasks only
+  rootOnly: Root tasks
   noTasks: No tasks found.
   noLogs: No logs.
   optimizeModel: Optimize models
+  childOf: Child of
 
 buttons:
   searchScene: search scenes

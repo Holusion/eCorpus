@@ -94,35 +94,35 @@ routes.get("/upload", wrap(async (req, res)=>{
   }
   debug("Render previous upload tasks : ", ids);
   let tasks = await Promise.all(ids.map(id=> taskScheduler.getTask(id)));
-  let scenes: Array<{name: string,  action: "create"|"update"}|{error: string, action: "error"}> = [];
+  let scenes: Array<{name: string,  action: "create"|"update", task_id: number}|{error: string, action: "error",  task_id: number|null}> = [];
   for(let task of tasks){
     if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
-      scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error"});
+      scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error", task_id: null});
       continue;
     }
     if(task.status !== "success"){
       console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
-      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${task.output?.message? " "+task.output.message: ""}`, action: "error"});
+      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${task.output?.message? " "+task.output.message: ""}`, action: "error", task_id: task.task_id});
     }else if(task.type === "createSceneFromFiles"){
       if(typeof task.output !== "number"){
         console.warn("Unexpected output for %s :", task.type, task.output);
-        scenes.push({error: `Unexpected output for ${task.type}`, action: "error"});
+        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
         continue;
       }
       const scene = await vfs.getScene(task.output);
-      scenes.push({name: scene.name, action: "create"});
+      scenes.push({name: scene.name, action: "create", task_id: task.task_id});
     }else if(task.type === "extractScenesArchives"){
       if(!Array.isArray(task.output)){
         console.warn("Unexpected output for %s :", task.type, task.output);
-        scenes.push({error: `Unexpected output for ${task.type}`, action: "error"});
+        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
         continue;
       }
       for(let {action, name } of task.output){
-        scenes.push({action, name});
+        scenes.push({action, name, task_id: task.task_id});
       }
     }else{
       console.warn("Unsupported task type: %s. not an upload task?", task.type);
-      scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error"});
+      scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error", task_id: task.task_id});
       continue;
     }
   }

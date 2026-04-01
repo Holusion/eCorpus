@@ -1,12 +1,13 @@
 
-<div class="main-container">
-
-  <h1>
-    Task #{{root.task_id}} &mdash; <span class="task-type">{{root.type}}</span>
-    <a href="." class="title-caret" aria-label="go back">
-      ‹
-    </a>
-  </h1>
+<div class="main-container task-summary">
+  <div class="task-title-bar">
+    <h1>
+      Task #{{root.task_id}} &mdash; <span class="task-type">{{root.type}}</span>
+      <a href="." class="title-caret" aria-label="go back">
+        ‹
+      </a>
+    </h1>
+  </div>
 
   {{#if root.scene_id}}
     <p style="color: var(--color-secondary)">Scene #{{root.scene_id}}</p>
@@ -15,8 +16,8 @@
   <section>
     <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
       <h2>{{i18n "titles.taskTree"}}</h2>
-      {{#if root.parent}}<span>Child of <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a></span>{{/if}}
     </div>
+    {{#if root.parent}}<h3>{{i18n "labels.childOf"}} <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a></h3>{{/if}}
     <div class="task-tree">
       {{> taskNode root}}
     </div>
