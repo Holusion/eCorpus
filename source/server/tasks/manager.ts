@@ -307,7 +307,13 @@ export class TaskManager{
    *
    * Returns tasks ordered by `ctime DESC` (newest first).
    */
-  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; rootOnly?: boolean; status?: 'success'|'error'|'all' } = {}): Promise<import("./types.js").TaskListItem[]> {
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
+    const { limit = 20, offset = 0 } = options;
+
+    if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
+    if (limit > 100) throw new BadRequestError(`When provided, limit must be <= 100`);
+    if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a non-negative integer`);
+
     const where: string[] = [];
     const params: any[] = [];
 
@@ -339,6 +345,9 @@ export class TaskManager{
 
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
+    const offsetIdx = params.push(offset);
+    const limitIdx = params.push(limit);
+
     return this.db.all<import("./types.js").TaskListItem>(`
       SELECT ${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner
       FROM tasks
@@ -346,6 +355,8 @@ export class TaskManager{
       LEFT JOIN users ON users.user_id = tasks.fk_user_id
       ${whereClause}
       ORDER BY tasks.task_id DESC
+      OFFSET $${offsetIdx}
+      LIMIT $${limitIdx}
     `, params);
   }
 

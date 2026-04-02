@@ -549,5 +549,67 @@ describe("TaskManager", function(){
       expect(tasks).to.have.length(1);
       expect(tasks[0].type).to.equal('delayTask');
     });
+
+    describe("pagination", function(){
+      it("limits results to `limit` tasks", async function(){
+        for(let i = 0; i < 5; i++){
+          await listener.create({scene_id: null, user_id, type: "t", data: {}});
+        }
+        const tasks = await listener.getTasks({ user_id, limit: 3 });
+        expect(tasks).to.have.length(3);
+      });
+
+      it("skips the first `offset` tasks", async function(){
+        const a = await listener.create({scene_id: null, user_id, type: "t", data: {}});
+        const b = await listener.create({scene_id: null, user_id, type: "t", data: {}});
+        const c = await listener.create({scene_id: null, user_id, type: "t", data: {}});
+        // ordered DESC by task_id, so page 2 (offset=1, limit=2) skips the newest
+        const page1 = await listener.getTasks({ user_id, limit: 2, offset: 0 });
+        const page2 = await listener.getTasks({ user_id, limit: 2, offset: 2 });
+        expect(page1).to.have.length(2);
+        expect(page2).to.have.length(1);
+        // together they cover all three ids
+        const allIds = [...page1, ...page2].map(t => t.task_id).sort((a,b)=>a-b);
+        expect(allIds).to.deep.equal([a.task_id, b.task_id, c.task_id].sort((a,b)=>a-b));
+      });
+
+      it("returns an empty array when offset exceeds total", async function(){
+        await listener.create({scene_id: null, user_id, type: "t", data: {}});
+        const tasks = await listener.getTasks({ user_id, offset: 100 });
+        expect(tasks).to.have.length(0);
+      });
+
+      it("rejects a non-integer limit", async function(){
+        await expect(listener.getTasks({ limit: 1.5 })).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("rejects a zero limit", async function(){
+        await expect(listener.getTasks({ limit: 0 })).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("rejects a negative limit", async function(){
+        await expect(listener.getTasks({ limit: -1 })).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("rejects a limit above 100", async function(){
+        await expect(listener.getTasks({ limit: 101 })).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("rejects a non-integer offset", async function(){
+        await expect(listener.getTasks({ offset: 0.5 })).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("rejects a negative offset", async function(){
+        await expect(listener.getTasks({ offset: -1 })).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("accepts limit=100 (boundary)", async function(){
+        await expect(listener.getTasks({ limit: 100 })).to.be.fulfilled;
+      });
+
+      it("accepts offset=0 (boundary)", async function(){
+        await expect(listener.getTasks({ offset: 0 })).to.be.fulfilled;
+      });
+    });
   });
 });
