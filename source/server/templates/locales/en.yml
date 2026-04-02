@@ -92,6 +92,7 @@ buttons:
   submit: Send
   createUser: Create
   showActions: Show actions
+  getTaskArtifacts: Download task workspace
 
 fields:
   name: name
@@ -176,6 +177,8 @@ titles:
   taskTree: Task tree
   logs: Logs
   advancedConfiguration: Advanced configuration
+  taskData: Input data
+  taskOutput: Output data
 
 tooltips:
   showPassword: Show the password's text

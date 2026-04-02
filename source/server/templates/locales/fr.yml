@@ -91,6 +91,7 @@ buttons:
   submit: Envoyer
   createUser: Créer
   showActions: Afficher les actions
+  getTaskArtifacts: Télécharger le répertoire de travail
 
 fields:
   name: nom
@@ -174,6 +175,8 @@ titles:
   taskTree: Arbre des tâches
   logs: Journaux
   advancedConfiguration: Configuration avancée
+  taskData: Données d'entrée
+  taskOutput: Données de sortie
 
 tooltips:
   showPassword: Montrer le texte du mot de passe

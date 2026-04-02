@@ -50,12 +50,14 @@ describe("PUT /tasks/:id/artifact", function(){
     .send(data)
     .expect(201);
 
-    console.log("GET to :", `/tasks/${task}/artifact`)
     const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
+    .accept("application/json")
     .expect(200);
 
-    expect(body.toString("hex")).to.equal(data.toString("hex"));
+    const entry = body.files.find((f: any) => f.path === filename);
+    expect(entry, `"${filename}" not found in workspace`).to.exist;
+    expect(entry).to.have.property("size", size);
   });
 
   it("Can handle a single-chunk upload (chunk headers)", async function(){
@@ -69,9 +71,12 @@ describe("PUT /tasks/:id/artifact", function(){
 
     const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
+    .accept("application/json")
     .expect(200);
 
-    expect(body.toString("hex")).to.equal(data.toString("hex"));
+    const entry = body.files.find((f: any) => f.path === filename);
+    expect(entry, `"${filename}" not found in workspace`).to.exist;
+    expect(entry).to.have.property("size", size);
   });
 
   it("Can handle a multi-chunk upload", async function(){
@@ -92,9 +97,12 @@ describe("PUT /tasks/:id/artifact", function(){
 
     const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
     .auth("alice", "12345678")
+    .accept("application/json")
     .expect(200);
 
-    expect(body.toString("hex")).to.equal(data.toString("hex"));
+    const entry = body.files.find((f: any) => f.path === filename);
+    expect(entry, `"${filename}" not found in workspace`).to.exist;
+    expect(entry).to.have.property("size", size);
   });
 
   it("can parse uploaded contents (simple)", async function(){
