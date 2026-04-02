@@ -96,7 +96,7 @@ export default async function getScenes(req :Request, res :Response){
     if(lastModified < mtime) lastModified = mtime;
   }
 
-  res.set("Cache-Control", "no-cache, private");
+  res.set("Cache-Control", "must-revalidate, private");
   res.set("ETag", "W/"+eTag.digest("base64url"));
   res.set("Last-Modified", new Date(lastModified).toUTCString());
   if( req.fresh){

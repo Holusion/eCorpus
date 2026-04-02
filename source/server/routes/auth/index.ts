@@ -27,11 +27,6 @@ router.use((req, res, next)=>{
 });
 
 
-router.use("/", (req, res, next)=>{
-  res.append("Cache-Control", "private");
-  next();
-});
-
 router.get("/", wrap(async function(req, res){
   return res.status(200).send(User.safe((req as any).session as any));
 }));

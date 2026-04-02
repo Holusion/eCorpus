@@ -23,10 +23,10 @@ function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
 
 const routes = Router();
 /**
- * Set permissive cache-control for ui pages
+ * Set cache-control for ui pages
  */
 routes.use("/", (req :Request, res:Response, next)=>{
-  res.set("Cache-Control", `max-age=${30*60}, public`);
+  res.set("Cache-Control", `no-cache`);
   next();
 });
 
