@@ -125,7 +125,7 @@ nav:
   tags: collections
   login: connexion
   administration: administration
-  adminRecap: récapitulatif
+  summary: récapitulatif
   adminUsers: utilisateurs
   adminGroups: groupes
   adminStats: statistiques
@@ -133,10 +133,11 @@ nav:
   reportBug: signaler un bug
   documentation: documentation du projet
   license: license apache
-  userSettings: Paramètres
+  settings: Paramètres
   userGroups: Groupes
   userArchives: Archives
   tasks: Tâches
+  overview: Aperçu
 
 titles:
   myScenesSection: mes scenes

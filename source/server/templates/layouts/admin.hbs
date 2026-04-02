@@ -7,7 +7,7 @@
   {{> navbar }}
   <main class="tabs-main admin-panel">
     <nav class="admin-nav">
-      {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.adminRecap"}}{{/navLink}}
+      {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.summary"}}{{/navLink}}
       {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.adminUsers"}}{{/navLink}}
       {{#navLink "/ui/admin/groups" "exact"}}<ui-icon name="groups" style="display:flex"></ui-icon> {{i18n "nav.adminGroups"}}{{/navLink}}
       {{#if (test user.level "==" "admin")}}

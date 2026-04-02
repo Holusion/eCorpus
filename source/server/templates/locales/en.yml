@@ -126,7 +126,7 @@ nav:
   tags: collections
   login: connection
   administration: administration
-  adminRecap: summary
+  summary: summary
   adminUsers: users
   adminGroups: groups
   adminStats: statistics
@@ -134,10 +134,11 @@ nav:
   reportBug: report a bug
   documentation: project doc
   license: Apache License
-  userSettings: Settings
+  settings: Settings
   userGroups: Groups
   userArchives: Archives
   tasks: Tasks
+  overview: Overview
 
 titles:
   myScenesSection: my scenes

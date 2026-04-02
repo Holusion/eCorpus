@@ -443,16 +443,8 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
       }
   }
 
-  const access = res.locals.access as string;
-  let hasTasks = false;
-  if (access === "admin") {
-    const taskScheduler = getTaskScheduler(req);
-    const sceneTasks = await taskScheduler.getTasks({ scene_id: scene.id, rootOnly: true });
-    hasTasks = sceneTasks.length > 0;
-  }
-  console.log("Scene tasks:", hasTasks, access);
-
   res.render("scene/scene", {
+    layout: "scene",
     title: `eCorpus: ${scene.name}`,
     displayedTitle,
     displayedIntro,
@@ -461,7 +453,6 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     groupPermissions,
     userPermissions,
     tagSuggestions,
-    hasTasks,
   });
 }));
 
@@ -478,19 +469,22 @@ routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
   const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
   if (rawType) {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
 
-  const tasks = await taskScheduler.getTasks({ scene_id: scene.id, type, status, rootOnly });
+  const tasks = await taskScheduler.getTasks({ scene_id: scene.id, type, status, rootOnly, limit, offset });
 
   res.render("scene/tasks", {
+    layout: "scene",
     title: `Tasks — ${scene.name}`,
     scene,
     tasks,
-    params: { type, status, rootOnly },
+    params: { type, status, rootOnly, limit, offset },
   });
 }));
 
@@ -543,16 +537,44 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
 
 routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   let vfs = getVfs(req);
-  //scene_name is actually already validated through canAdmin
   let {scene:scene_name} = req.params;
-  let scene = await vfs.getScene(scene_name);
-  
+  let scene = mapScene(req, await vfs.getScene(scene_name));
+  const access = res.locals.access as string;
+
   res.render("scene/history", {
+    layout: "scene",
     title: `eCorpus: History of ${scene_name}`,
+    scene,
     name: scene_name,
-    canAdmin: res.locals.access === "admin",
+    canAdmin: access === "admin",
   });
 }))
+
+routes.get("/scenes/:scene/settings", canAdmin, wrap(async (req, res) => {
+  const requester = getUser(req);
+  const vfs = getVfs(req);
+  const um = getUserManager(req);
+  const {scene: scene_name} = req.params;
+  const scene = mapScene(req, await vfs.getScene(scene_name, requester?.uid));
+
+  const [permissions, serverTags] = await Promise.all([
+    um.getPermissions(scene.id),
+    vfs.getTags(),
+  ]);
+
+  const groupPermissions = permissions.filter(p => "groupName" in p);
+  const userPermissions  = permissions.filter(p => "username" in p);
+  const tagSuggestions   = serverTags.filter(t => !scene.tags.includes(t.name)).map(t => t.name);
+
+  res.render("scene/settings", {
+    layout: "scene",
+    title: `Settings — ${scene.name}`,
+    scene,
+    groupPermissions,
+    userPermissions,
+    tagSuggestions,
+  });
+}));
 
 routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
   let vfs = getVfs(req);
@@ -597,17 +619,19 @@ routes.get("/user/tasks", wrap(async (req, res) => {
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
   const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
   if (rawType) {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: user.uid, type, status, rootOnly });
+  const tasks = await taskScheduler.getTasks({ user_id: user.uid, type, status, rootOnly, limit, offset });
   res.render("user/tasks", {
     layout: "user",
     title: "My Tasks — User",
     tasks,
-    params: { type, status, rootOnly },
+    params: { type, status, rootOnly, limit, offset },
   });
 }));
 
@@ -619,17 +643,19 @@ routes.get("/admin/tasks", isAdministrator, wrap(async (req, res) => {
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
   const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
   if (rawType) {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly });
+  const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly, limit, offset });
   res.render("admin/tasks", {
     layout: "admin",
     title: "Tasks — Administration",
     tasks,
-    params: { type, status, rootOnly },
+    params: { type, status, rootOnly, limit, offset },
   });
 }));
 
