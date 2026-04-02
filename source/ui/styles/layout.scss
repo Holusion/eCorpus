@@ -82,7 +82,33 @@ section, .section{
       margin-top: 0;
     }
   }
-  
+
+  /* Handle nested sections */
+  > section, > .section {
+    padding: var(--section-padding) 0;
+    &::before{
+      display: none;
+    }
+    &::after{
+      height: var(--caret-width);
+      left: 20px;
+      right: 20px;
+      bottom: calc(var(--section-padding) * -0.5 + var(--caret-width));
+      width: auto;
+    }
+
+    &:first-child{
+      padding-top: 0;
+    }
+    &:last-child{
+      padding-bottom: 0;
+      margin-bottom: 0;
+      &::after{
+        display: none;
+      }
+    }
+  }
+
   
 }
 

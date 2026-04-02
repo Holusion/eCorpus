@@ -23,6 +23,7 @@ export interface AppLocals extends Record<string, any> {
   sessionMaxAge: number;
 }
 
+
 export type AppParameters = Omit<AppLocals, "sessionMaxAge" | "templates">;
 
 export function getLocals(req: Request) {

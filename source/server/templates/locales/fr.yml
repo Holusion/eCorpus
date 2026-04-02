@@ -136,8 +136,7 @@ nav:
   userSettings: Paramètres
   userGroups: Groupes
   userArchives: Archives
-  userTasks: Tâches
-  adminTasks: Tâches
+  tasks: Tâches
 
 titles:
   myScenesSection: mes scenes
