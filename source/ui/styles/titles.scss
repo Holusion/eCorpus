@@ -5,6 +5,7 @@ h1, h2, h3{
 }
 
 h1{
+  position: relative;
   display: inline-block;
   color: var(--color-text);
   padding: .5rem 0.2rem 0rem 1.5rem;
@@ -13,12 +14,27 @@ h1{
   @include text-colors {
     border-bottom-color: currentColor;
   }
+  > .title-caret{
+    position: absolute;
+    left: 0;
+    height: 100%;
+    text-decoration: none;
+    &:hover{
+      color: var(--color-primary);
+    }
+  }
 }
 
 h2{
   border-left: 0.7rem solid var(--color-primary);
   @include text-colors {
-    border-left-color: currentColor;
+    border-color: currentColor;
   }
   padding: 0.5rem 0 0 0.8rem;
+  &.title-right{
+    text-align: right;
+    border-left: 0;
+    border-right: 0.7rem solid var(--color-primary);
+    padding-right: 0.8rem;
+  }
 }

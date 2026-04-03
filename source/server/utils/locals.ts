@@ -1,6 +1,6 @@
 
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
-import {basename, dirname} from "path";
+import { basename, dirname } from "path";
 import User, { isUserAtLeast, SafeUser } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
@@ -8,35 +8,41 @@ import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundErro
 import Templates, { AcceptedLocales, locales } from "./templates.js";
 import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
+import { TaskScheduler } from "../tasks/scheduler.js";
+import { sceneLanguages, uiLanguages } from "./languages.js";
 
 
-export interface AppLocals extends Record<string, any>{
-  fileDir :string;
-  userManager :UserManager;
-  vfs :Vfs;
-  templates :Templates;
+export interface AppLocals extends Record<string, any> {
+  fileDir: string;
+  userManager: UserManager;
+  vfs: Vfs;
+  taskScheduler: TaskScheduler;
+  templates: Templates;
   config: Config;
   /** Length of a session, in milliseconds since epoch */
   sessionMaxAge: number;
 }
 
-export function getLocals(req :Request){
+
+export type AppParameters = Omit<AppLocals, "sessionMaxAge" | "templates">;
+
+export function getLocals(req: Request) {
   return req.app.locals as AppLocals;
 }
 
-export interface SessionData extends SafeUser{
+export interface SessionData extends SafeUser {
   /** Expire date, in ms since epoch */
   expires?: number;
   lang?: AcceptedLocales;
 }
 
-export function getSession(req :Request){
-  return req.session as SessionData|null|undefined;
+export function getSession(req: Request) {
+  return req.session as SessionData | null | undefined;
 }
 
-export function canonical(req :Request) :URL
-export function canonical(req :Request, ref :string) :URL
-export function canonical(req :Request, ref ?:string) :URL{
+export function canonical(req: Request): URL
+export function canonical(req: Request, ref: string): URL
+export function canonical(req: Request, ref?: string): URL {
   let host = getHost(req);
   return new URL(ref ?? req.path, host);
 }
@@ -44,22 +50,22 @@ export function canonical(req :Request, ref ?:string) :URL{
 /**
  * @throws {InternalError} if app.locals.userManager is not defined for this request
  */
-export function getUserManager(req :Request) :UserManager {
-  let userManager :UserManager = getLocals(req).userManager;
+export function getUserManager(req: Request): UserManager {
+  let userManager: UserManager = getLocals(req).userManager;
   //istanbul ignore if
-  if(!userManager) throw new InternalError("Badly configured app : userManager is not defined in app.locals");
+  if (!userManager) throw new InternalError("Badly configured app : userManager is not defined in app.locals");
   return userManager
 }
 
-export function getFileDir(req :Request) :string{
+export function getFileDir(req: Request): string {
   let fileDir = getLocals(req).fileDir;
-  if(!fileDir) throw new InternalError("Badly configured app : fileDir is not a valid string");
+  if (!fileDir) throw new InternalError("Badly configured app : fileDir is not a valid string");
   return fileDir;
 }
 
-export function isUser(req: Request, res:Response, next :NextFunction){
+export function isUser(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  if((req.session as User).uid ) next();
+  if ((req.session as User).uid) next();
   else next(new UnauthorizedError());
 }
 
@@ -68,25 +74,25 @@ export function isUser(req: Request, res:Response, next :NextFunction){
 /**
  * Special case to allow user creation if no user exists in the database
  */
-export function isAdministratorOrOpen(req: Request, res:Response, next :NextFunction){
-  isAdministrator(req, res, (err)=>{
-    if(!err) return next();
-    Promise.resolve().then(async ()=>{
+export function isAdministratorOrOpen(req: Request, res: Response, next: NextFunction) {
+  isAdministrator(req, res, (err) => {
+    if (!err) return next();
+    Promise.resolve().then(async () => {
       let userManager = getUserManager(req);
       let users = (await userManager.getUsers());
-      if(users.length == 0) return;
+      if (users.length == 0) return;
       else throw err;
-    }).then(()=>next(), next);
+    }).then(() => next(), next);
   });
 }
 /**
  * Checks if user.isAdministrator is true
  * Not the same thing as canAdmin() that checks if the user has admin rights over a scene
  */
-export function isAdministrator(req: Request, res:Response, next :NextFunction){
+export function isAdministrator(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  
-  if((req.session as User).level == "admin") next();
+
+  if ((req.session as User).level == "admin") next();
   else next(new UnauthorizedError());
 }
 
@@ -94,9 +100,9 @@ export function isAdministrator(req: Request, res:Response, next :NextFunction){
  * Checks if user.isCreator is true
  * Not the same thing as canWrite() that checks if the user has write rights over a scene
  */
-export function isCreator(req: Request, res:Response, next :NextFunction){
+export function isCreator(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  if ( isUserAtLeast((req.session as User), "create") ) next();
+  if (isUserAtLeast((req.session as User), "create")) next();
   else next(new UnauthorizedError());
 }
 
@@ -104,22 +110,22 @@ export function isCreator(req: Request, res:Response, next :NextFunction){
  * Checks if user.isCreator is true
  * Not the same thing as canWrite() that checks if the user has write rights over a scene
  */
-export function isManage(req: Request, res:Response, next :NextFunction){
+export function isManage(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  if ( isUserAtLeast((req.session as User), "manage") ) next();
+  if (isUserAtLeast((req.session as User), "manage")) next();
   else next(new UnauthorizedError());
 }
 
 /**
  * Checks if user is a member of a group or is at least Manage
  */
-export async function isMemberOrManage(req: Request, res:Response, next :NextFunction){
+export async function isMemberOrManage(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
   let userManager = getUserManager(req);
   let user = getUser(req)
-  let {group} = req.params;
+  let { group } = req.params;
   const canSeeGroup = user && (await userManager.isMemberOfGroup(user.uid, group) || isUserAtLeast(user, "manage"));
-  if(canSeeGroup) next();
+  if (canSeeGroup) next();
   else next(new UnauthorizedError());
 }
 
@@ -128,12 +134,12 @@ export async function isMemberOrManage(req: Request, res:Response, next :NextFun
  * Usefull for conditional rate-limiting
  * @example either(isAdministrator, isUser, rateLimit({...}))
  */
-export function either(...handlers:Readonly<RequestHandler[]>) :RequestHandler{
-  return (req, res, next)=>{
+export function either(...handlers: Readonly<RequestHandler[]>): RequestHandler {
+  return (req, res, next) => {
     let mdw = handlers[0];
-    if(!mdw) return next(new UnauthorizedError());
-    return mdw(req, res, (err)=>{
-      if(!err) return next();
+    if (!mdw) return next(new UnauthorizedError());
+    return mdw(req, res, (err) => {
+      if (!err) return next();
       else if (err instanceof UnauthorizedError) return either(...handlers.slice(1))(req, res, next);
       else return next(err);
     });
@@ -145,29 +151,29 @@ export function either(...handlers:Readonly<RequestHandler[]>) :RequestHandler{
  * Caches result in `req.locals.access` so it's not a problem to apply a generic perms check
  * to a group of routes then more specific ACL checks for individual handlers
  */
-function _perms(check:number,req :Request, res :Response, next :NextFunction){
-  let {scene} = req.params;
-  let {level = "create", uid = null} = (req.session ??{})as SafeUser;
-  if(!scene) throw new BadRequestError("no scene parameter in this request");
-  if(check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${check}`);
+function _perms(check: number, req: Request, res: Response, next: NextFunction) {
+  let { scene } = req.params;
+  let { level = "create", uid = null } = (req.session ?? {}) as SafeUser;
+  if (!scene) throw new BadRequestError("no scene parameter in this request");
+  if (check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${check}`);
 
   res.set("Vary", "Cookie, Authorization");
 
-  if(level == "admin"){
+  if (level == "admin") {
     res.locals.access = "admin" as AccessType;
     return next();
   }
-  
+
   let userManager = getUserManager(req);
-  (res.locals.access? 
+  (res.locals.access ?
     Promise.resolve(res.locals.access) :
     userManager.getAccessRights(scene, uid)
-  ).then( access => {
+  ).then(access => {
     res.locals.access = access;
     const lvl = toAccessLevel(access);
-    if(check <= lvl){
+    if (check <= lvl) {
       next();
-    } else if(req.method === "GET" || lvl <= toAccessLevel("none")){
+    } else if (req.method === "GET" || lvl <= toAccessLevel("none")) {
       next(new NotFoundError(`Can't find scene ${scene}. It may be private or not exist entirely.`))
     } else {
       //User has insuficient level but can read the scene
@@ -189,33 +195,40 @@ export const canWrite = _perms.bind(null, toAccessLevel("write"));
  */
 export const canAdmin = _perms.bind(null, toAccessLevel("admin"));
 
-export function getUser(req :Request){
+export function getUser(req: Request) {
   return (req.session && req.session.username && req.session.uid && req.session.level) ?
-   req.session as SafeUser : null;
+    req.session as SafeUser : null;
 }
 
-export function getUserId(req :Request){
-  const user =  getUser(req);
-  return user? user.uid : null;
+export function getUserId(req: Request) {
+  const user = getUser(req);
+  return user ? user.uid : null;
 }
 
-export function getFileParams(req :Request):GetFileParams{
-  let {scene, name} = req.params;
-  if(!scene) throw new BadRequestError(`Scene parameter not provided`);
-  if(!name) throw new BadRequestError(`File parameter not provided`);
+export function getFileParams(req: Request): GetFileParams {
+  let { scene, name } = req.params;
+  if (!scene) throw new BadRequestError(`Scene parameter not provided`);
+  if (!name) throw new BadRequestError(`File parameter not provided`);
 
-  return {scene, name};
+  return { scene, name };
 }
 
-export function getVfs(req :Request){
-  let vfs :Vfs = getLocals(req).vfs;
+export function getVfs(req: Request) {
+  let vfs: Vfs = getLocals(req).vfs;
   //istanbul ignore if
-  if(!vfs) throw new InternalError("Badly configured app : vfs is not defined in app.locals");
+  if (!vfs) throw new InternalError("Badly configured app : vfs is not defined in app.locals");
   return vfs;
 }
 
-export function getHost(req :Request) :URL{
-  let host = (req.app.get("trust proxy")? req.get("X-Forwarded-Host") : null) ?? req.get("Host");
+
+export function getTaskScheduler(req: Request) {
+  const scheduler = getLocals(req).taskScheduler;
+  if (!scheduler) throw new InternalError("Badly configured app: task scheduler is not defined in app.locals");
+  return scheduler;
+}
+
+export function getHost(req: Request): URL {
+  let host = (req.app.get("trust proxy") ? req.get("X-Forwarded-Host") : null) ?? req.get("Host");
   return new URL(`${req.protocol}://${host}`);
 }
 
@@ -223,13 +236,13 @@ export function getHost(req :Request) :URL{
  * Validates if a requested redirect URL would be within the current origin
  * Also make the URL canonical (http://example.com/foo)
  */
-export function validateRedirect(req :Request, redirect :string|any): URL{
+export function validateRedirect(req: Request, redirect: string | any): URL {
   let host = getHost(req);
-  try{
+  try {
     let target = new URL(redirect, host);
-    if(target.origin !== host.origin) throw new BadRequestError(`Redirect origin mismatch`);
+    if (target.origin !== host.origin) throw new BadRequestError(`Redirect origin mismatch`);
     return target;
-  }catch(e){
+  } catch (e) {
     throw new BadRequestError(`Bad Redirect parameter`);
   }
 
@@ -239,9 +252,9 @@ export function validateRedirect(req :Request, redirect :string|any): URL{
  * Tries to determine if a request is for embedded content
  * @param req 
  */
-export function isEmbed(req :Request) :boolean{
-  if(typeof req.query.embed === "string") return req.query.embed != "0" && req.query.embed != "false";
-  if(typeof req.headers["sec-fetch-dest"] === "string") return req.headers["sec-fetch-dest"].indexOf("frame") !== -1 || req.headers["sec-fetch-dest"] === "embed";
+export function isEmbed(req: Request): boolean {
+  if (typeof req.query.embed === "string") return req.query.embed != "0" && req.query.embed != "false";
+  if (typeof req.headers["sec-fetch-dest"] === "string") return req.headers["sec-fetch-dest"].indexOf("frame") !== -1 || req.headers["sec-fetch-dest"] === "embed";
   return false;
 }
 
@@ -249,23 +262,22 @@ export function isEmbed(req :Request) :boolean{
  * Common properties for template rendering.
  * All props required for navbar/footer rendering should be set here
  */
-export function useTemplateProperties(req :Request, res:Response, next?:NextFunction){
+export function useTemplateProperties(req: Request, res: Response, next?: NextFunction) {
   const session = getSession(req);
-  const {config} = getLocals(req);
+  const { config } = getLocals(req);
   const user = getUser(req);
-  const {search} = req.query;
+  const { search } = req.query;
   const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
   Object.assign(res.locals, {
     lang,
-    languages: [
-      {selected: lang === "fr", code: "fr", key: "lang.fr"},
-      {selected: lang === "en", code: "en", key: "lang.en"},
-    ],
-    scene_languages: [
-      {selected: lang === "fr", code: "fr", key: "lang.fr"},
-      {selected: lang === "en", code: "en", key: "lang.en"},
-      {selected: lang === "es", code: "es", key: "lang.es"},
-    ],
+    languages: uiLanguages.map(l => {
+      const code = l.toLowerCase();
+      return { selected: lang === code, code, key: `lang.${code}` };
+    }),
+    scene_languages: sceneLanguages.map(l => {
+      const code = l.toLowerCase();
+      return { selected: lang === code, code, key: `lang.${code}` };
+    }),
     user: user,
     location: req.originalUrl,
     search,
@@ -274,6 +286,6 @@ export function useTemplateProperties(req :Request, res:Response, next?:NextFunc
     canonical: canonical(req).toString(),
     root_url: canonical(req, "/").toString(),
   });
-  if(next) next();
+  if (next) next();
 }
 

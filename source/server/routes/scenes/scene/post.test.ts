@@ -43,7 +43,7 @@ describe("POST /scenes/:scene", function(){
       await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
 
 
-      await request(app).get("/scenes/foo/models/foo.glb")
+      await request(app).get("/scenes/foo/foo.glb")
         .auth(user.username, "12345678")
         .expect(200)
         .expect("Content-Type", "model/gltf-binary");

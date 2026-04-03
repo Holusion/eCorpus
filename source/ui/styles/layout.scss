@@ -75,14 +75,40 @@ section, .section{
       width: 100%;
     }
   }
-  @include flush-row();
+  @include flush-column();
 
   h1, h2, h3, h4, h5, h6{
     &:first-child{
       margin-top: 0;
     }
   }
-  
+
+  /* Handle nested sections */
+  > section, > .section {
+    padding: var(--section-padding) 0;
+    &::before{
+      display: none;
+    }
+    &::after{
+      height: var(--caret-width);
+      left: 20px;
+      right: 20px;
+      bottom: calc(var(--section-padding) * -0.5 + var(--caret-width));
+      width: auto;
+    }
+
+    &:first-child{
+      padding-top: 0;
+    }
+    &:last-child{
+      padding-bottom: 0;
+      margin-bottom: 0;
+      &::after{
+        display: none;
+      }
+    }
+  }
+
   
 }
 

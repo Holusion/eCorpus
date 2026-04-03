@@ -1,8 +1,4 @@
-import path from "node:path";
-import fs from "node:fs/promises";
-
-
-import { expect, test } from '../fixtures';
+import { expect, test } from '../fixtures.js';
 import { randomUUID } from "node:crypto";
 
 
@@ -26,15 +22,17 @@ test.describe("author", ()=>{
 
   test("can archive and restore his scenes", async ({userPage, createScene})=>{
     let name = await createScene();
-    await userPage.goto(`/ui/scenes/${encodeURIComponent(name)}`);
+    await userPage.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
     await userPage.getByRole('button', { name: 'buttons.archive' }).click();
 
     //We are now on the archived scene's page
-    await userPage.waitForURL(/\/ui\/scenes\/.+/);
+    await userPage.waitForURL(new RegExp(`/ui/scenes/${name}%23`));
 
     //Check it is truly archived
     let res = await userPage.request.get(`/ui/scenes/${encodeURIComponent(name)}`);
     expect(res.status()).toEqual(404);
+
+    await userPage.getByRole("link", {name: "nav.settings"}).click();
 
     //Default rename target should be our original name
     await expect(userPage.locator("#scene-name-input")).toHaveValue(name);
@@ -59,9 +57,9 @@ test.describe("admin", ()=>{
 
   test("can archive other user's scene", async ({adminPage, createScene})=>{
     let name = await createScene();
-    await adminPage.goto(`/ui/scenes/${encodeURIComponent(name)}`);
+    await adminPage.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
     await adminPage.getByRole('button', { name: 'buttons.archive' }).click()
-    await adminPage.waitForURL(new RegExp(`/ui/scenes/${name}`));
+    await adminPage.waitForURL(new RegExp(`/ui/scenes/${name}%23`));
 
     let res = await adminPage.request.get(`/ui/scenes/${encodeURIComponent(name)}`);
     expect(res.status()).toEqual(404);

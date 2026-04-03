@@ -101,14 +101,14 @@ nav{
     display: flex;
     align-items: center;
     flex: 0 1 auto;
+    gap: 3px;
     box-sizing: border-box;
     @media screen and (min-width: 576px){
       padding: 4px 10px;
     }
-    
     margin: 3px;
     border-bottom: var(--border-height) solid transparent;
-    font-size: 13px;
+
     transition: border 0.2s ease 0s;
 
     color: inherit;
@@ -233,7 +233,6 @@ nav{
     flex-direction: column;
     gap: 5px;
     padding-bottom: 10px;
-    margin-top: 75px;
     > .nav-link{
       font-size: 1rem;
       text-align: left;

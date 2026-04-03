@@ -31,8 +31,7 @@ export function renderOpenSearch(req:Request, res: Response):void{
   }));
 
   let eTag = createHash("sha256");
-  eTag.update(body);
-  res.set("Cache-Control", `max-age=${3600*24}, public`);
+  eTag.update(body as any);
   res.set("ETag", "W/"+eTag.digest("base64url"));
   if(req.fresh){
     res.status(304).send("Not Modified");
