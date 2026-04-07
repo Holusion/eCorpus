@@ -32,8 +32,7 @@ describe("GET /scenes", function(){
     ]);
   });
   this.afterAll(async function(){
-    await vfs.close();
-    await fs.rm(this.dir, {recursive: true});
+    await cleanIntegrationContext(this);
   });
 
   it("returns a list of scene names as text", async function(){

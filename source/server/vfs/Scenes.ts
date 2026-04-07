@@ -1,6 +1,6 @@
 import {escapeLiteral} from "pg";
 import { AccessMap, AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
-import config from "../utils/config.js";
+import staticConfig from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
@@ -30,7 +30,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           `, [
             name, 
             uid,
-            toAccessLevel((config.public?"read":"none")),
+            toAccessLevel((staticConfig.public?"read":"none")),
             toAccessLevel("read"),
             author_id,
           ]);

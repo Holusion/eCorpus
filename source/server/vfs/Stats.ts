@@ -1,7 +1,7 @@
 
 import os from "os";
 import BaseVfs from "./Base.js";
-import config from "../utils/config.js";
+import staticConfig from "../utils/config.js";
 
 interface ServerStats{
   usage: {
@@ -49,7 +49,7 @@ export default abstract class StatsVfs extends BaseVfs{
         cores: os.cpus().length
       },
       build: {
-        ref: config.build_ref,
+        ref: staticConfig.build_ref,
         migration_id: migration_id.toString(10).padStart(3, "0"),
       }
     };

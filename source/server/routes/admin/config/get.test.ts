@@ -47,10 +47,12 @@ describe("GET /admin/config", function(){
     .expect("Content-Type", "text/plain; charset=utf-8");
   });
   it("can return application/json", async function(){
-    await request(this.server).get(`/admin/config`)
+    const res = await request(this.server).get(`/admin/config`)
     .auth(admin.username, "12345678")
     .accept("application/json")
     .expect(200)
     .expect("Content-Type", "application/json; charset=utf-8");
+    //Assert basic shape of the response's body
+    expect(res.body).to.have.property("port").to.have.property("value");
   });
 });

@@ -12,7 +12,7 @@ import { TaskScheduler } from "../tasks/scheduler.js";
 import { sceneLanguages, uiLanguages } from "./languages.js";
 
 
-export interface AppLocals extends Record<string, any> {
+export interface AppLocals{
   fileDir: string;
   userManager: UserManager;
   vfs: Vfs;
@@ -281,7 +281,7 @@ export function useTemplateProperties(req: Request, res: Response, next?: NextFu
     user: user,
     location: req.originalUrl,
     search,
-    brand: config.brand,
+    brand: config.get("brand"),
     embeddable: isEmbeddable(req.originalUrl),
     canonical: canonical(req).toString(),
     root_url: canonical(req, "/").toString(),

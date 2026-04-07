@@ -146,7 +146,7 @@ export default class Templates{
 
 
   constructor(opts :TemplateConstructorOptions){
-    this.#dir = opts?.dir;
+    this.#dir = opts.dir;
     this.#layoutsDir = path.join(this.#dir, "layouts");
     this.#partialsDir = path.join(this.#dir, "partials");
 

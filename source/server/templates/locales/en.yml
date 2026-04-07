@@ -69,6 +69,8 @@ labels:
   noLogs: No logs.
   optimizeModel: Optimize models
   childOf: Child of
+  showStatic: Show locked parameters
+  showChangedOnly: Show changed parameters only
 
 buttons:
   searchScene: search scenes
@@ -176,6 +178,7 @@ titles:
   myTasks: My tasks
   taskTree: Task tree
   logs: Logs
+  config: Configuration
   advancedConfiguration: Advanced configuration
   taskData: Input data
   taskOutput: Output data
@@ -253,7 +256,7 @@ leads:
   uploadOptimize: Optimize 3D models for better performance. This may take a bit more time.
   uploadErrors: >
     Some errors were encountered while processing the uploaded files. Please check errors above.
-
+  envLocked: "{{what}} can't be changed because its value comes from the environment"
 
 errors:
   generic: Unknown Error

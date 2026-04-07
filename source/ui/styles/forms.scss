@@ -107,6 +107,10 @@
           color: var(--color-primary);
         }
       }
+
+      &[type="checkbox"]{
+        width: auto;
+      }
     }
     > input + .btn-addon{
       position: absolute;
