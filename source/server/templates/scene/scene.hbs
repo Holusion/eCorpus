@@ -1,0 +1,112 @@
+
+<section class="grid-content">
+  <div style="display:flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between;">
+      {{#if displayedTitle}}
+        <h2>{{displayedTitle}}</h2>
+      {{/if}}
+      <span>
+        <span title="{{i18n "labels.defaultAccess"}}: {{i18n (join "fields." scene.default_access) }}">
+          {{#if (test scene.default_access "==" "none")}}
+            <ui-icon class="text-warning" name="key"></ui-icon>
+          {{else}}
+            <ui-icon class="text-info" name="eye"></ui-icon>
+          {{/if}}
+        </span>
+        {{#if (test scene.public_access "!=" "none")}}
+          <span class="text-info" title="{{i18n "labels.publicAccess"}}">
+            <ui-icon name="globe"></ui-icon>
+          </span>
+        {{/if}}
+      </span>
+    </div>
+    <div id="show-tags">
+      <div class="tags-list">
+        {{#each scene.tags}}
+            <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
+        {{/each}}
+        {{#unless scene.tags}}
+          {{#if (test access "==" "admin")}}
+            <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
+              <form autocomplete="off" class="form-control tags-list">
+                <label class="form-item add-tag">
+                  <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange=""/>
+                  <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+                  <datalist id="tagSuggestions">
+                    {{#each tagSuggestions }}
+                      <option value="{{.}}"/>
+                    {{/each}}
+                  </datalist>
+                  {{!This input _has_ to have the same name as the others but we want to prevent its change event from bubbling}}
+                  <script type="module">
+                    (()=>{
+                      const input = document.querySelector("#new-tag");
+                      if(!input) return console.warn("no new tag input found in this document");
+                      input.addEventListener("change", (e)=>e.stopPropagation());
+                    })();
+                  </script>
+                </label>
+              </form>
+            </submit-fragment>
+          {{/if}}
+        {{/unless}}
+      </div>
+    </div>
+    <div class="section-column">
+      <div class="col">
+        <h3>{{i18n "titles.sceneData"}}</h3>
+        <div id="scene-meta-main" style="flex-grow: 1">
+          {{#with meta}}
+            {{#if primary_language}}
+                <p>
+                  {{i18n "labels.localization" count=languages.length }}:
+                  {{#each languages}}
+                    {{#if (test @index "!=" 0)}},{{/if}}
+                    <a href="/ui/scenes/{{encodeURIComponent @root.scene.name}}/view?lang={{.}}" {{#if (test . "==" ../primary_language)}}class="text-success" title="{{i18n "labels.setupLocalization"}}"{{/if}}>{{.}}</a>
+                  {{/each}}
+                </p>
+                <p>{{i18n "leads.sceneCounts" tours=tours.length articles=articles.length annotations=annotations.length }}</p>
+            {{else}}
+              {{i18n "leads.noMetaAvailable"}}
+            {{/if}}
+          {{/with}}
+
+          <p>{{displayedIntro}}</p>
+          {{#if meta.copyright}}
+            <p>{{i18n "labels.copyright"}} {{meta.copyright}}</p>
+          {{/if}}
+          <p>{{i18n "labels.sceneType"}} : {{scene.type}}</p>
+        </div>
+      </div>
+      <div class="col">
+        {{#unless scene.archived }}
+          <div class="col" style="max-width: 200px; margin: 0 auto; display:flex; flex-direction: column; gap: 10px; justify-content: start">
+            {{#if (test scene.type "==" "voyager")}}
+              <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
+                <ui-icon name="eye"></ui-icon>
+                <span class="tool-text">{{i18n "labels.view"}}</span>
+              </a>
+            {{else if (test scene.type "==" "html")}}
+              <a class="btn btn-main" href="/scenes/{{encodeURIComponent scene.name}}/index.html" title="{{i18n "leads.showScene"}}">
+                <ui-icon name="eye"></ui-icon>
+                <span class="tool-text">{{i18n "labels.view"}}</span>
+              </a>
+            {{/if}}
+            {{#unless (test (test access "==" "read") "||" (test scene.type "!=" "voyager"))}}
+              <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
+                <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
+              </a>
+            {{/unless}}
+            <div style="flex-grow: 1"></div>
+            <a class="btn btn-main" download="{{scene.name}}.zip"
+              href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
+              <ui-icon name="save"></ui-icon>
+              <span class="tool-text">{{i18n "buttons.download"}}</span>
+            </a>
+          </div>
+        {{/unless}}
+      </div>
+    </div>
+
+  </div>
+</section>

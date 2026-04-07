@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import timers from "timers/promises";
 import {constants} from "fs";
+import path from "path";
 import BaseVfs from "./Base.js";
 import { randomInt } from "crypto";
 import Vfs from "./index.js";
@@ -22,6 +23,8 @@ export default abstract class CleanVfs extends BaseVfs{
     if(result) console.log(result);
     result = await this.checkForMissingObjects();
     if(result) console.error(result);
+    result = await this.cleanTaskArtifacts();
+    if(result) console.log(result);
   }
 
   /**
@@ -33,8 +36,9 @@ export default abstract class CleanVfs extends BaseVfs{
     let loose = [];
     for await (let object of it){
       await timers.setTimeout(randomInt(1));
-      let row = await this.db.get(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
-      if(!row || row.count == 0 ){
+
+      let rows = await this.db.all(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
+      if(!rows || rows.length == 0 || rows[0].count == 0){
         //try to prevent race conditions by ensuring file is old enough
         const stat = await fs.stat(this.getPath({hash: object.name}));
         if(stat.mtime.valueOf() < Date.now() - 3600){
@@ -76,6 +80,34 @@ export default abstract class CleanVfs extends BaseVfs{
       let plural = 1 <missing.length?"s":"";
       return `File${plural} ${missing.join(", ")} can't be read on disk (can't fix). Some data have been lost!`;
     }else return `found ${missing.length} missing objects (can't fix). Some data may have been lost!`;
+  }
+
+  /**
+   * Removes artifact directories for tasks that no longer exist in the database
+   */
+  public async cleanTaskArtifacts(this:Vfs): Promise<string|void>{
+    let it;
+    try{
+      it = await fs.opendir(this.artifactsDir);
+    }catch(e:any){
+      if(e.code === "ENOENT") return;
+      throw e;
+    }
+    const stale: string[] = [];
+    for await (const entry of it){
+      await timers.setTimeout(randomInt(1));
+      const taskId = parseInt(entry.name, 10);
+      if(isNaN(taskId)) continue;
+      const rows = await this.db.all(`SELECT task_id FROM tasks WHERE task_id = $1`, [taskId]);
+      if(!rows || rows.length == 0){
+        stale.push(path.join(this.artifactsDir, entry.name));
+      }
+    }
+    for(const dir of stale){
+      await fs.rm(dir, {recursive: true, force: true});
+    }
+    if(!stale.length) return;
+    return `Cleaned ${stale.length} stale artifact director${1 < stale.length ? "ies" : "y"}`;
   }
 
 

@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es2017",
+        "target": "es2018",
         "module": "esnext",
         "sourceMap": true,
         //"strict": true,
@@ -9,7 +9,6 @@
         "moduleResolution": "bundler",
         //"noUnusedLocals": true,
         "experimentalDecorators": true,
-        "baseUrl": ".",
         "paths": {}
     }
 }

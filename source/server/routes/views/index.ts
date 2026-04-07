@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties } from "../../utils/locals.js";
+import { canRead, getHost, canWrite, canAdmin, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene } from "../../vfs/types.js";
@@ -7,7 +7,11 @@ import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { BadRequestError } from "../../utils/errors.js";
+import { debuglog } from "util";
+import { TaskDefinition } from "../../tasks/types.js";
 
+
+const debug = debuglog("http:views");
 
 
 function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
@@ -19,10 +23,10 @@ function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
 
 const routes = Router();
 /**
- * Set permissive cache-control for ui pages
+ * Set cache-control for ui pages
  */
 routes.use("/", (req :Request, res:Response, next)=>{
-  res.set("Cache-Control", `max-age=${30*60}, public`);
+  res.set("Cache-Control", `no-cache`);
   next();
 });
 
@@ -67,11 +71,85 @@ routes.get("/", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/upload", (req, res)=>{
+
+
+
+
+routes.get("/upload", wrap(async (req, res)=>{
+  const {templates}= getLocals(req);
+  const requester = getUser(req);
+  if(!isUserAtLeast(requester!, "create")){
+    return res.status(401).render("error", { 
+      error: {
+        message: templates.t(requester? "errors.requireCreate": "errors.requireUser", {lng: res.locals.lang, what: "/ui/upload"})
+      },
+    });
+  }
+  const taskScheduler = getTaskScheduler(req);
+  const vfs = getVfs(req);
+  const {task} = req.query;
+  //Maybe we shouldn't fail on bad parameters and redirect to a blank page or just ignore them
+  const ids = [task].flat().filter(t=>typeof t === "string").map(t=>parseInt(t as string));
+  if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
+    throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
+  }
+  debug("Render previous upload tasks : ", ids);
+  type TaskScene = {name: string,  action: "create"|"update", task_id: number}
+  type TaskError =  {error: string, action: "error",  task_id: number|null}
+  type TaskLine = TaskScene|TaskError;
+  let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
+    try{
+      return await taskScheduler.getTask(id);
+    }catch(e:any){
+      return {
+        error: e.message,
+        action: "error",
+        task_id: id
+      } satisfies TaskError;
+    }
+  }));
+  let scenes: Array<TaskLine> = [];
+  for(let task of tasks){
+    if("error" in task){
+      scenes.push(task)
+      continue
+    }
+    if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
+      scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error", task_id: null});
+      continue;
+    }
+    if(task.status !== "success"){
+      console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
+      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${task.output?.message? " "+task.output.message: ""}`, action: "error", task_id: task.task_id});
+    }else if(task.type === "createSceneFromFiles"){
+      if(typeof task.output !== "number"){
+        console.warn("Unexpected output for %s :", task.type, task.output);
+        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
+        continue;
+      }
+      const scene = await vfs.getScene(task.output);
+      scenes.push({name: scene.name, action: "create", task_id: task.task_id});
+    }else if(task.type === "extractScenesArchives"){
+      if(!Array.isArray(task.output)){
+        console.warn("Unexpected output for %s :", task.type, task.output);
+        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
+        continue;
+      }
+      for(let {action, name } of task.output){
+        scenes.push({action, name, task_id: task.task_id});
+      }
+    }else{
+      console.warn("Unsupported task type: %s. not an upload task?", task.type);
+      scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error", task_id: task.task_id});
+      continue;
+    }
+  }
+  
   res.render("upload", {
     title: "eCorpus: Create new scene",
+    scenes,
   });
-})
+}))
 
 routes.get("/tags", wrap(async (req, res)=>{
   const vfs = getVfs(req);
@@ -365,7 +443,8 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
       }
   }
 
-  res.render("scene", {
+  res.render("scene/scene", {
+    layout: "scene",
     title: `eCorpus: ${scene.name}`,
     displayedTitle,
     displayedIntro,
@@ -374,6 +453,38 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     groupPermissions,
     userPermissions,
     tagSuggestions,
+  });
+}));
+
+routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
+  const { scene: scene_name } = req.params;
+  const vfs = getVfs(req);
+  const taskScheduler = getTaskScheduler(req);
+
+  const scene = mapScene(req, await vfs.getScene(scene_name));
+
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+
+  const tasks = await taskScheduler.getTasks({ scene_id: scene.id, type, status, rootOnly, limit, offset });
+
+  res.render("scene/tasks", {
+    layout: "scene",
+    title: `Tasks — ${scene.name}`,
+    scene,
+    tasks,
+    params: { type, status, rootOnly, limit, offset },
   });
 }));
 
@@ -396,7 +507,7 @@ routes.get("/scenes/:scene/view", (req, res)=>{
   }
 
 
-  res.render("explorer", {
+  res.render("scene/explorer", {
     title: `${scene}: Explorer`,
     layout: "viewer",
     scene,
@@ -414,7 +525,7 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
   let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
 
-  res.render("story", {
+  res.render("scene/story", {
     title: `${scene}: Story Editor`,
     layout: "viewer",
     scene,
@@ -426,16 +537,44 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
 
 routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   let vfs = getVfs(req);
-  //scene_name is actually already validated through canAdmin
   let {scene:scene_name} = req.params;
-  let scene = await vfs.getScene(scene_name);
-  
-  res.render("history", {
+  let scene = mapScene(req, await vfs.getScene(scene_name));
+  const access = res.locals.access as string;
+
+  res.render("scene/history", {
+    layout: "scene",
     title: `eCorpus: History of ${scene_name}`,
+    scene,
     name: scene_name,
-    canAdmin: res.locals.access === "admin",
+    canAdmin: access === "admin",
   });
 }))
+
+routes.get("/scenes/:scene/settings", canAdmin, wrap(async (req, res) => {
+  const requester = getUser(req);
+  const vfs = getVfs(req);
+  const um = getUserManager(req);
+  const {scene: scene_name} = req.params;
+  const scene = mapScene(req, await vfs.getScene(scene_name, requester?.uid));
+
+  const [permissions, serverTags] = await Promise.all([
+    um.getPermissions(scene.id),
+    vfs.getTags(),
+  ]);
+
+  const groupPermissions = permissions.filter(p => "groupName" in p);
+  const userPermissions  = permissions.filter(p => "username" in p);
+  const tagSuggestions   = serverTags.filter(t => !scene.tags.includes(t.name)).map(t => t.name);
+
+  res.render("scene/settings", {
+    layout: "scene",
+    title: `Settings — ${scene.name}`,
+    scene,
+    groupPermissions,
+    userPermissions,
+    tagSuggestions,
+  });
+}));
 
 routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
   let vfs = getVfs(req);
@@ -444,7 +583,7 @@ routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
   let scene = await vfs.getScene(scene_name);
   let thumb = new URL(`/scenes/${encodeURIComponent(scene_name)}/scene-image-thumb.jpg`, getHost(req));
   
-  res.render("explorer", {
+  res.render("scene/explorer", {
     title: `eCorpus: History of ${scene_name}`,
     layout: "viewer",
     scene: scene_name,
@@ -458,7 +597,7 @@ routes.get("/standalone", (req, res)=>{
   let host = getHost(req);
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
 
-  res.render("story", {
+  res.render("scene/story", {
     layout: "viewer",
     title: `Standalone Story`,
     mode: "Standalone",
@@ -468,6 +607,93 @@ routes.get("/standalone", (req, res)=>{
 });
 
 
+routes.get("/user/tasks", wrap(async (req, res) => {
+  const user = getUser(req);
+  if (user == null || UserRoles.indexOf(user.level) < 1) {
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tasks")}`);
+  }
+  const taskScheduler = getTaskScheduler(req);
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+  const tasks = await taskScheduler.getTasks({ user_id: user.uid, type, status, rootOnly, limit, offset });
+  res.render("user/tasks", {
+    layout: "user",
+    title: "My Tasks — User",
+    tasks,
+    params: { type, status, rootOnly, limit, offset },
+  });
+}));
+
+routes.get("/admin/tasks", isAdministrator, wrap(async (req, res) => {
+  const taskScheduler = getTaskScheduler(req);
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+  const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly, limit, offset });
+  res.render("admin/tasks", {
+    layout: "admin",
+    title: "Tasks — Administration",
+    tasks,
+    params: { type, status, rootOnly, limit, offset },
+  });
+}));
+
+routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
+  const {
+    taskScheduler,
+    userManager,
+    vfs,
+    requester
+  } = getLocals(req);
+  const id = parseInt(req.params.id);
+  const validLevels = ["debug", "log", "warn", "error"] as const;
+  type Level = typeof validLevels[number];
+  const rawLevel = req.query.level as string | undefined;
+  const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "log";
+  const {root, logs} = await taskScheduler.getTaskTree(id, {level});
+
+  const owner = root.user_id? (root.user_id == requester?.uid ?requester.username :(await userManager.getUserById(root.user_id)).username):null;
+  const scene = root.scene_id? (await vfs.getScene(root.scene_id)).name : null;
+  let taskOutputType:string = typeof root.output;
+  if(taskOutputType === "object" && root.output
+    && typeof root.output.name === "string" 
+    && root.output.name.indexOf("Error") != -1){
+      taskOutputType = "error";
+  }
+
+  res.render("task", {
+    title: `Task #${id} — ${root.type}`,
+    root,
+    taskData: JSON.stringify(root.data, null, 2),
+    taskOutput: JSON.stringify(root.output, null, 2),
+    taskOutputType,
+    logs,
+    level,
+    owner,
+    scene,
+  });
+}));
 
 
 export default routes;

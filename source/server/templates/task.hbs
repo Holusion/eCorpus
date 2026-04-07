@@ -1,0 +1,119 @@
+
+<div class="main-container task-summary">
+  <div class="task-title-bar">
+    <h1>
+      Task #{{root.task_id}} <span class="task-type sm-hidden">&mdash; {{root.type}}</span>
+    </h1>
+
+    {{#if root.scene_id}}
+      <h2 class="title-right" style="margin: 0; flex-grow: 1;">Scene: <a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a></h2>
+    {{/if}}
+
+  </div>
+
+  <section>
+    <div style="display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap;">
+      <h3>{{i18n "titles.taskTree"}}</h3>
+      <span class="task-status status-{{root.status}}" style="padding: .5rem">{{root.status}}</span>
+    </div>
+    {{#if root.parent}}<h3>{{i18n "labels.childOf"}} <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a></h3>{{/if}}
+    <div class="task-tree">
+      {{#each root.children }}
+        {{> taskNode . }}
+      {{/each}}
+    </div>
+    <details>
+      <summary><h3 style="display: inline">{{i18n "titles.taskData"}}</h3></summary>
+      <pre class="task-data-box">{{taskData}}</pre>
+    </details>
+  </section>
+
+  <section style="margin-top: 1.5rem">
+    <div style="display:flex; align-items:baseline; justify-content: space-between; gap:1rem; flex-wrap:wrap;">
+      <h3 style="margin-bottom:.5rem">{{i18n "titles.logs" default="Logs"}} <small style="font-weight:normal;color:var(--color-secondary)">({{logs.length}})</small></h3>
+      <form class="form-control" method="GET" style="margin-bottom:.75rem">
+        <div class="form-group inline">
+          <label class="form-item">
+            {{i18n "fields.minLevel" default="Min level"}}
+            <select name="level" autocomplete="off" onchange="this.form.submit()">
+              <option value="debug" {{#if (test level "==" "debug" )}}selected{{/if}}>debug</option>
+              <option value="log"   {{#if (test level "==" "log" )}}selected{{/if}}>log</option>
+              <option value="warn"  {{#if (test level "==" "warn"  )}}selected{{/if}}>warn</option>
+              <option value="error" {{#if (test level "==" "error" )}}selected{{/if}}>error</option>
+            </select>
+          </label>
+        </div>
+      </form>
+    </div>
+    {{#if logs.length}}
+    <div style="overflow-x: auto">
+      <table class="list-table compact logs-table">
+        <thead>
+          <tr>
+            <th>time</th>
+            <th>task</th>
+            <th>level</th>
+            <th>message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each logs}}
+          <tr id="log-{{log_id}}" class="log-{{severity}}">
+            <td class="log-time">{{dateString timestamp}}</td>
+            <td class="log-task-id">#{{task_id}}</td>
+            <td class="log-level log-{{severity}}">{{severity}}</td>
+            <td class="log-message">{{message}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      <p style="color: var(--color-secondary)">{{i18n "labels.noLogs" default="No logs."}}</p>
+    {{/if}}
+
+    <div style="display: flex; align-items: baseline; gap: 1rem; justify-content: end;">
+      <a class="btn btn-outline btn-secondary" href="/tasks/{{root.task_id}}/artifact"  download="task-{{root.task_id}}.zip">
+        {{i18n "buttons.getTaskArtifacts"}}
+      </a>
+      <h3 style="margin-bottom: 0">Status: </h3>
+      <span class="task-status status-{{root.status}}">{{root.status}}</span>
+    </div>
+
+    {{#if (test taskOutputType "==" "undefined")}}
+      <p>{{i18n "leads.noOutput"}}</p>
+    {{else if (test taskOutputType "==" "error") }}
+      <h3 class="text-error" style="margin-top: 0">{{#if root.output.name}}{{ root.output.name}}{{else}}Error{{/if}}:</h3>
+      <pre class="task-data-box">{{#if root.output.stack}}
+        {{root.output.stack}}
+      {{else}}
+        {{root.output.message}}
+      {{/if}}</pre>
+    {{else}}
+      <div style="display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;">
+        <h3>{{i18n "titles.taskOutput"}}:</h3>
+        <span class="task-status status-outline">{{taskOutputType}}</span>
+      </div>
+      <pre class="task-data-box">{{taskOutput}}</pre>
+    {{/if}}
+  </section>
+
+</div>
+
+{{!-- Recursive partial for task nodes --}}
+{{#*inline "taskNode"}}
+<div class="task-node">
+  <div class="task-header">
+    <a href="/ui/tasks/{{task_id}}" class="task-id">#{{task_id}}</a>
+    <span class="task-type">{{type}}</span>
+    <span class="task-status status-{{status}}">{{status}}</span>
+  </div>
+  {{#if children.length}}
+  <div class="task-children">
+    {{#each children}}
+      {{> taskNode this}}
+    {{/each}}
+  </div>
+  {{/if}}
+</div>
+{{/inline}}
