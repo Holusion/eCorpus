@@ -6,22 +6,22 @@ import { Database } from "../vfs/helpers/db.js";
  * Configuration values that are only available as environment variables
  */
 const static_values = {
-  node_env:["development", toString],
-  public: [true, toBool],
-  port: [8000, toListenTarget ],
-  force_migration: [false, toBool],
-  clean_database: [true, toBool],
-  root_dir: [ process.cwd(), toPath],
-  migrations_dir: [path.join(process.cwd(),"migrations"), toPath],
-  templates_dir: [path.join(process.cwd(),"templates"), toPath],
-  scripts_dir: [path.join(process.cwd(),"scripts"), toPath],
-  files_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), toPath],
-  dist_dir: [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"), toPath],
-  assets_dir: [undefined, toPath],
-  database_uri: [parsePGEnv, toString],
-  trust_proxy: [true, toBool],
-  hostname: [hostname(), toString],
-  build_ref: ["dev", toString],
+  node_env:        ["development", "string"],
+  public:          [true,          "boolean"],
+  port:            [8000,          "listenTarget"],
+  force_migration: [false,         "boolean"],
+  clean_database:  [true,          "boolean"],
+  root_dir:        [process.cwd(), "path"],
+  migrations_dir:  [path.join(process.cwd(),"migrations"), "path"],
+  templates_dir:   [path.join(process.cwd(),"templates"),  "path"],
+  scripts_dir:     [path.join(process.cwd(),"scripts"),    "path"],
+  files_dir:       [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"files"), "path"],
+  dist_dir:        [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"),  "path"],
+  assets_dir:      [undefined,    "path"],
+  database_uri:    [parsePGEnv,   "string"],
+  trust_proxy:     [true,         "boolean"],
+  hostname:        [hostname(),   "string"],
+  build_ref:       ["dev",        "string"],
 } as const;
 
 /**
@@ -29,13 +29,14 @@ const static_values = {
  * Precedence: env var > database value > default value
  */
 const runtime_values = {
-  brand: ["", toString],
-  contact_email: [({hostname}:{hostname: string})=> "noreply@"+hostname, toString],
-  verbose: [false, toBool],
-  smart_host: ["smtp://localhost:25", toString],
-  experimental: [false, toBool],
+  brand:                 ["",                "string"],
+  color_primary:           ["#e6b900",         "color"],
+  contact_email:         [({hostname}:{hostname: string})=> "noreply@"+hostname, "string"],
+  verbose:               [false,             "boolean"],
+  smart_host:            ["smtp://localhost:25", "string"],
+  experimental:          [false,             "boolean"],
   /// FEATURE FLAGS ///
-  enable_document_merge: [isExperimental, toBool],
+  enable_document_merge: [isExperimental,    "boolean"],
 } as const;
 
 const _all_values = {...static_values, ...runtime_values} as const;
@@ -46,33 +47,7 @@ type SKey = keyof typeof static_values;
 type Key = keyof typeof _all_values;
 
 
-type ValueType<T extends Key> = ReturnType<typeof _all_values[T][1]>;
-
-type BuildKey<T extends Key> = (c :Partial<Omit<{[U in SKey]: ValueType<U>}, T>>, env: NodeJS.ProcessEnv) => ValueType<T>;
-
-/** Internal shape produced by parse() */
-type ConfigShape = {
-  [T in Key]: typeof _all_values[T][0] extends BuildKey<T>? ReturnType<typeof _all_values[T][0]> : ValueType<T>;
-}
-
-export type StaticConfigShape = {
-  [T in keyof typeof static_values]: typeof static_values[T][0] extends BuildKey<T>? ReturnType<typeof static_values[T][0]> : ValueType<T>;
-}
-
-const typesMap = {
-  string: "text",
-  boolean: "checkbox",
-  number: "number",
-  undefined: "text",
-} as const;
-
-interface ConfigEntry<K extends Key=any>{
-  value: ValueType<K>;
-  locked: boolean;
-  type: "checkbox"|"text"|"number";
-  defaultValue: ValueType<K>;
-}
-
+// ---- Validator functions ----
 
 function toString(s:string):string{
   return s;
@@ -100,14 +75,69 @@ function toBool(s:string):boolean{
   return !(!s || s.toLowerCase() === "false" || s == "0");
 }
 
+/** Branded type for color config values — serialized as a CSS color string */
+export type ColorString = string & { readonly _brand: "color" };
+function toColor(s: string): ColorString{
+  return s as ColorString;
+}
+
+
+// ---- Option type maps (single source of truth) ----
+
+const validatorMap = {
+  string:       toString,
+  color:        toColor,
+  path:         toPath,
+  boolean:      toBool,
+  number:       toUInt,
+  listenTarget: toListenTarget,
+} as const;
+
+const htmlTypeMap = {
+  string:       "text",
+  color:        "color",
+  path:         "text",
+  boolean:      "checkbox",
+  number:       "number",
+  listenTarget: "text",
+} as const;
+
+type OptionType = keyof typeof validatorMap;
+type HTMLInputType = typeof htmlTypeMap[OptionType];
+type OptionTypeToValueType = { [K in OptionType]: ReturnType<typeof validatorMap[K]> };
+
+
+// ---- TypeScript intermediate types ----
+
+type ValueType<T extends Key> = OptionTypeToValueType[Extract<typeof _all_values[T][1], OptionType>];
+
+type BuildKey<T extends Key> = (c :Partial<Omit<{[U in SKey]: ValueType<U>}, T>>, env: NodeJS.ProcessEnv) => ValueType<T>;
+
+/** Internal shape produced by parse() */
+type ConfigShape = {
+  [T in Key]: typeof _all_values[T][0] extends BuildKey<T>? ReturnType<typeof _all_values[T][0]> : ValueType<T>;
+}
+
+export type StaticConfigShape = {
+  [T in keyof typeof static_values]: typeof static_values[T][0] extends BuildKey<T>? ReturnType<typeof static_values[T][0]> : ValueType<T>;
+}
+
+interface ConfigEntry<K extends Key=any>{
+  value: ValueType<K>;
+  locked: boolean;
+  type: HTMLInputType;
+  defaultValue: ValueType<K>;
+}
+
+
+// ---- Factory / computed defaults ----
+
 /**
  * used to default a value to "false", unless EXPERIMENTAL flag is set
  */
 function isExperimental({experimental}: {experimental: boolean}) :boolean{
   return experimental;
 }
-
-
 
 
 /**
@@ -192,7 +222,8 @@ function parsePGEnv(_config:Partial<ConfigShape>, env :NodeJS.ProcessEnv ){
  */
 export function parse(env :NodeJS.ProcessEnv = process.env):ConfigShape{
   let c :Partial<ConfigShape>  = {};
-  for(let [key, [defaultValue, validate]] of Object.entries(_all_values)){
+  for(let [key, [defaultValue, optionType]] of Object.entries(_all_values)){
+    const validate = validatorMap[optionType as OptionType];
     let env_value = env[`${key.toUpperCase()}`];
     if(typeof env_value !== "undefined"){
       c[key as Key] = validate(env_value) as any;
@@ -221,15 +252,12 @@ export class Config {
     private readonly _db: Database,
     env: Readonly<NodeJS.ProcessEnv>,
   ){
-    for(let [_key, [defaultFactory, validate]] of Object.entries(_all_values)){
+    for(let [_key, [defaultFactory, optionType]] of Object.entries(_all_values)){
       const key = _key as Key;
+      const validate = validatorMap[optionType as OptionType];
+      const type = htmlTypeMap[optionType as OptionType];
       let env_value = env[`${key.toUpperCase()}`];
       let defaultValue = (typeof defaultFactory !=="function")? defaultFactory: defaultFactory(static_config as any, env) as any;
-      let type:"checkbox"|"number"|"text" = (typesMap as any)[typeof defaultValue];
-      if(!type){
-        console.warn("Unrecognized config type : ", typeof defaultValue);
-        type = "text"
-      }
       if(typeof env_value !== "undefined"){
         this._values.set(key,{
           value: validate(env_value) as any,
@@ -283,9 +311,10 @@ export class Config {
       const prev = this._values.get(row.name);
       if(!prev) throw new Error(`Trying to update ${row.name}, which wasn't found in records. This is not supposed to happen`);
       if(prev.locked) throw new Error(`Trying to update ${row.name}, which is locked. This is not supposed to happen`);
+      const [, optionType] = _all_values[row.name];
       this._values.set(row.name, {
         ...prev,
-        value: row.value
+        value: (validatorMap as any)[optionType](row.value)
       });
     }
   }
@@ -324,13 +353,14 @@ export class Config {
   /**
    * Persist a runtime value to the database and update the in-memory cache.
    * Only keys defined in runtime_values are accepted.
-   * 
+   *
    * @returns true if value has changed. false if it was equal or value is locked from environment
    */
   async set<K extends RKey>(key: K, value: ConfigShape[K]): Promise<boolean> {
     const raw = String(value);
-    const validate = runtime_values[key]?.[1];
-    if(typeof validate === "undefined") throw new Error(`Invalid runtime configuration key : ${key}`);
+    const optionType = runtime_values[key]?.[1] as OptionType | undefined;
+    if(typeof optionType === "undefined") throw new Error(`Invalid runtime configuration key : ${key}`);
+    const validate = validatorMap[optionType];
     // validate — throws if the string can't round-trip through the validator
     if(validate(raw) != value) throw new Error(`Serialization of ${value} is not indempotent for configuration key ${key}`);
 
@@ -350,8 +380,8 @@ export class Config {
 
   /**
    * Check if a configuration value can be changed with {@link set } or is locked from an enviropnment value
-   * @param k 
-   * @returns 
+   * @param k
+   * @returns
    */
   locked(k: RKey){
     return this._values.get(k)?.locked;

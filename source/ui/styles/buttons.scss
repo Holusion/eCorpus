@@ -50,6 +50,10 @@ a{
     }
   }
 
+  &[hidden], &.hidden{
+    display: none;
+  }
+
   &.btn-main {
     background-color: var(--color-secondary);
 

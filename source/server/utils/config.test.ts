@@ -325,6 +325,36 @@ describe("runtimeConfig", function(){
     }
   });
 
+  it("reload() parses values from DB through their validator", async function(){
+    const mockDb = {
+      all: () => Promise.resolve([{ name: "experimental", value: "true" }]),
+      run: ok,
+    };
+    const c = new Config(mockDb as any, {});
+    expect(c.get("experimental")).to.equal(false);    // default
+    await c.reload();
+    expect(c.get("experimental")).to.equal(true);     // boolean, not string "true"
+    expect(c.get("experimental")).to.be.a("boolean");
+  });
+
+  it("color-typed entries expose type='color'", function(){
+    const c = new Config({ all: ok, run: ok } as any, {});
+    const entries = new Map(c.entries());
+    expect(entries.get("color_primary")).to.have.property("type", "color");
+  });
+
+  it("string-typed entries still expose type='text'", function(){
+    const c = new Config({ all: ok, run: ok } as any, {});
+    const entries = new Map(c.entries());
+    expect(entries.get("brand")).to.have.property("type", "text");
+  });
+
+  it("color values can be set and retrieved", async function(){
+    const c = new Config({ all: ok, run: ok } as any, {});
+    const changed = await c.set("color_primary", "#ff0000" as any);
+    expect(changed).to.be.true;
+    expect(c.get("color_primary")).to.equal("#ff0000");
+  });
 
 });
 
