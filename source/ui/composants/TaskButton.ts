@@ -19,7 +19,7 @@ export default class TaskButton extends LitElement
   static styles = css`
     :host > ::slotted(*){
       cursor : pointer;
-      color: white;
+      color: var(--color-text);
       text-decoration: none;
       background-color: var(--color-primary)!important;
       padding: 0.5rem 1rem;

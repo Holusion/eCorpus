@@ -1,6 +1,13 @@
 <h1>{{i18n "titles.adminHome"}}</h1>
 
 <style>
+  .color-picker-overlay{
+     position: absolute;
+     inset: 0 2.5rem 0 1rem;
+     display: flex;
+     align-items: center;
+     color: oklch(from var(--c, black) clamp(0, (0.6 - l) * 10000, 1) 0 0);
+  }
   .table-header{
     position: sticky;
     top: 0;
@@ -37,26 +44,6 @@
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .form-item {
-          input{
-            &[type="checkbox"]{
-              width: auto;
-            }
-
-            &[readonly]{
-              &:hover, &:focus {
-                outline: none;
-                border-color: inherit;
-                box-shadow: none !important;
-              }
-              cursor: default;
-              caret-color: transparent;
-              &[type="checkbox"]{
-                pointer-events: none;
-              }
-            }
-          }
-        }
       }
 
       &.editing{
@@ -74,7 +61,9 @@
               flex-grow: 1;
             }
           }
-
+        }
+        .color-picker-overlay{
+          pointer-events: none;
         }
       }
     }
@@ -91,11 +80,15 @@
     <div class="form-group conf-line" >
       <div class="form-item" {{#if locked}}title="{{i18n "leads.envLocked" what=key }}"{{/if}}>
         <input name="{{ key }}"
+          data-default="{{ defaultValue }}"
           readonly
           autocomplete="off"
           type="{{ type }}"
           {{#if (test type "==" "checkbox")}}
             {{#if value}}checked{{/if}}
+          {{else if (test type "==" "color")}}
+            alpha
+            value="{{ value }}"
           {{else}}
             value="{{ value }}"
             placeholder="{{ defaultValue }}"
@@ -110,6 +103,10 @@
             <ui-icon name="edit"></ui-icon>
           </button>
         {{/if}}
+        {{#if (test type "==" "color")}}
+          <span class="color-picker-overlay" style="--c: {{value}};">{{value}}</span>
+        {{/if}}
+
       </div>
     </div>
   </td>
@@ -192,32 +189,55 @@
     closeBtn.addEventListener("click", closeEdit);
 
     input.removeAttribute("readonly");
-    editBtn.remove();
+    editBtn.hidden = true;
     container.replaceWith(submitFrag);  // container detached, submitFrag in DOM
     form.append(container, saveBtn, resetBtn, closeBtn);
     submitFrag.append(form);
 
-    activeEdit = { input, container, tr, submitFrag, saveBtn, originalValue: input.value, editBtn };
+    //Synchronize overlay text color for color inputs
+    const overlay = container.querySelector(".color-picker-overlay");
+    const colorSync = overlay ? () => {
+      overlay.style.setProperty("--c", input.value) 
+      overlay.innerHTML = input.value;
+    }: null;
+    if (colorSync) input.addEventListener("input", colorSync);
+
+    activeEdit = { input, container, tr, submitFrag, saveBtn, originalValue: input.value, editBtn, colorSync };
     tr.classList.add("editing");
     input.focus();
   }
 
   function closeEdit() {
     if (!activeEdit) return;
-    const { input, container, tr, submitFrag, saveBtn, originalValue, editBtn } = activeEdit;
+    const { input, container, tr, submitFrag, saveBtn, originalValue, editBtn, colorSync } = activeEdit;
+
     input.value = originalValue;
     input.setAttribute("readonly", "");
+
+    if (colorSync){
+      colorSync();
+      input.removeEventListener("input", colorSync);
+    }
+  
     tr.classList.remove("editing");
     saveBtn.remove();
     submitFrag.before(container);  // move container back before submitFrag
     submitFrag.remove();
-    container.appendChild(editBtn);
+    editBtn.hidden = false;
     activeEdit = null;
   }
 
   function resetEdit() {
     if (!activeEdit) return;
-    activeEdit.input.value = activeEdit.input.placeholder;
+    console.log("Reset edit", activeEdit.input.dataset.default);
+    if(activeEdit.input.type =="checkbox"){
+      activeEdit.input.checked = !(activeEdit.input.dataset.default == "false");
+    }else{
+      activeEdit.input.value = activeEdit.input.dataset.default;
+    }
+    if(activeEdit.colorSync){
+      activeEdit.colorSync();
+    }
   }
 
 

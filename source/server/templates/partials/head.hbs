@@ -5,6 +5,8 @@
 <meta property="og:image:width" content="320">
 <meta property="og:image:height" content="320">
 
+<meta name="color-scheme" content="dark">
+
 <!-- Apple "add to home screen" meta -->
 <link rel="apple-touch-icon" href="{{thumb}}">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,10 +23,12 @@
 <link rel="alternate" type="text/xml+oembed" href="{{root_url}}services/oembed?url={{encodeURIComponent canonical}}&format=xml"/>
 {{/if}}
 
-<link rel="stylesheet" href="/dist/css/theme.css?ref={{ config.build_ref }}">
-<link rel="stylesheet" href="/dist/css/corpus.css?ref={{ config.build_ref }}">
-
 <style>
+  :root{
+    --color-primary: {{color_primary}};
+    --color-secondary: {{color_secondary}};
+  }
+  
   body{
     background: var(--color-background, #343434);
     font-family: var(--font-body, sans-serif);
@@ -56,3 +60,6 @@
     grid-area: footer;
   }
 </style>
+
+<link rel="stylesheet" href="/dist/css/theme.css?ref={{ config.build_ref }}">
+<link rel="stylesheet" href="/dist/css/corpus.css?ref={{ config.build_ref }}">

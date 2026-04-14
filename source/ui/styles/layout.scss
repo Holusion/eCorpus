@@ -252,9 +252,9 @@ section, .section{
       background: var(--color-section);
     }
     &:hover{
-      background: var(--color-dark);
+      background: var(--color-highlight);
       filter: opacity(80%);
-      border-color: var(--color-dark);
+      border-color: var(--color-highlight);
     }
   }
 }

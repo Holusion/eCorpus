@@ -4,19 +4,34 @@
   --col-width: 1320px;
   --grid-gap: .5rem;
 
-  --color-primary: #E6B900;
-  --color-primary-light: #edce4c;
-  --color-primary-lighter: #ffda41;
-  --color-primary-dark: #e08f1e;
+  //--color-primary: #E6B900;
+  --color-primary-light: color-mix(in oklch, var(--color-primary), white 30%);
+  --color-primary-lighter: color-mix(in oklch, var(--color-primary), white 50%);
 
-  --color-secondary: #4735df;
-  --color-secondary-light: #7a70db;
+  //--color-secondary: #4735df;
+  --color-secondary-light: color-mix(in oklch, var(--color-secondary), white 30%);
 
-  --color-text: #eee;
-  --color-dark: #2b2938;
+  --color-text: color-mix(in srgb, CanvasText 93%, Canvas);
+  /* Main (body) background color */
+  --color-background: light-dark(white, #343434);
 
-  --color-medium: var(--color-primary);
-  --color-hover: var(--color-primary-dark);
+  /* Background color for "section" elements.
+    (large page chunks that may contain some number of items).
+    designed to stand out over --color-background 
+  */
+  --color-section: light-dark(#fafafa, rgba(0, 0, 0, 0.15));
+
+  /* Background color for "block elements", like  cards, navbars, modals... */
+  --color-element: light-dark(#e0e0e0, rgba(0, 0, 0, 0.15));
+
+
+  --color-hover: color-mix(in oklch, var(--color-primary), Canvas 20%);
+
+  /* Main Color for elements designed to stand out in a section, like action buttons.  */
+  --color-highlight: color-mix(in oklch, color-mix(in srgb, CanvasText 10%, Canvas), var(--color-secondary) 8%);
+
+  /* Additional highlight color, primarily for hover effects */
+  --color-highlight2: color-mix(in srgb, CanvasText 37%, Canvas);
 
   --color-info: #73adff;
   --color-success: #8ae65c;
@@ -25,22 +40,4 @@
   
   --font-body: 'sans-serif';
   --font-heading: 'serif';
-
-  /* Main (body) background color */
-  --color-background: #343434;
-
-  /* Background color for "section" elements.
-    (large page chunks that may contain some number of items).
-    designed to stand out over --color-background 
-  */
-  --color-section: #272727;
-
-  /* Background color for "block elements", like  cards, navbars, modals... */
-  --color-element: #1b1b1b;
-
-  /* Main Color for elements designed to stand out in a section, like action buttons */
-  --color-highlight: #1f1d29;
-  
-  /* Additional highlight color, primarily for hover effects */
-  --color-highlight2: #5e5e5e;
 }

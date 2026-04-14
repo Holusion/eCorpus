@@ -70,7 +70,7 @@ table.list-table {
     }
   }
   tbody tr:hover{
-    background: var(--color-dark);
+    background: var(--color-highlight);
     transition: background-color 150ms ease-out;
   }
   &.disabled{

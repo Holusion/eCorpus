@@ -14,7 +14,7 @@ button, input {
 
 
 a{
-  color:white;
+  color:var(--color-text);
 }
 
 
@@ -48,6 +48,10 @@ a{
     &:hover, &:focus {
       background-color: var(--color-primary-light);
     }
+  }
+
+  &[hidden], &.hidden{
+    display: none;
   }
 
   &.btn-main {

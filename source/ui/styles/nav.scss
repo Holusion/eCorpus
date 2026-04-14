@@ -28,7 +28,7 @@ nav.navbar-nav {
   .divider{
     width: 1px;
     height: calc(100% - var(--border-height));
-    background-color: var(--color-dark);
+    background-color: var(--color-highlight);
   }
 
 
@@ -120,7 +120,7 @@ nav{
     text-decoration: none;
 
     &:hover, &:focus{
-      color: white;
+      color: var(--color-text);
       background-color: var(--color-highlight2);
     }
   
@@ -139,7 +139,7 @@ nav{
   }
   .form-item.nav-input{
     flex: 1 1 auto;
-    color: white;
+    color: var(--color-text);
     min-width: var(--nav-height);
     >input{
       width:100%;
