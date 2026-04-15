@@ -185,9 +185,9 @@ export default class UserManager extends DbController {
    * @throws {NotFoundError} if user_id is not found
    */
   async getUserById(user_id: number) :Promise<User>{
-    let u = await this.db.get<StoredUser>(`SELECT * FROM users WHERE user_id = $1`, [ user_id ]);
-    if(!u) throw new NotFoundError(`no user with user_id ${user_id}`);
-    return UserManager.deserialize(u);
+    let u = await this.db.all<StoredUser>(`SELECT * FROM users WHERE user_id = $1 LIMIT 1`, [ user_id ]);
+    if(!u.length) throw new NotFoundError(`no user with user_id ${user_id}`);
+    return UserManager.deserialize(u[0]);
   }
 
   /**
@@ -197,7 +197,7 @@ export default class UserManager extends DbController {
    */
   async getUserByName(username : string) :Promise<User>{
     if(!UserManager.isValidUserName(username) && username.indexOf("@")== -1) throw new BadRequestError(`Invalid user name`);
-    let u = await this.db.get<StoredUser>(`SELECT * FROM users WHERE username = $1 OR email = $1`, [ username ]);
+    let u = (await this.db.all<StoredUser>(`SELECT * FROM users WHERE username = $1 OR email = $1`, [ username ]))[0];
     if(!u) throw new NotFoundError(`no user with username ${username}`);
     return UserManager.deserialize(u);
   }
@@ -216,7 +216,7 @@ export default class UserManager extends DbController {
   }
 
   async userCount() :Promise<number>{
-    let r = await this.db.get(`SELECT COUNT(user_id) as count FROM users`);
+    let r = (await this.db.all(`SELECT COUNT(user_id) as count FROM users`))[0];
     if(!r) throw new InternalError(`Bad db configuration : can't get user count`);
     return r.count;
   }
@@ -507,13 +507,13 @@ export default class UserManager extends DbController {
 
   async addGroup(groupName: string) {
     try{
-          return new Group(await this.db.get<StoredGroup>(`
+          return new Group((await this.db.all<StoredGroup>(`
       INSERT INTO groups (group_name)
       VALUES ($1)
       RETURNING *
     `, [
       groupName
-    ]));
+    ]))[0]);
     }catch(e:any){
       if (e.code == errors.unique_violation && e.constraint === "groups_group_name_key")throw new ConflictError(`A group named ${groupName} already exists`)
       else throw e;
@@ -598,9 +598,9 @@ export default class UserManager extends DbController {
   async isMemberOfGroup(user: number | string, group: number | string) {
     let res: { fk_user_id: number };
     if (typeof (user) == "number") {
-      res = (await this.db.get<{ fk_user_id: number }>(`SELECT fk_user_id FROM groups_membership ${typeof (group) == "string" ? `JOIN groups ON fk_group_id = group_id WHERE group_name = $2` : `WHERE fk_group_id = $2`} AND fk_user_id = $1`, [user, group]));
+      res = (await this.db.all<{ fk_user_id: number }>(`SELECT fk_user_id FROM groups_membership ${typeof (group) == "string" ? `JOIN groups ON fk_group_id = group_id WHERE group_name = $2` : `WHERE fk_group_id = $2`} AND fk_user_id = $1`, [user, group]))[0];
     } else {
-      res = (await this.db.get<{ fk_user_id: number }>(`SELECT fk_user_id FROM groups_membership  JOIN users ON fk_user_id = user_id  ${typeof (group) == "string" ? `JOIN groups ON fk_group_id = group_id WHERE group_name = $2` : `WHERE fk_group_id = $2`} AND username = $1`, [user, group]));
+      res = (await this.db.all<{ fk_user_id: number }>(`SELECT fk_user_id FROM groups_membership  JOIN users ON fk_user_id = user_id  ${typeof (group) == "string" ? `JOIN groups ON fk_group_id = group_id WHERE group_name = $2` : `WHERE fk_group_id = $2`} AND username = $1`, [user, group]))[0];
     }
     return (res && (typeof (res.fk_user_id) === "number"))
   }

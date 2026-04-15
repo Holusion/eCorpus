@@ -183,8 +183,8 @@ describe("DbController", function(){
         await c1.isolate(async (t1)=>{
           //This will not be visible outside of the transaction before comitted
           await t1._db.run("INSERT INTO test VALUES ('bar')")
-          values_c1 = (await t1._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count; 
-          values_c2 = (await c2._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count; 
+          values_c1 = (await t1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+          values_c2 = (await c2._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
         });
         expect(values_c1!, "added value should be visible in the transaction").to.equal(2);
         expect(values_c2!, "added value should not be visible for non-isolated controllers").to.equal(1);
@@ -198,9 +198,9 @@ describe("DbController", function(){
             //This will not be visible in the transaction
             await t1._db.run("INSERT INTO test VALUES ('bar')");
             await t2._db.run("INSERT INTO test VALUES ('baz')");
-            values_t1 = (await t1._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count; 
-            values_t2 = (await t2._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count;
-            values_c1 = (await c1._db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count;
+            values_t1 = (await t1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+            values_t2 = (await t2._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+            values_c1 = (await c1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
 
             await t2._db.run("INSERT INTO test VALUES ('bazz')");
           })
@@ -208,7 +208,7 @@ describe("DbController", function(){
         expect(values_t1!, "added value should be visible in the transaction").to.equal(3);
         expect(values_t2!, "added value should be visible in the transaction").to.equal(3);
         expect(values_c1!, "added value should not be visible outside of the transaction").to.equal(1);
-        expect((await db.get<{count:number}>("SELECT COUNT(*) as count FROM test")).count, "after transaction, all values should exist").to.equal(4);
+        expect((await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count, "after transaction, all values should exist").to.equal(4);
       });
     })
 
