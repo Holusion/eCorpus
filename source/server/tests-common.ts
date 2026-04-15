@@ -61,7 +61,7 @@ global.dropDb = async function(uri: string){
   const client = new Client({connectionString: new URL(`/postgres`, db_uri).toString()});
   await client.connect();
   try{
-    await client.query(`DROP DATABASE ${escapeIdentifier(new URL(uri).pathname.slice(1))}`);
+    await client.query(`DROP DATABASE ${escapeIdentifier(new URL(uri).pathname.slice(1))} WITH (FORCE)`);
   }finally{
     await client.end();
   }
