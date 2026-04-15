@@ -34,10 +34,10 @@ function safeDebugError(e:Error|unknown, sql: string){
 
 export interface DatabaseHandle{
   /**
-   * @deprecated it is way more efficient to run `db.all("... LIMIT 1")[0]` because it will not deadlock as easily
+   * @deprecated this will not enforce a limit but just discard all results after the first
    * Creates a cursor that will only fetch the first row that would be returned by the query
    */
-  get<T extends QueryResultRow =any>(sql: string, params?: any[]):Promise<T>;
+  get<T extends QueryResultRow =any>(sql: string, params?: any[]):Promise<T|undefined>;
   /**
    * Query the database, return the result as an array of rows
    */
@@ -73,18 +73,8 @@ export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "begin
         throw e;
       }
     },
-    async get<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T>{
-      const client = await ((db instanceof Pool)? (db as Pool).connect(): db);
-      const cursor = client.query(new Cursor<T>(sql, params));
-      try{
-        return (await cursor.read(1))[0];
-      }catch(e){
-        safeDebugError(e, sql);
-        throw e;
-      }finally{
-        await cursor.close();
-        if((db instanceof Pool)) (client as PoolClient).release();
-      }
+    async get<T extends QueryResultRow = any>(sql:string, params?: any[]):Promise<T|undefined>{
+      return (await this.all(sql, params))[0];
     },
     async run(sql: string, params?: any[]):Promise<RunResult>{
       try{

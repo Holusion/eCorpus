@@ -24,22 +24,23 @@ interface ServerStats{
 
 export default abstract class StatsVfs extends BaseVfs{
   async getStats() :Promise<ServerStats>{
-    let mtime = new Date((await this.db.get<{mtime:string}>(`
-      SELECT MAX(ctime) AS mtime FROM files;
-    `))?.mtime ?? 0);
+    let mtime = new Date((await this.db.all<{mtime:string}>(`
+      SELECT MAX(ctime) AS mtime FROM files LIMIT 1;
+    `))[0]?.mtime ?? 0);
 
-    let {size} = (await this.db.get<{size:number}>(`
+    let {size} = (await this.db.all<{size:number}>(`
       SELECT SUM(size) AS size
       FROM (
         SELECT MAX(size) AS size, hash
         FROM files 
         GROUP BY hash
       ) as distinct_files
-    `)) ?? {size: 0};
+      LIMIT 1
+    `))[0] ?? {size: 0};
     
-    let {scenes} = await this.db.get(`SELECT COUNT(scene_name) AS scenes FROM scenes`);
+    let {scenes} = (await this.db.all(`SELECT COUNT(scene_name) AS scenes FROM scenes LIMIT 1`))[0];
 
-    let {id: migration_id} = await this.db.get("SELECT MAX(id) AS id FROM migrations");
+    let {id: migration_id} = (await this.db.all("SELECT MAX(id) AS id FROM migrations LIMIT 1"))[0];
     return {
       usage: {mtime},
       data: {size, scenes},

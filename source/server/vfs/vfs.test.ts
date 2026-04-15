@@ -232,8 +232,6 @@ describe("Vfs", function(){
       //@ts-ignore
       const run = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.run(sql, ...params);
       //@ts-ignore
-      const get = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.get(sql, ...params);
-      //@ts-ignore
       const all = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.all(sql, ...params);
 
       this.beforeEach(async function(){
@@ -1143,7 +1141,7 @@ describe("Vfs", function(){
           it("store archive time", async function(){
             //To be used later 
             await vfs.archiveScene(scene_id);
-            let {archived} = await vfs._db.get(`SELECT archived FROM scenes WHERE scene_id= $1`, [scene_id]);
+            let {archived} = (await vfs._db.all(`SELECT archived FROM scenes WHERE scene_id= $1 LIMIT 1`, [scene_id]))[0];
             expect(archived).to.be.instanceof(Date);
             expect(archived.toString()).not.to.equal('Invalid Date');
             expect(archived.valueOf(), archived.toUTCString()).to.be.above(new Date().valueOf() - 2000);
@@ -1717,7 +1715,7 @@ describe("Vfs", function(){
           });
           it("can provide an author", async function(){
             let user_id = Uid.make();
-            await get(`INSERT INTO users ( user_id, username ) VALUES ($1, 'alice')`, [user_id]);
+            await run(`INSERT INTO users ( user_id, username ) VALUES ($1, 'alice')`, [user_id]);
             await expect(vfs.writeDoc("{}",  {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"})).to.be.fulfilled;
             let files = await all(`SELECT data, fk_author_id AS fk_author_id FROM files WHERE name = 'scene.svx.json'`);
             expect(files).to.have.length(1);
