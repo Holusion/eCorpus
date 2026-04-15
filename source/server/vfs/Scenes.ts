@@ -23,7 +23,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         if(name.endsWith("#"+uid.toString(10))) continue;
 
         return await this.db.beginTransaction<number>(async (tr)=>{
-          let r = await tr.get<{scene_id:string}>(`
+          let r = (await tr.all<{scene_id:string}>(`
             INSERT INTO scenes (scene_name, scene_id, public_access, default_access, fk_author_id) 
             VALUES ( $1, $2, $3, $4, $5 )
             RETURNING scene_id AS scene_id;
@@ -33,7 +33,7 @@ export default abstract class ScenesVfs extends BaseVfs{
             toAccessLevel((staticConfig.public?"read":"none")),
             toAccessLevel("read"),
             author_id,
-          ]);
+          ]))[0];
           if(author_id){
             await tr.run(`INSERT INTO users_acl (fk_user_id, fk_scene_id, access_level) VALUES ($2, CAST($1 AS BIGINT), 3)`, [r.scene_id, author_id]);
           }
