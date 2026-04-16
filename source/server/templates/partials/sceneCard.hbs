@@ -15,13 +15,13 @@
     </div>
     <div class="tools">
       {{!if a scene is shown, the user must have read access}}
-      {{#if (test scene.type "==" "voyager")}}
-        <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent name}}/view" title="{{i18n "leads.showScene"}}">
+      {{#if (test type "==" "voyager")}}
+        <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/view" title="{{i18n "leads.showScene"}}">
           <ui-icon name="eye"></ui-icon>
           <span class="tool-text">{{i18n "labels.view"}}</span>
         </a>
-      {{else if (test scene.type "==" "html")}}
-        <a class="btn btn-main" href="/scenes/{{encodeURIComponent name}}/index.html" title="{{i18n "leads.showScene"}}">
+      {{else if (test type "==" "html")}}
+        <a class="tool-link" href="/scenes/{{encodeURIComponent name}}/index.html" title="{{i18n "leads.showScene"}}">
           <ui-icon name="eye"></ui-icon>
           <span class="tool-text">{{i18n "labels.view"}}</span>
         </a>
