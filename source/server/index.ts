@@ -1,6 +1,6 @@
 import path from "path";
 import createService from "./create.js";
-import config from "./utils/config.js";
+import staticConfig from "./utils/config.js";
 
 //@ts-ignore
 import("source-map-support").then((s)=>{
@@ -9,10 +9,10 @@ import("source-map-support").then((s)=>{
 
 
 (async ()=>{
-    let root = path.resolve(config.root_dir);
-    console.info("Serve directory : "+root+" on "+config.port);
-    const services = await createService(config);
-    services.app.listen(config.port, () => {
-        console.info(`Server ready and listening on port ${config.port}\n`);
+    let root = path.resolve(staticConfig.root_dir);
+    console.info("Serve directory : "+root+" on "+staticConfig.port);
+    const services = await createService();
+    services.app.listen(staticConfig.port, () => {
+        console.info(`Server ready and listening on port ${staticConfig.port}\n`);
     });
 })();

@@ -356,9 +356,21 @@ routes.get("/user/archives", wrap(async (req, res)=>{
 
 routes.use("/admin", isManage);
 routes.get("/admin", (req, res)=>{
+  const withStatic = qsToBool(req.query.static) ?? false;
+  const withDefaults = !(qsToBool(req.query.changes) ?? false);
+  const {config} = getLocals(req);
+
+  let configEntries = Array.from(withStatic? config.entries(): config.runtimeEntries());
+  if(!withDefaults){
+    //locked values are considered defaults for this purpose
+    configEntries = configEntries.filter(([_, e])=> !(e as any).locked && (e as any).defaultValue !== (e as any).value);
+  }
   res.render("admin/home", {
     layout: "admin",
     title: "Administration",
+    withStatic,
+    withDefaults,
+    config: configEntries,
   });
 });
 
@@ -664,8 +676,8 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
     taskScheduler,
     userManager,
     vfs,
-    requester
   } = getLocals(req);
+  const requester = getUser(req);
   const id = parseInt(req.params.id);
   const validLevels = ["debug", "log", "warn", "error"] as const;
   type Level = typeof validLevels[number];

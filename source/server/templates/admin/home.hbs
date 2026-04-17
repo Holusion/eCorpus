@@ -1,5 +1,258 @@
 <h1>{{i18n "titles.adminHome"}}</h1>
 
+<style>
+  .color-picker-overlay{
+     position: absolute;
+     inset: 0 2.5rem 0 1rem;
+     display: flex;
+     align-items: center;
+     color: oklch(from var(--c, black) clamp(0, (0.6 - l) * 10000, 1) 0 0);
+  }
+  .table-header{
+    position: sticky;
+    top: 0;
+    background: var(--color-section);
+    display: flex;
+    justify-content: space-between;
+    z-index: 1;
+    padding-top: var(--section-padding);
+    .form-group{
+      gap: 6px;
+      .form-item{
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        gap: 4px;
+      }
+    }
+  }
+
+  table{
+    border-collapse: collapse;
+    width: 100%;
+    display: table;
+
+
+    tr{
+      > td {
+        min-width: 100px;
+        &:first-child {
+          width: 120px;
+          min-width: 120px;
+          max-width: 30vw;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      &.editing{
+        .conf-key {
+          color: var(--color-primary);
+        }
+        .conf-line{
+          position: relative;
+          .conf-line-form {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 4px;
+            .form-item{
+              flex-grow: 1;
+            }
+          }
+        }
+        .color-picker-overlay{
+          pointer-events: none;
+        }
+      }
+    }
+  }
+</style>
+
+{{!-- partial for config lines --}}
+{{#*inline "configRow"}}
+<tr>
+  <td class="conf-key text-right{{#if locked}} text-muted{{/if}}" title="{{#if locked }}{{i18n "leads.envLocked" what=key }}{{else}}{{ key }}{{/if}}">
+    {{ key }}
+  </td>
+  <td style="position:relative">
+    <div class="form-group conf-line" >
+      <div class="form-item" {{#if locked}}title="{{i18n "leads.envLocked" what=key }}"{{/if}}>
+        <input name="{{ key }}"
+          data-default="{{ defaultValue }}"
+          readonly
+          autocomplete="off"
+          type="{{ type }}"
+          {{#if (test type "==" "checkbox")}}
+            {{#if value}}checked{{/if}}
+          {{else if (test type "==" "color")}}
+            alpha
+            value="{{ value }}"
+          {{else}}
+            value="{{ value }}"
+            placeholder="{{ defaultValue }}"
+          {{/if}}
+        >
+        {{#if locked}}
+          <button role="none" class="btn btn-small btn-addon btn-transparent text-error disabled">
+            <ui-icon name="key"></ui-icon>
+          </button>
+        {{else}}
+          <button data-action="edit" role="button" class="btn btn-small btn-addon btn-transparent text-info" title="{{i18n "labels.edit"}}">
+            <ui-icon name="edit"></ui-icon>
+          </button>
+        {{/if}}
+        {{#if (test type "==" "color")}}
+          <span class="color-picker-overlay" style="--c: {{value}};">{{value}}</span>
+        {{/if}}
+
+      </div>
+    </div>
+  </td>
+</tr>
+{{/inline}}
+
+
+<section>
+  <form  autocomplete="off" id="config-rows-filter" class="form-control table-header" method="GET" action=".">
+    <h3 id="config-title">{{i18n "titles.config"}}</h3>
+    <div class="form-group" style="align-items: end;">
+      <label class="form-item">
+        <span class="sm-hidden">{{i18n "labels.showStatic"}}</span>
+        <ui-icon class="sm-only" name="key" title="{{i18n "labels.showStatic"}}"></ui-icon>
+        <input type="checkbox" name="static"  {{#if withStatic}}checked{{/if}}>
+      </label>
+      <label class="form-item">
+        <span class="sm-hidden">{{i18n "labels.showChangedOnly"}}</span>
+        <ui-icon class="sm-only" name="restore" title="{{i18n "labels.showChangedOnly"}}"></ui-icon>
+        <input type="checkbox" name="changes" {{#unless withDefaults}}checked{{/unless}}>
+      </label>
+    </div>
+    <script type="module">
+      (function registerFormAutoSubmit(){
+        const form = document.querySelector("#config-rows-filter");
+        if(!form) return console.warn("Couldn't find config filter form");
+        form.addEventListener("change", ()=>form.submit());
+      })();
+    </script>
+  </form>
+  <div class="form-control">
+    <table aria-labelledby="config-title">
+      <tbody>
+        {{#each config }}
+          {{> configRow [1] key=[0] }}
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{#unless config}}
+  <p>{{i18n "leads.noResults"}}</p>
+  {{/unless}}
+</section>
+<script type="module">
+  /**
+   * Handle "edit mode" for config lines
+   */
+  let activeEdit = null;
+
+  function makeBtn(title, iconName, classes=[]) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-small";
+    if(classes.length) btn.classList.add(...classes);
+    btn.title = title;
+    btn.innerHTML = `<ui-icon name="${iconName}"></ui-icon>`;
+    return btn;
+  }
+
+
+  function openEdit(editBtn) {
+    if (activeEdit) closeEdit();
+    const container = editBtn.closest(".form-item");
+    const input = container.querySelector("input");
+    const tr = editBtn.closest("tr");
+
+    const submitFrag = document.createElement("submit-fragment");
+    submitFrag.setAttribute("action", "/admin/config");
+    submitFrag.setAttribute("method", "PATCH");
+    submitFrag.setAttribute("encoding", "application/json");
+    submitFrag.setAttribute("onsubmit", "window.location.reload()");
+    const form = document.createElement("form");
+    form.className = "conf-line-form";
+
+    const saveBtn  = makeBtn("{{i18n "labels.save"}}", "save", ["text-success"]);
+    saveBtn.type = "submit";
+    const resetBtn = makeBtn("{{i18n "labels.restore"}}", "restore", []);
+    const closeBtn = makeBtn("{{i18n "labels.close"}}", "close", ["text-error"]);
+    resetBtn.addEventListener("click", resetEdit);
+    closeBtn.addEventListener("click", closeEdit);
+
+    input.removeAttribute("readonly");
+    editBtn.hidden = true;
+    container.replaceWith(submitFrag);  // container detached, submitFrag in DOM
+    form.append(container, saveBtn, resetBtn, closeBtn);
+    submitFrag.append(form);
+
+    //Synchronize overlay text color for color inputs
+    const overlay = container.querySelector(".color-picker-overlay");
+    const colorSync = overlay ? () => {
+      overlay.style.setProperty("--c", input.value) 
+      overlay.innerHTML = input.value;
+    }: null;
+    if (colorSync) input.addEventListener("input", colorSync);
+
+    activeEdit = { input, container, tr, submitFrag, saveBtn, originalValue: input.value, editBtn, colorSync };
+    tr.classList.add("editing");
+    input.focus();
+  }
+
+  function closeEdit() {
+    if (!activeEdit) return;
+    const { input, container, tr, submitFrag, saveBtn, originalValue, editBtn, colorSync } = activeEdit;
+
+    input.value = originalValue;
+    input.setAttribute("readonly", "");
+
+    if (colorSync){
+      colorSync();
+      input.removeEventListener("input", colorSync);
+    }
+  
+    tr.classList.remove("editing");
+    saveBtn.remove();
+    submitFrag.before(container);  // move container back before submitFrag
+    submitFrag.remove();
+    editBtn.hidden = false;
+    activeEdit = null;
+  }
+
+  function resetEdit() {
+    if (!activeEdit) return;
+    console.log("Reset edit", activeEdit.input.dataset.default);
+    if(activeEdit.input.type =="checkbox"){
+      activeEdit.input.checked = !(activeEdit.input.dataset.default == "false");
+    }else{
+      activeEdit.input.value = activeEdit.input.dataset.default;
+    }
+    if(activeEdit.colorSync){
+      activeEdit.colorSync();
+    }
+  }
+
+
+  function onOpenEdit(ev){
+    if(!(ev.target instanceof HTMLButtonElement)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    openEdit(ev.target);
+  }
+
+  for (const btn of document.querySelectorAll("[data-action='edit']")) {
+    btn.addEventListener("click", onOpenEdit);
+  }
+</script>
+
 <div>
   <h3>{{i18n "titles.tools"}}</h3>
   <h4>{{i18n "leads.sendTestEmail"}}</h4>

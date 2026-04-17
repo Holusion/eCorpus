@@ -14,15 +14,12 @@ import User from "../auth/User.js";
 import Templates from "../utils/templates.js";
 
 
-const debug = debuglog("pg:connect");
-
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
-
-  const templates = new Templates({dir: locals.config.templates_dir, cache: locals.config.node_env == "production"});
+  const templates = new Templates({dir: locals.config.get("templates_dir"), cache: locals.config.get("node_env") == "production"});
 
   const app = express();
   app.disable('x-powered-by');
-  app.set("trust proxy", locals.config.trust_proxy);
+  app.set("trust proxy", locals.config.get("trust_proxy"));
 
 
   app.locals  = Object.assign(app.locals, {
@@ -82,7 +79,7 @@ export default async function createServer(locals:AppParameters) :Promise<expres
 
   
   /* istanbul ignore next */
-  if (locals.config.verbose ||debuglog("http:requests").enabled) {
+  if (locals.config.get("verbose") ||debuglog("http:requests").enabled) {
     let {default: morgan} = await import("morgan"); 
     //Requests logging is enabled only in dev mode as a proxy would handle it in production
     app.use(morgan(process.stdout.isTTY?"dev": "tiny", {
@@ -106,12 +103,12 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   });
   
 
-  if(locals.config.assets_dir){
-    app.use("/dist", express.static(locals.config.assets_dir));
+  if(locals.config.get("assets_dir")){
+    app.use("/dist", express.static(locals.config.get("assets_dir")));
   }
 
   // static file server
-  app.use("/dist", express.static(locals.config.dist_dir));
+  app.use("/dist", express.static(locals.config.get("dist_dir")));
 
   app.use("/ui", (await import("./views/index.js")).default);
 
@@ -126,7 +123,7 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   app.use("/services", (await import("./services/index.js")).default);
   app.use("/tasks", (await import("./tasks/index.js")).default);
   
-  const logLevel = (locals.config.verbose || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
+  const logLevel = (locals.config.get("verbose") || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
   const isTTY = process.stderr.isTTY;
 
   // error handling

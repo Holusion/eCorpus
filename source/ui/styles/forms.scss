@@ -89,7 +89,7 @@
       &:hover:not(:disabled){
         box-shadow: inset 0 -1px var(--color-highlight2);
       }
-      &:has( + .btn-addon){
+      &:has( + .btn-addon:not([hidden])){
         //To have proper outline alignment
         padding-right: 2.5rem;
         margin-right: -2.5rem;
@@ -105,6 +105,33 @@
         }
         &[type="radio"]:checked + label{
           color: var(--color-primary);
+        }
+      }
+
+      &[readonly]{
+        &:hover, &:focus {
+          outline: none;
+          border-color: inherit;
+          box-shadow: none !important;
+        }
+        cursor: default;
+        caret-color: transparent;
+        &[type="checkbox"], &[type="color"]{
+          pointer-events: none;
+        }
+      }
+
+      &[type="checkbox"]{
+        width: auto;
+        padding: 0;
+        margin: 0;
+      }
+
+      &[type="color"]{
+        border-radius: 4px;
+        &::-moz-color-swatch,
+        &::-webkit-color-swatch {
+          border: none;
         }
       }
     }

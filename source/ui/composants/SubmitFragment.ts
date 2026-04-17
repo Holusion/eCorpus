@@ -4,7 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import "./Spinner";
 import HttpError from "../state/HttpError";
 
-type SubmitResult = {success:false}|{success:true, data:FormData};
+type SubmitResult = {success:false}|{success:true, data:any};
 
 @customElement("submit-fragment")
 export default class SubmitFragment extends LitElement{
@@ -45,7 +45,7 @@ export default class SubmitFragment extends LitElement{
   /** Set `submit=".*"` to submit form on any change
    * Or set this to a list of comma-separated names that should trigger a submit on change
   */
-  @property({attribute: "submit", type: String, converter:(value, type)=> value.split(",")})
+  @property({attribute: "submit", type: String, converter:(value, type)=> value!.split(",")})
   submit ?:string[];
 
   /**
@@ -60,45 +60,77 @@ export default class SubmitFragment extends LitElement{
   #c?:AbortController;
 
 
-  encode(data :FormData, encoding:string):BodyInit{
+  encode(form :HTMLFormElement, encoding:string):BodyInit{
     if(encoding === "application/x-www-form-urlencoded"){
-      return data;
+      return new FormData(form);
     }
     if(encoding !== "application/json"){
       throw new Error("Unsupported form encoding: "+encoding);
     }
-    const values = Array.from(data.entries()).reduce((memo, [key, value]) => {
-      let sr :FormDataEntryValue|FormDataEntryValue[];
-      if(key in memo){
-        sr = Array.isArray(memo[key])?[...memo[key], value]: [memo[key], value];
+    type JsonValue = string|number|boolean|File;
+    const values :Record<string, JsonValue|JsonValue[]> = {};
+    const addEntry = (key :string, value :JsonValue)=>{
+      console.log("Add entry : ", key, value);
+      if(key in values){
+        const existing = values[key];
+        values[key] = Array.isArray(existing) ? [...existing, value] : [existing, value];
       }else{
-        sr = value;
+        values[key] = value;
       }
-      return { ...memo, [key]: sr};
-    }, {});
+    };
+    for(const el of Array.from(form.elements)){
+      console.log("Iterate over element : ", el);
+      if(!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) continue;
+      if(!el.name || el.disabled) continue;
+      if(el instanceof HTMLInputElement){
+        switch(el.type){
+          case "checkbox": addEntry(el.name, el.checked); break;
+          case "number":
+          case "range":
+            if(el.value !== "") addEntry(el.name, el.valueAsNumber);
+            break;
+          case "radio":
+            if(el.checked) addEntry(el.name, el.value);
+            break;
+          case "file":
+            if(el.files) for(const file of el.files) addEntry(el.name, file);
+            break;
+          case "submit": case "reset": case "button": case "image": break;
+          default: addEntry(el.name, el.value);
+        }
+      }else if(el instanceof HTMLSelectElement){
+        if(el.multiple){
+          for(const opt of Array.from(el.selectedOptions)) addEntry(el.name, opt.value);
+        }else{
+          addEntry(el.name, el.value);
+        }
+      }else{
+        addEntry(el.name, el.value);
+      }
+    }
     return JSON.stringify(values);
   }
 
 
-  private async _do_submit(form:HTMLFormElement, submitter?:HTMLElement|HTMLButtonElement|HTMLInputElement) :Promise<SubmitResult>{
+  private async _do_submit(form:HTMLFormElement, submitter?:HTMLElement|null) :Promise<SubmitResult>{
     this.#c?.abort();
     let c = this.#c = new AbortController();
     this.active = true;
     if(this.status) this.status = undefined;
     try{
+      const s = (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement) ? submitter : undefined;
 
-      const action = this.action || submitter?.["formAction"] || form.action;
+      const action = this.action || s?.formAction || form.action;
       let method = this.method ?? form.method;
       if(submitter?.dataset.formmethod) method = submitter.dataset.formmethod;
-      else if(submitter && "formMethod" in submitter && submitter.formMethod) method = submitter.formMethod;
+      else if(s?.formMethod) method = s.formMethod;
       if(!action || !method) throw new Error(`Invalid request : [${method.toUpperCase()}] ${action}`)
-      const encoding = this.encoding || submitter?.["formEnctype"] || form.enctype || form.encoding || "application/json";
+      const encoding = this.encoding || s?.formEnctype || form.enctype || form.encoding || "application/json";
 
-      const data = new FormData(form);
-      //console.log("SUBMIT :", method, action, body);
+      const data = this.encode(form, encoding);
       let res = await fetch(action, {
         method,
-        body: this.encode(data, encoding),
+        body: data,
         signal: c.signal,
         headers: {
           "Content-Type": encoding,
@@ -113,7 +145,7 @@ export default class SubmitFragment extends LitElement{
       const t = setTimeout(()=> this.status = undefined, 5000);
       c.signal.addEventListener("abort", ()=>clearTimeout(t));
       return {success:true, data};
-    }catch(e){
+    }catch(e: any){
       console.error("Request failed : ", e);
       this.active = false;
       this.status = {type:"alert", text:e.message};

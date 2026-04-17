@@ -68,6 +68,9 @@ labels:
   noLogs: Aucun journal.
   optimizeModel: Optimiser les modèles
   childOf: Dépends de
+  showStatic: Montrer les éléments verouillés
+  showChangedOnly: Afficher uniquement les paramètres modifiés
+
 
 buttons:
   searchScene: chercher une scène
@@ -174,6 +177,7 @@ titles:
   myTasks: Mes tâches
   taskTree: Arbre des tâches
   logs: Journaux
+  config: Paramètres
   advancedConfiguration: Configuration avancée
   taskData: Données d'entrée
   taskOutput: Données de sortie
@@ -258,6 +262,7 @@ leads:
   uploadErrors: >
     Des erreurs sont survenues pendant le transfert des fichiers.
     Veuillez vérifier les messages ci-dessus et corriger les problèmes avant de continuer.
+  envLocked: "La valeur de \"{{what}}\" provient d'une variable d'environnement et ne peut être changée"
 
 errors:
   generic: Erreur inconnue

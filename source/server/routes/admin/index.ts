@@ -6,6 +6,7 @@ import wrap from "../../utils/wrapAsync.js";
 import handleGetStats from "./stats/index.js";
 import handleMailtest from "./mail/sendtest.js";
 import handleGetConfig from "./config/get.js";
+import handlePatchConfig from "./config/patch.js";
 import bodyParser from "body-parser";
 import handleRenderMail from "./mail/render.js";
 
@@ -25,6 +26,7 @@ router.use((req, res, next)=>{
 
 router.get("/stats", isAdministrator, wrap(handleGetStats));
 router.get("/config", isAdministrator, wrap(handleGetConfig));
+router.patch("/config", isAdministrator, bodyParser.json(), wrap(handlePatchConfig));
 
 router.post("/mail/test", isAdministrator, bodyParser.json(), wrap(handleMailtest));
 router.get("/mail/render/:name", isAdministrator, bodyParser.json(), wrap(handleRenderMail));

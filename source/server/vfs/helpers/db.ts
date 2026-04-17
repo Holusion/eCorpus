@@ -1,5 +1,5 @@
 import {Client, ClientBase, Pool, PoolClient, PoolConfig, QueryResultRow, types as pgtypes} from 'pg';
-import config from "../../utils/config.js";
+import staticConfig from "../../utils/config.js";
 import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
 import { debuglog } from 'node:util';
@@ -190,7 +190,7 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
   }
   
   try{
-    await migrate({db:client, migrations: config.migrations_dir, force: forceMigration});
+    await migrate({db:client, migrations: staticConfig.migrations_dir, force: forceMigration});
   }finally{
     client.release()
   }

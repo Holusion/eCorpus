@@ -8,11 +8,11 @@ export default async function handleGetConfig(req :Request, res :Response){
   res.status(200)
   res.format({
     "application/json": ()=>{
-      res.send(config);
+      res.send(Object.fromEntries(config));
     },
     "text/plain": ()=>{
-      res.send(Object.entries(config).map(([key, value])=>{
-        return `${key.toUpperCase()}="${value}"`
+      res.send(Array.from(config).map(([key, entry])=>{
+        return `${key.toUpperCase()}="${entry.value}"`
       }).join("\n"));
     }
   })

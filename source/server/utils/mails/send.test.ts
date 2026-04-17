@@ -3,18 +3,24 @@ import nodemailer from "nodemailer";
 
 
 import send from "./send.js";
+import { Config } from "../config.js";
 
 
 
 describe("mail.send()", function(){
   let logs :[string, string[]][];
   let sender :ReturnType<typeof nodemailer.createTransport>;
+  let config: Config;
   this.beforeAll(async function(){
-
+    await Config.open({all:()=>Promise.resolve([])} as any);
     // @fixme could use the stream transport instead
     sender = nodemailer.createTransport({
       jsonTransport: true
     });
+  });
+
+  this.afterAll(()=>{
+    Config.close()
   });
 
 
