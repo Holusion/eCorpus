@@ -46,16 +46,16 @@ main {
   }
 
   &.notification-info > .ui-icon {
-    fill: var(--color-info);
+    color: var(--color-info);
   }
   &.notification-success > .ui-icon {
-    fill: var(--color-success); 
+    color: var(--color-success);
   }
   &.notification-warning > .ui-icon {
-    fill: var(--color-warning); 
+    color: var(--color-warning);
   }
   &.notification-error > .ui-icon {
-    fill: var(--color-error); 
+    color: var(--color-error);
   }
   
   .notification-message {
@@ -90,6 +90,12 @@ main {
   height: 1lh;
   width: 1lh;
   > svg{
-    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    width: 100%;
+    height: 100%;
   }
 }

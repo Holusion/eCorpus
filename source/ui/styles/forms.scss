@@ -137,9 +137,10 @@
     }
     > input + .btn-addon{
       position: absolute;
-      top: 0;
-      bottom: 0;
-      right: 0;
+      top: 1px;
+      bottom: 1px;
+      right: 1px;
+      border-radius: 0 3px 3px 0;
       width: 2.5rem;
       min-width: 2.5rem;
       box-shadow: none !important;
