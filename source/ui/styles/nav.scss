@@ -226,7 +226,6 @@ nav{
 .tabs-main{
   display:flex;
   gap: 15px;
-  padding: 1rem;
   align-items: start;
   > nav{
     display: flex;
@@ -260,7 +259,6 @@ nav{
       flex-direction: row;
       flex-wrap: wrap;
       align-self: stretch;
-      justify-content: center;
       margin-top:0;
     }
 
