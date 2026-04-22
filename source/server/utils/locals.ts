@@ -285,6 +285,8 @@ export function useTemplateProperties(req: Request, res: Response, next?: NextFu
     embeddable: isEmbeddable(req.originalUrl),
     canonical: canonical(req).toString(),
     root_url: canonical(req, "/").toString(),
+    color_primary: config.get("color_primary"),
+    color_secondary: config.get("color_secondary"),
   });
   if (next) next();
 }

@@ -20,7 +20,6 @@ const static_values = {
   assets_dir:      [undefined,    "path"],
   database_uri:    [parsePGEnv,   "string"],
   trust_proxy:     [true,         "boolean"],
-  hostname:        [hostname(),   "string"],
   build_ref:       ["dev",        "string"],
 } as const;
 
@@ -30,8 +29,9 @@ const static_values = {
  */
 const runtime_values = {
   brand:                 ["",                "string"],
-  color_primary:         ["#e6b900",         "color"],
-  color_secondary:       ["#4735df",         "color"],
+  hostname:              [hostname(),        "string"],
+  color_primary:         ["#e6b900",       "color"],
+  color_secondary:       ["#4735df",       "color"],
   contact_email:         [({hostname}:{hostname: string})=> "noreply@"+hostname, "string"],
   verbose:               [false,             "boolean"],
   smart_host:            ["smtp://localhost:25", "string"],

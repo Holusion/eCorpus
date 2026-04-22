@@ -389,7 +389,7 @@ describe("Config static methods", function(){
   });
 
   it("can get static values before initialization", function(){
-    expect(Config.get("hostname")).to.equal(hostname());
+    expect(Config.get("port")).to.equal(8000);
   });
 
 });
