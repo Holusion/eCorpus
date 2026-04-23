@@ -1,8 +1,6 @@
 
 import './styles/main.scss';
 
-import "./styles/globals.scss";
-
 import "./screens/SceneHistory";
 
 import "./handlers/toggle";

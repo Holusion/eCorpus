@@ -5,7 +5,10 @@ table.list-table {
   width: 100%;
   display: table;
 
-  @at-root section > &{
+  @at-root
+    section > &,
+    .section > &
+  {
     --m: calc(var(--section-padding) * -1);
     margin: 0 var(--m);
     width: calc(-2 * var(--m) + 100%);
@@ -67,7 +70,7 @@ table.list-table {
     }
   }
   tbody tr:hover{
-    background: var(--color-dark);
+    background: var(--color-highlight);
     transition: background-color 150ms ease-out;
   }
   &.disabled{

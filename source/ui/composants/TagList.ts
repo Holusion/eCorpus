@@ -64,7 +64,7 @@ export default class TagList extends LitElement{
     }
 
     .tag, .add-tag{
-      color: white;
+      color: var(--color-text);
       padding: .125em;
       border-radius: .75em;
       border: 1px solid var(--color-secondary);
@@ -86,7 +86,7 @@ export default class TagList extends LitElement{
     .tag .tag-delete{
       display: inline;
       background-color: var(--color-highlight);
-      color: white;
+      color: var(--color-text);
       border: 1px solid transparent;
       border-radius: .75em;
       padding: 1px 4.5px;

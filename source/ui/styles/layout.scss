@@ -29,6 +29,7 @@ section, .section{
   --caret-width: 2px;
   position: relative;
   background: var(--color-section);
+  box-shadow: 0px 0px 8px color-mix(in srgb, var(--color-dark) 50%, transparent);
 
   &.container{
     max-width: 1200px;
@@ -252,9 +253,9 @@ section, .section{
       background: var(--color-section);
     }
     &:hover{
-      background: var(--color-dark);
+      background: var(--color-highlight);
       filter: opacity(80%);
-      border-color: var(--color-dark);
+      border-color: var(--color-highlight);
     }
   }
 }

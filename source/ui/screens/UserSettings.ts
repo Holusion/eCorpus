@@ -79,7 +79,7 @@ export default class UserSettings extends i18n(withUser(LitElement)) {
 
       <div class="section" style="padding-top:15px; max-width:500px">
         <h3>${this.t("ui.logout")}</h3>
-        <ui-button text="${this.t("ui.logout")}" icon="cross" @click=${this.onLogout}></ui-button>
+        <ui-button text="${this.t("ui.logout")}" icon="close" @click=${this.onLogout}></ui-button>
       </div>
     </div>`;
   }

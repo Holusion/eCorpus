@@ -8,7 +8,7 @@ import chaiAsPromised from "chai-as-promised";
 //@ts-ignore
 import sourceMaps from "source-map-support";
 import { AppLocals } from "./utils/locals.js";
-import { Config, parse } from "./utils/config.js";
+import { StaticConfigShape, parse } from "./utils/config.js";
 import { randomBytes } from "node:crypto";
 import { debuglog } from "node:util";
 sourceMaps.install();
@@ -20,7 +20,7 @@ process.env["TEST"] ??= "true";
 declare global{
   var dataStream:(src ?:Array<Buffer|string>)=>AsyncGenerator<Buffer, void, unknown>;
   var expect :typeof chai.expect;
-  var createIntegrationContext :(c:Mocha.Context, config_override ?:Partial<Config>)=>Promise<AppLocals>;
+  var createIntegrationContext :(c:Mocha.Context, config_override ?:Record<string, string>)=>Promise<AppLocals>;
   var cleanIntegrationContext :(c:Mocha.Context)=>Promise<void>;
   var getUniqueDb: (name?: string)=>Promise<string>;
   var dropDb: (uri: string)=>Promise<void>;
@@ -61,29 +61,29 @@ global.dropDb = async function(uri: string){
   const client = new Client({connectionString: new URL(`/postgres`, db_uri).toString()});
   await client.connect();
   try{
-    await client.query(`DROP DATABASE ${escapeIdentifier(new URL(uri).pathname.slice(1))}`);
+    await client.query(`DROP DATABASE ${escapeIdentifier(new URL(uri).pathname.slice(1))} WITH (FORCE)`);
   }finally{
     await client.end();
   }
   debuglog("pg:debug")(`Dropped test database at ${uri}`);
 }
 
-global.createIntegrationContext = async function(c :Mocha.Context, config_override :Partial<Config>={}){
+global.createIntegrationContext = async function(c :Mocha.Context, config_override :Record<string, string>={}){
   let {default:createService} = await import("./create.js");
   let titleSlug = "t_"+ (c.currentTest?.title.replace(/[^\w]/g, "_") ?? `eCorpus_integration`)+"_"+randomBytes(4).toString("hex");
   c.db_uri = await getUniqueDb(titleSlug);
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
-  c.config = Object.assign(
-    parse({ //Common options
+  c.config_env = Object.assign(
+    { //Common options
       ROOT_DIR: c.dir,
       DATABASE_URI: c.db_uri,
       CLEAN_DATABASE: "false",
       VERBOSE: "false",
-    }),
+    },
     //Options we might want to customize
     config_override
   );
-  c.services = await createService( c.config );
+  c.services = await createService( c.config_env );
   c.server = c.services.app;
   return c.server.locals;
 }

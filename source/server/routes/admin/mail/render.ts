@@ -18,8 +18,8 @@ export default async function handleRenderMail(req :Request, res :Response){
   useTemplateProperties(req, res);
   const mail_content = await getLocals(req).templates.render(`emails/${name}`, {
     layout: null,
-    brand: config.brand,
-    hostname: config.hostname,
+    brand: config.get("brand"),
+    hostname: config.get("hostname"),
     name: username,
     url: "http://example.com/foo",
   });

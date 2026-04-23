@@ -7,8 +7,7 @@
       </picture>
     </a>
     <div class="spacer"></div>
-    <div id="main-navbar-links" popover="" class="navbar">
-      {{# unless isSearchPage }}
+     {{# unless isSearchPage }}
       <form id="nav-search" class="form-control " method="get" action="/ui/scenes/">
         <div class="form-item nav-input">
           <input class="search-box-input" name="match" type="search" id="model-search" value="{{params.match}}">
@@ -18,6 +17,7 @@
         </div>
       </form>
       {{/unless}}
+    <div id="main-navbar-links" popover="" class="navbar">
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
       {{#if (test (test user.level "==" "admin") "||" (test user.level "==" "manage"))}}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}

@@ -1,15 +1,17 @@
 import {expect} from "chai";
-import config, {parse} from "./config.js";
+import staticConfig, {Config, parse} from "./config.js";
+import path from "node:path";
+import { hostname } from "node:os";
 
-describe("config", function(){
+describe("staticConfig", function(){
   it("get a config option", function(){
-    expect(config.public).to.equal(true);
+    expect(staticConfig.public).to.equal(true);
   });
 
   it("is frozen", function(){
     expect(()=>{
       //@ts-ignore
-      config.public = false
+      staticConfig.public = false
     }).to.throw();
   });
 
@@ -264,4 +266,130 @@ describe("config", function(){
       });
     });
   });
+});
+
+describe("runtimeConfig", function(){
+  const ok = ()=>Promise.resolve([]);
+  const nok = ()=>Promise.reject(new Error("Some Error"));
+  it("can use defaults", async function(){
+    const c = new Config({all: ok, run: ok} as any, {});
+    expect(c.get("node_env")).to.equal("development");
+    expect(c.get("port")).to.equal(8000);
+    expect(c.get("templates_dir")).to.equal(path.join(process.cwd(), "templates"));
+  });
+
+  it("can override values", async function(){
+    //We don't perform the actual DB write, which shouldn't matter
+    const c = new Config({all: ok, run: ok} as any, {});
+    const changed = await c.set("brand", "Hello World");
+    expect(changed).to.be.true;
+    expect(c.get("brand")).to.equal("Hello World");
+  });
+
+  it("env-defined values are protected", async function(){
+    const c = new Config({all: ok, run: ok} as any, {
+      BRAND: "Static Brand",
+    });
+    const changed = await c.set("brand", "Hello World");
+    expect(changed).to.be.false;
+    expect(c.get("brand")).to.equal("Static Brand");
+  });
+
+  it("static values are protected", async function(){
+    //We don't perform the actual DB write, which shouldn't matter
+    const c = new Config({all: nok, run: nok} as any, {});
+    await expect(c.set("port" as any, "9000")).to.be.rejectedWith(`Invalid runtime configuration key : port`);
+    expect(c.get("port")).to.equal(8000);
+  });
+
+  it("performs validation on submitted values", async function(){
+    const c = new Config({all:()=>Promise.resolve([]), run: ()=>Promise.resolve()} as any, {});
+    await c.set("experimental", true);
+    expect(c.get("experimental")).to.equal(true);
+  });
+
+  it("rejects values that can't be serialized", async function(){
+    const c = new Config({all: nok, run: nok} as any, {});
+    await expect(c.set("experimental", "X" as any)).to.be.rejectedWith(`Serialization of X is not indempotent for configuration key experimental`);
+  });
+
+  it("is iterable", function(){
+    const c = new Config({all: nok, run: nok} as any, {});
+    expect(Array.from(c)).to.have.property("length").a("number").above(1);
+    for(let entry of c){
+      expect(Array.isArray(entry), `Expected entry to be an array but received : ${entry}`).to.be.ok;
+      expect(entry).to.have.length(2);
+      expect(entry[0]).to.be.a("string");
+      expect(entry[1]).to.have.property("locked");
+      expect(entry[1]).to.have.property("value");
+    }
+  });
+
+  it("reload() parses values from DB through their validator", async function(){
+    const mockDb = {
+      all: () => Promise.resolve([{ name: "experimental", value: "true" }]),
+      run: ok,
+    };
+    const c = new Config(mockDb as any, {});
+    expect(c.get("experimental")).to.equal(false);    // default
+    await c.reload();
+    expect(c.get("experimental")).to.equal(true);     // boolean, not string "true"
+    expect(c.get("experimental")).to.be.a("boolean");
+  });
+
+  it("color-typed entries expose type='color'", function(){
+    const c = new Config({ all: ok, run: ok } as any, {});
+    const entries = new Map(c.entries());
+    expect(entries.get("color_primary")).to.have.property("type", "color");
+  });
+
+  it("string-typed entries still expose type='text'", function(){
+    const c = new Config({ all: ok, run: ok } as any, {});
+    const entries = new Map(c.entries());
+    expect(entries.get("brand")).to.have.property("type", "text");
+  });
+
+  it("color values can be set and retrieved", async function(){
+    const c = new Config({ all: ok, run: ok } as any, {});
+    const changed = await c.set("color_primary", "#ff0000" as any);
+    expect(changed).to.be.true;
+    expect(c.get("color_primary")).to.equal("#ff0000");
+  });
+
+});
+
+describe("Config static methods", function(){
+  afterEach(function(){
+    Config.close();
+  });
+
+  it("open() throws if called twice without close()", async function(){
+    const ok = ()=>Promise.resolve([]);
+    await Config.open({all: ok, run: ok} as any, {});
+    await expect(Config.open({all: ok, run: ok} as any, {})).to.be.rejectedWith("Config is a system singleton. One instance already exists");
+  });
+
+  it("throws before open()", function(){
+    //Only works for runtime config
+    expect(()=> Config.get("brand")).to.throw("Config singleton hasn't been initialized");
+  });
+
+  it("returns a value after open()", async function(){
+    const ok = ()=>Promise.resolve([]);
+    const c = await Config.open({all: ok, run: ok} as any);
+    await c.set("brand", "test");
+    expect(Config.get("brand")).to.equal("test");
+  });
+
+  it("throws again after close()", async function(){
+    const ok = ()=>Promise.resolve([]);
+    await Config.open({all: ok, run: ok} as any, {});
+    Config.close();
+    expect(()=> Config.get("brand")).to.throw("Config singleton hasn't been initialized");
+  });
+
+  it("can get static values before initialization", function(){
+    expect(Config.get("port")).to.equal(8000);
+  });
+
 });

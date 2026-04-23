@@ -21,11 +21,11 @@ const render = ({shortName, summary, host}:OpenSearchParameters)=>`
 `;
 
 export function renderOpenSearch(req:Request, res: Response):void{
-  const {config:{brand}} = getLocals(req);
+  const {config} = getLocals(req);
   const host = getHost(req).toString();
 
   const body = Buffer.from(render({
-    shortName: brand,
+    shortName: config.get("brand"),
     summary: `Search eCorpus 3D scenes`,
     host,
   }));

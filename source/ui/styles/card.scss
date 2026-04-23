@@ -23,7 +23,7 @@
 
   &:has( > input[type="checkbox"]:checked){
     background-color: var(--color-secondary);
-    color: white !important;
+    color: var(--color-text) !important;
     &:hover{
       background-color: var(--color-secondary-light);
       border-color: var(--color-secondary);

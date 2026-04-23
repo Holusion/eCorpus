@@ -18,7 +18,7 @@
                 {{#if scene.thumb }}
                   <img style="max-width:300px; margin: 0 auto" aria-label="{{i18n "titles.sceneThumb" what=scene.name }}" src="{{scene.thumb}}" alt="{{i18n "leads.thumbnailFor" what=scene.name }}"/>
                 {{else}}
-                  <img style="max-width:300px; margin: 0 auto;background:radial-gradient(circle, var(--color-secondary) 0, var(--color-dark) 100%);" src="/dist/images/defaultSprite.svg" />
+                  <img style="max-width:300px; margin: 0 auto;background:radial-gradient(circle, var(--color-secondary) 0, var(--color-highlight) 100%);" src="/dist/images/defaultSprite.svg" />
                 {{/if}}
               {{#if scene.archived}}
                 </span>

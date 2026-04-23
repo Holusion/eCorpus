@@ -23,8 +23,8 @@ export default async function handleMailtest(req :Request, res :Response){
   useTemplateProperties(req, res);
   const mail_content = await getLocals(req).templates.render(`emails/test`, {
     layout: null,
-    brand: config.brand,
-    hostname: config.hostname,
+    brand: config.get("brand"),
+    hostname: config.get("hostname"),
   });
 
   //Special case to not send the email when testing
@@ -35,7 +35,7 @@ export default async function handleMailtest(req :Request, res :Response){
 
   let out = await sendmail({
     to, 
-    subject: (config.brand || "eCorpus")+" test email", 
+    subject: (config.get("brand") || "eCorpus")+" test email", 
     html: mail_content
   });
 
