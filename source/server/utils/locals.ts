@@ -5,7 +5,7 @@ import User, { isUserAtLeast, SafeUser } from "../auth/User.js";
 import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
-import Templates, { AcceptedLocales, locales } from "./templates.js";
+import Templates, { AcceptedLocales, locales } from "./templates/index.js";
 import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
 import { TaskScheduler } from "../tasks/scheduler.js";

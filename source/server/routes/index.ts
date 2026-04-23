@@ -11,7 +11,7 @@ import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "../utils/errorHan
 import {AppLocals, AppParameters, getLocals, getUserManager} from "../utils/locals.js";
 
 import User from "../auth/User.js";
-import Templates from "../utils/templates.js";
+import Templates from "../utils/templates/index.js";
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{

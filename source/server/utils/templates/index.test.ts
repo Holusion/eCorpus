@@ -3,7 +3,7 @@ import {tmpdir} from "os";
 import path from "path";
 import { fileURLToPath } from 'url';
 
-import Templates from "./templates.js";
+import Templates from "./index.js";
 import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 
@@ -122,7 +122,7 @@ describe("Templates", function(){
       txt = await t.render(tmpl, {name: "World", layout: null});
       expect(txt).to.equal("Hello World");
     });
-    
+
     it("disabled", async function(){
       let tmpl = path.join(dir, "test_disabled.hbs");
       await fs.writeFile(tmpl, "Hello {{name}}");
@@ -263,7 +263,7 @@ describe("Templates", function(){
       it("match exact pathname", async function(){
         await fs.writeFile(path.join(dir, "navlink_exact.hbs"), `{{#navLink "/foo" "exact" }}Foo{{/navLink}}`);
         await expect(t.render("navlink_exact", {layout: null, location: "/foo"}), `/foo should match with exact keyword`).to.eventually.equal(`<a class="nav-link active" href="/foo">Foo</a>`);
-        
+
         await expect(t.render("navlink_exact", {layout: null, location: "/foo/bar"}), `/foo/bar should not match exact keyword`).to.eventually.equal(`<a class="nav-link" href="/foo">Foo</a>`);
         await expect(t.render("navlink_exact", {layout: null, location: "/bar"})).to.eventually.equal(`<a class="nav-link" href="/foo">Foo</a>`);
       });

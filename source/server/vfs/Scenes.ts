@@ -7,7 +7,7 @@ import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneMeta, SceneQuery, SceneType } from "./types.js";
 import errors, { expandSQLError } from "./helpers/errors.js";
 import { UserLevels } from "../auth/User.js";
-import { dicts } from "../utils/templates.js";
+import { dicts } from "../utils/templates/index.js";
 
 
 export default abstract class ScenesVfs extends BaseVfs{
