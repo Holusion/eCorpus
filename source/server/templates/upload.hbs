@@ -1,9 +1,8 @@
 
-<div class="main-container">
+  <h1>{{#if brand}}{{brand}}{{else}}eCorpus{{/if}}: {{i18n "titles.upload"}}</h1>
+<div class="grid-content">
   
-  <h2>{{i18n "titles.upload"}}</h2>
-  <div class="grid-content">
-    {{#if scenes.length }}
+  {{#if scenes.length }}
     <section class="container" aria-labelledby="createdScenes-heading">
       <h3 id="createdScenes-heading">{{i18n "titles.createdScenes" }}</h3>
       <a href="." class="text-error" style="position: absolute; top:.5rem; right:.5rem; text-decoration: none;" aria-label="close">🗙</a>
@@ -42,7 +41,6 @@
               }
             }
           }
-          
         }
       </style>
       <ul class="scenes-container">
@@ -69,7 +67,7 @@
                 <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
                   <ui-icon name="edit"></ui-icon>
                   <span class="tool-text">{{i18n "labels.edit"}}</span>
-               </a>
+                </a>
               {{/if}}
             </li>
           {{/if}}
@@ -77,67 +75,66 @@
       </ul>
     </section>
 
-    {{/if}}
-    <section class="container">
-      <upload-manager class="form-control">
+  {{/if}}
+  <section class="container">
+    <upload-manager class="form-control">
 
-        <h3 slot="title" id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
+      <h3 slot="title" id="upload-form-title" class="form-title">{{i18n "titles.createOrUpdateScene"}}</h3>
 
-        <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
+      <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
 
-        <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
+      <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
 
-        <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
+      <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
 
-        <form slot="upload-form" class="form-control form-grid" aria-labelledby="upload-form-title">
-          <div class="form-row">
+      <form slot="upload-form" class="form-control form-grid" aria-labelledby="upload-form-title">
+        <div class="form-row">
 
-            <div class="form-group">
-              <div class="form-item">
-                <label for="sceneName">
-                  {{i18n "labels.sceneName"}}
-                  {{#> popover id="sceneName-tooltip"}}{{i18n "leads.uploadName" }}{{/popover}}
-                </label>
-                <input id="sceneName" autocomplete="off" minlength="3" type="text" name="name">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <div class="form-item">
-                <label for="sceneSetupLanguage">
-                  {{i18n "labels.setupLocalization"}}
-                  {{#> popover id="sceneSetupLanguage-tooltip" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
-                </label>
-                <select name="language" id="sceneSetupLanguage" >
-                  {{#each languages}}
-                  <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
-                  {{/each}}
-                </select>
-              </div>
-            </div>
-
-          </div>
-
-          <div class="form-row">
-            <h4>{{i18n "titles.advancedConfiguration"}}</h4>
-            <div class="form-item inline" style="justify-content: end;">
-              <label for="sceneOptimize">
-                {{i18n "labels.optimizeModel"}}
-              {{#> popover id="sceneOptimize-tooltip" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
+          <div class="form-group">
+            <div class="form-item">
+              <label for="sceneName">
+                {{i18n "labels.sceneName"}}
+                {{#> popover id="sceneName-tooltip"}}{{i18n "leads.uploadName" }}{{/popover}}
               </label>
-              <input id="sceneOptimize" type="checkbox" name="optimize"/>
+              <input id="sceneName" autocomplete="off" minlength="3" type="text" name="name">
             </div>
           </div>
 
+          <div class="form-group">
+            <div class="form-item">
+              <label for="sceneSetupLanguage">
+                {{i18n "labels.setupLocalization"}}
+                {{#> popover id="sceneSetupLanguage-tooltip" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
+              </label>
+              <select name="language" id="sceneSetupLanguage" >
+                {{#each languages}}
+                <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
+                {{/each}}
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="form-row">
+          <h4>{{i18n "titles.advancedConfiguration"}}</h4>
+          <div class="form-item inline" style="justify-content: end;">
+            <label for="sceneOptimize">
+              {{i18n "labels.optimizeModel"}}
+            {{#> popover id="sceneOptimize-tooltip" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
+            </label>
+            <input id="sceneOptimize" type="checkbox" name="optimize"/>
+          </div>
+        </div>
 
 
-        </form>
 
-        <button slot="submit-scenes" role="submit" class="btn btn-main">{{i18n "buttons.uploadScene"}}</button>
-        <button slot="submit-archives" role="submit" class="btn btn-main">{{i18n "buttons.uploadArchive"}}</button>
-        <span slot="upload-errors">{{i18n "leads.uploadErrors"}}</span>
-      </upload-manager>
+      </form>
 
-    </section>
-  </div>
+      <button slot="submit-scenes" role="submit" class="btn btn-main">{{i18n "buttons.uploadScene"}}</button>
+      <button slot="submit-archives" role="submit" class="btn btn-main">{{i18n "buttons.uploadArchive"}}</button>
+      <span slot="upload-errors">{{i18n "leads.uploadErrors"}}</span>
+    </upload-manager>
+
+  </section>
 </div>

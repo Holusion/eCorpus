@@ -9,7 +9,7 @@
     <div class="spacer"></div>
      {{# unless isSearchPage }}
       <form id="nav-search" class="form-control " method="get" action="/ui/scenes/">
-        <div class="form-item nav-input">
+        <div id="nav-input" class="form-item">
           <input class="search-box-input" name="match" type="search" id="model-search" value="{{params.match}}">
           <button class="btn btn-addon">
             <ui-icon style="fill: var(--color-highlight);pointer-events: none;" name="search"></ui-icon>
@@ -29,7 +29,7 @@
         {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}
       {{/if}}
     </div>
-    <button id="main-navbar-collapse-toggle" class="btn btn-transparent text-primary"  style="padding: 0 1rem"
+    <button id="main-navbar-collapse-toggle" class="btn btn-transparent btn-primary"  style="padding: 0 1rem"
       type="button" popovertarget="main-navbar-links" aria-label="Toggle navigation">
       <ui-icon class="if-expanded" name="minus"></ui-icon>
       <ui-icon class="if-collapsed" name="plus"></ui-icon>

@@ -94,7 +94,7 @@ buttons:
   selectAll: Sélectionner tout
   deselectAll: Déselectionner tout
   submit: Envoyer
-  createUser: Créer
+  create: Créer
   showActions: Afficher les actions
   getTaskArtifacts: Télécharger le répertoire de travail
 
@@ -142,11 +142,13 @@ nav:
   settings: Paramètres
   userGroups: Groupes
   userArchives: Archives
-  tasks: Tâches
+  tasks: tâches
   overview: Aperçu
 
 titles:
   myScenesSection: mes scenes
+  gettingStarted: Pour commencer
+  topCollections: Meilleures collections
   myGroups: Mes groupes
   homeHeader: système de gestion de scènes 3D
   mtimeScenesSection: scènes modifiées récemment

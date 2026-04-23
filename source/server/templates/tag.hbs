@@ -1,10 +1,12 @@
-<h2>{{tag}}</h2>
-<div class="section list-grid{{#if embedded}} list-grid-compact{{/if}}">
-{{#each scenes}}
-  {{#if @root.embedded}}
-    {{> sceneCardCompact }}
-  {{else}}
-    {{> sceneCard }}
-  {{/if}}
-{{/each}}
+<h1>{{tag}}</h1>
+<div class="grid-content">
+  <section class="list-grid{{#if embedded}} list-grid-compact{{/if}}">
+    {{#each scenes}}
+      {{#if @root.embedded}}
+        {{> sceneCardCompact }}
+      {{else}}
+        {{> sceneCard }}
+      {{/if}}
+    {{/each}}
+  </section>
 </div>

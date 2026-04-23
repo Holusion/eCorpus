@@ -1,59 +1,101 @@
-<h1>{{#if brand}}{{brand}}{{else}}eCorpus{{/if}}</h1>
+<h1 class="grid-header">{{#if brand}}{{brand}}{{else}}eCorpus{{/if}}</h1>
 
-<div class="main-grid">
-  <div class="grid-toolbar">
-    <div class="section">
-        <h4>{{i18n "titles.tools"}}</h4>
-        <div class="form-control column md-row sm-column" style="flex-wrap: wrap;">
-          <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
-          <a class="btn btn-main" href="/ui/upload/">
-              {{i18n "buttons.uploadScene"}}
+<div class="grid-toolbar">
+  {{#if user}}
+  <nav>
+    <div class="action-title-wrap">
+      <h3>{{i18n "titles.myScenesSection"}}</h3>
+      <a class="btn btn-small btn-primary" href="/ui/upload/">
+        {{i18n "buttons.create"}}
+      </a>
+
+    </div>
+    {{#each userOwnedScenes}}
+      <span class="nav-link" style="display:flex; padding: 4px 0;" >
+        <a href="/ui/scenes/{{encodeURIComponent name}}/" style="text-decoration: none; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;" title="{{dateString mtime}}">{{name}}</a>
+        <a class="btn btn-small btn-transparent" style="padding: 0;" href="/ui/scenes/{{encodeURIComponent name}}/view"><ui-icon name="eye"></ui-icon></a>
+        <a class="btn btn-small btn-transparent" style="padding: 0;" href="/ui/scenes/{{encodeURIComponent name}}/edit"><ui-icon name="edit"></ui-icon></a>
+      </span>
+    {{/each}}
+    {{#if (test userOwnedScenes.length ">=" "10")}}
+      <a class="nav-link" href="/ui/scenes/?author={{encodeURIComponent user.username}}">
+        {{i18n "labels.show"}} {{i18n "labels.all"}}…
+      </a>
+    {{else unless userOwnedScenes.length}}
+      <p>{{i18n "leads.noScenes"}}</p>
+      <a href="/ui/upload" class="text-primary text-right">{{i18n "buttons.uploadScene"}}</a>
+    {{/if}}
+  </nav>
+  {{else}}
+  {{/if}}
+</div>
+
+<div class="grid-content">
+  {{#if topCollections.length}}
+  <section>
+    <h3>{{i18n "titles.topCollections"}}</h3>
+    <div class="tags-grid">
+      {{#each topCollections}}
+      <div class="section" id="collection-{{encodeURIComponent name}}">
+        <a href="/ui/tags/{{encodeURIComponent name}}"><h4>{{name}}</h4></a>
+        {{#if scenes}}
+        <div class="tag-preview-line">
+          {{#each scenes}}
+          <a href="{{uri}}" title="{{name}}">
+            {{#if thumb}}
+              <img loading="lazy" src="{{thumb}}">
+            {{else}}
+              <img loading="lazy" style="background:radial-gradient(circle, #103040 0, #0b0b0b 100%);" src="/dist/images/defaultSprite.svg">
+            {{/if}}
           </a>
-          <a class="btn btn-main" href="/ui/standalone/?lang={{lang}}">{{i18n "buttons.useStandalone"}}</a>
-        </div>
-    </div>
-    <div class="section">
-        <h3>{{i18n "titles.mtimeScenesSection" }}</h3>
-        <div class="list list-items flush" style="position:relative;">
-            <span class="list-header">
-                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">{{i18n "fields.name"}}</span>
-                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">{{i18n "fields.mtime"}}</span>
-            </span>
-            {{#each recentChanges }}
-              <a class="list-item" name="${scene.name}" href="/ui/scenes/{{name}}/">
-                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">{{name}}</span>
-                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">{{dateString mtime}}</span>
-              </a>
-            {{/each}}
-        </div>
-    </div>
-  </div>
-
-  <div class="grid-content">
-      <div class="section">
-        <h3>{{i18n "titles.myScenesSection"}}</h3>
-        {{#if userScenes.length}}
-        <div class="list-grid" style="position:relative; margin-top:20px">
-          {{#each userScenes}}
-            {{> sceneCard }}
           {{/each}}
         </div>
-        {{else}}
-          <p>{{i18n "leads.noScenes"}}</p>
-          <div style="display:flex; justify-content: space-evenly">
-            <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
-            <a class="btn btn-main" href="/ui/upload/">{{i18n "buttons.uploadScene"}}</a>
-          </div>
         {{/if}}
+        <span class="tag-size"><a href="/ui/tags/{{encodeURIComponent name}}">{{i18n "labels.show"}} ({{size}})</a></span>
       </div>
-      <div class="section">
-          <h3>{{i18n "titles.ctimeScenesSection"}}</h3>
-          <div class="list-grid" style="position:relative;">
-            {{#each recentScenes }}
-              {{> sceneCard }}
-            {{/each}}
-          </div>
-      </div>
-
+      {{/each}}
     </div>
+    <div style="text-align: right; margin-top: .5rem;">
+      <a class="btn btn-transparent btn-primary btn-inline" href="/ui/tags/">{{i18n "nav.tags"}} →</a>
+    </div>
+  </section>
+  {{/if}}
+  
+  {{#unless userOwnedScenes.length}}
+    <section>
+      <h3>{{i18n "titles.gettingStarted"}}</h3>
+      {{#if user}}
+        <p>{{i18n "leads.noScenes"}}</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;justify-content: center;">
+          <a class="btn btn-main" href="/ui/scenes/">
+            {{i18n "buttons.searchScene"}}
+          </a>
+          {{#if user}}
+          <a class="btn btn-primary" href="/ui/upload/">{{i18n "buttons.uploadScene"}}</a>
+          {{/if}}
+        </div>
+      {{else}}
+        <p>{{i18n "leads.anonymousGreeting"}}</p>
+        <div style="display: flex; justify-content: space-evenly; flex-wrap: wrap;">
+          <a href="/ui/login/" class="btn btn-primary" >{{i18n "nav.login"}}</a>
+        </div>
+      {{/if}}
+    </section>
+
+    <div id="onboarding-main">
+      <h2>{{i18n "titles.onboarding"}}</h2>
+      <div></div>
+    </div>
+
+  {{/unless}}
+
+
+  {{#if recentScenes.length}}
+    <h3>{{i18n "titles.mtimeScenesSection"}}</h3>
+    <div class="">
+      {{#each recentScenes}}
+        {{> sceneCard}}
+      {{/each}}
+    </div>
+  {{/if}}
 </div>

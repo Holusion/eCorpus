@@ -5,16 +5,28 @@
   <div class="scene-card-inner">
     <div class="infos">
       <a href="/ui/scenes/{{encodeURIComponent name}}" class="card-header">
-        <h4 class="card-title">{{name}}</h4>
+        <h4 class="card-title" title="{{name}}">{{name}}</h4>
       </a>
-      <span class="card-time">{{#if mtime}}{{dateString mtime}}{{/if}}</span>
+      <div style="display: flex; align-items: baseline; gap: 0.4em; flex-wrap: wrap;">
+        <span class="card-time">{{#if mtime}}{{dateString mtime}}{{/if}}</span>
+        {{#if author}}
+          <span title="{{i18n "fields.author"}}" class="btn btn-pill btn-outline {{#if (test author "==" @root.user.username)}}btn-primary{{/if}}">{{author}}</span>
+        {{/if}}
+      </div>
     </div>
     <div class="tools">
       {{!if a scene is shown, the user must have read access}}
-      <a class="tool-link" href="/scenes/{{encodeURIComponent name}}/index.html" title="{{i18n "leads.showScene"}}">
-        <ui-icon name="eye"></ui-icon>
-        <span class="tool-text">{{i18n "labels.view"}}</span>
-      </a>
+      {{#if (test scene.type "==" "voyager")}}
+        <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent name}}/view" title="{{i18n "leads.showScene"}}">
+          <ui-icon name="eye"></ui-icon>
+          <span class="tool-text">{{i18n "labels.view"}}</span>
+        </a>
+      {{else if (test scene.type "==" "html")}}
+        <a class="btn btn-main" href="/scenes/{{encodeURIComponent name}}/index.html" title="{{i18n "leads.showScene"}}">
+          <ui-icon name="eye"></ui-icon>
+          <span class="tool-text">{{i18n "labels.view"}}</span>
+        </a>
+      {{/if}}
       {{#unless (test (test access "==" "read") "||" (test type "!=" "voyager"))}}
         <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/edit" title="{{i18n "leads.editScene"}}">
           <ui-icon name="edit"></ui-icon>

@@ -115,19 +115,6 @@
   }
 }
 
-/* Tasks list table wrapper — constrains horizontal overflow without affecting page layout */
-.tasks-table-wrap {
-  overflow-x: auto;
-  overflow-y: clip; /* clip (not hidden/auto) avoids creating a y-axis scroll container, which would break position:sticky on thead */
-
-  @at-root section > & {
-    --m: calc(var(--section-padding) * -1);
-    margin: 0 var(--m);
-    width: calc(-2 * var(--m) + 100%);
-    &:first-child { margin-top: var(--m); }
-    &:last-child  { margin-bottom: var(--m); }
-  }
-}
 
 /* Scene column shrinks first: absorbs surplus width, clips at 100px minimum */
 .tasks-table .col-scene {

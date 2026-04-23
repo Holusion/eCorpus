@@ -1,53 +1,42 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    {{> head }}
-  </head>
-  <body class="main-grid">
-    {{> navbar }}
-    <main>
-      <h1><a style="text-decoration: none;" href="/ui/scenes/{{encodeURIComponent scene.name}}">{{scene.name}}</a></h1>
-      <div class="main-grid">
-          <div class="grid-toolbar">
-            <section>
-              {{#if scene.archived}}
-                <span class="flush">
-              {{else}}
-                <a class="flush" href="{{#if (test scene.type "==" "voyager")}}/ui/scenes/{{encodeURIComponent scene.name}}/view{{else if (test scene.type "==" "html")}}/scenes/{{encodeURIComponent scene.name}}/index.html{{else}}#{{/if}}">
-              {{/if}} 
-                {{> sceneThumb type=scene.type}}
-              {{#if scene.archived}}
-                </span>
-              {{else}}
-                </a>
-              {{/if}}
-            </section>
+{{#> main }}
+  <h1 class="grid-header"><a style="text-decoration: none;" href="/ui/scenes/{{encodeURIComponent scene.name}}">{{scene.name}}</a></h1>
+  <div class="grid-toolbar">
+    <section>
+      {{#if scene.archived}}
+        <span class="flush">
+      {{else}}
+        <a class="flush" href="{{#if (test scene.type "==" "voyager")}}/ui/scenes/{{encodeURIComponent scene.name}}/view{{else if (test scene.type "==" "html")}}/scenes/{{encodeURIComponent scene.name}}/index.html{{else}}#{{/if}}">
+      {{/if}} 
+        {{> sceneThumb type=scene.type}}
+      {{#if scene.archived}}
+        </span>
+      {{else}}
+        </a>
+      {{/if}}
+    </section>
 
-            {{#if (test access "!=" "read")}}
-              <section class="section-column">
-                <nav style="display:flex; flex-direction: column; gap: 5px;">
-                  {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name)) "exact"}}
-                    <ui-icon name="info"></ui-icon> {{i18n "nav.overview" default="Overview"}}
-                  {{/navLink}}
-                  {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/history")}}
-                    <ui-icon name="hierarchy"></ui-icon> {{i18n "buttons.history"}}
-                  {{/navLink}}
-                  {{#if (test access "==" "admin")}}
-                    {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/tasks")}}
-                      <ui-icon name="list"></ui-icon> {{i18n "nav.tasks" default="Tasks"}}
-                    {{/navLink}}
-                    {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/settings")}}
-                      <ui-icon name="tools"></ui-icon> {{i18n "nav.settings" default="Settings"}}
-                    {{/navLink}}
-                  {{/if}}
-                </nav>
-              </section>
-            {{/if}}
-          </div>
-        {{{body}}}
-      </div>
-    </main>
-    {{> footer }}
-    <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
-  </body>
-</html>
+    {{#if (test access "!=" "read")}}
+      <section class="section-column">
+        <nav style="display:flex; flex-direction: column; gap: 5px;">
+          {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name)) "exact"}}
+            <ui-icon name="info"></ui-icon> {{i18n "nav.overview" default="Overview"}}
+          {{/navLink}}
+          {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/history")}}
+            <ui-icon name="hierarchy"></ui-icon> {{i18n "buttons.history"}}
+          {{/navLink}}
+          {{#if (test access "==" "admin")}}
+            {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/tasks")}}
+              <ui-icon name="list"></ui-icon> {{i18n "nav.tasks" default="Tasks"}}
+            {{/navLink}}
+            {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/settings")}}
+              <ui-icon name="tools"></ui-icon> {{i18n "nav.settings" default="Settings"}}
+            {{/navLink}}
+          {{/if}}
+        </nav>
+      </section>
+    {{/if}}
+  </div>
+  <div class="grid-content">
+    {{{body}}}
+  </div>
+{{/main}}

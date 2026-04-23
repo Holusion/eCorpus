@@ -94,7 +94,7 @@ buttons:
   selectAll: Select all
   deselectAll: Deselect all
   submit: Send
-  createUser: Create
+  create: Create
   showActions: Show actions
   getTaskArtifacts: Download task workspace
 
@@ -142,11 +142,13 @@ nav:
   settings: Settings
   userGroups: Groups
   userArchives: Archives
-  tasks: Tasks
+  tasks: tasks
   overview: Overview
 
 titles:
   myScenesSection: my scenes
+  gettingStarted: Getting started
+  topCollections: Top collections
   myGroups: My groups
   homeHeader: 3D scenes management engine
   mtimeScenesSection: Recently modified scenes

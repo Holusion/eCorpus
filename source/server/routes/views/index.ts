@@ -35,39 +35,48 @@ routes.use("/", useTemplateProperties);
 
 routes.get("/", wrap(async (req, res)=>{
   const user = getUser(req);
-  if(!user || user.level === "none"){
-    return res.render("login", {
-      title: "Home",
-      user: null,
-    });
-  }
   const vfs = getVfs(req);
-  let [recentChanges, userScenes, recentScenes] = (await Promise.all([
-    await vfs.getScenes(user.uid,{
+  const uid = user?.uid;
+
+  const [rawRecentScenes, rawTags, rawUserOwnedScenes] = await Promise.all([
+    vfs.getScenes(uid, {
       limit: 10,
       orderBy: "mtime",
       orderDirection: "desc",
       archived: false,
     }),
-    await vfs.getScenes(user.uid,{
-      limit: 4,
+    vfs.getTags({limit: 4}),
+    (user && user.level !== "none") ? vfs.getScenes(uid, {
+      limit: 10,
       orderBy: "mtime",
       orderDirection: "desc",
       author: user.username,
       archived: false,
-    }),
-    await vfs.getScenes(user.uid,{
-      limit: 4,
-      orderBy: "ctime",
-      orderDirection: "desc",
-      archived: false,
-    })
-  ])).map((scenes:Scene[])=> scenes.map(mapScene.bind(null, req)));
+    }) : Promise.resolve([] as Scene[]),
+  ]);
+
+  const recentScenes = rawRecentScenes.map(mapScene.bind(null, req));
+  const userOwnedScenes = rawUserOwnedScenes.map(mapScene.bind(null, req));
+
+  type CollectionScene = {name: string, thumb: string|null|undefined, uri: string};
+  type Collection = {name: string, size: number, scenes: CollectionScene[]};
+  const topCollections: Collection[] = [];
+  for (const tag of rawTags) {
+    const scene_ids = await vfs.getTag(tag.name, uid ?? null);
+    const scenes: CollectionScene[] = [];
+    for (const id of scene_ids.slice(0, 6)) {
+      const scene = mapScene(req, await vfs.getScene(id, uid));
+      scenes.push({name: scene.name, uri: `/ui/scenes/${encodeURIComponent(scene.name)}`, thumb: scene.thumb});
+    }
+    if (scenes.length) topCollections.push({name: tag.name, size: tag.size, scenes});
+    if (topCollections.length >= 4) break;
+  }
+
   res.render("home", {
     title: "Home",
-    recentChanges,
-    userScenes,
     recentScenes,
+    topCollections,
+    userOwnedScenes,
   });
 }));
 

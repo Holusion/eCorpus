@@ -6,21 +6,20 @@
   justify-content: space-between;
   min-height: calc(100vh - 88px - 2rem);
   flex-wrap: wrap;
-  .illustration{
-    width:67%;
-    min-width:300px;
-    max-width: calc(100vh - 88px - 2rem);
-    flex: 1 1 auto;
-  }
+
   .user-login {
+    background: var(--color-section);
     border: 1px solid var(--color-element);
     box-shadow: 0 0 5px 0 #00000088;
     border-radius: 5px;
-    width: 33%;
-    padding: 1rem;
-    min-width:300px;
-    max-width: 400px;
+    padding: 2rem;
+    max-width: 600px;
+    margin: auto;
     flex: 1 1 auto;
+    .recovery-link{
+      text-align: right;
+      margin-top: 1rem;
+    }
   }
   
   img{

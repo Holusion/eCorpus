@@ -15,7 +15,7 @@ nav.navbar-nav {
 
   .nav-content{
     flex: 1 1 auto;
-    max-width: var(--col-width);
+    max-width: var(--content-width);
     height: var(--nav-height);
     display:flex;
     justify-content: space-between;
@@ -114,7 +114,13 @@ nav{
     color: inherit;
 
 
-    svg { stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    svg {
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
     white-space: nowrap;
     cursor: pointer;
     text-decoration: none;
@@ -137,7 +143,7 @@ nav{
     align-items: center;
     justify-content: stretch;
   }
-  .form-item.nav-input{
+  .form-item#nav-input{
     flex: 1 1 auto;
     color: var(--color-light);
     min-width: var(--nav-height);
@@ -149,6 +155,9 @@ nav{
       border-radius: 4px;
       padding-bottom: 0;
       padding-top: 0;
+    }
+    >.btn:hover{
+      color: var(--color-primary);
     }
   }
 
@@ -223,44 +232,37 @@ nav{
   }
 }
 
-.tabs-main{
-  display:flex;
-  gap: 15px;
-  align-items: start;
-  > nav{
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding-bottom: 10px;
-    > .nav-link{
-      font-size: 1rem;
-      text-align: left;
-      min-width:200px;
-      flex-wrap: nowrap;
-      svg{
-        fill: white;
-        padding-right: 2px;
-      }
-      ui-icon{
-        width: 1.5rem !important;
-        height: 1.5rem !important;
-      }
+.grid-toolbar > nav{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: 10px;
+  > .nav-link{
+    font-size: 1rem;
+    text-align: left;
+    min-width:200px;
+    flex-wrap: nowrap;
+    svg{
+      fill: white;
+      padding-right: 2px;
     }
-  }
-  > section{
-    width:100%;
+    ui-icon{
+      width: 1.5rem !important;
+      height: 1.5rem !important;
+    }
   }
 }
 
 @media (max-width: 1024px){
-  .tabs-main{
-    flex-direction: column;
-    nav{
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-self: stretch;
-      margin-top:0;
-    }
-
+  .grid-toolbar > nav{
+      > .nav-link{
+        flex-grow: 1;
+        min-width: 0;
+        flex-direction: column;
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow: hidden;
+        text-overflow: clip;
+      }
   }
 }
