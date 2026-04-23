@@ -1,25 +1,16 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    {{> head }}
-  </head>
-  <body class="main-grid">
-    {{> navbar }}
-    <main>
-      <h1>{{i18n "titles.userSettings"}}</h1>
-      <div class="tabs-main">
-        <nav id="user-profile-select">
-          {{#navLink "/ui/user/" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.settings"}}{{/navLink}}
-          {{#navLink "/ui/user/groups" "exact"}}<ui-icon name="groups"></ui-icon> {{i18n "nav.userGroups"}}{{/navLink}}
-          {{#navLink "/ui/user/archives" "exact"}}<ui-icon name="folder" style="display:flex"></ui-icon> {{i18n "nav.userArchives"}}{{/navLink}}
-          {{#navLink "/ui/user/tasks" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
-        </nav>
-        <section>
-          {{{body}}}
-        </section>
-      </div>
-    </main>
-    {{> footer }}
-    <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
-  </body>
-</html>
+{{#> main }}
+  <h1 class="grid-header">{{i18n "titles.userSettings"}}</h1>
+
+  <div class="grid-toolbar">
+    <nav class="md-row md-stretch" id="user-profile-select">
+      {{#navLink "/ui/user/" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.settings"}}{{/navLink}}
+      {{#navLink "/ui/user/groups" "exact"}}<ui-icon name="groups"></ui-icon> {{i18n "nav.userGroups"}}{{/navLink}}
+      {{#navLink "/ui/user/archives" "exact"}}<ui-icon name="folder" style="display:flex"></ui-icon> {{i18n "nav.userArchives"}}{{/navLink}}
+      {{#navLink "/ui/user/tasks" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
+    </nav>
+  </div> 
+  <div class="grid-content">
+    {{{body}}}
+  </div>
+
+{{/main}}

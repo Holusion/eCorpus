@@ -97,7 +97,7 @@ a{
 
   &.btn-danger {
     --btn-color: var(--color-error);
-    --btn-color-hover: var(--color-error);
+    --btn-color-hover: oklch(from var(--color-error) l calc(c * 0.9) h);
 
     &:hover:not([disabled]) {
       --btn-text-color: #333;
@@ -108,6 +108,11 @@ a{
 
   &.btn-success {
     --btn-color: var(--color-success);
+  }
+
+  &.btn-info {
+    --btn-color: var(--color-info);
+    --btn-color-hover: oklch(from var(--color-info) l calc(c * 2) h);
   }
 
   // --- Size variants ---

@@ -142,7 +142,7 @@ nav:
   settings: Settings
   userGroups: Groups
   userArchives: Archives
-  tasks: Tasks
+  tasks: tasks
   overview: Overview
 
 titles:

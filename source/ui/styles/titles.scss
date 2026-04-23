@@ -1,24 +1,20 @@
 @import "./text.scss";
 
-h1, h2, h3{
+h1, h2, h3 {
   font-family: var(--font-heading);
 }
 
-h1{
+h1 {
   position: relative;
   display: inline-block;
+  text-align: center;
+  width: 100%;
   color: var(--color-text);
   padding: .5rem 0.2rem 0rem 1.5rem;
   margin: 1.3rem 0 1.8rem 0;
   border-bottom: 0.6rem solid var(--color-primary);
   @include text-colors {
     border-bottom-color: currentColor;
-  }
-
-  @media screen and (max-width: 992px){
-    padding: 0;
-    text-align: center;
-    width: 100%;
   }
 
   > .title-caret{

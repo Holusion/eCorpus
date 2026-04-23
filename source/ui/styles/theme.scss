@@ -3,7 +3,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap");
 :root{
   --nav-height: 44px;
-  --col-width: 1320px;
+  --col-width: 992px;
+  --toolbars-width: 300px;
+  --content-width: calc(var(--col-width) + 2 * var(--toolbars-width));
   --grid-gap: .5rem;
 
   //--color-primary: #E6B900;

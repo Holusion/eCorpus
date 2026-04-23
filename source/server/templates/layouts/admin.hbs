@@ -1,30 +1,18 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    {{> head }}
-  </head>
-  <body class="main-grid">
-  {{> navbar }}
-  <main >
-    <div class="tabs-main">
-    <nav class="admin-nav">
-      {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.summary"}}{{/navLink}}
-      {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.adminUsers"}}{{/navLink}}
-      {{#navLink "/ui/admin/groups" "exact"}}<ui-icon name="groups" style="display:flex"></ui-icon> {{i18n "nav.adminGroups"}}{{/navLink}}
+{{#> main }}
+  <h1 class="grid-header">{{i18n "titles.adminHome"}}</h1>
+  <div class="grid-toolbar">
+    <nav class="md-row md-stretch">
+      {{#navLink "/ui/admin/" "exact"}}<ui-icon name="tools"></ui-icon> <span>{{i18n "nav.summary"}}</span>{{/navLink}}
+      {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon><span>{{i18n "nav.adminUsers"}}</span>{{/navLink}}
+      {{#navLink "/ui/admin/groups" "exact"}}<ui-icon name="groups" style="display:flex"></ui-icon> <span>{{i18n "nav.adminGroups"}}</span>{{/navLink}}
       {{#if (test user.level "==" "admin")}}
-        {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> {{i18n "nav.adminStats"}}{{/navLink}}
-        {{#navLink "/ui/admin/archives" "exact"}}<ui-icon name="folder"></ui-icon> {{i18n "nav.adminArchives"}}{{/navLink}}
-        {{#navLink "/ui/admin/tasks" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
+        {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> <span>{{i18n "nav.adminStats"}}</span>{{/navLink}}
+        {{#navLink "/ui/admin/archives" "exact"}}<ui-icon name="folder"></ui-icon> <span>{{i18n "nav.adminArchives"}}</span>{{/navLink}}
+        {{#navLink "/ui/admin/tasks" "exact"}}<ui-icon name="tools"></ui-icon> <span>{{i18n "nav.tasks"}}</span>{{/navLink}}
       {{/if}}
     </nav>
-    <section>
-      {{{body}}}
-    </section>
-
-    </div>
-  </main>
-  {{> footer }}
-  <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
-
-  </body>
-</html>
+  </div>
+  <div class="grid-content">
+    {{{body}}}
+  </div>
+{{/main}}

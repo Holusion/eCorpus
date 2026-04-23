@@ -79,3 +79,18 @@ table.list-table {
     filter: brightness(0.5);
   }
 }
+
+
+/* Table list wrapper — constrains horizontal overflow without affecting page layout */
+.list-table-wrap {
+  overflow-x: auto;
+  overflow-y: clip; /* clip (not hidden/auto) avoids creating a y-axis scroll container, which would break position:sticky on thead */
+
+  @at-root section > & {
+    --m: calc(var(--section-padding) * -1);
+    margin: 0 var(--m);
+    width: calc(-2 * var(--m) + 100%);
+    &:first-child { margin-top: var(--m); }
+    &:last-child  { margin-bottom: var(--m); }
+  }
+}

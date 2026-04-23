@@ -1,4 +1,3 @@
-<h1>{{i18n "titles.adminHome"}}</h1>
 
 <style>
   .color-picker-overlay{
@@ -11,7 +10,7 @@
   .table-header{
     position: sticky;
     top: 0;
-    background: var(--color-section);
+    backdrop-filter: grayscale(0.5) blur(20px);
     display: flex;
     justify-content: space-between;
     z-index: 1;
@@ -95,11 +94,11 @@
           {{/if}}
         >
         {{#if locked}}
-          <button role="none" class="btn btn-small btn-addon btn-transparent text-error disabled">
+          <button role="none" class="btn btn-small btn-addon btn-transparent btn-danger disabled">
             <ui-icon name="key"></ui-icon>
           </button>
         {{else}}
-          <button data-action="edit" role="button" class="btn btn-small btn-addon btn-transparent text-info" title="{{i18n "labels.edit"}}">
+          <button data-action="edit" role="button" class="btn btn-small btn-addon btn-transparent btn-info" title="{{i18n "labels.edit"}}">
             <ui-icon name="edit"></ui-icon>
           </button>
         {{/if}}
@@ -116,7 +115,7 @@
 
 <section>
   <form  autocomplete="off" id="config-rows-filter" class="form-control table-header" method="GET" action=".">
-    <h3 id="config-title">{{i18n "titles.config"}}</h3>
+    <h2 id="config-title">{{i18n "titles.config"}}</h2>
     <div class="form-group" style="align-items: end;">
       <label class="form-item">
         <span class="sm-hidden">{{i18n "labels.showStatic"}}</span>
@@ -150,6 +149,7 @@
   <p>{{i18n "leads.noResults"}}</p>
   {{/unless}}
 </section>
+
 <script type="module">
   /**
    * Handle "edit mode" for config lines
@@ -253,7 +253,7 @@
   }
 </script>
 
-<div>
+<section>
   <h3>{{i18n "titles.tools"}}</h3>
   <h4>{{i18n "leads.sendTestEmail"}}</h4>
   <submit-fragment class="form-control" action="/admin/mail/test" method="POST" encoding="application/json">
@@ -290,35 +290,37 @@
       <button role="submit" class="btn">Fetch</button>
     </div>
   </form>
-  <script type="module">
-    const f = document.querySelector("#preview-email-form");
-    if(!f) console.error("Couldn't find email preview form");
+
+</section>
+
+<script type="module">
+  const f = document.querySelector("#preview-email-form");
+  if(!f) console.error("Couldn't find email preview form");
 
 
-    function onSubmitPreviewEmail(ev){
-      ev.preventDefault();
-      let data = new FormData(ev.target);
+  function onSubmitPreviewEmail(ev){
+    ev.preventDefault();
+    let data = new FormData(ev.target);
 
-      const box = document.createElement("dialog");
-      Object.assign(box.style, {
-        maxWidth: "428px",
-        width: `min(80vw, 428px)`,
-        height: "60vh",
-        colorScheme: `only ${data.get("colorScheme")}`,
-      });
-      box.onmousedown= function(){ event.target==this && this.close()};
-      box.onclose = function(){
-        box.parentElement.removeChild(box);
-      }
-      
-      console.log("Name: ", ev.target)
-      box.innerHTML = `<iframe allowTransparency="true" style="width:100%; height: calc(100% - 10px); border: 0px" src="/admin/mail/render/${data.get("name")}?username=${data.get("username")}"></iframe>`;
-      f.insertAdjacentElement('afterend', box);
-      box.showModal();
-      
-      return false;
+    const box = document.createElement("dialog");
+    Object.assign(box.style, {
+      maxWidth: "428px",
+      width: `min(80vw, 428px)`,
+      height: "60vh",
+      colorScheme: `only ${data.get("colorScheme")}`,
+    });
+    box.onmousedown= function(){ event.target==this && this.close()};
+    box.onclose = function(){
+      box.parentElement.removeChild(box);
     }
+    
+    console.log("Name: ", ev.target)
+    box.innerHTML = `<iframe allowTransparency="true" style="width:100%; height: calc(100% - 10px); border: 0px" src="/admin/mail/render/${data.get("name")}?username=${data.get("username")}"></iframe>`;
+    f.insertAdjacentElement('afterend', box);
+    box.showModal();
+    
+    return false;
+  }
 
-    f.addEventListener("submit", onSubmitPreviewEmail);
-  </script>
-</div>
+  f.addEventListener("submit", onSubmitPreviewEmail);
+</script>

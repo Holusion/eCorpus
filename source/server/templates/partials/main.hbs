@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+  <head>
+    {{> head }}
+  </head>
+  <body class="nav-grid">
+    {{> navbar }}
+    <main class="main-grid">
+      {{> @partial-block}}
+    </main>
+    {{> footer }}
+    <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
+  </body>
+</html>

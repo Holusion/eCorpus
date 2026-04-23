@@ -60,11 +60,10 @@ section, .section{
 
   padding: var(--section-padding);
   margin-bottom: var(--section-padding);
-
+  --flush-margin: calc(-1 * var(--section-padding));
 
 
   .flush {
-    --flush-margin: calc(-1 * var(--section-padding));
 
     display:block;
     height: auto;
@@ -129,30 +128,47 @@ section, .section{
 .main-grid{
   display: grid;
   gap: var(--grid-gap, .5rem);
+  grid-template-rows: min-content auto;
   grid-auto-rows: auto;
-  grid-template-columns: minmax(auto, 300px) 1fr;
-  grid-template-areas: 
-    '. header'
-    'toolbar content';
+  grid-template-columns: minmax(auto, 300px) minmax(auto, var(--col-width)) minmax(auto, 300px);
+  grid-template-areas:
+    '. header .'
+    'toolbar content sidebar';
 
-  .grid-header, .grid-toolbar, .grid-content{
-    position: relative;
-    min-width: 0;
+  @media screen and (max-width: 1600px){
+    grid-template-columns: minmax(auto, 300px) minmax(auto, var(--col-width)) 1fr;
+      grid-template-areas:
+    '. header .'
+    'toolbar content .'
+    '. sidebar .';
+  }
+  
+  // Small screen handling block. We display either grid-content or grid-toolbar
+  @media screen and (max-width: 992px){
+    grid-template-columns: auto;
+    grid-template-areas:
+      'header'
+      'toolbar'
+      'content'
+      'sidebar';
   }
 
-  .grid-header{
+  .grid-header,  > h1:only-of-type{
     grid-area: header;
+    position: relative;
+    min-width: 0;
   }
 
   .grid-toolbar{
     grid-area: toolbar;
     justify-self: center;
+    position: relative;
     min-width: 0;
     width: 100%;
     display: flex;
     gap: 1rem;
     flex-direction: column;
-    
+
     section, .section{
       display: flex;
       flex-direction: column;
@@ -167,24 +183,22 @@ section, .section{
     }
   }
 
-  .grid-content{
+  .grid-content, > section:only-of-type{
     grid-area: content;
-
-    .section-column{
-      @media screen and (max-width: 992px){
-        flex-direction: column;
-        @include flush-column();
-      }
-    }
+    position: relative;
+    min-width: 0;
   }
 
-  // Small screen handling block. We display either grid-content or grid-toolbar
-  @media screen and (max-width: 992px){
-    grid-template-columns: auto;
-    grid-template-areas: 
-      'header'
-      'toolbar'
-      'content';
+  .grid-sidebar{
+    grid-area: sidebar;
+    position: relative;
+    min-width: 0;
+  }
+  
+  .grid-fullwidth{
+    grid-column: 1 / -1;
+    position: relative;
+    min-width: 0;
   }
 }
 
@@ -377,11 +391,15 @@ footer {
   }
 
   .md-row{
-    flex-direction: row;
+    flex-direction: row !important;
   }
 
   .md-column{
-    flex-direction: column;
+    flex-direction: column !important;
+  }
+
+  .md-stretch{
+    justify-content: stretch;
   }
 }
 

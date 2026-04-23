@@ -1,233 +1,232 @@
-<h1>{{#if brand}}{{brand}}: {{/if}}{{i18n "titles.search"}}</h1>
-<div class="main-grid">
-  <div class="grid-header form-control">
-    <div class="form-item" style="display:flex; flex-grow: 1">
-      <input class="search-box-input" type="search" name="match" form="search" id="model-search" aria-label="{{i18n "titles.search"}}" placeholder="{{i18n "labels.searchPlaceholder"}}"
-        value="{{params.match}}">
-      <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
-          name="search"></ui-icon></button>
-    </div>
+
+<div class="grid-header form-control">
+  <h1>{{#if brand}}{{brand}}: {{/if}}{{i18n "titles.search"}}</h1>
+  <div class="form-item" style="display:flex; flex-grow: 1">
+    <input class="search-box-input" type="search" name="match" form="search" id="model-search" aria-label="{{i18n "titles.search"}}" placeholder="{{i18n "labels.searchPlaceholder"}}"
+      value="{{params.match}}">
+    <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
+        name="search"></ui-icon></button>
   </div>
+</div>
 
-  <div id="search-toolbar" class="grid-toolbar" style="min-height: 20px;position: relative">
-    <button
-      id="advanced-search-tools-toggle" 
-      class="btn btn-small text-primary btn-transparent btn-inline btn-toggle toggle-md"
-      style="margin-left: auto; position: absolute; top: 0; right: 0; z-index: 1"
-      type="button" aria-controls="advanced-search-tools" aria-expanded="false" aria-label="Toggle navigation"
-    >
-        <div class="if-collapsed">
-          <span  style="display: flex; align-items: center; gap: .5rem">
-            {{i18n "labels.advancedSearch"}}
-            <ui-icon name="sidebar"></ui-icon>
-          </span>
+<div id="search-toolbar" class="grid-toolbar" style="min-height: 20px;position: relative">
+  <button
+    id="advanced-search-tools-toggle" 
+    class="btn btn-small btn-primary btn-transparent btn-inline btn-toggle toggle-md"
+    style="margin-left: auto; position: absolute; top: 0; right: 0; z-index: 1"
+    type="button" aria-controls="advanced-search-tools" aria-expanded="false" aria-label="Toggle navigation"
+  >
+      <div class="if-collapsed">
+        <span  style="display: flex; align-items: center; gap: .5rem">
+          {{i18n "labels.advancedSearch"}}
+          <ui-icon name="sidebar"></ui-icon>
+        </span>
+      </div>
+      <ui-icon class="if-expanded" name="close"></ui-icon>
+  </button>
+
+  <section class="md-collapse" id="advanced-search-tools">
+    <form autocomplete="off" id="search" class="form-control column" style="justify-content: stretch" method="GET" action="/ui/scenes">
+      <div style="display:flex;justify-content:space-between;">
+        <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
+      </div>
+      <label class="form-group">
+        <span class="sm-hidden" style="display:block;">{{i18n "labels.sortBy"}}</span>
+        <div class="form-item" style="display: flex;justify-content: space-between">
+          <select name="orderBy" autocomplete="off" style="width:auto" form="search">
+            {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
+            {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
+            {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
+            {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
+          </select>
+          <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
+            <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
+            <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
+            <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
+            <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
+          </fieldset>
         </div>
-        <ui-icon class="if-expanded" name="close"></ui-icon>
-    </button>
+      </label>
 
-    <section class="md-collapse" id="advanced-search-tools">
-      <form autocomplete="off" id="search" class="form-control column" style="justify-content: stretch" method="GET" action="/ui/scenes">
-        <div style="display:flex;justify-content:space-between;">
-          <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
-        </div>
-        <label class="form-group">
-          <span class="sm-hidden" style="display:block;">{{i18n "labels.sortBy"}}</span>
-          <div class="form-item" style="display: flex;justify-content: space-between">
-            <select name="orderBy" autocomplete="off" style="width:auto" form="search">
-              {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
-              {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
-              {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
-              {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
-            </select>
-            <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
-              <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
-              <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
-              <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
-              <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
-            </fieldset>
-          </div>
-        </label>
+      {{!-- <h5 class="form-section">{{i18n "fields.myScenesOnly"}}</h5> --}}
 
-        {{!-- <h5 class="form-section">{{i18n "fields.myScenesOnly"}}</h5> --}}
+      <label class="form-item form-checkbox">
+        <input  name="author" class="form-checkbox" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
+        <span>{{i18n "fields.showOnlyMyScenes"}}</span>
+      </label>
 
-        <label class="form-item form-checkbox">
-          <input  name="author" class="form-checkbox" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
-          <span>{{i18n "fields.showOnlyMyScenes"}}</span>
-        </label>
-
-        <label class="form-item">{{i18n "fields.myAccess"}}
-        <select name="access" autocomplete="off" style="width:auto" form="search">
-          {{#if (test user.level "==" "admin")}}
-          {{>inputs/option selected=(test params.access "==" "") text="..."}}
-          
-          {{/if}}
-          {{>inputs/option selected=(test params.access "==" "read") value="read" text=(i18n "fields.read")}}
-          {{>inputs/option selected=(test params.access "==" "write") value="write" text=(i18n "fields.write")}}
-          {{>inputs/option selected=(test params.access "==" "admin") value="admin" text=(i18n "fields.admin")}}
-        </select>
-        </label>
+      <label class="form-item">{{i18n "fields.myAccess"}}
+      <select name="access" autocomplete="off" style="width:auto" form="search">
+        {{#if (test user.level "==" "admin")}}
+        {{>inputs/option selected=(test params.access "==" "") text="..."}}
         
-        <label class="form-item">
-          {{i18n "fields.limit"}}
-          <input type="number" name="limit" min="1" max="100" value="{{params.limit}}">
-        </label>
-      </form>
-      <script async>
-        (function registerFormAutoSubmit(){
-          function onChange(){
-            this.form?.submit();
+        {{/if}}
+        {{>inputs/option selected=(test params.access "==" "read") value="read" text=(i18n "fields.read")}}
+        {{>inputs/option selected=(test params.access "==" "write") value="write" text=(i18n "fields.write")}}
+        {{>inputs/option selected=(test params.access "==" "admin") value="admin" text=(i18n "fields.admin")}}
+      </select>
+      </label>
+      
+      <label class="form-item">
+        {{i18n "fields.limit"}}
+        <input type="number" name="limit" min="1" max="100" value="{{params.limit}}">
+      </label>
+    </form>
+    <script async>
+      (function registerFormAutoSubmit(){
+        function onChange(){
+          this.form?.submit();
+        }
+        ["limit", "access", "orderBy", "orderDirection", "author"].forEach(sel=>{
+          const els = document.querySelectorAll(`input[name="${sel}"],select[name="${sel}"]`);
+          for (const el of els){
+            if(!el) return console.warn(`Couldn't find selector matching 'input[name="${sel}"],select[name="${sel}"]'`);
+            el.addEventListener("change", onChange);
           }
-          ["limit", "access", "orderBy", "orderDirection", "author"].forEach(sel=>{
-            const els = document.querySelectorAll(`input[name="${sel}"],select[name="${sel}"]`);
-            for (const el of els){
-              if(!el) return console.warn(`Couldn't find selector matching 'input[name="${sel}"],select[name="${sel}"]'`);
-              el.addEventListener("change", onChange);
-            }
-          });
-        })()
-      </script>
-    </section>
-  </div>
+        });
+      })()
+    </script>
+  </section>
+</div>
 
-  <div id="scene-list" class="grid-content list-items section">
-    <style>
-      #scenes-selection {
-        --toolbar-height: 45px;
-        margin: auto calc(var(--section-padding) * -1 + 2px);
+<div id="scene-list" class="grid-content list-items section">
+  <style>
+    #scenes-selection {
+      --toolbar-height: 45px;
+      margin: auto calc(var(--section-padding) * -1 + 2px);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: visible;
+      z-index: 1;
+      position: relative;
+
+      #main-toolbar {
+        z-index: 2;
+        padding: 0 0 .5rem calc( var(--section-padding) + 1px);
         display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        overflow: visible;
-        z-index: 1;
+        justify-content:space-between;
+        align-items: end;
+        height: 100%;
+      }
+      #main-actions {
         position: relative;
-
-        #main-toolbar {
+        height: 100%;
+        padding: .5rem;
+        display: flex;
+        flex-direction: row;
+        gap: .5rem;
+        > * {
           z-index: 2;
-          padding: 0 0 .5rem calc( var(--section-padding) + 1px);
-          display: flex;
-          justify-content:space-between;
-          align-items: end;
-          height: 100%;
         }
-        #main-actions {
-          position: relative;
-          height: 100%;
-          padding: .5rem;
-          display: flex;
-          flex-direction: row;
-          gap: .5rem;
-          > * {
-            z-index: 2;
-          }
-        }
-        #extended-actions {
-          z-index: 1;
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: auto;
-          padding: var(--toolbar-height) .5rem .5rem .5rem;
-          background: var(--color-section);
-          border: 1px solid var(--color-highlight);
-          box-shadow: -2px 2px rgba(20, 20, 20, 0.3);
-        }
-
-        
       }
-
-      #scene-list:has(input[name="id"]:checked) > #scenes-selection,
-      #scenes-selection:has([aria-expanded="true"]){
-        position: sticky;
+      #extended-actions {
+        z-index: 1;
+        position: absolute;
         top: 0;
-
-        &::before{
-          content: "";
-          z-index: 1;
-          position: absolute;
-          display: block;
-          inset: -.5rem 0 -3rem 0;
-          backdrop-filter: blur(4px) saturate(0.5);
-          pointer-events: none;
-          mask: linear-gradient(
-            to bottom,
-          rgba(0, 0, 0, 1) 0%,
-          rgba(0, 0, 0, 1) 25%,
-          rgba(0, 0, 0, 0.91) 35%,
-          rgba(0, 0, 0, 0.5) 55%,
-          rgba(0, 0, 0, 0.09) 80%,
-          rgba(0, 0, 0, 0) 100%
-          );
-        }
-        button, a, input{
-          box-shadow: 2px 2px 2px rgba(20, 20, 20, 0.3);
-          &.btn-outline{
-            background-color: var(--color-section);
-          }
-        }
-
+        left: 0;
+        right: 0;
+        height: auto;
+        padding: var(--toolbar-height) .5rem .5rem .5rem;
+        background: var(--color-section);
+        border: 1px solid var(--color-highlight);
+        box-shadow: -2px 2px rgba(20, 20, 20, 0.3);
       }
-    </style>
-    {{#if scenes.length }}
-      <form style="" id="scenes-selection">
-        <div id="main-toolbar">
 
-          <label style="display: flex; gap: .5rem; align-items: end;">
-            <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
-            <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
-            <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>
-          </label>
-          <div id="main-actions" class="form-group">
-            <a class="btn btn-primary btn-small" download="" href="/scenes?limit=0&amp;format=zip" id="selection-download" disabled>
-              <span>{{i18n "buttons.downloadSelection" }}</span>
-            </a>
+      
+    }
 
-            <button
-              class="btn btn-primary btn-small btn-icon btn-outline"
-              title="{{i18n "buttons.showActions"}}"
-              type="button" aria-controls="extended-actions" aria-expanded="false"
-            >
-              <ui-icon class="if-collapsed" name="plus"></ui-icon>
-              <ui-icon class="if-expanded" name="minus"></ui-icon>
-            </button>
-            <div class="collapse" id="extended-actions">
-              <div class="form-control">
-                <label class="form-group">
-                  {{ i18n "labels.batchTags"}}
-                  <div class="row">
-                    <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
-                    <button id="add-tag" type="button" class="btn btn-small btn-success btn-addon"
-                      title="{{i18n "labels.batchAddTag"}}"
-                      aria-label="{{i18n "labels.batchAddTag"}}"
-                    >
-                      <ui-icon name="plus"></ui-icon>
-                      </button>
-                    <button id="remove-tag" type="button" class="btn btn-small btn-danger btn-addon" style="min-width:40px"
-                      title="{{i18n "labels.batchRmTag"}}"
-                      aria-label="{{i18n "labels.batchRmTag"}}"
-                    >
-                      <ui-icon name="minus"></ui-icon>
-                      </button>
-                    <datalist id="tagSuggestions">
-                      {{#each tagSuggestions }}
-                      <option value="{{.}}" />
-                      {{/each}}
-                    </datalist>
-                  </div>
-                </label>
-              </div>
+    #scene-list:has(input[name="id"]:checked) > #scenes-selection,
+    #scenes-selection:has([aria-expanded="true"]){
+      position: sticky;
+      top: 0;
+
+      &::before{
+        content: "";
+        z-index: 1;
+        position: absolute;
+        display: block;
+        inset: -.5rem 0 -3rem 0;
+        backdrop-filter: blur(4px) saturate(0.5);
+        pointer-events: none;
+        mask: linear-gradient(
+          to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 25%,
+        rgba(0, 0, 0, 0.91) 35%,
+        rgba(0, 0, 0, 0.5) 55%,
+        rgba(0, 0, 0, 0.09) 80%,
+        rgba(0, 0, 0, 0) 100%
+        );
+      }
+      button, a, input{
+        box-shadow: 2px 2px 2px rgba(20, 20, 20, 0.3);
+        &.btn-outline{
+          background-color: var(--color-section);
+        }
+      }
+
+    }
+  </style>
+  {{#if scenes.length }}
+    <form style="" id="scenes-selection">
+      <div id="main-toolbar">
+
+        <label style="display: flex; gap: .5rem; align-items: end;">
+          <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
+          <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
+          <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>
+        </label>
+        <div id="main-actions" class="form-group">
+          <a class="btn btn-primary btn-small" download="" href="/scenes?limit=0&amp;format=zip" id="selection-download" disabled>
+            <span>{{i18n "buttons.downloadSelection" }}</span>
+          </a>
+
+          <button
+            class="btn btn-primary btn-small btn-icon btn-outline"
+            title="{{i18n "buttons.showActions"}}"
+            type="button" aria-controls="extended-actions" aria-expanded="false"
+          >
+            <ui-icon class="if-collapsed" name="plus"></ui-icon>
+            <ui-icon class="if-expanded" name="minus"></ui-icon>
+          </button>
+          <div class="collapse" id="extended-actions">
+            <div class="form-control">
+              <label class="form-group">
+                {{ i18n "labels.batchTags"}}
+                <div class="row">
+                  <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
+                  <button id="add-tag" type="button" class="btn btn-small btn-success btn-addon"
+                    title="{{i18n "labels.batchAddTag"}}"
+                    aria-label="{{i18n "labels.batchAddTag"}}"
+                  >
+                    <ui-icon name="plus"></ui-icon>
+                    </button>
+                  <button id="remove-tag" type="button" class="btn btn-small btn-danger btn-addon" style="min-width:40px"
+                    title="{{i18n "labels.batchRmTag"}}"
+                    aria-label="{{i18n "labels.batchRmTag"}}"
+                  >
+                    <ui-icon name="minus"></ui-icon>
+                    </button>
+                  <datalist id="tagSuggestions">
+                    {{#each tagSuggestions }}
+                    <option value="{{.}}" />
+                    {{/each}}
+                  </datalist>
+                </div>
+              </label>
             </div>
           </div>
         </div>
-      </form>
-    {{/if}}
-    {{#each scenes}}
-      {{>sceneCard select_form="scenes-selection" }}
-    {{/each}}
-    {{#with pager }}
-    {{> pager }}
-    {{/with}}
-  </div>
+      </div>
+    </form>
+  {{/if}}
+  {{#each scenes}}
+    {{>sceneCard select_form="scenes-selection" }}
+  {{/each}}
+  {{#with pager }}
+  {{> pager }}
+  {{/with}}
 </div>
 
 
