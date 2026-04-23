@@ -15,6 +15,13 @@ describe("dateString helper", function () {
 
   it("falls back to context.lang when no format given", function () {
     expect(dateString.call({ lang: "en-US" }, d, {})).to.equal(d.toLocaleString("en-US"));
+    expect(dateString.call({ lang: "fr-FR" }, d, {})).to.equal(d.toLocaleString("fr-FR"));
+  });
+
+  it("uses @root.lang when this is a nested context (inside {{#each}})", function () {
+    // Simulate Handlebars options with data.root set to root context (this = loop item, no lang)
+    const opts = { data: { root: { lang: "fr-FR" } } };
+    expect(dateString.call({ mtime: d }, d, opts)).to.equal(d.toLocaleString("fr-FR"));
   });
 
   it("coerces a date string to Date", function () {

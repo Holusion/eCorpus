@@ -30,6 +30,6 @@ export function dateString(this: any, when: Date | string, ...args: any[]): stri
   } else if (format) {
     return when.toLocaleString(format);
   } else {
-    return when.toLocaleString(this.lang);
+    return when.toLocaleString(context.data?.root?.lang ?? this.lang);
   }
 }
