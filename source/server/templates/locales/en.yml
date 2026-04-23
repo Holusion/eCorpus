@@ -71,6 +71,8 @@ labels:
   childOf: Child of
   showStatic: Show locked parameters
   showChangedOnly: Show changed parameters only
+  public: Public
+  private: Private
 
 buttons:
   searchScene: search scenes

@@ -70,6 +70,8 @@ labels:
   childOf: Dépends de
   showStatic: Montrer les éléments verouillés
   showChangedOnly: Afficher uniquement les paramètres modifiés
+  public: Publique
+  private: Privée
 
 
 buttons:
