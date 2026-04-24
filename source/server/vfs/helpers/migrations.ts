@@ -82,6 +82,7 @@ async function undoMigration(db:ClientBase, record :MigrationRecord){
 }
 
 export async function migrate({db, migrations: dir, force}: MigrationParams){
+  console.log("Run database migrations");
   const files = await listMigrations(dir);
   await db.query(`
     CREATE TABLE IF NOT EXISTS "migrations" (
