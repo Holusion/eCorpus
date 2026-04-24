@@ -15,19 +15,22 @@ import { Element, xml2js } from "xml-js";
 
 describe("PROPFIND /scenes", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User, scene_id :number;
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+  });
+  this.afterAll(async function(){
+    await cleanIntegrationContext(this);
+  });
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
 
     scene_id = await vfs.createScene("foo", user.uid);
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
-  });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
   });
 
   it("can discover /scenes non recursively", async function(){

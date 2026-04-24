@@ -12,21 +12,23 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   
   let vfs :Vfs, userManager :UserManager, user :User, user2: User, admin :User, scene_id :number;
 
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+  });
+  this.afterAll(async function(){
+    await cleanIntegrationContext(this);
+  });
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
     user = await userManager.addUser("bob", "12345678");
     user2 = await userManager.addUser("bob2", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
     scene_id = await vfs.createScene("foo");
     await userManager.setDefaultAccess(scene_id, "write");
-    await userManager.grant(scene_id, user.uid, "admin"); 
+    await userManager.grant(scene_id, user.uid, "admin");
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-
-  });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
   });
 
   it("can PUT a file into a scene", async function(){

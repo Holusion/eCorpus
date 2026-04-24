@@ -7,10 +7,16 @@ import User from "../../auth/User.js";
 
 describe("PATCH /tags", function () {
   let vfs: Vfs, userManager: UserManager, ids: number[], user: User, sceneAdminUser: User, admin: User;
-  this.beforeEach(async function () {
+  this.beforeAll(async function () {
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+  });
+  this.afterAll(async function () {
+    await cleanIntegrationContext(this);
+  });
+  this.beforeEach(async function () {
+    await resetIntegrationContext(this);
     admin = await userManager.addUser("adele", "xxxxxxxx", "admin");
     sceneAdminUser = await userManager.addUser("alice", "xxxxxxxx");
     user = await userManager.addUser("bob", "xxxxxxxx");
@@ -19,10 +25,6 @@ describe("PATCH /tags", function () {
     const barId = await vfs.createScene("bar")
     await userManager.grant(barId, sceneAdminUser.uid, "admin");
     ids = [fooId, barId];
-  });
-
-  this.afterEach(async function () {
-    await cleanIntegrationContext(this);
   });
 
   describe("create", function () {
