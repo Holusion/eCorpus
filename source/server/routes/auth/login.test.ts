@@ -11,15 +11,21 @@ import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
 
 describe("/auth/login", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
-  this.beforeEach(async function(){
+  let _maxAge: number;
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+    _maxAge = locals.sessionMaxAge;
+  });
+  this.afterAll(async function(){
+    await cleanIntegrationContext(this);
+  });
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
+    this.server.locals.sessionMaxAge = _maxAge;
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
-  });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
   });
 
   it("sets a cookie", async function(){

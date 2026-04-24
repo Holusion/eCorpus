@@ -22,6 +22,7 @@ declare global{
   var expect :typeof chai.expect;
   var createIntegrationContext :(c:Mocha.Context, config_override ?:Record<string, string>)=>Promise<AppLocals>;
   var cleanIntegrationContext :(c:Mocha.Context)=>Promise<void>;
+  var resetIntegrationContext :(c:Mocha.Context)=>Promise<void>;
   var getUniqueDb: (name?: string)=>Promise<string>;
   var dropDb: (uri: string)=>Promise<void>;
 }
@@ -92,4 +93,29 @@ global.cleanIntegrationContext = async function(c :Mocha.Context){
   await c.services?.close();
   await dropDb(c.db_uri);
   if(c.dir) await fs.rm(c.dir, {recursive: true});
+}
+
+global.resetIntegrationContext = async function(c :Mocha.Context){
+  const client = new Client({connectionString: c.db_uri});
+  await client.connect();
+  try{
+    // Exclude infrastructure tables that should not be wiped between tests
+    const {rows} = await client.query<{tablename:string}>(
+      `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN ('migrations', 'keys')`
+    );
+    if(rows.length > 0){
+      const tableList = rows.map(r => escapeIdentifier(r.tablename)).join(", ");
+      await client.query(`TRUNCATE ${tableList} RESTART IDENTITY CASCADE`);
+    }
+  }finally{
+    await client.end();
+  }
+  const filesDir = path.join(c.dir, "files");
+  for(const subdir of ["uploads", "objects", "artifacts"]){
+    const dir = path.join(filesDir, subdir);
+    try{
+      const entries = await fs.readdir(dir);
+      await Promise.all(entries.map(e => fs.rm(path.join(dir, e), {recursive: true})));
+    }catch{ /* directory may not exist yet */ }
+  }
 }
