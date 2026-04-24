@@ -1,4 +1,6 @@
 name: Build & Test
+
+
 on:
   push:
     branches:
@@ -43,20 +45,30 @@ jobs:
       matrix:
         node-version: [18, 20, 22]
     services:
-      postgres:
-        image: postgres
+      postgres: &postgres
+        image: postgres:18
         ports:
           - 5432:5432
+        command: >
+          postgres
+          -c fsync=off
+          -c synchronous_commit=off
+          -c full_page_writes=off
+          -c autovacuum=off
+          -c shared_buffers=128MB 
+          -c work_mem=64MB
+          -c max_connections=100
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
-        # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
           --health-interval 1s
           --health-timeout 5s
           --health-retries 5
+          --tmpfs /var/lib/postgresql:rw,noexec,nosuid,size=512m
+          --shm-size=512m
     env:
       PGHOST: localhost
       PGPORT: 5432
@@ -145,20 +157,7 @@ jobs:
     needs: [ pack ]
 
     services:
-      postgres:
-        image: postgres
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 1s
-          --health-timeout 5s
-          --health-retries 5
+      postgres: *postgres
     env:
       PGHOST: localhost
       PGPORT: 5432
