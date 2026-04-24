@@ -2,7 +2,7 @@ import util from "node:util";
 import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
 import { getUser, useTemplateProperties } from "./locals.js";
-import { locales } from "./templates.js";
+import { locales } from "./templates/index.js";
 
 
 export enum LogLevel{

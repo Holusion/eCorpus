@@ -5,7 +5,7 @@ import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "./errorHandler.js";
 import { InternalError } from "./errors.js";
-import Templates from "./templates.js";
+import Templates from "./templates/index.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const templatesDir = path.resolve(thisDir, "../templates");
