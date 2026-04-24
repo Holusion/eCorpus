@@ -9,9 +9,9 @@ describe("DELETE /groups/:group/:member", function () {
     this.beforeEach(async function () {
         let locals = await createIntegrationContext(this);
         userManager = locals.userManager;
-        userManager.addGroup("My Group")
+        await userManager.addGroup("My Group")
         member = await userManager.addUser("melanie", "12345678", "manage", "melanie@example.com");
-        userManager.addMemberToGroup(member.uid, "My Group")
+        await userManager.addMemberToGroup(member.uid, "My Group")
 
     });
     this.afterEach(async function () {
