@@ -100,8 +100,12 @@ global.cleanIntegrationContext = async function(c :Mocha.Context){
 }
 
 global.resetIntegrationContext = async function(c :Mocha.Context){
+  
+  console.time("globals connect");
   const client = new Client({connectionString: c.db_uri});
   await client.connect();
+  console.timeEnd("globals connect");
+  console.time("globals truncate");
   try{
     // Exclude infrastructure tables that should not be wiped between tests
     const {rows} = await client.query<{tablename:string}>(
@@ -122,4 +126,5 @@ global.resetIntegrationContext = async function(c :Mocha.Context){
       await Promise.all(entries.map(e => fs.rm(path.join(dir, e), {recursive: true})));
     }catch{ /* directory may not exist yet */ }
   }
+    console.timeEnd("globals truncate");
 }
