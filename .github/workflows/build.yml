@@ -51,10 +51,17 @@ jobs:
           - 5432:5432
         command: >
           postgres
+          -c log_statement=none 
+          -c log_duration=off 
+          -c log_min_messages=panic 
+          -c log_error_verbosity=terse
+          -c checkpoint_timeout=1h
           -c fsync=off
           -c synchronous_commit=off
           -c full_page_writes=off
           -c autovacuum=off
+          -c max_wal_size=128MB
+          -c min_wal_size=64MB
           -c shared_buffers=128MB 
           -c work_mem=64MB
           -c max_connections=100
