@@ -44,6 +44,7 @@ db_uri.password = process.env["PGPASSWORD"]?? "";
 
 
 global.getUniqueDb = async function(name?: string){
+  console.time("globals getUniqueDb");
   const dbname = name? name.replace(/[^\w]/g, "_").substring(0,58)+"_"+randomBytes(2).toString("hex"): `eCorpus_test_${randomBytes(4).toString("hex")}`;
   const client = new Client({connectionString: new URL(`/postgres`, db_uri).toString()});
   await client.connect();
@@ -54,10 +55,12 @@ global.getUniqueDb = async function(name?: string){
   }
   let uri = new URL(`/${encodeURIComponent(dbname)}`, db_uri).toString();
   debuglog("pg:debug")(`Created test database at ${uri}`);
+  console.timeEnd("globals getUniqueDb");
   return uri;
 };
 
 global.dropDb = async function(uri: string){
+  console.time("globals dropDb");
   const client = new Client({connectionString: new URL(`/postgres`, db_uri).toString()});
   await client.connect();
   try{
@@ -65,6 +68,7 @@ global.dropDb = async function(uri: string){
   }finally{
     await client.end();
   }
+  console.timeEnd("globals dropDb");
   debuglog("pg:debug")(`Dropped test database at ${uri}`);
 }
 
