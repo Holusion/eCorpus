@@ -19,8 +19,12 @@ a{
 
 
 .btn {
-  background-color: var(--color-highlight);
-  color: white;
+  --btn-color: var(--color-highlight);
+  --btn-color-hover: var(--color-highlight2);
+  --btn-text-color: white;
+
+  background-color: var(--btn-color);
+  color: var(--btn-text-color);
 
   display: flex;
   justify-content: center;
@@ -33,13 +37,13 @@ a{
   transition: fill 0.2s;
 
   cursor: pointer;
-  
+
   > * {
     pointer-events: none;
   }
 
-  &:hover, &:focus{
-    background-color: var(--color-highlight2);
+  &:hover, &:focus {
+    background-color: var(--btn-color-hover);
   }
 
   &[selected] {
@@ -50,117 +54,118 @@ a{
     }
   }
 
-  &[hidden], &.hidden{
+  &[hidden], &.hidden {
     display: none;
   }
 
-  &.btn-main {
-    background-color: var(--color-secondary);
+  &[disabled], &.disabled {
+    user-select: none;
+    pointer-events: none;
+    background-color: var(--color-highlight2);
+    filter: saturate(0.6) grayscale(0.4);
+    // Further style changes are delegated to the different flavors of buttons: btn-main, etc...
+  }
 
-    &:hover:not([disabled]){
-      background-color: var(--color-secondary-light);
+  // --- Color variants ---
+
+  &.btn-main {
+    --btn-color: var(--color-secondary);
+    --btn-color-hover: var(--color-secondary-light);
+
+    &:hover:not([disabled]) {
       box-shadow: 2px 2px rgba(20, 20, 20, 0.3);
     }
-    &[disabled], &.disabled{
-      background-color: var(--color-secondary);
-      filter:  saturate(0.6) grayscale(0.9);
+    &[disabled], &.disabled {
+      background-color: var(--btn-color);
+      filter: saturate(0.6) grayscale(0.9);
     }
   }
 
   &.btn-primary {
-    background-color: var(--color-primary);
+    --btn-color: var(--color-primary);
+    --btn-color-hover: var(--color-primary-light);
 
-    &:hover:not([disabled]){
-      background-color: var(--color-primary-light);
+    &:hover:not([disabled]) {
       box-shadow: 2px 2px rgba(20, 20, 20, 0.3);
     }
   }
 
   &.btn-secondary {
-    background-color: var(--color-secondary);
-
-    &:hover:not([disabled]){
-      background-color: var(--color-secondary-light);
-    }
+    --btn-color: var(--color-secondary);
+    --btn-color-hover: var(--color-secondary-light);
   }
 
-  &.btn-danger{
-    background-color: var(--color-error);
-    &:hover:not([disabled]){
-      color: #333;
+  &.btn-danger {
+    --btn-color: var(--color-error);
+    --btn-color-hover: var(--color-error);
+
+    &:hover:not([disabled]) {
+      --btn-text-color: #333;
       filter: brightness(1.2);
       box-shadow: 2px 2px rgba(20, 20, 20, 0.3);
     }
   }
 
-  &.btn-small{
+  &.btn-success {
+    --btn-color: var(--color-success);
+  }
+
+  // --- Size variants ---
+
+  &.btn-small {
     padding: 0 4px;
     min-width: auto;
     border-radius: 4px;
   }
 
-  &.btn-inline{
-    display: inline-block;
-  }
-  
-  &.btn-outline{
-    background-color: transparent;
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
+  &.btn-pill {
+    --btn-color-hover: var(--btn-color);
+    padding: 0 .6em;
+    min-width: auto;
+    height: 1lh;
+    border-radius: 999px;
+    box-sizing: border-box;
+    cursor: text;
 
-    &:hover:not([disabled]){
-      background-color: var(--color-primary);
-      color: white;
-      &:btn-secondary{
-        background-color: var(--color-secondary);
-      }
+    &.btn-outline:hover:not([disabled]) {
+      background-color: transparent;
+      color: var(--btn-color);
     }
   }
 
-  &.btn-success {
-    background-color: var(--color-success);
-    color: white;
-  }
-  
-  &.btn-danger {
-    background-color: var(--color-error);
-    color: white;
+  // --- Modifiers ---
 
-    &:hover{
-      filter: brightness(110%);
-    }    
+  &.btn-inline {
+    display: inline-block;
   }
 
-  &.btn-transparent{
+  &.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--btn-color);
+    color: var(--btn-color);
+
+    &:hover:not([disabled]) {
+      background-color: var(--btn-color);
+      color: var(--btn-text-color);
+    }
+  }
+
+  &.btn-transparent {
     background-color: transparent !important;
-    &:hover:not([disabled]){
+    color: var(--btn-color);
+
+    &:hover:not([disabled]) {
+      color: var(--btn-color-hover);
       box-shadow: none !important;
     }
 
-    &.btn-primary{
-      color: var(--color-primary);
-      &:hover:not([disabled]){
-        text-decoration: underline;
-        color: var(--color-primary-light);
-      }
+    &.btn-primary:hover:not([disabled]) {
+      text-decoration: underline;
     }
 
-    &.btn-secondary {
-      color: var(--color-secondary);
-
-      &:hover:not([disabled]){
-        color: var(--color-secondary-light);
-      }
-    }
-
-
-
-    &.btn-danger {
-      color: var(--color-error);
-      &:hover:not([disabled]){
-        color: var(--color-error);
-        filter: saturate(0.4);
-      }
+    &.btn-danger:hover:not([disabled]) {
+      color: var(--btn-color);
+      filter: saturate(0.4);
     }
   }
 
@@ -168,7 +173,7 @@ a{
    * Special case of button used as a popover source
    * Combines btn-transparent and btn-inline, with minor adjustments
    */
-  &.btn-popover{
+  &.btn-popover {
     background-color: transparent !important;
     display: inline-block;
     line-height: 12px;
@@ -179,17 +184,17 @@ a{
     min-width: auto;
     cursor: help;
     padding: 0;
-    > .ui-icon{
+    > .ui-icon {
       display: inline-block;
       margin: 0;
       height: 1lh;
     }
-    &:hover{
+    &:hover {
       color: var(--color-primary);
     }
     //The popover element
-    >[popover]:popover-open{
-      position:relative;
+    > [popover]:popover-open {
+      position: relative;
       line-height: initial;
       inset: unset;
       margin: 0 1rem;
@@ -206,9 +211,11 @@ a{
     }
   }
 
+  // --- Children ---
+
   @at-root a#{&} {
     text-decoration: none;
-    white-space:nowrap;
+    white-space: nowrap;
   }
 
   & > .btn-text {
@@ -220,7 +227,7 @@ a{
     margin: 3px;
     height: 1.3em;
     fill: currentColor;
-    svg{
+    svg {
       height: 1rem;
       height: 1lh;
     }
@@ -230,17 +237,10 @@ a{
     margin: 3px;
   }
 
-  &[disabled], &.disabled{
-    user-select: none;
-    pointer-events: none;
-    background-color: var(--color-highlight2);
-    filter:  saturate(0.6) grayscale(0.4);
-    // Further style changes are delegated to the different flavors of buttons: btn-main, etc...
-  }
-  &[transparent]{
+  &[transparent] {
     background: transparent;
     color: var(--color-text);
-    &:hover{
+    &:hover {
       color: var(--color-highlight2);
     }
   }

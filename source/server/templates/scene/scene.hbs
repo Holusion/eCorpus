@@ -1,24 +1,22 @@
 
 <section class="grid-content">
   <div style="display:flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between;">
+    <div style="display: flex; justify-content: start; gap: 1rem; align-items: baseline;">
       {{#if displayedTitle}}
         <h2>{{displayedTitle}}</h2>
       {{/if}}
-      <span>
-        <span title="{{i18n "labels.defaultAccess"}}: {{i18n (join "fields." scene.default_access) }}">
-          {{#if (test scene.default_access "==" "none")}}
-            <ui-icon class="text-warning" name="key"></ui-icon>
-          {{else}}
-            <ui-icon class="text-info" name="eye"></ui-icon>
-          {{/if}}
-        </span>
-        {{#if (test scene.public_access "!=" "none")}}
-          <span class="text-info" title="{{i18n "labels.publicAccess"}}">
-            <ui-icon name="globe"></ui-icon>
-          </span>
+      <span title="{{i18n "labels.defaultAccess"}}: {{i18n (join "fields." scene.default_access) }}">
+        {{#if (test scene.default_access "==" "none")}}
+          <ui-icon class="text-warning" name="lock"></ui-icon>
+        {{else}}
+          <ui-icon class="text-info" name="lock-open"></ui-icon>
         {{/if}}
       </span>
+      {{#if (test scene.public_access "!=" "none")}}
+        <button class="btn btn-pill btn-secondary btn-outline">{{i18n "labels.public"}}</button>
+      {{else}}
+        <button class="btn btn-pill btn-primary btn-outline">{{i18n "labels.private"}}</button>
+      {{/if}}
     </div>
     <div id="show-tags">
       <div class="tags-list">
