@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { canRead, getHost, canWrite, canAdmin, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
-import { Scene } from "../../vfs/types.js";
+import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
@@ -94,7 +94,7 @@ routes.get("/upload", wrap(async (req, res)=>{
     throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
   }
   debug("Render previous upload tasks : ", ids);
-  type TaskScene = {name: string,  action: "create"|"update", task_id: number}
+  type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
   type TaskError =  {error: string, action: "error",  task_id: number|null}
   type TaskLine = TaskScene|TaskError;
   let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
@@ -128,7 +128,7 @@ routes.get("/upload", wrap(async (req, res)=>{
         continue;
       }
       const scene = await vfs.getScene(task.output);
-      scenes.push({name: scene.name, action: "create", task_id: task.task_id});
+      scenes.push({name: scene.name, action: "create", task_id: task.task_id, type: scene.type});
     }else if(task.type === "extractScenesArchives"){
       if(!Array.isArray(task.output)){
         console.warn("Unexpected output for %s :", task.type, task.output);
@@ -136,7 +136,8 @@ routes.get("/upload", wrap(async (req, res)=>{
         continue;
       }
       for(let {action, name } of task.output){
-        scenes.push({action, name, task_id: task.task_id});
+        const scene = await vfs.getScene(name);
+        scenes.push({action, name, task_id: task.task_id, type: scene.type});
       }
     }else{
       console.warn("Unsupported task type: %s. not an upload task?", task.type);
