@@ -26,9 +26,6 @@ describe("POST /scenes/:scene", function(){
     app = this.server;
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
   this.beforeEach(async function(){
     await resetIntegrationContext(this);
   });

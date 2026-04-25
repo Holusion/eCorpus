@@ -21,9 +21,6 @@ describe("MKCOL /scenes/:scene/.*", function(){
     admin = await userManager.addUser("alice", "12345678", "admin");
 
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
   this.beforeEach(async function(){
     //Initialize a unique scene for each test

@@ -32,7 +32,8 @@ describe("Database", function(){
     });
 
     this.afterEach(async function(){
-      await db?.end(); //Otherwise it leaks
+      await db?.end();
+      await dropDb(uri);
     });
 
     describe("migration", function(){
@@ -164,7 +165,8 @@ describe("DbController", function(){
     });
 
     this.afterEach(async function(){
-      await db?.end(); //Otherwise it leaks
+      await db?.end();
+      await dropDb(uri);
     });
 
     describe("multi-controller isolate", function(){

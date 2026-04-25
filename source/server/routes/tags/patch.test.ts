@@ -12,9 +12,6 @@ describe("PATCH /tags", function () {
     vfs = locals.vfs;
     userManager = locals.userManager;
   });
-  this.afterAll(async function () {
-    await cleanIntegrationContext(this);
-  });
   this.beforeEach(async function () {
     await resetIntegrationContext(this);
     admin = await userManager.addUser("adele", "xxxxxxxx", "admin");

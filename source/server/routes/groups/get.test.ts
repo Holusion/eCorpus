@@ -19,9 +19,6 @@ describe("GET /groups", function () {
 
     });
 
-    this.afterAll(async function () {
-        await cleanIntegrationContext(this);
-    });
 
     it("can get all groups as manage", async function () {
         let response = await expect(request(this.server).get(`/groups`)

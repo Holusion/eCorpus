@@ -15,9 +15,6 @@ describe("Task: toGlb", function () {
     taskScheduler = locals.taskScheduler;
     vfs = locals.vfs;
   });
-  this.afterAll(async function () {
-    await cleanIntegrationContext(this);
-  });
 
   describe("Wavefront OBJ", function () {
     it("converts simple OBJ file ", async function () {

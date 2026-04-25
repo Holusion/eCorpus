@@ -14,9 +14,6 @@ describe("GET /services/opensearch.xml", function(){
     vfs = locals.vfs;
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
   
   it("creates a link to openSearch in views", async function(){
     await request(this.server).get("/ui/")

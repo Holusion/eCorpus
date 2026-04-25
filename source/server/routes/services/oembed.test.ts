@@ -59,9 +59,6 @@ describe("GET /services/oembed", function(){
     await userManager.setPublicAccess("private-scene", "none");
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
 
 

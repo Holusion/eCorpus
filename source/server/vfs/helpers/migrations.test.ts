@@ -109,6 +109,7 @@ describe("Database migration", function(){
     });
     this.afterEach(async function(){
       await db.end();
+      await dropDb(uri);
     });
 
     it("applies migrations", async function(){

@@ -20,9 +20,6 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
   this.beforeEach(async function(){
     await resetIntegrationContext(this);
     user = await userManager.addUser("bob", "12345678");

@@ -10,9 +10,7 @@ describe("POST /groups", function () {
         let locals = await createIntegrationContext(this);
         userManager = locals.userManager;
     });
-    this.afterAll(async function () {
-        await cleanIntegrationContext(this);
-    });
+
     this.beforeEach(async function () {
         await resetIntegrationContext(this);
         user = await userManager.addUser("ulysse", "12345678", "use", "ulysse@example.com");
