@@ -3,14 +3,14 @@ import UserManager from "../../../auth/UserManager.js";
 
 describe("DELETE /groups/:group", function () {
     let userManager: UserManager;
-    this.beforeEach(async function () {
+    this.beforeAll(async function () {
         let locals = await createIntegrationContext(this);
         userManager = locals.userManager;
-        userManager.addGroup("My Group")
-
     });
-    this.afterEach(async function () {
-        await cleanIntegrationContext(this);
+
+    this.beforeEach(async function () {
+        await resetIntegrationContext(this);
+        userManager.addGroup("My Group")
     });
 
     it("can delete a group as manage", async function () {

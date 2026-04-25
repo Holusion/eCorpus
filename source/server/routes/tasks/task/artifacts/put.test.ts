@@ -22,9 +22,6 @@ describe("PUT /tasks/:id/artifact", function(){
     admin = await userManager.addUser("alice", "12345678", "admin");
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
   this.beforeEach(async function(){
     //Create a task for each test

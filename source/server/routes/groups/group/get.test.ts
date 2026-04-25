@@ -24,9 +24,6 @@ describe("GET /groups/:group", function () {
         group1 = await userManager.getGroup(group1.groupName);
     });
 
-    this.afterAll(async function () {
-        await cleanIntegrationContext(this);
-    });
 
     it("can get any group as manage", async function () {
         let response = await expect(request(this.server).get(`/groups/My first group`)

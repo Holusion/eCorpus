@@ -8,13 +8,13 @@ import Vfs from "../../vfs/index.js";
 
 describe("GET /tags", function(){
   let vfs :Vfs, userManager :UserManager;
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
   });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
   });
 
   describe("as user", function(){

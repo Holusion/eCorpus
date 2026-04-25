@@ -15,16 +15,15 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
   
   let vfs :Vfs, userManager :UserManager, user :User, admin :User;
 
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+  });
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
-
-  });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
   });
 
   it("can get a public scene's file", async function(){

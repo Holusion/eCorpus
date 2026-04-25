@@ -19,15 +19,15 @@ import User, { UserLevels } from "../../../auth/User.js";
 
 describe("POST /scenes/:scene", function(){
   let vfs:Vfs, userManager: UserManager, user :User, app: Application, data:Buffer;
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     const locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
     app = this.server;
     data = await fs.readFile(path.join(fixturesDir, "cube.glb"));
   });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
   });
 
   describe("as create", function () {

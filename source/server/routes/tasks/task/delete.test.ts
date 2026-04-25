@@ -20,9 +20,6 @@ describe("DELETE /tasks/:id", function(){
     other = await userManager.addUser("charlie", "12345678");
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
   it("requires authentication", async function(){
     const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});

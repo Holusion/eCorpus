@@ -29,9 +29,6 @@ describe("POST /history/:scene", function(){
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
   this.beforeEach(async function(){
     //Initialize a unique scene for each test

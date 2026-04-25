@@ -31,10 +31,6 @@ describe("GET /scenes", function(){
         vfs.createScene("bar"),
     ]);
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
-
   it("returns a list of scene names as text", async function(){
     let r = await request(this.server).get("/scenes")
     .set("Accept", "text/plain")

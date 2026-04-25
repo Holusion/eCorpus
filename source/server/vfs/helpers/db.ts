@@ -163,7 +163,9 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
 
   let client :PoolClient;
   try{
+    console.time("globals connect");
     client = await pool.connect();
+    console.timeEnd("globals connect");
   }catch(e:any){
     if(debug.enabled && Array.isArray(e.errors)){
       e.errors.forEach((err:any)=> debug(err));

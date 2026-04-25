@@ -11,10 +11,13 @@ import { WriteFileParams } from "../../../../../vfs/types.js";
 
 describe("MOVE /scenes/:name", function(){
   let vfs :Vfs, userManager :UserManager, user :User, admin :User, scene_id :number;
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+  });
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
 
@@ -22,16 +25,12 @@ describe("MOVE /scenes/:name", function(){
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
 
-
     this.agent = request.agent(this.server);
     await this.agent.post("/auth/login")
     .send({username: user.username, password: "12345678"})
     .set("Content-Type", "application/json")
     .set("Accept", "")
     .expect(200);
-  });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
   });
 
 
