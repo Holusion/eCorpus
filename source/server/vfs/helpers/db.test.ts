@@ -24,7 +24,7 @@ describe("Database", function(){
   describe("open", function(){
     let db :Database, uri: string;
     this.beforeEach(async function(){
-      uri = await getUniqueDb();
+      uri = await getUniqueDb(this.currentTest?.title);
       db = await open({
         uri,
         forceMigration: true,
@@ -32,7 +32,8 @@ describe("Database", function(){
     });
 
     this.afterEach(async function(){
-      await db?.end(); //Otherwise it leaks
+      await db?.end();
+      await dropDb(uri);
     });
 
     describe("migration", function(){
@@ -156,7 +157,7 @@ describe("Database", function(){
 describe("DbController", function(){
     let db :Database, uri: string;
     this.beforeEach(async function(){
-      uri = await getUniqueDb();
+      uri = await getUniqueDb(this.currentTest?.title);
       db = await open({
         uri,
         forceMigration: true,
@@ -164,7 +165,8 @@ describe("DbController", function(){
     });
 
     this.afterEach(async function(){
-      await db?.end(); //Otherwise it leaks
+      await db?.end();
+      await dropDb(uri);
     });
 
     describe("multi-controller isolate", function(){

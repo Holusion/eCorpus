@@ -103,12 +103,13 @@ describe("Database migration", function(){
     let uri: string, dir :string;
     this.beforeEach(async function(){
       dir = await fs.mkdtemp(path.join(this.dir, "migrate-"));
-      uri = await getUniqueDb();
+      uri = await getUniqueDb(this.currentTest?.title);
       db = new Client({connectionString: uri});
       await db.connect();
     });
     this.afterEach(async function(){
       await db.end();
+      await dropDb(uri);
     });
 
     it("applies migrations", async function(){

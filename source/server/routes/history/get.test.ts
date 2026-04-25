@@ -39,9 +39,6 @@ describe("GET /history/:scene", function(){
       `, [now]);
     });
   
-    this.afterAll(async function(){
-      await cleanIntegrationContext(this);
-    });
 
     it("get a scene's history", async function(){
       let res = await request(this.server).get("/history/foo")

@@ -28,9 +28,6 @@ describe("GET /scenes/:scene/scene.svx.json", function(){
     sampleDocString = await fs.readFile(path.resolve(fixturesDir, "documents/01_simple.svx.json"), {encoding:"utf8"});
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
   this.beforeEach(async function(){
     //Initialize a unique scene for each test

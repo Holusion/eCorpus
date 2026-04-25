@@ -18,7 +18,7 @@ describe("TaskManager", function(){
 
     let listener :TaskManager;
   this.beforeAll(async function(){
-    db_uri = await getUniqueDb(this.currentTest?.title.replace(/[^\w]/g, "_"));
+    db_uri = await getUniqueDb("ecorpus_task_manager_unit_tests");
     handle = await openDatabase({uri: db_uri});
     const vfs = new Vfs("/dev/null", handle);
     scene_id = await vfs.createScene(randomBytes(8).toString("base64url"));

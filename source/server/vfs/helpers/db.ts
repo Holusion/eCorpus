@@ -114,6 +114,9 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
   debug("connect to database at : "+ uri)
   let pool = new Pool({
     connectionString: uri,
+    // a connection timeout is a bad thing to have.
+    // But we don't want to hang forever if something is very wrong.
+    connectionTimeoutMillis: 10000,
   });
 
   pool.on("error", (err, client)=>{

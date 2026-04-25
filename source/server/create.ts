@@ -6,7 +6,7 @@ import type express from "express";
 import UserManager from "./auth/UserManager.js";
 import { mkdir } from "fs/promises";
 
-import openDatabase from "./vfs/helpers/db.js";
+import openDatabase, { type Database } from "./vfs/helpers/db.js";
 import Vfs from "./vfs/index.js";
 import defaultConfig, { Config, parse } from "./utils/config.js";
 import createServer from "./routes/index.js";
@@ -20,6 +20,7 @@ export interface Services{
   vfs: Vfs;
   taskScheduler: TaskScheduler;
   userManager: UserManager;
+  db: Database;
   close: ()=>Promise<void>;
 }
 
@@ -67,6 +68,7 @@ export default async function createService(env = process.env) :Promise<Services
     vfs,
     userManager,
     taskScheduler,
+    db,
     async close(){
       await taskScheduler.close();
       await vfs.close();

@@ -13,9 +13,6 @@ describe("GET /tags", function(){
     vfs = locals.vfs;
     userManager = locals.userManager;
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
   this.beforeEach(async function(){
     await resetIntegrationContext(this);
   });

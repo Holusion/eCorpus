@@ -18,9 +18,7 @@ describe("/auth/login", function(){
     userManager = locals.userManager;
     _maxAge = locals.sessionMaxAge;
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
+
   this.beforeEach(async function(){
     await resetIntegrationContext(this);
     this.server.locals.sessionMaxAge = _maxAge;

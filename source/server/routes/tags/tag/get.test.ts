@@ -17,9 +17,6 @@ describe("GET /tags/:tag", function(){
     userManager = locals.userManager;
     this.server.set("trust proxy", true);
   });
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
   this.beforeEach(async function(){
     await resetIntegrationContext(this);
     admin = await userManager.addUser("alice", "12345678", "admin");

@@ -43,9 +43,6 @@ describe("GET /tasks/:id/artifact", function () {
     await userManager.addUser("charlie", "12345678");
   });
 
-  this.afterAll(async function () {
-    await cleanIntegrationContext(this);
-  });
 
 
   describe("access tests", function () {

@@ -84,7 +84,7 @@ describe("Vfs", function(){
     describe("isolate", function(){
       let vfs :Vfs;
       this.beforeEach(async function(){
-        this.db_uri = await getUniqueDb(this.test?.title);
+        this.db_uri = await getUniqueDb(this.currentTest?.title);
         vfs = await Vfs.Open(this.dir, {database_uri: this.db_uri});
       })
       this.afterEach(async function(){
@@ -235,7 +235,7 @@ describe("Vfs", function(){
       const all = async (sql: ISqlite.SqlType, ...params: any[])=> await vfs.db.all(sql, ...params);
 
       this.beforeEach(async function(){
-        database_uri = await getUniqueDb();
+        database_uri = await getUniqueDb(this.currentTest?.title);
         vfs = await Vfs.Open(this.dir, {database_uri});
       });
       this.afterEach(async function(){
