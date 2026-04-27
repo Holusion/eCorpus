@@ -10,6 +10,8 @@ import Templates from "./templates/index.js";
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const templatesDir = path.resolve(thisDir, "../templates");
 
+const mockConfig = { get: (_key: any) => "" } as any;
+
 describe("errorHandler middleware", function(){
     let app :Express;
     this.beforeEach(function(){
@@ -50,12 +52,14 @@ describe("errorHandler middleware", function(){
       app.engine('.hbs', templates.middleware);
       app.set('view engine', '.hbs');
       app.set('views', templates.dir);
+      app.locals.config = mockConfig;
 
       await request(app).get("/")
       .set("Accept", "text/html")
       .expect(500)
       .expect("Content-Type", "text/html; charset=utf-8")
-      .expect(/^<!DOCTYPE html>/);
+      .expect(/^<!DOCTYPE html>/)
+      .expect(/error-main/);
     });
 
     it("handles errors (headers sent)", async function(){
@@ -110,12 +114,14 @@ describe("notFoundHandler middleware", function(){
     app.engine('.hbs', templates.middleware);
     app.set('view engine', '.hbs');
     app.set('views', templates.dir);
+    app.locals.config = mockConfig;
 
     await request(app).get("/foo")
     .set("Accept", "text/html")
     .expect(404)
     .expect("Content-Type", "text/html; charset=utf-8")
-    .expect(/^<!DOCTYPE html>/);
+    .expect(/^<!DOCTYPE html>/)
+    .expect(/error-main/);
   });
 
   it("use default content type", async function(){
