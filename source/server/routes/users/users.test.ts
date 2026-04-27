@@ -11,13 +11,13 @@ import { WriteFileParams } from "../../vfs/types.js";
 
 describe("/users", function(){
   let vfs :Vfs, userManager :UserManager;
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
   });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
   });
 
   describe("in open mode", function(){

@@ -14,10 +14,6 @@ describe("PATCH /admin/config", function(){
     admin = await userManager.addUser("alice", "12345678", "admin");
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
-
   it("requires admin access", async function(){
     await request(this.server).patch(`/admin/config`)
     .send({})

@@ -6,16 +6,15 @@ import UserManager from "../../../../auth/UserManager.js";
 
 describe("DELETE /groups/:group/:member", function () {
     let userManager: UserManager, member: User;
-    this.beforeEach(async function () {
+    this.beforeAll(async function () {
         let locals = await createIntegrationContext(this);
         userManager = locals.userManager;
-        userManager.addGroup("My Group")
-        member = await userManager.addUser("melanie", "12345678", "manage", "melanie@example.com");
-        userManager.addMemberToGroup(member.uid, "My Group")
-
     });
-    this.afterEach(async function () {
-        await cleanIntegrationContext(this);
+    this.beforeEach(async function () {
+        await resetIntegrationContext(this);
+        await userManager.addGroup("My Group")
+        member = await userManager.addUser("melanie", "12345678", "manage", "melanie@example.com");
+        await userManager.addMemberToGroup(member.uid, "My Group")
     });
 
     it("can delete a member of a group as manage", async function () {

@@ -11,17 +11,16 @@ describe("GET /tags/:tag", function(){
   let user :User;
   let admin :User;
 
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
-    admin = await userManager.addUser("alice", "12345678", "admin");
-    user = await userManager.addUser("bob", "12345678");
     this.server.set("trust proxy", true);
   });
-
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
+    admin = await userManager.addUser("alice", "12345678", "admin");
+    user = await userManager.addUser("bob", "12345678");
   });
 
   describe("as user", function(){

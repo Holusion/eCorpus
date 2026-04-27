@@ -9,19 +9,19 @@ import { once } from "events";
 
 describe("GET /scenes/:scene", function(){
   let vfs:Vfs, userManager:UserManager, ids :number[];
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager  = locals.userManager;
+  });
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
     ids = await Promise.all([
         vfs.createScene("foo"),
         vfs.createScene("bar"),
     ]);
     await Promise.all(ids.map((id=>vfs.writeDoc("{}", {scene: id, user_id: null, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"}))));
     await Promise.all(ids.map(id=> vfs.writeFile(dataStream(), {scene:id, name:"articles/hello-world.html", mime: "text/html", user_id: null})))
-  });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
   });
   describe("as application/json", function(){
     it("get scene info", async function(){

@@ -27,7 +27,7 @@ describe("TaskScheduler", function () {
   //Create a taskScheduler with minimal context
   let scheduler: TaskScheduler<{ db: DatabaseHandle }>;
   this.beforeAll(async function () {
-    db_uri = await getUniqueDb(this.currentTest?.title.replace(/[^\w]/g, "_"));
+    db_uri = await getUniqueDb("ecorpus_task_scheduler_unit_tests");
     handle = await openDatabase({ uri: db_uri });
 
     const userManager = new UserManager(handle);

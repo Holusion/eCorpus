@@ -21,10 +21,6 @@ describe("GET /admin/config", function(){
     admin = await userManager.addUser("alice", "12345678", "admin");
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
-
   it("requires admin access", async function(){
     //Anonymous
     await request(this.server).get(`/admin/config`)

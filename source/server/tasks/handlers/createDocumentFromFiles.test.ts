@@ -23,9 +23,6 @@ describe("Task createDocumentFromFiles", function () {
     await createIntegrationContext(this);
     taskScheduler = this.services.taskScheduler;
   });
-  this.afterAll(async function () {
-    await cleanIntegrationContext(this);
-  })
   it("initializes a task scheduler", function () {
     expect(taskScheduler).to.be.instanceOf(TaskScheduler);
   });

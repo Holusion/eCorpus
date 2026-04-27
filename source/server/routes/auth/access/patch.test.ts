@@ -25,9 +25,6 @@ describe("PATCH /auth/access/:scene", function () {
     group = await userManager.addGroup("My Group");
   });
 
-  this.afterAll(async function () {
-    await cleanIntegrationContext(this);
-  });
   this.beforeEach(async function () {
     //Initialize a unique scene for each test
     titleSlug = this.currentTest?.title.replace(/[^\w]/g, "_").slice(0, 15) + "_" + randomBytes(4).toString("base64url");

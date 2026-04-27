@@ -6,14 +6,14 @@ import UserManager from "../../../../auth/UserManager.js";
 
 describe("PUT /groups/:group/:member", function () {
     let userManager: UserManager, member: User;
-    this.beforeEach(async function () {
+    this.beforeAll(async function () {
         let locals = await createIntegrationContext(this);
         userManager = locals.userManager;
+    });
+    this.beforeEach(async function () {
+        await resetIntegrationContext(this);
         userManager.addGroup("My Group")
         member = await userManager.addUser("melanie", "12345678", "manage", "melanie@example.com");
-    });
-    this.afterEach(async function () {
-        await cleanIntegrationContext(this);
     });
 
     it("can put a member of a group as manage", async function () {

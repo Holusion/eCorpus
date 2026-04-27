@@ -6,17 +6,17 @@ import UserManager from "../../auth/UserManager.js";
 
 describe("POST /groups", function () {
     let userManager: UserManager, user: User, creator: User, manage: User, admin: User;
-    this.beforeEach(async function () {
+    this.beforeAll(async function () {
         let locals = await createIntegrationContext(this);
         userManager = locals.userManager;
+    });
+
+    this.beforeEach(async function () {
+        await resetIntegrationContext(this);
         user = await userManager.addUser("ulysse", "12345678", "use", "ulysse@example.com");
         creator = await userManager.addUser("celia", "12345678", "create", "celia@example.com");
         manage = await userManager.addUser("maelle", "12345678", "manage", "maelle@example.com");
         admin = await userManager.addUser("alice", "12345678", "admin");
-
-    });
-    this.afterEach(async function () {
-        await cleanIntegrationContext(this);
     });
 
     it("can create a group as manage", async function () {

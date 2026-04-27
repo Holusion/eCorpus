@@ -21,13 +21,13 @@ function binaryParser(res:request.Response, callback:(err:Error|null, data:Buffe
 
 describe("POST /scenes", function(){
   let vfs:Vfs, userManager:UserManager, ids :number[];
-  this.beforeEach(async function(){
+  this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager  = locals.userManager;
   });
-  this.afterEach(async function(){
-    await cleanIntegrationContext(this);
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
   });
 
   describe("as create", function () {

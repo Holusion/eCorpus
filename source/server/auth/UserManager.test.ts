@@ -109,12 +109,15 @@ describe("UserManager static methods", function(){
 
 describe("UserManager methods", function(){
   let userManager :UserManager;
+  let db_uri: string;
   this.beforeAll(async function(){
-    this.db = await openDatabase({uri: await getUniqueDb("userManager-methods-test-"+randomBytes(2).toString("hex")), forceMigration:true});
+    db_uri = await getUniqueDb("userManager-methods-test-"+randomBytes(2).toString("hex"));
+    this.db = await openDatabase({uri: db_uri, forceMigration:true});
     userManager = new UserManager(this.db);
   });
   this.afterAll(async function(){
     await this.db.end();
+    await dropDb(db_uri);
   })
 
   describe("addUser()", function(){

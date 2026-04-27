@@ -26,9 +26,6 @@ describe("GET /history/:scene/:id/diff", function(){
     scene_id = await vfs.createScene("foo", user.uid);
   });
 
-  this.afterAll(async function(){
-    await cleanIntegrationContext(this);
-  });
 
   it("get a text file's diff from previous version", async function(){
     await vfs.writeFile(dataStream(["Hello\n"]), {scene:scene_id, name:"hello.txt", user_id: 0, mime: "text/plain"});
