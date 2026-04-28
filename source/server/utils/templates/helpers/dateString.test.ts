@@ -3,6 +3,11 @@ import { dateString } from "./dateString.js";
 const d = new Date("2024-06-15T12:00:00.000Z");
 
 describe("dateString helper", function () {
+  let warnMessages: any[][] = [];
+  let origWarn: typeof console.warn;
+  beforeEach(() => { warnMessages = []; origWarn = console.warn; console.warn = (...a: any[]) => warnMessages.push(a); });
+  afterEach(() => { console.warn = origWarn; });
+
   it("returns ISO string for format 'iso' (case-insensitive)", function () {
     expect(dateString.call({}, d, "iso", {})).to.equal(d.toISOString());
     expect(dateString.call({}, d, "ISO", {})).to.equal(d.toISOString());
@@ -28,7 +33,8 @@ describe("dateString helper", function () {
     expect(dateString.call({}, "2024-06-15T12:00:00.000Z", "iso", {})).to.equal(d.toISOString());
   });
 
-  it("returns 'Invalid Date' when the options argument is missing", function () {
+  it("returns 'Invalid Date' and warns when the options argument is missing", function () {
     expect(dateString.call({}, d)).to.equal("Invalid Date");
+    expect(warnMessages).to.have.length(1);
   });
 });

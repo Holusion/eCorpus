@@ -33,9 +33,11 @@ export type TestOperator = "in" | "==" | "===" | "!=" | "<" | ">" | "<=" | "=<" 
  * @param args Remaining Handlebars arguments; options object must be last
  */
 export function test(this: any, a: any, op: TestOperator, b: any, ...args: any[]): boolean {
+  const options = args[args.length - 1];
+  const src = options?.data?.filepath ?? "(unknown template)";
   if (typeof b === "undefined" || !args.length) {
     if (a == "!") return !op;
-    console.warn("Invalid number of arguments for test helper:", a, op, b);
+    console.warn("Invalid number of arguments for test helper in %s:", src, a, op, b);
     return false;
   }
   if (op === "in") return (Array.isArray(b) ? b : [b]).indexOf(a) !== -1;
@@ -49,7 +51,7 @@ export function test(this: any, a: any, op: TestOperator, b: any, ...args: any[]
   else if (op === "&&") return a && b;
   else if (op === "||") return a || b;
   else {
-    console.warn('Unsupported test operator: "%s"', op);
+    console.warn('Unsupported test operator: "%s" (a=%s, b=%s) in %s', op, a, b, src);
     return false;
   }
 }

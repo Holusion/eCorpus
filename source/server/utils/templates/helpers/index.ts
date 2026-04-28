@@ -26,6 +26,16 @@
  *    {{#if (test role "in" allowedRoles)}}...{{/if}}
  *    operators: == === != < > <= >= => =< && || in
  *
+ *  userLevel  — compare user's role against a minimum required role
+ *    {{userLevel user.level "admin"}}               → true if level ≥ admin
+ *    {{userLevel user.level "manage" strict=true}}  → true if level === manage
+ *    Valid levels (ascending): none < use < create < manage < admin
+ *
+ *  accessLevel  — compare scene access against a minimum required access
+ *    {{accessLevel scene.access "read"}}              → true if access ≥ read
+ *    {{accessLevel scene.access "write" strict=true}} → true if access === write
+ *    Valid levels (ascending): none < read < write < admin
+ *
  *  dateString  — format a Date for display
  *    {{dateString date}}             → locale string (uses context.lang)
  *    {{dateString date "iso"}}       → ISO 8601
@@ -44,6 +54,7 @@ import { join } from "./join.js";
 import { test } from "./test.js";
 import { dateString } from "./dateString.js";
 import { encodeURIComponentHelper, encodeURIHelper } from "./encoding.js";
+import { userLevel, accessLevel } from "./levels.js";
 
 export { navLink } from "./navLink.js";
 export { i18nHelper } from "./i18n.js";
@@ -52,6 +63,7 @@ export { test } from "./test.js";
 export { type TestOperator } from "./test.js";
 export { dateString } from "./dateString.js";
 export { encodeURIComponentHelper, encodeURIHelper } from "./encoding.js";
+export { userLevel, accessLevel } from "./levels.js";
 
 /** Collected helpers object — pass directly to `hbs.registerHelper(staticHelpers)` */
 export const staticHelpers = {
@@ -62,4 +74,6 @@ export const staticHelpers = {
   dateString,
   encodeURIComponent: encodeURIComponentHelper,
   encodeURI: encodeURIHelper,
+  userLevel,
+  accessLevel,
 };

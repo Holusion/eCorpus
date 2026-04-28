@@ -4,6 +4,7 @@ interface HandleBarsContextData {
   t: TFunction;
   _parent?: HandleBarsContextData;
   root: Record<string, any>;
+  filepath?: string;
 }
 
 interface HandlebarsHelperContext {
@@ -34,7 +35,7 @@ export function i18nHelper(this: any, key: string, ...props: any[]): string {
   const { hash, data }: HandlebarsHelperContext = props.pop();
   const default_value: string | undefined = props.pop();
   if (typeof data.t !== "function") {
-    console.warn("No translation function in context", key);
+    console.warn("No translation function in context — key=%s in %s", key, data?.filepath ?? "(unknown template)");
     return key;
   }
   const opts = {
@@ -42,7 +43,7 @@ export function i18nHelper(this: any, key: string, ...props: any[]): string {
     ...hash,
   };
   if (!opts.lng) {
-    console.warn('Language not set. Defaulting to "en"');
+    console.warn('Language not set. Defaulting to "en" — key=%s in %s', key, data?.filepath ?? "(unknown template)");
     opts.lng = "en";
   }
   return (default_value ? data.t(key, default_value, opts) : data.t(key, opts)) as string;

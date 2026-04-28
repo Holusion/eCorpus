@@ -4,7 +4,16 @@ function call(a: any, op: string, b: any): boolean {
   return testHelper.call({}, a, op as any, b, {});
 }
 
+function callWithSrc(a: any, op: string, b: any, filepath = ""): boolean {
+  return testHelper.call({}, a, op as any, b, { data: { filepath } });
+}
+
 describe("test helper", function () {
+  let warnMessages: any[][] = [];
+  let origWarn: typeof console.warn;
+  beforeEach(() => { warnMessages = []; origWarn = console.warn; console.warn = (...a: any[]) => warnMessages.push(a); });
+  afterEach(() => { console.warn = origWarn; });
+
   it("== loose equality", function () {
     expect(call("foo", "==", "foo")).to.be.true;
     expect(call(0, "==", "0")).to.be.true;
@@ -58,5 +67,21 @@ describe("test helper", function () {
 
   it("returns false for unsupported operators", function () {
     expect(call("a", "???" as any, "b")).to.be.false;
+  });
+
+  it("warns with operator, values, and template path for unsupported operators", function () {
+    callWithSrc("a", "???", "b", "home.hbs");
+    expect(warnMessages).to.have.length(1);
+    const msg = warnMessages[0].join(" ");
+    expect(msg).to.include("???");
+    expect(msg).to.include("a");
+    expect(msg).to.include("b");
+    expect(msg).to.include("home.hbs");
+  });
+
+  it("warns with template path for invalid argument count", function () {
+    callWithSrc("a", "==" as any, undefined as any, "search.hbs");
+    expect(warnMessages).to.have.length(1);
+    expect(warnMessages[0].join(" ")).to.include("search.hbs");
   });
 });
