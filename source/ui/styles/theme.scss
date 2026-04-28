@@ -17,27 +17,27 @@
   --color-dark: #343434;
   --color-light: #eee;
 
-  --color-text: light-dark(var(--color-dark), var(--color-light));
+  --color-text: var(--color-light);
   /* Main (body) background color */
-  --color-background:  light-dark(white, var(--color-dark));
+  --color-background:  var(--color-dark);
 
   /* Background color for "section" elements.
     (large page chunks that may contain some number of items).
     designed to stand out over --color-background 
   */
-  --color-section: light-dark(white, rgba(0, 0, 0, 0.15));
+  --color-section: rgba(0, 0, 0, 0.15);
 
   /* Background color for "block elements", like  cards, navbars, modals... */
-  --color-element: light-dark(#e0e0e0, rgba(0, 0, 0, 0.15));
+  --color-element: rgba(0, 0, 0, 0.15);
 
 
-  --color-hover: color-mix(in oklch, var(--color-primary), Canvas 20%);
+  --color-hover: color-mix(in oklch, var(--color-primary), black 20%);
 
   /* Main Color for elements designed to stand out in a section, like action buttons.  */
-  --color-highlight: color-mix(in oklch, color-mix(in srgb, CanvasText 10%, Canvas), var(--color-secondary) 8%);
+  --color-highlight: color-mix(in oklch, color-mix(in srgb, white 10%, black), var(--color-secondary) 8%);
 
   /* Additional highlight color, primarily for hover effects */
-  --color-highlight2: color-mix(in srgb, CanvasText 37%, Canvas);
+  --color-highlight2: color-mix(in srgb, white 37%, black);
 
   --color-info: #73adff;
   --color-success: #8ae65c;
