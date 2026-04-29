@@ -13,6 +13,7 @@
     gap: 5px;
   }
 
+
   .form-group{
     padding: 5px 0;
     &.inline{
@@ -38,9 +39,6 @@
     }
   }
 
-  .ui-button{
-    margin-top: 5px;
-  }
 
   .divider{
     width: 1px;
@@ -285,7 +283,18 @@
       }
     }
   }
-  
+
+
+  &.form-sidebar{
+    //Used in .grid-toolbar
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    gap: 8px;
+    padding-left: .5rem;
+  }
+
+
   &:disabled *, & *:disabled, & *:disabled * {
     pointer-events: none;
     opacity: 0.7;

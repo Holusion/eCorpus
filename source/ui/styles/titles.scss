@@ -4,13 +4,14 @@ h1, h2, h3 {
   font-family: var(--font-heading);
 }
 
+
 h1 {
   position: relative;
   display: inline-block;
   text-align: center;
   width: 100%;
   color: var(--color-text);
-  padding: .5rem 0.2rem 0rem 1.5rem;
+  padding: .5rem 0.2rem 0rem 0.2rem;
   margin: 1.3rem 0 1.8rem 0;
   border-bottom: 0.6rem solid var(--color-primary);
   @include text-colors {

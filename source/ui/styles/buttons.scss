@@ -135,7 +135,7 @@ a{
     --btn-color-hover: var(--btn-color);
     padding: 0 .6em;
     min-width: auto;
-    height: 1lh;
+    height: 1em;
     border-radius: 999px;
     box-sizing: border-box;
     cursor: text;
@@ -191,7 +191,7 @@ a{
     display: inline-block;
     line-height: 12px;
     vertical-align: top;
-    height: 1lh;
+    height: 1em;
     position: relative;
     color: var(--color-highlight2);
     min-width: auto;
@@ -200,7 +200,7 @@ a{
     > .ui-icon {
       display: inline-block;
       margin: 0;
-      height: 1lh;
+      height: 1em;
     }
     &:hover {
       color: var(--color-primary);
@@ -241,8 +241,7 @@ a{
     height: 1.3em;
     fill: currentColor;
     svg {
-      height: 1rem;
-      height: 1lh;
+      height: 1em;
     }
   }
 

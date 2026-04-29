@@ -1,6 +1,6 @@
 
 <h1>{{#if brand}}{{ brand }}: {{/if}}{{i18n "nav.tags"}}</h1>
-<section class="grid-content">
+<div class="grid-content">
   <form class="form-control">
     <h3 id="tags-search-title">{{i18n "titles.search" }}</h3>
     <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
@@ -10,25 +10,11 @@
           name="search"></ui-icon></button>
     </div>
   </form>
-  <div role="list" class="tags-grid">
+  <section role="list" class="tags-grid">
 
   {{#if tags.length }}
     {{#each tags}}
-      <div role="listitem" id="{{encodeURIComponent name}}" aria-labelledby="{{encodeURIComponent name}}-title" class="section" style="">
-        <a href="/ui/tags/{{encodeURIComponent name}}"><h3 id="{{encodeURIComponent name}}-title">{{ name }}</h3></a>
-        {{#if scenes }}
-          <div class="tag-preview-line">
-            {{#each scenes}}
-              {{#if (test @index '<' 6) }}
-                <a href="{{uri}}" title="{{ name }}">
-                      {{> sceneThumb}}
-                </a>
-              {{/if}}
-            {{/each}}
-          </div>
-        {{/if}}
-        <span class="tag-size"><a href="/ui/tags/{{encodeURIComponent name}}">{{ i18n "labels.show" }} ({{size}})</a></span>
-      </div>
+      {{>tagPreview }}
     {{/each}}
     <div style="grid-column: 1 / end;">
       {{#with pager}}
@@ -50,4 +36,4 @@
 
   {{/if}}
   </div>
-</section>
+</div>

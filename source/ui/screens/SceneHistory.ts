@@ -2,7 +2,6 @@ import { LitElement, TemplateResult, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 import Notification from "../composants/Notification";
-import "../composants/Button";
 import "../composants/Spinner";
 import "../composants/Size";
 import "../composants/TagList";
@@ -31,13 +30,13 @@ interface AccessRights{
  export default class SceneHistory extends withUser(i18n(LitElement)) {
   /** urlencoded scene name */
   @property()
-  name :string;
+  name !:string;
 
   @property({attribute: true, type: Boolean})
   write: boolean = false;
 
   @property({attribute: false, type:Array})
-  versions : HistoryEntry[];
+  versions : HistoryEntry[]|null = null;
 
   @property({attribute: false, type:Array})
   permissions :AccessRights[] =[];
@@ -92,7 +91,7 @@ interface AccessRights{
   onRestore = (e :CustomEvent<number>)=>{
     e.stopPropagation();
     const id = e.detail;
-    let entry = this.versions.find(e=>e.id === id);
+    let entry = this.versions?.find(e=>e.id === id);
     if(!Number.isInteger(id) || !entry) return Notification.show(`Can't restore to ${id}: Invalid id`, "error");
     if(!confirm(this.t("info.restoreTo", {point: `${entry.name}#${entry.generation}`}))){
       return;

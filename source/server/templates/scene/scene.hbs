@@ -1,6 +1,5 @@
-
-<section>
-  <div style="display:flex; flex-direction: column;">
+<div class="section-column">
+  <div class="col" style="display:flex; flex-direction: column;">
     <div style="display: flex; justify-content: start; gap: 1rem; align-items: baseline;">
       {{#if displayedTitle}}
         <h2>{{displayedTitle}}</h2>
@@ -50,61 +49,87 @@
         {{/unless}}
       </div>
     </div>
-    <div class="section-column">
-      <div class="col">
-        <h3>{{i18n "titles.sceneData"}}</h3>
-        <div id="scene-meta-main" style="flex-grow: 1">
-          {{#with meta}}
-            {{#if primary_language}}
-                <p>
-                  {{i18n "labels.localization" count=languages.length }}:
-                  {{#each languages}}
-                    {{#if (test @index "!=" 0)}},{{/if}}
-                    <a href="/ui/scenes/{{encodeURIComponent @root.scene.name}}/view?lang={{.}}" {{#if (test . "==" ../primary_language)}}class="text-success" title="{{i18n "labels.setupLocalization"}}"{{/if}}>{{.}}</a>
-                  {{/each}}
-                </p>
-                <p>{{i18n "leads.sceneCounts" tours=tours.length articles=articles.length annotations=annotations.length }}</p>
-            {{else}}
-              {{i18n "leads.noMetaAvailable"}}
-            {{/if}}
-          {{/with}}
-
-          <p>{{displayedIntro}}</p>
-          {{#if meta.copyright}}
-            <p>{{i18n "labels.copyright"}} {{meta.copyright}}</p>
+    <div>
+      <h3>{{i18n "titles.sceneData"}}</h3>
+      <div id="scene-meta-main" style="flex-grow: 1">
+        {{#with meta}}
+          {{#if primary_language}}
+              <p>
+                {{i18n "labels.localization" count=languages.length }}:
+                {{#each languages}}
+                  {{#if (test @index "!=" 0)}}·{{/if}}
+                  <a href="/ui/scenes/{{encodeURIComponent @root.scene.name}}/view?lang={{.}}" {{#if (test . "==" ../primary_language)}}class="text-success" title="{{i18n "labels.setupLocalization"}}"{{/if}}>{{.}}</a>
+                {{/each}}
+              </p>
+              <p>{{i18n "leads.sceneCounts" tours=tours.length articles=articles.length annotations=annotations.length }}</p>
+          {{else}}
+            {{i18n "leads.noMetaAvailable"}}
           {{/if}}
-          <p>{{i18n "labels.sceneType"}} : {{scene.type}}</p>
-        </div>
-      </div>
-      <div class="col">
-        {{#unless scene.archived }}
-          <div class="col" style="max-width: 200px; margin: 0 auto; display:flex; flex-direction: column; gap: 10px; justify-content: start">
-            {{#if (test scene.type "==" "voyager")}}
-              <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/view" title="{{i18n "leads.showScene"}}">
-                <ui-icon name="eye"></ui-icon>
-                <span class="tool-text">{{i18n "labels.view"}}</span>
-              </a>
-            {{else if (test scene.type "==" "html")}}
-              <a class="btn btn-main" href="/scenes/{{encodeURIComponent scene.name}}/index.html" title="{{i18n "leads.showScene"}}">
-                <ui-icon name="eye"></ui-icon>
-                <span class="tool-text">{{i18n "labels.view"}}</span>
-              </a>
-            {{/if}}
-            {{#unless (test (test access "==" "read") "||" (test scene.type "!=" "voyager"))}}
-              <a class="btn btn-main" href="/ui/scenes/{{encodeURIComponent scene.name}}/edit" title="{{i18n "leads.showScene"}}">
-                <ui-icon name="edit"></ui-icon> {{i18n "labels.edit"}}
-              </a>
-            {{/unless}}
-            <div style="flex-grow: 1"></div>
-            <a class="btn btn-main" download="{{scene.name}}.zip"
-              href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
-              <ui-icon name="save"></ui-icon>
-              <span class="tool-text">{{i18n "buttons.download"}}</span>
-            </a>
-          </div>
-        {{/unless}}
+        {{/with}}
+
+        <p>{{displayedIntro}}</p>       
+        {{#if meta.copyright}}
+          <p>{{i18n "labels.copyright"}} {{meta.copyright}}</p>
+        {{/if}}
+        <p>{{i18n "labels.sceneType"}} : {{scene.type}}</p>
       </div>
     </div>
 
   </div>
-</section>
+
+  <div class="col" style="max-width: 256px;">
+    <section>
+      {{#if scene.archived}}
+        <span class="flush">
+      {{else}}
+        <a class="flush" href="{{#if (test scene.type "==" "voyager")}}/ui/scenes/{{encodeURIComponent scene.name}}/view{{else if (test scene.type "==" "html")}}/scenes/{{encodeURIComponent scene.name}}/index.html{{else}}#{{/if}}">
+      {{/if}}
+        {{#with scene}}
+        {{> sceneThumb}}
+        {{/with}}
+      {{#if scene.archived}}
+        </span>
+      {{else}}
+        </a>
+      {{/if}}
+    </section>
+  </div>
+</div>
+
+
+{{#if onboarding}}
+<div class="onboarding-block" id="onboarding-main">
+  <h2>{{i18n "titles.onboarding"}}</h2>
+  <p>
+    {{i18n "leads.appLead"}} —
+    <a class="text-primary" href="https://ecorpus.eu/{{lang}}/doc/tutorials/">{{i18n "nav.documentation"}}</a>
+  </p>
+
+  <div class="onboarding-steps">
+    <div class="onboarding-step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h3>{{i18n "onboarding.import.title"}}</h3>
+        <p>{{i18n "onboarding.import.lead"}}</p>
+        <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/import.html">{{i18n "onboarding.import.link"}}</a>
+      </div>
+    </div>
+    <div class="onboarding-step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h3>{{i18n "onboarding.annotate.title"}}</h3>
+        <p>{{i18n "onboarding.annotate.lead"}}</p>
+        <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/annotation.html">{{i18n "onboarding.annotate.link"}}</a>
+      </div>
+    </div>
+    <div class="onboarding-step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <h3>{{i18n "onboarding.publish.title"}}</h3>
+        <p>{{i18n "onboarding.publish.lead"}}</p>
+        <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/embed.html">{{i18n "onboarding.publish.link"}}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{{/if}}

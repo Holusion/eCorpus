@@ -1,0 +1,26 @@
+<div class="tag-preview-block" role="listitem" id="{{encodeURIComponent name}}" aria-labelledby="{{encodeURIComponent name}}-title" style="">
+  <a class="tag-name" id="{{encodeURIComponent name}}-title" title="{{i18n "labels.show"}}" href="/ui/tags/{{encodeURIComponent name}}">
+    <span>{{ name }}</span>
+    <span class="tag-size btn btn-pill" href="/ui/tags/{{encodeURIComponent name}}">
+      <span>{{ size }}</span>
+    </span>
+  </a>
+  {{#if scenes }}
+    <div class="tag-preview-line">
+      {{#each scenes}}
+        {{#if (test @index '<' 6) }}
+          <a class="tag-thumb-anchor" href="{{uri}}" title="{{ name }}">
+                {{> sceneThumb}}
+          </a>
+        {{/if}}
+      {{/each}}
+      <a class="tag-more" href="/ui/tags/{{encodeURIComponent name}}">
+        {{#if (test size ">" 6)}}
+          <ui-icon name="plus"></ui-icon>
+        {{else}}
+          &nbsp;
+        {{/if}}
+      </a>
+    </div>
+  {{/if}}
+</div>

@@ -307,6 +307,13 @@
           })();
         </script>
       </dialog>
+
+      <a class="btn btn-main" download="{{scene.name}}.zip"
+        href="/scenes/{{encodeURIComponent scene.name}}?format=zip">
+        <ui-icon name="save"></ui-icon>
+        <span class="tool-text">{{i18n "buttons.download"}}</span>
+      </a>
+
       <button class="btn" onclick="document.querySelector('#rename-scene').showModal()">
         <ui-icon name="edit"></ui-icon>
         {{i18n "buttons.rename"}}

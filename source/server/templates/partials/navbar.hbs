@@ -19,7 +19,10 @@
       {{/unless}}
     <div id="main-navbar-links" popover="" class="navbar">
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
-      {{#if (test (test user.level "==" "admin") "||" (test user.level "==" "manage"))}}
+      {{#if (userLevel user.level "create")}}
+        {{#navLink "/ui/upload/" aria-label="username"}}{{i18n "nav.upload"}}{{/navLink}}
+      {{/if}}
+      {{#if (userLevel user.level "manage") }}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
       <div class="divider"></div>

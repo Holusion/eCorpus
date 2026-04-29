@@ -127,6 +127,8 @@ section, .section{
 
 .main-grid{
   display: grid;
+
+  /// Base grid template ///
   gap: var(--grid-gap, .5rem);
   grid-template-rows: min-content auto;
   grid-auto-rows: auto;
@@ -135,6 +137,7 @@ section, .section{
     '. header .'
     'toolbar content sidebar';
 
+  // Grid template media queries
   @media screen and (max-width: 1600px){
     grid-template-columns: minmax(auto, 300px) minmax(auto, var(--col-width)) 1fr;
       grid-template-areas:
@@ -151,13 +154,52 @@ section, .section{
       'toolbar'
       'content'
       'sidebar';
+    padding: 0 .25rem;
   }
 
+  /// Side backgrounds ///
+
+  &:not(:has(.grid-sidebar))::after,
+  &:not(:has(.grid-toolbar))::before {
+    content: "";
+    opacity: 0.4;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center top;
+    pointer-events: none;
+  }
+
+  &:not(:has(.grid-sidebar))::after{
+    grid-area: sidebar;
+    background-image: url("../assets/images/muse.webp");
+  }
+  &:not(:has(.grid-toolbar))::before{
+    grid-area: toolbar;
+    transform: scale(-1, 1);
+  }
+
+  .grid-sidebar{
+    grid-area: sidebar;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+
+  /// Grid header ///
   .grid-header,  > h1:only-of-type{
     grid-area: header;
     position: relative;
     min-width: 0;
+    word-break: break-word;
+    &:is(h1){
+      margin-bottom: -0.6rem;
+      ~ .grid-content, ~ .grid-toolbar{
+        margin-top: 1.8rem;
+      }
+    }
   }
+  //Some styles only applies if grid-header is a h1
+
 
   .grid-toolbar{
     grid-area: toolbar;
@@ -168,6 +210,7 @@ section, .section{
     display: flex;
     gap: 1rem;
     flex-direction: column;
+    padding-left: .25rem;
 
     section, .section{
       display: flex;
@@ -181,20 +224,23 @@ section, .section{
         @include flush-row();
       }
     }
+    > h3 :first-child,
+    > nav > h3:first-child{
+      margin-block-start: 0;
+    }
+    @media screen and (min-width: 992px){
+      &::after{
+        content: url("../assets/images/scroll.webp");
+        opacity: 0.2;
+      }
+    }
   }
-
   .grid-content, > section:only-of-type{
     grid-area: content;
     position: relative;
     min-width: 0;
   }
 
-  .grid-sidebar{
-    grid-area: sidebar;
-    position: relative;
-    min-width: 0;
-  }
-  
   .grid-fullwidth{
     grid-column: 1 / -1;
     position: relative;
@@ -207,9 +253,6 @@ section, .section{
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 5px;
-  .ui-button{
-    flex: 0 0 auto;
-  }
 }
 
 .list-grid{
@@ -240,38 +283,9 @@ section, .section{
 }
 
 .list-items{
-  
-  .list-item, .list-header{
-      display: flex; 
-      flex: 1 1 auto;
-      gap: 1rem;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      background: var(--color-element);
-      padding: 1rem;
-      border-color: transparent;
-      border-width: 1px 0 1px 0;
-  }
-
-  .list-header{
-    font-size: 1.2rem;
-    font-weight: bold;
-    padding: 1.2rem 1rem 0.8rem 1rem;
-    color: var(--color-primary);
-    border-bottom: 2px solid var(--color-primary);
-  }
-
-  .list-item{
-    &:nth-child(2n){
-      background: var(--color-section);
-    }
-    &:hover{
-      background: var(--color-highlight);
-      filter: opacity(80%);
-      border-color: var(--color-highlight);
-    }
-  }
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
 }
 
 

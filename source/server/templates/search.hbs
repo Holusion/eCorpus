@@ -1,12 +1,6 @@
 
 <div class="grid-header form-control">
   <h1>{{#if brand}}{{brand}}: {{/if}}{{i18n "titles.search"}}</h1>
-  <div class="form-item" style="display:flex; flex-grow: 1">
-    <input class="search-box-input" type="search" name="match" form="search" id="model-search" aria-label="{{i18n "titles.search"}}" placeholder="{{i18n "labels.searchPlaceholder"}}"
-      value="{{params.match}}">
-    <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
-        name="search"></ui-icon></button>
-  </div>
 </div>
 
 <div id="search-toolbar" class="grid-toolbar" style="min-height: 20px;position: relative">
@@ -25,20 +19,12 @@
       <ui-icon class="if-expanded" name="close"></ui-icon>
   </button>
 
-  <section class="md-collapse" id="advanced-search-tools">
-    <form autocomplete="off" id="search" class="form-control column" style="justify-content: stretch" method="GET" action="/ui/scenes">
-      <div style="display:flex;justify-content:space-between;">
-        <h3 style="margin-top: 0">{{i18n "titles.search"}}</h3>
-      </div>
+  <div class="md-collapse" id="advanced-search-tools">
+    <h3 id="advanced-search-title" style="margin-top: 0">{{i18n "labels.advancedSearch"}}</h3>
+    <form aria-labelledby="advanced-search-title" autocomplete="off" id="search" class="form-control form-sidebar" method="GET" action="/ui/scenes">
       <label class="form-group">
-        <span class="sm-hidden" style="display:block;">{{i18n "labels.sortBy"}}</span>
-        <div class="form-item" style="display: flex;justify-content: space-between">
-          <select name="orderBy" autocomplete="off" style="width:auto" form="search">
-            {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
-            {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
-            {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
-            {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
-          </select>
+        <div style="display:flex;justify-content: space-between">
+          <span style="display:block;">{{i18n "labels.sortBy"}}</span>
           <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
             <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
             <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
@@ -46,20 +32,27 @@
             <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
           </fieldset>
         </div>
+        <div class="form-item">
+          <select name="orderBy" autocomplete="off" form="search">
+            {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
+            {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
+            {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
+            {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
+          </select>
+        </div>
       </label>
 
       {{!-- <h5 class="form-section">{{i18n "fields.myScenesOnly"}}</h5> --}}
 
-      <label class="form-item form-checkbox">
-        <input  name="author" class="form-checkbox" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
+      <label class="form-item form-checkbox" style="justify-content: space-between">
         <span>{{i18n "fields.showOnlyMyScenes"}}</span>
+        <input  name="author" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
       </label>
 
       <label class="form-item">{{i18n "fields.myAccess"}}
-      <select name="access" autocomplete="off" style="width:auto" form="search">
+      <select name="access" autocomplete="off" form="search">
         {{#if (test user.level "==" "admin")}}
         {{>inputs/option selected=(test params.access "==" "") text="..."}}
-        
         {{/if}}
         {{>inputs/option selected=(test params.access "==" "read") value="read" text=(i18n "fields.read")}}
         {{>inputs/option selected=(test params.access "==" "write") value="write" text=(i18n "fields.write")}}
@@ -86,10 +79,10 @@
         });
       })()
     </script>
-  </section>
+  </div>
 </div>
 
-<div id="scene-list" class="grid-content list-items section">
+<div id="scene-list" class="grid-content">
   <style>
     #scenes-selection {
       --toolbar-height: 45px;
@@ -128,7 +121,7 @@
         right: 0;
         height: auto;
         padding: var(--toolbar-height) .5rem .5rem .5rem;
-        background: var(--color-section);
+        background: var(--color-dark);
         border: 1px solid var(--color-highlight);
         box-shadow: -2px 2px rgba(20, 20, 20, 0.3);
       }
@@ -168,65 +161,77 @@
 
     }
   </style>
-  {{#if scenes.length }}
-    <form style="" id="scenes-selection">
-      <div id="main-toolbar">
+  <div class="form-control" style="padding-bottom: 1rem;">
+    <div class="form-item" style="display:flex; flex-grow: 1;">
+      <input class="search-box-input" type="search" name="match" form="search" id="model-search" aria-label="{{i18n "titles.search"}}" placeholder="{{i18n "labels.searchPlaceholder"}}"
+        value="{{params.match}}">
+      <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
+          name="search"></ui-icon></button>
+    </div>
 
-        <label style="display: flex; gap: .5rem; align-items: end;">
-          <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
-          <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
-          <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>
-        </label>
-        <div id="main-actions" class="form-group">
-          <a class="btn btn-primary btn-small" download="" href="/scenes?limit=0&amp;format=zip" id="selection-download" disabled>
-            <span>{{i18n "buttons.downloadSelection" }}</span>
-          </a>
+  </div>
 
-          <button
-            class="btn btn-primary btn-small btn-icon btn-outline"
-            title="{{i18n "buttons.showActions"}}"
-            type="button" aria-controls="extended-actions" aria-expanded="false"
-          >
-            <ui-icon class="if-collapsed" name="plus"></ui-icon>
-            <ui-icon class="if-expanded" name="minus"></ui-icon>
-          </button>
-          <div class="collapse" id="extended-actions">
-            <div class="form-control">
-              <label class="form-group">
-                {{ i18n "labels.batchTags"}}
-                <div class="row">
-                  <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
-                  <button id="add-tag" type="button" class="btn btn-small btn-success btn-addon"
-                    title="{{i18n "labels.batchAddTag"}}"
-                    aria-label="{{i18n "labels.batchAddTag"}}"
-                  >
-                    <ui-icon name="plus"></ui-icon>
-                    </button>
-                  <button id="remove-tag" type="button" class="btn btn-small btn-danger btn-addon" style="min-width:40px"
-                    title="{{i18n "labels.batchRmTag"}}"
-                    aria-label="{{i18n "labels.batchRmTag"}}"
-                  >
-                    <ui-icon name="minus"></ui-icon>
-                    </button>
-                  <datalist id="tagSuggestions">
-                    {{#each tagSuggestions }}
-                    <option value="{{.}}" />
-                    {{/each}}
-                  </datalist>
-                </div>
-              </label>
+  <section>
+    {{#if scenes.length }}
+      <form style="" id="scenes-selection">
+        <div id="main-toolbar">
+
+          <label style="display: flex; gap: .5rem; align-items: end;">
+            <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
+            <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
+            <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>
+          </label>
+          <div id="main-actions" class="form-group">
+            <a class="btn btn-primary btn-small" download="" href="/scenes?limit=0&amp;format=zip" id="selection-download" disabled>
+              <span>{{i18n "buttons.downloadSelection" }}</span>
+            </a>
+
+            <button
+              class="btn btn-primary btn-small btn-icon btn-outline"
+              title="{{i18n "buttons.showActions"}}"
+              type="button" aria-controls="extended-actions" aria-expanded="false"
+            >
+              <ui-icon class="if-collapsed" name="plus"></ui-icon>
+              <ui-icon class="if-expanded" name="minus"></ui-icon>
+            </button>
+            <div class="collapse" id="extended-actions">
+              <div class="form-control">
+                <label class="form-group">
+                  {{ i18n "labels.batchTags"}}
+                  <div class="row">
+                    <input id="tag-name" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange="" style="max-width: calc(100% - 90px)"/>
+                    <button id="add-tag" type="button" class="btn btn-small btn-success btn-addon"
+                      title="{{i18n "labels.batchAddTag"}}"
+                      aria-label="{{i18n "labels.batchAddTag"}}"
+                    >
+                      <ui-icon name="plus"></ui-icon>
+                      </button>
+                    <button id="remove-tag" type="button" class="btn btn-small btn-danger btn-addon" style="min-width:40px"
+                      title="{{i18n "labels.batchRmTag"}}"
+                      aria-label="{{i18n "labels.batchRmTag"}}"
+                    >
+                      <ui-icon name="minus"></ui-icon>
+                      </button>
+                    <datalist id="tagSuggestions">
+                      {{#each tagSuggestions }}
+                      <option value="{{.}}" />
+                      {{/each}}
+                    </datalist>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </form>
-  {{/if}}
-  {{#each scenes}}
-    {{>sceneCard select_form="scenes-selection" }}
-  {{/each}}
-  {{#with pager }}
-  {{> pager }}
-  {{/with}}
+      </form>
+    {{/if}}
+    {{#each scenes}}
+      {{>sceneCard select_form="scenes-selection" }}
+    {{/each}}
+    {{#with pager }}
+    {{> pager }}
+    {{/with}}
+  </section>
 </div>
 
 

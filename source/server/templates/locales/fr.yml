@@ -72,6 +72,8 @@ labels:
   showChangedOnly: Afficher uniquement les paramètres modifiés
   public: Publique
   private: Privée
+  size_one: "{{count}} scene"
+  size_other: "{{count}} scenes"
 
 
 buttons:
@@ -144,12 +146,27 @@ nav:
   userArchives: Archives
   tasks: tâches
   overview: Aperçu
+  upload: créer
+
+onboarding:
+  import:
+    title: "Importez vos modèles"
+    lead: "Téléversez un fichier 3D"
+    link: "Tutoriel : créer une scène"
+  annotate:
+    title: "Annotez et enrichissez"
+    lead: "Ouvrez Voyager-Story pour ajouter des articles, médias et annotations"
+    link: "Tutoriel : ajouter du contenu"
+  publish:
+    title: "Publiez et partagez"
+    lead: "Gérez les droits d'accès et intégrez le visualisateur sur votre site"
+    link: "Tutoriel de publication"
 
 titles:
   myScenesSection: mes scenes
   gettingStarted: Pour commencer
-  topCollections: Meilleures collections
   myGroups: Mes groupes
+  onboarding: "Comment ça marche"
   homeHeader: système de gestion de scènes 3D
   mtimeScenesSection: scènes modifiées récemment
   ctimeScenesSection: scènes ajoutées récemment
@@ -267,7 +284,21 @@ leads:
     Des erreurs sont survenues pendant le transfert des fichiers.
     Veuillez vérifier les messages ci-dessus et corriger les problèmes avant de continuer.
   envLocked: "La valeur de \"{{what}}\" provient d'une variable d'environnement et ne peut être changée"
-
+  motd: |
+    <p>
+      Découvrez les fonctionalités d'eCorpus dès leur publication grâce à notre <a href="https://framagroupes.org/sympa/subscribe/ethesaurus_social_club">newsletter</a>.
+    </p>
+    <p>
+      Suivez le développement, signalez les bugs et suggérez des modification sur <b><a href="https://github.com/Holusion/eCorpus">GitHub</a></b>.
+    </p>
+  anonymousGreeting: |
+    <p>Bienvenue sur <a title="documentation" href="https://ecorpus.eu/fr/doc/">eCorpus</a>.</p>
+  anonymousGreeting_branded: |
+    <p>Bienvenue sur <a title="documentation" href="https://ecorpus.eu/fr/doc/">Corpus</a> — {{brand}}.</p>
+  howToAddCopyright: |
+    Cette scène n'a pas de copyright. Ajoutez-en un dans l'interface d'édition.
+  useStandalone: >
+    Essayez le mode "standalone" de <b>Voyager</b> pour tester son interface sans contraintes
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

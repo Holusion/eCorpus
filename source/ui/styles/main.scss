@@ -83,12 +83,8 @@ main {
 .ui-icon{
   flex: 0 0 auto;
   display: inline-block;
-  //Fallback if "lh" isn't supported
-  height: 1rem;
-  width: 1rem;
-
-  height: 1lh;
-  width: 1lh;
+  height: 1em;
+  width: 1em;
   > svg{
     stroke: currentColor;
     stroke-width: 2;

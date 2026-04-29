@@ -189,14 +189,6 @@ routes.get("/tags", wrap(async (req, res)=>{
         type: scene.type,
       });
     }
-    if(6 < scene_ids.length){
-      tag.scenes.splice(-1, 1, {
-        name: "More scenes",
-        uri: `/ui/tags/${encodeURIComponent(tag.name)}`,
-        thumb: null,
-        type: "more",
-      })
-    }
   }
 
   let pager = {
@@ -467,6 +459,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
       }
   }
 
+  let onboarding: boolean = scene.mtime.valueOf() < scene.ctime.valueOf()+2000  && scene.access === "admin";
   res.render("scene/scene", {
     layout: "scene",
     title: `eCorpus: ${scene.name}`,
@@ -477,6 +470,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     groupPermissions,
     userPermissions,
     tagSuggestions,
+    onboarding,
   });
 }));
 
