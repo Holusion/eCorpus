@@ -167,7 +167,7 @@ routes.get("/tags", wrap(async (req, res)=>{
 
 
 
-  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string}[]}> = await vfs.getTags({like: match, limit, offset});
+  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string, type: SceneType}[]}> = await vfs.getTags({like: match, limit, offset});
   for(let tag of tags){
     let scene_ids = await vfs.getTag(tag.name, requester?.uid ?? null);
     tag.scenes ??= [];
@@ -177,6 +177,7 @@ routes.get("/tags", wrap(async (req, res)=>{
         name: scene.name,
         uri: `/ui/scenes/${encodeURIComponent(scene.name)}`,
         thumb: scene.thumb,
+        type: scene.type,
       });
     }
     if(6 < scene_ids.length){
@@ -184,6 +185,7 @@ routes.get("/tags", wrap(async (req, res)=>{
         name: "More scenes",
         uri: `/ui/tags/${encodeURIComponent(tag.name)}`,
         thumb: "/dist/images/moreSprite.svg",
+        type: null,
       })
     }
   }
@@ -501,33 +503,39 @@ routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
   });
 }));
 
-routes.get("/scenes/:scene/view", (req, res)=>{
+routes.get("/scenes/:scene/view", async (req, res) => {
   let {scene} = req.params;
   let {lang, tour} = req.query;
   let host = getHost(req);
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-  let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-  
-  let script = undefined;
-  if(tour && !Number.isNaN(parseInt(tour as any))){
-    script = `
+  const requester = getUser(req);
+  let vfs = getVfs(req);
+  const sceneData = await vfs.getScene(scene, requester?.uid);
+  let thumb = sceneData.thumb ?? new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host).toString();
+  if (sceneData.type == "html") {
+    return res.redirect(302, `/scenes/${scene}/index.html`);
+  } else {
+    let script = undefined;
+    if(tour && !Number.isNaN(parseInt(tour as any))){
+      script = `
       const v = document.querySelector("voyager-explorer");
       v?.on("model-load",()=>{
         v?.toggleTours();
         v?.setTourStep(${parseInt(tour as any)}, 0, true);
       })
     `;
+    }
+
+
+    res.render("scene/explorer", {
+      title: `${scene}: Explorer`,
+      layout: "viewer",
+      scene,
+      thumb: thumb,
+      referrer: referrer.toString(),
+      script
+    });
   }
-
-
-  res.render("scene/explorer", {
-    title: `${scene}: Explorer`,
-    layout: "viewer",
-    scene,
-    thumb: thumb.toString(),
-    referrer: referrer.toString(),
-    script
-  });
 });
 
 

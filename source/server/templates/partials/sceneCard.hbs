@@ -1,10 +1,6 @@
 <div id="scene-{{id}}" class="scene-card">
   <a class="card-image" href="/ui/scenes/{{encodeURIComponent name}}" title="{{i18n "labels.view"}}">
-    {{#if thumb }}
-      <img src="{{thumb}}" />
-    {{else}}
-      <img style="background:radial-gradient(circle, var(--color-secondary) 0, var(--color-dark) 100%);" src="/dist/images/defaultSprite.svg" />
-    {{/if}}
+    {{> sceneThumb}}
   </a>
   <div class="scene-card-inner">
     <div class="infos">
@@ -15,17 +11,10 @@
     </div>
     <div class="tools">
       {{!if a scene is shown, the user must have read access}}
-      {{#if (test type "==" "voyager")}}
-        <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/view" title="{{i18n "leads.showScene"}}">
-          <ui-icon name="eye"></ui-icon>
-          <span class="tool-text">{{i18n "labels.view"}}</span>
-        </a>
-      {{else if (test type "==" "html")}}
-        <a class="tool-link" href="/scenes/{{encodeURIComponent name}}/index.html" title="{{i18n "leads.showScene"}}">
-          <ui-icon name="eye"></ui-icon>
-          <span class="tool-text">{{i18n "labels.view"}}</span>
-        </a>
-      {{/if}}        
+      <a class="tool-link" href="/scenes/{{encodeURIComponent name}}/index.html" title="{{i18n "leads.showScene"}}">
+        <ui-icon name="eye"></ui-icon>
+        <span class="tool-text">{{i18n "labels.view"}}</span>
+      </a>
       {{#unless (test (test access "==" "read") "||" (test type "!=" "voyager"))}}
         <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/edit" title="{{i18n "leads.editScene"}}">
           <ui-icon name="edit"></ui-icon>

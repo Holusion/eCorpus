@@ -61,24 +61,17 @@
                 <ui-icon name="list"></ui-icon>
                 <span class="tool-text">{{i18n "titles.logs"}}</span>
               </a>
-
-              {{#if (test type "==" "html")}}
-              <a class="scene-tool tool-link" href="/scenes/{{ encodeURIComponent name }}/index.html" >
-                <ui-icon name="eye"></ui-icon>
-                <span class="tool-text">{{i18n "labels.view"}}</span>
-              </a>
-              {{else}}
               <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/view" >
                 <ui-icon name="eye"></ui-icon>
                 <span class="tool-text">{{i18n "labels.view"}}</span>
               </a>
-              <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
-                <ui-icon name="edit"></ui-icon>
-                <span class="tool-text">{{i18n "labels.edit"}}</span>
-              </a>
+              {{#if (test type "==" "voyager")}}
+                <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
+                  <ui-icon name="edit"></ui-icon>
+                  <span class="tool-text">{{i18n "labels.edit"}}</span>
+               </a>
               {{/if}}
             </li>
-           
           {{/if}}
         {{/each}}
       </ul>
