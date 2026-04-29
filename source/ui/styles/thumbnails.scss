@@ -1,0 +1,9 @@
+.thumbnail {
+    aspect-ratio: 1;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    stroke: var(--color-light);
+    background: radial-gradient(circle, var(--color-secondary) 0, var(--color-dark) 100%);
+}

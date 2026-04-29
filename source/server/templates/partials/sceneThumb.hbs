@@ -1,9 +1,18 @@
 {{#if thumb }}
 <img src="{{thumb}}" />
+
 {{else if (test type "==" "html")}}
-<img style="background:radial-gradient(circle, var(--color-secondary) 0, var(--color-dark) 100%);"
-    src="/dist/images/defaultHTMLSprite.svg" />
+<svg aria-hidden="true" class="thumbnail">
+    <use href="/dist/images/icons.svg#icon-layout-panel-left"></use>
+</svg>
+
+{{else if (test type "==" "more")}}
+<svg aria-hidden="true" class="thumbnail">
+    <use href="/dist/images/icons.svg#icon-more"></use>
+</svg>
+
 {{else}}
-<img style="background:radial-gradient(circle, var(--color-secondary) 0, var(--color-dark) 100%);"
-    src="/dist/images/defaultSprite.svg" />
+<svg aria-hidden="true" class="thumbnail">
+    <use href="/dist/images/icons.svg#icon-box"></use>
+</svg>
 {{/if}}

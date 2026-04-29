@@ -30,7 +30,7 @@
   }
   .card-image{
     flex: 0 0 auto;
-    >img{
+    >img, >svg{
       display: block;
       aspect-ratio: 1/1;
       height: var(--card-height);

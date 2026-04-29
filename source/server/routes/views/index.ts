@@ -167,7 +167,7 @@ routes.get("/tags", wrap(async (req, res)=>{
 
 
 
-  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string, type: SceneType}[]}> = await vfs.getTags({like: match, limit, offset});
+  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string, type: SceneType | "more"}[]}> = await vfs.getTags({like: match, limit, offset});
   for(let tag of tags){
     let scene_ids = await vfs.getTag(tag.name, requester?.uid ?? null);
     tag.scenes ??= [];
@@ -184,8 +184,8 @@ routes.get("/tags", wrap(async (req, res)=>{
       tag.scenes.splice(-1, 1, {
         name: "More scenes",
         uri: `/ui/tags/${encodeURIComponent(tag.name)}`,
-        thumb: "/dist/images/moreSprite.svg",
-        type: null,
+        thumb: null,
+        type: "more",
       })
     }
   }
