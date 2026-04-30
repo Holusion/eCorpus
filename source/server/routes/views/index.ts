@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { canRead, getHost, canWrite, canAdmin, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
-import { Scene } from "../../vfs/types.js";
+import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
@@ -94,7 +94,7 @@ routes.get("/upload", wrap(async (req, res)=>{
     throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
   }
   debug("Render previous upload tasks : ", ids);
-  type TaskScene = {name: string,  action: "create"|"update", task_id: number}
+  type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
   type TaskError =  {error: string, action: "error",  task_id: number|null}
   type TaskLine = TaskScene|TaskError;
   let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
@@ -128,7 +128,7 @@ routes.get("/upload", wrap(async (req, res)=>{
         continue;
       }
       const scene = await vfs.getScene(task.output);
-      scenes.push({name: scene.name, action: "create", task_id: task.task_id});
+      scenes.push({name: scene.name, action: "create", task_id: task.task_id, type: scene.type});
     }else if(task.type === "extractScenesArchives"){
       if(!Array.isArray(task.output)){
         console.warn("Unexpected output for %s :", task.type, task.output);
@@ -136,7 +136,8 @@ routes.get("/upload", wrap(async (req, res)=>{
         continue;
       }
       for(let {action, name } of task.output){
-        scenes.push({action, name, task_id: task.task_id});
+        const scene = await vfs.getScene(name);
+        scenes.push({action, name, task_id: task.task_id, type: scene.type});
       }
     }else{
       console.warn("Unsupported task type: %s. not an upload task?", task.type);
@@ -166,7 +167,7 @@ routes.get("/tags", wrap(async (req, res)=>{
 
 
 
-  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string}[]}> = await vfs.getTags({like: match, limit, offset});
+  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string, type: SceneType | "more"}[]}> = await vfs.getTags({like: match, limit, offset});
   for(let tag of tags){
     let scene_ids = await vfs.getTag(tag.name, requester?.uid ?? null);
     tag.scenes ??= [];
@@ -176,13 +177,15 @@ routes.get("/tags", wrap(async (req, res)=>{
         name: scene.name,
         uri: `/ui/scenes/${encodeURIComponent(scene.name)}`,
         thumb: scene.thumb,
+        type: scene.type,
       });
     }
     if(6 < scene_ids.length){
       tag.scenes.splice(-1, 1, {
         name: "More scenes",
         uri: `/ui/tags/${encodeURIComponent(tag.name)}`,
-        thumb: "/dist/images/moreSprite.svg",
+        thumb: null,
+        type: "more",
       })
     }
   }
@@ -500,33 +503,39 @@ routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
   });
 }));
 
-routes.get("/scenes/:scene/view", (req, res)=>{
+routes.get("/scenes/:scene/view", async (req, res) => {
   let {scene} = req.params;
   let {lang, tour} = req.query;
   let host = getHost(req);
   let referrer = new URL(req.get("Referrer")||`/ui/scenes/`, host);
-  let thumb = new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host);
-  
-  let script = undefined;
-  if(tour && !Number.isNaN(parseInt(tour as any))){
-    script = `
+  const requester = getUser(req);
+  let vfs = getVfs(req);
+  const sceneData = await vfs.getScene(scene, requester?.uid);
+  let thumb = sceneData.thumb ?? new URL(`/scenes/${encodeURIComponent(scene)}/scene-image-thumb.jpg`, host).toString();
+  if (sceneData.type == "html") {
+    return res.redirect(302, `/scenes/${scene}/index.html`);
+  } else {
+    let script = undefined;
+    if(tour && !Number.isNaN(parseInt(tour as any))){
+      script = `
       const v = document.querySelector("voyager-explorer");
       v?.on("model-load",()=>{
         v?.toggleTours();
         v?.setTourStep(${parseInt(tour as any)}, 0, true);
       })
     `;
+    }
+
+
+    res.render("scene/explorer", {
+      title: `${scene}: Explorer`,
+      layout: "viewer",
+      scene,
+      thumb: thumb,
+      referrer: referrer.toString(),
+      script
+    });
   }
-
-
-  res.render("scene/explorer", {
-    title: `${scene}: Explorer`,
-    layout: "viewer",
-    scene,
-    thumb: thumb.toString(),
-    referrer: referrer.toString(),
-    script
-  });
 });
 
 

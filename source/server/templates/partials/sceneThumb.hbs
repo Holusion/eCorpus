@@ -1,0 +1,18 @@
+{{#if thumb }}
+<img src="{{thumb}}" />
+
+{{else if (test type "==" "html")}}
+<svg aria-hidden="true" class="thumbnail">
+    <use href="/dist/images/icons.svg#icon-layout-panel-left"></use>
+</svg>
+
+{{else if (test type "==" "more")}}
+<svg aria-hidden="true" class="thumbnail">
+    <use href="/dist/images/icons.svg#icon-more"></use>
+</svg>
+
+{{else}}
+<svg aria-hidden="true" class="thumbnail">
+    <use href="/dist/images/icons.svg#icon-box"></use>
+</svg>
+{{/if}}

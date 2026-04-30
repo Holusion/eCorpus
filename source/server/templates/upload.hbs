@@ -65,12 +65,13 @@
                 <ui-icon name="eye"></ui-icon>
                 <span class="tool-text">{{i18n "labels.view"}}</span>
               </a>
-              <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
-                <ui-icon name="edit"></ui-icon>
-                <span class="tool-text">{{i18n "labels.edit"}}</span>
-              </a>
+              {{#if (test type "==" "voyager")}}
+                <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
+                  <ui-icon name="edit"></ui-icon>
+                  <span class="tool-text">{{i18n "labels.edit"}}</span>
+               </a>
+              {{/if}}
             </li>
-            
           {{/if}}
         {{/each}}
       </ul>

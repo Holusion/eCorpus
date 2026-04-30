@@ -35,7 +35,7 @@
           box-shadow: -3px 3px 4px 1px rgba(0, 0, 0, 0.4);
           border-color: var(--color-highlight2);
         }
-        > img{
+        > img, >svg{
           display: block;
           max-width: 100%;
           height: auto;
