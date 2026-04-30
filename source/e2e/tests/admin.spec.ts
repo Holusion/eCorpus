@@ -16,7 +16,7 @@ test("can create a new user", async ({page})=>{
   let name = `test-createuser-${randomBytes(6).toString("base64url")}`;
   let password = randomUUID();
   let email = `${name}@example.com`;
-  await page.getByRole("button", {name: "buttons.createUser"}).click();
+  await page.getByRole("button", {name: "labels.createUser"}).click();
   const form = page.getByRole("dialog", {name: "labels.createUser"});
   await expect(form).toBeVisible();
   await form.getByRole("textbox", {name: "labels.username"}).fill(name);

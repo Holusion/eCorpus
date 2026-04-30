@@ -23,7 +23,7 @@ test("downloads a scene archive", async ({page, request})=>{
     data: await fs.readFile(path.join(fixtures, "cube.glb")),
   });
 
-  await page.goto(`/ui/scenes/${encodeURIComponent(name)}`);
+  await page.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
   //Check if it _looks like_ the actual scene page
   await expect(page.locator("h1")).toHaveText(name);
   const downloadPromise = page.waitForEvent('download');

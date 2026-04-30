@@ -9,10 +9,10 @@
         <th></th>
       </tr></thead>
       <tbody>
-      {{#unless scenes.length}}
+      {{#unless archives.length}}
         <tr><td colspan=4 style="text-align: center;">{{i18n "leads.noArchives"}}</td></tr>
       {{/unless}}
-      {{#each scenes}}
+      {{#each archives}}
         <tr>
           <td class="sm-hidden">{{dateString mtime}}</td>
           <td><a href="/ui/scenes/{{encodeURIComponent name }}">{{name}}</a></td>
@@ -36,6 +36,6 @@
       </tbody>
     </table>
   </div>
- 
+
 
 </section>

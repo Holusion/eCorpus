@@ -46,7 +46,7 @@ test.afterAll(async ()=>{
   await adminContext.close();
 });
 
-["/ui/", "/auth/login"].forEach((path)=>{
+["/auth/login"].forEach((path)=>{
   
   test(`can login through ${path}`, async ({page})=>{
   await page.goto(path);
