@@ -1,5 +1,14 @@
 export type TestOperator = "in" | "==" | "===" | "!=" | "<" | ">" | "<=" | "=<" | ">=" | "=>" | "&&" | "||";
 
+const LOGICAL_OPS = new Set<TestOperator>(["&&", "||"]);
+const COMPARISON_OPS = new Set<TestOperator>(["in", "==", "===", "!=", "<", ">", "<=", "=<", ">=", "=>"]);
+
+function isAmbiguousChain(op1: TestOperator, op2: TestOperator): boolean {
+  // Mixing &&/|| has non-standard precedence; chaining two comparisons is semantically wrong
+  return (LOGICAL_OPS.has(op1) && LOGICAL_OPS.has(op2) && op1 !== op2)
+    || (COMPARISON_OPS.has(op1) && COMPARISON_OPS.has(op2));
+}
+
 /**
  * Handlebars helper: `test`
  *
@@ -39,6 +48,15 @@ export function test(this: any, a: any, op: TestOperator, b: any, ...args: any[]
     if (a == "!") return !op;
     console.warn("Invalid number of arguments for test helper in %s:", src, a, op, b);
     return false;
+  }
+  // Chained: test a op1 b op2 c → test a op1 (test b op2 c)
+  if (args.length >= 3) {
+    const [op2, c, ...rest] = args;
+    if (isAmbiguousChain(op, op2 as TestOperator)) {
+      console.warn('Ambiguous chained test operators "%s" "%s" in %s — use subexpressions instead', op, op2, src);
+    } else {
+      b = test.call(this, b, op2 as TestOperator, c, ...rest);
+    }
   }
   if (op === "in") return (Array.isArray(b) ? b : [b]).indexOf(a) !== -1;
   else if (op === "==") return a == b;

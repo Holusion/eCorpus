@@ -53,6 +53,41 @@ describe("test helper", function () {
     expect(call(true, "&&", false)).to.be.false;
   });
 
+  it("chained: a && b == 'foo'", function () {
+    // Simulates: {{test a "&&" b "==" "foo"}} with a=true, b="foo" → true
+    expect(testHelper.call({}, true, "&&", "foo", "==", "foo", {})).to.be.true;
+    // b="bar" → false
+    expect(testHelper.call({}, true, "&&", "bar", "==", "foo", {})).to.be.false;
+    // a=false → false even when b matches
+    expect(testHelper.call({}, false, "&&", "foo", "==", "foo", {})).to.be.false;
+  });
+
+  it("chained: homogeneous && and || are unambiguous", function () {
+    expect(testHelper.call({}, true, "&&", true, "&&", true, {})).to.be.true;
+    expect(testHelper.call({}, true, "&&", false, "&&", true, {})).to.be.false;
+    expect(testHelper.call({}, false, "||", false, "||", true, {})).to.be.true;
+    expect(warnMessages).to.have.length(0);
+  });
+
+  it("warns and skips chaining for mixed && / ||", function () {
+    // a && (b || c) vs (a && b) || c — ambiguous, fall back to simple a && b
+    testHelper.call({}, true, "&&", false, "||", true, {});
+    expect(warnMessages).to.have.length(1);
+    expect(warnMessages[0].join(" ")).to.include("&&").and.include("||");
+  });
+
+  it("warns and skips chaining for comparison chained to comparison", function () {
+    // a == (b == c) would compare a to a boolean — nonsensical
+    testHelper.call({}, "foo", "==", "foo", "==", "foo", {});
+    expect(warnMessages).to.have.length(1);
+    expect(warnMessages[0].join(" ")).to.include("==");
+  });
+
+  it("warns and skips chaining for comparison chained to in", function () {
+    testHelper.call({}, "foo", "in", ["foo"], "==", true, {});
+    expect(warnMessages).to.have.length(1);
+  });
+
   it("|| logical OR", function () {
     expect(call(false, "||", true)).to.be.true;
     expect(call(false, "||", false)).to.be.false;
