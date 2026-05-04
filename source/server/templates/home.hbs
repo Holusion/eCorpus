@@ -28,7 +28,7 @@
         <a href="/ui/upload" class="text-primary text-right">{{i18n "buttons.uploadScene"}}</a>
       {{/unless}}
     {{else}}
-      <a class="btn btn-outline btn-primary" href="/ui/login/">
+      <a class="btn btn-outline btn-primary" href="/auth/login/">
         {{i18n "nav.login"}}
       </a>
     {{/if}}
@@ -38,16 +38,18 @@
 </div>
 
 <div class="grid-content">
-  <div id="top-tags" class="lg-only">
-    <div class="tags-grid">
-      {{#each topCollections}}
-        {{>tagPreview }}
-      {{/each}}
+  {{#if topCollections.length}}
+    <div id="top-tags" class="lg-only">
+      <div class="tags-grid">
+        {{#each topCollections}}
+          {{>tagPreview }}
+        {{/each}}
+      </div>
+      <div style="text-align: right; margin-top: .5rem;">
+        <a class="btn btn-transparent btn-primary btn-inline" href="/ui/tags/">{{i18n "nav.tags"}} →</a>
+      </div>
     </div>
-    <div style="text-align: right; margin-top: .5rem;">
-      <a class="btn btn-transparent btn-primary btn-inline" href="/ui/tags/">{{i18n "nav.tags"}} →</a>
-    </div>
-  </div>
+  {{/if}}
 
   <section>
     <h3>{{i18n "titles.gettingStarted"}}</h3>
@@ -66,13 +68,13 @@
       </a>
 
       {{#if user}}
-        <a class="btn btn-primary" href="/ui/upload/">
+        <a class="btn btn-primary btn-outline" href="/ui/upload/">
           <ui-icon name="plus"></ui-icon>
           {{i18n "buttons.uploadScene"}}
         </a>
       {{else}}
         <div style="display: flex; justify-content: space-evenly; flex-wrap: wrap;">
-          <a href="/ui/login/" class="btn btn-primary" >{{i18n "nav.login"}}</a>
+          <a href="/auth/login/" class="btn btn-primary" >{{i18n "nav.login"}}</a>
         </div>
       {{/if}}
     </div>

@@ -1,9 +1,7 @@
 <div class="section-column">
   <div class="col" style="display:flex; flex-direction: column;">
-    <div style="display: flex; justify-content: start; gap: 1rem; align-items: baseline;">
-      {{#if displayedTitle}}
-        <h2>{{displayedTitle}}</h2>
-      {{/if}}
+    <div style="display: flex; justify-content: start; gap: 1rem; align-items: baseline; padding-right: 1rem;">
+        <h2 style="flex-grow: 1">{{displayedTitle}}</h2>
       <span title="{{i18n "labels.defaultAccess"}}: {{i18n (join "fields." scene.default_access) }}">
         {{#if (test scene.default_access "==" "none")}}
           <ui-icon class="text-warning" name="lock"></ui-icon>

@@ -159,8 +159,7 @@ section, .section{
 
   /// Side backgrounds ///
 
-  &:not(:has(.grid-sidebar))::after,
-  &:not(:has(.grid-toolbar))::before {
+  &:not(:has(.grid-sidebar))::after {
     content: "";
     opacity: 0.4;
     background-repeat: no-repeat;
@@ -169,13 +168,9 @@ section, .section{
     pointer-events: none;
   }
 
-  &:not(:has(.grid-sidebar))::after{
+  &:not(:has(.grid-sidebar, .grid-fullwidth))::after{
     grid-area: sidebar;
     background-image: url("../assets/images/muse.webp");
-  }
-  &:not(:has(.grid-toolbar))::before{
-    grid-area: toolbar;
-    transform: scale(-1, 1);
   }
 
   .grid-sidebar{

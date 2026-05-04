@@ -108,10 +108,16 @@
   min-height: calc(100vh - 88px - 2rem);
   flex-wrap: wrap;
 
+  background-image: url("../assets/images/muse.webp");
+  background-size: 300px auto;
+  background-repeat: no-repeat;
+  background-position: right;
+
   .user-login {
     background: var(--color-section);
     border: 1px solid var(--color-element);
     box-shadow: 0 0 5px 0 #00000088;
+    backdrop-filter: opacity(0.3);
     border-radius: 5px;
     padding: 2rem;
     max-width: 600px;

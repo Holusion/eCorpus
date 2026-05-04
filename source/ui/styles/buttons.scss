@@ -91,6 +91,7 @@ a{
 
   &.btn-primary {
     --btn-color: var(--color-primary);
+    --btn-text-color: var(--color-dark);
     --btn-color-hover: var(--color-primary-light);
 
     &:hover:not([disabled]) {
@@ -133,9 +134,9 @@ a{
 
   &.btn-pill {
     --btn-color-hover: var(--btn-color);
-    padding: 0 .6em;
+    padding: 0 .6em .2em .6em;
     min-width: auto;
-    height: 1em;
+    height: 1.2em;
     border-radius: 999px;
     box-sizing: border-box;
     cursor: text;
@@ -237,8 +238,7 @@ a{
   }
 
   & > .ui-icon {
-    margin: 3px;
-    height: 1.3em;
+    margin: 0 2px;
     fill: currentColor;
     svg {
       height: 1em;

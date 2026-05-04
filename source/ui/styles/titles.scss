@@ -29,18 +29,20 @@ h1 {
   }
 }
 
-h2{
-  border-left: 0.7rem solid var(--color-primary);
+h2 {
+  &:not(:empty){
+    border-left: 0.7rem solid var(--color-primary);
+    &.title-right {
+      text-align: right;
+      border-left: 0;
+      border-right: 0.7rem solid var(--color-primary);
+      padding-right: 0.8rem;
+    }
+  }
   @include text-colors {
     border-color: currentColor;
   }
   padding: 0.5rem 0 0 0.8rem;
-  &.title-right{
-    text-align: right;
-    border-left: 0;
-    border-right: 0.7rem solid var(--color-primary);
-    padding-right: 0.8rem;
-  }
 }
 
 .action-title-wrap{
