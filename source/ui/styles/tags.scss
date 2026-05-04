@@ -1,67 +1,120 @@
+.tags-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) [end];
+  grid-auto-flow: row;
+  grid-auto-rows: auto;
+  gap: .5rem;
+
+
+  .tag-size{
+    display: block;
+    text-align: right;
+  }
+  a:hover{
+    color: var(--color-secondary-light);
+  }
+}
+
+@media screen and (max-width: 992px){
   .tags-grid{
-    display: grid;
-    grid-template-columns: repeat(4, 1fr) [end];
-    grid-auto-flow: row;
-    grid-auto-rows: auto;
-    gap: .5rem;
-    > .section{
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    grid-template-columns: 1fr 1fr [end];
+    padding: 0 .5rem;
+  }
+}
+@media screen and (max-width:576px){
+  .tags-grid{
+    grid-template-columns: 1fr [end];
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+}
 
-      > a {
-        text-decoration: none !important;
-      }
+.tag-preview-block{
+  margin: 0;
+  padding: .5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+
+  @include card-background-style();
+
+  >.tag-name{
+    text-decoration: none !important;
+    font-weight: bold;
+    margin: .25rem 0;
+    display: flex;
+    flex-wrap: nowrap;
+    > *:first-child{
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+      min-width: 0;
+      flex-grow: 1;
     }
-    .tag-preview-line{
-      display: flex;
-      gap: 0;
-      perspective: 500px;
-      transform-style: preserve-3d;
-      padding-left: 7px;
-      > a{
-        width: calc(100% / 6 + 7px);
-        display: block;
-        border: 1px solid var(--color-element);
-        border-radius: 4px;
-        transition: transform .1s ease;
-        transform-origin: 100% 50%;
-        transform: rotateY(15deg);
-        margin-left: -7px;
-        box-shadow: -2px 2px 2px rgba(0, 0, 0, 0.4);
-        &:hover{
-          transform: rotateY(30deg);
-          box-shadow: -3px 3px 4px 1px rgba(0, 0, 0, 0.4);
-          border-color: var(--color-highlight2);
-        }
-        > img, >svg{
-          display: block;
-          max-width: 100%;
-          height: auto;
-          border-radius: 4px;
-        }
-      }
-    }
-    .tag-size{
+  }
+
+  > .tag-preview-line{
+    display: flex;
+    gap: 0;
+    perspective: 600px;
+    padding-bottom: 4px;
+    align-items: center;
+    justify-content: flex-start;
+    
+    > .tag-thumb-anchor {
+      position: relative;
+      width: 30%;
+      flex-shrink: 0;
       display: block;
-      text-align: right;
+      // Transforms to make thumbnails atop each other
+      border: 1px solid var(--color-element);
+      border-radius: 4px;
+      transition: transform .2s ease, box-shadow .2s ease;
+      transform-origin: left center;
+      transform: rotateY(25deg);
+      margin-left: -18%;
+      box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.35);
+      &:first-child{
+        margin-left: 0;
+      }
+      &:hover{
+        transform: rotateY(0deg);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+        border-color: var(--color-highlight2);
+        z-index: 10;
+      }
+      > img, >svg{
+        display: block;
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+      }
     }
-    a:hover{
-      color: var(--color-secondary-light);
-    }
-  }
 
-  @media screen and (max-width: 992px){
-    .tags-grid{
-      grid-template-columns: 1fr 1fr [end];
-      padding: 0 .5rem;
+    //Make the animation more subtle for lower thumb count
+    &:has(> .tag-thumb-anchor:nth-child(3)) {
+      > .tag-thumb-anchor:hover ~ .tag-thumb-anchor {
+        transform: translateX(30%) rotateY(25deg);
+      }
+    }
+    &:has(> .tag-thumb-anchor:nth-child(4)) {
+      > .tag-thumb-anchor:hover ~ .tag-thumb-anchor {
+        transform: translateX(60%) rotateY(25deg);
+      }
+    }
+    &:has(> .tag-thumb-anchor:hover){
+      > .tag-thumb-anchor:not(:hover){
+        filter: saturate(0.5) brightness(0.7) grayscale(0.3);
+        box-shadow: none;
+      }
+    }
+
+    > .tag-more{
+      z-index: 11;
+      flex-grow: 1;
+      text-align: end;
+      text-decoration: none;
     }
   }
-  @media screen and (max-width:576px){
-    .tags-grid{
-      grid-template-columns: 1fr [end];
-      gap: 1rem;
-      padding: 0 1rem;
-    }
-  }
+}

@@ -1,7 +1,5 @@
-
-<div class="grid-content">
-  <section>
-    <p>{{{i18n "leads.historyEdition"}}}</p>
-    <scene-history name="{{scene.name}}" {{#if canAdmin}}write{{/if}}></scene-history>
-  </section>
-</div>
+<h2>{{i18n "titles.history" }}</h2>
+<p>{{{i18n "leads.historyEdition"}}}</p>
+<section>
+  <scene-history name="{{scene.name}}" {{#if canAdmin}}write{{/if}}></scene-history>
+</section>

@@ -1,10 +1,9 @@
 import { LitElement, PropertyValues, TemplateResult, css, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
-import Notification from "../composants/Notification";
 import i18n from "../state/translate";
 
-import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/common.scss';
+import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/main.scss';
 import HttpError from "../state/HttpError";
 
 
@@ -53,7 +52,7 @@ function bucketize(entries :HistoryEntry[], duration :number= (1/3)*24*60*60*100
   if(24*60*60*1000 < duration) throw new Error("Duration too long. Infinite loop?");
   if(entries.length <= 3) return entries.map(e=>([e]));
   let buckets :HistoryBucket = [];
-  let current :AggregatedEntry = null;
+  let current :AggregatedEntry|null = null;
   let bucket_end = 0;
   for(let e of entries){
     if(!current || e.ctime.valueOf()+ duration < bucket_end){
@@ -81,10 +80,10 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   write: boolean = false;
 
   @property({attribute: false, type: String})
-  scene :string;
+  scene ?:string;
 
   @property({attribute: true, type: Object })
-  entries :AggregatedEntry;
+  entries !:AggregatedEntry;
 
   @property({attribute: "aria-selected", reflect: true})
   ariaSelected: "true"|"false" = "false";
@@ -168,7 +167,7 @@ export class HistoryEntryAggregate extends i18n(LitElement){
 
     const diffBlock = (this.entries[0].size != 0)?html`
       <h4>Diff:</h4>
-      <pre><code>${diff.split("\n").map(line=>{
+      <pre><code>${diff!.split("\n").map(line=>{
         let color = "light";
         if(line.startsWith("-")) color = "error";
         else if(line.startsWith("+")) color = "success";
@@ -180,11 +179,11 @@ export class HistoryEntryAggregate extends i18n(LitElement){
     
     return html`<div class="history-entry-diff-block">
       <p>
-        ${(src?.size && src.size != dst.size)?  html`
+        ${(src?.size && src.size != dst!.size)?  html`
           Size changed from
           <span class="text-info"><b-size b=${src.size}></b-size></span>
           to
-          <span class="text-info"><b-size b=${dst.size}></b-size></span>
+          <span class="text-info"><b-size b=${dst!.size}></b-size></span>
           .
         ` : null}
         ${(src?.ctime && new Date(src.ctime).valueOf() != 0)? html`Previous version was saved on <span class="text-info">${new Date(src.ctime).toLocaleString(this.language)}</span>`:null}
@@ -200,30 +199,30 @@ export class HistoryEntryAggregate extends i18n(LitElement){
   protected renderSummary({id, name, restorePoint, authoredBy, from, to}:HistorySummary){
     const selected = this.ariaSelected === "true";
     const expand = (this.entries.length === 1)?html`
-      <ui-button @click=${this.toggleSelect} class="btn btn-small btn-transparent btn-inline" text=${selected?"⌃":"⌄"}></ui-button>
+      <button @click=${this.toggleSelect} class="btn btn-small btn-transparent btn-inline" >${selected?"⌃":"⌄"}</button>
     `: html`
-      <ui-button @click=${this.toggleSelect} class="btn btn-primary btn-small btn-transparent btn-inline" text=${(selected? "-":"+")}></ui-button>
+      <button @click=${this.toggleSelect} class="btn btn-primary btn-small btn-transparent btn-inline">${(selected? "-":"+")}</button>
     `;
 
     const showDiff = (this.entries.length === 1)? html`
     <div style="display: flex;justify-content:end; max-width: 300px">
-      <ui-button @click=${this.toggleSelect} class="btn btn-primary btn-small btn-transparent btn-inline" text=${this.t(selected?"info.hideDetails": "info.showDetails")}></ui-button>
+      <button @click=${this.toggleSelect} class="btn btn-primary btn-small btn-transparent btn-inline" >${this.t(selected?"info.hideDetails": "info.showDetails")}</button>
     </div>`: null;
     
     const longAction = selected && this.entries.length === 1
     const action = this.write? html`<div class="history-actions" style="display: flex;justify-content: end;">
-      <ui-button
+      <button
         style="margin-top:-1px"
         class="btn btn-primary ${(longAction)?"btn-outline":"btn-small btn-transparent hover-only"} btn-rollback"
-        text=${this.t("info.restoreTo",{point:longAction?(to??from).toLocaleString(this.language): (to??from).toLocaleTimeString(this.language)})}
+
         @click=${(e:MouseEvent)=>{
           e.stopPropagation()
           this.onRestore(restorePoint)
         }}
         icon="restore"
-      ></ui-button>
+      >${this.t("info.restoreTo",{point:longAction?(to??from).toLocaleString(this.language): (to??from).toLocaleTimeString(this.language)})}</button>
       <a href="history/${restorePoint}/view" 
-        @click=${(e)=>e.stopPropagation()}
+        @click=${(e: any)=>e.stopPropagation()}
         title="${this.t("info.viewAtThisPoint")}" class="btn btn-secondary btn-small btn-transparent btn-inline">
         <ui-icon name="eye"></ui-icon>
       </a>
@@ -329,10 +328,10 @@ export default class HistoryAggregation extends i18n(LitElement){
   write: boolean = false;
 
   @property({attribute: false, type: String})
-  scene :string;
+  scene !:string;
 
   @property({attribute: false, type: Array})
-  entries :HistoryEntry[];
+  entries !:HistoryEntry[];
 
   @state()
   selected?: number = -1;
@@ -341,7 +340,7 @@ export default class HistoryAggregation extends i18n(LitElement){
 
     const handleCollapse = (ev :MouseEvent)=>{
       ev.stopPropagation();
-      for (let el of this.shadowRoot.querySelectorAll(`#day-${index.toString(10)} [aria-selected="true"]`)){
+      for (let el of this.shadowRoot!.querySelectorAll(`#day-${index.toString(10)} [aria-selected="true"]`)){
         el.ariaSelected = "false";
       }
     }

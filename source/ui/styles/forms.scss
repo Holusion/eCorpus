@@ -13,6 +13,7 @@
     gap: 5px;
   }
 
+
   .form-group{
     padding: 5px 0;
     &.inline{
@@ -38,9 +39,6 @@
     }
   }
 
-  .ui-button{
-    margin-top: 5px;
-  }
 
   .divider{
     width: 1px;
@@ -78,10 +76,12 @@
       font-size: 1rem;
       font-weight: 400;
       line-height: 1.5;
-      color: var(--color-text);
-      background: var(--color-element);
-      background-clip: padding-box;
-      border-radius: 0;
+      &:not(.btn){
+        color: var(--color-text);
+        background: var(--color-element);
+        background-clip: padding-box;
+        border-radius: 0;
+      }
 
       &:invalid:not(:placeholder-shown):not(:focus){
         outline: var(--color-error) solid 1px;
@@ -142,8 +142,6 @@
       right: 1px;
       border-radius: 0 3px 3px 0;
       width: 2.5rem;
-      min-width: 2.5rem;
-      box-shadow: none !important;
       padding: 0;
       .ui-icon{
         margin: 0;
@@ -217,7 +215,6 @@
         right:0;
         width: var(--item-height);
         height: var(--item-height);
-        min-width: auto;
         &[aria-checked="true"]{
           color: var(--color-secondary);
         }
@@ -238,16 +235,6 @@
 
   }
   
-  input[type="submit"] {
-    background: var(--color-highlight2);
-    color: var(--color-text);
-    cursor: pointer;
-    &:hover:not(:disabled){
-      background: var(--color-highlight);
-      box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    }
-  }
-
   input[type=file]{
     &.dropzone{
       max-width: 100%;
@@ -296,7 +283,18 @@
       }
     }
   }
-  
+
+
+  &.form-sidebar{
+    //Used in .grid-toolbar
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    gap: 8px;
+    padding-left: .5rem;
+  }
+
+
   &:disabled *, & *:disabled, & *:disabled * {
     pointer-events: none;
     opacity: 0.7;

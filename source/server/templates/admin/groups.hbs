@@ -1,6 +1,6 @@
 
-<div style="margin-bottom: 1.5rem; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: end;">
-  <h1>{{i18n "titles.groupManager"}}</h1>
+<div style="margin-bottom: 1.5rem; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: start;">
+  <h2>{{i18n "titles.groupManager"}}</h2>
   <submit-fragment method="POST" action="/groups/" encoding="application/json" onsubmit="window.location.reload()">
     <form>
     <label class="form-item" style="display:flex; flex-direction: row">
@@ -11,7 +11,7 @@
     </submit-fragment>
 </div>
 
-<div class="group-list" style="position:relative;">
+<div class="list-table-wrap group-list flush" style="position:relative;">
   <table class="list-table">
     <thead><tr>
         <th>uid</th>
@@ -40,9 +40,12 @@
       {{/each}}
     </tbody>
   </table>
-  {{#if groups.length}}
-    <div style="text-align: right;">{{i18n "leads.groupsList" start=start end=end total=total}}</div>
-  {{else}}
-      <div style="text-align: center;">No group created. Enter a name and click the <ui-icon name="plus"></ui-icon> to add one</div>
-  {{/if}}
+  <div style="padding: 1rem 0">
+    {{#if groups.length}}
+      <div style="text-align: right;">{{i18n "leads.groupsList" start=start end=end total=total}}</div>
+    {{else}}
+        <div style="text-align: center;">No group created. Enter a name and click the <ui-icon name="plus"></ui-icon> to add one</div>
+    {{/if}}
+
+  </div>
 </div>

@@ -1,36 +1,227 @@
 
+// === Mixins for scoping overrides to a specific nav context ===
+
+@mixin toolbar-nav {
+  @at-root .main-grid > .grid-toolbar & {
+    @content;
+  }
+}
+
+@mixin main-nav {
+  @at-root #main-navbar & {
+    @content;
+  }
+}
+
+@mixin footer-nav {
+  @at-root footer & {
+    @content;
+  }
+}
 
 
-nav.navbar-nav {
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 3px;
+  height: 100%;
+  box-sizing: border-box;
+  @media screen and (min-width: 576px) {
+    padding: 8px 10px;
+  }
+
+  color: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+
+  border: 0 solid transparent;
+  border-bottom-width: var(--border-height);
+
+  @include toolbar-nav {
+
+    text-align: left;
+    min-width: 200px;
+    flex-wrap: nowrap;
+
+    ui-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    @media (min-width: 576px){
+      //Change border side in toolbar when in vertical mode
+      border-bottom-width: 0;
+      border-left-width: var(--border-height);
+    }
+    // Compact mode at narrow widths: stack icon above label
+    @media (max-width: 1024px) {
+      flex-grow: 1;
+      min-width: 0;
+      flex-direction: column;
+      flex-wrap: wrap;
+      justify-content: center;
+      overflow: hidden;
+      text-overflow: clip;
+      font-stretch: condensed;
+      font-size: 80%;
+    }
+  }
+
+  svg {
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+
+  &:hover {
+    color: var(--color-primary-light);
+  }
+
+  &.active {
+    border-color: var(--color-primary);
+    &:hover {
+      border-color: var(--color-primary-light);
+    }
+    @include toolbar-nav {
+      color: var(--color-primary);
+    }
+  }
+}
+
+
+
+.nav-group {
+  padding: 0;
+  .nav-line {
+    display: flex;
+    flex-direction: row;
+    a {
+      padding: 4px 8px;
+      
+      &:hover {
+        color: var(--color-primary-light);
+      }
+    }
+    > *:first-child {
+      text-decoration: none;
+      flex: 1 1 auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-left: 0;
+    }
+    > *:last-child{
+      padding-right: 0px;
+    }
+  }
+}
+
+
+.nav-text, .nav-text-list {
+  align-self: center;
+  padding: .3rem 1ch;
+  a:hover {
+    color: var(--color-secondary-light);
+  }
+}
+
+.nav-text-list {
+  > .nav-text {
+    padding: 0;
+    white-space: nowrap;
+    &:not(:first-child):not(:empty)::before {
+      content: "— ";
+    }
+  }
+}
+
+// === Base nav styles (shared across all contexts) ===
+nav, .navbar {
   --border-height: 3px;
-  width:100%;
+
+  display: flex;
+  align-items: stretch;
+  flex-basis: auto;
+  flex-direction: row;
+  font-size: 90%;
+
+
+  .btn, .form-item {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    background-color: transparent;
+    color: var(--color-light);
+  }
+
+  .btn {
+    padding: 4px 10px;
+  }
+
+
+  .form-control {
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: stretch;
+  }
+
+  .divider {
+    margin: 8px;
+    min-width: 2px;
+    min-height: 2px;
+    align-self: stretch;
+    background-color: var(--color-highlight2);
+  }
+
+  .nav-end {
+    justify-self: flex-end;
+  }
+
+  @include toolbar-nav(){
+    flex-direction: column;
+    padding-bottom: 10px;
+    font-size: 100%;
+    @media (max-width: 576px){
+      flex-direction: row;
+    }
+  }
+}
+
+
+// === Main navbar (#main-navbar) ===
+
+#main-navbar {
+  z-index: 1001;
+  width: 100%;
   height: var(--nav-height);
   box-sizing: border-box;
   display: flex;
-  justify-content:center;
-  z-index: 1001;
+  justify-content: center;
 
   background-color: var(--color-dark);
   border-bottom: 3px solid var(--color-element);
 
-  .nav-content{
+  .nav-content {
     flex: 1 1 auto;
-    max-width: var(--col-width);
+    max-width: var(--content-width);
     height: var(--nav-height);
-    display:flex;
+    display: flex;
     justify-content: space-between;
   }
 
-  .spacer{
+  .navbar {
+    justify-content: end;
+  }
+
+  .spacer {
     flex: 1 1 auto;
   }
-
-  .divider{
-    width: 1px;
-    height: calc(100% - var(--border-height));
-    background-color: var(--color-highlight);
-  }
-
 
   .logo {
     display: block;
@@ -39,171 +230,41 @@ nav.navbar-nav {
     font-family: var(--font-heading);
     font-weight: 400;
     text-decoration: none;
-    img{
+    &:hover {
+      filter: opacity(80%);
+    }
+    img {
       height: 100%;
       width: auto;
       display: block;
-    
-    }
-  }
-  .logo:hover {
-    filter: opacity(80%);
-  }
-  
-  .brand{
-
-  }
-}
-
-nav{
-
-  .navbar{
-    display: flex;
-    align-items: stretch;
-    flex-basis: auto;
-    justify-content: end;
-    align-items: center;
-    .btn, .nav-link, .form-item{
-      height:100%;
-      flex: 0 0 auto;
-      box-sizing: border-box;
-      background-color: transparent;
-      font-size: 13px;
-      color: var(--color-light);
-    }
-    .btn{
-      padding: 4px 10px !important;
-    }
-  }
-  
-  .nav-text, .nav-text-list{
-    align-self: center;
-    padding: .3rem 1ch;
-    a:hover{
-      color: var(--color-secondary-light);
     }
   }
 
-  .nav-text-list{
-    > .nav-text{
-      padding: 0;
-      white-space: nowrap;
-      &:not(:first-child):not(:empty)::before{
-        content: "— ";
-      }
-    }
+  .divider {
+    background-color: var(--color-element);
   }
 
-  .nav-link{
-    position: relative;
-    flex-wrap: wrap;
-    height:100%;
-    display: flex;
-    align-items: center;
-    flex: 0 1 auto;
-    gap: 3px;
-    box-sizing: border-box;
-    @media screen and (min-width: 576px){
-      padding: 4px 10px;
-    }
-    margin: 3px;
-    border-bottom: var(--border-height) solid transparent;
-
-    transition: border 0.2s ease 0s;
-
-    color: inherit;
-
-
-    svg { stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-    white-space: nowrap;
-    cursor: pointer;
-    text-decoration: none;
-
-    &:hover, &:focus{
-      color: var(--color-light);
-      background-color: var(--color-highlight2);
-    }
-  
-    &.active {
-      border-bottom: 3px solid var(--color-primary);
-      &:hover, &:focus {
-        border-bottom: 3px solid var(--color-primary-lighter);
-      }
-    }
-  }
-  .form-control{
-    padding: 0 10px;
-    display: flex;
-    align-items: center;
-    justify-content: stretch;
-  }
-  .form-item.nav-input{
+  // Search input
+  .form-item#nav-input {
+    height: auto;
     flex: 1 1 auto;
-    color: var(--color-light);
     min-width: var(--nav-height);
-    >input{
-      width:100%;
-      background: none;
+    > input {
+      width: 100%;
       background: var(--color-highlight);
+      color: var(--color-light);
       border: 1px solid var(--color-highlight2);
       border-radius: 4px;
-      padding-bottom: 0;
       padding-top: 0;
+      padding-bottom: 0;
+    }
+    > .btn:hover {
+      color: var(--color-primary);
     }
   }
 
-
-  .nav-end{
-    justify-self: flex-end;
-  }
-
-}
-
-
-/* Specific rules for the main layout navbar */
-#main-navbar{
-  --nav-z-index: 10; //base z-index for the navbar
-  z-index: var(--nav-z-index);
-
-
-  #main-navbar-collapse-toggle{
-    display: none;
-  }
-  /* Collapse when small*/
-  @media screen and (max-width: 576px){
-    #main-navbar-links{
-      display: none;
-
-      &:popover-open{
-        position: fixed;
-        z-index: var(--nav-z-index);
-        inset: var(--nav-height) .25rem auto .25rem;
-
-        padding: var(--grid-gap);
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-
-        background: var(--color-dark);
-        box-shadow: 0 2px 2px rgba(20, 20, 20, 0.3);
-        border: 1px solid var(--color-highlight);
-
-
-        .nav-link{
-          justify-content: center;
-          padding: var(--grid-gap);
-        }
-
-      }
-    }
-    #main-navbar-collapse-toggle{
-      display: flex;
-      min-width: auto;
-    }
-  }
-
-  //Override popover styles on larger screens
-  #main-navbar-links{
+  // Override UA popover styles on larger screens
+  #main-navbar-links {
     position: relative;
     box-sizing: border-box;
     overflow: visible;
@@ -214,53 +275,48 @@ nav{
     border: none;
     color: currentColor;
     background: none;
-
-    /* the main collection of links that should collapse on smaller screens*/
   }
-  &:has(#main-navbar-links:popover-open) .if-collapsed,
-  &:has(#main-navbar-links:not(:popover-open)) .if-expanded{
+
+  #main-navbar-collapse-toggle {
     display: none;
   }
-}
 
-.tabs-main{
-  display:flex;
-  gap: 15px;
-  align-items: start;
-  > nav{
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding-bottom: 10px;
-    > .nav-link{
-      font-size: 1rem;
-      text-align: left;
-      min-width:200px;
-      flex-wrap: nowrap;
-      svg{
-        fill: white;
-        padding-right: 2px;
-      }
-      ui-icon{
-        width: 1.5rem !important;
-        height: 1.5rem !important;
+  // Popover state: toggle expand/collapse icons
+  &:has(#main-navbar-links:popover-open) .if-collapsed,
+  &:has(#main-navbar-links:not(:popover-open)) .if-expanded {
+    display: none;
+  }
+
+  // Mobile: collapse nav links into a popover
+  @media screen and (max-width: 650px) {
+    #main-navbar-links {
+      display: none;
+
+      &:popover-open {
+        position: fixed;
+        z-index: 1001;
+        inset: var(--nav-height) .25rem auto .25rem;
+
+        padding: .75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+
+        background: var(--color-dark);
+        box-shadow: 0 2px 2px rgba(20, 20, 20, 0.3);
+        border: 1px solid var(--color-highlight);
+
+        .nav-link {
+          justify-content: center;
+          padding:  .75rem;
+        }
       }
     }
-  }
-  > section{
-    width:100%;
-  }
-}
 
-@media (max-width: 1024px){
-  .tabs-main{
-    flex-direction: column;
-    nav{
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-self: stretch;
-      margin-top:0;
+    #main-navbar-collapse-toggle {
+      display: flex;
+      min-width: auto;
     }
-
   }
 }
+

@@ -1,4 +1,105 @@
 
+.onboarding-block {
+  margin: 2rem 0;
+
+  .onboarding-steps {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: calc(1rem + 2rem); // step padding-top + circle radius
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--color-highlight);
+
+      @media (max-width: 640px) {
+        top: 0;
+        bottom: 0;
+        left: calc(2rem - 1px); // center of circle
+        right: auto;
+        width: 2px;
+        height: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      flex-direction: column;
+      padding-top: 2rem; // space for line to appear above first circle
+    }
+  }
+
+  .onboarding-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0.5rem 0;
+
+    @media (max-width: 640px) {
+      flex-direction: row;
+      align-items: flex-start;
+      padding: 0 0 2rem 0;
+      gap: 1.5rem;
+    }
+  }
+
+  .step-number {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    border: 3px solid var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+    background: var(--color-background);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 1rem;
+
+    @media (max-width: 640px) {
+      margin-bottom: 0;
+    }
+  }
+
+  .step-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+
+    @media (max-width: 640px) {
+      text-align: left;
+    }
+
+    h3 {
+      margin-top: 0;
+      font-size: 1.05rem;
+    }
+
+    p {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      margin: 0.4rem 0;
+    }
+
+    a {
+      margin-top: auto;
+      color: var(--color-primary);
+      font-size: 0.85rem;
+    }
+  }
+}
+
 .landing-page {
   display:flex;
   flex-direction: row;
@@ -6,21 +107,20 @@
   justify-content: space-between;
   min-height: calc(100vh - 88px - 2rem);
   flex-wrap: wrap;
-  .illustration{
-    width:67%;
-    min-width:300px;
-    max-width: calc(100vh - 88px - 2rem);
-    flex: 1 1 auto;
-  }
+
   .user-login {
+    background: var(--color-section);
     border: 1px solid var(--color-element);
     box-shadow: 0 0 5px 0 #00000088;
     border-radius: 5px;
-    width: 33%;
-    padding: 1rem;
-    min-width:300px;
-    max-width: 400px;
+    padding: 2rem;
+    max-width: 600px;
+    margin: auto;
     flex: 1 1 auto;
+    .recovery-link{
+      text-align: right;
+      margin-top: 1rem;
+    }
   }
   
   img{

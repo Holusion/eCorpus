@@ -1,59 +1,133 @@
-<h1>{{#if brand}}{{brand}}{{else}}eCorpus{{/if}}</h1>
+<h1 class="grid-header">{{#if brand}}{{brand}}{{else}}eCorpus{{/if}}</h1>
 
-<div class="main-grid">
-  <div class="grid-toolbar">
-    <div class="section">
-        <h4>{{i18n "titles.tools"}}</h4>
-        <div class="form-control column md-row sm-column" style="flex-wrap: wrap;">
-          <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
-          <a class="btn btn-main" href="/ui/upload/">
-              {{i18n "buttons.uploadScene"}}
-          </a>
-          <a class="btn btn-main" href="/ui/standalone/?lang={{lang}}">{{i18n "buttons.useStandalone"}}</a>
-        </div>
+<div class="grid-toolbar">
+  <div>
+    {{#if user}}
+      <h3>{{i18n "titles.myScenesSection"}}</h3>
+      <a class="btn btn-outline btn-primary" href="/ui/upload/">
+        {{i18n "buttons.create"}}
+      </a>
+      <ul class="nav-group">
+        {{#each userOwnedScenes}}
+          <li class="nav-line">
+            <a href="/ui/scenes/{{encodeURIComponent name}}/" title="{{dateString mtime}}">{{name}}</a>
+            <a  href="/ui/scenes/{{encodeURIComponent name}}/view"><ui-icon name="eye"></ui-icon></a>
+            <a href="/ui/scenes/{{encodeURIComponent name}}/edit"><ui-icon name="edit"></ui-icon></a>
+          </li>
+        {{/each}}
+        {{#if (test userOwnedScenes.length ">=" "10")}}
+          <li class="nav-line">
+             <a class="text-primary text-right" href="/ui/scenes/?author={{encodeURIComponent user.username}}">
+              {{i18n "labels.show"}} {{i18n "labels.all"}}…
+            </a>
+          </li>
+        {{/if}}
+      </ul>
+      {{#unless userOwnedScenes.length}}
+        <p>{{i18n "leads.noScenes"}}</p>
+        <a href="/ui/upload" class="text-primary text-right">{{i18n "buttons.uploadScene"}}</a>
+      {{/unless}}
+    {{else}}
+      <a class="btn btn-outline btn-primary" href="/ui/login/">
+        {{i18n "nav.login"}}
+      </a>
+    {{/if}}
+    <p>{{{i18n "leads.useStandalone"}}}</p>
+    <a class="btn" href="/ui/standalone?lang={{lang}}">{{i18n "buttons.useStandalone"}}</a>
+  </div>
+</div>
+
+<div class="grid-content">
+  <div id="top-tags" class="lg-only">
+    <div class="tags-grid">
+      {{#each topCollections}}
+        {{>tagPreview }}
+      {{/each}}
     </div>
-    <div class="section">
-        <h3>{{i18n "titles.mtimeScenesSection" }}</h3>
-        <div class="list list-items flush" style="position:relative;">
-            <span class="list-header">
-                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">{{i18n "fields.name"}}</span>
-                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">{{i18n "fields.mtime"}}</span>
-            </span>
-            {{#each recentChanges }}
-              <a class="list-item" name="${scene.name}" href="/ui/scenes/{{name}}/">
-                <span style="flex: 0 1 auto;overflow: hidden;text-overflow: ellipsis">{{name}}</span>
-                <span style="flex: 1 0 40%;overflow: hidden;text-align: right;text-overflow: ellipsis; font-size:smaller">{{dateString mtime}}</span>
-              </a>
-            {{/each}}
-        </div>
+    <div style="text-align: right; margin-top: .5rem;">
+      <a class="btn btn-transparent btn-primary btn-inline" href="/ui/tags/">{{i18n "nav.tags"}} →</a>
     </div>
   </div>
 
-  <div class="grid-content">
-      <div class="section">
-        <h3>{{i18n "titles.myScenesSection"}}</h3>
-        {{#if userScenes.length}}
-        <div class="list-grid" style="position:relative; margin-top:20px">
-          {{#each userScenes}}
-            {{> sceneCard }}
-          {{/each}}
-        </div>
-        {{else}}
-          <p>{{i18n "leads.noScenes"}}</p>
-          <div style="display:flex; justify-content: space-evenly">
-            <a class="btn btn-main" href="/ui/scenes/">{{i18n "buttons.searchScene"}}</a>
-            <a class="btn btn-main" href="/ui/upload/">{{i18n "buttons.uploadScene"}}</a>
-          </div>
-        {{/if}}
-      </div>
-      <div class="section">
-          <h3>{{i18n "titles.ctimeScenesSection"}}</h3>
-          <div class="list-grid" style="position:relative;">
-            {{#each recentScenes }}
-              {{> sceneCard }}
-            {{/each}}
-          </div>
-      </div>
+  <section>
+    <h3>{{i18n "titles.gettingStarted"}}</h3>
+    {{#if user}}
+      {{{i18n "leads.motd"}}}
+    {{else if brand}}
+      {{{i18n "leads.anonymousGreeting" brand=brand context="branded"}}}
+    {{else}}
+      {{{i18n "leads.anonymousGreeting"}}}
+    {{/if}}
 
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;justify-content: center;">
+      <a class="btn" href="/ui/scenes/">
+        <ui-icon name="search"></ui-icon>
+        {{i18n "buttons.searchScene"}}
+      </a>
+
+      {{#if user}}
+        <a class="btn btn-primary" href="/ui/upload/">
+          <ui-icon name="plus"></ui-icon>
+          {{i18n "buttons.uploadScene"}}
+        </a>
+      {{else}}
+        <div style="display: flex; justify-content: space-evenly; flex-wrap: wrap;">
+          <a href="/ui/login/" class="btn btn-primary" >{{i18n "nav.login"}}</a>
+        </div>
+      {{/if}}
     </div>
+  </section>
+
+  
+  {{#unless userOwnedScenes.length}}
+
+    <div class="onboarding-block" id="onboarding-main">
+      <h2>{{i18n "titles.onboarding"}}</h2>
+      <p>
+        {{i18n "leads.appLead"}} —
+        <a class="text-primary" href="https://ecorpus.eu/{{lang}}/doc/tutorials/">{{i18n "nav.documentation"}}</a>
+      </p>
+
+      <div class="onboarding-steps">
+        <div class="onboarding-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>{{i18n "onboarding.import.title"}}</h3>
+            <p>{{i18n "onboarding.import.lead"}}</p>
+            <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/import.html">{{i18n "onboarding.import.link"}}</a>
+          </div>
+        </div>
+        <div class="onboarding-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>{{i18n "onboarding.annotate.title"}}</h3>
+            <p>{{i18n "onboarding.annotate.lead"}}</p>
+            <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/annotation.html">{{i18n "onboarding.annotate.link"}}</a>
+          </div>
+        </div>
+        <div class="onboarding-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>{{i18n "onboarding.publish.title"}}</h3>
+            <p>{{i18n "onboarding.publish.lead"}}</p>
+            <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/embed.html">{{i18n "onboarding.publish.link"}}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  {{/unless}}
+
+
+  {{#if recentScenes.length}}
+    <h3>{{i18n "titles.mtimeScenesSection"}}</h3>
+    <div class="list-items">
+      {{#each recentScenes}}
+        {{> sceneCard}}
+      {{/each}}
+    </div>
+    <p class="text-right">
+      <a class="btn btn-transparent btn-primary btn-inline" href="/ui/scenes/?orderBy=mtime&orderDirection=desc">{{i18n "buttons.searchScene"}} →</a>
+    </p>
+  {{/if}}
 </div>

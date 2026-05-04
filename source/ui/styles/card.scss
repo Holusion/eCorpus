@@ -1,23 +1,29 @@
-
-.scene-card {
-  position: relative;
-  --card-height: 70px;
-  display: flex;
-  width: 100%;
+@mixin card-background-style{
   box-sizing: border-box;
-  justify-content: stretch;
-  align-items: stretch;
-  background-color: var(--color-element);
-  transition: background-color 0.2s ease-out;
-  border-radius: 4px;
-  overflow: hidden;
 
+  background-color: var(--color-element);
+  transition: background-color 0.2s ease-out, box-shadow 0.2s ease-out;
+  border-radius: 4px;
 
   &:hover{
     background-color: var(--color-highlight);
     border-color: var(--color-highlight2);
     box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
   }
+}
+
+
+.scene-card {
+  position: relative;
+  --card-height: 70px;
+  display: flex;
+  width: 100%;
+  justify-content: stretch;
+  align-items: stretch;
+  overflow: hidden;
+
+  @include card-background-style();
+
 
 
   &:has( > input[type="checkbox"]:checked){
@@ -28,6 +34,7 @@
       border-color: var(--color-secondary);
     }
   }
+  
   .card-image{
     flex: 0 0 auto;
     >img, >svg{
@@ -36,7 +43,7 @@
       height: var(--card-height);
       width: var(--card-height);
       object-fit: cover;
-      border-radius: 4px 0 4px 0;
+      border-radius: 4px 0 0 4px;
       border: 1px solid var(--color-highlight);
     }
   }
@@ -48,12 +55,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    @at-root .list-grid & {
-      flex-direction: column;
-    }
-    @at-root .scene-card-compact & {
-      max-height: var(--card-height);
-    }
+
   }
 
 
@@ -149,13 +151,13 @@
     height: 20px;
   }
 
-
-  // small-ish screens, but not _that_ small
-  @media screen and (max-width: 992px){
+  //Compact cards
+  &.scene-card-compact{
     .scene-card-inner{
-      flex-direction: column;
+      max-height: var(--card-height);
     }
   }
+
   //Vertical mobile screens
   @media screen and (max-width: 576px){
     .scene-card-inner{
@@ -166,6 +168,37 @@
     }
     .tools{
       justify-content: flex-end;
+      .tool-text{
+        display: none;
+      }
+    }
+  }
+}
+
+//grid layout
+.list-grid {
+
+  .scene-card {
+    .scene-card-inner{
+      flex-direction: column;
+      padding-left: 4px;
+    }
+    .tools .tool-text{
+      display: block;
+    }
+    .card-image > img{
+      border-radius: 4px 0;
+    }
+  }
+
+  &.list-grid-compact{
+    .scene-card .card-title{
+      display: -webkit-inline-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow-wrap: break-word;
+      white-space: wrap;
     }
   }
 }

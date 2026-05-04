@@ -123,8 +123,8 @@ module.exports = function createAppConfig(env, argv={})
                 {
                     // Transpile SCSS to CSS and concatenate
                     test: /\.scss$/,
-                    use:[         
-                        MiniCssExtractPlugin.loader,
+                    use:[
+                        { loader: MiniCssExtractPlugin.loader, options: { publicPath: "/dist/" } },
                         "css-loader",
                         "sass-loader"
                     ],
@@ -153,7 +153,6 @@ module.exports = function createAppConfig(env, argv={})
                     type: 'asset/resource',
                     generator: {
                         filename: "images/[name][ext]",
-                        publicPath: "/dist/",
                     }
                 },
             ]

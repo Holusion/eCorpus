@@ -5,7 +5,6 @@
 <meta property="og:image:width" content="320">
 <meta property="og:image:height" content="320">
 
-<meta name="color-scheme" content="dark">
 
 <!-- Apple "add to home screen" meta -->
 <link rel="apple-touch-icon" href="{{thumb}}">
@@ -41,9 +40,9 @@
     margin: 0;
   }
 
-  body.main-grid{
+  body.nav-grid{
     display: grid;
-    grid-template-columns: 1fr minmax(0, var(--col-width, 1320px)) 1fr;
+    grid-template-columns: 1fr minmax(0, var(--content-width, 100%)) 1fr;
     grid-template-rows: var(--nav-height) auto min-content;
     grid-template-areas: 
       "navbar navbar navbar"

@@ -73,6 +73,8 @@ labels:
   showChangedOnly: Show changed parameters only
   public: Public
   private: Private
+  size: "{{count}} scene"
+  size_plural: "{{count}} scenes"
 
 buttons:
   searchScene: search scenes
@@ -94,7 +96,7 @@ buttons:
   selectAll: Select all
   deselectAll: Deselect all
   submit: Send
-  createUser: Create
+  create: Create
   showActions: Show actions
   getTaskArtifacts: Download task workspace
 
@@ -142,12 +144,29 @@ nav:
   settings: Settings
   userGroups: Groups
   userArchives: Archives
-  tasks: Tasks
+  tasks: tasks
   overview: Overview
+  upload: upload
+
+onboarding:
+  import:
+    title: "Import your models"
+    lead: "Upload a 3D model file"
+    link: "Scene creation tutorial"
+  annotate:
+    title: "Annotate and enrich"
+    lead: "Open Voyager-Story and add articles, medias and annotations"
+    link: "Tutorial: adding content"
+  publish:
+    title: "Publish and share"
+    lead: "Manage access control lists and embed the viewer on your website"
+    link: "Publishing tutorial"
 
 titles:
   myScenesSection: my scenes
+  gettingStarted: Getting started
   myGroups: My groups
+  onboarding: "How it works"
   homeHeader: 3D scenes management engine
   mtimeScenesSection: Recently modified scenes
   ctimeScenesSection: Recently added scenes
@@ -259,7 +278,18 @@ leads:
   uploadErrors: >
     Some errors were encountered while processing the uploaded files. Please check errors above.
   envLocked: "{{what}} can't be changed because its value comes from the environment"
-
+  motd: |
+    <p>
+      follow eCorpus development and report issues on <b><a href="https://github.com/Holusion/eCorpus">GitHub</a></b>.
+    </p>
+  anonymousGreeting: |
+    <p>Welcome to <a href="https://ecorpus.eu/en/doc/">eCorpus</a>.</p>
+  anonymousGreeting_branded: |
+    <p>Welcome to <a href="https://ecorpus.eu/en/doc/">Corpus</a> — {{brand}}.</p>
+  howToAddCopyright: |
+    This scene has no copyright. Add one in the edit interface
+  useStandalone: >
+    Try out <b>Voyager</b>'s "standalone" mode to discover its features at your own pace.
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided

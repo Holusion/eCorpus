@@ -1,5 +1,5 @@
 
-<div class="user-form" style="max-width:500px; flex-grow: 1;">
+<section class="user-form">
   <submit-fragment class="form-control" action="/users/{{user.uid}}" method="PATCH" encoding="application/json">
     <form id="user-profile" autocomplete="off" aria-labelledby="user-profile-header">
       <div class="form-group">
@@ -54,4 +54,4 @@
       <button role="submit" style="width:100%" class="btn btn-main">{{i18n "buttons.logout"}}</button>
     </form>
   </div>
-</div>
+</section>

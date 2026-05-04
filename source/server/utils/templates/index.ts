@@ -131,7 +131,7 @@ export default class Templates {
     filepath = path.isAbsolute(filepath) ? filepath : path.resolve(this.#dir, filepath);
     const html = (await this.getset(filepath))({ ...context }, {
       partials: await this.getPartials(),
-      data: { t },
+      data: { t, filepath },
     });
     const layoutName = typeof layout !== "undefined" ? layout : "main";
     if (!layoutName) return html;

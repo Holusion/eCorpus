@@ -1,51 +1,39 @@
 
-<h2>{{#if brand}}{{ brand }}: {{/if}}{{i18n "nav.tags"}}</h2>
-<form class="section form-control">
-  <h3 id="tags-search-title">{{i18n "titles.search" }}</h3>
-  <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
-    <input class="search-box-input" type="search" name="match" id="tags-search" aria-labelledby="tags-search-title"
-      value="{{match}}">
-    <button class="btn btn-addon btn-main" style="margin-top:0" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
-        name="search"></ui-icon></button>
-  </div>
-</form>
-<div role="list" class="tags-grid">
-
-{{#if tags.length }}
-  {{#each tags}}
-    <div role="listitem" id="{{encodeURIComponent name}}" aria-labelledby="{{encodeURIComponent name}}-title" class="section" style="">
-      <a href="/ui/tags/{{encodeURIComponent name}}"><h3 id="{{encodeURIComponent name}}-title">{{ name }}</h3></a>
-      {{#if scenes }}
-        <div class="tag-preview-line">
-          {{#each scenes}}
-            {{#if (test @index '<' 6) }}
-              <a href="{{uri}}" title="{{ name }}">
-                    {{> sceneThumb}}
-              </a>
-            {{/if}}
-          {{/each}}
-        </div>
-      {{/if}}
-      <span class="tag-size"><a href="/ui/tags/{{encodeURIComponent name}}">{{ i18n "labels.show" }} ({{size}})</a></span>
+<h1>{{#if brand}}{{ brand }}: {{/if}}{{i18n "nav.tags"}}</h1>
+<div class="grid-content">
+  <form class="form-control">
+    <h3 id="tags-search-title">{{i18n "titles.search" }}</h3>
+    <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
+      <input class="search-box-input" type="search" name="match" id="tags-search" aria-labelledby="tags-search-title"
+        value="{{match}}">
+      <button class="btn btn-addon btn-main" style="margin-top:0" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
+          name="search"></ui-icon></button>
     </div>
-  {{/each}}
-  <div style="grid-column: 1 / end;">
-    {{#with pager}}
-    {{> pager }}
-    {{/with}}
-  </div>
-{{else}}
-  {{#if match }}
+  </form>
+  <section role="list" class="tags-grid">
+
+  {{#if tags.length }}
+    {{#each tags}}
+      {{>tagPreview }}
+    {{/each}}
     <div style="grid-column: 1 / end;">
       {{#with pager}}
       {{> pager }}
       {{/with}}
     </div>
   {{else}}
-    <div role="listitem" class="section" style="grid-column: 1 / end;">
-      <p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>
-    </div>
-  {{/if}}
+    {{#if match }}
+      <div style="grid-column: 1 / end;">
+        {{#with pager}}
+        {{> pager }}
+        {{/with}}
+      </div>
+    {{else}}
+      <div role="listitem" style="grid-column: 1 / end;">
+        <p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>
+      </div>
+    {{/if}}
 
-{{/if}}
+  {{/if}}
+  </div>
 </div>
