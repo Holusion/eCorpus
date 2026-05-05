@@ -5,8 +5,8 @@ import Notification from "../composants/Notification";
 export type SceneUploadResult = {name: string, action: "create"|"update"|"error"}
 
 
-// @FIXME use more like 100MB in production
-const CHUNK_SIZE = 10000000;
+// That's still way above nginx's 1mb default
+const CHUNK_SIZE = 25_000_000;
 
 export interface UploadOperation{
   //Unique ID of the upload. Might be different from "name" when we upload a scene zip
@@ -43,7 +43,7 @@ export class Uploader implements ReactiveController{
    * List of upload operations
    * Shouldn't be mutated as it will trigger an update when reassigned
    */
-  uploads: readonly UploadOperation[];
+  uploads: readonly UploadOperation[] = [];
   has_pending_uploads: boolean = false;
   has_errors: boolean = true;
 
@@ -72,7 +72,7 @@ export class Uploader implements ReactiveController{
     //Make a closure around uploads list to prevent mutation
     let _uploads : readonly UploadOperation[] = [];
     const self = this;
-    Object.defineProperties(this,{
+    Object.defineProperties(this, {
       "uploads": {
         get() {
           return _uploads;
@@ -80,9 +80,9 @@ export class Uploader implements ReactiveController{
         set(value){
           if(_uploads === value) return
           _uploads = value;
-          this.has_pending_uploads = this.uploads.some(u=>!u.done && !u.error );
-          this.has_errors = this.uploads.some(u=>!!u.error && u.error.name !== "AbortError" );
-          this.processUploads();
+          self.has_pending_uploads = self.uploads.some(u=>!u.done && !u.error );
+          self.has_errors = self.uploads.some(u=>!!u.error && u.error.name !== "AbortError" );
+          self.processUploads();
           self.host?.requestUpdate();
         }
       }
@@ -225,7 +225,7 @@ export class Uploader implements ReactiveController{
     }
 
     const starting_offset = task.progress;
-    const end_offset = Math.min(task.progress+CHUNK_SIZE, task.total)
+    const end_offset = Math.min(task.progress+CHUNK_SIZE, task.total ?? 0)
     const chunk = task.file.slice(task.progress, end_offset);
 
     const update :((changes :Partial<UploadOperation>)=>void) = this.splice.bind(this, task.id);
