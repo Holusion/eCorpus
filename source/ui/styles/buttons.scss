@@ -162,6 +162,10 @@ a{
       background-color: var(--btn-color);
       color: var(--btn-text-color);
     }
+    //Special-case for higher contrast
+    &.btn-secondary{
+      text-shadow: 1px 1px 4px rgba(20, 20, 20, 0.5);
+    }
   }
 
   &.btn-transparent {
