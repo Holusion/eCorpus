@@ -228,8 +228,8 @@ export function getTaskScheduler(req: Request) {
 }
 
 export function getHost(req: Request): URL {
-  let host = (req.app.get("trust proxy") ? req.get("X-Forwarded-Host") : null) ?? req.get("Host");
-  return new URL(`${req.protocol}://${host}`);
+  
+  return new URL(`${req.protocol}://${req.hostname}`);
 }
 
 /**

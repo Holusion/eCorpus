@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import { InternalError, UnauthorizedError } from "./errors.js";
-import { either, isEmbed, validateRedirect } from "./locals.js";
+import { either, getHost, isEmbed, validateRedirect } from "./locals.js";
 
 //Dummy middlewares
 function pass(req :Request, res :Response, next :NextFunction){
@@ -108,6 +108,69 @@ describe("validateRedirect()", function(){
     expect(res.text).to.equal("[400] Bad Redirect parameter");
   });
 
+});
+
+describe("getHost()", function(){
+  function makeApp(trustProxy = false){
+    const app = express();
+    if(trustProxy) app.set("trust proxy", true);
+    app.get("/", (req, res) => {
+      res.status(200).send(getHost(req).toString());
+    });
+    return app;
+  }
+
+  it("uses Host header by default", async function(){
+    const res = await request(makeApp()).get("/").set("Host", "example.com").expect(200);
+    expect(res.text).to.equal("http://example.com/");
+  });
+
+  it("ignores X-Forwarded-* without trust proxy", async function(){
+    const res = await request(makeApp()).get("/")
+      .set("Host", "real.com")
+      .set("X-Forwarded-Host", "proxy.com")
+      .expect(200);
+    expect(res.text).to.equal("http://real.com/");
+  });
+
+  it("ignores X-Forwarded-Proto without trust proxy", async function(){
+    const res = await request(makeApp()).get("/")
+      .set("Host", "example.com")
+      .expect(200);
+    expect(res.text).to.equal("http://example.com/");
+  });
+
+  it("uses X-Forwarded-Host with trust proxy", async function(){
+    const res = await request(makeApp(true)).get("/")
+      .set("Host", "internal.com")
+      .set("X-Forwarded-Host", "proxy.com")
+      .expect(200);
+    expect(res.text).to.equal("http://proxy.com/");
+  });
+
+  it("falls back to Host when X-Forwarded-Host is absent (trust proxy)", async function(){
+    const res = await request(makeApp(true)).get("/")
+      .set("Host", "example.com")
+      .expect(200);
+    expect(res.text).to.equal("http://example.com/");
+  });
+
+  it("uses X-Forwarded-Proto with trust proxy", async function(){
+    const res = await request(makeApp(true)).get("/")
+      .set("Host", "example.com")
+      .set("X-Forwarded-Proto", "https")
+      .expect(200);
+    expect(res.text).to.equal("https://example.com/");
+  });
+
+  it("uses both X-Forwarded-Host and X-Forwarded-Proto with trust proxy", async function(){
+    const res = await request(makeApp(true)).get("/")
+      .set("Host", "internal.com")
+      .set("X-Forwarded-Host", "proxy.com")
+      .set("X-Forwarded-Proto", "https")
+      .expect(200);
+    expect(res.text).to.equal("https://proxy.com/");
+  });
 });
 
 describe("isEmbed()", function(){
