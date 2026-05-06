@@ -1,4 +1,4 @@
-@import "./variables";
+@use "variables" as *;
 
 pre.highlight{
   padding: 1rem;
@@ -10,7 +10,7 @@ pre code{
 
 	/* inline code only*/
 code.highlighter-rouge{
-	background-color: transparentize($yellow2, 0.4);
+	background-color: $yellow3;
 }
 
 /* code blocks */

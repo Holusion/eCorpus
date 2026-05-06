@@ -1,8 +1,8 @@
 
-@import "./variables";
-@import "./highlight";
-@import "./table";
-@import "./features-grid.scss";
+@use "variables" as *;
+@use "highlight";
+@use "table";
+@use "features-grid";
 
 *, *::before, *::after {
   box-sizing: border-box;
