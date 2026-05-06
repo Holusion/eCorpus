@@ -228,8 +228,14 @@ export function getTaskScheduler(req: Request) {
 }
 
 export function getHost(req: Request): URL {
-  
-  return new URL(`${req.protocol}://${req.hostname}`);
+  const trust = req.app.get("trust proxy fn");
+  let host = req.get("X-Forwarded-Host");
+  if (!host || !trust(req.socket.remoteAddress, 0)) {
+    host = req.get("Host");
+  } else if (host.indexOf(",") !== -1) {
+    host = host.substring(0, host.indexOf(",")).trimEnd();
+  }
+  return new URL(`${req.protocol}://${host}`);
 }
 
 /**

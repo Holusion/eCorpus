@@ -171,6 +171,26 @@ describe("getHost()", function(){
       .expect(200);
     expect(res.text).to.equal("https://proxy.com/");
   });
+
+  it("preserves port from Host header", async function(){
+    const res = await request(makeApp()).get("/").set("Host", "example.com:3000").expect(200);
+    expect(res.text).to.equal("http://example.com:3000/");
+  });
+
+  it("preserves port from X-Forwarded-Host with trust proxy", async function(){
+    const res = await request(makeApp(true)).get("/")
+      .set("Host", "internal.com")
+      .set("X-Forwarded-Host", "proxy.com:8080")
+      .expect(200);
+    expect(res.text).to.equal("http://proxy.com:8080/");
+  });
+
+  it("preserves port from Host header when X-Forwarded-Host is absent (trust proxy)", async function(){
+    const res = await request(makeApp(true)).get("/")
+      .set("Host", "example.com:3000")
+      .expect(200);
+    expect(res.text).to.equal("http://example.com:3000/");
+  });
 });
 
 describe("isEmbed()", function(){
