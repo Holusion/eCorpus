@@ -33,7 +33,21 @@ export function isEmbeddable(pathname: string): boolean {
 
 
 const asIframe = ({url, title, width, height}:EmbedParams)=>{
-  return `<iframe name="eCorpus Voyager" title="${title}" src="${url}" width="${width}" height="${height}" allow="xr; xr-spatial-tracking; fullscreen"></iframe>`;
+  const attrs = {
+    name: "eCorpus Voyager",
+    title,
+    src: url,
+    width,
+    height,
+    allow: "fullscreen (src); autoplay; xr; xr-spatial-tracking;",
+    //allowfullscreen: true, //"allow" directive alone _should_ be picked up by all browsers
+  }
+
+  const strAttrs = Object.entries(attrs).map(([attr, value])=>{
+    if(typeof value === "boolean") return attr;
+    else return `${attr}="${value}"`;
+  }).join(" ");
+  return `<iframe ${strAttrs}></iframe>`;
 }
 
 const asJSON = (params: EmbedParams)=>JSON.stringify({
