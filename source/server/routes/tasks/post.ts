@@ -36,10 +36,11 @@ export async function createUserTask(req: Request, res: Response){
 
 
   if(status == "pending"){
-    await taskScheduler.runTask({task, handler: handlers[type] as any});
-    //We could just refresh task.output from the result of runTask and task.status
-    //But it's safer to just fetch the whole task again
-    task = await taskScheduler.getTask(task.task_id);
+    // Fire-and-forget: respond with the task as soon as it's queued so the
+    // client can begin tracking progress via /tasks/:id. Errors land on the
+    // task row through the scheduler's normal error path.
+    taskScheduler.runTask({task, handler: handlers[type] as any})
+      .catch(e => console.error(`Task ${task.type}#${task.task_id} failed:`, e));
   }else{
     //Create the workspace immediately
     await vfs.createTaskWorkspace(task.task_id);

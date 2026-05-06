@@ -45,7 +45,11 @@
       </style>
       <ul class="scenes-container">
         {{#each scenes}}
-          {{#if error }}
+          {{#if (test action "==" "pending")}}
+            <li class="scene-line">
+              <task-progress task-id="{{task_id}}" task-type="{{type}}" task-status="{{status}}"></task-progress>
+            </li>
+          {{else if error }}
             <li class="text-error scene-line">
               <span>{{ error }}</span>
               {{#if task_id}}<a class="scene-tool tool-link" href="/ui/tasks/"></a>{{/if}}

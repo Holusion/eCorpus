@@ -105,7 +105,8 @@ routes.get("/upload", wrap(async (req, res)=>{
   debug("Render previous upload tasks : ", ids);
   type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
   type TaskError =  {error: string, action: "error",  task_id: number|null}
-  type TaskLine = TaskScene|TaskError;
+  type TaskPending = {action: "pending", task_id: number, type: string, status: string}
+  type TaskLine = TaskScene|TaskError|TaskPending;
   let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
     try{
       return await taskScheduler.getTask(id);
@@ -125,6 +126,11 @@ routes.get("/upload", wrap(async (req, res)=>{
     }
     if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
       scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error", task_id: null});
+      continue;
+    }
+    if(task.status === "pending" || task.status === "running" || task.status === "initializing"){
+      // Task is still in flight — surface a placeholder; the client polls until terminal
+      scenes.push({action: "pending", task_id: task.task_id, type: task.type, status: task.status});
       continue;
     }
     if(task.status !== "success"){
