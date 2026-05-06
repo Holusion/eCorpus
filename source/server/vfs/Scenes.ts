@@ -231,7 +231,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           0.4 as rank
         FROM
           scenes 
-        WHERE (scene_name LIKE '%'|| $${idx} ||'%')
+        WHERE unaccent(LOWER(scene_name)) LIKE unaccent(LOWER('%'|| $${idx} ||'%'))
     ) matches
       GROUP BY fk_scene_id 
       ) as matching_scenes

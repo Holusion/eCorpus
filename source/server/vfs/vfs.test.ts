@@ -563,221 +563,261 @@ describe("Vfs", function(){
             expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
           });
 
-          it("filters by name match", async function(){
-            let hello_scene_id = await vfs.createScene("Hello World", user.uid);
-            await vfs.writeDoc(JSON.stringify( {
-              metas: [{collection:{
-                titles:{EN: "", FR: ""}
-            }}]}
-            ), {scene: hello_scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let goodbye_scene_id = await vfs.createScene("Goodbye World", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{collection:{
-                titles:{EN: "", FR: ""}
-            }}]}
-            ), {scene: goodbye_scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"})
-            expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
+          describe("full text search", async function(){
+            it("filters by name match", async function(){
+              let hello_scene_id = await vfs.createScene("Hello World", user.uid);
+              await vfs.writeDoc(JSON.stringify( {
+                metas: [{collection:{
+                  titles:{EN: "", FR: ""}
+              }}]}
+              ), {scene: hello_scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let goodbye_scene_id = await vfs.createScene("Goodbye World", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{collection:{
+                  titles:{EN: "", FR: ""}
+              }}]}
+              ), {scene: goodbye_scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"})
+              expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
-          it("can match a document's meta title", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{collection:{
-                titles:{EN: "Hello World", FR: "Bonjour, monde"}
-              }}]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
+            it("can match a document's meta title", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{collection:{
+                  titles:{EN: "Hello World", FR: "Bonjour, monde"}
+                }}]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
-          it("can match a document's intros", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{collection:{
-                intros:{EN: "Hello World", FR: "Bonjour, monde"}
-              }}]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            it("can match a document's intros", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{collection:{
+                  intros:{EN: "Hello World", FR: "Bonjour, monde"}
+                }}]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
-          it("can match a document's copyright", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{collection:{
-                titles:{EN: " ", FR: " "}
-              }}],
-              asset: {copyright: "Hello World"}
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            it("can match a document's copyright", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{collection:{
+                  titles:{EN: " ", FR: " "}
+                }}],
+                asset: {copyright: "Hello World"}
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
-          it("can match a document's article title", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{
-                articles:[
-                  {titles:{EN: "Hello"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
-
-          it("can match a document's annotation title", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              models: [{
-                annotations:[
-                  {titles:{EN: "Hello"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
-
-            it("can match a document's tour title", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              setups: [{
-                tours:[
-                  {titles:{EN: "Hello"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
-
-          it("can match a document's article lead", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{
-                articles:[
-                  {leads:{EN: "Hello"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
-
-          it("can match a document's annotation leads", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              models: [{
-                annotations:[
-                  {leads:{EN: "Hello"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
-
-            it("can match a document's tour leads", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              setups: [{
-                tours:[
-                  {leads:{EN: "Hello"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
-
-
-          it("can match a document's article text", async function(){
-            let scene_id = await vfs.createScene("foo", user.uid);
-            await vfs.writeDoc("Hello\n", {scene: scene_id, mime: "text/html", name: "articles/foo.html", user_id: user.uid});
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{
-                articles:[{
-                  titles: {EN: " ", FR: ""},
-                  uris: {EN: "articles/foo.html", FR: "articles/foo.html"}
+            it("can match a document's article title", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{
+                  articles:[
+                    {titles:{EN: "Hello"}}
+                  ]
                 }]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "Hello"});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
+
+            it("can match a document's annotation title", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                models: [{
+                  annotations:[
+                    {titles:{EN: "Hello"}}
+                  ]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
+
+              it("can match a document's tour title", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                setups: [{
+                  tours:[
+                    {titles:{EN: "Hello"}}
+                  ]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
+
+            it("can match a document's article lead", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{
+                  articles:[
+                    {leads:{EN: "Hello"}}
+                  ]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
+
+            it("can match a document's annotation leads", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                models: [{
+                  annotations:[
+                    {leads:{EN: "Hello"}}
+                  ]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
+
+              it("can match a document's tour leads", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                setups: [{
+                  tours:[
+                    {leads:{EN: "Hello"}}
+                  ]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
 
-          it("is case-insensitive", async function(){
-            const scene = await vfs.createScene("Hello World", user.uid);
-            await vfs.writeDoc(JSON.stringify( {
-              metas: [{collection:{
-                titles:{EN: "", FR: ""}
-            }}]}
-            ), {scene: scene, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            let s = await vfs.getScenes(user.uid, {match: "hello"})         
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-          });
+            it("can match a document's article text", async function(){
+              let scene_id = await vfs.createScene("foo", user.uid);
+              await vfs.writeDoc("Hello\n", {scene: scene_id, mime: "text/html", name: "articles/foo.html", user_id: user.uid});
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{
+                  articles:[{
+                    titles: {EN: " ", FR: ""},
+                    uris: {EN: "articles/foo.html", FR: "articles/foo.html"}
+                  }]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "Hello"});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
 
-          it("can search against multiple search terms", async function(){
-            let scene_id = await vfs.createScene("bar", user.uid);
-            await vfs.writeDoc(JSON.stringify({
-              metas: [{
-                articles:[
-                  {leads:{EN: "Hello World, this is User"}}
-                ]
-              }]
-            }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            it("is case-insensitive", async function(){
+              const scene = await vfs.createScene("Hello World", user.uid);
+              await vfs.writeDoc(JSON.stringify( {
+                metas: [{collection:{
+                  titles:{EN: "", FR: ""}
+              }}]}
+              ), {scene: scene, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "hello"})         
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
-            scene_id = await vfs.createScene("foo 1", sceneAdmin.uid);
-            await vfs.writeDoc(JSON.stringify( {
-              metas: [{collection:{
-                titles:{EN: "", FR: ""}
-            }}]}
-            ), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+            it("is accent-insensitive", async function(){
+              const scene  = await vfs.createScene("éclairage", user.uid);
+              await vfs.writeDoc(JSON.stringify( {
+                metas: [{collection:{
+                  titles:{EN: "cliché", FR: "lumière"}
+              }}]}
+              ), {scene: scene, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+              let s = await vfs.getScenes(user.uid, {match: "eclairage"})         
+              expect(s, `"eclairage" (scene_name éclairage) Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+              s = await vfs.getScenes(user.uid, {match: "cliche"})         
+              expect(s, `"cliche" (title EN : cliché) Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+              s = await vfs.getScenes(user.uid, {match: "lumiere"})         
+              expect(s, `"lumiere" (title FR : lumière) Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            });
 
-            scene_id = await vfs.createScene("foo 2", user.uid);
-            await vfs.writeDoc(JSON.stringify( {
-              metas: [{collection:{
-                titles:{EN: "fizz", FR: ""}
-            }}]}
-            ), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-            
-            let s = await vfs.getScenes(user.uid, {match: `foo fizz`});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-            expect(s[0]).to.have.property("name", "foo 2");
-            
-            s = await vfs.getScenes(user.uid, {match: `foo OR fizz`});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
-            expect(s[0]).to.have.property("name", "foo 2");
-            expect(s[1]).to.have.property("name", "foo 1");
+            it("can search against multiple search terms", async function(){
+              let scene_id = await vfs.createScene("bar", user.uid);
+              await vfs.writeDoc(JSON.stringify({
+                metas: [{
+                  articles:[
+                    {leads:{EN: "Hello World, this is User"}}
+                  ]
+                }]
+              }), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+              scene_id = await vfs.createScene("foo 1", sceneAdmin.uid);
+              await vfs.writeDoc(JSON.stringify( {
+                metas: [{collection:{
+                  titles:{EN: "", FR: ""}
+              }}]}
+              ), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+              scene_id = await vfs.createScene("foo 2", user.uid);
+              await vfs.writeDoc(JSON.stringify( {
+                metas: [{collection:{
+                  titles:{EN: "fizz", FR: ""}
+              }}]}
+              ), {scene: scene_id, user_id: sceneAdmin.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+              let s = await vfs.getScenes(user.uid, {match: `foo fizz`});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+              expect(s[0]).to.have.property("name", "foo 2");
+
+              s = await vfs.getScenes(user.uid, {match: `foo OR fizz`});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
+              expect(s[0]).to.have.property("name", "foo 2");
+              expect(s[1]).to.have.property("name", "foo 1");
 
 
-            s = await vfs.getScenes(user.uid, {match: `Hello User`});
-            expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-            expect(s[0]).to.have.property("name", "bar");
-          });
+              s = await vfs.getScenes(user.uid, {match: `Hello User`});
+              expect(s, `[${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+              expect(s[0]).to.have.property("name", "bar");
+            });
 
 
-          it("can match an empty string", async function(){
-            await vfs.createScene("Hello World", user.uid);
-            await vfs.createScene("Goodbye World", user.uid);
-            let s = await vfs.getScenes(user.uid, {match: ""})
-            expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
-          });
+            it("can match an empty string", async function(){
+              await vfs.createScene("Hello World", user.uid);
+              await vfs.createScene("Goodbye World", user.uid);
+              let s = await vfs.getScenes(user.uid, {match: ""})
+              expect(s, `Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
+            });
 
 
-          it("can match partial words in titles of scenes, including the ones without json", async function(){
-            await vfs.createScene("EAD.A.Nom1.Nom2", user.uid);
-            await vfs.createScene("GlobeAppli", user.uid);
-            let s = await vfs.getScenes(user.uid, {match: "lobe"});
-            expect(s, `Globe Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
-            s = await vfs.getScenes(user.uid, {match: "EAD"});
-            expect(s, `EAD Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+            it("can match partial words in titles of scenes, including the ones without json", async function(){
+              await vfs.createScene("EAD.à.Nom1.Nom2", user.uid);
+              await vfs.createScene("GlobeAppli", user.uid);
+              await vfs.createScene("MAN76910-A1", user.uid);
+              await vfs.createScene("MAN77718.f", user.uid);
+
+              let s = await vfs.getScenes(user.uid, {match: "globe"});
+              expect(s, `"globe" Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+              
+              s = await vfs.getScenes(user.uid, {match: "éad"});
+              expect(s, `"éad" Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+
+              s = await vfs.getScenes(user.uid, {match: "a.Nom1"});
+              expect(s, `"a.Nom1" Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 1);
+
+              s = await vfs.getScenes(user.uid, {match: "MAN7"});
+              expect(s, `"MAN7" Matched Scenes: [${s.map(s=>s.name).join(", ")}]`).to.have.property("length", 2);
+            });
+
+            it("Handles renaming", async function(){
+              const scene_id = await vfs.createScene("foobar", user.uid);
+              let s = await vfs.getScenes(user.uid, {match: "foobar"});
+              expect(s.length, "searchResult.length for foobar before renaming").to.be.equal(1);
+
+              await vfs.renameScene(scene_id, 'fizzbar');
+              s = await vfs.getScenes(user.uid, {match: "fizzbar"});
+              expect(s.length, "searchResult.length for fizzbar after renaming").to.be.equal(1);
+
+              s = await vfs.getScenes(user.uid, {match: "foobar"});
+              expect(s.length, "searchResult.length for foobar after renaming").to.be.equal(0);
+            });
+
           });
         });
           
