@@ -12,6 +12,9 @@ Creating a test instance of eCorpus using docker can be done by running this com
 docker compose -f oci://ghcr.io/holusion/e-corpus:app up
 ```
 
+if oci artifacts are not supported on your system, use the base [docker-compose.yml](#base-compose-file) example provided below.
+
+
 Open a browser and navigate to [localhost:8000](http://localhost:8000){:target="_blank"} to access the eCorpus instance.
 
 ### Creating the first user account
@@ -38,6 +41,8 @@ After creating your first user account, navigate to [http://localhost:8000](http
 
 From there, you can [create your first scene](/en/doc/tutorials/).
 
+You may want to configure a [reverse proxy](#setup-a-reverse-proxy) to enable HTTPS.
+
 If you want to edit the source code, refer to the [development guide](/en/doc/hosting/development). Or configure your instance by tuning the [environment variables](/en/doc/hosting/configuration).
 
 To use your instance in production, you might want to set up email forwarding (allows account recovery and invite links), automated backups and an HTTPS reverse-proxy. You may also contact [Holusion](https://holusion.com) to buy a full-featured managed **eCorpus** instance.
@@ -45,6 +50,7 @@ To use your instance in production, you might want to set up email forwarding (a
 
 ## Advanced installation
 
+### Base compose file
 Copy and edit this base compose file:
 
 ```yaml
@@ -84,6 +90,62 @@ volumes:
   postgres_data:
   app_data:
 ```
+
+### Setup a reverse proxy
+
+eCorpus does not handle SSL-termination. A reverse proxy should be placed in front of the instance to handle that.
+
+The configuration's only specific requirements are to provide a `X-Forwarded-Host` and a `X-Forwarded-Proto` header to allow eCorpus to properly write redirects.
+
+Where applicable, `client_max_body_size` or its equivalent should be appropriately large.
+
+Here is an example of a basic NGINX configuration:
+
+```
+server {
+  listen 80;
+  listen [::]:80;
+  server_name  your.domain.com;
+  
+  location / {
+    return 301 https:// your.domain.com$request_uri;
+  }
+}
+
+server {
+  server_name your.domain.com;
+
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  add_header Content-Security-Policy "upgrade-insecure-requests;";
+
+  # Handle SSL certificates here
+
+  autoindex off;
+
+
+  client_max_body_size 100M;
+  proxy_buffering off;
+
+  
+  location = /robots.txt {
+    log_not_found off;
+    access_log off;
+  }
+
+  location / {
+    #Proxy settings
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+    proxy_pass http://localhost:8000;
+  }
+}
+```
+
 
 ## Install without Docker
 

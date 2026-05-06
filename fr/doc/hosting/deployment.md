@@ -12,6 +12,9 @@ Création d'une instance minimale à des fins de tests (nécessite [Docker](http
 docker compose -f oci://ghcr.io/holusion/e-corpus:app up
 ```
 
+si la gestion des artefacts OCI ne fonctionne pas sur votre système, copiez le fichier [docker-compose.yml](#exemple-de-fichier-compose) ci-dessous.
+
+
 Dans un navigateur, chargez [localhost:8000](http://localhost:8000){:target="_blank"}.
 
 
@@ -40,6 +43,8 @@ Si vous souhaitez éditer le code source, réferez-vous au [guide de développem
 Pour configurer votre nouvelle instance, consultez la [documentation de configuration](/fr/doc/hosting/configuration).
 
 ## Installation avancée
+
+### Exemple de fichier compose
 
 Pour personnaliser l'installation, copier et éditer le fichier `docker-compose.yml` suivant:
 
@@ -79,6 +84,62 @@ services:
 volumes:
   postgres_data:
   app_data:
+```
+
+
+### Mise en place d'un proxy inverse
+
+eCorpus ne gère pas les terminaisons SSL. Pour utiliser le service en HTTPS, il est nécessaire de le placer derrière un _reverse proxy_.
+
+Dans la plupart des cas on pourra utiliser la configuration par défaut du service choisi en vérifiant la présence de deux en-têtes: `X-Forwarded-Host` et `X-Forwarded-Proto`, nécessaires au bon fonctionnement d'eCorpus. La configuration `TRUST_PROXY` d'eCorpus doit aussi être activée.
+
+Il est parfois aussi nécessaire d'augmenter la directive `client_max_body_size` (ou équivalent) pour accomoder des téléversements volumineux.
+
+Exemple de configuration NGINX fonctionelle:
+
+```
+server {
+  listen 80;
+  listen [::]:80;
+  server_name  your.domain.com;
+  
+  location / {
+    return 301 https:// your.domain.com$request_uri;
+  }
+}
+
+server {
+  server_name your.domain.com;
+
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  add_header Content-Security-Policy "upgrade-insecure-requests;";
+
+  # Handle SSL certificates here
+
+  autoindex off;
+
+
+  client_max_body_size 100M;
+  proxy_buffering off;
+
+  
+  location = /robots.txt {
+    log_not_found off;
+    access_log off;
+  }
+
+  location / {
+    #Proxy settings
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+    proxy_pass http://localhost:8000;
+  }
+}
 ```
 
 
