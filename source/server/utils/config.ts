@@ -36,6 +36,9 @@ const runtime_values = {
   verbose:               [false,             "boolean"],
   smart_host:            ["smtp://localhost:25", "string"],
   experimental:          [false,             "boolean"],
+  /// RETENTION (in days; 0 disables) ///
+  task_retention_days:        [30,           "number"],
+  task_errors_retention_days: [90,           "number"],
   /// FEATURE FLAGS ///
   enable_document_merge: [isExperimental,    "boolean"],
 } as const;

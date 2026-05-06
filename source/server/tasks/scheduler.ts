@@ -219,6 +219,28 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
   }
 
   /**
+   * Mark every non-terminal task as `error`. Intended to be called once at server
+   * startup to clean up tasks left behind by a crashed previous process.
+   *
+   * Assumes single-instance ownership of the database — any non-terminal row at
+   * startup is by definition stranded (no live process holds it).
+   *
+   * @returns the number of rows that were transitioned to `error`
+   */
+  async reapOrphans(): Promise<number> {
+    const payload = JSON.stringify({
+      error: { name: "OrphanError", message: "Orphaned by process restart" }
+    });
+    const r = await this.db.run(`
+      UPDATE tasks
+         SET status = 'error',
+             output = $1::json
+       WHERE status IN ('pending','initializing','running')
+    `, [payload]);
+    return r.changes ?? 0;
+  }
+
+  /**
    * Join a task that has been created through {@link queue}
    */
   async join(task_id: number) {
