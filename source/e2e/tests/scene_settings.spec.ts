@@ -88,3 +88,54 @@ test("404 view", async ({page, createScene})=>{
     expect(res?.status()).toEqual(404);
   }
 });
+
+test.describe("permissions UI", ()=>{
+  test("author can switch public_access from none to read via the dropdown", async ({userPage, createScene})=>{
+    const name = await createScene({public_access: "none"});
+    await userPage.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
+
+    const select = userPage.locator('select[name="public_access"]');
+    await expect(select).toHaveValue("none");
+
+    const patched = userPage.waitForResponse(resp =>
+      resp.url().endsWith(`/scenes/${name}`)
+      && resp.request().method() === "PATCH"
+      && resp.ok()
+    );
+    await select.selectOption("read");
+    await patched;
+    // submit-fragment reloads the page on success.
+    await userPage.waitForURL(`/ui/scenes/${encodeURIComponent(name)}/settings`);
+
+    await expect(userPage.locator('select[name="public_access"]')).toHaveValue("read");
+  });
+
+  test("author can grant another user write access via the form", async ({userPage, createScene, uniqueAccount})=>{
+    const name = await createScene();
+    const target = await uniqueAccount("create");
+
+    await userPage.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
+
+    // The "add user permission" submit-fragment is the one that contains the
+    // free-text username input (the group form has name="groupName" instead).
+    const addUserForm = userPage.locator('submit-fragment').filter({
+      has: userPage.locator('input[name="username"][required]'),
+    });
+    await expect(addUserForm).toBeVisible();
+
+    await addUserForm.locator('input[name="username"]').fill(target.username);
+
+    const granted = userPage.waitForResponse(resp =>
+      resp.url().endsWith(`/auth/access/${name}`)
+      && resp.request().method() === "PATCH"
+      && resp.ok()
+    );
+    await addUserForm.locator('select[name="access"]').selectOption("write");
+    await granted;
+    await userPage.waitForURL(`/ui/scenes/${encodeURIComponent(name)}/settings`);
+
+    // After reload, the target user shows up in the per-user permissions table
+    // with the access we just granted.
+    await expect(userPage.getByRole("row").filter({hasText: target.username})).toContainText("fields.write");
+  });
+});
