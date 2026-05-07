@@ -45,8 +45,3 @@ test("downloads a scene archive", async ({page, createScene})=>{
     `scenes/${name}/scene.svx.json`,
   ]);
 });
-
-
-test.skip("download a bunch of scene archives", async ({page})=>{
-  
-});

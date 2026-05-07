@@ -61,5 +61,16 @@ test.afterAll(async () => {
 test("can navigate to history page", async ()=>{
   await scenePage.getByRole("link", {name: "buttons.history"}).click();
   await scenePage.waitForURL(`/ui/scenes/${name}/history`);
-  
+});
+
+test("history page lists entries for the seeded edits", async ()=>{
+  // beforeAll PUTs scene.svx.json and a new article on top of the initial POST,
+  // so history must contain at least the article and the svx revisions.
+  const entries = scenePage.getByRole("treeitem");
+  await expect(entries.first()).toBeVisible();
+  expect(await entries.count()).toBeGreaterThanOrEqual(1);
+
+  const list = scenePage.locator(".history-list");
+  await expect(list).toContainText("scene.svx.json");
+  await expect(list).toContainText("new-article-OKiTjtY6zrbJ-EN.html");
 });

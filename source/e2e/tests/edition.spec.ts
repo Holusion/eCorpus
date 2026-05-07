@@ -114,7 +114,12 @@ test("can save the scene", async ()=>{
   await expect(mce.getByRole("heading")).toHaveText("Nouvel Article");
   // Interface is still in english even if active language is in french. See rc-53
   //This locator should target role = "navigation" when this gets implemented
+  // Wait for the save PUT to land instead of racing the toast notification.
+  const savedDoc = scenePage.waitForResponse(resp =>
+    resp.url().endsWith(`/scenes/${name}/scene.svx.json`)
+    && resp.request().method() === "PUT"
+    && resp.ok()
+  );
   await scenePage.locator("sv-task-bar").getByRole('button', { name: 'Save' }).click();
-  // @fixme catch notification
-  await expect(scenePage.getByText("Successfully uploaded file to")).toBeVisible({timeout: 1400});
+  await savedDoc;
 });
