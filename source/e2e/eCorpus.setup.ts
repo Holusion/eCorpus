@@ -6,6 +6,11 @@ const userFile = "playwright/.auth/user.json";
 setup.use({
   locale: "en-US",
 });
+// The three setup tests below have a hard ordering dependency: the
+// "create superAdmin account" step bootstraps testAdmin:12345678,
+// which the two "authenticate as ..." steps then use as Basic auth.
+// Force them serial so workers > 1 in the project config doesn't race.
+setup.describe.configure({ mode: 'serial' });
 /**
  * To provide reasonable isolation on each test run, this setup uses a "master" admin account to create 2 new randomized 
  */
