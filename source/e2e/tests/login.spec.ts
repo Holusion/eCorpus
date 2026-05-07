@@ -128,6 +128,64 @@ test(`can login with an authenticated link`, async ({page, request})=>{
     <a href="${authLink}">connect link</a>
   </body></html>`)
   await page.getByRole("link").click();
-  let userSettingsLink = page.getByRole("link", {name: username}); 
+  let userSettingsLink = page.getByRole("link", {name: username});
   await expect(userSettingsLink).toBeVisible();
+});
+
+// We can't actually expire or rotate keys from outside the server, but we can
+// exercise the negative paths the auth-link consumer is supposed to reject.
+
+test(`refuses an auth link with a tampered signature`, async ({page})=>{
+  let res = await adminContext.request.get(`/auth/login/${username}/link`);
+  await expect(res).toBeOK();
+  const authLink = await res.text();
+
+  // Flip a single character in the signature segment (everything before the
+  // first '.' in the /auth/payload/<sig>.<data> path).
+  const url = new URL(authLink);
+  const m = url.pathname.match(/^\/auth\/payload\/([^.]+)\.(.+)$/);
+  expect(m, `unexpected auth link shape: ${url.pathname}`).toBeTruthy();
+  const sig = m![1];
+  const data = m![2];
+  const flipped = (sig[0] === "A" ? "B" : "A") + sig.slice(1);
+  url.pathname = `/auth/payload/${flipped}.${data}`;
+
+  const followRes = await page.goto(url.toString());
+  expect(followRes?.status()).toEqual(403);
+
+  // And no session was minted: hitting an authenticated endpoint stays anonymous.
+  const me = await page.request.get(`/auth/login`);
+  expect(me).toBeOK();
+  expect(await me.json()).toHaveProperty("level", "none");
+});
+
+test(`refuses an auth link whose user has been deleted`, async ({page})=>{
+  // Use a throwaway user so we don't disturb the shared one used by sibling tests.
+  const ephemeral = `testUserEphemeral${randomBytes(2).readUInt16LE().toString(36)}`;
+  const create = await adminContext.request.post("/users", {
+    data: JSON.stringify({
+      username: ephemeral,
+      email: `${ephemeral}@example.com`,
+      password: randomBytes(16).toString("base64"),
+      level: "create",
+    }),
+    headers:{ "Content-Type": "application/json" }
+  });
+  await expect(create).toBeOK();
+  const ephemeralId :number = (await create.json()).uid;
+
+  const res = await adminContext.request.get(`/auth/login/${ephemeral}/link`);
+  await expect(res).toBeOK();
+  const authLink = await res.text();
+
+  const del = await adminContext.request.delete(`/users/${ephemeralId}`);
+  await expect(del).toBeOK();
+
+  const followRes = await page.goto(authLink);
+  // payload signature is valid but the user lookup fails -> 400.
+  expect(followRes?.status()).toEqual(400);
+
+  const me = await page.request.get(`/auth/login`);
+  expect(me).toBeOK();
+  expect(await me.json()).toHaveProperty("level", "none");
 });
