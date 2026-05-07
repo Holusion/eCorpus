@@ -14,7 +14,7 @@ import { once } from "node:events";
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 //Authenticated as normal user
-test.use({ storageState: 'playwright/.auth/user.json' });
+test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
 
 test("downloads a scene archive", async ({page, request})=>{
   const name = randomUUID();
@@ -26,7 +26,7 @@ test("downloads a scene archive", async ({page, request})=>{
   //Check if it _looks like_ the actual scene page
   await expect(page.locator("h1")).toHaveText(name);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole("link", {name: "Download this scene"}).click();
+  await page.getByRole("link", {name: "buttons.download"}).click();
   const download = await downloadPromise;
   let rs =  await download.createReadStream();
   let b = Buffer.allocUnsafe(4096);
