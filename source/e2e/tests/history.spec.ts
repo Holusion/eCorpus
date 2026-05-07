@@ -74,3 +74,45 @@ test("history page lists entries for the seeded edits", async ()=>{
   await expect(list).toContainText("scene.svx.json");
   await expect(list).toContainText("new-article-OKiTjtY6zrbJ-EN.html");
 });
+
+test("history page exposes a preview link for each entry", async ()=>{
+  // Eye-icon links carry the translated aria-label; under cimode this is the i18n key.
+  const previews = scenePage.getByRole("link", { name: "info.viewAtThisPoint" });
+  expect(await previews.count()).toBeGreaterThan(0);
+  const first = previews.first();
+  await expect(first).toBeVisible();
+  // href is relative to /ui/scenes/{name}/history → /ui/scenes/{name}/history/{id}/view
+  const href = await first.getAttribute("href");
+  expect(href).toMatch(/^history\/\d+\/view$/);
+});
+
+test("preview link opens a viewer scoped to the historical revision", async ({request})=>{
+  const previews = scenePage.getByRole("link", { name: "info.viewAtThisPoint" });
+  const href = await previews.first().getAttribute("href");
+  const id = href!.match(/^history\/(\d+)\/view$/)![1];
+
+  // Navigate via the icon so we exercise the actual UI path.
+  await previews.first().click();
+  await scenePage.waitForURL(`/ui/scenes/${name}/history/${id}/view`);
+
+  // The viewer template wires Voyager to the historical show route.
+  const explorer = scenePage.locator("voyager-explorer");
+  await expect(explorer).toHaveAttribute("root", `/history/${name}/${id}/show/`);
+  await expect(scenePage).toHaveTitle(`eCorpus: History of ${name}`);
+
+  // Verify the document at that point in time loads cleanly and carries the
+  // expected scene title from the fixture (metas[*].collection.titles.EN).
+  const res = await request.get(`/history/${encodeURIComponent(name)}/${id}/show/scene.svx.json`);
+  await expect(res).toBeOK();
+  const doc = await res.json();
+  const titles = (doc.metas as Array<any>).map(m => m?.collection?.titles?.EN).filter(Boolean);
+  expect(titles).toContain("cube_test");
+
+  // Models referenced by the historical document must also be served by the show route.
+  const modelRes = await request.get(`/history/${encodeURIComponent(name)}/${id}/show/models/cube.glb`);
+  await expect(modelRes).toBeOK();
+  expect(modelRes.headers()["content-type"]).toMatch(/gltf|octet-stream/);
+
+  await scenePage.goBack();
+  await scenePage.waitForURL(`/ui/scenes/${name}/history`);
+});

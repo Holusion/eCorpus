@@ -178,6 +178,23 @@ describe("POST /history/:scene", function(){
     expect(article).to.have.property("generation", 3);
   });
 
+  it("is a no-op when restoring to the current head", async function(){
+    let head = await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+    let res = await request(this.server).post(`/history/${titleSlug}`)
+    .auth("bob", "12345678")
+    .set("Content-Type", "application/json")
+    .send({id: head.id})
+    .expect("Content-Type", "application/json; charset=utf-8")
+    .expect(200);
+    expect(res.body).to.have.property("changes").that.deep.equals([]);
+
+    // No new generation should have been written.
+    let docs = await vfs.getFileHistory({scene: scene_id, name: "scene.svx.json"});
+    expect(docs).to.have.property("length", 1);
+    expect(docs[0]).to.have.property("generation", 1);
+  });
+
   it("refuses to completely delete a document", async function(){
     let ref = await vfs.writeFile(dataStream(["hello"]), {mime: "text/html", name:"articles/hello.txt", scene: scene_id, user_id: user.uid });
     await antidate();

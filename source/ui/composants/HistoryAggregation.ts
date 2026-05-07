@@ -221,8 +221,9 @@ export class HistoryEntryAggregate extends i18n(LitElement){
         }}
         icon="restore"
       >${this.t("info.restoreTo",{point:longAction?(to??from).toLocaleString(this.language): (to??from).toLocaleTimeString(this.language)})}</button>
-      <a href="history/${restorePoint}/view" 
+      <a href="history/${restorePoint}/view"
         @click=${(e: any)=>e.stopPropagation()}
+        aria-label="${this.t("info.viewAtThisPoint")}"
         title="${this.t("info.viewAtThisPoint")}" class="btn btn-secondary btn-small btn-transparent btn-inline">
         <ui-icon name="eye"></ui-icon>
       </a>
