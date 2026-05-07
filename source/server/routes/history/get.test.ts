@@ -97,6 +97,16 @@ describe("GET /history/:scene", function(){
       ]);
     });
 
+    it("exposes the total count via X-Total-Count for pagination", async function(){
+      let res = await request(this.server).get("/history/foo?limit=1")
+      .auth(user.username, "12345678")
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect("X-Total-Count", "6");
+
+      expect(res.body).to.have.lengthOf(1);
+    });
+
     describe("requires write access", function(){
       this.beforeAll(async function(){
         await vfs.createScene("private", user.uid);

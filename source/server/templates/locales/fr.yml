@@ -299,6 +299,19 @@ leads:
     Cette scène n'a pas de copyright. Ajoutez-en un dans l'interface d'édition.
   useStandalone: >
     Essayez le mode "standalone" de <b>Voyager</b> pour tester son interface sans contraintes
+ui:
+  by: par
+  created: Créé
+  modified: Modifié
+  deleted: Supprimé
+info:
+  changeDay: "Modifications du {{date}}"
+  restoreTo: "Restaurer à {{point}}"
+  viewAtThisPoint: Voir la scène à ce moment
+  showDetails: voir le détail
+  hideDetails: cacher le détail
+  etAl_one: "et {{count}} autre"
+  etAl_other: "et {{count}} autres"
 errors:
   generic: Erreur inconnue
   "Username not provided": Nom d'utilisateur non fourni

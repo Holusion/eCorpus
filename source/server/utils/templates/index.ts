@@ -51,6 +51,11 @@ export default class Templates {
       fallbackLng: 'en',
       saveMissing: true,
       saveMissingTo: "current",
+      interpolation: {
+        // Handlebars `{{...}}` already escapes the rendered output, so i18next
+        // must not pre-escape interpolated values (would yield `&#x2F;` in dates etc.).
+        escapeValue: false,
+      },
       missingKeyHandler(lngs, ns, key, fallbackValue, updateMissing, options) {
         console.log(`i18n Missing key in ${lngs.join(", ")}: ${key} (default to ${fallbackValue})`);
       },

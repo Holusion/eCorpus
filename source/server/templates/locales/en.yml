@@ -290,6 +290,19 @@ leads:
     This scene has no copyright. Add one in the edit interface
   useStandalone: >
     Try out <b>Voyager</b>'s "standalone" mode to discover its features at your own pace.
+ui:
+  by: by
+  created: Created
+  modified: Modified
+  deleted: Deleted
+info:
+  changeDay: "Changes on {{date}}"
+  restoreTo: "Restore to {{point}}"
+  viewAtThisPoint: View scene at this point
+  showDetails: show details
+  hideDetails: hide details
+  etAl_one: "and {{count}} more"
+  etAl_other: "and {{count}} more"
 errors:
   generic: Unknown Error
   "Username not provided": Username not provided
