@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures.js';
 
 //Authenticated as admin
 test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });

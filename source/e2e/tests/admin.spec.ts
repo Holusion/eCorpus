@@ -1,7 +1,7 @@
 import path from "node:path";
 
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures.js';
 import { randomBytes, randomUUID } from "node:crypto";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");

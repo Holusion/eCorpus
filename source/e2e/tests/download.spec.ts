@@ -7,7 +7,7 @@ import {fromBuffer as fromBufferCb} from "yauzl";
 const fromBuffer = promisify(fromBufferCb);
 
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures.js';
 import { Writable } from "node:stream";
 import { once } from "node:events";
 
