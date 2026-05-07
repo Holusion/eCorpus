@@ -9,6 +9,7 @@ import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { debuglog } from "util";
 import { TaskDefinition } from "../../tasks/types.js";
+import { aggregateHistory } from "./historyAggregate.js";
 
 
 const debug = debuglog("http:views");
@@ -561,9 +562,38 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
 
 routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   let vfs = getVfs(req);
+  let host = getHost(req);
   let {scene:scene_name} = req.params;
   let scene = mapScene(req, await vfs.getScene(scene_name));
   const access = res.locals.access as string;
+
+  const limit = Math.min(100, Math.max(1, qsToInt(req.query.limit) ?? 25));
+  const offset = Math.max(0, qsToInt(req.query.offset) ?? 0);
+
+  const [entries, total] = await Promise.all([
+    vfs.getSceneHistory(scene.id, {limit, offset, orderDirection: "desc"}),
+    vfs.getSceneHistoryCount(scene.id),
+  ]);
+
+  const days = aggregateHistory(entries);
+
+  let pager :{from:number, to:number, total:number, next?:string, previous?:string} = {
+    from: offset,
+    to: offset + entries.length,
+    total,
+  };
+  if(offset + entries.length < total){
+    const nextUrl = new URL(req.originalUrl, host);
+    nextUrl.searchParams.set("offset", (offset + limit).toString());
+    nextUrl.searchParams.set("limit", limit.toString());
+    pager.next = nextUrl.pathname + nextUrl.search;
+  }
+  if(offset){
+    const prevUrl = new URL(req.originalUrl, host);
+    prevUrl.searchParams.set("offset", Math.max(0, offset - limit).toString());
+    prevUrl.searchParams.set("limit", limit.toString());
+    pager.previous = prevUrl.pathname + prevUrl.search;
+  }
 
   res.render("scene/history", {
     layout: "scene",
@@ -571,6 +601,11 @@ routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
     scene,
     name: scene_name,
     canAdmin: access === "admin",
+    days,
+    pager,
+    limit,
+    offset,
+    isFirstPage: offset === 0,
   });
 }))
 

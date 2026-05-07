@@ -426,7 +426,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     const dir = orderDirection.toUpperCase() as Uppercase<typeof orderDirection>;
     return await this.db.all<Omit<ItemEntry,"mtime">>(`
-      SELECT 
+      SELECT
         file_id AS id,
         name,
         mime,
@@ -447,6 +447,19 @@ export default abstract class ScenesVfs extends BaseVfs{
       limit,
     ]);
 
+  }
+
+  /**
+   * Total number of history entries for this scene.
+   * Companion to {@link getSceneHistory} for pagination.
+   */
+  async getSceneHistoryCount(scene_id :number) :Promise<number>{
+    const r = await this.db.get<{count:number}>(`
+      SELECT COUNT(*) AS count
+      FROM files
+      WHERE fk_scene_id = $1
+    `, [scene_id]);
+    return r?.count ?? 0;
   }
 
   async getSceneMeta(scene_name: string): Promise<SceneMeta>{

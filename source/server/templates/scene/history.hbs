@@ -1,5 +1,270 @@
-<h2>{{i18n "titles.history" }}</h2>
+<h2 id="history-heading">{{i18n "titles.history"}}</h2>
 <p>{{{i18n "leads.historyEdition"}}}</p>
-<section>
-  <scene-history name="{{scene.name}}" {{#if canAdmin}}write{{/if}}></scene-history>
-</section>
+
+{{#*inline "kindIcon"}}
+  {{#if (test changeKind "==" "created")}}<span class="text-success" aria-hidden="true">+</span>
+  {{else if (test changeKind "==" "deleted")}}<span class="text-error" aria-hidden="true">-</span>
+  {{else}}<span class="text-warning" aria-hidden="true">~</span>{{/if}}
+{{/inline}}
+
+{{#*inline "restoreActions"}}
+  <span class="history-bucket-actions">
+    {{#if write}}
+      {{#unless disabled}}
+        <form class="history-restore-form" method="POST" action="/history/{{encodeURIComponent @root.scene.name}}">
+          <input type="hidden" name="id" value="{{restorePoint}}">
+          <input type="hidden" name="label" value="{{label}}">
+          <button class="btn btn-primary btn-small btn-transparent btn-rollback" type="submit"
+            title="{{i18n "info.restoreTo" point=label}}"
+            aria-label="{{i18n "info.restoreTo" point=label}}">
+            <ui-icon name="restore"></ui-icon>
+            <span class="sm-hidden">{{i18n "labels.restore"}}</span>
+          </button>
+        </form>
+      {{/unless}}
+    {{/if}}
+    <a class="btn btn-secondary btn-small btn-transparent btn-inline"
+      href="history/{{restorePoint}}/view"
+      aria-label="{{i18n "info.viewAtThisPoint"}}"
+      title="{{i18n "info.viewAtThisPoint"}}">
+      <ui-icon name="eye"></ui-icon>
+    </a>
+  </span>
+{{/inline}}
+
+{{#*inline "entryRow"}}
+  <li class="history-entry"
+      data-entry-id="{{entry.id}}"
+      role="treeitem">
+    <div class="history-entry-summary">
+      <span class="history-entry-name">
+        {{> kindIcon changeKind=entry.changeKind}}
+        <span>{{entry.name}}</span>
+        <small class="text-info">#{{entry.generation}}</small>
+      </span>
+      <div class="history-entry-meta">
+        <span class="text-{{#if (test entry.changeKind "==" "created")}}success{{else if (test entry.changeKind "==" "deleted")}}error{{else}}warning{{/if}}">
+          {{i18n (join "ui." entry.changeKind)}}
+        </span>
+        <i>{{i18n "ui.by"}}</i>
+        <b>{{entry.author}}</b>
+        <span class="history-entry-time" title="{{dateString entry.ctime "iso"}}">{{dateString entry.ctime}}</span>
+      </div>
+      {{> restoreActions restorePoint=entry.id label=(join entry.name "#" entry.generation) write=write disabled=disabled }}
+    </div>
+    {{#unless (test entry.size "==" 0)}}
+      <details class="history-entry-diff"
+        data-diff-scene="{{encodeURIComponent @root.scene.name}}"
+        data-diff-id="{{entry.id}}">
+        <summary><span class="if-collapsed">{{i18n "info.showDetails"}}</span><span class="if-expanded">{{i18n "info.hideDetails"}}</span></summary>
+        <div class="history-entry-diff-body" data-diff-state="pending">
+          <progress aria-label="loading">…</progress>
+        </div>
+      </details>
+    {{/unless}}
+  </li>
+{{/inline}}
+
+<div class="history-list" role="tree" aria-labelledby="history-heading">
+  {{#each days}}
+    <details class="history-day" id="{{id}}" {{#if (test index "<" 2)}}open{{/if}}>
+      <summary class="history-day-header">
+        {{i18n "info.changeDay" date=(dateString date "date")}}
+        <small class="text-info history-day-count">{{buckets.length}}</small>
+      </summary>
+      <ul class="history-day-content" role="group">
+        {{#each buckets}}
+          {{#if isSingle}}
+            {{> entryRow entry=(lookup entries 0) write=@root.canAdmin disabled=../isLatest}}
+          {{else}}
+            <li class="history-bucket" role="treeitem">
+              <details class="history-bucket-details" id="{{id}}">
+                <summary class="history-bucket-summary">
+                  <span class="history-bucket-names">
+                    {{#each names}}
+                      {{> kindIcon changeKind=changeKind}}
+                      <span>{{name}}{{#if (test count ">" 1)}} ×{{count}}{{/if}}</span>{{#unless @last}},{{/unless}}
+                    {{/each}}
+                    {{#if (test extraNamesCount ">" 0)}}
+                      <small class="text-info">{{i18n "info.etAl" count=extraNamesCount}}</small>
+                    {{/if}}
+                  </span>
+                  <div class="history-bucket-meta">
+                    <i>{{i18n "ui.by"}}</i>
+                    <b>{{join authors separator=", "}}</b>
+                    <span class="history-bucket-time">
+                      {{dateString from}}{{#if hasRange}} — {{dateString to}}{{/if}}
+                    </span>
+                  </div>
+                </summary>
+                <ul class="history-bucket-entries" role="group">
+                  {{#each entries}}
+                    {{> entryRow entry=this write=@root.canAdmin disabled=../../isLatest}}
+                  {{/each}}
+                </ul>
+              </details>
+              {{> restoreActions restorePoint=restorePoint label=(dateString to) write=@root.canAdmin disabled=../isLatest }}
+            </li>
+          {{/if}}
+        {{/each}}
+      </ul>
+    </details>
+  {{/each}}
+  {{#unless days.length}}
+    <p class="history-empty">{{i18n "leads.noResults"}}</p>
+  {{/unless}}
+</div>
+
+{{#with pager}}
+  {{> pager }}
+{{/with}}
+
+<style>
+  .history-list{
+    list-style: none;
+    padding: 0;
+  }
+  .history-day{
+    margin: .5rem 0;
+  }
+  .history-day-header{
+    cursor: pointer;
+    padding: .5rem 0;
+    border-bottom: 2px solid var(--color-background);
+    font-weight: bold;
+    font-family: var(--font-body);
+    list-style: none;
+  }
+  .history-day-header::-webkit-details-marker{display:none}
+  .history-day-header::before{
+    content: "▸";
+    display: inline-block;
+    width: 1.25rem;
+    transition: transform .15s ease-out;
+  }
+  details[open] > .history-day-header::before{
+    transform: rotate(90deg);
+  }
+  .history-day-count{
+    margin-left: .5rem;
+    font-weight: normal;
+    opacity: .65;
+  }
+  .history-day-content{
+    list-style: none;
+    margin: 0;
+    padding: .25rem 0 .25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+  }
+  .history-entry,
+  .history-bucket{
+    border-top: 1px solid transparent;
+    padding: .25rem .25rem .25rem 0;
+    transition: border-color .25s ease-out;
+    position: relative;
+  }
+  .history-entry:hover,
+  .history-bucket:hover{
+    border-top-color: var(--color-primary);
+  }
+  .history-entry-summary,
+  .history-bucket-summary{
+
+  }
+  .history-bucket-summary{
+    cursor: pointer;
+    list-style: none;
+    padding: .25rem 0;
+    padding-right: 5rem;
+  }
+  .history-bucket-summary::-webkit-details-marker{display:none}
+  .history-bucket-summary::before{
+    content: "+";
+    width: 1.25rem;
+    display: inline-block;
+    text-align: center;
+    color: var(--color-primary);
+    font-weight: bold;
+  }
+  details.history-bucket-details[open] > .history-bucket-summary::before{
+    content: "−";
+  }
+  .history-entry-name{
+    font-size: 1.05em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-entry-meta,
+  .history-bucket-meta{
+    display: block;
+    padding-left: 1.25rem;
+    opacity: .85;
+    font-size: .9em;
+  }
+  .history-entry-time,
+  .history-bucket-time{
+    margin-left: .5rem;
+    font-family: monospace;
+    opacity: .75;
+    font-size: 90%;
+  }
+  .history-entry-actions{
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+  }
+  .history-bucket-actions{
+    position: absolute;
+    right: 0;
+    top: .25rem;
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+  }
+  .history-restore-form{
+    display: inline;
+    margin: 0;
+  }
+  .history-bucket-entries{
+    list-style: none;
+    padding: .25rem 0 .25rem 1.5rem;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+  }
+  .history-entry-diff{
+    grid-column: 1 / -1;
+    padding-left: 1.25rem;
+  }
+  .history-entry-diff > summary{
+    cursor: pointer;
+    color: var(--color-primary);
+    font-size: .85em;
+    list-style: none;
+  }
+  .history-entry-diff > summary::-webkit-details-marker{display:none}
+  .history-entry-diff[open] .if-collapsed,
+  .history-entry-diff:not([open]) .if-expanded{display:none}
+  .history-entry-diff-body{
+    padding: .5rem 0;
+  }
+  .history-entry-diff-body pre{
+    background: #111;
+    overflow: auto;
+    max-height: 75vh;
+    max-width: 130ch;
+    padding: .5rem;
+    margin: .5rem 0;
+  }
+  .history-empty{
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-info);
+  }
+</style>
+
+<script type="module" src="/dist/js/history.js?ref={{ config.build_ref }}"></script>
