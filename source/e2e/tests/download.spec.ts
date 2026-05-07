@@ -1,7 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { createWriteStream } from "node:fs";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {promisify} from "node:util";
 
 import {fromBuffer as fromBufferCb} from "yauzl";
@@ -10,7 +9,7 @@ const fromBuffer = promisify(fromBufferCb);
 
 import { test, expect } from '@playwright/test';
 import { Writable } from "node:stream";
-import { on, once } from "node:events";
+import { once } from "node:events";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 

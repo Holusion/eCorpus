@@ -2,7 +2,7 @@
 
 
 import path from "node:path";
-import fs, { readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { randomBytes, randomUUID } from "node:crypto";
 
 import { test, expect } from '@playwright/test';
