@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures.js';
 import type { Page } from "@playwright/test";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
@@ -50,13 +50,15 @@ test.afterAll(async () => {
   await scenePage.close();
 });
 
-test.skip("can show annotations", async ()=>{
-  let short = scenePage.getByRole("button", {name:"annotation"}).getByText("Short Annotation");
+test("can show annotations", async ()=>{
+  const short = scenePage.getByRole("button", {name:"annotation"}).getByText("Short Annotation");
   await expect(short).not.toBeVisible();
   await scenePage.getByTitle("Show/Hide Annotations").click();
   await expect(short).toBeVisible();
 
-  let link = scenePage.getByRole("button", {name:"annotation"}).getByText("Link Annotation");
-  await link.click();
-  await link.getByRole('button', { name: 'Read more...' }).click();
+  // The "Link annotation" entry has an articleId, so opening it must
+  // expose a "Read more" action somewhere in the explorer overlay.
+  // Fixture spelling is "Link annotation" with a lowercase 'a'.
+  await scenePage.getByRole("button", {name:"annotation"}).getByText("Link annotation").click();
+  await expect(scenePage.getByRole('button', { name: /read more/i })).toBeVisible();
 });

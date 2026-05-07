@@ -1,33 +1,24 @@
-import path from "node:path";
-import fs from "node:fs/promises";
-import { createWriteStream } from "node:fs";
-import { randomUUID, createHash } from "node:crypto";
 import {promisify} from "node:util";
 
 import {fromBuffer as fromBufferCb} from "yauzl";
 const fromBuffer = promisify(fromBufferCb);
 
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures.js';
 import { Writable } from "node:stream";
-import { on, once } from "node:events";
-
-const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
+import { once } from "node:events";
 
 //Authenticated as normal user
-test.use({ storageState: 'playwright/.auth/user.json' });
+test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
 
-test("downloads a scene archive", async ({page, request})=>{
-  const name = randomUUID();
-  await request.post(`/scenes/${encodeURIComponent(name)}`,{
-    data: await fs.readFile(path.join(fixtures, "cube.glb")),
-  });
+test("downloads a scene archive", async ({page, createScene})=>{
+  const name = await createScene();
 
   await page.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
   //Check if it _looks like_ the actual scene page
   await expect(page.locator("h1")).toHaveText(name);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole("link", {name: "Download this scene"}).click();
+  await page.getByRole("link", {name: "buttons.download"}).click();
   const download = await downloadPromise;
   let rs =  await download.createReadStream();
   let b = Buffer.allocUnsafe(4096);
@@ -53,9 +44,4 @@ test("downloads a scene archive", async ({page, request})=>{
     `scenes/${name}/${name}.glb`,
     `scenes/${name}/scene.svx.json`,
   ]);
-});
-
-
-test.skip("download a bunch of scene archives", async ({page})=>{
-  
 });

@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures.js';
 import type { BrowserContext, Page } from "@playwright/test";
 
 
 //Authenticated as user
-test.use({ storageState: 'playwright/.auth/user.json' });
+test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
 
 let adminContext :BrowserContext;
 

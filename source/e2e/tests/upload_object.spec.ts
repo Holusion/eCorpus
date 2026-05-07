@@ -1,13 +1,13 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures.js';
 import { readFile } from "node:fs/promises";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 //Authenticated as admin
-test.use({ storageState: 'playwright/.auth/user.json' });
+test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
 
 test("uploads and rename a glb", async ({ page, request }) => {
   await page.goto("/ui/upload");
@@ -17,13 +17,13 @@ test("uploads and rename a glb", async ({ page, request }) => {
 
   await expect(page.getByRole("listitem").getByText("✓")).toBeVisible();
 
-  const f = page.getByRole("form", { name: "Create or update a scene" });
+  const f = page.getByRole("form", { name: "titles.createOrUpdateScene" });
   await expect(f).toBeVisible();
-  await expect(f.getByRole("combobox", { name: "Default language" })).toHaveValue("en");
-  await f.getByRole("textbox", { name: "Scene name" }).fill(name);
-  await page.getByRole("button", { name: "create a scene" }).click();
+  await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
+  await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
+  await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
-  const uploads = page.getByRole("region", { name: "Created Scenes" });
+  const uploads = page.getByRole("region", { name: "titles.createdScenes" });
   await expect(uploads).toBeVisible({ timeout: 10000 });
   //Don't check for actual progress bar visibility because that could be too quick to register
   const link = uploads.getByRole("link", { name: name });
@@ -52,16 +52,16 @@ test("uploads and rename a glb (force FR)", async ({ page, request }) => {
 
   await expect(page.getByRole("listitem").getByText("✓")).toBeVisible();
 
-  const f = page.getByRole("form", { name: "Create or update a scene" });
-  const uploads = page.getByRole("region", { name: "Created Scenes" });
+  const f = page.getByRole("form", { name: "titles.createOrUpdateScene" });
+  const uploads = page.getByRole("region", { name: "titles.createdScenes" });
 
   await expect(f).toBeVisible();
   await expect(uploads).not.toBeVisible();
 
-  await f.getByRole("combobox", { name: "Default language" }).selectOption("fr");
-  await f.getByRole("textbox", { name: "Scene name" }).fill(name);
+  await f.getByRole("combobox", { name: "labels.setupLocalization" }).selectOption("fr");
+  await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
 
-  await page.getByRole("button", { name: "create a scene" }).click();
+  await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
   await expect(uploads).toBeVisible();
   //Don't check for actual progress bar visibility because that could be too quick to register
@@ -108,7 +108,7 @@ test("upload many glb", async ({ page, request }) => {
   const section = page.locator("section");
   //Check that we can actually open the filechooser by clicking on the button
   const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText("select one or several files").click();
+  await page.getByText("labels.selectFile_s").click();
   const fileChooser = await fileChooserPromise;
   fileChooser.setFiles(files);
 
@@ -118,19 +118,19 @@ test("upload many glb", async ({ page, request }) => {
     await expect(page.locator(`#upload-${file.name.replace(/[^-_a-z0-9]/g, "_")}.upload-done`)).toBeVisible();
   }
 
-  const f = section.getByRole("form", { name: "Create or update a scene" });
-  const btn = section.getByRole("button", { name: "create a scene" });
+  const f = section.getByRole("form", { name: "titles.createOrUpdateScene" });
+  const btn = section.getByRole("button", { name: "buttons.uploadScene" });
   await expect(f).toBeVisible();
   await expect(btn).toBeVisible();
   await btn.scrollIntoViewIfNeeded();
 
-  await f.getByRole("textbox", { name: "Scene name" }).fill(name);
-  await f.getByRole("combobox", { name: "Default language" }).selectOption("fr");
+  await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
+  await f.getByRole("combobox", { name: "labels.setupLocalization" }).selectOption("fr");
 
   //Submit
   await btn.click();
 
-  const uploads = page.getByRole("region", { name: "Created Scenes" });
+  const uploads = page.getByRole("region", { name: "titles.createdScenes" });
   await expect(uploads).toBeVisible();
   const link = uploads.getByRole("link", { name: name });
   await link.click();
@@ -165,13 +165,13 @@ test("uploads an obj with mtl and texture", async ({ page, request }) => {
 
   await expect(page.getByRole("listitem").getByText("✓")).toHaveCount(3);
 
-  const f = page.getByRole("form", { name: "Create or update a scene" });
+  const f = page.getByRole("form", { name: "titles.createOrUpdateScene" });
   await expect(f).toBeVisible();
-  await expect(f.getByRole("combobox", { name: "Default language" })).toHaveValue("en");
-  await f.getByRole("textbox", { name: "Scene name" }).fill(name);
-  await page.getByRole("button", { name: "create a scene" }).click();
+  await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
+  await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
+  await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
-  const uploads = page.getByRole("region", { name: "Created Scenes" });
+  const uploads = page.getByRole("region", { name: "titles.createdScenes" });
   await expect(uploads).toBeVisible();
   //Don't check for actual progress bar visibility because that could be too quick to register
   const link = uploads.getByRole("link", { name: name });
@@ -219,15 +219,15 @@ test("uploads and optimize a glb", async ({ page, request }) => {
 
   await expect(page.getByRole("listitem").getByText("✓")).toBeVisible();
 
-  const f = page.getByRole("form", { name: "Create or update a scene" });
+  const f = page.getByRole("form", { name: "titles.createOrUpdateScene" });
   await expect(f).toBeVisible();
-  await expect(f.getByRole("combobox", { name: "Default language" })).toHaveValue("en");
-  await f.getByRole("textbox", { name: "Scene name" }).fill(name);
-  await page.getByRole("checkbox", { name: "Optimize models", exact: false }).click();
+  await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
+  await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
+  await page.getByRole("checkbox", { name: "labels.optimizeModel", exact: false }).click();
 
-  await page.getByRole("button", { name: "create a scene" }).click();
+  await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
-  const uploads = page.getByRole("region", { name: "Created Scenes" });
+  const uploads = page.getByRole("region", { name: "titles.createdScenes" });
   await expect(uploads).toBeVisible({ timeout: 50000 });
   //Don't check for actual progress bar visibility because that could be too quick to register
   const link = uploads.getByRole("link", { name: name });

@@ -2,10 +2,13 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures.js';
 import type { Page } from "@playwright/test";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
+
+// Index of each language in the voyager-story Language combobox
+const Lang = { EN: "0", ES: "1", FR: "5" } as const;
 
 //Authenticated as user
 test.use({ storageState: 'playwright/.auth/user.json' });
@@ -59,7 +62,7 @@ test("can create an annotation", async ()=>{
 
 test("can create an annotation in a secondary language", async ()=>{
   await scenePage.getByRole("button", {name: "Annotations"}).click();
-  await scenePage.locator(".sv-task-view sv-property-options").filter({hasText: 'Language'}).getByRole("combobox").selectOption("1")// 1 is Spanish
+  await scenePage.locator(".sv-task-view sv-property-options").filter({hasText: 'Language'}).getByRole("combobox").selectOption(Lang.ES);
   await expect(scenePage.getByRole("button", {name: "ES", exact: true})).toBeVisible();
   const vp = scenePage.viewportSize();
   
@@ -78,7 +81,7 @@ test("can create an annotation in a secondary language", async ()=>{
   await expect(scenePage.getByRole("button", {name: "ES", exact: true})).toBeVisible();
 
   // Select French again, check that "Spanish annotation" is no longer there
-  await scenePage.locator(".sv-task-view sv-property-options").filter({hasText: 'Language'}).getByRole("combobox").selectOption("5")// 5 is French
+  await scenePage.locator(".sv-task-view sv-property-options").filter({hasText: 'Language'}).getByRole("combobox").selectOption(Lang.FR);
   await expect(scenePage.getByLabel('annotation', { exact: true }).filter({hasText:"Spanish annotation"})).toHaveCount(0);
   
 });
@@ -98,7 +101,7 @@ test("can create an article", async ()=>{
 });
 
 test("can switch to english to edit the article", async ()=>{
-  await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption("0")// 0 is English
+  await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption(Lang.EN);
   await expect(scenePage.getByRole("button", {name: "EN", exact: true})).toBeVisible();
   let mce = scenePage.locator('sv-article-editor').getByRole('application').locator("iframe").contentFrame();
   await expect(mce.getByRole("heading")).toHaveText("New Article");
@@ -106,12 +109,17 @@ test("can switch to english to edit the article", async ()=>{
 
 
 test("can save the scene", async ()=>{
-  await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption("5")// 5 is French
+  await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption(Lang.FR);
   let mce = scenePage.locator('sv-article-editor').getByRole('application').locator("iframe").contentFrame();
   await expect(mce.getByRole("heading")).toHaveText("Nouvel Article");
   // Interface is still in english even if active language is in french. See rc-53
   //This locator should target role = "navigation" when this gets implemented
+  // Wait for the save PUT to land instead of racing the toast notification.
+  const savedDoc = scenePage.waitForResponse(resp =>
+    resp.url().endsWith(`/scenes/${name}/scene.svx.json`)
+    && resp.request().method() === "PUT"
+    && resp.ok()
+  );
   await scenePage.locator("sv-task-bar").getByRole('button', { name: 'Save' }).click();
-  // @fixme catch notification
-  await expect(scenePage.getByText("Successfully uploaded file to")).toBeVisible({timeout: 1400});
+  await savedDoc;
 });

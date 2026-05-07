@@ -46,8 +46,11 @@ export const test = base.extend<TestFixture>({
   createScene: async ({browser}, use)=>{
     const fs = await import("node:fs/promises");
     const data = await fs.readFile(path.join(fixtures, "cube.glb"))
-    const ctx = await browser.newContext({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
-    const request = ctx.request;
+    const userCtx = await browser.newContext({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+    // force-delete (?archive=false) requires instance-admin rights, so cleanup
+    // runs through a separate admin context.
+    const adminCtx = await browser.newContext({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+    const request = userCtx.request;
     const names :string[] = [];
     await use(async ({permissions, public_access, default_access, autoDelete=true} :CreateSceneOptions={})=>{
         const name = randomUUID();
@@ -69,8 +72,13 @@ export const test = base.extend<TestFixture>({
         }
         return name;
     });
-    await Promise.all(names.map(name=> request.delete(`/scenes/${encodeURIComponent(name)}?archive=false`)));
-    await ctx.close();
+    await Promise.all(names.map(async (name)=>{
+      const res = await adminCtx.request.delete(`/scenes/${encodeURIComponent(name)}?archive=false`);
+      // 404 is fine: a test may have force-deleted the scene already.
+      if(res.status() !== 404) await expect(res, `cleanup of scene ${name}`).toBeOK();
+    }));
+    await userCtx.close();
+    await adminCtx.close();
   },
   uniqueAccount: async ({browser}, use)=>{
     let adminContext = await browser.newContext({storageState: "playwright/.auth/admin.json"});
