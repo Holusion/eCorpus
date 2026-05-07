@@ -25,6 +25,13 @@ else
   log "node_modules up to date, skipping npm install"
 fi
 
+# The root postinstall runs `npm i` inside source/voyager, which can rewrite
+# its package-lock.json (Dockerfile uses `npm ci --legacy-peer-deps` to avoid
+# this). Restore the upstream lockfile so the working tree stays clean.
+if [ -d source/voyager/.git ] || [ -f source/voyager/.git ]; then
+  git -C source/voyager checkout -- package-lock.json 2>/dev/null || true
+fi
+
 # 3. Playwright browsers for e2e (best-effort; some sandboxes block the CDN).
 if [ -d source/e2e/node_modules ]; then
   log "installing playwright browsers (chromium)"
