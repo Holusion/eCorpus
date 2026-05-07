@@ -257,37 +257,44 @@ export default abstract class ScenesVfs extends BaseVfs{
       type: SceneType,
     }>(
       `
-      SELECT id, name, ctime, archived, mtime, author_id, author, thumb, tags, user_access, default_access, public_access, type
+      SELECT
+        id, name, ctime, archived, mtime, author_id, author,
+        (SELECT name FROM current_files
+           WHERE fk_scene_id = id AND (${ScenesVfs._fragIsThumbnail()})
+           ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
+        COALESCE((SELECT array_agg(tag_name) FROM tags WHERE fk_scene_id = id), '{}') AS tags,
+        user_access, default_access, public_access, type
       FROM (
         SELECT
-          ${withMatch? "MAX(rank) as rank," : ""}
+          ${withMatch? "rank," : ""}
           scenes.scene_id AS id,
           scenes.scene_name AS name,
           scenes.ctime AS ctime,
           scenes.archived AS archived,
           scene_type AS type,
-          MAX(COALESCE(documents.ctime, scenes.ctime)) as mtime,
+          GREATEST(scenes.ctime, (
+            SELECT MAX(documents.ctime)
+            FROM current_files documents
+            WHERE documents.fk_scene_id = scenes.scene_id
+              AND documents.name = 'scene.svx.json'
+              AND data IS NOT NULL
+          )) AS mtime,
           scenes.fk_author_id AS author_id,
           COALESCE(users.username, 'default') AS author,
-          (SELECT name FROM current_files WHERE fk_scene_id = scenes.scene_id AND (${ScenesVfs._fragIsThumbnail()}) ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb,
-          COALESCE( array_agg(tags.tag_name) FILTER (WHERE tags.tag_name IS NOT NULL), '{}') AS tags,
           GREATEST( users_acl.access_level, group_access, scenes.default_access) AS user_access,
           scenes.default_access AS default_access,
           scenes.public_access AS public_access
-        FROM 
+        FROM
           ${fromScenes}
           LEFT JOIN users_acl ON ( fk_user_id = $1 AND users_acl.fk_scene_id = scene_id)
           LEFT JOIN (
               SELECT MAX(access_level) as group_access, fk_scene_id
-              FROM groups_acl JOIN groups_membership 
+              FROM groups_acl JOIN groups_membership
               ON ( groups_membership.fk_user_id = $1 AND groups_acl.fk_group_id = groups_membership.fk_group_id)
               GROUP BY fk_scene_id) AS group_accesses
             ON ( group_accesses.fk_scene_id = scene_id)
-          LEFT JOIN current_files as documents ON (documents.fk_scene_id = scene_id AND mime = 'application/si-dpo-3d.document+json' AND data IS NOT NULL)
           LEFT JOIN users ON scenes.fk_author_id = user_id
-          LEFT JOIN tags ON tags.fk_scene_id = scene_id
         ${whereClause}
-        GROUP BY id, scene_name, username, access_level, group_access
         )  as matched_scenes
       ${match? `WHERE rank > 0.00001`:""}
       ORDER BY ${sortString} ${orderDirection.toUpperCase()}, name ASC
