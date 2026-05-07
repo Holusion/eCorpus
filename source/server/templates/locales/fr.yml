@@ -28,6 +28,8 @@ labels:
   sendLoginLink: Envoyer un lien
   view: Voir
   edit: Editer
+  editDefault: Editer (valeur par défaut)
+  editModified: Editer (valeur modifiée)
   properties: Info
   localization_one: Langue de la scène
   localization_other: Langues de la scène
