@@ -1,17 +1,40 @@
 @use "sass:selector";
 
 .form-control{
-
-  &form, form{
+  --label-width: 200px;
+  container-type: inline-size;
+  &, form, .form-group{
     display: flex;
     flex-direction: column;
+    align-items: stretch;
   }
 
-  &.column{
-    display:flex;
-    align-items: stretch;
-    gap: 5px;
+  .form-item{
+    display: flex;
+    flex-direction: row;
+    > label{
+      flex: 0 0 auto;
+      min-width: var(--label-width);
+      padding-right: 1.5rem;
+    }
+    //input is generally just nested inside the form-item
+    input {
+      flex: 1 1 auto;
+    }
+    
+    //But in case we want to bundle a bunch of thing in this space, we can further nest it in a .form-input
+    > .form-input {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
   }
+
+
+
+ 
 
 
   .form-group{
@@ -37,6 +60,44 @@
       gap: 5px;
 
     }
+
+    // Button row — a .form-group that contains only button-like children
+    // becomes a right-aligned action row. Excludes the existing layout
+    // modifiers (.inline, .column) so mixed input + button rows opt out.
+    // On container collapse the row reverses to a column-reverse stack with
+    // every child stretched to full width.
+    &:not(.inline):not(.column):has(> .btn, > button, > input[type="submit"], > input[type="reset"], > input[type="button"]){
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+    }
+  }
+
+
+  // Collapse the [label · input] grid to a single column when the form's own
+  // width drops below the threshold. Container query (not viewport) so a form
+  // in a sidebar / dialog / table cell collapses based on its actual width.
+  // Every row in the same form collapses simultaneously.
+  @container (max-width: 480px) {
+
+    .form-item {
+      flex-direction: column;
+
+      > label {
+        text-align: start;
+        white-space: normal;
+        padding-top: 0;
+      }
+    }
+
+    .form-group:not(.inline):not(.column):has(> .btn, > button, > input[type="submit"], > input[type="reset"], > input[type="button"]){
+      flex-direction: column-reverse;
+      > * {
+        flex: 1 1 100%;
+      }
+    }
   }
 
 
@@ -47,112 +108,6 @@
 
   .form-section{
     margin: .25rem 0 .1rem 0;
-  }
-
-
-  .form-item {
-    position: relative;
-    box-sizing: border-box;
-    padding: 0;
-    border: none;
-
-
-    &.inline{
-      display:flex;
-      flex-direction: row;
-      gap: .5rem;
-      padding: 2px 0;
-      >input{
-        flex-grow: 0;
-        width: auto;
-      }
-    }
-
-    > input{
-      box-sizing: border-box;
-      padding: 0.35rem .75rem;
-      display: block;
-      width: 100%;
-      font-size: 1rem;
-      font-weight: 400;
-      line-height: 1.5;
-      &:not(.btn){
-        color: var(--color-text);
-        background: var(--color-element);
-        background-clip: padding-box;
-        border-radius: 0;
-      }
-
-      &:invalid:not(:placeholder-shown):not(:focus){
-        outline: var(--color-error) solid 1px;
-      }
-      &:hover:not(:disabled){
-        box-shadow: inset 0 -1px var(--color-highlight2);
-      }
-      &:has( + .btn-addon:not([hidden])){
-        //To have proper outline alignment
-        padding-right: 2.5rem;
-        margin-right: -2.5rem;
-      }
-
-      &[hidden]{
-        display: none;
-        +label{
-          cursor: pointer;
-          padding: 5px 2px;
-          margin: 0;
-          display: inline-block;
-        }
-        &[type="radio"]:checked + label{
-          color: var(--color-primary);
-        }
-      }
-
-      &[readonly]{
-        &:hover, &:focus {
-          outline: none;
-          border-color: inherit;
-          box-shadow: none !important;
-        }
-        cursor: default;
-        caret-color: transparent;
-        &[type="checkbox"], &[type="color"]{
-          pointer-events: none;
-        }
-      }
-
-      &[type="checkbox"]{
-        width: auto;
-        padding: 0;
-        margin: 0;
-      }
-
-      &[type="color"]{
-        border-radius: 4px;
-        &::-moz-color-swatch,
-        &::-webkit-color-swatch {
-          border: none;
-        }
-      }
-    }
-    > input + .btn-addon{
-      position: absolute;
-      top: 1px;
-      bottom: 1px;
-      right: 1px;
-      border-radius: 0 3px 3px 0;
-      width: 2.5rem;
-      padding: 0;
-      .ui-icon{
-        margin: 0;
-        height: auto;
-      }
-    }
-
-    > label{
-      opacity: 0.7;
-    }
-
   }
 
 
@@ -249,18 +204,269 @@
     }
   }
 
-  .form-checkbox{
+
+  &.form-sidebar{
+    //Used in .grid-toolbar
     display: flex;
-    flex-direction: row;
-    input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      margin-right: 10px;
-    }    
+    flex-direction: column;
+    justify-content: stretch;
+    gap: 8px;
+    padding-left: .5rem;
   }
 
-  .form-item > select{
-    border: 0 !important; 
+
+  &:disabled *, & *:disabled, & *:disabled * {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  // Preserve the legacy floating-label layout inside .form-modal — its <label>
+  // is positioned absolutely over the input, so the 2-col grid above would
+  // leave an empty 150px column. (.form-modal will be removed in step 3 of the
+  // forms consolidation; this guard goes away with it.)
+  &.form-modal .form-item:has(> label){
+    display: block;
+  }
+
+}
+
+
+// Base building block for a single labelled input. Defined at the top level
+// (not nested under .form-control) so it can be reused anywhere — e.g. the
+// navbar search input, which is not inside a .form-control.
+.form-item {
+  // Reserved space for an optional help / error message below the input. The
+  // .btn-addon rule below uses this same variable to compute its bottom offset,
+  // so addon buttons (edit / password-toggle / …) stretch the input row only
+  // and never reach down into the help-text gap.
+  --form-item-help-pad: 0px;
+  position: relative;
+  box-sizing: border-box;
+  border: none;
+
+  &:has(> label) {
+    --form-item-help-pad: 1.25rem;
+    padding: 0 0 var(--form-item-help-pad);
+
+
+  }
+
+  > label {
+    text-align: end;
+    white-space: wrap;
+    word-break: break-all;
+    padding: 3px 0;
+  }
+
+  &.inline{
+    display:flex;
+    flex-direction: row;
+    gap: .5rem;
+    padding: 2px 0;
+    >input{
+      flex-grow: 0;
+      width: auto;
+    }
+  }
+
+
+  // Slide the gold focus rule in when the row gains focus — using
+  // :focus-within (not :focus) so adjacent focusable elements like a password
+  // reveal toggle keep the rule active.
+  &:focus-within input:not(.btn){
+    background-size: 100% 1px;
+  }
+
+  > label{
+    font-family: var(--font-heading);
+    opacity: 0.7;
+  }
+
+
+  // Underline-only input — no fill, no box. The baseline rule is a static
+  // 1px border-bottom; on :focus-within of the row, a gold gradient scales in
+  // from the left over 250ms and replaces it. Invalid inputs get the same
+  // treatment in red.
+  input{
+    box-sizing: border-box;
+    padding: 3px 0;
+    display: block;
+    width: 100%;
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.5;
+
+    &:not(.btn){
+      --form-rule-base: light-dark(#cccccc, #2a2a2a);
+      --form-rule-active: var(--color-primary);
+      &:has(+ .btn-main){
+        --form-rule-active: var(--color-secondary);
+      }
+
+      color: var(--color-text);
+      background-color: transparent;
+      border: none;
+      border-radius: 0;
+
+      // Two-layer gradient: a full-width neutral baseline rule with the
+      // active rule layered on top, animating 0 → 100% on focus. Both layers
+      // share the same 1px row so the active rule fully covers the baseline
+      // when extended — no border-bottom underneath, no double-line on focus.
+      background-image:
+        linear-gradient(var(--form-rule-active), var(--form-rule-active)),
+        linear-gradient(var(--form-rule-base), var(--form-rule-base));
+      background-size: 0 1px, 100% 1px;
+      background-position: 0 100%, 0 100%;
+      background-repeat: no-repeat;
+      transition: background-size .2s linear;
+    }
+
+    &:not(.btn):focus{
+      outline: none;
+    }
+    &:not(.btn):hover:not(:disabled){
+      --form-rule-base: var(--color-highlight2);
+    }
+    &:not(.btn):invalid:not(:placeholder-shown):not(:focus){
+      --form-rule-active: var(--color-error);
+      background-size: 100% 1px, 100% 1px;
+    }
+    // Disabled inputs are visibly inert: the rule disappears entirely so they
+    // can't be mistaken for an editable field.
+    &:not(.btn):disabled{
+      background-image: none;
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    &:has( + .btn-addon:not([hidden])){
+      //To have proper outline alignment
+      padding-right: 2.5rem;
+      margin-right: -2.5rem;
+    }
+
+    + .btn-addon{
+      position: absolute;
+      top: 1px;
+      // Stretch the input row only — exclude the reserved help-text padding so
+      // the addon button doesn't bleed into the empty gap below.
+      bottom: calc(var(--form-item-help-pad, 0px) + 1px);
+      right: 1px;
+      border-radius: 0 3px 3px 0;
+      width: 2.5rem;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      .ui-icon{
+        margin: 0;
+        height: auto;
+      }
+    }
+
+    &[hidden]{
+      display: none;
+      +label{
+        cursor: pointer;
+        padding: 5px 2px;
+        margin: 0;
+        display: inline-block;
+      }
+      &[type="radio"]:checked + label{
+        color: var(--color-primary);
+      }
+    }
+
+    &[readonly]{
+      cursor: default;
+      caret-color: transparent;
+      background-image: none;
+      &:hover, &:focus {
+        outline: none;
+        border-color: inherit;
+      }
+      &[type="checkbox"], &[type="color"]{
+        pointer-events: none;
+      }
+    }
+
+    // Ledger-style checkbox — typographic [ ] / [✓] glyphs in the heading
+    // serif, gold on checked. ::before always renders bracket+em-space+bracket
+    // (constant width — brackets never shift between states); ::after overlays
+    // the checkmark only when checked.
+    //
+    // Explicit width + justify-self: start keep the checkbox from being
+    // stretched by the parent grid cell — without these the input would fill
+    // the input column and the centred ::after overlay would land at the cell
+    // midpoint, far away from the brackets.
+    &[type="checkbox"]{
+      appearance: none;
+      -webkit-appearance: none;
+      position: relative;
+      display: inline-block;
+      justify-self: start;
+      box-sizing: content-box;
+      width: 1.5em;
+      height: 2em;
+      flex: 0 0 2em;
+      padding: 0;
+      margin: 0;
+      background-image: none;
+      font-family: var(--font-heading);
+      font-size: 1em;
+      line-height: 2em;
+      text-align: center;
+      vertical-align: middle;
+      color: light-dark(#777, #999);
+      cursor: pointer;
+
+      &::before{
+        content: "[\2003]";
+      }
+      &::after{
+        content: "\20DD";
+        position: absolute;
+        inset: 0;
+        text-align: center;
+        line-height: 2em;
+        pointer-events: none;
+      }
+      &:checked{
+        color: var(--color-primary);
+        &::after{ content: "\2713"; }
+      }
+      &:indeterminate::after{
+        content: "\2013";
+      }
+      &:focus-visible{
+        outline: 1px dotted var(--color-primary);
+        outline-offset: 2px;
+      }
+      &:disabled{
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    &[type="color"]{
+      border-radius: 4px;
+      background-image: none;
+      &::-moz-color-swatch,
+      &::-webkit-color-swatch {
+        border: none;
+      }
+    }
+  }
+
+  // When the form-item itself is a <label> wrapping an input (e.g. addon-style
+  // rows in admin/groups.hbs, search filters), the label text is direct child
+  // text — apply the heading font there too.
+  @at-root label.form-item{
+    font-family: var(--font-heading);
+  }
+
+  select{
+    border: 0 !important;
     width: 100%;
     padding: 5px;
     border: none;
@@ -281,23 +487,12 @@
       }
     }
   }
-
-
-  &.form-sidebar{
-    //Used in .grid-toolbar
-    display: flex;
-    flex-direction: column;
-    justify-content: stretch;
-    gap: 8px;
-    padding-left: .5rem;
-  }
-
-
-  &:disabled *, & *:disabled, & *:disabled * {
-    pointer-events: none;
-    opacity: 0.7;
+  fieldset{
+    border: none;
+    padding: 0 .5rem;
   }
 }
+
 
 //Checkbox that has a changing label depending of whether it's checked or not
 .checkbox-label{

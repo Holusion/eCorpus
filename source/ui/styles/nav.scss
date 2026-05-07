@@ -262,6 +262,9 @@ nav, .navbar {
       color: var(--color-primary);
     }
   }
+  #nav-search {
+    margin: auto 0;
+  }
 
   // Override UA popover styles on larger screens
   #main-navbar-links {

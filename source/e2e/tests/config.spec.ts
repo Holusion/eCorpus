@@ -16,10 +16,9 @@ test("can change a config option", async ({page, request})=>{
   //We expect whatever value at the start, that may or may not be an empty string
   //so we should be resilient to isolation errors
   await page.goto("/ui/admin/");
-  const t = page.getByRole("table", {name: "titles.config"});
-  const brand_row = t.locator("tr").filter({has: page.locator("td[title='brand']")});
+  const brand_row = page.locator(".conf-line").filter({has: page.locator("#conf-brand")});
   await expect(brand_row).toBeVisible();
-  await brand_row.getByRole("button", {name: "labels.edit"}).click();
+  await brand_row.locator("[data-action='edit']").click();
   const save_btn = brand_row.getByRole("button", {name: "labels.save"})
   await expect(save_btn).toBeVisible();
   await brand_row.getByRole("textbox").fill("Hello World");
@@ -38,9 +37,8 @@ test("can change a config option", async ({page, request})=>{
 
 test("can reset a config option", async ({page, request})=>{
   await page.goto("/ui/admin/");
-  const t = page.getByRole("table", {name: "titles.config"});
-  const brand_row = t.locator("tr").filter({has: page.locator("td[title='brand']")});
-  await brand_row.getByRole("button", {name: "labels.edit"}).click();
+  const brand_row = page.locator(".conf-line").filter({has: page.locator("#conf-brand")});
+  await brand_row.locator("[data-action='edit']").click();
   await brand_row.getByRole("textbox").fill("Hello World");
   await brand_row.getByRole("button", {name: "labels.restore"}).click()
   const save_btn = brand_row.getByRole("button", {name: "labels.save"});
@@ -68,10 +66,8 @@ test("can toggle checkboxes", async ({page, request})=>{
 
   await page.goto("/ui/admin/");
 
-  const t = page.getByRole("table", {name: "titles.config"});
-
-  const brand_row = t.locator("tr").filter({has: page.locator("td[title='verbose']")});
-  await brand_row.getByRole("button", {name: "labels.edit"}).click();
+  const brand_row = page.locator(".conf-line").filter({has: page.locator("#conf-verbose")});
+  await brand_row.locator("[data-action='edit']").click();
   await brand_row.getByRole("checkbox").click();
   const save_btn = brand_row.getByRole("button", {name: "labels.save"});
   await save_btn.click();

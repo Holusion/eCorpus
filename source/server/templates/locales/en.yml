@@ -28,6 +28,8 @@ labels:
   sendLoginLink: Send a login link
   view: View
   edit: Edit
+  editDefault: Edit (value is unchanged from default)
+  editModified: Edit (value has been changed from default)
   properties: Properties
   localization_one: Scene language
   localization_other: Scene languages

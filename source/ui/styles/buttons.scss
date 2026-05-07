@@ -31,7 +31,7 @@ a{
   align-items: center;
   flex: 0 1 auto;
   flex-wrap: wrap;
-  padding: 8px;
+  padding: .5rem 1rem;
   min-width: 100px;
 
   transition: fill 0.2s;
@@ -134,9 +134,9 @@ a{
 
   &.btn-pill {
     --btn-color-hover: var(--btn-color);
-    padding: 0 .6em .2em .6em;
+    padding: 0 .6em 0 .6em;
+    line-height: calc(1.5em - 2px);
     min-width: auto;
-    height: 1.2em;
     border-radius: 999px;
     box-sizing: border-box;
     cursor: text;

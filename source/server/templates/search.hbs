@@ -22,29 +22,27 @@
   <div class="md-collapse" id="advanced-search-tools">
     <h3 id="advanced-search-title" style="margin-top: 0">{{i18n "labels.advancedSearch"}}</h3>
     <form aria-labelledby="advanced-search-title" autocomplete="off" id="search" class="form-control form-sidebar" method="GET" action="/ui/scenes">
-      <label class="form-group">
+      <div class="form-item">
         <div style="display:flex;justify-content: space-between">
-          <span style="display:block;">{{i18n "labels.sortBy"}}</span>
-          <fieldset class="form-item" style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
+          <label id="orderByLabel" style="display:block;">{{i18n "labels.sortBy"}}</label>
+          <fieldset style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
             <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
             <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
             <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
             <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
           </fieldset>
         </div>
-        <div class="form-item">
-          <select name="orderBy" autocomplete="off" form="search">
-            {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
-            {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
-            {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
-            {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
-          </select>
-        </div>
-      </label>
+        <select aria-labelledby="orderByLabel" name="orderBy" autocomplete="off" form="search">
+          {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
+          {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
+          {{>inputs/option selected=(test params.orderBy "==" "name") value="name" text=(i18n "fields.name")}}
+          {{>inputs/option selected=(test params.orderBy "==" "rank") value="rank" text=(i18n "fields.rank")}}
+        </select>
+      </div>
 
       {{!-- <h5 class="form-section">{{i18n "fields.myScenesOnly"}}</h5> --}}
 
-      <label class="form-item form-checkbox" style="justify-content: space-between">
+      <label class="form-item inline" style="justify-content: space-between">
         <span>{{i18n "fields.showOnlyMyScenes"}}</span>
         <input  name="author" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
       </label>
@@ -165,7 +163,7 @@
     <div class="form-item" style="display:flex; flex-grow: 1;">
       <input class="search-box-input" type="search" name="match" form="search" id="model-search" aria-label="{{i18n "titles.search"}}" placeholder="{{i18n "labels.searchPlaceholder"}}"
         value="{{params.match}}">
-      <button class="btn btn-addon btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
+      <button class="btn btn-main" style="margin-top:0" form="search" type="submit" aria-label="{{i18n "buttons.searchScene"}}"><ui-icon
           name="search"></ui-icon></button>
     </div>
 

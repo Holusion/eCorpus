@@ -5,11 +5,13 @@
       <span style="text-align: center;">{{i18n "labels.deletingAGroupIsPermanent"}}</span>
       <submit-fragment method="DELETE" action="/groups/{{encodeURIComponent name}}"
         encoding="application/json" onsubmit="window.location.href='/ui/groups'">
-        <form style="display: flex; justify-content: center">
-          <button role="submit" id="btn-deleteGroup" class="btn">
-            <ui-icon name="trash"></ui-icon>
-            {{i18n "buttons.delete"}}
-          </button>
+        <form class="form-control">
+          <div class="form-group">
+            <button role="submit" id="btn-deleteGroup" class="btn">
+              <ui-icon name="trash"></ui-icon>
+              {{i18n "buttons.delete"}}
+            </button>
+          </div>
         </form>
       </submit-fragment>
   </div>
@@ -30,7 +32,7 @@
           window.location.reload()">
         <label class="form-item">
           <input id="new-member" type="text" value="" placeholder="{{i18n "labels.username"}}" />
-          <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+          <button type="submit" class="btn btn-main"><ui-icon name="plus"></ui-icon></button>
         </label>
       </form>
     </submit-fragment>
@@ -78,7 +80,7 @@
             const action_url = '/auth/access/' + encodeURIComponent(document.getElementById('sceneName').value);
             const form = document.getElementById('scene_submit_fragment');
             form.action = action_url;">
-        <div class="form-item, row">
+        <div class="form-group row">
           <input type="hidden" name="groupName" value="{{name}}" />
           <input id="sceneName" name="sceneName" placeholder="{{i18n "labels.scene"}}" />
           <select name="access" aria-label="{{i18n "labels.permission"}}">
@@ -114,15 +116,17 @@
               <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
                 action="/auth/access/{{encodeURIComponent scene}}" encoding="application/json"
                 onsubmit="window.location.reload()">
-                <form class="form-item" style="flex-grow: 1;" autocomplete="off">
+                <form class="form-control" style="flex-grow: 1;" autocomplete="off">
                   <input type="hidden" name="groupName" value="{{@root.name}}" />
-                  <select name="access" aria-label="{{i18n "labels.permission"}}">
-                    {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n
-                    "fields.removeSpecificAccess")}}
-                    {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
-                    {{> inputs/option selected=(test "write" "in" access) value="write" text=(i18n "fields.write")}}
-                    {{> inputs/option selected=(test "admin" "in" access) value="admin" text=(i18n "fields.admin")}}
-                  </select>
+                  <div class="form-item">
+                    <select name="access" aria-label="{{i18n "labels.permission"}}">
+                      {{> inputs/option selected=(test "none" "in" access) value="none" text=(i18n
+                      "fields.removeSpecificAccess")}}
+                      {{> inputs/option selected=(test "read" "in" access) value="read" text=(i18n "fields.read")}}
+                      {{> inputs/option selected=(test "write" "in" access) value="write" text=(i18n "fields.write")}}
+                      {{> inputs/option selected=(test "admin" "in" access) value="admin" text=(i18n "fields.admin")}}
+                    </select>
+                  </div>
                 </form>
                 <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
                   progress</progress>
