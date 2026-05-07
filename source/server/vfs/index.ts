@@ -6,7 +6,6 @@ import open, {Database} from "./helpers/db.js";
 import BaseVfs from "./Base.js";
 import FilesVfs from "./Files.js";
 import ScenesVfs from "./Scenes.js";
-import CleanVfs from "./Clean.js";
 import StatsVfs from "./Stats.js";
 import TagsVfs from "./Tags.js";
 
@@ -58,8 +57,8 @@ class Vfs extends BaseVfs{
   }
 }
 
-interface Vfs extends FilesVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs {};
-applyMixins(Vfs, [FilesVfs, ScenesVfs, StatsVfs, TagsVfs, CleanVfs]);
+interface Vfs extends FilesVfs, ScenesVfs, StatsVfs, TagsVfs {};
+applyMixins(Vfs, [FilesVfs, ScenesVfs, StatsVfs, TagsVfs]);
 
 export default Vfs;
 

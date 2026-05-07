@@ -2151,30 +2151,6 @@ describe("Vfs", function(){
           });
         });
 
-        describe("cleanLooseObjects()", function(){
-          it("remove old dangling blobs", async function(){
-            let file = await vfs.writeFile(dataStream(["Hello World\n"]), {scene: scene_id, name: "foo.txt", mime: "text/plain", user_id: null});
-            //lie about the file's mtime: it is old enough
-            await fs.utimes(vfs.filepath(file), new Date(Date.now() - 3600*1000*2), new Date(Date.now()- 3600*1000*3));
-            await vfs.removeScene(scene_id);
-            //Blob should still be here
-            await expect(fs.access(vfs.filepath(file as any), constants.R_OK)).to.be.fulfilled;
-            let report = await vfs.cleanLooseObjects();
-            expect(report).to.equal(`Cleaned 1 loose object`);
-            await expect(fs.access(vfs.filepath(file as any), constants.R_OK)).to.be.rejectedWith("ENOENT");
-          });
-        });
-
-        describe("checkForMissingObjects()", function(){
-          it("reports missing blobs", async function(){
-            let file = await vfs.writeFile(dataStream(["Hello World\n"]), {scene: scene_id, name: "foo.txt", mime: "text/plain", user_id: null});
-            //force: false, so it throws if file is not here
-            await expect(fs.rm(vfs.getPath(file as any), {force: false})).to.be.fulfilled;
-            let report = await vfs.checkForMissingObjects();
-            expect(report).to.equal("File 0qhPS4tlCTfsj3PNi-LHSt1akRumTfJ0WO2CKdqASiY can't be read on disk (can't fix). Some data have been lost!")
-          });
-        })
-
         describe("createTaskWorkspace()", function(){
 
           it("creates a workspace directory for a new task", async function(){
@@ -2216,43 +2192,6 @@ describe("Vfs", function(){
             await expect(vfs.createTaskWorkspace(task_id)).to.be.rejectedWith("ENOTDIR");
           });
 
-        });
-
-        describe("cleanTaskArtifacts()", function(){
-          it("returns undefined when artifactsDir is empty", async function(){
-            const report = await vfs.cleanTaskArtifacts();
-            expect(report).to.be.undefined;
-          });
-
-          it("removes directories for tasks that no longer exist", async function(){
-
-            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'running') RETURNING task_id`);
-            const task_id: number = rows[0].task_id;
-            const dir = await vfs.createTaskWorkspace(task_id);
-            await expect(fs.access(dir)).to.be.fulfilled;
-
-            await vfs._db.run(`DELETE FROM tasks WHERE task_id = $1`, [task_id]);
-            const report = await vfs.cleanTaskArtifacts();
-            expect(report).to.equal("Cleaned 1 stale artifact directory");
-            await expect(fs.access(dir)).to.be.rejectedWith("ENOENT");
-          });
-
-          it("keeps directories for tasks that still exist", async function(){
-
-            const rows = await vfs._db.all(`INSERT INTO tasks(type, status) VALUES ('test', 'running') RETURNING task_id`);
-            const task_id: number = rows[0].task_id;
-            const dir = await vfs.createTaskWorkspace(task_id);
-            const report = await vfs.cleanTaskArtifacts();
-            expect(report).to.be.undefined;
-            await expect(fs.access(dir)).to.be.fulfilled;
-          });
-
-          it("ignores non-numeric entries in artifactsDir", async function(){
-            await fs.mkdir(path.join(vfs.artifactsDir, "not-a-task-id"), {recursive: true});
-            const report = await vfs.cleanTaskArtifacts();
-            expect(report).to.be.undefined;
-            await expect(fs.access(path.join(vfs.artifactsDir, "not-a-task-id"))).to.be.fulfilled;
-          });
         });
       });
     });

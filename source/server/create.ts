@@ -11,6 +11,7 @@ import Vfs from "./vfs/index.js";
 import defaultConfig, { Config, parse } from "./utils/config.js";
 import createServer from "./routes/index.js";
 import { TaskScheduler } from "./tasks/scheduler.js";
+import { runCleanup } from "./tasks/handlers/cleanup.js";
 
 
 const debug = debuglog("pg:connect");
@@ -44,15 +45,16 @@ export default async function createService(env = process.env) :Promise<Services
 
 
   if(clean_database){
-    setTimeout(()=>{
-      //Clean file system after a while to prevent delaying startup
-      vfs.clean().then(()=>console.log("Cleanup done."), e=> console.error("Cleanup failed :", e));
-    }, 6000).unref();
+    const reaped = await taskScheduler.reapOrphans();
+    if(reaped) console.log(`Reaped ${reaped} orphaned task${reaped === 1 ? "" : "s"} from previous process`);
 
+    taskScheduler.run({ handler: runCleanup, data: { trigger: "startup" } })
+      .catch(e => console.error("Startup cleanup failed:", e));
 
     setInterval(()=>{
-      vfs.optimize();
-    }, 2*3600*1000).unref();
+      taskScheduler.run({ handler: runCleanup, data: { trigger: "scheduled" } })
+        .catch(e => console.error("Periodic cleanup failed:", e));
+    }, 24*3600*1000).unref();
   }
 
   const app = await createServer({
