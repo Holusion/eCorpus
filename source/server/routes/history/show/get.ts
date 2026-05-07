@@ -9,8 +9,10 @@ import { Readable } from "stream";
 export async function handleShowFile(req: Request, res: Response){
   let vfs = getVfs(req);
   let {scene: sceneName, id, name} = req.params;
+  let ref = parseInt(id);
+  if(!Number.isFinite(ref) || ref <= 0) throw new BadRequestError(`Invalid reference id: ${id}`);
   let scene = await vfs.getScene(sceneName);
-  let file = await vfs.getFileBefore({scene: scene.id, name, before: parseInt(id)});
+  let file = await vfs.getFileBefore({scene: scene.id, name, before: ref});
   if(!file.hash && !file.data) throw new NotFoundError(`${sceneName}/${ name } does not exist at this reference point`);
   if(file.hash === "directory") throw new BadRequestError(`${sceneName}/${name} appears to be a directory`);
   let rs = file.data? Readable.from([Buffer.from(file.data)]): (await vfs.openFile({hash: file.hash!})).createReadStream({ });
