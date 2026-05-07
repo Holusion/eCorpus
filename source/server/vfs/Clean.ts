@@ -32,13 +32,18 @@ export default abstract class CleanVfs extends BaseVfs{
    *          This is however deemed unlikely in common usage because it only happens when scenes are deleted (not archived)
    */
   public async cleanLooseObjects(this:Vfs) :Promise<string|void>{
+    // Pre-load every referenced hash once so we don't issue a query per disk object
+    const referenced = new Set<string>();
+    for await (const row of this.db.each<{hash: string}>(`SELECT DISTINCT hash FROM files WHERE hash IS NOT NULL`)){
+      referenced.add(row.hash);
+    }
+
     let it = await fs.opendir(this.objectsDir);
     let loose = [];
     for await (let object of it){
       await timers.setTimeout(randomInt(1));
 
-      let rows = await this.db.all(`SELECT COUNT(file_id) AS count FROM files WHERE hash = $1`, [object.name]);
-      if(!rows || rows.length == 0 || rows[0].count == 0){
+      if(!referenced.has(object.name)){
         //try to prevent race conditions by ensuring file is old enough
         const stat = await fs.stat(this.getPath({hash: object.name}));
         if(stat.mtime.valueOf() < Date.now() - 3600){
