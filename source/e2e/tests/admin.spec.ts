@@ -1,10 +1,5 @@
-import path from "node:path";
-
-
 import { expect, test } from '../fixtures.js';
 import { randomBytes, randomUUID } from "node:crypto";
-
-const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 //Authenticated as admin
 test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
@@ -50,18 +45,11 @@ test("can delete a non-admin user", async ({page, request})=>{
   await expect(userRow).not.toBeVisible();
 });
 
-test("can force-delete archived scenes", async ({page, request})=>{
+test("can force-delete archived scenes", async ({page, request, createScene})=>{
 
-  const name = randomUUID();
-  const fs = await import("node:fs/promises");
-  const data = await fs.readFile(path.join(fixtures, "cube.glb"))
-  let res = await page.request.post(`/scenes/${encodeURIComponent(name)}`, {
-    data,
-    headers: {"Content-Type": "model/gltf-binary"}
-  });
-  await expect(res).toBeOK();
+  const name = await createScene();
 
-  res = await page.request.delete(`/scenes/${encodeURIComponent(name)}?archive=true`);
+  let res = await page.request.delete(`/scenes/${encodeURIComponent(name)}?archive=true`);
   await expect(res).toBeOK();
 
   res = await request.get(`/scenes?archived=any&match=${name}`);
@@ -86,18 +74,11 @@ test("can force-delete archived scenes", async ({page, request})=>{
   expect(body.scenes).toHaveLength(0);
 });
 
-test("can restore archived scenes", async ({page, request})=>{
+test("can restore archived scenes", async ({page, request, createScene})=>{
 
-  const name = randomUUID();
-  const fs = await import("node:fs/promises");
-  const data = await fs.readFile(path.join(fixtures, "cube.glb"))
-  let res = await page.request.post(`/scenes/${encodeURIComponent(name)}`, {
-    data,
-    headers: {"Content-Type": "model/gltf-binary"}
-  });
-  await expect(res).toBeOK();
+  const name = await createScene();
 
-  res = await page.request.delete(`/scenes/${encodeURIComponent(name)}?archive=true`);
+  let res = await page.request.delete(`/scenes/${encodeURIComponent(name)}?archive=true`);
   await expect(res).toBeOK();
 
   res = await request.get(`/scenes?archived=any&match=${name}`);

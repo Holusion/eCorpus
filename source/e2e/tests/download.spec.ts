@@ -1,6 +1,3 @@
-import path from "node:path";
-import fs from "node:fs/promises";
-import { randomUUID } from "node:crypto";
 import {promisify} from "node:util";
 
 import {fromBuffer as fromBufferCb} from "yauzl";
@@ -11,16 +8,11 @@ import { test, expect } from '../fixtures.js';
 import { Writable } from "node:stream";
 import { once } from "node:events";
 
-const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
-
 //Authenticated as normal user
 test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
 
-test("downloads a scene archive", async ({page, request})=>{
-  const name = randomUUID();
-  await request.post(`/scenes/${encodeURIComponent(name)}`,{
-    data: await fs.readFile(path.join(fixtures, "cube.glb")),
-  });
+test("downloads a scene archive", async ({page, createScene})=>{
+  const name = await createScene();
 
   await page.goto(`/ui/scenes/${encodeURIComponent(name)}/settings`);
   //Check if it _looks like_ the actual scene page
