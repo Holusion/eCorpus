@@ -287,21 +287,21 @@ export default abstract class FilesVfs extends BaseVfs{
     if(withGeneration){
       args.push(generation);
     }
-    /** @fixme inner join? */
     let r = await this.db.get(`
       WITH scene AS (SELECT scene_id FROM scenes WHERE ${(is_string?"scene_name":"scene_id")} = $1 )
       SELECT
         ${FilesVfs._fragFileProps({withData, table: "files"})}
       FROM scene
-      LEFT JOIN files ON files.fk_scene_id = scene.scene_id 
-      WHERE files.name = $2
-      ${withGeneration? `
-        AND generation = $3
+      ${withGeneration ? `
+        INNER JOIN files ON files.fk_scene_id = scene.scene_id
+                        AND files.name = $2
+                        AND files.generation = $3
       ` : `
-        ORDER BY generation DESC
-        LIMIT 1
+        INNER JOIN current_generations cg
+                ON cg.fk_scene_id = scene.scene_id AND cg.name = $2
+        INNER JOIN files USING (fk_scene_id, name, generation)
       `}
-      ${lock?"FOR UPDATE":""}
+      ${lock?"FOR UPDATE OF files":""}
     `, args);
     if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
     return r;
@@ -467,40 +467,34 @@ export default abstract class FilesVfs extends BaseVfs{
    * Get a list of all files in a scenes in their current state.
    * @see getSceneHistory for a list of all versions
    * Ordering should be consistent with `getSceneHistory`
-   * @fixme check for performance benefits of using the new current_files view? 
    */
   listFiles(scene_id :number) :AsyncGenerator<(FileProps & {hash: string}), void, undefined>
   listFiles(scene_id :number, opts :{withArchives:false, withFolders: false}& ListFilesOptions) :AsyncGenerator<(FileProps & {hash: string}), void, undefined>
   listFiles(scene_id :number, opts :ListFilesOptions) :AsyncGenerator<FileProps, void, undefined>
   async *listFiles(scene_id :number, {withArchives = false, withFolders = false, withData = false}: ListFilesOptions ={}) :AsyncGenerator<FileProps, void, undefined>{
     yield* this.db.each<FileProps>(`
-      WITH ag AS ( 
-        SELECT fk_scene_id, name, MAX(ctime) as mtime, MIN(ctime) as ctime , MAX(generation) AS generation
-        FROM files
-        WHERE fk_scene_id = $1
-        GROUP BY fk_scene_id, name
-      )
-      SELECT 
-        ag.mtime AS mtime,
-        ag.ctime AS ctime,
+      SELECT
+        files.ctime AS mtime,
+        (SELECT ctime FROM files AS first_file
+          WHERE first_file.fk_scene_id = files.fk_scene_id
+            AND first_file.name = files.name
+            AND first_file.generation = 1) AS ctime,
         files.size AS size,
         hash,
         ${withData? "data,":""}
-        ag.generation as generation,
+        cg.generation AS generation,
         file_id as id,
         files.name AS name,
         mime,
         fk_author_id AS author_id,
         COALESCE(username, 'default') AS author
-      FROM ag
-        INNER JOIN files 
-          USING(fk_scene_id, name, generation)
-        LEFT JOIN users
-          ON files.fk_author_id = user_id
-      WHERE TRUE
+      FROM current_generations cg
+        INNER JOIN files USING (fk_scene_id, name, generation)
+        LEFT JOIN users ON files.fk_author_id = user_id
+      WHERE cg.fk_scene_id = $1
         ${((withArchives)?"":`AND hash IS NOT NULL`)}
         ${((withFolders)? "": `AND mime != 'text/directory'`)}
-      ORDER BY mtime DESC, name ASC
+      ORDER BY files.ctime DESC, files.name ASC
     `, [ scene_id ]);
   }
 
