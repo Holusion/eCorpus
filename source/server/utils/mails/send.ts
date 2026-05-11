@@ -39,11 +39,17 @@ export default async function send(
   transporter?: nodemailer.Transporter,
 ) :ReturnType<nodemailer.Transporter["sendMail"]>{
   if(!transporter && !_transporter){
-    let transportURL = new URL(Config.get("smart_host"));
-    //Set logger to the value of VERBOSE env var
-    if(!transportURL.searchParams.has("logger")) transportURL.searchParams.set("logger", Config.get("verbose")? "true": "false");
-    if(!transportURL.searchParams.has("name")) transportURL.searchParams.set("name", Config.get("hostname"));
-    _transporter = nodemailer.createTransport(transportURL.toString())
+    if(process.env["MAIL_FAKE"]){
+      //Test / e2e mode: swallow every message into the in-memory JSON transport
+      //so deliveries never hit a real SMTP server.
+      _transporter = nodemailer.createTransport({ jsonTransport: true });
+    } else {
+      let transportURL = new URL(Config.get("smart_host"));
+      //Set logger to the value of VERBOSE env var
+      if(!transportURL.searchParams.has("logger")) transportURL.searchParams.set("logger", Config.get("verbose")? "true": "false");
+      if(!transportURL.searchParams.has("name")) transportURL.searchParams.set("name", Config.get("hostname"));
+      _transporter = nodemailer.createTransport(transportURL.toString())
+    }
   }
 
   transporter ??= _transporter;

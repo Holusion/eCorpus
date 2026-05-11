@@ -16,6 +16,9 @@ sourceMaps.install();
 chai.use(chaiAsPromised);
 
 process.env["TEST"] ??= "true";
+// Force every test run to use the in-memory nodemailer json transport so no
+// SMTP connection is ever attempted from a test.
+process.env["MAIL_FAKE"] ??= "true";
 
 const debug = debuglog("pg:debug");
 

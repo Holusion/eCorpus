@@ -26,6 +26,7 @@ labels:
   sortBy: Trier par
   loginLink: Copier un lien de connexion
   sendLoginLink: Envoyer un lien
+  sendOnboardingEmail: Envoyer un email de bienvenue
   view: Voir
   edit: Editer
   editDefault: Editer (valeur par défaut)
