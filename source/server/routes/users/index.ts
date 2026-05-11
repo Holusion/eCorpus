@@ -4,6 +4,7 @@ import { Router } from "express";
 import UserManager from "../../auth/UserManager.js";
 import { getUserManager, isAdministrator, isAdministratorOrOpen, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
+import { qsToInt } from "../../utils/query.js";
 import bodyParser from "body-parser";
 
 import postUser from "./post.js";
@@ -27,7 +28,10 @@ router.get("/", isAdministrator, wrap(async (req, res)=>{
   let userManager :UserManager = getUserManager(req);
   //istanbul ignore if
   if(!userManager) throw new Error("Badly configured app : userManager is not defined in app.locals");
-  let users = await userManager.getUsers(true);
+  let users = await userManager.getUsers(true, {
+    limit: qsToInt(req.query.limit),
+    offset: qsToInt(req.query.offset),
+  });
   res.status(200).send(users);
 }));
 

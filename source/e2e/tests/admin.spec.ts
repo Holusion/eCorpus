@@ -23,6 +23,21 @@ test("can create a new user", async ({page})=>{
   await expect(page.getByRole("table").getByText(name, {exact: true})).toBeVisible();
 });
 
+test("shows the email of users in the admin users list", async ({page, request})=>{
+  let username = `test-emailcol-${randomBytes(6).toString("base64url")}`;
+  let email = `${username}@example.com`;
+  let res = await request.post("/users", {
+    data: {username, password: randomUUID(), email},
+  });
+  await expect(res).toBeOK();
+
+  await page.goto("/ui/admin/users");
+
+  let userRow = page.getByRole("row", {name: username});
+  await expect(userRow).toBeVisible();
+  await expect(userRow.getByRole("link", {name: email})).toBeVisible();
+});
+
 test("can delete a non-admin user", async ({page, request})=>{
   let username = `test-deleteuser-${randomBytes(6).toString("base64url")}`;
   let u = {

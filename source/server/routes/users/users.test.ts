@@ -123,6 +123,55 @@ describe("/users", function(){
           expect(user).not.to.have.property("password");
         }
       })
+
+      describe("supports pagination", function(){
+        this.beforeEach(async function(){
+          // Add extra users to exercise pagination (we already have 2)
+          for(let i = 0; i < 12; i++){
+            await userManager.addUser(`paginated_${i.toString(10).padStart(3, "0")}`, "abcdefghij", "use");
+          }
+        });
+
+        it("accepts a limit parameter", async function(){
+          let res = await this.agent.get("/users?limit=5")
+          .set("Accept", "application/json")
+          .expect(200);
+          expect(res.body).to.have.property("length", 5);
+        });
+
+        it("accepts an offset parameter", async function(){
+          // 2 base users (alice, bob) + 12 paginated_xxx = 14 total
+          let res = await this.agent.get("/users?offset=10")
+          .set("Accept", "application/json")
+          .expect(200);
+          expect(res.body).to.have.property("length", 4);
+        });
+
+        it("combines limit and offset", async function(){
+          let res = await this.agent.get("/users?limit=3&offset=3")
+          .set("Accept", "application/json")
+          .expect(200);
+          expect(res.body).to.have.property("length", 3);
+        });
+
+        it("rejects an invalid limit", async function(){
+          await this.agent.get("/users?limit=foo")
+          .set("Accept", "application/json")
+          .expect(400);
+        });
+
+        it("rejects a negative offset", async function(){
+          await this.agent.get("/users?offset=-1")
+          .set("Accept", "application/json")
+          .expect(400);
+        });
+
+        it("rejects a limit over 100", async function(){
+          await this.agent.get("/users?limit=200")
+          .set("Accept", "application/json")
+          .expect(400);
+        });
+      });
   
       it("can create a user", async function(){
         await this.agent.post("/users")
