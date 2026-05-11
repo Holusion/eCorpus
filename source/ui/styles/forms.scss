@@ -1,5 +1,14 @@
 @use "sass:selector";
 
+// Register the underline's active-color variable as a <color> so transitions
+// can interpolate it. Without @property the variable is an untyped string and
+// the gradient using it flips instantly between gold / red / secondary.
+@property --form-rule-active {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
 .form-control{
   --label-width: 200px;
   container-type: inline-size;
@@ -39,44 +48,6 @@
  
 
 
-  .form-group{
-    padding: 5px 0;
-    &.inline{
-      display:flex;
-      justify-content: stretch;
-      flex-direction: row;
-      .form-item > select{
-        width: auto;
-      }
-    }
-    &.column{
-      display:flex;
-      align-items: stretch;
-      gap: 5px;
-
-    }
-    .row{
-      display:flex;
-      align-items: stretch;
-      flex-direction: row;
-      gap: 5px;
-
-    }
-
-    // Button row — a .form-group that contains only button-like children
-    // becomes a right-aligned action row. Excludes the existing layout
-    // modifiers (.inline, .column) so mixed input + button rows opt out.
-    // On container collapse the row reverses to a column-reverse stack with
-    // every child stretched to full width.
-    &:not(.inline):not(.column):has(> .btn, > button, > input[type="submit"], > input[type="reset"], > input[type="button"]){
-      display: flex;
-      flex-direction: row;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 10px;
-    }
-  }
-
 
   // Collapse the [label · input] grid to a single column when the form's own
   // width drops below the threshold. Container query (not viewport) so a form
@@ -112,84 +83,6 @@
     margin: .25rem 0 .1rem 0;
   }
 
-
-  &.form-modal{
-    .form-item {
-      position: relative;
-      --item-height: calc(3.5rem + 2px);
-      > input:not([type="submit"]), .btn.btn-addon {
-        border: 0px solid var(--color-element);
-        border-bottom-width: 3px;
-        height: var(--item-height);
-      }
-
-      > input:has(~ .btn.btn-addon){
-        padding-right: var(--item-height);
-      }
-
-      > input::placeholder{
-        display:none;
-        color: transparent;
-      }
-
-      > input:focus, .form-item > input:not(:placeholder-shown){
-        &[type="text"], &[type="password"]{
-          padding-top: 1.625rem;
-          padding-bottom: .625rem;
-        }
-      }
-
-      > input:focus:not(:disabled){
-        outline: 0;
-      }
-
-      > label {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        padding: 5px;
-        overflow: hidden;
-        text-align: start;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        pointer-events: none;
-        border: 1px solid transparent;
-        transform-origin: 0 0;
-        transition: opacity .1s ease-in-out,transform .1s ease-in-out;
-      }
-      input:focus ~ label, input:not(:placeholder-shown) ~label{
-        opacity: .65;
-        transform: scale(.85) translateY(-.5rem) translateX(.15rem);
-      }
-
-      >.btn.btn-addon{
-        position: absolute;
-        top:0;
-        right:0;
-        width: var(--item-height);
-        height: var(--item-height);
-        &[aria-checked="true"]{
-          color: var(--color-secondary);
-        }
-        &:hover{
-          color: var(--color-secondary-light);
-        }
-      }
-    }
-
-    &[disabled] .form-item > input, .form-item > input:disabled {
-      background: var(--color-element);
-      pointer-events: none;
-    }
-
-    input:focus ~ label, input:not(:placeholder-shown) ~label{
-      opacity: .65;
-    }
-
-  }
-  
   input[type=file]{
     &.dropzone{
       max-width: 100%;
@@ -222,16 +115,47 @@
     opacity: 0.7;
   }
 
-  // Preserve the legacy floating-label layout inside .form-modal — its <label>
-  // is positioned absolutely over the input, so the 2-col grid above would
-  // leave an empty 150px column. (.form-modal will be removed in step 3 of the
-  // forms consolidation; this guard goes away with it.)
-  &.form-modal .form-item:has(> label){
-    display: block;
-  }
-
 }
 
+
+
+.form-group{
+  padding: 5px 0;
+  &.inline{
+    display:flex;
+    justify-content: stretch;
+    flex-direction: row;
+    .form-item > select{
+      width: auto;
+    }
+  }
+  &.column{
+    display:flex;
+    align-items: stretch;
+    gap: 5px;
+
+  }
+  .row{
+    display:flex;
+    align-items: stretch;
+    flex-direction: row;
+    gap: 5px;
+
+  }
+
+  // Button row — a .form-group that contains only button-like children
+  // becomes a right-aligned action row. Excludes the existing layout
+  // modifiers (.inline, .column) so mixed input + button rows opt out.
+  // On container collapse the row reverses to a column-reverse stack with
+  // every child stretched to full width.
+  &:not(.inline):not(.column):has(> .btn, > button, > input[type="submit"], > input[type="reset"], > input[type="button"]){
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+}
 
 // Base building block for a single labelled input. Defined at the top level
 // (not nested under .form-control) so it can be reused anywhere — e.g. the
@@ -246,7 +170,7 @@
   box-sizing: border-box;
   border: none;
 
-  &:has(> label) {
+  &:has(> label), &:has(> small) {
     --form-item-help-pad: 1.25rem;
     padding: 0 0 var(--form-item-help-pad);
 
@@ -256,6 +180,42 @@
   > label {
     text-align: end;
     padding: 3px 0;
+  }
+
+  // Required-field indicator — asterisk after the label text. Two cases:
+  //   <div class="form-item"><input required><label>…</label></div>  (sibling label)
+  //   <label class="form-item">…<input required></label>              (wrapping label)
+  // Skip checkbox / radio: their layout is bracket-glyph driven, not underline.
+  // Color is state-dependent via --form-required-color: gold initially, red
+  // once :user-invalid, green once :user-valid (which on a required field
+  // implies "filled and passes constraints").
+  --form-required-color: var(--color-primary);
+  &:has(> input:required:user-invalid) {
+    --form-required-color: var(--color-error);
+  }
+  &:has(> input:required:user-valid) {
+    --form-required-color: var(--color-success);
+  }
+  &:has(> input:required:not([type="checkbox"]):not([type="radio"])) > label::after,
+  &:is(label):has(> input:required:not([type="checkbox"]):not([type="radio"]))::after {
+    content: " *";
+    color: var(--form-required-color);
+    transition: color .2s linear;
+  }
+
+  // Help / error message slot — a <small> after the input (or label) renders
+  // inside the reserved help-pad below the underline. Subtle by default; turns
+  // red and full-opacity when the row's input is invalid after interaction.
+  > small {
+    display: block;
+    font-size: .8em;
+    line-height: 1.25;
+    opacity: 0.7;
+    transition: color .2s linear, opacity .2s linear;
+  }
+  &:has(> input:user-invalid) > small {
+    color: var(--color-error);
+    opacity: 1;
   }
 
   &.inline{
@@ -318,7 +278,7 @@
       background-size: 0 1px, 100% 1px;
       background-position: 0 100%, 0 100%;
       background-repeat: no-repeat;
-      transition: background-size .2s linear;
+      transition: background-size .2s linear, --form-rule-active .2s linear;
     }
 
     &:not(.btn):focus{
@@ -327,7 +287,10 @@
     &:not(.btn):hover:not(:disabled){
       --form-rule-base: var(--color-highlight2);
     }
-    &:not(.btn):invalid:not(:placeholder-shown):not(:focus){
+    // :user-invalid fires only after the user has interacted (blur or submit)
+    // — avoids flashing red while they're still typing. Underline is fully
+    // extended so the recolor reads as a state change, not a fill-in.
+    &:not(.btn):user-invalid{
       --form-rule-active: var(--color-error);
       background-size: 100% 1px, 100% 1px;
     }

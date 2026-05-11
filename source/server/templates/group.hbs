@@ -58,14 +58,14 @@
     {{#if manageAccess}}
     <submit-fragment id="scene_submit_fragment" style="margin-bottom: 1.5rem;"
       submit="access" method="PATCH" action="" encoding="application/json" onsubmit="window.location.reload()">
-      <form class="form-control" style="flex-grow: 1;" autocomplete="off" onsubmit="
+      <form class="form-control" autocomplete="off" onsubmit="
             const action_url = '/auth/access/' + encodeURIComponent(document.getElementById('sceneName').value);
             const form = document.getElementById('scene_submit_fragment');
             form.action = action_url;">
-        <div class="form-item">
+        <div class="form-item" >
           <input type="hidden" name="groupName" value="{{name}}" />
           <input id="sceneName" name="sceneName" placeholder="{{i18n "labels.scene"}}" required />
-          <select name="access" aria-label="{{i18n "labels.permission"}}">
+          <select name="access" aria-label="{{i18n "labels.permission"}}" style="width: auto">
             <option disabled selected value> -- select an option -- </option>
             {{> inputs/option selected=false value="none" text=(i18n "fields.removeSpecificAccess")}}
             {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}

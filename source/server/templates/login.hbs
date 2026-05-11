@@ -5,22 +5,21 @@
       <div class="tab" id="login">
         <h2>{{ i18n "nav.login" }}</h2>
 
-        <form id="userlogin" class="form-control form-modal" name="{{i18n "labels.signin"}}" method="POST"
+        <form id="userlogin" class="form-control" name="{{i18n "labels.signin"}}" method="POST"
           action="/auth/login?redirect={{#if redirect}}{{encodeURI redirect}}{{else}}{{encodeURI location}}{{/if}}"
           enctype="application/x-www-form-urlencoded"
           autocomplete="on" autocapitalize="none"
         >
           <div class="form-group">
             <div class="form-item">
-              <input type="text" autocomplete="username" name="username" id="username" required="" placeholder="{{i18n "labels.username"}}">
               <label for="username">{{i18n "labels.username"}}</label>
+              <input type="text" autocomplete="username" name="username" id="username" required="">
             </div>
           </div>
           <div class="form-group">
             <div class="form-item">
-              <input type="password" autocomplete="current-password" name="password" id="password" required=""
-                placeholder="{{i18n "labels.password"}}">
               <label for="password">{{i18n "labels.password"}}</label>
+              <input type="password" autocomplete="current-password" name="password" id="password" required="">
               <button id="password-toggle" type="button" aria-checked="false" tabindex="-1" role="switch" style="display:none" class="btn btn-secondary btn-transparent btn-addon" title="{{i18n "tooltips.showPassword"}}"><ui-icon name="eye"></ui-icon></button>
               <script>
                 (function registerPasswordVisibilityToggle(){
@@ -59,14 +58,14 @@
       </div>
       <div class="tab" id="passwordRecovery">
         <h2>{{ i18n "titles.recoverPassword" }}</h2>
-        <form id="userrecover" class="form-control form-modal" name="{{i18n "labels.forgottenPassword"}}"
+        <form id="userrecover" class="form-control" name="{{i18n "labels.forgottenPassword"}}"
           autocomplete="on" 
         >
           <p>{{i18n "leads.passwordRecovery"}}</p>
           <div class="form-group">
             <div class="form-item">
-              <input type="text" minlength="3" name="username" id="recover-username" required placeholder="{{i18n "labels.username"}}">
               <label for="recover-username">{{i18n "labels.username"}}</label>
+              <input type="text" minlength="3" name="username" id="recover-username" required>
             </div>
           </div>
 
