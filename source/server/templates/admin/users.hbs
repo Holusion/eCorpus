@@ -15,7 +15,11 @@
     .users-list table.list-table td.col-email {
       white-space: normal;
       word-break: break-word;
-      max-width: 20ch;
+      max-width: 20em;
+    }
+    .users-list table.list-table td.col-level,
+    .users-list table.list-table td.col-actions{
+      padding: 0 15px;
     }
     .users-list table.list-table td.col-level select {
       width: auto;
@@ -35,7 +39,7 @@
           <td class="compact" style="font-family:monospace;">{{uid}}</td>
           <td class="col-name" id="user-row-{{uid}}">{{username}}</td>
           <td class="col-email">{{#if email}}<a href="mailto:{{email}}">{{email}}</a>{{else}}&mdash;{{/if}}</td>
-          <td class="compact col-level">
+          <td class="col-level">
             {{#if (test @root.user.level "==" "admin")}}
               {{#unless (test uid "==" ../user.uid)}}
               <submit-fragment method="PATCH" action="/users/{{uid}}" encoding="application/json"  submit="level" onsubmit="window.location.reload()">
@@ -57,7 +61,7 @@
                 <div>{{level}}</div>
             {{/if}}
           </td>
-          <td class="compact">
+          <td class="compact col-actions">
           {{#if (test @root.user.level "==" "admin")}}
             <div style="display:flex; justify-content:end;gap:.6rem;">
               <button data-username="{{username}}" aria-label="{{i18n "labels.loginLink"}}" title="{{i18n "labels.loginLink"}}" class="btn btn-inline btn-icon btn-loginlink">
