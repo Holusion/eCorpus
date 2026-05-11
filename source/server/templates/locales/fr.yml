@@ -68,6 +68,7 @@ labels:
   rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.
   noLogs: Aucun journal.
+  warnings: Avertissements
   optimizeModel: Optimiser les modèles
   childOf: Dépends de
   showStatic: Montrer les éléments verouillés

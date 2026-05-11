@@ -758,6 +758,13 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
   const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "log";
   const {root, logs} = await taskScheduler.getTaskTree(id, {level});
 
+  // Logs at severity >= warn, regardless of the UI filter.
+  // For level debug/log/warn the displayed list already contains every warn+error line;
+  // when level is "error", warn lines are filtered out and we need a separate fetch.
+  const warnCount = level === "error"
+    ? (await taskScheduler.getTaskTree(id, {level: "warn"})).logs.length
+    : logs.filter(l => l.severity === "warn" || l.severity === "error").length;
+
   const owner = root.user_id? (root.user_id == requester?.uid ?requester.username :(await userManager.getUserById(root.user_id)).username):null;
   const scene = root.scene_id? (await vfs.getScene(root.scene_id)).name : null;
   let taskOutputType:string = typeof root.output;
@@ -774,6 +781,7 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
     taskOutput: JSON.stringify(root.output, null, 2),
     taskOutputType,
     logs,
+    warnCount,
     level,
     owner,
     scene,

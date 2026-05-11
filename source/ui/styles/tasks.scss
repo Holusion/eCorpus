@@ -1,25 +1,51 @@
 /* Shared styles for task views (compiled/copied to /dist/css/tasks.css by build)
    Rules are chosen to prefer the definitions originally in `task.hbs` when conflicts arise.
 */
+.warn-count {
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--color-warning);
+}
+
+.task-title-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  align-items: baseline;
+  justify-content: space-between;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: normal;
+  }
+}
+
 .task-summary{
-  .task-title-bar {
-    margin-bottom: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .inline-heading { display: inline; }
+  .logs-count { font-weight: normal; color: var(--color-secondary); }
+  .no-logs { color: var(--color-secondary); }
+
+  .logs-header,
+  .task-output-header {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2rem;
-    align-items: end;
+    align-items: baseline;
     justify-content: space-between;
-    max-width: 100vw;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
-  h1 {
-    margin-bottom: 0;
-    min-width: 0;
-    // fallback: single-line ellipsis
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .task-output-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: .5rem;
   }
+
+  .logs-table-wrap { overflow-x: auto; }
 
   /* Task node/tree */
   .task-tree {
@@ -142,7 +168,7 @@
   font-size: .8em;
   &.task-status-large{
     padding: .5rem ;
-    width: 75px;
+    width: 80px;
     text-align: center;
   }
   //placeholder for when we want a status-like box for something else

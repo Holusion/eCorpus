@@ -16,6 +16,8 @@
       flex: 0 0 auto;
       min-width: var(--label-width);
       padding-right: 1.5rem;
+      white-space: wrap;
+      word-break: break-all;
     }
     //input is generally just nested inside the form-item
     input {
@@ -253,8 +255,6 @@
 
   > label {
     text-align: end;
-    white-space: wrap;
-    word-break: break-all;
     padding: 3px 0;
   }
 
