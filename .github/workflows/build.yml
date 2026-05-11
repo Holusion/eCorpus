@@ -53,7 +53,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v6
         with:
-          node-version: 16
+          node-version: 22
           cache: 'npm'
       - name: install voyager dependencies
         run: (cd source/voyager && npm ci --legacy-peer-deps)
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20, 22, 24]
     services:
       postgres: &postgres
         image: postgres:18

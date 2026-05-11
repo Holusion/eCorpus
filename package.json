@@ -15,7 +15,7 @@
   "author": "Holusion <contact@holusion.com>",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=16.20.2"
+    "node": ">=20.9.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

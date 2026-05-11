@@ -88,7 +88,7 @@ test("can create an annotation in a secondary language", async ()=>{
 
 test("can create an article", async ()=>{
   await scenePage.getByRole("button", {name: "Articles"}).click();
-  await scenePage.getByText('Cube', { exact: true }).click();
+  await scenePage.locator('sv-node-tree').getByText('Cube', { exact: true }).click();
 
   await scenePage.getByRole('button', { name: 'Create', exact: true }).click();
 
@@ -101,7 +101,7 @@ test("can create an article", async ()=>{
 });
 
 test("can switch to english to edit the article", async ()=>{
-  await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption(Lang.EN);
+  await scenePage.locator(".sv-task-view sv-property-options").filter({hasText: 'Language'}).getByRole("combobox").selectOption(Lang.EN);
   await expect(scenePage.getByRole("button", {name: "EN", exact: true})).toBeVisible();
   let mce = scenePage.locator('sv-article-editor').getByRole('application').locator("iframe").contentFrame();
   await expect(mce.getByRole("heading")).toHaveText("New Article");
@@ -109,7 +109,7 @@ test("can switch to english to edit the article", async ()=>{
 
 
 test("can save the scene", async ()=>{
-  await scenePage.locator(".sv-task-view").getByRole("combobox").selectOption(Lang.FR);
+  await scenePage.locator(".sv-task-view sv-property-options").filter({hasText: 'Language'}).getByRole("combobox").selectOption(Lang.FR);
   let mce = scenePage.locator('sv-article-editor').getByRole('application').locator("iframe").contentFrame();
   await expect(mce.getByRole("heading")).toHaveText("Nouvel Article");
   // Interface is still in english even if active language is in french. See rc-53
