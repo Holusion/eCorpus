@@ -8,10 +8,10 @@
       <span class="nav-text"><a  target="_blank" href="mailto:contact@holusion.com">{{i18n "nav.reportBug"}}</a></span>
     </div>
 
-    <form method="GET" id="change-locale" class="form-control nav-end" style="margin: auto 1rem;">
-      <div class="form-item" style="display: flex;flex-wrap: nowrap; align-items: center;flex-shrink: 0;">
-        <ui-icon name="globe"></ui-icon>
-        <select aria-label="{{i18n "labels.language"}}" name="lang" onchange="this.form.submit()">
+    <form method="GET" id="change-locale" class="nav-end" style="margin: auto 1rem;">
+      <div class="form-item" style="padding: 0; height: 100%; display: flex; align-items: center;">
+        <label style="padding-right:.25rem"><ui-icon name="globe"></ui-icon></label>
+        <select aria-label="{{i18n "labels.language"}}" name="lang" onchange="this.form.submit()" style="width: auto;">
           {{>inputs/option selected=(test lang "==" "en") value="en" text=(i18n "lang.en")}}
           {{>inputs/option selected=(test lang "==" "fr") value="fr" text=(i18n "lang.fr")}}
         </select>

@@ -100,7 +100,7 @@
 
 {{#if (test @root.user.level "==" "admin")}}
 <dialog id="create-user-modal" aria-labelledby="create-user-dialog-title">
-  <form id="userlogin" method="POST" action="/users" autocomplete="off" class="form-control form-modal">
+  <form id="usercreate" method="POST" action="/users" autocomplete="off" class="form-control">
     <div style="position: relative">
       <h2 id="create-user-dialog-title">{{i18n "labels.createUser"}}</h2>
       <button 
@@ -114,16 +114,16 @@
     </div>
     
     <div class="form-item">
-      <input type="text" name="username" id="username" autocomplete="off" placeholder="{{i18n labels.username}}" required>
-      <label for="username">{{i18n "labels.username"}}</label>
+      <label for="new-user">{{i18n "labels.username"}}</label>
+      <input type="text" name="username" id="new-user" autocomplete="off" required>
     </div>
     <div class="form-item">
-      <input type="email" name="email" id="email" placeholder="{{i18n "labels.email"}}" required>
-      <label for="email">{{i18n "labels.email"}}</label>
+      <label for="new-email">{{i18n "labels.email"}}</label>
+      <input type="email" name="email" id="new-email" autocomplete="off" data-bwignore="true">
     </div>
     <div class="form-item">
-      <input type="password" name="password" id="password" autocomplete="new-password" placeholder="{{i18n "labels.password"}}" required>
-      <label for="password">{{i18n "labels.password"}}</label>
+      <label for="new-password">{{i18n "labels.password"}}</label>
+      <input type="text" style="-webkit-text-security: disc; text-security: disc;" name="password" id="new-password" autocomplete="new-password" data-bwignore="true" minlength="8" required>
     </div>
     <div class="form-item">
       <select name="level" aria-label="{{i18n "labels.role"}}">

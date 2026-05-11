@@ -69,6 +69,7 @@ labels:
   rootOnly: Root tasks
   noTasks: No tasks found.
   noLogs: No logs.
+  warnings: Warnings
   optimizeModel: Optimize models
   childOf: Child of
   showStatic: Show locked parameters
