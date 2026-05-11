@@ -31,12 +31,16 @@ export const test = base.extend<TestFixture>({
     const ctx = await browser.newContext({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
     const adminPage = await ctx.newPage();
     await use(adminPage);
+    //page close could normally be omitted but here if we don't ignore the beforeUnload, it could hang forever.
+    await adminPage.close({runBeforeUnload: false});
     await ctx.close();
   },
   userPage: async ({browser}, use)=>{
     const ctx = await browser.newContext({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
     const userPage = await ctx.newPage();
     await use(userPage);
+    //page close could normally be omitted but here if we don't ignore the beforeUnload, it could hang forever.
+    await userPage.close({runBeforeUnload: false});
     await ctx.close();
   },
   /**
