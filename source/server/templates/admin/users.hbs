@@ -10,6 +10,17 @@
 </div>
 
 <div class="list-table-wrap users-list flush" style="position:relative;">
+  <style>
+    .users-list table.list-table td.col-name,
+    .users-list table.list-table td.col-email {
+      white-space: normal;
+      word-break: break-word;
+      max-width: 20ch;
+    }
+    .users-list table.list-table td.col-level select {
+      width: auto;
+    }
+  </style>
   <table class="list-table">
     <thead><tr>
         <th>uid</th>
@@ -22,9 +33,9 @@
       {{#each users}}
         <tr aria-labelledby="user-row-{{uid}}">
           <td class="compact" style="font-family:monospace;">{{uid}}</td>
-          <td id="user-row-{{uid}}">{{username}}</td>
-          <td>{{#if email}}<a href="mailto:{{email}}">{{email}}</a>{{else}}&mdash;{{/if}}</td>
-          <td class="compact">
+          <td class="col-name" id="user-row-{{uid}}">{{username}}</td>
+          <td class="col-email">{{#if email}}<a href="mailto:{{email}}">{{email}}</a>{{else}}&mdash;{{/if}}</td>
+          <td class="compact col-level">
             {{#if (test @root.user.level "==" "admin")}}
               {{#unless (test uid "==" ../user.uid)}}
               <submit-fragment method="PATCH" action="/users/{{uid}}" encoding="application/json"  submit="level" onsubmit="window.location.reload()">
