@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import sendmail from "../../../utils/mails/send.js";
-import { getLocals, getUser, useTemplateProperties  } from "../../../utils/locals.js";
+import { getLocals, getTaskScheduler, getUser, useTemplateProperties  } from "../../../utils/locals.js";
 import { BadRequestError } from "../../../utils/errors.js";
+import { sendEmail } from "../../../tasks/handlers/sendEmail.js";
 
 /**
  * Send a test email
- * Exposes all possible logs from the emailer
+ * Dispatched as a task so failures and SMTP logs are observable via the tasks UI.
  * This is a protected route and requires admin privileges
  */
 export default async function handleMailtest(req :Request, res :Response){
@@ -33,10 +33,15 @@ export default async function handleMailtest(req :Request, res :Response){
     return;
   }
 
-  let out = await sendmail({
-    to, 
-    subject: (config.get("brand") || "eCorpus")+" test email", 
-    html: mail_content
+  const taskScheduler = getTaskScheduler(req);
+  const out = await taskScheduler.run({
+    handler: sendEmail,
+    user_id: user?.uid ?? null,
+    data: {
+      to,
+      subject: (config.get("brand") || "eCorpus")+" test email",
+      html: mail_content,
+    },
   });
 
   res.status(200).send(out);

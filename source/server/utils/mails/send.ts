@@ -16,16 +16,23 @@ interface MailInput{
 /**
  * Use smart host string with defaults
  */
-let _transporter: nodemailer.Transporter;
+let _transporter: nodemailer.Transporter|undefined;
+
+/**
+ * Override the cached SMTP transporter. Pass `undefined` to fall back to the
+ * smart_host configuration the next time `send()` is called. Intended for tests.
+ */
+export function setTransporter(t: nodemailer.Transporter|undefined){
+  _transporter = t;
+}
 
 
 /**
- * use sendmail to send an email
- * **sendmail** is not really required but using /usr/bin/sendmail is not cross-platform and requires more configuration
- * @param sender should only be changed in tests
+ * Low-level SMTP send. Almost all callers should go through the
+ * `sendEmail` task handler instead so failures show up in the tasks UI
+ * and a log line is persisted per delivery attempt.
+ * @param transporter should only be changed in tests
  * @see {Templates} to write emails
- * 
- * @deprecated should be in a task
  */
 export default async function send(
   message :MailInput,
@@ -40,6 +47,7 @@ export default async function send(
   }
 
   transporter ??= _transporter;
+  if(!transporter) throw new Error("Mail transporter is not initialized");
 
   const info = await transporter.sendMail({
     from: Config.get("contact_email"),
