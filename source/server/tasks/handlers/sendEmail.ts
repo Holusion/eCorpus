@@ -11,8 +11,13 @@ export interface SendEmailParams {
 
 export interface SendEmailResult {
   messageId?: string;
-  accepted?: string[];
-  rejected?: string[];
+  /**
+   * Effective recipient list as seen by the transport. For SMTP transports
+   * this is `info.accepted`; for in-memory transports (e.g. nodemailer's
+   * jsonTransport used in tests) we fall back to the envelope.
+   */
+  accepted: string[];
+  rejected: string[];
   response?: string;
 }
 
@@ -32,12 +37,20 @@ export async function sendEmail({ task: { data }, context: { logger } }: TaskHan
     html: data.html,
     text: data.text,
   });
-  logger.log(`Delivered to ${(info.accepted ?? []).join(", ") || "<none>"}${info.rejected?.length ? `, rejected: ${info.rejected.join(", ")}` : ""}`);
+  // Not every nodemailer transport populates `accepted` (jsonTransport for
+  // instance only reports `envelope`). Normalize so callers always have a list.
+  const envelopeTo = ((info as any).envelope?.to ?? []) as string[];
+  const accepted = ((info.accepted ?? envelopeTo) as Array<string|{address:string}>)
+    .map(a => typeof a === "string" ? a : a.address);
+  const rejected = ((info.rejected ?? []) as Array<string|{address:string}>)
+    .map(a => typeof a === "string" ? a : a.address);
+
+  logger.log(`Delivered to ${accepted.join(", ") || "<none>"}${rejected.length ? `, rejected: ${rejected.join(", ")}` : ""}`);
   if (info.messageId) logger.debug(`messageId: ${info.messageId}`);
   return {
     messageId: info.messageId,
-    accepted: info.accepted as string[] | undefined,
-    rejected: info.rejected as string[] | undefined,
+    accepted,
+    rejected,
     response: (info as any).response,
   };
 }
