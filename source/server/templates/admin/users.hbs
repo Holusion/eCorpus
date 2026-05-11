@@ -14,15 +14,17 @@
     <thead><tr>
         <th>uid</th>
         <th>{{i18n "labels.username"}}</th>
+        <th>{{i18n "labels.email"}}</th>
         <th>{{i18n "labels.role"}}</th>
         <th></th>
     </tr></thead>
     <tbody>
       {{#each users}}
         <tr aria-labelledby="user-row-{{uid}}">
-          <td style="font-family:monospace;">{{uid}}</td>
+          <td class="compact" style="font-family:monospace;">{{uid}}</td>
           <td id="user-row-{{uid}}">{{username}}</td>
-          <td>
+          <td>{{#if email}}<a href="mailto:{{email}}">{{email}}</a>{{else}}&mdash;{{/if}}</td>
+          <td class="compact">
             {{#if (test @root.user.level "==" "admin")}}
               {{#unless (test uid "==" ../user.uid)}}
               <submit-fragment method="PATCH" action="/users/{{uid}}" encoding="application/json"  submit="level" onsubmit="window.location.reload()">
@@ -44,22 +46,21 @@
                 <div>{{level}}</div>
             {{/if}}
           </td>
-          <td>
+          <td class="compact">
           {{#if (test @root.user.level "==" "admin")}}
             <div style="display:flex; justify-content:end;gap:.6rem;">
+              <button data-username="{{username}}" aria-label="{{i18n "labels.loginLink"}}" title="{{i18n "labels.loginLink"}}" class="btn btn-inline btn-icon btn-loginlink">
+                <ui-icon name="key"></ui-icon>
+              </button>
               {{#if (test level "!=" "admin")}}
               <submit-fragment method="DELETE" action="/users/{{uid}}" encoding="application/json"  onsubmit="window.location.reload()">
                 <form>
-                  <button role="submit" class="btn btn-inline btn-icon btn-danger" aria-label="{{i18n "labels.delete"}}">
+                  <button role="submit" class="btn btn-inline btn-icon btn-danger" aria-label="{{i18n "labels.delete"}}" title="{{i18n "labels.delete"}}">
                     <ui-icon name="trash"></ui-icon>
                   </button>
                 </form>
               </submit-fragment>
               {{/if}}
-              
-              <button data-username="{{username}}" aria-label="{{i18n "labels.loginLink"}}" class="btn btn-inline btn-icon btn-loginlink">
-                <ui-icon name="key"></ui-icon>
-              </button>
             </div>
           {{/if}}
           </td>
@@ -69,9 +70,17 @@
   </table>
 </div>
 {{#if users.length}}
-  <div style="text-align: right;padding: .4rem 1rem;">{{i18n "leads.usersList" start=start end=end total=total}}</div>
+  {{#with pager}}
+    {{> pager }}
+  {{/with}}
 {{else}}
+  {{#if pager.previous}}
+    {{#with pager}}
+      {{> pager }}
+    {{/with}}
+  {{else}}
     <div style="text-align: center;">No user registered. Click the <ui-icon name="plus"></ui-icon> to add one</div>
+  {{/if}}
 {{/if}}
 
 {{#if (test @root.user.level "==" "admin")}}

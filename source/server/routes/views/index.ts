@@ -391,13 +391,39 @@ routes.get("/admin/archives", isAdministrator, wrap(async (req, res)=>{
 }));
 
 routes.get("/admin/users", wrap(async (req, res)=>{
-  let users = await getUserManager(req).getUsers();
+  const host = getHost(req);
+  const userManager = getUserManager(req);
+  const limit = qsToInt(req.query.limit) ?? 25;
+  const offset = qsToInt(req.query.offset) ?? 0;
+
+  const [users, total] = await Promise.all([
+    userManager.getUsers(true, {limit, offset}),
+    userManager.userCount(),
+  ]);
+
+  let pager = {
+    from: offset,
+    to: offset + users.length,
+    total,
+    next: undefined as string|undefined,
+    previous: undefined as string|undefined,
+  };
+  if(limit === users.length && offset + users.length < total){
+    const nextUrl = new URL(req.originalUrl, host);
+    nextUrl.searchParams.set("offset", (offset+limit).toString());
+    pager.next = nextUrl.pathname+nextUrl.search;
+  }
+  if(offset){
+    const prevUrl = new URL(req.originalUrl, host);
+    prevUrl.searchParams.set("offset", Math.max(0, offset - limit).toString());
+    pager.previous = prevUrl.pathname+prevUrl.search;
+  }
+
   res.render("admin/users", {
     layout: "admin",
     title: "Users list — Administration",
-    start: 0,
-    end: 0 + users.length,
-    total: users.length,
+    params: {limit, offset},
+    pager,
     users,
   });
 }));

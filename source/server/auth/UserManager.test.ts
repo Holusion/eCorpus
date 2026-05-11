@@ -155,6 +155,75 @@ describe("UserManager methods", function(){
     });
   });
 
+  describe("getUsers()", function(){
+    let dbUri :string, um :UserManager;
+    this.beforeAll(async function(){
+      // Use an isolated DB so previously created users don't interfere with counts/offsets
+      dbUri = await getUniqueDb("userManager-getUsers-test-"+randomBytes(2).toString("hex"));
+      this.db2 = await openDatabase({uri: dbUri, forceMigration: true});
+      um = new UserManager(this.db2);
+      for(let i = 0; i < 15; i++){
+        await um.addUser(`getusers_${i.toString(10).padStart(3, "0")}`, "abcdefghij", "use");
+      }
+    });
+    this.afterAll(async function(){
+      await this.db2.end();
+      await dropDb(dbUri);
+    });
+
+    it("returns all users by default", async function(){
+      const users = await um.getUsers();
+      expect(users).to.have.property("length", 15);
+    });
+
+    it("applies limit", async function(){
+      const users = await um.getUsers(true, {limit: 5});
+      expect(users).to.have.property("length", 5);
+    });
+
+    it("applies offset", async function(){
+      const users = await um.getUsers(true, {offset: 10});
+      expect(users).to.have.property("length", 5);
+    });
+
+    it("combines limit and offset", async function(){
+      const first = await um.getUsers(true, {limit: 5});
+      const next = await um.getUsers(true, {limit: 5, offset: 5});
+      expect(next).to.have.property("length", 5);
+      // Ensure the second page doesn't overlap the first
+      const firstNames = first.map(u=>u.username);
+      for(const u of next){
+        expect(firstNames).not.to.include(u.username);
+      }
+    });
+
+    it("rejects invalid limit", async function(){
+      await expect(um.getUsers(true, {limit: 0})).to.be.rejectedWith(BadRequestError);
+      await expect(um.getUsers(true, {limit: 101})).to.be.rejectedWith(BadRequestError);
+      await expect(um.getUsers(true, {limit: 1.5})).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("rejects invalid offset", async function(){
+      await expect(um.getUsers(true, {offset: -1})).to.be.rejectedWith(BadRequestError);
+      await expect(um.getUsers(true, {offset: 1.5})).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("orders results by username (stable across pages)", async function(){
+      const all = await um.getUsers();
+      const sorted = [...all].map(u=>u.username).sort();
+      expect(all.map(u=>u.username)).to.deep.equal(sorted);
+    });
+  });
+
+  describe("userCount()", function(){
+    it("returns the number of users excluding system users", async function(){
+      const before = await userManager.userCount();
+      await userManager.addUser("bob-user-count-1", "abcdefghij");
+      const after = await userManager.userCount();
+      expect(after).to.equal(before + 1);
+    });
+  });
+
   describe("removeUser()", function(){
     it("remove a user", async function(){
       let u = await userManager.addUser("bob-remove-user-1", "abcdefghij");

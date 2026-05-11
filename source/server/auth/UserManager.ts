@@ -55,6 +55,11 @@ export type AccessType = typeof AccessTypes[number];
 
 export type AccessMap = {[id: `${number}`|string]:AccessType};
 
+export interface UserQuery {
+  offset?: number;
+  limit?: number;
+}
+
 export const any_id = 1 as const;
 export const default_id = 0 as const;
 
@@ -203,22 +208,53 @@ export default class UserManager extends DbController {
   }
   
   /**
+   * Validate pagination parameters for getUsers().
+   * Mirrors ScenesVfs._validateSceneQuery() for consistency.
+   */
+  static _validateUserQuery(q :Readonly<UserQuery|any>) :UserQuery{
+    if(typeof q.limit !== "undefined"){
+      if(typeof q.limit != "number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(`When provided, limit must be an integer`);
+      if(q.limit <= 0) throw new BadRequestError(`When provided, limit must be >0`);
+      if(100 < q.limit) throw new BadRequestError(`When provided, limit must be <= 100`);
+    }
+    if(typeof q.offset !== "undefined"){
+      if(typeof q.offset != "number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(`When provided, offset must be an integer`);
+      if(q.offset < 0) throw new BadRequestError(`When provided, offset must be >= 0`);
+    }
+    return q;
+  }
+
+  /**
    * List users
    */
    async getUsers() :Promise<SafeUser[]>
-   async getUsers(safe :true) :Promise<SafeUser[]>
-   async getUsers(safe :false) :Promise<User[]>
-   async getUsers(safe :boolean =true){
+   async getUsers(safe :true, q ?:UserQuery) :Promise<SafeUser[]>
+   async getUsers(safe :false, q ?:UserQuery) :Promise<User[]>
+   async getUsers(safe :boolean, q ?:UserQuery) :Promise<SafeUser[]|User[]>
+   async getUsers(safe :boolean =true, q :UserQuery = {}){
+    const {limit, offset = 0} = UserManager._validateUserQuery(q);
+    const args :any[] = [offset];
+    let limitClause = "";
+    if(typeof limit === "number"){
+      args.push(limit);
+      limitClause = `LIMIT $2`;
+    }
     return (await this.db.all<StoredUser>(`
-      SELECT ${safe?"user_id, username, email, level":"*"} 
+      SELECT ${safe?"user_id, username, email, level":"*"}
       FROM users
-      WHERE user_id NOT IN (0, 1)`)).map(u=>UserManager.deserialize(u));
+      WHERE user_id NOT IN (0, 1)
+      ORDER BY username ASC
+      OFFSET $1
+      ${limitClause}`, args)).map(u=>UserManager.deserialize(u));
   }
 
   async userCount() :Promise<number>{
-    let r = (await this.db.all(`SELECT COUNT(user_id) as count FROM users`))[0];
+    let r = (await this.db.all<{count: number|string}>(`
+      SELECT COUNT(user_id) as count
+      FROM users
+      WHERE user_id NOT IN (0, 1)`))[0];
     if(!r) throw new InternalError(`Bad db configuration : can't get user count`);
-    return r.count;
+    return typeof r.count === "string" ? parseInt(r.count, 10) : r.count;
   }
   /**
    * 
