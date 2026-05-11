@@ -1,39 +1,22 @@
 <h1>{{name}}</h1>
-{{#if (test @root.user.level "==" "admin")}}
-  <div class="grid-toolbar">
 
-      <span style="text-align: center;">{{i18n "labels.deletingAGroupIsPermanent"}}</span>
-      <submit-fragment method="DELETE" action="/groups/{{encodeURIComponent name}}"
-        encoding="application/json" onsubmit="window.location.href='/ui/groups'">
-        <form class="form-control">
-          <div class="form-group">
-            <button role="submit" id="btn-deleteGroup" class="btn">
-              <ui-icon name="trash"></ui-icon>
-              {{i18n "buttons.delete"}}
-            </button>
-          </div>
-        </form>
-      </submit-fragment>
-  </div>
-{{/if}}
-
-<div class="grid-content two-columns">
-  <div class="section"
+<div class="grid-content">
+  <section
     style="display: flex; flex-direction: column; flex-wrap: wrap; gap: .5rem;justify-content:begin;">
     <h3>{{i18n "labels.groupMembers"}}</h3>
 
     {{#if manageAccess}}
-    <submit-fragment class="form-control" id="new-member-form" submit="members" method="PUT" action="/groups/{{name}}"
+    <submit-fragment id="new-member-form" submit="members" method="PUT" action="/groups/{{name}}"
       encoding="application/json" class="row">
-      <form onsubmit="
+      <form class="form-control" onsubmit="
           const action_url = '/groups/{{name}}/' + encodeURIComponent(document.getElementById('new-member').value);
           const form = document.getElementById('new-member-form');
           form.action = action_url;
           window.location.reload()">
-        <label class="form-item">
+        <div class="form-item">
           <input id="new-member" type="text" value="" placeholder="{{i18n "labels.username"}}" />
           <button type="submit" class="btn btn-main"><ui-icon name="plus"></ui-icon></button>
-        </label>
+        </div>
       </form>
     </submit-fragment>
     {{/if}}
@@ -66,23 +49,22 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
-  <div class="section"
-    style="display: flex; flex-direction: column; flex-wrap: wrap; gap: .5rem;justify-content:begin;">
+  <section>
     <h3>
       {{i18n "titles.permissions"}}
     </h3>
     {{#if manageAccess}}
-    <submit-fragment class="form-control" id="scene_submit_fragment" style="display:flex;flex-direction: row-reverse;"
+    <submit-fragment id="scene_submit_fragment" style="margin-bottom: 1.5rem;"
       submit="access" method="PATCH" action="" encoding="application/json" onsubmit="window.location.reload()">
-      <form class="form-group" style="flex-grow: 1;" autocomplete="off" onsubmit="
+      <form class="form-control" style="flex-grow: 1;" autocomplete="off" onsubmit="
             const action_url = '/auth/access/' + encodeURIComponent(document.getElementById('sceneName').value);
             const form = document.getElementById('scene_submit_fragment');
             form.action = action_url;">
-        <div class="form-group row">
+        <div class="form-item">
           <input type="hidden" name="groupName" value="{{name}}" />
-          <input id="sceneName" name="sceneName" placeholder="{{i18n "labels.scene"}}" />
+          <input id="sceneName" name="sceneName" placeholder="{{i18n "labels.scene"}}" required />
           <select name="access" aria-label="{{i18n "labels.permission"}}">
             <option disabled selected value> -- select an option -- </option>
             {{> inputs/option selected=false value="none" text=(i18n "fields.removeSpecificAccess")}}
@@ -140,5 +122,22 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
+  {{#if (test @root.user.level "==" "admin")}}
+  <section>
+
+      <span style="text-align: center;">{{i18n "labels.deletingAGroupIsPermanent"}}</span>
+      <submit-fragment method="DELETE" action="/groups/{{encodeURIComponent name}}"
+        encoding="application/json" onsubmit="window.location.href='/ui/groups'">
+        <form class="form-control">
+          <div class="form-group">
+            <button role="submit" id="btn-deleteGroup" class="btn btn-danger">
+              <ui-icon name="trash"></ui-icon>
+              {{i18n "buttons.delete"}}
+            </button>
+          </div>
+        </form>
+      </submit-fragment>
+  </section>
+{{/if}}
 </div>
