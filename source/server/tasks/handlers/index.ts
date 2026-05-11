@@ -11,3 +11,5 @@ export {
   optimize,
   runCleanup,
 } from "./cleanup.js";
+
+export {sendEmail} from "./sendEmail.js";

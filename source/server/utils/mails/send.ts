@@ -16,30 +16,44 @@ interface MailInput{
 /**
  * Use smart host string with defaults
  */
-let _transporter: nodemailer.Transporter;
+let _transporter: nodemailer.Transporter|undefined;
+
+/**
+ * Override the cached SMTP transporter. Pass `undefined` to fall back to the
+ * smart_host configuration the next time `send()` is called. Intended for tests.
+ */
+export function setTransporter(t: nodemailer.Transporter|undefined){
+  _transporter = t;
+}
 
 
 /**
- * use sendmail to send an email
- * **sendmail** is not really required but using /usr/bin/sendmail is not cross-platform and requires more configuration
- * @param sender should only be changed in tests
+ * Low-level SMTP send. Almost all callers should go through the
+ * `sendEmail` task handler instead so failures show up in the tasks UI
+ * and a log line is persisted per delivery attempt.
+ * @param transporter should only be changed in tests
  * @see {Templates} to write emails
- * 
- * @deprecated should be in a task
  */
 export default async function send(
   message :MailInput,
   transporter?: nodemailer.Transporter,
 ) :ReturnType<nodemailer.Transporter["sendMail"]>{
   if(!transporter && !_transporter){
-    let transportURL = new URL(Config.get("smart_host"));
-    //Set logger to the value of VERBOSE env var
-    if(!transportURL.searchParams.has("logger")) transportURL.searchParams.set("logger", Config.get("verbose")? "true": "false");
-    if(!transportURL.searchParams.has("name")) transportURL.searchParams.set("name", Config.get("hostname"));
-    _transporter = nodemailer.createTransport(transportURL.toString())
+    if(process.env["MAIL_FAKE"]){
+      //Test / e2e mode: swallow every message into the in-memory JSON transport
+      //so deliveries never hit a real SMTP server.
+      _transporter = nodemailer.createTransport({ jsonTransport: true });
+    } else {
+      let transportURL = new URL(Config.get("smart_host"));
+      //Set logger to the value of VERBOSE env var
+      if(!transportURL.searchParams.has("logger")) transportURL.searchParams.set("logger", Config.get("verbose")? "true": "false");
+      if(!transportURL.searchParams.has("name")) transportURL.searchParams.set("name", Config.get("hostname"));
+      _transporter = nodemailer.createTransport(transportURL.toString())
+    }
   }
 
   transporter ??= _transporter;
+  if(!transporter) throw new Error("Mail transporter is not initialized");
 
   const info = await transporter.sendMail({
     from: Config.get("contact_email"),

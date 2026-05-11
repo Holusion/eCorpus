@@ -38,6 +38,45 @@ test("shows the email of users in the admin users list", async ({page, request})
   await expect(userRow.getByRole("link", {name: email})).toBeVisible();
 });
 
+test("schedules an onboarding email when send_onboarding is checked", async ({page})=>{
+  await page.goto("/ui/admin/users");
+  let name = `test-onboarding-${randomBytes(6).toString("base64url")}`;
+  let password = randomUUID();
+  let email = `${name}@example.com`;
+  await page.getByRole("button", {name: "labels.createUser"}).click();
+  const form = page.getByRole("dialog", {name: "labels.createUser"});
+  await expect(form).toBeVisible();
+  await form.getByRole("textbox", {name: "labels.username"}).fill(name);
+  await form.getByRole("textbox", {name: "password"}).fill(password);
+  await form.getByRole("textbox", {name: "email"}).fill(email);
+  await form.getByRole("checkbox", {name: "labels.sendOnboardingEmail"}).check();
+  await form.getByRole("button", {name: "buttons.submit"}).click();
+
+  // After form submit the page reloads on the users list. Now check the
+  // tasks list to confirm an onboarding sendEmail task was created.
+  await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
+  const row = page.getByRole("row", {name: new RegExp(name)});
+  await expect(row).toBeVisible();
+  await expect(row).toContainText("sendEmail");
+});
+
+test("does not schedule an onboarding email when the checkbox is not ticked", async ({page, request})=>{
+  let name = `test-no-onboarding-${randomBytes(6).toString("base64url")}`;
+  // Plain JSON POST without send_onboarding -> no task.
+  let res = await request.post("/users", {
+    data: {
+      username: name,
+      email: `${name}@example.com`,
+      password: randomUUID(),
+      level: "use",
+    },
+  });
+  await expect(res).toBeOK();
+
+  await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
+  await expect(page.getByRole("row", {name: new RegExp(name)})).toHaveCount(0);
+});
+
 test("can delete a non-admin user", async ({page, request})=>{
   let username = `test-deleteuser-${randomBytes(6).toString("base64url")}`;
   let u = {

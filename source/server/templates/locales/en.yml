@@ -26,6 +26,7 @@ labels:
   sortBy: Sort by
   loginLink: Copy direct login link
   sendLoginLink: Send a login link
+  sendOnboardingEmail: Send onboarding email
   view: View
   edit: Edit
   editDefault: Edit (value is unchanged from default)

@@ -2,8 +2,8 @@ import { createHmac } from "crypto";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../auth/User.js";
 import { BadRequestError, ForbiddenError, HTTPError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
-import { AppLocals, getHost, getLocals, getSession, getUser, getUserManager, validateRedirect, useTemplateProperties  } from "../../utils/locals.js";
-import sendmail from "../../utils/mails/send.js";
+import { AppLocals, getHost, getLocals, getSession, getTaskScheduler, getUser, getUserManager, validateRedirect, useTemplateProperties  } from "../../utils/locals.js";
+import { sendEmail } from "../../tasks/handlers/sendEmail.js";
 
 /**
  * Handler for login flow. Used for automated AND interactive login flows, which makes it a bit more complicated
@@ -208,6 +208,7 @@ export async function sendLoginLink(req :Request, res :Response){
   let {sessionMaxAge} = getLocals(req);
   let {username} = req.params;
   let userManager = getUserManager(req);
+  let taskScheduler = getTaskScheduler(req);
 
   let user = await userManager.getUserByName(username);
   if(!user.email){
@@ -216,7 +217,7 @@ export async function sendLoginLink(req :Request, res :Response){
   let key = (await userManager.getKeys())[0];
   let link = makeRedirect(
     key,
-    {user, expiresIn: sessionMaxAge, redirect: getHost(req)}, 
+    {user, expiresIn: sessionMaxAge, redirect: getHost(req)},
   );
 
   let lang = "fr";
@@ -226,12 +227,16 @@ export async function sendLoginLink(req :Request, res :Response){
     lang: "fr",
     url: link.toString()
   });
-  await sendmail({
-    to: user.email,
-    subject: "Votre lien de connexion à eCorpus",
-    html: mail_content,
-  });
-  
-  console.log("sent an account recovery mail to :", user.email);
+  //Don't await delivery: the task is persisted and logs are observable via the tasks UI
+  taskScheduler.run({
+    handler: sendEmail,
+    user_id: user.uid,
+    data: {
+      to: user.email,
+      subject: "Votre lien de connexion à eCorpus",
+      html: mail_content,
+    },
+  }).catch(err => console.error(`sendLoginLink to ${user.email} failed:`, err));
+
   res.status(204).send();
 }
