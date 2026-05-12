@@ -192,6 +192,12 @@ onboarding:
       Groups let an administrator grant the same access to several users at once.
       They are managed by instance administrators — ask one to add you to the relevant
       group if you need to collaborate on scenes you do not own.
+  archives:
+    lead: >
+      Archiving a scene removes it from search results and from your scenes list while
+      keeping its data on the server. Archived scenes can be restored at any time from
+      this page. The "Archive" button is available in any scene's settings.
+    link: "Archives and restore tutorial"
 
 titles:
   myScenesSection: my scenes
