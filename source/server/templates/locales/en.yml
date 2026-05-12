@@ -189,6 +189,14 @@ onboarding:
         A <code>.zip</code> archive can contain one or several complete eCorpus scenes
         (model files, articles, annotations and thumbnails). Scene names are taken from
         the archive, so the name field above is ignored.
+  group:
+    title: "How groups work"
+    lead: >
+      Groups bundle <b>users</b> with <b>scenes</b> and grant them a shared access level
+      (<i>read</i>, <i>write</i> or <i>admin</i>). Add members on the left, then attach scenes
+      with the desired permission on the right. A user's effective rights are the most
+      permissive of their public, default, group and individual rights.
+    link: "Permissions management tutorial"
 
 titles:
   myScenesSection: my scenes

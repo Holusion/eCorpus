@@ -191,6 +191,14 @@ onboarding:
         Une archive <code>.zip</code> peut contenir une ou plusieurs scènes eCorpus
         complètes (modèles, articles, annotations et vignettes). Les noms de scène sont
         repris depuis l'archive : le champ de nom ci-dessus est alors ignoré.
+  group:
+    title: "Comment fonctionnent les groupes"
+    lead: >
+      Un groupe associe des <b>utilisateurs</b> à des <b>scènes</b> avec un même niveau d'accès
+      (<i>lecture</i>, <i>écriture</i> ou <i>admin</i>). Ajoutez des membres à gauche, puis
+      attachez les scènes voulues à droite. Les droits effectifs d'un utilisateur sont les plus
+      élevés parmi ses droits publics, par défaut, de groupe et individuels.
+    link: "Tutoriel : gestion des droits"
 
 titles:
   myScenesSection: mes scenes
