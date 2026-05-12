@@ -240,6 +240,12 @@ tooltips:
   permissions: >
     The default access for connected users can not be more restrictive than the public access.
     The wider rights of default access rights and specific user rights applies.
+  sortBy: >
+    <b>Rank</b> orders results by relevance to the search query — it only makes sense
+    when a search term is set. Other criteria are time- or name-based and ignore the query.
+  myAccess: >
+    Restrict results to scenes on which you have at least this level of rights.
+    Administrators can leave this empty to list every scene on the instance.
 leads:
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared

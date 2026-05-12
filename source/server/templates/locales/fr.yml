@@ -241,6 +241,14 @@ tooltips:
   permissions: >
     L'accès par défaut pour les autres utilisateurs connectés ne peut pas être plus restrictif que l'accès public.
     Les droits les plus élévés s'appliquent parmis les droits par défaut et les droits spécifiques d'un utilisateur.
+  sortBy: >
+    <b>Pertinence</b> classe les résultats par adéquation avec la requête — n'a de sens
+    qu'avec un terme de recherche. Les autres critères sont chronologiques ou
+    alphabétiques et ignorent la requête.
+  myAccess: >
+    Restreint les résultats aux scènes sur lesquelles vous disposez au moins de ce niveau
+    de droits. Les administrateurs peuvent laisser ce champ vide pour lister toutes les
+    scènes de l'instance.
   upload: >
     Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
     En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
