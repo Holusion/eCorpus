@@ -165,6 +165,11 @@ onboarding:
     title: "Publish and share"
     lead: "Manage access control lists and embed the viewer on your website"
     link: "Publishing tutorial"
+  upload:
+    title: "First time uploading?"
+    lead: >
+      Drop a single <code>.glb</code> to create a scene, or a <code>.zip</code> archive to extract
+      one or several existing scenes. A scene name is required only for individual model files.
 
 titles:
   myScenesSection: my scenes

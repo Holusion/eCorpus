@@ -83,7 +83,17 @@
 
       <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
 
-      <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
+      <div slot="upload-lead">
+        <p>{{i18n "leads.uploadFiles"}}</p>
+        <aside class="help-block">
+          <ui-icon name="info"></ui-icon>
+          <div class="help-block-content">
+            <h4>{{i18n "onboarding.upload.title"}}</h4>
+            <p>{{{i18n "onboarding.upload.lead"}}}</p>
+            <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/import.html">{{i18n "onboarding.import.link"}} →</a>
+          </div>
+        </aside>
+      </div>
 
       <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
 
