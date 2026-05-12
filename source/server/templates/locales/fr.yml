@@ -209,6 +209,26 @@ onboarding:
       Les tags facilitent la découverte de la scène et alimentent les collections de la page
       d'accueil. Ajoutez un tag ci-dessous — choisissez une suggestion existante pour rejoindre
       une collection.
+  userGroups:
+    lead: >
+      Les groupes permettent à un administrateur d'accorder le même niveau d'accès à
+      plusieurs utilisateurs à la fois. Ils sont gérés par les administrateurs de l'instance —
+      demandez à être ajouté à un groupe si vous devez collaborer sur des scènes que vous
+      ne possédez pas.
+  archives:
+    lead: >
+      Archiver une scène la retire des résultats de recherche et de votre liste de scènes
+      tout en conservant ses données sur le serveur. Les scènes archivées peuvent être
+      restaurées à tout moment depuis cette page. Le bouton « Archiver » se trouve dans
+      les paramètres de chaque scène.
+    link: "Tutoriel : archives et restauration"
+  tasks:
+    lead: >
+      Les tâches sont des traitements exécutés en arrière-plan par le serveur — en
+      général l'import de scènes, l'extraction d'archives ou l'optimisation de modèles.
+      Chaque tâche conserve ses journaux et un espace de travail téléchargeable pour
+      diagnostiquer les échecs.
+    link: "À propos des tâches"
 
 titles:
   myScenesSection: mes scenes

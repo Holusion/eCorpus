@@ -206,6 +206,23 @@ onboarding:
     lead: >
       Tags help others discover this scene. They are also used to build collections on
       the home page. Add a tag below — pick from existing suggestions to join a collection.
+  userGroups:
+    lead: >
+      Groups let an administrator grant the same access to several users at once.
+      They are managed by instance administrators — ask one to add you to the relevant
+      group if you need to collaborate on scenes you do not own.
+  archives:
+    lead: >
+      Archiving a scene removes it from search results and from your scenes list while
+      keeping its data on the server. Archived scenes can be restored at any time from
+      this page. The "Archive" button is available in any scene's settings.
+    link: "Archives and restore tutorial"
+  tasks:
+    lead: >
+      Tasks are background jobs run on your behalf by the server — typically scene
+      uploads, archive extractions or model optimisations. Each task records its logs
+      and a downloadable workspace you can use to troubleshoot failures.
+    link: "About background tasks"
 
 titles:
   myScenesSection: my scenes

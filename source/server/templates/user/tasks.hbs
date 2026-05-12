@@ -1,5 +1,14 @@
 
 <section>
   <h3>{{i18n "nav.tasks"}}</h3>
+  {{#unless tasks.length}}
+    <aside class="help-block">
+      <ui-icon name="info"></ui-icon>
+      <div class="help-block-content">
+        <p>{{{i18n "onboarding.tasks.lead"}}}</p>
+        <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/tasks.html">{{i18n "onboarding.tasks.link"}} →</a>
+      </div>
+    </aside>
+  {{/unless}}
   {{> taskList params=params tasks=tasks}}
 </section>
