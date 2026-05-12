@@ -196,7 +196,7 @@ onboarding:
       (<i>read</i>, <i>write</i> or <i>admin</i>). Add members on the left, then attach scenes
       with the desired permission on the right. A user's effective rights are the most
       permissive of their public, default, group and individual rights.
-    link: "Permissions management tutorial"
+    link: "Read the permissions documentation"
   scenePermissions:
     lead: >
       No specific permission has been granted on this scene yet. Anyone matching the
@@ -216,7 +216,6 @@ onboarding:
       Archiving a scene removes it from search results and from your scenes list while
       keeping its data on the server. Archived scenes can be restored at any time from
       this page. The "Archive" button is available in any scene's settings.
-    link: "Archives and restore tutorial"
   tags:
     lead: >
       No tag has been created on this instance yet. Tags group scenes into <i>collections</i>
