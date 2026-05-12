@@ -217,6 +217,16 @@ onboarding:
       keeping its data on the server. Archived scenes can be restored at any time from
       this page. The "Archive" button is available in any scene's settings.
     link: "Archives and restore tutorial"
+  tags:
+    lead: >
+      No tag has been created on this instance yet. Tags group scenes into <i>collections</i>
+      — they are added from each scene's settings page and become collection pages here.
+    link: "Tags and collections tutorial"
+  tagEmpty:
+    lead: >
+      This collection currently has no scene visible to you. The tag may have been
+      removed from every scene, or you may not have read access to the matching scenes.
+    link: "Browse all collections"
   tasks:
     lead: >
       Tasks are background jobs run on your behalf by the server — typically scene
