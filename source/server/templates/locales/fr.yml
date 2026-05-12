@@ -213,6 +213,13 @@ onboarding:
       retiré de toutes les scènes, ou vous n'avez pas les droits de lecture sur les scènes
       concernées.
     link: "Voir toutes les collections"
+  tasks:
+    lead: >
+      Les tâches sont des traitements exécutés en arrière-plan par le serveur — en
+      général l'import de scènes, l'extraction d'archives ou l'optimisation de modèles.
+      Chaque tâche conserve ses journaux et un espace de travail téléchargeable pour
+      diagnostiquer les échecs.
+    link: "À propos des tâches"
 
 titles:
   myScenesSection: mes scenes

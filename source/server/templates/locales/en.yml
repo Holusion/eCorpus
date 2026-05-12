@@ -208,6 +208,12 @@ onboarding:
       This collection currently has no scene visible to you. The tag may have been
       removed from every scene, or you may not have read access to the matching scenes.
     link: "Browse all collections"
+  tasks:
+    lead: >
+      Tasks are background jobs run on your behalf by the server — typically scene
+      uploads, archive extractions or model optimisations. Each task records its logs
+      and a downloadable workspace you can use to troubleshoot failures.
+    link: "About background tasks"
 
 titles:
   myScenesSection: my scenes
