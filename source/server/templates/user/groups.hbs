@@ -11,4 +11,13 @@
       <p>{{i18n "leads.noGroups"}}</p>
     {{/unless}}
   </div>
+  {{#unless groups.length }}
+    <aside class="help-block">
+      <ui-icon name="info"></ui-icon>
+      <div class="help-block-content">
+        <p>{{{i18n "onboarding.userGroups.lead"}}}</p>
+        <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/permissions.html">{{i18n "onboarding.group.link"}} →</a>
+      </div>
+    </aside>
+  {{/unless}}
 </section>

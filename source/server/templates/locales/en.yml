@@ -187,6 +187,11 @@ onboarding:
     lead: >
       Tags help others discover this scene. They are also used to build collections on
       the home page. Add a tag below — pick from existing suggestions to join a collection.
+  userGroups:
+    lead: >
+      Groups let an administrator grant the same access to several users at once.
+      They are managed by instance administrators — ask one to add you to the relevant
+      group if you need to collaborate on scenes you do not own.
 
 titles:
   myScenesSection: my scenes

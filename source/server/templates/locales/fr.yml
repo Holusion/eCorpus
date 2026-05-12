@@ -188,6 +188,12 @@ onboarding:
       Les tags facilitent la découverte de la scène et alimentent les collections de la page
       d'accueil. Ajoutez un tag ci-dessous — choisissez une suggestion existante pour rejoindre
       une collection.
+  userGroups:
+    lead: >
+      Les groupes permettent à un administrateur d'accorder le même niveau d'accès à
+      plusieurs utilisateurs à la fois. Ils sont gérés par les administrateurs de l'instance —
+      demandez à être ajouté à un groupe si vous devez collaborer sur des scènes que vous
+      ne possédez pas.
 
 titles:
   myScenesSection: mes scenes
