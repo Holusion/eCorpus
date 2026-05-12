@@ -170,6 +170,14 @@ onboarding:
     lead: >
       Drop a single <code>.glb</code> to create a scene, or a <code>.zip</code> archive to extract
       one or several existing scenes. A scene name is required only for individual model files.
+  group:
+    title: "How groups work"
+    lead: >
+      Groups bundle <b>users</b> with <b>scenes</b> and grant them a shared access level
+      (<i>read</i>, <i>write</i> or <i>admin</i>). Add members on the left, then attach scenes
+      with the desired permission on the right. A user's effective rights are the most
+      permissive of their public, default, group and individual rights.
+    link: "Permissions management tutorial"
 
 titles:
   myScenesSection: my scenes
