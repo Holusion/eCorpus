@@ -177,7 +177,7 @@ onboarding:
       (<i>lecture</i>, <i>écriture</i> ou <i>admin</i>). Ajoutez des membres à gauche, puis
       attachez les scènes voulues à droite. Les droits effectifs d'un utilisateur sont les plus
       élevés parmi ses droits publics, par défaut, de groupe et individuels.
-    link: "Tutoriel : gestion des droits"
+    link: "Lire la documentation des droits"
   scenePermissions:
     lead: >
       Aucun droit spécifique n'a été défini sur cette scène. L'accès est régi uniquement par
@@ -200,7 +200,6 @@ onboarding:
       tout en conservant ses données sur le serveur. Les scènes archivées peuvent être
       restaurées à tout moment depuis cette page. Le bouton « Archiver » se trouve dans
       les paramètres de chaque scène.
-    link: "Tutoriel : archives et restauration"
   tags:
     lead: >
       Aucun tag n'a encore été créé sur cette instance. Les tags regroupent les scènes en
