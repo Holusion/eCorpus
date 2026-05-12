@@ -201,6 +201,18 @@ onboarding:
       restaurées à tout moment depuis cette page. Le bouton « Archiver » se trouve dans
       les paramètres de chaque scène.
     link: "Tutoriel : archives et restauration"
+  tags:
+    lead: >
+      Aucun tag n'a encore été créé sur cette instance. Les tags regroupent les scènes en
+      <i>collections</i> — ils s'ajoutent depuis les paramètres de chaque scène et
+      apparaissent ici sous forme de pages de collection.
+    link: "Tutoriel : tags et collections"
+  tagEmpty:
+    lead: >
+      Cette collection ne contient aucune scène visible pour vous. Le tag a peut-être été
+      retiré de toutes les scènes, ou vous n'avez pas les droits de lecture sur les scènes
+      concernées.
+    link: "Voir toutes les collections"
 
 titles:
   myScenesSection: mes scenes

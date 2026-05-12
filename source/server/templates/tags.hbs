@@ -29,11 +29,15 @@
         {{/with}}
       </div>
     {{else}}
-      <div role="listitem" style="grid-column: 1 / end;">
-        <p>No tags found on this instance. Head over to the <a href="/ui/scenes/">search</a> page to create tags</p>
-      </div>
+      <aside class="help-block" style="grid-column: 1 / end;">
+        <ui-icon name="info"></ui-icon>
+        <div class="help-block-content">
+          <p>{{{i18n "onboarding.tags.lead"}}}</p>
+          <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/tags.html">{{i18n "onboarding.tags.link"}} →</a>
+        </div>
+      </aside>
     {{/if}}
 
   {{/if}}
-  </div>
+  </section>
 </div>
