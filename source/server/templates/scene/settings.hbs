@@ -5,6 +5,15 @@
     <h3>
       {{i18n "titles.permissions"}}
     </h3>
+    {{#unless (test groupPermissions.length "||" userPermissions.length)}}
+      <aside class="help-block">
+        <ui-icon name="info"></ui-icon>
+        <div class="help-block-content">
+          <p>{{{i18n "onboarding.scenePermissions.lead"}}}</p>
+          <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/permissions.html">{{i18n "onboarding.group.link"}} →</a>
+        </div>
+      </aside>
+    {{/unless}}
     <div class="list-table-wrap">
       <table class="list-table compact form-control">
         <colgroup>
@@ -219,6 +228,14 @@
 
 <section>
   <h3>{{i18n "buttons.editTags" }}</h3>
+  {{#unless scene.tags.length}}
+    <aside class="help-block">
+      <ui-icon name="info"></ui-icon>
+      <div class="help-block-content">
+        <p>{{{i18n "onboarding.sceneTags.lead"}}}</p>
+      </div>
+    </aside>
+  {{/unless}}
   <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
     <form autocomplete="off" class="form-control tags-list">
       {{#each scene.tags}}

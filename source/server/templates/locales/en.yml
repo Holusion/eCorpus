@@ -178,6 +178,15 @@ onboarding:
       with the desired permission on the right. A user's effective rights are the most
       permissive of their public, default, group and individual rights.
     link: "Permissions management tutorial"
+  scenePermissions:
+    lead: >
+      No specific permission has been granted on this scene yet. Anyone matching the
+      <i>public</i> or <i>default</i> rules above can access it. Add a group or user below
+      to grant additional rights.
+  sceneTags:
+    lead: >
+      Tags help others discover this scene. They are also used to build collections on
+      the home page. Add a tag below — pick from existing suggestions to join a collection.
 
 titles:
   myScenesSection: my scenes

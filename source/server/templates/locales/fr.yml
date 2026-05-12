@@ -178,6 +178,16 @@ onboarding:
       attachez les scènes voulues à droite. Les droits effectifs d'un utilisateur sont les plus
       élevés parmi ses droits publics, par défaut, de groupe et individuels.
     link: "Tutoriel : gestion des droits"
+  scenePermissions:
+    lead: >
+      Aucun droit spécifique n'a été défini sur cette scène. L'accès est régi uniquement par
+      les règles <i>public</i> et <i>par défaut</i> ci-dessus. Ajoutez un groupe ou un
+      utilisateur ci-dessous pour accorder des droits supplémentaires.
+  sceneTags:
+    lead: >
+      Les tags facilitent la découverte de la scène et alimentent les collections de la page
+      d'accueil. Ajoutez un tag ci-dessous — choisissez une suggestion existante pour rejoindre
+      une collection.
 
 titles:
   myScenesSection: mes scenes
