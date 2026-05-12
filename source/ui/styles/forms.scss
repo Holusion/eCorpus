@@ -193,11 +193,14 @@
   box-sizing: border-box;
   border: none;
 
-  &:has(> label), &:has(> small) {
+  // Reserve one line of help-text height below the input only when no
+  // trailing <small> sibling will fill that slot. With a <small> sibling, the
+  // form-item collapses to the input row and the small provides its own height
+  // (one line or more) — and .btn-addon stretches the full row since the var
+  // resolves to 0.
+  &:has(> label):not(:has(+ small)) {
     --form-item-help-pad: 1.25rem;
-    padding: 0 0 var(--form-item-help-pad);
-
-
+    padding-bottom: var(--form-item-help-pad);
   }
 
   > label {
@@ -226,17 +229,19 @@
     transition: color .2s linear;
   }
 
-  // Help / error message slot — a <small> after the input (or label) renders
-  // inside the reserved help-pad below the underline. Subtle by default; turns
-  // red and full-opacity when the row's input is invalid after interaction.
-  > small {
+  // Help / error message slot — a <small> placed as the form-item's next
+  // sibling (not a child, to keep the form-item's flex row layout untouched).
+  // Offset by --label-width so it aligns under the input column. Turns red and
+  // full-opacity when the row's input is invalid after interaction.
+  + small {
     display: block;
+    padding-left: var(--label-width, 0);
     font-size: .8em;
     line-height: 1.25;
     opacity: 0.7;
     transition: color .2s linear, opacity .2s linear;
   }
-  &:has(> input:user-invalid) > small {
+  &:has(> input:user-invalid) + small {
     color: var(--color-error);
     opacity: 1;
   }

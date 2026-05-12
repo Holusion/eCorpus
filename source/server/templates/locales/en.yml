@@ -80,6 +80,8 @@ labels:
   private: Private
   size: "{{count}} scene"
   size_plural: "{{count}} scenes"
+  addUser: Add user
+  addGroup: Add group
 
 buttons:
   searchScene: search scenes
@@ -166,6 +168,27 @@ onboarding:
     title: "Publish and share"
     lead: "Manage access control lists and embed the viewer on your website"
     link: "Publishing tutorial"
+  upload:
+    title: "Need help?"
+    lead: >
+      Drop your files in the area above or click to browse.
+    types: Accepted file types
+    glb:
+      title: "Single 3D model"
+      lead: >
+        A <code>.glb</code> (or <code>.gltf</code>) file creates a new scene with default
+        metadata.
+    optimize:
+      title: "Conversion &amp; optimization"
+      lead: >
+        Enable <i>Optimize models</i> to compress geometry and textures. Recommended for files over a few megabytes: the upload runs as a
+        background task and the resulting scene loads much faster in viewers.
+    zip:
+      title: "Archive upload"
+      lead: >
+        A <code>.zip</code> archive can contain one or several complete eCorpus scenes
+        (model files, articles, annotations and thumbnails). Scene names are taken from
+        the archive, so the name field above is ignored.
 
 titles:
   myScenesSection: my scenes
@@ -277,7 +300,7 @@ leads:
     Uploaded files are a mix of scenes archive and regular files. Mixed content can't be handled in a single operation.
   uploadName: >
     This will be the URL name of the created scene.
-    It is language-independent. You will be able to create a title for each language later.
+    It is language-independent.
   uploadLanguage: The scene's default language
   uploadOptimize: Optimize 3D models for better performance. This may take a bit more time.
   uploadErrors: >

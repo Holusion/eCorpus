@@ -79,6 +79,8 @@ labels:
   private: Privée
   size_one: "{{count}} scene"
   size_other: "{{count}} scenes"
+  addUser: Ajouter un utilisateur
+  addGroup: Ajouter un groupe
 
 
 buttons:
@@ -166,6 +168,29 @@ onboarding:
     title: "Publiez et partagez"
     lead: "Gérez les droits d'accès et intégrez le visualisateur sur votre site"
     link: "Tutoriel de publication"
+  upload:
+    title: "Besoin d'aide ?"
+    lead: >
+      Déposez vos fichiers dans la zone ci-dessus ou cliquez pour parcourir.
+    types: Formats acceptés
+    glb:
+      title: "Modèle 3D individuel"
+      lead: >
+        Un fichier <code>.glb</code> (ou <code>.gltf</code>) crée une nouvelle scène avec
+        des métadonnées par défaut. Les fichiers <code>.obj</code> accompagnés de leurs matériaux (<code>.mtl</code> et textures associées) sont acceptés et seront convertis au moment de la création de la scène.
+    optimize:
+      title: "Conversion et optimisation"
+      lead: >
+        Activez <i>Optimiser les modèles</i> pour compresser la géométrie et les textures.
+        Recommandé pour les fichiers de plus de quelques méga-octets :
+        l'import s'exécute alors comme une tâche d'arrière-plan et la scène obtenue se
+        charge bien plus rapidement dans les visualisateurs.
+    zip:
+      title: "Archive ZIP"
+      lead: >
+        Une archive <code>.zip</code> peut contenir une ou plusieurs scènes eCorpus
+        complètes (modèles, articles, annotations et vignettes). Les noms de scène sont
+        repris depuis l'archive : le champ de nom ci-dessus est alors ignoré.
 
 titles:
   myScenesSection: mes scenes
@@ -282,7 +307,6 @@ leads:
   uploadName: >
     Ce nom sera utilisé dans l'URL de la scène créée.
     Il est indépendant de la langue utilisée.
-    Il sera possible de créer un titre par langue plus tard.
   uploadLanguage: La langue principale de la scène.
   uploadOptimize: Optimiser les modèles pour une meilleure performance. Cela peut prendre un peu plus de temps.
   uploadErrors: >
