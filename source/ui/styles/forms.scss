@@ -11,12 +11,21 @@
 
 .form-control{
   --label-width: 200px;
+  --form-break: 480px;
   container-type: inline-size;
   &, form, .form-group{
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    &.form-row{
+      flex-direction: row;
+      --label-width: auto;
+    }
+    &.form-column{
+      flex-direction: column;
+    }
   }
+
 
   .form-item{
     display: flex;
@@ -63,6 +72,20 @@
         white-space: normal;
         padding-top: 0;
       }
+      &:has(input[type="checkbox"]){
+        flex-direction: row;
+        justify-content: space-between;
+        > label {
+          padding-top: 6px;
+        }
+        > .form-input {
+          justify-content: end;
+        }
+      }
+    }
+
+    .form-item + small {
+      padding-left: 0;
     }
 
     .form-group:not(.inline):not(.column):has(> .btn, > button, > input[type="submit"], > input[type="reset"], > input[type="button"]){
