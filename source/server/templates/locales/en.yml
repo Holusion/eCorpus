@@ -60,6 +60,7 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Add this tag to selected scenes
   batchRmTag: Remove this tag from selected scenes
+  addTag: Add a tag
   sceneName: Scene name
   mine: Mine
   all: All

@@ -220,16 +220,26 @@
 <section>
   <h3>{{i18n "buttons.editTags" }}</h3>
   <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
-    <form autocomplete="off" class="form-control tags-list">
+    <form autocomplete="off" class="form-control">
       {{#each scene.tags}}
-        <a href="/ui/tags/{{.}}" class="btn btn-main btn-small" style="gap: 1rem;">
-          {{> inputs/checkbox name="tags" selected=true value=. aria-label=. }}
-          <span>{{.}}</label>
-        </a>
+        <div class="form-item" style="display:flex;flex-direction:row;align-items:center; gap:.5rem;">
+          <label><span class="hidden">{{@index}}</span></label>
+          <span class="form-input">
+            <a href="/ui/tags/{{.}}" style="flex-grow:1;">{{.}}</a>
+            <label class="btn btn-danger" style="align-self: end" title="{{i18n "labels.delete"}}">
+              <input type="checkbox" name="tags" checked value="{{.}}" aria-label="{{.}}" style="position:absolute;width:1px;height:1px;opacity:0;"/>
+              <ui-icon name="trash"></ui-icon>
+            </label>
+          </span>
+        </div>
       {{/each}}
-      <label class="form-item add-tag">
-        <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange=""/>
-        <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+
+      <div class="form-item">
+        <label >
+          {{i18n "labels.addTag" }}
+        </label>
+        <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" />
+        <button type="submit" class="btn btn-main"><ui-icon name="plus"></ui-icon></button>
         <datalist id="tagSuggestions">
           {{#each tagSuggestions }}
             <option value="{{.}}"/>
@@ -243,7 +253,7 @@
             input.addEventListener("change", (e)=>e.stopPropagation());
           })();
         </script>
-      </label>
+      </div>
     </form>
   </submit-fragment>
 </section>

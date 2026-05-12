@@ -60,6 +60,7 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Ajouter ce tag aux scènes sélectionnées
   batchRmTag: Retirer ce tag des scènes sélectionnées
+  addTag: Ajouter un tag
   mine: Mes tâches
   all: Tous
   success: Succès

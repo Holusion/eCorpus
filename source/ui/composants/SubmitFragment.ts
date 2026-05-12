@@ -84,7 +84,17 @@ export default class SubmitFragment extends LitElement{
       if(!el.name || el.disabled) continue;
       if(el instanceof HTMLInputElement){
         switch(el.type){
-          case "checkbox": addEntry(el.name, el.checked); break;
+          case "checkbox":
+            // A checkbox with an explicit `value` attribute is part of a
+            // multi-value group (e.g. tag chips) — only include checked ones,
+            // using their value. Without an explicit value, treat as a plain
+            // boolean toggle and send the checked state.
+            if(el.hasAttribute("value")){
+              if(el.checked) addEntry(el.name, el.value);
+            }else{
+              addEntry(el.name, el.checked);
+            }
+            break;
           case "number":
           case "range":
             if(el.value !== "") addEntry(el.name, el.valueAsNumber);
