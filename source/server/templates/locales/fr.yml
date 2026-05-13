@@ -18,6 +18,7 @@ labels:
   deletingAGroupIsPermanent: Supprimer un groupe est définitif.
   email: Email
   password: Mot de passe
+  showPassword: Afficher le mot de passe
   newPassword: Nouveau mot de passe
   forgottenPassword: Mot de passe oublié?
   pagination: pagination

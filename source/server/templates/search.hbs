@@ -50,9 +50,11 @@
         <input  name="author" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
       </label>
 
-      <label class="form-item">
-        {{i18n "fields.myAccess"}}
-        {{#> popover id="myAccess-tooltip" }}{{i18n "tooltips.myAccess"}}{{/popover}}
+      <div class="form-item">
+        <label>
+          {{i18n "fields.myAccess"}}
+          {{#> popover id="myAccess-tooltip" }}{{i18n "tooltips.myAccess"}}{{/popover}}
+        </label>
       <select name="access" autocomplete="off" form="search">
         {{#if (test user.level "==" "admin")}}
         {{>inputs/option selected=(test params.access "==" "") text="..."}}
@@ -61,7 +63,7 @@
         {{>inputs/option selected=(test params.access "==" "write") value="write" text=(i18n "fields.write")}}
         {{>inputs/option selected=(test params.access "==" "admin") value="admin" text=(i18n "fields.admin")}}
       </select>
-      </label>
+      </div>
       
       <label class="form-item">
         {{i18n "fields.limit"}}
@@ -179,7 +181,7 @@
       <form style="" id="scenes-selection">
         <div id="main-toolbar">
 
-          <label style="display: flex; gap: .5rem; align-items: end;">
+          <label class="form-item" style="display: flex; gap: .5rem; align-items: end;">
             <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
             <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
             <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>

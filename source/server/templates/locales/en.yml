@@ -18,6 +18,7 @@ labels:
   deletingAGroupIsPermanent: Deleting a group is permanent
   email: Email
   password: Password
+  showPassword: Show password
   newPassword: New Password
   forgottenPassword: Forgotten password
   pagination: pagination

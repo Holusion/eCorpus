@@ -26,7 +26,7 @@
 
 
 
-  &:has( > input[type="checkbox"]:checked){
+  &:has( >.scene-card-select > input[type="checkbox"]:checked){
     background-color: var(--color-secondary);
     color: var(--color-text) !important;
     &:hover{
@@ -149,6 +149,12 @@
   .pill input{
     width: 20px;
     height: 20px;
+  }
+
+  .scene-card-select{
+    position: absolute;
+    top: 2px;
+    left: 2px;
   }
 
   //Compact cards
