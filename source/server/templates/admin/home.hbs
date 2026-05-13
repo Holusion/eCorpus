@@ -54,6 +54,30 @@
       }
     }
   }
+
+  dialog.email-preview-dialog{
+    display: flex;
+    flex-direction: column;
+  }
+  .email-preview-toolbar{
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-bottom: .5rem;
+  }
+  .email-preview-toolbar > .toggle-group{
+    display: flex;
+    gap: .25rem;
+  }
+  /* View toggle hidden when the desktop width (1000px) can't fit with 2rem of margin. */
+  .email-preview-toolbar > .toggle-group.view{
+    display: none;
+  }
+  @media (min-width: 1032px){
+    .email-preview-toolbar > .toggle-group.view{
+      display: flex;
+    }
+  }
 </style>
 
 {{!-- partial for config lines --}}
@@ -277,22 +301,21 @@
       <input id="preview-username" name="username" placeholder="recipient username" value="{{user.username}}">
     </div>
     <div class="form-item">
-      <label for="preview-template">Template</label>
-      <select id="preview-template" name="name">
-        {{> inputs/option selected=(test "fr" "==" @root.lang) value="connection_fr" text="connection_fr"}}
-        {{> inputs/option selected=(test "en" "==" @root.lang) value="connection_en" text="connection_en"}}
-        {{> inputs/option selected=(test "en" "==" @root.lang) value="test" text="test"}}
+      <label for="preview-template-name">Template</label>
+      <select id="preview-template-name" name="name">
+        {{> inputs/option  value="connection" text="connection"}}
+        {{> inputs/option  value="onboarding" text="onboarding"}}
       </select>
     </div>
     <div class="form-item">
-      <label for="preview-theme">Theme</label>
-      <select id="preview-theme" name="colorScheme">
-        <option selected value="light">Light</option>
-        <option value="dark">Dark</option>
+      <label for="preview-template-lang">Language</label>
+      <select id="preview-template-lang" name="lang">
+        {{> inputs/option selected=(test "fr" "==" @root.lang) value="fr" text="FR"}}
+        {{> inputs/option selected=(test "en" "==" @root.lang) value="en" text="EN"}}
       </select>
     </div>
     <div class="form-group">
-      <button role="submit" class="btn">Fetch</button>
+      <button role="submit" class="btn">Show Preview</button>
     </div>
   </form>
 
@@ -308,18 +331,63 @@
     let data = new FormData(ev.target);
 
     const box = document.createElement("dialog");
+    box.classList.add("email-preview-dialog");
     Object.assign(box.style, {
       maxWidth: "428px",
       width: `min(80vw, 428px)`,
       height: "60vh",
-      colorScheme: `only ${data.get("colorScheme")}`,
+      colorScheme: "only light",
     });
     box.onmousedown= function(){ event.target==this && this.close()};
     box.onclose = function(){
       box.parentElement.removeChild(box);
     }
 
-    box.innerHTML = `<iframe allowTransparency="true" style="width:100%; height: calc(100% - 10px); border: 0px" src="/admin/mail/render/${data.get("name")}?username=${data.get("username")}"></iframe>`;
+    function makeToggle(groupClass, options, onChange){
+      const group = document.createElement("div");
+      group.className = `toggle-group ${groupClass}`;
+      const buttons = options.map(({label, value, active}) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.className = "btn btn-small btn-primary" + (active ? "" : " btn-outline");
+        btn.addEventListener("click", () => {
+          buttons.forEach(b => b.classList.toggle("btn-outline", b !== btn));
+          onChange(value);
+        });
+        return btn;
+      });
+      group.append(...buttons);
+      return group;
+    }
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "email-preview-toolbar";
+    const viewToggle = makeToggle("view", [
+      {label: "Mobile",  value: "mobile",  active: true},
+      {label: "Desktop", value: "desktop", active: false},
+    ], (view) => {
+      const isDesktop = view === "desktop";
+      box.style.maxWidth = isDesktop ? "1000px" : "428px";
+      box.style.width = isDesktop ? "min(calc(100vw - 2rem), 1000px)" : "min(80vw, 428px)";
+    });
+    const themeToggle = makeToggle("theme", [
+      {label: "Light", value: "light", active: true},
+      {label: "Dark",  value: "dark",  active: false},
+    ], (theme) => {
+      box.style.colorScheme = `only ${theme}`;
+    });
+    toolbar.append(viewToggle, themeToggle);
+
+    const embed = document.createElement("IFRAME");
+    Object.assign(embed.style, {
+      width: "100%",
+      flex: "1",
+      border: "0px",
+      backgroundColor: "Canvas",
+    });
+    embed.src = `/admin/mail/render/${data.get("name")}_${data.get("lang")}?username=${data.get("username")}`;
+    box.append(toolbar, embed);
     f.insertAdjacentElement('afterend', box);
     box.showModal();
 
