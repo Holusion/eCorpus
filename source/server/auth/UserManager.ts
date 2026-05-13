@@ -58,6 +58,7 @@ export type AccessMap = {[id: `${number}`|string]:AccessType};
 export interface UserQuery {
   offset?: number;
   limit?: number;
+  match?: string;
 }
 
 export const any_id = 1 as const;
@@ -221,7 +222,15 @@ export default class UserManager extends DbController {
       if(typeof q.offset != "number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(`When provided, offset must be an integer`);
       if(q.offset < 0) throw new BadRequestError(`When provided, offset must be >= 0`);
     }
+    if(typeof q.match !== "undefined" && typeof q.match !== "string"){
+      throw new BadRequestError(`When provided, match must be a string`);
+    }
     return q;
+  }
+
+  /** Escape LIKE wildcards in user-supplied match so the pattern is a literal substring search. */
+  private static _likePattern(match :string){
+    return `%${match.replace(/[\\%_]/g, c => "\\"+c)}%`;
   }
 
   /**
@@ -232,27 +241,40 @@ export default class UserManager extends DbController {
    async getUsers(safe :false, q ?:UserQuery) :Promise<User[]>
    async getUsers(safe :boolean, q ?:UserQuery) :Promise<SafeUser[]|User[]>
    async getUsers(safe :boolean =true, q :UserQuery = {}){
-    const {limit, offset = 0} = UserManager._validateUserQuery(q);
+    const {limit, offset = 0, match} = UserManager._validateUserQuery(q);
     const args :any[] = [offset];
     let limitClause = "";
     if(typeof limit === "number"){
       args.push(limit);
-      limitClause = `LIMIT $2`;
+      limitClause = `LIMIT $${args.length}`;
+    }
+    let matchClause = "";
+    if(typeof match === "string" && match.length){
+      args.push(UserManager._likePattern(match));
+      matchClause = `AND (unaccent(LOWER(username COLLATE "C")) LIKE unaccent(LOWER($${args.length})) ESCAPE '\\' OR unaccent(LOWER(email COLLATE "C")) LIKE unaccent(LOWER($${args.length})) ESCAPE '\\')`;
     }
     return (await this.db.all<StoredUser>(`
       SELECT ${safe?"user_id, username, email, level":"*"}
       FROM users
       WHERE user_id NOT IN (0, 1)
+      ${matchClause}
       ORDER BY username ASC
       OFFSET $1
       ${limitClause}`, args)).map(u=>UserManager.deserialize(u));
   }
 
-  async userCount() :Promise<number>{
+  async userCount(match ?:string) :Promise<number>{
+    const args :any[] = [];
+    let matchClause = "";
+    if(typeof match === "string" && match.length){
+      args.push(UserManager._likePattern(match));
+      matchClause = `AND (unaccent(LOWER(username COLLATE "C")) LIKE unaccent(LOWER($1)) ESCAPE '\\' OR unaccent(LOWER(email COLLATE "C")) LIKE unaccent(LOWER($1)) ESCAPE '\\')`;
+    }
     let r = (await this.db.all<{count: number|string}>(`
       SELECT COUNT(user_id) as count
       FROM users
-      WHERE user_id NOT IN (0, 1)`))[0];
+      WHERE user_id NOT IN (0, 1)
+      ${matchClause}`, args))[0];
     if(!r) throw new InternalError(`Bad db configuration : can't get user count`);
     return typeof r.count === "string" ? parseInt(r.count, 10) : r.count;
   }

@@ -11,16 +11,26 @@
 
 .form-control{
   --label-width: 200px;
+  --form-break: 480px;
   container-type: inline-size;
   &, form, .form-group{
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    &.form-row{
+      flex-direction: row;
+      --label-width: auto;
+    }
+    &.form-column{
+      flex-direction: column;
+    }
   }
+
 
   .form-item{
     display: flex;
     flex-direction: row;
+    align-items: baseline;
     > label{
       flex: 0 0 auto;
       min-width: var(--label-width);
@@ -63,6 +73,20 @@
         white-space: normal;
         padding-top: 0;
       }
+      &:has(input[type="checkbox"]){
+        flex-direction: row;
+        justify-content: space-between;
+        > label {
+          padding-top: 6px;
+        }
+        > .form-input {
+          justify-content: end;
+        }
+      }
+    }
+
+    .form-item + small {
+      padding-left: 0;
     }
 
     .form-group:not(.inline):not(.column):has(> .btn, > button, > input[type="submit"], > input[type="reset"], > input[type="button"]){
@@ -170,11 +194,14 @@
   box-sizing: border-box;
   border: none;
 
-  &:has(> label), &:has(> small) {
+  // Reserve one line of help-text height below the input only when no
+  // trailing <small> sibling will fill that slot. With a <small> sibling, the
+  // form-item collapses to the input row and the small provides its own height
+  // (one line or more) — and .btn-addon stretches the full row since the var
+  // resolves to 0.
+  &:has(> label):not(:has(+ small)) {
     --form-item-help-pad: 1.25rem;
-    padding: 0 0 var(--form-item-help-pad);
-
-
+    padding-bottom: var(--form-item-help-pad);
   }
 
   > label {
@@ -203,17 +230,19 @@
     transition: color .2s linear;
   }
 
-  // Help / error message slot — a <small> after the input (or label) renders
-  // inside the reserved help-pad below the underline. Subtle by default; turns
-  // red and full-opacity when the row's input is invalid after interaction.
-  > small {
+  // Help / error message slot — a <small> placed as the form-item's next
+  // sibling (not a child, to keep the form-item's flex row layout untouched).
+  // Offset by --label-width so it aligns under the input column. Turns red and
+  // full-opacity when the row's input is invalid after interaction.
+  + small {
     display: block;
+    padding-left: var(--label-width, 0);
     font-size: .8em;
     line-height: 1.25;
     opacity: 0.7;
     transition: color .2s linear, opacity .2s linear;
   }
-  &:has(> input:user-invalid) > small {
+  &:has(> input:user-invalid) + small {
     color: var(--color-error);
     opacity: 1;
   }
@@ -363,43 +392,56 @@
     // the input column and the centred ::after overlay would land at the cell
     // midpoint, far away from the brackets.
     &[type="checkbox"]{
+      --size: 1.2em;
       appearance: none;
       -webkit-appearance: none;
       position: relative;
       display: inline-block;
       justify-self: start;
-      box-sizing: content-box;
-      width: 1.5em;
-      height: 2em;
-      flex: 0 0 2em;
+      box-sizing: border-box;
+      width: var(--size);
+      height: var(--size);
+      flex: 0 0 auto;
       padding: 0;
       margin: 0;
-      background-image: none;
-      font-family: var(--font-heading);
-      font-size: 1em;
-      line-height: 2em;
+      
+      font-family: monospace;
+      font-size: var(--size);
+      line-height: var(--size);
       text-align: center;
-      vertical-align: middle;
-      color: light-dark(#777, #999);
+      vertical-align: baseline;
+      color: #ccc;
       cursor: pointer;
+      
+      border: 1px solid currentColor;
+      border-radius: 2px;
+      box-shadow: 0 0 0 1px rgba(20, 20, 20, 0.3);
+      background: rgba(0, 0, 0, 0.5);
+      text-shadow: 1px 1px 2px black;
 
       &::before{
-        content: "[\2003]";
-      }
-      &::after{
-        content: "\20DD";
+        content: "";
         position: absolute;
         inset: 0;
-        text-align: center;
-        line-height: 2em;
-        pointer-events: none;
+        top: -1px;
+        place-items: center;
+      }
+      // Stable baseline strut: empty inline content with monospace metrics so
+      // the inline-block's baseline doesn't shift when ::before swaps glyphs
+      // (which fall back to a different font and would otherwise move it ~1px).
+      &::after{
+        content: "";
       }
       &:checked{
         color: var(--color-primary);
-        &::after{ content: "\2713"; }
+        &::before{ content: "✔"; }
       }
-      &:indeterminate::after{
-        content: "\2013";
+      &:indeterminate{
+        color: var(--color-primary-light);
+        &::before{
+          font-weight: bold;
+          content: "–";
+        }
       }
       &:focus-visible{
         outline: 1px dotted var(--color-primary);

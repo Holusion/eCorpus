@@ -24,7 +24,10 @@
     <form aria-labelledby="advanced-search-title" autocomplete="off" id="search" class="form-control form-sidebar" method="GET" action="/ui/scenes">
       <div class="form-item">
         <div style="display:flex;justify-content: space-between">
-          <label id="orderByLabel" style="display:block;">{{i18n "labels.sortBy"}}</label>
+          <label id="orderByLabel" style="display:block;">
+            {{i18n "labels.sortBy"}}
+            {{#> popover id="sortBy-tooltip" }}{{{i18n "tooltips.sortBy"}}}{{/popover}}
+          </label>
           <fieldset style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
             <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
             <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
@@ -47,7 +50,11 @@
         <input  name="author" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
       </label>
 
-      <label class="form-item">{{i18n "fields.myAccess"}}
+      <div class="form-item">
+        <label>
+          {{i18n "fields.myAccess"}}
+          {{#> popover id="myAccess-tooltip" }}{{i18n "tooltips.myAccess"}}{{/popover}}
+        </label>
       <select name="access" autocomplete="off" form="search">
         {{#if (test user.level "==" "admin")}}
         {{>inputs/option selected=(test params.access "==" "") text="..."}}
@@ -56,7 +63,7 @@
         {{>inputs/option selected=(test params.access "==" "write") value="write" text=(i18n "fields.write")}}
         {{>inputs/option selected=(test params.access "==" "admin") value="admin" text=(i18n "fields.admin")}}
       </select>
-      </label>
+      </div>
       
       <label class="form-item">
         {{i18n "fields.limit"}}
@@ -174,7 +181,7 @@
       <form style="" id="scenes-selection">
         <div id="main-toolbar">
 
-          <label style="display: flex; gap: .5rem; align-items: end;">
+          <label class="form-item" style="display: flex; gap: .5rem; align-items: end;">
             <input type="checkbox" id="scenes-batch-selection" name="select" style="margin-bottom: 4px;">
             <span class="checkbox-label label-unchecked sm-hidden">{{i18n "buttons.selectAll"}}</span>
             <span class="checkbox-label label-checked label-indeterminate sm-hidden">{{i18n "buttons.deselectAll"}}</span>

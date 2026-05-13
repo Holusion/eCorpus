@@ -155,72 +155,221 @@ describe("UserManager methods", function(){
     });
   });
 
-  describe("getUsers()", function(){
+  describe("listing users", function(){
+    // Shared isolated DB pre-populated with paginated users plus a handful of
+    // users with diverse names/emails to exercise the `match` parameter.
     let dbUri :string, um :UserManager;
+    const PAGINATED_COUNT = 15;
+    const DIVERSE_COUNT = 8;
+    const TOTAL = PAGINATED_COUNT + DIVERSE_COUNT;
     this.beforeAll(async function(){
-      // Use an isolated DB so previously created users don't interfere with counts/offsets
-      dbUri = await getUniqueDb("userManager-getUsers-test-"+randomBytes(2).toString("hex"));
+      dbUri = await getUniqueDb("userManager-listing-test-"+randomBytes(2).toString("hex"));
       this.db2 = await openDatabase({uri: dbUri, forceMigration: true});
       um = new UserManager(this.db2);
-      for(let i = 0; i < 15; i++){
-        await um.addUser(`getusers_${i.toString(10).padStart(3, "0")}`, "abcdefghij", "use");
+      // Pagination fixtures — names chosen to avoid containing any of the
+      // match-test search terms ("user-", "_", "%", "alic", "bob", etc.)
+      for(let i = 0; i < PAGINATED_COUNT; i++){
+        await um.addUser(`paginated-${i.toString(10).padStart(3, "0")}`, "abcdefghij", "use");
       }
+      // Match-test fixtures — accents, mixed case, wildcards, non-latin scripts
+      await um.addUser("alice",         "abcdefghij", "use", "alice@example.com");
+      await um.addUser("Bob-Smith",     "abcdefghij", "use", "bob.smith@example.com");
+      await um.addUser("Mallory",       "abcdefghij", "use", "MALL@EXAMPLE.com");
+      await um.addUser("zz_naive",      "abcdefghij", "use", "naïve@example.com");
+      await um.addUser("zz-wild",       "abcdefghij", "use", "wild%card_thing@example.com");
+      await um.addUser("zz-cyrillic",   "abcdefghij", "use", "привет@example.com");
+      await um.addUser("zz-japanese",   "abcdefghij", "use", "テスト@example.com");
+      await um.addUser("zz-no-email",   "abcdefghij", "use");
     });
     this.afterAll(async function(){
       await this.db2.end();
       await dropDb(dbUri);
     });
 
-    it("returns all users by default", async function(){
-      const users = await um.getUsers();
-      expect(users).to.have.property("length", 15);
+    describe("getUsers()", function(){
+      it("returns all users by default", async function(){
+        const users = await um.getUsers();
+        expect(users).to.have.property("length", TOTAL);
+      });
+
+      it("applies limit", async function(){
+        const users = await um.getUsers(true, {limit: 5});
+        expect(users).to.have.property("length", 5);
+      });
+
+      it("applies offset", async function(){
+        const users = await um.getUsers(true, {offset: TOTAL - 5});
+        expect(users).to.have.property("length", 5);
+      });
+
+      it("combines limit and offset", async function(){
+        const first = await um.getUsers(true, {limit: 5});
+        const next = await um.getUsers(true, {limit: 5, offset: 5});
+        expect(next).to.have.property("length", 5);
+        // Ensure the second page doesn't overlap the first
+        const firstNames = first.map(u=>u.username);
+        for(const u of next){
+          expect(firstNames).not.to.include(u.username);
+        }
+      });
+
+      it("rejects invalid limit", async function(){
+        await expect(um.getUsers(true, {limit: 0})).to.be.rejectedWith(BadRequestError);
+        await expect(um.getUsers(true, {limit: 101})).to.be.rejectedWith(BadRequestError);
+        await expect(um.getUsers(true, {limit: 1.5})).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("rejects invalid offset", async function(){
+        await expect(um.getUsers(true, {offset: -1})).to.be.rejectedWith(BadRequestError);
+        await expect(um.getUsers(true, {offset: 1.5})).to.be.rejectedWith(BadRequestError);
+      });
+
+      it("orders results by username (stable across pages)", async function(){
+        // Don't compare to JS .sort() — JS and Postgres collations differ on
+        // mixed case and punctuation. Verify pagination preserves the same order.
+        const all = (await um.getUsers()).map(u=>u.username);
+        const half = Math.floor(all.length / 2);
+        const first = await um.getUsers(true, {limit: half});
+        const second = await um.getUsers(true, {limit: all.length, offset: half});
+        expect([...first, ...second].map(u=>u.username)).to.deep.equal(all);
+      });
+
+      describe("match parameter", function(){
+        it("returns substring matches from username", async function(){
+          const users = await um.getUsers(true, {match: "alic"});
+          expect(users.map(u=>u.username)).to.deep.equal(["alice"]);
+        });
+
+        it("returns substring matches from email", async function(){
+          const users = await um.getUsers(true, {match: "bob.smith"});
+          expect(users.map(u=>u.username)).to.deep.equal(["Bob-Smith"]);
+        });
+
+        it("is case-insensitive on the search term", async function(){
+          const users = await um.getUsers(true, {match: "ALICE"});
+          expect(users.map(u=>u.username)).to.deep.equal(["alice"]);
+        });
+
+        it("is case-insensitive on stored username", async function(){
+          const users = await um.getUsers(true, {match: "bob-smith"});
+          expect(users.map(u=>u.username)).to.deep.equal(["Bob-Smith"]);
+        });
+
+        it("is case-insensitive on stored email", async function(){
+          // email is stored as "MALL@EXAMPLE.com" — search lowercase finds it
+          const users = await um.getUsers(true, {match: "mall@example"});
+          expect(users.map(u=>u.username)).to.deep.equal(["Mallory"]);
+        });
+
+        it("is accent-insensitive (plain term matches accented value)", async function(){
+          // "naïve@example.com" unaccents to "naive@example.com"
+          const users = await um.getUsers(true, {match: "naive@"});
+          expect(users.map(u=>u.username)).to.deep.equal(["zz_naive"]);
+        });
+
+        it("is accent-insensitive (accented term matches plain value)", async function(){
+          // search term "Bób" unaccents to "bob" and matches Bob-Smith
+          const users = await um.getUsers(true, {match: "Bób"});
+          expect(users.map(u=>u.username)).to.deep.equal(["Bob-Smith"]);
+        });
+
+        it("empty match string is treated as no filter", async function(){
+          const users = await um.getUsers(true, {match: ""});
+          expect(users).to.have.property("length", TOTAL);
+        });
+
+        it("returns empty array when nothing matches", async function(){
+          const users = await um.getUsers(true, {match: "no-such-thing-anywhere"});
+          expect(users).to.deep.equal([]);
+        });
+
+        it("treats SQL LIKE '%' wildcard as a literal", async function(){
+          // unescaped, "%" would match every row — escaped, it only matches the literal '%' in zz-wild's email
+          const users = await um.getUsers(true, {match: "%"});
+          expect(users.map(u=>u.username)).to.deep.equal(["zz-wild"]);
+        });
+
+        it("treats SQL LIKE '_' wildcard as a literal", async function(){
+          // matches usernames/emails containing a literal '_' — zz_naive (username) and zz-wild (email has card_thing)
+          const users = await um.getUsers(true, {match: "_"});
+          expect(users.map(u=>u.username).sort()).to.deep.equal(["zz-wild", "zz_naive"]);
+        });
+
+        it("treats backslash as a literal", async function(){
+          const users = await um.getUsers(true, {match: "\\"});
+          expect(users).to.deep.equal([]);
+        });
+
+        it("matches cyrillic characters in email", async function(){
+          const users = await um.getUsers(true, {match: "привет"});
+          expect(users.map(u=>u.username)).to.deep.equal(["zz-cyrillic"]);
+        });
+
+        it("matches japanese characters in email", async function(){
+          const users = await um.getUsers(true, {match: "テスト"});
+          expect(users.map(u=>u.username)).to.deep.equal(["zz-japanese"]);
+        });
+
+        it("combines with limit and offset without losing pages", async function(){
+          // four users have "zz-" in their username: cyrillic, japanese, no-email, wild
+          const first = await um.getUsers(true, {match: "zz-", limit: 2});
+          const next = await um.getUsers(true, {match: "zz-", limit: 2, offset: 2});
+          expect(first).to.have.property("length", 2);
+          expect(next).to.have.property("length", 2);
+          const names = [...first, ...next].map(u=>u.username);
+          expect(new Set(names).size).to.equal(4);
+        });
+
+        it("rejects non-string match", async function(){
+          await expect(um.getUsers(true, {match: 123 as any})).to.be.rejectedWith(BadRequestError);
+        });
+      });
     });
 
-    it("applies limit", async function(){
-      const users = await um.getUsers(true, {limit: 5});
-      expect(users).to.have.property("length", 5);
-    });
+    describe("userCount()", function(){
+      it("returns the number of users excluding system users", async function(){
+        expect(await um.userCount()).to.equal(TOTAL);
+      });
 
-    it("applies offset", async function(){
-      const users = await um.getUsers(true, {offset: 10});
-      expect(users).to.have.property("length", 5);
-    });
+      describe("match parameter", function(){
+        it("counts matching users by username", async function(){
+          expect(await um.userCount("zz-")).to.equal(4);
+        });
 
-    it("combines limit and offset", async function(){
-      const first = await um.getUsers(true, {limit: 5});
-      const next = await um.getUsers(true, {limit: 5, offset: 5});
-      expect(next).to.have.property("length", 5);
-      // Ensure the second page doesn't overlap the first
-      const firstNames = first.map(u=>u.username);
-      for(const u of next){
-        expect(firstNames).not.to.include(u.username);
-      }
-    });
+        it("counts matching users by email", async function(){
+          expect(await um.userCount("bob.smith")).to.equal(1);
+        });
 
-    it("rejects invalid limit", async function(){
-      await expect(um.getUsers(true, {limit: 0})).to.be.rejectedWith(BadRequestError);
-      await expect(um.getUsers(true, {limit: 101})).to.be.rejectedWith(BadRequestError);
-      await expect(um.getUsers(true, {limit: 1.5})).to.be.rejectedWith(BadRequestError);
-    });
+        it("is case-insensitive", async function(){
+          expect(await um.userCount("BOB")).to.equal(1);
+        });
 
-    it("rejects invalid offset", async function(){
-      await expect(um.getUsers(true, {offset: -1})).to.be.rejectedWith(BadRequestError);
-      await expect(um.getUsers(true, {offset: 1.5})).to.be.rejectedWith(BadRequestError);
-    });
+        it("is accent-insensitive", async function(){
+          // matches zz_naive via username (unaccented "naive") AND via email — single user
+          expect(await um.userCount("naïve")).to.equal(1);
+        });
 
-    it("orders results by username (stable across pages)", async function(){
-      const all = await um.getUsers();
-      const sorted = [...all].map(u=>u.username).sort();
-      expect(all.map(u=>u.username)).to.deep.equal(sorted);
-    });
-  });
+        it("treats SQL LIKE '%' wildcard as a literal", async function(){
+          expect(await um.userCount("%")).to.equal(1);
+        });
 
-  describe("userCount()", function(){
-    it("returns the number of users excluding system users", async function(){
-      const before = await userManager.userCount();
-      await userManager.addUser("bob-user-count-1", "abcdefghij");
-      const after = await userManager.userCount();
-      expect(after).to.equal(before + 1);
+        it("treats SQL LIKE '_' wildcard as a literal", async function(){
+          expect(await um.userCount("_")).to.equal(2);
+        });
+
+        it("counts non-latin matches", async function(){
+          expect(await um.userCount("привет")).to.equal(1);
+          expect(await um.userCount("テスト")).to.equal(1);
+        });
+
+        it("empty string is treated as no filter", async function(){
+          expect(await um.userCount("")).to.equal(TOTAL);
+        });
+
+        it("returns 0 when nothing matches", async function(){
+          expect(await um.userCount("zzz-no-match-zzz")).to.equal(0);
+        });
+      });
     });
   });
 

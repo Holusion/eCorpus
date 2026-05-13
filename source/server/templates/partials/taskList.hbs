@@ -1,26 +1,26 @@
 
-<form class="form-control" method="GET" style="margin-bottom:.75rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
-  <label class="form-item">
-    {{i18n "fields.type" default="Type"}}
+<form class="form-control form-row" method="GET" style="margin-bottom:.75rem; gap:1rem; flex-wrap:wrap; align-items:center; justify-content: end;">
+  <div class="form-item">
+    <label>{{i18n "fields.type" default="Type"}}</label>
     <input name="type" type="search" value="{{params.type}}" placeholder="eg. delayTask" />
-  </label>
+  </div>
 
-  <label class="form-item">
-    {{i18n "fields.status" default="Status"}}
+  <div class="form-item">
+    <label>{{i18n "fields.status" default="Status"}}</label>
     <select name="status" onchange="this.form.submit()">
       <option value="all" {{#if (test params.status "==" "all")}}selected{{/if}}>{{i18n "labels.all" default="all"}}</option>
       <option value="success" {{#if (test params.status "==" "success")}}selected{{/if}}>{{i18n "labels.success" default="success"}}</option>
       <option value="error" {{#if (test params.status "==" "error")}}selected{{/if}}>{{i18n "labels.error" default="error"}}</option>
     </select>
-  </label>
+  </div>
 
-  <label class="form-item">
-    {{i18n "labels.taskTypes"}}
+  <div class="form-item">
+    <label>{{i18n "labels.taskTypes"}}</label>
     <select name="rootOnly" onchange="this.form.submit()">
       <option value="true" {{#if params.rootOnly}}selected{{/if}}>{{i18n "labels.rootOnly"}}</option>
       <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks"}}</option>
     </select>
-  </label>
+  </div>
 </form>
 {{#if tasks.length}}
   <div class="list-table-wrap">

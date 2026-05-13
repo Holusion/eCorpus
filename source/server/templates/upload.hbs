@@ -83,7 +83,33 @@
 
       <span slot="drop-label">{{i18n "labels.selectFile_s"}}</span>
 
-      <p slot="upload-lead">{{i18n "leads.uploadFiles"}}</p>
+      <div slot="upload-lead">
+        <aside class="help-block">
+          <ui-icon name="info"></ui-icon>
+          <div class="help-block-content">
+            <h4>{{i18n "onboarding.upload.title"}}</h4>
+            <p>{{{i18n "onboarding.upload.lead"}}}</p>
+          </div>
+        </aside>
+
+        <h3>{{i18n "onboarding.upload.types"}}</h3>
+        <h4>{{i18n "onboarding.upload.glb.title"}}</h4>
+        <p>{{{i18n "onboarding.upload.glb.lead"}}}</p>
+        <aside class="help-block">
+          <ui-icon name="info"></ui-icon>
+          <div class="help-block-content">
+            <h4>{{{i18n "onboarding.upload.optimize.title"}}}</h4>
+            <p>{{{i18n "onboarding.upload.optimize.lead"}}}</p>
+          </div>
+        </aside>
+        <h4>{{i18n "onboarding.upload.zip.title"}}</h4>
+        <p>{{{i18n "onboarding.upload.zip.lead"}}}</p>
+
+        <p style="text-align: right">
+          <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/import.html">{{i18n "onboarding.import.link"}} →</a>
+        </p>
+
+      </div>
 
       <p slot="mixed-content-warning">{{i18n "leads.uploadMixedContent"}}</p>
 
@@ -92,42 +118,34 @@
 
           <div class="form-group">
             <div class="form-item">
-              <label for="sceneName">
-                {{i18n "labels.sceneName"}}
-                {{#> popover id="sceneName-tooltip"}}{{i18n "leads.uploadName" }}{{/popover}}
-              </label>
+              <label for="sceneName">{{i18n "labels.sceneName"}}</label>
               <input id="sceneName" autocomplete="off" minlength="3" type="text" name="name">
             </div>
+            <small>{{i18n "leads.uploadName"}}</small>
           </div>
 
           <div class="form-group">
             <div class="form-item">
-              <label for="sceneSetupLanguage">
-                {{i18n "labels.setupLocalization"}}
-                {{#> popover id="sceneSetupLanguage-tooltip" }}{{i18n "leads.uploadLanguage" }}{{/popover}}
-              </label>
+              <label for="sceneSetupLanguage">{{i18n "labels.setupLocalization"}}</label>
               <select name="language" id="sceneSetupLanguage" >
                 {{#each languages}}
                 <option {{#if selected}}selected{{/if}} value="{{code}}">{{i18n key}}</option>
                 {{/each}}
               </select>
             </div>
+            <small>{{i18n "leads.uploadLanguage"}}</small>
           </div>
 
         </div>
 
         <div class="form-row">
           <h4>{{i18n "titles.advancedConfiguration"}}</h4>
-          <div class="form-item inline" style="justify-content: end;">
-            <label for="sceneOptimize">
-              {{i18n "labels.optimizeModel"}}
-            {{#> popover id="sceneOptimize-tooltip" }}{{i18n "leads.uploadOptimize" }}{{/popover}}
-            </label>
+          <div class="form-item">
+            <label for="sceneOptimize">{{i18n "labels.optimizeModel"}}</label>
             <input id="sceneOptimize" type="checkbox" name="optimize"/>
           </div>
+          <small>{{i18n "leads.uploadOptimize"}}</small>
         </div>
-
-
 
       </form>
 

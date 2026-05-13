@@ -29,7 +29,7 @@ export default async function handleRenderMail(req :Request, res :Response){
       <style type="text/css">
         html, body{
           color-scheme: light dark;
-          background-color: light-dark(#eeeeee, #333333);
+          background-color: Canvas;
           pointer-events: none;
         }
       </style>

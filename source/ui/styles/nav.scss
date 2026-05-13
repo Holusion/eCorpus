@@ -52,13 +52,13 @@
       height: 1.5rem;
     }
 
-    @media (min-width: 576px){
+    @media screen and (min-width: 992px){
       //Change border side in toolbar when in vertical mode
       border-bottom-width: 0;
       border-left-width: var(--border-height);
     }
     // Compact mode at narrow widths: stack icon above label
-    @media (max-width: 1024px) {
+    @media (max-width: 992px) {
       flex-grow: 1;
       min-width: 0;
       flex-direction: column;
@@ -187,7 +187,7 @@ nav, .navbar {
     flex-direction: column;
     padding-bottom: 10px;
     font-size: 100%;
-    @media (max-width: 576px){
+    @media screen and (max-width: 992px){
       flex-direction: row;
     }
   }

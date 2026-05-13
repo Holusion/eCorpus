@@ -1,5 +1,13 @@
 <section>
   <h3>{{i18n "titles.archives"}}</h3>
+  {{#unless archives.length}}
+    <aside class="help-block">
+      <ui-icon name="info"></ui-icon>
+      <div class="help-block-content">
+        <p>{{{i18n "onboarding.archives.lead"}}}</p>
+      </div>
+    </aside>
+  {{/unless}}
   <div class="list-table-wrap">
     <table class="list-table">
       <thead><tr>

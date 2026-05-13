@@ -18,6 +18,7 @@ labels:
   deletingAGroupIsPermanent: Deleting a group is permanent
   email: Email
   password: Password
+  showPassword: Show password
   newPassword: New Password
   forgottenPassword: Forgotten password
   pagination: pagination
@@ -60,6 +61,7 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Add this tag to selected scenes
   batchRmTag: Remove this tag from selected scenes
+  addTag: Add a tag
   sceneName: Scene name
   mine: Mine
   all: All
@@ -79,6 +81,8 @@ labels:
   private: Private
   size: "{{count}} scene"
   size_plural: "{{count}} scenes"
+  addUser: Add user
+  addGroup: Add group
 
 buttons:
   searchScene: search scenes
@@ -165,6 +169,70 @@ onboarding:
     title: "Publish and share"
     lead: "Manage access control lists and embed the viewer on your website"
     link: "Publishing tutorial"
+  upload:
+    title: "Need help?"
+    lead: >
+      Drop your files in the area above or click to browse.
+    types: Accepted file types
+    glb:
+      title: "Single 3D model"
+      lead: >
+        A <code>.glb</code> (or <code>.gltf</code>) file creates a new scene with default
+        metadata.
+    optimize:
+      title: "Conversion &amp; optimization"
+      lead: >
+        Enable <i>Optimize models</i> to compress geometry and textures. Recommended for files over a few megabytes: the upload runs as a
+        background task and the resulting scene loads much faster in viewers.
+    zip:
+      title: "Archive upload"
+      lead: >
+        A <code>.zip</code> archive can contain one or several complete eCorpus scenes
+        (model files, articles, annotations and thumbnails). Scene names are taken from
+        the archive, so the name field above is ignored.
+  group:
+    title: "How groups work"
+    lead: >
+      Groups bundle <b>users</b> with <b>scenes</b> and grant them a shared access level
+      (<i>read</i>, <i>write</i> or <i>admin</i>). Add members on the left, then attach scenes
+      with the desired permission on the right. A user's effective rights are the most
+      permissive of their public, default, group and individual rights.
+    link: "Read the permissions documentation"
+  scenePermissions:
+    lead: >
+      No specific permission has been granted on this scene yet. Anyone matching the
+      <i>public</i> or <i>default</i> rules above can access it. Add a group or user below
+      to grant additional rights.
+  sceneTags:
+    lead: >
+      Tags help others discover this scene. They are also used to build collections on
+      the home page. Add a tag below — pick from existing suggestions to join a collection.
+  userGroups:
+    lead: >
+      Groups let an administrator grant the same access to several users at once.
+      They are managed by instance administrators — ask one to add you to the relevant
+      group if you need to collaborate on scenes you do not own.
+  archives:
+    lead: >
+      Archiving a scene removes it from search results and from your scenes list while
+      keeping its data on the server. Archived scenes can be restored at any time from
+      this page. The "Archive" button is available in any scene's settings.
+  tags:
+    lead: >
+      No tag has been created on this instance yet. Tags group scenes into <i>collections</i>
+      — they are added from each scene's settings page and become collection pages here.
+    link: "Tags and collections tutorial"
+  tagEmpty:
+    lead: >
+      This collection currently has no scene visible to you. The tag may have been
+      removed from every scene, or you may not have read access to the matching scenes.
+    link: "Browse all collections"
+  tasks:
+    lead: >
+      Tasks are background jobs run on your behalf by the server — typically scene
+      uploads, archive extractions or model optimisations. Each task records its logs
+      and a downloadable workspace you can use to troubleshoot failures.
+    link: "About background tasks"
 
 titles:
   myScenesSection: my scenes
@@ -213,6 +281,12 @@ tooltips:
   permissions: >
     The default access for connected users can not be more restrictive than the public access.
     The wider rights of default access rights and specific user rights applies.
+  sortBy: >
+    <b>Rank</b> orders results by relevance to the search query — it only makes sense
+    when a search term is set. Other criteria are time- or name-based and ignore the query.
+  myAccess: >
+    Restrict results to scenes on which you have at least this level of rights.
+    Administrators can leave this empty to list every scene on the instance.
 leads:
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared
@@ -276,7 +350,7 @@ leads:
     Uploaded files are a mix of scenes archive and regular files. Mixed content can't be handled in a single operation.
   uploadName: >
     This will be the URL name of the created scene.
-    It is language-independent. You will be able to create a title for each language later.
+    It is language-independent.
   uploadLanguage: The scene's default language
   uploadOptimize: Optimize 3D models for better performance. This may take a bit more time.
   uploadErrors: >

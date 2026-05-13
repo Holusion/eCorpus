@@ -149,6 +149,7 @@ section, .section{
   // Small screen handling block. We display either grid-content or grid-toolbar
   @media screen and (max-width: 992px){
     grid-template-columns: auto;
+    grid-template-rows: min-content min-content auto min-content;
     grid-template-areas:
       'header'
       'toolbar'
@@ -324,26 +325,7 @@ footer {
   }
 }
 
-.tags-list{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  .btn.btn-small{
-    min-width:60px;
-    height: 24px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
-  .add-tag{
-    border-radius: 4px;
-    overflow: hidden;
-    > input[type="text"]{
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-    cursor: text;
-  }
-}
+
 
 .row{
   flex-direction: row;

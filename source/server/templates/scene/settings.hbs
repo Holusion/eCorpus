@@ -6,7 +6,7 @@
       {{i18n "titles.permissions"}}
     </h3>
     <div class="list-table-wrap">
-      <table class="list-table compact form-control">
+      <table class="list-table compact">
         <colgroup>
           <col span="1" style="width: 50%;">
           <col span="1" style="width: 50%;">
@@ -35,7 +35,7 @@
               <td class="text-main" >{{i18n (join "fields." @root.scene.public_access) @root.scene.public_access}}</td>
             {{else }}
               <td title="{{i18n "labels.username"}}">{{i18n "labels.publicAccess"}}</td>
-              <td class="form-control">
+              <td>
                 <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="public_access" method="PATCH" action="/scenes/{{encodeURIComponent @root.scene.name}}"  encoding="application/json" onsubmit="window.location.reload()">
                   <form class="form-control" style="flex-grow: 1;" autocomplete="off">
                     <div class="form-item">
@@ -61,7 +61,7 @@
               <td class="text-main" >{{i18n (join "fields." @root.scene.default_access) @root.scene.default_access}}</td>
             {{else }}
               <td title="{{i18n "labels.username"}}">{{i18n "labels.defaultAccess"}}</td>
-              <td class="form-control">
+              <td >
                 <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="default_access" method="PATCH" action="/scenes/{{encodeURIComponent @root.scene.name}}"  encoding="application/json" onsubmit="window.location.reload()">
                   <form class="form-control" style="flex-grow: 1;" autocomplete="off">
                     <div class="form-item">
@@ -94,7 +94,7 @@
               access}}</td>
             {{else }}
             <td title="{{i18n "labels.group"}}">{{groupName}}</td>
-            <td class="form-control">
+            <td>
               <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
                 action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
                 onsubmit="window.location.reload()">
@@ -120,19 +120,31 @@
           {{#if (test access "==" "admin")}}
           <tr>
             <td colspan="2">
-              <submit-fragment class="form-control" id="scene_submit_fragment"
-                style="display:flex;flex-direction: column-reverse;" submit="access" method="PATCH"
+              <submit-fragment id="scene_submit_fragment"
+                 submit="access" method="PATCH"
                 action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
                 onsubmit="window.location.reload()">
-                <form class="form-group" style="flex-grow: 1;" autocomplete="off">
-                  <div class="form-group row" style="align-items: stretch">
-                    <input name="groupName" placeholder="{{i18n "labels.group"}}" required style="flex-grow: 1"/>
-                    <select name="access" aria-label="{{i18n "labels.permission"}}" style="flex-grow: 1">
-                      <option disabled selected value> -- select an option -- </option>
-                      {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
-                      {{> inputs/option selected=false value="write" text=(i18n "fields.write")}}
-                      {{> inputs/option selected=false value="admin" text=(i18n "fields.admin")}}
-                    </select>
+                <form autocomplete="off">
+                  <label>
+                    <ui-icon style="color: var(--color-primary)" name="plus"></ui-icon>
+                    {{i18n "labels.addGroup"}}
+                  </label>
+                  <div class="two-columns">
+                    <div class="form-item col">
+                      <input name="groupName" placeholder="{{i18n "labels.group"}}" required style="flex-grow: 1"/>
+                    </div>
+                    <div class="col" style="display: flex;">
+                      <div class="form-item" style="flex-grow: 1;">
+                        <select name="access" aria-label="{{i18n "labels.permission"}}" style="flex-grow: 1">
+                          <option disabled selected value> -- select an option -- </option>
+                          {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
+                          {{> inputs/option selected=false value="write" text=(i18n "fields.write")}}
+                          {{> inputs/option selected=false value="admin" text=(i18n "fields.admin")}}
+                        </select>
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-addon"><ui-icon name="plus"></ui-icon></button>
+
+                    </div>
                   </div>
                 </form>
                 <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
@@ -162,7 +174,7 @@
               access}}</td>
             {{else }}
             <td title="{{i18n "labels.username"}}">{{> showName}}</td>
-            <td class="form-control">
+            <td>
               <submit-fragment style="display:flex;flex-direction: row-reverse;" submit="access" method="PATCH"
                 action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
                 onsubmit="window.location.reload()">
@@ -188,19 +200,34 @@
           {{#if (test access "==" "admin")}}
           <tr>
             <td colspan="2">
-              <submit-fragment class="form-control" id="scene_submit_fragment"
+              <submit-fragment id="scene_submit_fragment"
                 style="display:flex;flex-direction: column-reverse;" submit="access" method="PATCH"
                 action="/auth/access/{{encodeURIComponent @root.scene.name}}" encoding="application/json"
                 onsubmit="window.location.reload()">
-                <form class="form-group" style="flex-grow: 1;" autocomplete="off">
-                  <div class="form-group row" style="align-items: stretch">
-                    <input name="username" placeholder="{{i18n "labels.username"}}" required style="flex-grow: 1"/>
-                    <select name="access" aria-label="{{i18n "labels.permission"}}" style="flex-grow: 1">
-                      <option disabled selected value> -- select an option -- </option>
-                      {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
-                      {{> inputs/option selected=false value="write" text=(i18n "fields.write")}}
-                      {{> inputs/option selected=false value="admin" text=(i18n "fields.admin")}}
-                    </select>
+                <form autocomplete="off">
+                  <label>
+                    <ui-icon name="plus"></ui-icon>
+                    {{i18n "labels.addUser"}}
+                  </label>
+                  <div class="two-columns">
+                    <div class="col">
+                      <div class="form-item" style="align-items: stretch">
+                        <input name="username" placeholder="{{i18n "labels.username"}}" required style="flex-grow: 1"/>
+                      </div>
+                    </div>
+
+                    <div class="col" style="display: flex;">
+                      <div class="form-item" style="flex-grow: 1">
+                        <select name="access" aria-label="{{i18n "labels.permission"}}" style="flex-grow: 1">
+                          <option disabled selected value> -- select an option -- </option>
+                          {{> inputs/option selected=false value="read" text=(i18n "fields.read")}}
+                          {{> inputs/option selected=false value="write" text=(i18n "fields.write")}}
+                          {{> inputs/option selected=false value="admin" text=(i18n "fields.admin")}}
+                        </select>
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-addon"><ui-icon name="plus"></ui-icon></button>
+
+                    </div>
                   </div>
                 </form>
                 <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in
@@ -212,24 +239,50 @@
         </tbody>
       </table>
     </div>
-
+    {{#unless (test groupPermissions.length "||" "1" "<" userPermissions.length)}}
+      <aside class="help-block">
+        <ui-icon name="info"></ui-icon>
+        <div class="help-block-content">
+          <p>{{{i18n "onboarding.scenePermissions.lead"}}}</p>
+          <a href="https://ecorpus.eu/{{lang}}/doc/tutorials/import.html#manage-scene-permissions">{{i18n "onboarding.group.link"}} →</a>
+        </div>
+      </aside>
+    {{/unless}}
   </div>
   {{/if}}
 </section>
 
 <section>
   <h3>{{i18n "buttons.editTags" }}</h3>
+  {{#unless scene.tags.length}}
+    <aside class="help-block">
+      <ui-icon name="info"></ui-icon>
+      <div class="help-block-content">
+        <p>{{{i18n "onboarding.sceneTags.lead"}}}</p>
+      </div>
+    </aside>
+  {{/unless}}
   <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
-    <form autocomplete="off" class="form-control tags-list">
+    <form autocomplete="off" class="form-control">
       {{#each scene.tags}}
-        <a href="/ui/tags/{{.}}" class="btn btn-main btn-small" style="gap: 1rem;">
-          {{> inputs/checkbox name="tags" selected=true value=. aria-label=. }}
-          <span>{{.}}</label>
-        </a>
+        <div class="form-item" style="display:flex;flex-direction:row;align-items:center; gap:.5rem;">
+          <label><span class="hidden">{{@index}}</span></label>
+          <span class="form-input">
+            <a href="/ui/tags/{{.}}" style="flex-grow:1;">{{.}}</a>
+            <label class="btn btn-danger" style="align-self: end" title="{{i18n "labels.delete"}}">
+              <input type="checkbox" name="tags" checked value="{{.}}" aria-label="{{.}}" style="position:absolute;width:1px;height:1px;opacity:0;"/>
+              <ui-icon name="trash"></ui-icon>
+            </label>
+          </span>
+        </div>
       {{/each}}
-      <label class="form-item add-tag">
-        <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" onchange=""/>
-        <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+
+      <div class="form-item">
+        <label >
+          {{i18n "labels.addTag" }}
+        </label>
+        <input id="new-tag" name="tags" list="tagSuggestions" type="text" value="" placeholder="{{i18n "fields.tag"}}" />
+        <button type="submit" class="btn btn-main"><ui-icon name="plus"></ui-icon></button>
         <datalist id="tagSuggestions">
           {{#each tagSuggestions }}
             <option value="{{.}}"/>
@@ -243,7 +296,7 @@
             input.addEventListener("change", (e)=>e.stopPropagation());
           })();
         </script>
-      </label>
+      </div>
     </form>
   </submit-fragment>
 </section>

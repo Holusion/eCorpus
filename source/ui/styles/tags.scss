@@ -1,6 +1,6 @@
 .tags-grid{
   display: grid;
-  grid-template-columns: repeat(4, 1fr) [end];
+  grid-template-columns: repeat(4, minmax(0, 1fr)) [end];
   grid-auto-flow: row;
   grid-auto-rows: auto;
   gap: .5rem;
@@ -26,6 +26,27 @@
     grid-template-columns: 1fr [end];
     gap: 1rem;
     padding: 0 1rem;
+  }
+}
+
+.tags-list{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  .btn.btn-small{
+    min-width:60px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .add-tag{
+    border-radius: 4px;
+    overflow: hidden;
+    > input[type="text"]{
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    cursor: text;
   }
 }
 

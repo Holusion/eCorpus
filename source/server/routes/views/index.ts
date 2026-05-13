@@ -395,10 +395,11 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   const userManager = getUserManager(req);
   const limit = qsToInt(req.query.limit) ?? 25;
   const offset = qsToInt(req.query.offset) ?? 0;
+  const match = typeof req.query.match === "string" ? req.query.match : undefined;
 
   const [users, total] = await Promise.all([
-    userManager.getUsers(true, {limit, offset}),
-    userManager.userCount(),
+    userManager.getUsers(true, {limit, offset, match}),
+    userManager.userCount(match),
   ]);
 
   let pager = {
@@ -422,7 +423,7 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   res.render("admin/users", {
     layout: "admin",
     title: "Users list — Administration",
-    params: {limit, offset},
+    params: {limit, offset, match},
     pager,
     users,
   });

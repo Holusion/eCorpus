@@ -18,6 +18,7 @@ labels:
   deletingAGroupIsPermanent: Supprimer un groupe est définitif.
   email: Email
   password: Mot de passe
+  showPassword: Afficher le mot de passe
   newPassword: Nouveau mot de passe
   forgottenPassword: Mot de passe oublié?
   pagination: pagination
@@ -60,6 +61,7 @@ labels:
   batchTags: Change selection's tags
   batchAddTag: Ajouter ce tag aux scènes sélectionnées
   batchRmTag: Retirer ce tag des scènes sélectionnées
+  addTag: Ajouter un tag
   mine: Mes tâches
   all: Tous
   success: Succès
@@ -78,6 +80,8 @@ labels:
   private: Privée
   size_one: "{{count}} scene"
   size_other: "{{count}} scenes"
+  addUser: Ajouter un utilisateur
+  addGroup: Ajouter un groupe
 
 
 buttons:
@@ -165,6 +169,78 @@ onboarding:
     title: "Publiez et partagez"
     lead: "Gérez les droits d'accès et intégrez le visualisateur sur votre site"
     link: "Tutoriel de publication"
+  upload:
+    title: "Besoin d'aide ?"
+    lead: >
+      Déposez vos fichiers dans la zone ci-dessus ou cliquez pour parcourir.
+    types: Formats acceptés
+    glb:
+      title: "Modèle 3D individuel"
+      lead: >
+        Un fichier <code>.glb</code> (ou <code>.gltf</code>) crée une nouvelle scène avec
+        des métadonnées par défaut. Les fichiers <code>.obj</code> accompagnés de leurs matériaux (<code>.mtl</code> et textures associées) sont acceptés et seront convertis au moment de la création de la scène.
+    optimize:
+      title: "Conversion et optimisation"
+      lead: >
+        Activez <i>Optimiser les modèles</i> pour compresser la géométrie et les textures.
+        Recommandé pour les fichiers de plus de quelques méga-octets :
+        l'import s'exécute alors comme une tâche d'arrière-plan et la scène obtenue se
+        charge bien plus rapidement dans les visualisateurs.
+    zip:
+      title: "Archive ZIP"
+      lead: >
+        Une archive <code>.zip</code> peut contenir une ou plusieurs scènes eCorpus
+        complètes (modèles, articles, annotations et vignettes). Les noms de scène sont
+        repris depuis l'archive : le champ de nom ci-dessus est alors ignoré.
+  group:
+    title: "Comment fonctionnent les groupes"
+    lead: >
+      Un groupe associe des <b>utilisateurs</b> à des <b>scènes</b> avec un même niveau d'accès
+      (<i>lecture</i>, <i>écriture</i> ou <i>admin</i>). Ajoutez des membres à gauche, puis
+      attachez les scènes voulues à droite. Les droits effectifs d'un utilisateur sont les plus
+      élevés parmi ses droits publics, par défaut, de groupe et individuels.
+    link: "Lire la documentation des droits"
+  scenePermissions:
+    lead: >
+      Aucun droit spécifique n'a été défini sur cette scène. L'accès est régi uniquement par
+      les règles <i>public</i> et <i>par défaut</i> ci-dessus. Ajoutez un groupe ou un
+      utilisateur ci-dessous pour accorder des droits supplémentaires.
+  sceneTags:
+    lead: >
+      Les tags facilitent la découverte de la scène et alimentent les collections de la page
+      d'accueil. Ajoutez un tag ci-dessous — choisissez une suggestion existante pour rejoindre
+      une collection.
+  userGroups:
+    lead: >
+      Les groupes permettent à un administrateur d'accorder le même niveau d'accès à
+      plusieurs utilisateurs à la fois. Ils sont gérés par les administrateurs de l'instance —
+      demandez à être ajouté à un groupe si vous devez collaborer sur des scènes que vous
+      ne possédez pas.
+  archives:
+    lead: >
+      Archiver une scène la retire des résultats de recherche et de votre liste de scènes
+      tout en conservant ses données sur le serveur. Les scènes archivées peuvent être
+      restaurées à tout moment depuis cette page. Le bouton « Archiver » se trouve dans
+      les paramètres de chaque scène.
+  tags:
+    lead: >
+      Aucun tag n'a encore été créé sur cette instance. Les tags regroupent les scènes en
+      <i>collections</i> — ils s'ajoutent depuis les paramètres de chaque scène et
+      apparaissent ici sous forme de pages de collection.
+    link: "Tutoriel : tags et collections"
+  tagEmpty:
+    lead: >
+      Cette collection ne contient aucune scène visible pour vous. Le tag a peut-être été
+      retiré de toutes les scènes, ou vous n'avez pas les droits de lecture sur les scènes
+      concernées.
+    link: "Voir toutes les collections"
+  tasks:
+    lead: >
+      Les tâches sont des traitements exécutés en arrière-plan par le serveur — en
+      général l'import de scènes, l'extraction d'archives ou l'optimisation de modèles.
+      Chaque tâche conserve ses journaux et un espace de travail téléchargeable pour
+      diagnostiquer les échecs.
+    link: "À propos des tâches"
 
 titles:
   myScenesSection: mes scenes
@@ -212,6 +288,14 @@ tooltips:
   permissions: >
     L'accès par défaut pour les autres utilisateurs connectés ne peut pas être plus restrictif que l'accès public.
     Les droits les plus élévés s'appliquent parmis les droits par défaut et les droits spécifiques d'un utilisateur.
+  sortBy: >
+    <b>Pertinence</b> classe les résultats par adéquation avec la requête — n'a de sens
+    qu'avec un terme de recherche. Les autres critères sont chronologiques ou
+    alphabétiques et ignorent la requête.
+  myAccess: >
+    Restreint les résultats aux scènes sur lesquelles vous disposez au moins de ce niveau
+    de droits. Les administrateurs peuvent laisser ce champ vide pour lister toutes les
+    scènes de l'instance.
   upload: >
     Les fichiers acceptés sont les glbs et les zip contenant une ou plusieurs scènes.
     En cas de duplication du nom de scène, les fichiers glb sont refusés, les zip écrasent la scène existante si l'utilisateur a les droits d'écriture.
@@ -281,7 +365,6 @@ leads:
   uploadName: >
     Ce nom sera utilisé dans l'URL de la scène créée.
     Il est indépendant de la langue utilisée.
-    Il sera possible de créer un titre par langue plus tard.
   uploadLanguage: La langue principale de la scène.
   uploadOptimize: Optimiser les modèles pour une meilleure performance. Cela peut prendre un peu plus de temps.
   uploadErrors: >

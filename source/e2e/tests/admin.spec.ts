@@ -7,8 +7,8 @@ test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
 
 
 test("can create a new user", async ({page})=>{
-  await page.goto("/ui/admin/users");
   let name = `test-createuser-${randomBytes(6).toString("base64url")}`;
+  await page.goto(`/ui/admin/users?match=${encodeURIComponent(name)}`);
   let password = randomUUID();
   let email = `${name}@example.com`;
   await page.getByRole("button", {name: "labels.createUser"}).click();
@@ -31,7 +31,7 @@ test("shows the email of users in the admin users list", async ({page, request})
   });
   await expect(res).toBeOK();
 
-  await page.goto("/ui/admin/users");
+  await page.goto(`/ui/admin/users?match=${encodeURIComponent(username)}`);
 
   let userRow = page.getByRole("row", {name: username});
   await expect(userRow).toBeVisible();
@@ -90,7 +90,7 @@ test("can delete a non-admin user", async ({page, request})=>{
   });
   await expect(res).toBeOK();
 
-  await page.goto("/ui/admin/users");
+  await page.goto(`/ui/admin/users?match=${encodeURIComponent(username)}`);
 
   let userRow = page.getByRole("row", {name: username});
   await expect(userRow).toBeVisible();

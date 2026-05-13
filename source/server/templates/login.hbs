@@ -10,33 +10,32 @@
           enctype="application/x-www-form-urlencoded"
           autocomplete="on" autocapitalize="none"
         >
-          <div class="form-group">
-            <div class="form-item">
-              <label for="username">{{i18n "labels.username"}}</label>
-              <input type="text" autocomplete="username" name="username" id="username" required="">
-            </div>
+          <div class="form-item">
+            <label for="username">{{i18n "labels.username"}}</label>
+            <input type="text" autocomplete="username" name="username" id="username" required="">
           </div>
           <div class="form-group">
             <div class="form-item">
               <label for="password">{{i18n "labels.password"}}</label>
               <input type="password" autocomplete="current-password" name="password" id="password" required="">
-              <button id="password-toggle" type="button" aria-checked="false" tabindex="-1" role="switch" style="display:none" class="btn btn-secondary btn-transparent btn-addon" title="{{i18n "tooltips.showPassword"}}"><ui-icon name="eye"></ui-icon></button>
-              <script>
-                (function registerPasswordVisibilityToggle(){
-                  const btn = document.querySelector("#password-toggle");
-                  if(!btn) return console.warn("Password toggle button not found");
-                  btn.onclick = function togglePasswordVisibility(e){
-                    e.preventDefault();
-                    const checked = btn.ariaChecked != "true";
-                    const input = document.querySelector(`input[name="password"]`);
-                    if(!input ) return console.warn(`Password input not found`);
-                    input.type = checked? "text" : "password";
-                    btn.ariaChecked = checked.toString();
-                  }
-                  btn.style.removeProperty("display");             
-                })();
-              </script>
             </div>
+            <div class="form-item" id="password-toggle-item" style="display:none;">
+              <label for="password-toggle" style="flex-grow: 1;">{{i18n "labels.showPassword"}}</label>
+              
+              <input type="checkbox" id="password-toggle">
+            </div>
+            <script>
+              (function registerPasswordVisibilityToggle(){
+                const item = document.querySelector("#password-toggle-item");
+                const toggle = document.querySelector("#password-toggle");
+                const input = document.querySelector('input[name="password"]');
+                if(!item || !toggle || !input) return console.warn("Password toggle controls not found");
+                toggle.addEventListener("change", function(){
+                  input.type = toggle.checked ? "text" : "password";
+                });
+                item.style.removeProperty("display");
+              })();
+            </script>
           </div>
 
           <div id="login-form-error">
