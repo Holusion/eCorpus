@@ -19,10 +19,18 @@
     align-items: stretch;
     &.form-row{
       flex-direction: row;
+      align-items: baseline;
       --label-width: auto;
     }
     &.form-column{
       flex-direction: column;
+    }
+    &.form-right{
+      justify-content: end;
+      .form-item{
+        justify-content: end;
+
+      }
     }
   }
 
@@ -334,7 +342,6 @@
     &:has( + .btn-addon:not([hidden])){
       //To have proper outline alignment
       padding-right: 2.5rem;
-      margin-right: -2.5rem;
     }
 
     + .btn-addon{
@@ -343,8 +350,8 @@
       // Stretch the input row only — exclude the reserved help-text padding so
       // the addon button doesn't bleed into the empty gap below.
       bottom: calc(var(--form-item-help-pad, 0px) + 1px);
-      right: 1px;
-      border-radius: 0 3px 3px 0;
+      right: 0;
+      border-radius: 0 3px 0 0;
       width: 2.5rem;
       padding: 0;
       display: flex;
@@ -382,16 +389,16 @@
       }
     }
 
-    // Ledger-style checkbox — typographic [ ] / [✓] glyphs in the heading
-    // serif, gold on checked. ::before always renders bracket+em-space+bracket
-    // (constant width — brackets never shift between states); ::after overlays
-    // the checkmark only when checked.
+    // Custom checkbox / radio — shared box (1.2em, gold on selected, dotted
+    // focus ring) with a ::before overlay carrying the state glyph: ✔ / – for
+    // checkboxes, a filled inner disc for radios.
     //
-    // Explicit width + justify-self: start keep the checkbox from being
+    // Explicit width + justify-self: start keep the control from being
     // stretched by the parent grid cell — without these the input would fill
-    // the input column and the centred ::after overlay would land at the cell
-    // midpoint, far away from the brackets.
-    &[type="checkbox"]{
+    // the input column and the centred ::before overlay would land at the
+    // cell midpoint, far away from the box.
+    &[type="checkbox"],
+    &[type="radio"]{
       --size: 1.2em;
       appearance: none;
       -webkit-appearance: none;
@@ -404,7 +411,7 @@
       flex: 0 0 auto;
       padding: 0;
       margin: 0;
-      
+
       font-family: monospace;
       font-size: var(--size);
       line-height: var(--size);
@@ -412,7 +419,7 @@
       vertical-align: baseline;
       color: #ccc;
       cursor: pointer;
-      
+
       border: 1px solid currentColor;
       border-radius: 2px;
       box-shadow: 0 0 0 1px rgba(20, 20, 20, 0.3);
@@ -434,14 +441,6 @@
       }
       &:checked{
         color: var(--color-primary);
-        &::before{ content: "✔"; }
-      }
-      &:indeterminate{
-        color: var(--color-primary-light);
-        &::before{
-          font-weight: bold;
-          content: "–";
-        }
       }
       &:focus-visible{
         outline: 1px dotted var(--color-primary);
@@ -453,6 +452,31 @@
       }
     }
 
+    &[type="checkbox"]{
+      &:checked::before{ content: "✔"; }
+      &:indeterminate{
+        color: var(--color-primary-light);
+        &::before{
+          font-weight: bold;
+          content: "–";
+        }
+      }
+    }
+
+    &[type="radio"]{
+      border-radius: 50%;
+      &:checked{
+        background: rgba(20, 20, 20, 0.8);
+        &::before{
+        // Filled inner disc — overrides the inherited inset/top so the dot
+        // sits centred rather than covering the whole box.
+        inset: 2px;
+        background: currentColor;
+        border-radius: 50%;
+      }
+      }
+    }
+
     &[type="color"]{
       border-radius: 4px;
       background-image: none;
@@ -460,6 +484,11 @@
       &::-webkit-color-swatch {
         border: none;
       }
+    }
+
+    &[type="range"]{
+      align-self: center;
+      accent-color: var(--color-primary);
     }
   }
 
@@ -495,6 +524,11 @@
   fieldset{
     border: none;
     padding: 0 .5rem;
+  }
+
+  textarea{
+    width: 100%;
+    max-width: 100%;
   }
 }
 

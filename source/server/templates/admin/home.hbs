@@ -102,16 +102,16 @@
 
 
 <section>
-  <form  autocomplete="off" id="config-rows-filter" class="form-control table-header" method="GET" action=".">
+  <form  autocomplete="off" id="config-rows-filter" class="form-control form-right table-header" method="GET" action=".">
     <h3 id="config-title" style="align-self: start;">{{i18n "titles.config"}}</h3>
-      <span class="form-item">
-        <label>{{i18n "labels.showStatic"}}</label>
+      <label class="form-item inline">
+        {{i18n "labels.showStatic"}}
         <input type="checkbox" name="static"  {{#if withStatic}}checked{{/if}}>
-      </span>
-      <span class="form-item">
-        <label>{{i18n "labels.showChangedOnly"}}</label>
+      </label>
+      <label class="form-item inline">
+        {{i18n "labels.showChangedOnly"}}
         <input type="checkbox" name="changes" {{#unless withDefaults}}checked{{/unless}}>
-      </span>
+      </label>
     <script type="module">
       (function registerFormAutoSubmit(){
         const form = document.querySelector("#config-rows-filter");
