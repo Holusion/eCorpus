@@ -266,7 +266,7 @@ titles:
   filesStatistics: Data statistics
   modifiedToday: Scenes modified today
   buildRef: Current version
-  previewEmail: Preview email templates
+  uiGuidelines: UI guidelines
   createdScenes: Created scenes
   myTasks: My tasks
   taskTree: Task tree
@@ -340,6 +340,7 @@ leads:
     To be extra safe and prevent (most) emails being flagged as SPAM, check the DKIM signature using tools like Google's 
     <a href="https://postmaster.google.com">Postmaster Tools</a>.
   sendTestEmail: Send a test email
+  uiGuidelines: Open the UI components reference page
   usersList: Users {{start}}-{{end}}/{{total}}
   groupsList: Groups {{start}}-{{end}}/{{total}}
   noArchives: No archived scenes

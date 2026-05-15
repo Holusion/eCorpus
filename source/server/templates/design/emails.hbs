@@ -1,0 +1,142 @@
+<style>
+  /* Stacked email previews. Each entry has its own toolbar (mobile /
+     desktop + light / dark) so individual templates can be inspected at
+     different widths and themes side-by-side. */
+  .email-preview-list{
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .email-preview{
+    scroll-margin-top: 1rem;
+  }
+  .email-preview-toolbar{
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: .5rem 0;
+  }
+  .email-preview-toolbar .toggle-group{
+    display: flex;
+    gap: .25rem;
+  }
+  .email-preview-frame{
+    display: block;
+    width: 100%;
+    max-width: 1000px;
+    height: 60vh;
+    min-height: 480px;
+    margin: 0 auto;
+    border: 1px solid var(--color-highlight2);
+    background: Canvas;
+    color-scheme: only light;
+    transition: max-width .2s ease;
+  }
+
+  /* Language toggle pinned to the top of the content area. Uses URL
+     query params so refreshing or sharing the page preserves the choice. */
+  .lang-form{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid var(--color-highlight2);
+  }
+</style>
+
+<div class="grid-content">
+  <section>
+    <h3>Email templates</h3>
+    <p>
+      Each transactional email template is rendered inline below. Toggle
+      preview width (mobile / desktop) and color-scheme (light / dark) per
+      template. Change the language via the form at the top to preview
+      every template in another locale; the choice is reflected in the URL
+      so refreshing keeps it.
+    </p>
+
+    <form class="form-control form-row lang-form" method="GET" action="/ui/design/emails">
+      <div class="form-item">
+        <label for="email-lang">Template language</label>
+        <select id="email-lang" name="mailLang">
+          {{> inputs/option selected=(test "en" "==" previewLang) value="en" text="EN"}}
+          {{> inputs/option selected=(test "fr" "==" previewLang) value="fr" text="FR"}}
+        </select>
+      </div>
+      <div class="form-item">
+        <label for="email-username">Username</label>
+        <input type="text" id="email-username" name="username" value="{{previewUsername}}" placeholder="recipient username">
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-main">Apply</button>
+      </div>
+    </form>
+
+    <div class="email-preview-list">
+      {{#each templates}}
+        <article id="tpl-{{this}}" class="email-preview">
+          <h4><code>{{this}}_{{@root.previewLang}}.hbs</code></h4>
+          <div class="email-preview-toolbar" data-target="frame-{{this}}">
+            <div class="toggle-group view">
+              <button type="button" class="btn btn-small btn-primary" data-view="mobile">Mobile</button>
+              <button type="button" class="btn btn-small btn-primary btn-outline" data-view="desktop">Desktop</button>
+            </div>
+            <div class="toggle-group theme">
+              <button type="button" class="btn btn-small btn-primary" data-theme="light">Light</button>
+              <button type="button" class="btn btn-small btn-primary btn-outline" data-theme="dark">Dark</button>
+            </div>
+          </div>
+          <iframe
+            id="frame-{{this}}"
+            class="email-preview-frame"
+            data-name="{{this}}"
+            src="/admin/mail/render/{{this}}_{{@root.previewLang}}?username={{encodeURIComponent @root.previewUsername}}"
+            title="Preview of {{this}} ({{@root.previewLang}})"
+            loading="lazy"
+            style="max-width: 428px;"></iframe>
+        </article>
+      {{/each}}
+    </div>
+  </section>
+</div>
+
+<div class="grid-sidebar">
+  <section>
+    <h4>Templates</h4>
+    <nav style="display:flex; flex-direction:column; gap:.25rem;">
+      {{#each templates}}
+        <a href="#tpl-{{this}}"><code>{{this}}_{{@root.previewLang}}.hbs</code></a>
+      {{/each}}
+    </nav>
+  </section>
+</div>
+
+<script type="module">
+  /**
+   * Per-template view/theme toggle. Each toolbar's data-target points at
+   * the iframe it controls; clicking a button updates the iframe's
+   * max-width (mobile / desktop) or its color-scheme (light / dark) and
+   * flips the .btn-outline state on its sibling so the active button
+   * reads as selected.
+   */
+  for(const toolbar of document.querySelectorAll(".email-preview-toolbar")){
+    const frame = document.getElementById(toolbar.dataset.target);
+    if(!frame) continue;
+    for(const group of toolbar.querySelectorAll(".toggle-group")){
+      const buttons = Array.from(group.querySelectorAll("button"));
+      for(const btn of buttons){
+        btn.addEventListener("click", () => {
+          buttons.forEach(b => b.classList.toggle("btn-outline", b !== btn));
+          if(btn.dataset.view){
+            frame.style.maxWidth = btn.dataset.view === "desktop" ? "1000px" : "428px";
+          } else if(btn.dataset.theme){
+            frame.style.colorScheme = `only ${btn.dataset.theme}`;
+          }
+        });
+      }
+    }
+  }
+</script>

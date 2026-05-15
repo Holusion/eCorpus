@@ -359,6 +359,53 @@ routes.get("/user/archives", wrap(async (req, res)=>{
 
 
 
+routes.use("/design", isManage);
+routes.get("/design", (req, res)=>{
+  res.render("design/components", {
+    layout: "design",
+    title: "UI components",
+  });
+});
+
+routes.get("/design/embeds", wrap(async (req, res)=>{
+  const vfs = getVfs(req);
+  const queryTag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
+  let tag = queryTag;
+  if(!tag){
+    const [first] = await vfs.getTags({limit: 1});
+    tag = first?.name ?? "";
+  }
+  // Put this page in a credentialless context so the <iframe credentialless>
+  // below loads its src without forwarding session cookies — the embed
+  // preview reflects what an unauthenticated visitor would see.
+  res.set("Cross-Origin-Embedder-Policy", "credentialless");
+  res.render("design/embeds", {
+    layout: "design",
+    title: "Embed previews",
+    tag,
+  });
+}));
+
+routes.get("/design/emails", wrap(async (req, res)=>{
+  const allowedLangs = ["en", "fr"] as const;
+  // Use a dedicated query param (not `lang`) — `lang` is the UI locale
+  // controlled by the footer language switcher, and conflating the two
+  // means changing the previewed template language also flips the
+  // surrounding page's chrome (and vice-versa).
+  const qLang = typeof req.query.mailLang === "string" ? req.query.mailLang : "";
+  const mailLang = (allowedLangs as readonly string[]).includes(qLang) ? qLang : (getSession(req)?.lang ?? "en");
+  const qUser = typeof req.query.username === "string" ? req.query.username.trim() : "";
+  const username = qUser || getUser(req)?.username || "user";
+  res.render("design/emails", {
+    layout: "design",
+    title: "Email template previews",
+    previewLang: mailLang,
+    previewUsername: username,
+    templates: ["connection", "onboarding"],
+  });
+}));
+
+
 routes.use("/admin", isManage);
 routes.get("/admin", (req, res)=>{
   const withStatic = qsToBool(req.query.static) ?? false;

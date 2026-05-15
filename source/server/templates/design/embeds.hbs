@@ -1,0 +1,111 @@
+<style>
+  /* Local styles for the embed preview page. The iframe is sized to the
+     "share embed" defaults used in production (640×420) and bordered so
+     its actual extents are obvious. The form sits in the grid-content
+     and the iframe sits below it; on wide screens this leaves the
+     grid-sidebar free for additional notes. */
+  .embed-form{
+    margin-bottom: 1.5rem;
+  }
+  .embed-preview-toolbar{
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: .5rem 0;
+  }
+  .embed-preview-toolbar .toggle-group{
+    display: flex;
+    gap: .25rem;
+  }
+  .embed-preview-frame{
+    display: block;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--color-highlight2);
+    background: var(--color-element);
+    transition: max-width .2s ease;
+  }
+  .embed-meta{
+    font-size: .9em;
+    opacity: 0.8;
+    code{
+      font-family: monospace;
+      background: var(--color-highlight2);
+      padding: 0 .25rem;
+      border-radius: 2px;
+    }
+  }
+</style>
+
+<div class="grid-content">
+  <section>
+    <h3>Tag embed</h3>
+    <p>
+      Renders <code>/ui/tags/:tag</code> with <code>?embed=1</code>, which
+      switches the page to the <code>embed</code> layout (no navbar / footer,
+      compact scene cards). Submit a tag name below to preview a different
+      collection.
+    </p>
+    <p>
+      The iframe carries the <code>credentialless</code> attribute and this
+      page sets <code>Cross-Origin-Embedder-Policy: credentialless</code>,
+      so the embed loads without your session cookie — what you see below
+      is what an unauthenticated visitor would see. Scenes you can read
+      because you're signed in won't appear here unless their public or
+      default access allows it.
+    </p>
+
+    <form class="form-control embed-form" method="GET" action="/ui/design/embeds">
+      <div class="form-item">
+        <label for="embed-tag">Tag</label>
+        <input type="text" id="embed-tag" name="tag" value="{{tag}}" placeholder="tag name" required>
+        <button type="submit" class="btn btn-main">Preview</button>
+      </div>
+    </form>
+
+    {{#if tag}}
+      <div class="embed-preview-toolbar" data-target="embed-frame">
+        <div class="toggle-group view">
+          <button type="button" class="btn btn-small btn-primary btn-outline" data-view="mobile">Mobile</button>
+          <button type="button" class="btn btn-small btn-primary" data-view="desktop">Desktop</button>
+        </div>
+      </div>
+      <iframe
+        id="embed-frame"
+        class="embed-preview-frame"
+        src="/ui/tags/{{encodeURIComponent tag}}?embed=1"
+        title="Embed preview of tag {{tag}}"
+        credentialless
+        loading="lazy"></iframe>
+    {{else}}
+      <p>
+        No tag in the database yet. Create a tagged scene first, then come
+        back to preview its collection embed.
+      </p>
+    {{/if}}
+  </section>
+</div>
+
+<script type="module">
+  for(const toolbar of document.querySelectorAll(".embed-preview-toolbar")){
+    const frame = document.getElementById(toolbar.dataset.target);
+    if(!frame) continue;
+    for(const group of toolbar.querySelectorAll(".toggle-group")){
+      const buttons = Array.from(group.querySelectorAll("button"));
+      for(const btn of buttons){
+        btn.addEventListener("click", () => {
+          buttons.forEach(b => b.classList.toggle("btn-outline", b !== btn));
+          if(btn.dataset.view){
+            const mobile = btn.dataset.view === "mobile";
+            frame.style.maxWidth = mobile ? "428px" : "800px";
+            frame.style.aspectRatio = mobile ? "9 / 16" : "4 / 3";
+          }
+        });
+      }
+    }
+  }
+</script>

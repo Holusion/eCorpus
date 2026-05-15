@@ -1,0 +1,1056 @@
+<style>
+  /* Local layout for the guidelines page.
+     - .design-note is a callout for the explanatory prose that sits between
+       demo blocks. It's visually distinct from a regular paragraph so the
+       reader can tell "doc" from "demo" at a glance.
+     - .demo-frame draws a dashed border around each demo so its actual
+       extents are obvious, even when the contained component has no
+       background of its own.
+     - .demo-split shows the same demo at "content" width and at
+       "toolbar" width side by side, so a single eyeball check confirms
+       that the form-control container query collapses correctly. */
+  .design-note{
+    border-left: 3px solid var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    padding: .5rem .75rem;
+    margin: .75rem 0 1rem 0;
+    font-size: .95em;
+    code{
+      font-family: monospace;
+      background: var(--color-highlight2);
+      padding: 0 .25rem;
+      border-radius: 2px;
+    }
+  }
+  .demo-frame{
+    border: 1px dashed var(--color-highlight2);
+    padding: .75rem;
+    margin: .5rem 0;
+    position: relative;
+  }
+  .demo-frame::before{
+    content: attr(data-label);
+    position: absolute;
+    top: -.6em;
+    left: .5rem;
+    padding: 0 .25rem;
+    background: var(--color-section);
+    font-family: var(--font-heading);
+    font-size: .75em;
+    color: var(--color-highlight2);
+  }
+  .demo-split{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    @media (min-width: 992px){
+      grid-template-columns: 1fr minmax(0, 300px);
+    }
+  }
+  /* Match the .grid-toolbar width used by .main-grid so the narrow
+     preview faithfully reproduces what a form looks like in the toolbar. */
+  .demo-narrow{
+    max-width: 300px;
+  }
+
+  .swatch-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: .5rem;
+  }
+  .swatch{
+    border: 1px solid var(--color-highlight2);
+    border-radius: 4px;
+    padding: .5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    font-size: .85em;
+  }
+  .swatch-chip{
+    height: 2rem;
+    border-radius: 2px;
+    border: 1px solid var(--color-highlight2);
+  }
+
+  .btn-grid{
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+  }
+
+  /* Uniform-width icon grid: auto-fill columns of a fixed minmax cell so
+     every entry occupies the same width and columns align across rows.
+     Icon names that don't fit get an ellipsis instead of pushing the cell
+     wider. */
+  .icon-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: .75rem .5rem;
+  }
+  .icon-grid > .icon-cell{
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .25rem;
+    font-size: 1.5rem;
+  }
+  .icon-grid > .icon-cell > code{
+    max-width: 100%;
+    font-size: .7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Stacked breakpoint demos. Each .grid-demo-frame is sized at runtime
+     to its scaled iframe dimensions (set by the script). figcaption lives
+     directly above so the breakpoint range is labelled. Figures shrink to
+     the width of their content (the scaled iframe) and centre in the
+     stack. */
+  .grid-demo-stack{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  figure.grid-demo{
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+  }
+  figure.grid-demo > figcaption{
+    font-family: var(--font-heading);
+    font-size: .85em;
+    opacity: 0.8;
+  }
+
+  /* Page TOC, populated by the script at the bottom of the template.
+     Sits in .grid-sidebar and stays visible while scrolling. */
+  .design-toc{
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    position: sticky;
+    top: 1rem;
+  }
+  .design-toc a{
+    text-decoration: none;
+    padding: .25rem .5rem;
+    border-left: 2px solid transparent;
+    color: var(--color-text);
+    opacity: 0.8;
+  }
+  .design-toc a:hover{
+    background: var(--color-highlight2);
+    opacity: 1;
+  }
+  .design-toc a.active{
+    border-left-color: var(--color-primary);
+    color: var(--color-primary);
+    opacity: 1;
+  }
+
+  .code-sample{
+    background: var(--color-section);
+    border: 1px solid var(--color-highlight2);
+    border-radius: 4px;
+    padding: .75rem 1rem;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: .9em;
+    line-height: 1.5;
+    margin: .5rem 0;
+  }
+  .icon-grid-status{
+    font-size: .9rem;
+    opacity: .7;
+  }
+</style>
+
+<div class="grid-sidebar">
+  <nav class="design-toc" aria-label="Page sections"></nav>
+</div>
+
+<div class="grid-content">
+<div class="design-note">
+  This page showcases the layout primitives, form patterns and components used
+  across eCorpus. Each section pairs a short note explaining when to use the
+  pattern with a working example. Forms are typically rendered twice — once at
+  content width and once constrained to <code>300px</code> (the width of
+  <code>.grid-toolbar</code>) — so the container-query collapse behaviour of
+  <code>.form-control</code> can be inspected at a glance.
+</div>
+
+<section>
+  <h3>Layout primitives</h3>
+
+  <h4><code>main-grid</code></h4>
+  <div class="design-note">
+    Top-level grid used by the <code>main</code> layout. Slots:
+    <code>.grid-header</code> at the top, <code>.grid-toolbar</code> on the
+    left, <code>.grid-content</code> in the middle, <code>.grid-sidebar</code>
+    on the right. Below 1600px the sidebar drops under the content. Below
+    992px every slot stacks vertically (<em>header / toolbar / content /
+    sidebar</em>). A bare <code>&lt;h1&gt;</code> as the only child of
+    <code>.main-grid</code> implicitly goes to <code>grid-header</code>; a
+    lone <code>&lt;section&gt;</code> goes to <code>grid-content</code>.
+    Use <code>.grid-fullwidth</code> on a child to span every column.
+  </div>
+
+  <div class="design-note">
+    The three frames below render an identical <code>.main-grid</code>
+    skeleton at three different viewport widths. Each frame is an
+    <code>&lt;iframe&gt;</code> with its own viewport, so the
+    <code>@media</code> queries in <code>.main-grid</code> respond to the
+    iframe's actual width — not the page's. The iframes are visually
+    scaled down with <code>transform: scale(…)</code> to fit on the
+    page; the scaling is purely cosmetic.
+  </div>
+  <div class="grid-demo-stack">
+    <figure class="grid-demo">
+      <figcaption>wide · viewport &ge; 1600px (iframe rendered at 1700px)</figcaption>
+      <div class="grid-demo-frame" data-w="1700" data-scale="0.4"></div>
+    </figure>
+    <figure class="grid-demo">
+      <figcaption>medium · 992px &le; viewport &lt; 1600px (iframe rendered at 1200px)</figcaption>
+      <div class="grid-demo-frame" data-w="1200" data-scale="0.55"></div>
+    </figure>
+    <figure class="grid-demo">
+      <figcaption>narrow · viewport &lt; 992px (iframe rendered at 600px)</figcaption>
+      <div class="grid-demo-frame" data-w="600" data-scale="0.9"></div>
+    </figure>
+  </div>
+  <script type="module">
+    /**
+     * Render the .main-grid skeleton inside three iframes of increasing
+     * width. Each iframe gets its own viewport so the @media queries in
+     * .main-grid trigger off the iframe's `data-w`, independent of the
+     * page's own width. `transform: scale(data-scale)` shrinks the
+     * frame to fit on the page — what the iframe's CSS sees is the
+     * unscaled width.
+     */
+    (function buildGridDemo(){
+      const skeleton = `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/dist/css/theme.css">
+  <link rel="stylesheet" href="/dist/css/corpus.css">
+  <style>
+    body{
+      margin: 0;
+      padding: 1rem;
+      background: var(--color-background, #343434);
+      color: var(--color-text);
+      font-family: var(--font-body, sans-serif);
+      box-sizing: border-box;
+      min-height: 100vh;
+    }
+    /* Tint each grid slot so the layout is visible at a glance. */
+    .main-grid > .grid-header,
+    .main-grid > .grid-toolbar,
+    .main-grid > .grid-content,
+    .main-grid > .grid-sidebar{
+      background: var(--color-section);
+      padding: .75rem;
+      outline: 1px dashed var(--color-highlight2);
+    }
+    .main-grid > .grid-header{ background: var(--color-element); }
+  </style>
+</head>
+<body>
+  <main class="main-grid">
+    <h1 class="grid-header">grid-header</h1>
+    <div class="grid-toolbar">
+      <nav>
+        <a href="#">link a</a>
+        <a href="#">link b</a>
+      </nav>
+    </div>
+    <div class="grid-content">
+      <section>
+        <h3>grid-content</h3>
+        <p>The middle column, capped at <code>--col-width</code>.</p>
+      </section>
+    </div>
+    <div class="grid-sidebar">
+      <section>
+        <h4>grid-sidebar</h4>
+        <p>Right-hand column on wide screens; drops below content on medium; stacks at the bottom on narrow.</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>`;
+      const frameHeight = 460;
+      for(const frame of document.querySelectorAll(".grid-demo-frame")){
+        const w = Number(frame.dataset.w);
+        const s = Number(frame.dataset.scale);
+        const iframe = document.createElement("iframe");
+        iframe.srcdoc = skeleton;
+        iframe.title = `main-grid at ${w}px viewport`;
+        Object.assign(iframe.style, {
+          width: `${w}px`,
+          height: `${frameHeight}px`,
+          border: "0",
+          transform: `scale(${s})`,
+          transformOrigin: "0 0",
+          display: "block",
+          pointerEvents: "none",
+        });
+        Object.assign(frame.style, {
+          width: `${w * s}px`,
+          height: `${frameHeight * s}px`,
+          overflow: "hidden",
+          border: "1px solid var(--color-highlight2)",
+        });
+        frame.append(iframe);
+      }
+    })();
+  </script>
+
+  <h4><code>section</code> &amp; <code>.section</code></h4>
+  <div class="design-note">
+    Wrap each block of content in a <code>&lt;section&gt;</code> for the gold
+    caret framing (top-left / bottom-right). Nested sections (a section as a
+    direct child of another section) drop their caret in favour of a thin gold
+    underline. Use <code>.section.container</code> to centre and cap a section
+    at 1200px when it's used outside <code>.main-grid</code>.
+  </div>
+  <div class="demo-frame" data-label="nested section">
+    <section>
+      <h4>Outer section title</h4>
+      <p>Outer body copy.</p>
+      <section>
+        <h5>Nested section</h5>
+        <p>Nested sections lose the caret and get a thin gold underline.</p>
+      </section>
+      <section>
+        <h5>Another nested section</h5>
+        <p>The last nested section drops its underline.</p>
+      </section>
+    </section>
+  </div>
+
+  <h4><code>section-column</code></h4>
+  <div class="design-note">
+    A two-column flex container. Children with <code>.col</code> share the
+    width 50/50. Collapses to a single column on narrow screens (and in the
+    toolbar when at the medium breakpoint).
+  </div>
+  <div class="demo-frame" data-label="section-column">
+    <div class="section-column">
+      <section class="col">
+        <h5>Column A</h5>
+        <p>Left column body copy.</p>
+      </section>
+      <section class="col">
+        <h5>Column B</h5>
+        <p>Right column body copy.</p>
+      </section>
+    </div>
+  </div>
+
+  <h4><code>list-grid</code> / <code>list-items</code> / <code>list-tasks</code></h4>
+  <div class="design-note">
+    <code>.list-grid</code> is a responsive grid: 1 column, then 2 at 610px,
+    4 at 1600px; add <code>.list-grid-compact</code> for denser scenarios
+    (3/4/5/6 columns). <code>.list-items</code> is a plain vertical stack
+    with a half-rem gap. <code>.list-tasks</code> is a wrap-flex row for
+    inline badges.
+  </div>
+  <div class="demo-frame" data-label="list-grid">
+    <div class="list-grid">
+      <div style="background: var(--color-element); padding: .75rem; text-align: center;">item 1</div>
+      <div style="background: var(--color-element); padding: .75rem; text-align: center;">item 2</div>
+      <div style="background: var(--color-element); padding: .75rem; text-align: center;">item 3</div>
+      <div style="background: var(--color-element); padding: .75rem; text-align: center;">item 4</div>
+    </div>
+  </div>
+
+  <aside class="design-note">
+    <h4 style="margin-top: 0;">Embed layout</h4>
+    <p>
+      In addition to the <code>main</code> layout used by every full
+      page, eCorpus has a stripped-down <code>embed</code> layout that
+      drops the navbar and footer so a view can be hosted inside a
+      third-party site via an <code>&lt;iframe&gt;</code>. Pages opt in
+      by switching layout based on
+      <code>isEmbed(req)</code>, which checks the
+      <code>?embed</code> query parameter or the
+      <code>Sec-Fetch-Dest: iframe</code> request header. Currently
+      <code>/ui/tags/:tag</code> is the only view with an embed
+      variant.
+    </p>
+    <p>
+      <a href="/ui/design/embeds">Open the embed previews page →</a>
+    </p>
+  </aside>
+</section>
+
+
+<section>
+  <h3>Colours</h3>
+  <div class="design-note">
+    Reference the semantic colour tokens defined in
+    <code>styles/theme.scss</code>. Don't hard-code hex values — themes (and
+    user-configured palette overrides via <code>/admin</code>) will not flow
+    through.
+  </div>
+  <div class="swatch-grid">
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-primary);"></div><code>--color-primary</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-primary-light);"></div><code>--color-primary-light</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-secondary);"></div><code>--color-secondary</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-secondary-light);"></div><code>--color-secondary-light</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-success);"></div><code>--color-success</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-info);"></div><code>--color-info</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-error);"></div><code>--color-error</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-section);"></div><code>--color-section</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-element);"></div><code>--color-element</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-highlight);"></div><code>--color-highlight</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-highlight2);"></div><code>--color-highlight2</code></div>
+    <div class="swatch"><div class="swatch-chip" style="background: var(--color-text);"></div><code>--color-text</code></div>
+  </div>
+</section>
+
+
+<section>
+  <h3>Typography</h3>
+  <div class="design-note">
+    Headings use <code>var(--font-heading)</code>; body copy uses
+    <code>var(--font-body)</code>. Helper text classes
+    (<code>.text-muted</code>, <code>.text-primary</code>,
+    <code>.text-success</code>, <code>.text-info</code>,
+    <code>.text-error</code>) recolor inline content. The
+    <code>&lt;small&gt;</code> placed as a direct sibling of a
+    <code>.form-item</code> turns into the row's help text — see the Forms
+    section below.
+  </div>
+  <div class="demo-frame" data-label="text">
+    <h1>H1 — Page title</h1>
+    <h2>H2 — Section heading</h2>
+    <h3>H3 — Sub-section</h3>
+    <h4>H4 — Block heading</h4>
+    <h5>H5 — Inline heading</h5>
+    <p>Body copy. <a href="#">An inline link</a> sits in the body text colour.</p>
+    <p>
+      <span class="text-primary">primary</span> ·
+      <span class="text-success">success</span> ·
+      <span class="text-info">info</span> ·
+      <span class="text-error">error</span> ·
+      <span class="text-muted">muted</span>
+    </p>
+  </div>
+</section>
+
+
+<section>
+  <h3>Buttons</h3>
+  <div class="design-note">
+    Every clickable that is not a text link should be a
+    <code>.btn</code>. Color variants:
+    <code>.btn-main</code> (primary CTA, secondary palette),
+    <code>.btn-primary</code> (gold accent),
+    <code>.btn-secondary</code>, <code>.btn-danger</code>,
+    <code>.btn-success</code>, <code>.btn-info</code>. Stack with
+    <code>.btn-outline</code> or <code>.btn-transparent</code> for
+    decreasing visual weight. Size modifiers: <code>.btn-small</code> (icon
+    actions in rows), <code>.btn-inline</code> (sits inside running text),
+    <code>.btn-pill</code> (rounded badge). <code>.btn-addon</code> drops
+    the min-width and background and is used immediately after an
+    <code>&lt;input&gt;</code> to glue a trailing action button to the
+    input's right edge.
+  </div>
+
+  <h4>Color variants</h4>
+  <div class="demo-frame" data-label="filled" >
+    <div class="btn-grid">
+      <button class="btn">btn</button>
+      <button class="btn btn-main">btn-main</button>
+      <button class="btn btn-primary">btn-primary</button>
+      <button class="btn btn-secondary">btn-secondary</button>
+      <button class="btn btn-danger">btn-danger</button>
+      <button class="btn btn-success">btn-success</button>
+      <button class="btn btn-info">btn-info</button>
+      <button class="btn" disabled>disabled</button>
+    </div>
+  </div>
+  <div class="demo-frame" data-label="outline" >
+    <div class="btn-grid">
+      <button class="btn btn-outline">btn-outline</button>
+      <button class="btn btn-outline btn-main">main</button>
+      <button class="btn btn-outline btn-primary">primary</button>
+      <button class="btn btn-outline btn-secondary">secondary</button>
+      <button class="btn btn-outline btn-danger">danger</button>
+      <button class="btn btn-outline btn-info">info</button>
+    </div>
+  </div>
+  <div class="demo-frame" data-label="transparent" >
+    <div class="btn-grid">
+      <button class="btn btn-transparent">btn-transparent</button>
+      <button class="btn btn-transparent btn-primary">primary</button>
+      <button class="btn btn-transparent btn-danger">danger</button>
+      <button class="btn btn-transparent btn-info">info</button>
+    </div>
+  </div>
+
+  <h4>Sizes</h4>
+  <div class="demo-frame" data-label="sizes" >
+    <div class="btn-grid">
+      <button class="btn">default</button>
+      <button class="btn btn-small">small</button>
+      <button class="btn btn-small btn-transparent btn-danger">
+        <ui-icon name="trash"></ui-icon>
+      </button>
+      <button class="btn btn-inline btn-primary">inline</button>
+      <span>Used like <button class="btn btn-inline btn-primary">this</button> in running text.</span>
+    </div>
+  </div>
+
+  <h4>Pills / tags</h4>
+  <div class="design-note">
+    <code>.btn-pill</code> is a non-interactive rounded badge used for tags,
+    author names and access flags. Pair with <code>.btn-outline</code> for a
+    subtle border-only look, or with a color variant (e.g.
+    <code>.btn-primary</code>) when the badge encodes a status.
+  </div>
+  <div class="demo-frame" data-label="pills" >
+    <div class="btn-grid">
+      <span class="btn btn-pill">tag</span>
+      <span class="btn btn-pill btn-outline">outline</span>
+      <span class="btn btn-pill btn-outline btn-primary">primary</span>
+      <span class="btn btn-pill btn-outline btn-secondary">secondary</span>
+      <span class="btn btn-pill btn-primary">filled primary</span>
+    </div>
+  </div>
+
+  <h4>Buttons with icons</h4>
+  <div class="design-note">
+    Drop a <code>&lt;ui-icon name="…"&gt;</code> inside a
+    <code>.btn</code> for an icon-only or icon+label button. For destructive
+    icon actions in a row, combine <code>.btn-small</code> with
+    <code>.btn-transparent.btn-danger</code> and a
+    <code>title</code>/<code>aria-label</code>.
+  </div>
+  <div class="demo-frame" data-label="icon buttons">
+    <div class="btn-grid">
+      <button class="btn btn-main"><ui-icon name="plus"></ui-icon> Create</button>
+      <button class="btn btn-primary"><ui-icon name="save"></ui-icon> Save</button>
+      <button class="btn btn-outline btn-danger"><ui-icon name="trash"></ui-icon> Delete</button>
+      <button class="btn btn-small btn-transparent" title="edit"><ui-icon name="edit"></ui-icon></button>
+      <button class="btn btn-small btn-transparent btn-danger" aria-label="delete" title="delete"><ui-icon name="trash"></ui-icon></button>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <h3>Forms</h3>
+  <div class="design-note">
+    A form is wrapped in <code>.form-control</code> — that container sets
+    the label width, defines the container query that collapses rows when
+    the container drops below <code>--form-break</code> (480px by default),
+    and provides the underline-only input style. Each labelled input lives
+    in a <code>.form-item</code>: a flex row with the label on the left and
+    the input on the right. <code>.form-group</code> stacks several rows
+    vertically; if a <code>.form-group</code> only contains buttons it is
+    right-aligned automatically. Add an optional help message by placing a
+    <code>&lt;small&gt;</code> as the form-item's <em>next sibling</em>
+    (not a child); it turns red when the input is invalid.
+  </div>
+
+  <h4>Anatomy</h4>
+  <div class="demo-frame" data-label="form anatomy">
+    <form class="form-control">
+      <div class="form-item">
+        <label for="anatomy-username">Username</label>
+        <input type="text" id="anatomy-username" required>
+      </div>
+      <small>3 to 32 characters, letters and digits only.</small>
+      <div class="form-item">
+        <label for="anatomy-email">Email</label>
+        <input type="email" id="anatomy-email" placeholder="you@example.org">
+      </div>
+      <div class="form-group">
+        <button type="reset" class="btn btn-outline">Reset</button>
+        <button type="submit" class="btn btn-main">Save</button>
+      </div>
+    </form>
+  </div>
+  <div class="design-note">
+    The required-field marker (gold <code>*</code> after the label) is added
+    automatically by selecting <code>input:required</code>. It turns red on
+    <code>:user-invalid</code> and green on <code>:user-valid</code>.
+    <code>:user-invalid</code> only fires after blur or submit — so the row
+    doesn't flash red while the user is still typing.
+  </div>
+
+  <h4>Every input type — wide and narrow</h4>
+  <div class="design-note">
+    The same form is rendered at content width and at the toolbar's 300px
+    width. Below 480px the container query collapses each row to a
+    label-above-input column, except checkboxes which stay on a single
+    space-between row.
+  </div>
+  {{!--
+    Inline partial: a single .form-control containing one row of every input
+    type used across the application. Rendered twice below — once at content
+    width and once at toolbar width — so the container-query collapse
+    behaviour can be verified at a glance. Caller passes `idPrefix` so each
+    rendering produces unique IDs and radio-group names.
+  --}}
+  {{#*inline "inputDemo"}}
+    <form class="form-control" autocomplete="off">
+      <div class="form-item">
+        <label for="{{idPrefix}}-text">Text</label>
+        <input type="text" id="{{idPrefix}}-text" placeholder="some text" value="example">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-text-req">Required text</label>
+        <input type="text" id="{{idPrefix}}-text-req" placeholder="cannot be blank" required>
+      </div>
+      <small>This row has a help message that turns red on invalid input.</small>
+      <div class="form-item">
+        <label for="{{idPrefix}}-email">Email</label>
+        <input type="email" id="{{idPrefix}}-email" placeholder="you@example.org" value="not-an-email" required>
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-password">Password</label>
+        <input type="password" id="{{idPrefix}}-password" value="hunter2" minlength="8">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-number">Number</label>
+        <input type="number" id="{{idPrefix}}-number" min="0" max="100" value="42">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-range">Range</label>
+        <input type="range" id="{{idPrefix}}-range" min="0" max="100" value="60">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-date">Date</label>
+        <input type="date" id="{{idPrefix}}-date" value="2024-01-15">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-color">Color</label>
+        <input type="color" id="{{idPrefix}}-color" value="#c69026">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-textarea">Textarea</label>
+        <textarea id="{{idPrefix}}-textarea" rows="3">Multi-line content. 100% width, Resizes vertically only.</textarea>
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-select">Select</label>
+        <select id="{{idPrefix}}-select">
+          <option>option one</option>
+          <option selected>option two</option>
+          <option>option three</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-file">File</label>
+        <input type="file" id="{{idPrefix}}-file">
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-checkbox">Checkbox</label>
+        <input type="checkbox" id="{{idPrefix}}-checkbox" checked>
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-checkbox-i">Indeterminate</label>
+        <input type="checkbox" id="{{idPrefix}}-checkbox-i">
+      </div>
+      <script>document.getElementById("{{idPrefix}}-checkbox-i").indeterminate = true;</script>
+      <fieldset class="form-item" style="border: none; padding: 0;">
+        <legend style="font-family: var(--font-heading); opacity: .7; min-width: var(--label-width); padding-right: 1.5rem; flex: 0 0 auto;">Radio group</legend>
+        <div class="form-input" style="gap: 1rem;">
+          <label class="form-item inline">
+            <input type="radio" name="{{idPrefix}}-radio" value="a" checked> A
+          </label>
+          <label class="form-item inline">
+            <input type="radio" name="{{idPrefix}}-radio" value="b"> B
+          </label>
+          <label class="form-item inline">
+            <input type="radio" name="{{idPrefix}}-radio" value="c"> C
+          </label>
+        </div>
+      </fieldset>
+      <div class="form-item">
+        <label for="{{idPrefix}}-readonly">Read-only</label>
+        <input type="text" id="{{idPrefix}}-readonly" value="cannot be edited" readonly>
+      </div>
+      <div class="form-item">
+        <label for="{{idPrefix}}-disabled">Disabled</label>
+        <input type="text" id="{{idPrefix}}-disabled" value="grey out" disabled>
+      </div>
+      <div class="form-group">
+        <button type="reset" class="btn btn-outline">Reset</button>
+        <button type="submit" class="btn btn-main">Save</button>
+      </div>
+    </form>
+  {{/inline}}
+  <div class="demo-split">
+    <div class="demo-frame" data-label="wide (content)">
+      {{> inputDemo idPrefix="wide" }}
+    </div>
+    <div class="demo-frame demo-narrow" data-label="narrow (toolbar)">
+      {{> inputDemo idPrefix="narrow" }}
+    </div>
+  </div>
+
+  <h4>Row layouts</h4>
+  <div class="design-note">
+    <code>.form-row</code> on a <code>.form-control</code> or
+    <code>.form-group</code> arranges children horizontally — handy for
+    filter rows. <code>.form-group.inline</code> stretches its children
+    side-by-side; <code>.form-group.column</code> stacks them with a 5px
+    gap. <code>.form-item.inline</code> is for the special case of a
+    checkbox or radio whose label sits to its immediate right.
+  </div>
+  <div class="demo-frame" data-label="form-row (filter bar)">
+    <form class="form-control form-row" style="gap:1rem; flex-wrap:wrap;">
+      <div class="form-item">
+        <label for="filter-q">Search</label>
+        <input type="text" id="filter-q" placeholder="match…">
+      </div>
+      <div class="form-item">
+        <label for="filter-type">Type</label>
+        <select id="filter-type">
+          <option>any</option>
+          <option>scene</option>
+          <option>html</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">Apply</button>
+    </form>
+  </div>
+  <div class="demo-frame" data-label="form-item.inline (checkbox row)">
+    <form class="form-control">
+      <label class="form-item inline">
+        <input type="checkbox" checked>
+        Send onboarding email
+      </label>
+      <label class="form-item inline">
+        <input type="checkbox">
+        Notify group members
+      </label>
+    </form>
+  </div>
+    <div class="demo-frame" data-label="form-right form-item.inline (checkbox row)">
+    <form class="form-control form-right">
+      <label class="form-item inline">
+        Send onboarding email
+        <input type="checkbox" checked>
+      </label>
+      <label class="form-item inline">
+        Notify group members
+        <input type="checkbox">
+      </label>
+    </form>
+  </div>
+
+  <h4>Input + addon button</h4>
+  <div class="design-note">
+    Place a <code>.btn.btn-addon</code> immediately after the
+    <code>&lt;input&gt;</code> inside a <code>.form-item</code> to glue a
+    trailing action to the input. The button stretches the input row only
+    — never down into the help-text gap — thanks to the
+    <code>--form-item-help-pad</code> CSS variable. Pattern used for
+    password reveal, "create group" plus-button, etc.
+  </div>
+  <div class="demo-frame" data-label="addon button">
+    <form class="form-control">
+      <div class="form-item">
+        <input type="text" placeholder="New group name" required>
+        <button type="submit" class="btn btn-main btn-addon"><ui-icon name="plus"></ui-icon></button>
+      </div>
+      <div class="form-item">
+        <label for="design-pwd">Password</label>
+        <input type="password" id="design-pwd" value="secret">
+        <button type="button" class="btn btn-addon" title="Reveal" onclick="
+          const i=this.previousElementSibling;
+          i.type = i.type === 'password' ? 'text' : 'password';
+        "><ui-icon name="eye"></ui-icon></button>
+      </div>
+    </form>
+  </div>
+
+  <h4>Sidebar form</h4>
+  <div class="design-note">
+    <code>.form-control.form-sidebar</code> is the variant used inside
+    <code>.grid-toolbar</code>: tighter padding, gap-based vertical
+    spacing.
+  </div>
+  <div class="demo-frame demo-narrow" data-label="form-sidebar">
+    <form class="form-control form-sidebar">
+      <h5 style="margin: 0;">Filters</h5>
+      <label class="form-item inline">
+        Archived only
+        <input type="checkbox">
+      </label>
+      <label class="form-item inline">
+        Mine
+        <input type="checkbox" checked>
+      </label>
+      <button type="submit" class="btn btn-main">Apply</button>
+    </form>
+  </div>
+</section>
+
+
+<section>
+  <h3>Tables</h3>
+  <div class="design-note">
+    <code>table.list-table</code> is the canonical table style — striped
+    rows, sticky header, full width. Wrap in
+    <code>.list-table-wrap.flush</code> when the table should ignore the
+    section padding and run edge-to-edge. Add <code>.compact</code> for
+    dense rows. Cells with action icons go in a flex row aligned to the
+    end.
+  </div>
+  <div class="demo-frame" data-label="list-table">
+    <div class="list-table-wrap flush">
+      <table class="list-table">
+        <thead><tr>
+          <th>uid</th>
+          <th>name</th>
+          <th>role</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-family:monospace;">1</td>
+            <td>alice</td>
+            <td>admin</td>
+            <td>
+              <div style="display:flex; justify-content:end; gap:.6rem;">
+                <button class="btn btn-inline btn-icon" title="login link"><ui-icon name="key"></ui-icon></button>
+                <button class="btn btn-inline btn-icon btn-danger" title="delete"><ui-icon name="trash"></ui-icon></button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family:monospace;">2</td>
+            <td>bob</td>
+            <td>create</td>
+            <td>
+              <div style="display:flex; justify-content:end; gap:.6rem;">
+                <button class="btn btn-inline btn-icon" title="login link"><ui-icon name="key"></ui-icon></button>
+                <button class="btn btn-inline btn-icon btn-danger" title="delete"><ui-icon name="trash"></ui-icon></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <h3>Notifications</h3>
+  <div class="design-note">
+    Notifications are emitted via the global <code>notification-stack</code>
+    custom element. Anywhere in client JS:
+    <code>document.querySelector("notification-stack").constructor.show(message, level, timeoutMs)</code>.
+    Levels are <code>info</code>, <code>success</code>, <code>warning</code>,
+    <code>error</code> — <code>error</code> sticks until dismissed
+    (timeout&nbsp;0).
+  </div>
+  <div class="demo-frame" data-label="trigger notifications">
+    <div class="btn-grid">
+      <button class="btn btn-info" onclick="document.querySelector('notification-stack').constructor.show('Heads up.', 'info', 3000)">info</button>
+      <button class="btn btn-success" onclick="document.querySelector('notification-stack').constructor.show('Saved.', 'success', 3000)">success</button>
+      <button class="btn" style="--btn-color: var(--color-warning, #c69026);" onclick="document.querySelector('notification-stack').constructor.show('Watch out.', 'warning', 5000)">warning</button>
+      <button class="btn btn-danger" onclick="document.querySelector('notification-stack').constructor.show('Something broke.', 'error', 0)">error</button>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <h3>Popovers</h3>
+  <div class="design-note">
+    Use the <code>popover</code> partial next to a header or label to add a
+    contextual help bubble. The trigger is a small "?" glyph; the bubble
+    anchors below it.
+  </div>
+  <div class="demo-frame" data-label="popover">
+    <h5 style="display:inline">Access rights
+      {{#> popover id="design-popover-demo" }}
+        Read grants viewing access. Write allows editing the scene's
+        metadata and story. Admin allows managing permissions.
+      {{/popover}}
+    </h5>
+  </div>
+</section>
+
+
+<section>
+  <h3>Tags &amp; pills</h3>
+  <div class="design-note">
+    Free-form tags live in a <code>.tags-list</code> wrapper. Individual
+    tags are usually <code>.btn.btn-pill.btn-outline</code>. Counts can be
+    appended in a smaller pill of the same colour family.
+  </div>
+  <div class="demo-frame" data-label="tags-list">
+    <div class="tags-list" style="display:flex; gap:.5rem; flex-wrap: wrap;">
+      <span class="btn btn-pill btn-outline">archeology</span>
+      <span class="btn btn-pill btn-outline btn-primary">featured</span>
+      <span class="btn btn-pill btn-outline btn-secondary">museum</span>
+      <span class="btn btn-pill">123</span>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <h3>Cards</h3>
+  <div class="design-note">
+    Each scene tile in lists is a <code>.scene-card</code>: a flex row with
+    a square thumbnail on the left, title and metadata in the middle, and a
+    tools column on the right. Use <code>.list-grid</code> to lay several
+    cards out responsively.
+  </div>
+  <div class="demo-frame" data-label="scene-card">
+    <div class="list-grid">
+      <a class="scene-card" href="#">
+        <span class="card-image">
+          <svg viewBox="0 0 70 70" width="70" height="70" xmlns="http://www.w3.org/2000/svg" style="background: var(--color-highlight);">
+            <rect width="70" height="70" fill="var(--color-highlight2)"/>
+            <text x="35" y="40" text-anchor="middle" font-size="10" fill="var(--color-text)">thumb</text>
+          </svg>
+        </span>
+        <span class="scene-card-inner">
+          <span class="infos">
+            <span class="card-header"><b>Example scene</b></span>
+            <span class="btn btn-pill btn-outline btn-primary">you</span>
+          </span>
+        </span>
+      </a>
+      <a class="scene-card" href="#">
+        <span class="card-image">
+          <svg viewBox="0 0 70 70" width="70" height="70" xmlns="http://www.w3.org/2000/svg">
+            <rect width="70" height="70" fill="var(--color-highlight2)"/>
+            <text x="35" y="40" text-anchor="middle" font-size="10" fill="var(--color-text)">thumb</text>
+          </svg>
+        </span>
+        <span class="scene-card-inner">
+          <span class="infos">
+            <span class="card-header"><b>Another scene</b></span>
+            <span class="btn btn-pill btn-outline">someone</span>
+          </span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <h3>Icons</h3>
+  <div class="design-note">
+    Icons are rendered through the <code>&lt;ui-icon name="…"&gt;</code>
+    custom element. The icon set is defined in
+    <code>icons.svg</code>.
+  </div>
+  <h4>Available icon names:</h4>
+  <div class="demo-frame" data-label="ui-icon">
+    <div class="btn-grid icon-grid" style="font-size: 1.5rem;" aria-busy="true">
+      <span class="icon-grid-status">Loading icons…</span>
+    </div>
+  </div>
+  <div class="design-note">
+    Inside a Handlebars template, either use the <code>&lt;ui-icon&gt;</code>
+    custom element or inline an <code>&lt;svg&gt;</code> with a
+    <code>&lt;use&gt;</code> reference to the sprite. The custom element is
+    preferred — it's shorter and centralises the sprite URL.
+  </div>
+  <pre class="code-sample"><code>
+&lt;!-- custom element --&gt;
+&lt;ui-icon name="save"&gt;&lt;/ui-icon&gt;
+
+&lt;!-- equivalent inline SVG --&gt;
+&lt;svg aria-hidden="true"&gt;
+  &lt;use href="/dist/images/icons.svg#icon-save"&gt;&lt;/use&gt;
+&lt;/svg&gt;
+  </code></pre>
+  <script type="module">
+    /**
+     * Populate the icon grid from /dist/images/icons.svg. The sprite is the
+     * source of truth for available icon names — each `<symbol id="icon-X">`
+     * becomes one cell. Avoids drift between the sprite and a hand-written
+     * list in this template.
+     */
+    (async function buildIconGrid(){
+      const grid = document.querySelector(".icon-grid");
+      if(!grid) return;
+      try{
+        const res = await fetch("/dist/images/icons.svg");
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+        const names = Array.from(doc.querySelectorAll("[id^='icon-']"))
+          .map(el => el.id.replace(/^icon-/, ""))
+          .sort();
+        grid.innerHTML = "";
+        for(const name of names){
+          const span = document.createElement("span");
+          span.title = name;
+          span.style.cssText = "display:flex; flex-direction:column; align-items:center; font-size:.7rem; gap:.25rem; min-width: 60px;";
+          span.innerHTML = `<ui-icon name="${name}"></ui-icon><code>${name}</code>`;
+          grid.append(span);
+        }
+        grid.removeAttribute("aria-busy");
+      }catch(err){
+        grid.innerHTML = `<span class="icon-grid-status">Failed to load icons: ${err.message}</span>`;
+      }
+    })();
+  </script>
+</section>
+</div>
+
+<script type="module">
+  /**
+   * Populate .design-toc from the page's top-level section headings.
+   * Picks each `.grid-content > section > h3:first-child`, assigns it a
+   * stable id if it doesn't already have one, and adds a same-page link
+   * to the toolbar nav. An IntersectionObserver tracks which section is
+   * currently in view and highlights the matching TOC entry.
+   */
+  (function buildToc(){
+    const toc = document.querySelector(".design-toc");
+    if(!toc) return;
+    const headings = document.querySelectorAll(".grid-content > section > h3:first-child");
+    if(!headings.length) return;
+
+    const linkByHeading = new Map();
+    headings.forEach((h, i) => {
+      if(!h.id){
+        const slug = h.textContent.trim().toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+        h.id = slug || `section-${i+1}`;
+      }
+      const a = document.createElement("a");
+      a.href = `#${h.id}`;
+      a.textContent = h.textContent.trim();
+      toc.append(a);
+      linkByHeading.set(h, a);
+    });
+
+    // Highlight the entry corresponding to the heading nearest the top of the
+    // viewport. Using rootMargin so a heading counts as "active" once it
+    // crosses the top quarter of the viewport, not only when fully in view.
+    const observer = new IntersectionObserver((entries) => {
+      for(const entry of entries){
+        const link = linkByHeading.get(entry.target);
+        if(!link) continue;
+        link.classList.toggle("active", entry.isIntersecting);
+      }
+    }, { rootMargin: "-10% 0px -75% 0px" });
+    headings.forEach(h => observer.observe(h));
+  })();
+</script>

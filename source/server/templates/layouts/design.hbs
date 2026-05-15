@@ -1,0 +1,20 @@
+{{!--
+  Shared layout for design / dev-tool pages. Provides:
+    - the page H1 (driven by the `title` context var)
+    - the grid-toolbar nav linking the design sub-pages
+
+  Pages render their own `.grid-content` and `.grid-sidebar` blocks. The
+  sidebar is reserved for per-page navigation (table of contents on
+  components, quick links on emails, etc.).
+--}}
+{{#> main }}
+  <h1 class="grid-header">{{ title }}</h1>
+  <div class="grid-toolbar">
+    <nav>
+      {{#navLink "/ui/design/" "exact"}}<ui-icon name="layout-panel-left"></ui-icon> <span>components</span>{{/navLink}}
+      {{#navLink "/ui/design/embeds"}}<ui-icon name="globe"></ui-icon> <span>embeds</span>{{/navLink}}
+      {{#navLink "/ui/design/emails"}}<ui-icon name="prompt"></ui-icon> <span>emails</span>{{/navLink}}
+    </nav>
+  </div>
+  {{{body}}}
+{{/main}}
