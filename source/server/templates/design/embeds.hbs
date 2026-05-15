@@ -7,6 +7,19 @@
   .embed-form{
     margin-bottom: 1.5rem;
   }
+  .embed-code{
+    margin: 1rem auto 0;
+    max-width: 800px;
+    padding: .75rem 1rem;
+    background: var(--color-element);
+    border: 1px solid var(--color-highlight2);
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: .85em;
+    white-space: break-spaces;
+    user-select: all;
+  }
   .embed-preview-toolbar{
     display: flex;
     gap: 1rem;
@@ -43,31 +56,58 @@
 
 <div class="grid-content">
   <section>
-    <h3>Tag embed</h3>
+    <h3>{{#if isTag}}Collection{{else}}Collections{{/if}} embed</h3>
     <p>
-      Renders <code>/ui/tags/:tag</code> with <code>?embed=1</code>, which
-      switches the page to the <code>embed</code> layout (no navbar / footer,
-      compact scene cards). Submit a tag name below to preview a different
-      collection.
-    </p>
-    <p>
-      The iframe carries the <code>credentialless</code> attribute and this
-      page sets <code>Cross-Origin-Embedder-Policy: credentialless</code>,
-      so the embed loads without your session cookie — what you see below
-      is what an unauthenticated visitor would see. Scenes you can read
-      because you're signed in won't appear here unless their public or
-      default access allows it.
+      {{#if isTag}}
+        Renders <code>/ui/tags/:tag</code> with <code>?embed=1</code>, which
+        switches the page to the <code>embed</code> layout (no navbar / footer,
+        compact scene cards). Submit a tag name below to preview a different
+        collection. The preview reuses your current session, so scenes you can
+        read while signed in show up — an unauthenticated visitor may see fewer.
+      {{else}}
+        Renders <code>/ui/tags</code> with <code>?embed=1</code>, which switches
+        the page to the <code>embed</code> layout (no navbar / footer, no search
+        toolbar). The <code>match</code> field below maps to the same
+        <code>?match=</code> query the regular search box uses — leave it blank
+        to embed the full index, or set it to filter the embedded collection.
+      {{/if}}
     </p>
 
     <form class="form-control embed-form" method="GET" action="/ui/design/embeds">
       <div class="form-item">
-        <label for="embed-tag">Tag</label>
-        <input type="text" id="embed-tag" name="tag" value="{{tag}}" placeholder="tag name" required>
+        <label for="embed-target">Embed</label>
+        <select id="embed-target" name="target" onchange="this.form.submit()">
+          <option value="tag"{{#if isTag}} selected{{/if}}>Collection view</option>
+          <option value="tags"{{#if isTags}} selected{{/if}}>Collections list</option>
+        </select>
+      </div>
+      {{#if isTag}}
+        <div class="form-item">
+          <label for="embed-tag">Tag</label>
+          <input type="text" id="embed-tag" name="tag" value="{{tag}}" placeholder="tag name" required>
+        </div>
+      {{else}}
+        <div class="form-item">
+          <label for="embed-tags-match">Match</label>
+          <input type="search" id="embed-tags-match" name="match" value="{{match}}" placeholder="filter (optional)">
+        </div>
+        <div class="form-item">
+          <label for="embed-tags-limit">Limit</label>
+          <input type="number" id="embed-tags-limit" name="limit" value="{{limit}}" min="1" max="100" placeholder="10">
+        </div>
+        <div class="form-item">
+          <label for="embed-tags-offset">Offset</label>
+          <input type="number" id="embed-tags-offset" name="offset" value="{{offset}}" min="0" placeholder="0">
+        </div>
+      {{/if}}
+      <div class="form-group form-right">
         <button type="submit" class="btn btn-main">Preview</button>
       </div>
     </form>
 
-    {{#if tag}}
+    {{#if showPreview}}
+      <pre class="embed-code" aria-label="Embed code"><code>&lt;iframe src=&quot;{{root_url}}{{iframePath}}&quot; width=&quot;640&quot; height=&quot;420&quot; frameborder=&quot;0&quot; allow="credentialless;"&lt;/iframe&gt;</code></pre>
+
       <div class="embed-preview-toolbar" data-target="embed-frame">
         <div class="toggle-group view">
           <button type="button" class="btn btn-small btn-primary btn-outline" data-view="mobile">Mobile</button>
@@ -77,10 +117,10 @@
       <iframe
         id="embed-frame"
         class="embed-preview-frame"
-        src="/ui/tags/{{encodeURIComponent tag}}?embed=1"
-        title="Embed preview of tag {{tag}}"
-        credentialless
-        loading="lazy"></iframe>
+        src="/{{iframePath}}"
+        title="Embed preview"
+        allow="credentialless"
+      ></iframe>
     {{else}}
       <p>
         No tag in the database yet. Create a tagged scene first, then come
@@ -108,4 +148,5 @@
       }
     }
   }
+
 </script>

@@ -208,8 +208,11 @@ routes.get("/tags", wrap(async (req, res)=>{
     prevUrl.searchParams.set("offset", Math.max(0, offset - limit).toString());
     pager.previous = prevUrl.pathname+prevUrl.search;
   }
- 
+
+  const embedded = isEmbed(req);
   res.render("tags", {
+    layout: embedded? "embed": "main",
+    embedded,
     title: "Tags",
     tags: tags.filter(t=>t.scenes?.length),
     match,
@@ -370,19 +373,43 @@ routes.get("/design", (req, res)=>{
 routes.get("/design/embeds", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const queryTag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
+  const match = typeof req.query.match === "string" ? req.query.match.trim() : "";
+  const target = req.query.target === "tags" ? "tags" : "tag";
+  const limit = qsToInt(req.query.limit);
+  const offset = qsToInt(req.query.offset);
   let tag = queryTag;
   if(!tag){
     const [first] = await vfs.getTags({limit: 1});
     tag = first?.name ?? "";
   }
-  // Put this page in a credentialless context so the <iframe credentialless>
-  // below loads its src without forwarding session cookies — the embed
-  // preview reflects what an unauthenticated visitor would see.
-  res.set("Cross-Origin-Embedder-Policy", "credentialless");
+  const isTag = target === "tag";
+  let iframePath = "";
+  let showPreview = false;
+  if(isTag){
+    if(tag){
+      iframePath = `ui/tags/${encodeURIComponent(tag)}?embed=1`;
+      showPreview = true;
+    }
+  } else {
+    const params = new URLSearchParams({embed: "1"});
+    if(match) params.set("match", match);
+    if(typeof limit === "number") params.set("limit", String(limit));
+    if(typeof offset === "number") params.set("offset", String(offset));
+    iframePath = `ui/tags?${params.toString()}`;
+    showPreview = true;
+  }
   res.render("design/embeds", {
     layout: "design",
     title: "Embed previews",
     tag,
+    match,
+    limit,
+    offset,
+    target,
+    isTag,
+    isTags: !isTag,
+    iframePath,
+    showPreview,
   });
 }));
 
