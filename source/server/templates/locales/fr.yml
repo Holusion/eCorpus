@@ -274,7 +274,7 @@ titles:
   filesStatistics: Données
   modifiedToday: Scènes modifiées aujourd'hui
   buildRef: Version actuelle
-  previewEmail: Voir les templates d'emails
+  uiGuidelines: Charte graphique
   myTasks: Mes tâches
   taskTree: Arbre des tâches
   logs: Journaux
@@ -354,6 +354,7 @@ leads:
     Afin d'assurer un bon taux de succès, il peut être utile de vérifier la <a href="">signature DKIM</a> du message.<br>
     Pour GMAIL, vous pouvez utiliser l'outil <a href="https://postmaster.google.com">Postmaster Tools</a>.
   sendTestEmail: Envoyer un email de test
+  uiGuidelines: Ouvrir la page de référence des composants UI
   usersList: Utilisateurs {{start}}-{{end}}/{{total}}
   groupsList: Groupes {{start}}-{{end}}/{{total}}
   noArchives: Pas de scènes archivées

@@ -1,6 +1,7 @@
 
 <h1>{{#if brand}}{{ brand }}: {{/if}}{{i18n "nav.tags"}}</h1>
 <div class="grid-content">
+  {{#unless embedded}}
   <form class="form-control">
     <h3 id="tags-search-title">{{i18n "titles.search" }}</h3>
     <div class="form-item" style="display:flex; margin-bottom:10px; flex-grow: 1">
@@ -10,6 +11,7 @@
           name="search"></ui-icon></button>
     </div>
   </form>
+  {{/unless}}
   <section role="list" class="tags-grid">
 
   {{#if tags.length }}

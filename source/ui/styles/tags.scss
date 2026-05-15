@@ -18,14 +18,13 @@
 @media screen and (max-width: 992px){
   .tags-grid{
     grid-template-columns: 1fr 1fr [end];
-    padding: 0 .5rem;
+    padding: .5rem;
   }
 }
 @media screen and (max-width:576px){
   .tags-grid{
     grid-template-columns: 1fr [end];
     gap: 1rem;
-    padding: 0 1rem;
   }
 }
 

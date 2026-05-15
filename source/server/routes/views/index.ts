@@ -208,8 +208,11 @@ routes.get("/tags", wrap(async (req, res)=>{
     prevUrl.searchParams.set("offset", Math.max(0, offset - limit).toString());
     pager.previous = prevUrl.pathname+prevUrl.search;
   }
- 
+
+  const embedded = isEmbed(req);
   res.render("tags", {
+    layout: embedded? "embed": "main",
+    embedded,
     title: "Tags",
     tags: tags.filter(t=>t.scenes?.length),
     match,
@@ -357,6 +360,77 @@ routes.get("/user/archives", wrap(async (req, res)=>{
   });
 }));
 
+
+
+routes.use("/design", isManage);
+routes.get("/design", (req, res)=>{
+  res.render("design/components", {
+    layout: "design",
+    title: "UI components",
+  });
+});
+
+routes.get("/design/embeds", wrap(async (req, res)=>{
+  const vfs = getVfs(req);
+  const queryTag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
+  const match = typeof req.query.match === "string" ? req.query.match.trim() : "";
+  const target = req.query.target === "tags" ? "tags" : "tag";
+  const limit = qsToInt(req.query.limit);
+  const offset = qsToInt(req.query.offset);
+  let tag = queryTag;
+  if(!tag){
+    const [first] = await vfs.getTags({limit: 1});
+    tag = first?.name ?? "";
+  }
+  const isTag = target === "tag";
+  let iframePath = "";
+  let showPreview = false;
+  if(isTag){
+    if(tag){
+      iframePath = `ui/tags/${encodeURIComponent(tag)}?embed=1`;
+      showPreview = true;
+    }
+  } else {
+    const params = new URLSearchParams({embed: "1"});
+    if(match) params.set("match", match);
+    if(typeof limit === "number") params.set("limit", String(limit));
+    if(typeof offset === "number") params.set("offset", String(offset));
+    iframePath = `ui/tags?${params.toString()}`;
+    showPreview = true;
+  }
+  res.render("design/embeds", {
+    layout: "design",
+    title: "Embed previews",
+    tag,
+    match,
+    limit,
+    offset,
+    target,
+    isTag,
+    isTags: !isTag,
+    iframePath,
+    showPreview,
+  });
+}));
+
+routes.get("/design/emails", wrap(async (req, res)=>{
+  const allowedLangs = ["en", "fr"] as const;
+  // Use a dedicated query param (not `lang`) — `lang` is the UI locale
+  // controlled by the footer language switcher, and conflating the two
+  // means changing the previewed template language also flips the
+  // surrounding page's chrome (and vice-versa).
+  const qLang = typeof req.query.mailLang === "string" ? req.query.mailLang : "";
+  const mailLang = (allowedLangs as readonly string[]).includes(qLang) ? qLang : (getSession(req)?.lang ?? "en");
+  const qUser = typeof req.query.username === "string" ? req.query.username.trim() : "";
+  const username = qUser || getUser(req)?.username || "user";
+  res.render("design/emails", {
+    layout: "design",
+    title: "Email template previews",
+    previewLang: mailLang,
+    previewUsername: username,
+    templates: ["connection", "onboarding"],
+  });
+}));
 
 
 routes.use("/admin", isManage);
