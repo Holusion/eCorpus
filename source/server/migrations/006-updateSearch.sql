@@ -105,4 +105,10 @@ ALTER TEXT SEARCH CONFIGURATION en
         ALTER MAPPING FOR hword, hword_part, word
         WITH english_stem;
 
-DROP EXTENSION unaccent;
+DO $$
+BEGIN
+  DROP EXTENSION unaccent;
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Skipping DROP EXTENSION unaccent: insufficient privileges';
+END $$;
