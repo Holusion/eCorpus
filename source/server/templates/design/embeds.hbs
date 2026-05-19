@@ -106,7 +106,7 @@
     </form>
 
     {{#if showPreview}}
-      <pre class="embed-code" aria-label="Embed code"><code>&lt;iframe src=&quot;{{root_url}}{{iframePath}}&quot; width=&quot;640&quot; height=&quot;420&quot; frameborder=&quot;0&quot; allow="credentialless;"&lt;/iframe&gt;</code></pre>
+      <pre class="embed-code" aria-label="Embed code"><code>&lt;iframe src=&quot;{{root_url}}{{iframePath}}&quot; width=&quot;640&quot; height=&quot;420&quot; frameborder=&quot;0&quot; allow="fullscreen; xr; xr-spatial-tracking; accelerometer; gyroscope;"&lt;/iframe&gt;</code></pre>
 
       <div class="embed-preview-toolbar" data-target="embed-frame">
         <div class="toggle-group view">
@@ -119,7 +119,9 @@
         class="embed-preview-frame"
         src="/{{iframePath}}"
         title="Embed preview"
-        allow="credentialless"
+        credentialless
+        allow="xr; xr-spatial-tracking; fullscreen"
+        sandbox="allow-scripts allow-popups allow-downloads allow-forms"
       ></iframe>
     {{else}}
       <p>
