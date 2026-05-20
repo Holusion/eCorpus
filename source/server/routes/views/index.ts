@@ -372,23 +372,47 @@ routes.get("/design", (req, res)=>{
 
 routes.get("/design/embeds", wrap(async (req, res)=>{
   const vfs = getVfs(req);
+  const requester = getUser(req);
   const queryTag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
+  const queryScene = typeof req.query.scene === "string" ? req.query.scene.trim() : "";
   const match = typeof req.query.match === "string" ? req.query.match.trim() : "";
-  const target = req.query.target === "tags" ? "tags" : "tag";
+  const target = req.query.target === "tags" ? "tags"
+    : req.query.target === "scene" ? "scene"
+    : "tag";
   const limit = qsToInt(req.query.limit);
   const offset = qsToInt(req.query.offset);
+  const isTag = target === "tag";
+  const isTags = target === "tags";
+  const isScene = target === "scene";
+  // A scene-mode submit always carries the `scene` field (it's `required`),
+  // so its presence distinguishes an explicit submit from a freshly switched
+  // dropdown — in the latter case we want sensible defaults (both allowed).
+  const sceneSubmitted = isScene && typeof req.query.scene === "string";
+  const fullscreen = sceneSubmitted ? !!qsToBool(req.query.fullscreen) : true;
   let tag = queryTag;
-  if(!tag){
+  let scene = queryScene;
+  if(isTag && !tag){
     const [first] = await vfs.getTags({limit: 1});
     tag = first?.name ?? "";
   }
-  const isTag = target === "tag";
+  if(isScene && !scene){
+    const [first] = await vfs.getScenes(requester?.uid, {limit: 1});
+    scene = first?.name ?? "";
+  }
   let iframePath = "";
+  let allowParts = ["fullscreen", "xr", "xr-spatial-tracking", "accelerometer", "gyroscope"];
   let showPreview = false;
   if(isTag){
     if(tag){
       iframePath = `ui/tags/${encodeURIComponent(tag)}?embed=1`;
       showPreview = true;
+    }
+  } else if(isScene){
+    if(scene){
+      iframePath = `ui/scenes/${encodeURIComponent(scene)}/view`;
+      showPreview = true;
+      allowParts = ["xr", "xr-spatial-tracking"];
+      if(fullscreen) allowParts.push("fullscreen");
     }
   } else {
     const params = new URLSearchParams({embed: "1"});
@@ -402,14 +426,18 @@ routes.get("/design/embeds", wrap(async (req, res)=>{
     layout: "design",
     title: "Embed previews",
     tag,
+    scene,
     match,
     limit,
     offset,
     target,
     isTag,
-    isTags: !isTag,
+    isTags,
+    isScene,
     iframePath,
     showPreview,
+    allow: allowParts.join("; "),
+    fullscreen,
   });
 }));
 
