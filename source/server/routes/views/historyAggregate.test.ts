@@ -31,17 +31,8 @@ describe("aggregateHistory()", function () {
       entry({ ctime: yesterday, generation: 1 }),
     ]);
     expect(days).to.have.lengthOf(2);
-    expect(days[0].isLatest).to.equal(true);
-    expect(days[1].isLatest).to.equal(false);
-  });
-
-  it("flags the most recent day as isLatest", function () {
-    const days = aggregateHistory([
-      entry({ ctime: new Date("2024-06-15T10:00:00Z") }),
-      entry({ ctime: new Date("2024-06-14T10:00:00Z") }),
-    ]);
-    expect(days[0].isLatest).to.equal(true);
-    expect(days[1].isLatest).to.equal(false);
+    // newest day first
+    expect(days[0].date.valueOf()).to.be.greaterThan(days[1].date.valueOf());
   });
 
   it("emits a single bucket per entry when fewer than 4 entries in a day", function () {

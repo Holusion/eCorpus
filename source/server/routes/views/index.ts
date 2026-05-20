@@ -705,6 +705,9 @@ routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   ]);
 
   const days = aggregateHistory(entries);
+  // The current version (newest entry on the first page) can't be restored to —
+  // it's identical to the live scene. Only that single entry is disabled.
+  const headId = offset === 0 ? (entries[0]?.id ?? null) : null;
 
   let pager :{from:number, to:number, total:number, next?:string, previous?:string} = {
     from: offset,
@@ -731,6 +734,7 @@ routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
     name: scene_name,
     canAdmin: access === "admin",
     days,
+    headId,
     pager,
     limit,
     offset,

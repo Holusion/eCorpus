@@ -18,6 +18,7 @@ describe("scene/history.hbs", function () {
       scene: { name: "test-scene" },
       name: "test-scene",
       canAdmin: false,
+      headId: null,
       pager: { from: 0, to: 0, total: 0 },
       limit: 25,
       offset: 0,
@@ -40,7 +41,6 @@ describe("scene/history.hbs", function () {
       id: "day-0",
       index: 0,
       date: ctime,
-      isLatest: true,
       buckets: [{
         id: "day-0-b0",
         entries: [{ id: 42, name: "scene.svx.json", generation: 2, size: 100, mime: "application/json", author: "alice", author_id: 1, ctime, changeKind: "modified" }],
@@ -72,7 +72,6 @@ describe("scene/history.hbs", function () {
       id: "day-0",
       index: 0,
       date: ctime,
-      isLatest: false,
       buckets: [{
         id: "day-0-b0",
         entries,
@@ -95,31 +94,47 @@ describe("scene/history.hbs", function () {
     expect(html).to.contain('data-entry-id="0"');
   });
 
-  it("hides the restore button on the latest day but keeps the view link", async function () {
+  it("hides the restore button on the current head version but keeps the view link", async function () {
     const ctime = new Date("2024-06-15T10:00:00Z");
+    const older = new Date("2024-06-15T09:00:00Z");
     const days = [{
       id: "day-0",
       index: 0,
       date: ctime,
-      isLatest: true,
-      buckets: [{
-        id: "day-0-b0",
-        entries: [{ id: 99, name: "scene.svx.json", generation: 5, size: 100, mime: "application/json", author: "alice", author_id: 1, ctime, changeKind: "modified" as const }],
-        isSingle: true,
-        restorePoint: 99,
-        from: ctime,
-        to: ctime,
-        hasRange: false,
-        authors: ["alice"],
-        names: [{ name: "scene.svx.json", count: 1, changeKind: "modified" as const }],
-        extraNamesCount: 0,
-      }],
+      buckets: [
+        {
+          id: "day-0-b0",
+          entries: [{ id: 99, name: "scene.svx.json", generation: 5, size: 100, mime: "application/json", author: "alice", author_id: 1, ctime, changeKind: "modified" as const }],
+          isSingle: true,
+          restorePoint: 99,
+          from: ctime,
+          to: ctime,
+          hasRange: false,
+          authors: ["alice"],
+          names: [{ name: "scene.svx.json", count: 1, changeKind: "modified" as const }],
+          extraNamesCount: 0,
+        },
+        {
+          id: "day-0-b1",
+          entries: [{ id: 98, name: "scene.svx.json", generation: 4, size: 100, mime: "application/json", author: "alice", author_id: 1, ctime: older, changeKind: "modified" as const }],
+          isSingle: true,
+          restorePoint: 98,
+          from: older,
+          to: older,
+          hasRange: false,
+          authors: ["alice"],
+          names: [{ name: "scene.svx.json", count: 1, changeKind: "modified" as const }],
+          extraNamesCount: 0,
+        },
+      ],
     }];
-    const html = await t.render("scene/history.hbs", makeContext({ canAdmin: true, days }));
-    // disabled restore button on the latest-day entry
-    expect(html).not.to.match(/<button[^>]+btn-rollback\b/);
-    // the view link is still rendered
+    const html = await t.render("scene/history.hbs", makeContext({ canAdmin: true, headId: 99, days }));
+    // the head version (id 99) has its view link but no restore button
     expect(html).to.contain('href="history/99/view"');
+    // an earlier same-day entry (id 98) is still restorable
+    expect(html).to.contain('href="history/98/view"');
+    expect(html).to.match(/<input type="hidden" name="id" value="98">/);
+    expect(html).not.to.match(/<input type="hidden" name="id" value="99">/);
   });
 
   it("includes a pager partial", async function () {

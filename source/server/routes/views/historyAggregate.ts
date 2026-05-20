@@ -46,8 +46,6 @@ export interface DisplayDay {
   id: string;
   index: number;
   date: Date;
-  /** True for the latest day — restore actions are disabled there */
-  isLatest: boolean;
   buckets: DisplayBucket[];
 }
 
@@ -154,7 +152,6 @@ export function aggregateHistory(rawEntries: HistoryEntry[]): DisplayDay[] {
       id,
       index,
       date: new Date(d.startOfDay),
-      isLatest: index === 0,
       buckets: bucketize(d.entries).map((bucket, i) => summarizeBucket(bucket, `${id}-b${i}`)),
     };
   });
