@@ -50,7 +50,7 @@
         <b>{{entry.author}}</b>
         <span class="history-entry-time" title="{{dateString entry.ctime "iso"}}">{{dateString entry.ctime}}</span>
       </div>
-      {{> restoreActions restorePoint=entry.id label=(join entry.name "#" entry.generation) write=write disabled=disabled }}
+      {{> restoreActions restorePoint=entry.id label=(join entry.name "#" entry.generation) write=write disabled=(test entry.id "==" @root.headId) }}
     </div>
     {{#unless (test entry.size "==" 0)}}
       <details class="history-entry-diff"
@@ -75,7 +75,7 @@
       <ul class="history-day-content" role="group">
         {{#each buckets}}
           {{#if isSingle}}
-            {{> entryRow entry=(lookup entries 0) write=@root.canAdmin disabled=../isLatest}}
+            {{> entryRow entry=(lookup entries 0) write=@root.canAdmin}}
           {{else}}
             <li class="history-bucket" role="treeitem">
               <details class="history-bucket-details" id="{{id}}">
@@ -99,11 +99,11 @@
                 </summary>
                 <ul class="history-bucket-entries" role="group">
                   {{#each entries}}
-                    {{> entryRow entry=this write=@root.canAdmin disabled=../../isLatest}}
+                    {{> entryRow entry=this write=@root.canAdmin}}
                   {{/each}}
                 </ul>
               </details>
-              {{> restoreActions restorePoint=restorePoint label=(dateString to) write=@root.canAdmin disabled=../isLatest }}
+              {{> restoreActions restorePoint=restorePoint label=(dateString to) write=@root.canAdmin disabled=(test restorePoint "==" @root.headId) }}
             </li>
           {{/if}}
         {{/each}}

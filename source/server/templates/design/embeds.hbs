@@ -56,9 +56,15 @@
 
 <div class="grid-content">
   <section>
-    <h3>{{#if isTag}}Collection{{else}}Collections{{/if}} embed</h3>
+    <h3>{{#if isScene}}Scene{{else if isTag}}Collection{{else}}Collections{{/if}} embed</h3>
     <p>
-      {{#if isTag}}
+      {{#if isScene}}
+        Renders <code>/ui/scenes/:scene/view</code>, the Voyager 3D explorer
+        for a single scene. Pick a scene below and toggle <code>fullscreen</code>
+        (an iframe <code>allow</code> policy).
+        The preview reuses your current session, so scenes you can read while
+        signed in show up — an unauthenticated visitor may see fewer.
+      {{else if isTag}}
         Renders <code>/ui/tags/:tag</code> with <code>?embed=1</code>, which
         switches the page to the <code>embed</code> layout (no navbar / footer,
         compact scene cards). Submit a tag name below to preview a different
@@ -79,9 +85,19 @@
         <select id="embed-target" name="target" onchange="this.form.submit()">
           <option value="tag"{{#if isTag}} selected{{/if}}>Collection view</option>
           <option value="tags"{{#if isTags}} selected{{/if}}>Collections list</option>
+          <option value="scene"{{#if isScene}} selected{{/if}}>Scene view</option>
         </select>
       </div>
-      {{#if isTag}}
+      {{#if isScene}}
+        <div class="form-item">
+          <label for="embed-scene">Scene</label>
+          <input type="text" id="embed-scene" name="scene" value="{{scene}}" placeholder="scene name" required>
+        </div>
+        <label class="form-item inline">
+          <input type="checkbox" name="fullscreen" value="1"{{#if fullscreen}} checked{{/if}}>
+          Allow fullscreen
+        </label>
+      {{else if isTag}}
         <div class="form-item">
           <label for="embed-tag">Tag</label>
           <input type="text" id="embed-tag" name="tag" value="{{tag}}" placeholder="tag name" required>
@@ -106,7 +122,7 @@
     </form>
 
     {{#if showPreview}}
-      <pre class="embed-code" aria-label="Embed code"><code>&lt;iframe src=&quot;{{root_url}}{{iframePath}}&quot; width=&quot;640&quot; height=&quot;420&quot; frameborder=&quot;0&quot; allow="credentialless;"&lt;/iframe&gt;</code></pre>
+      <pre class="embed-code" aria-label="Embed code"><code>&lt;iframe src=&quot;{{root_url}}{{iframePath}}&quot; width=&quot;640&quot; height=&quot;420&quot; frameborder=&quot;0&quot; allow=&quot;{{allow}}&quot;&gt;&lt;/iframe&gt;</code></pre>
 
       <div class="embed-preview-toolbar" data-target="embed-frame">
         <div class="toggle-group view">
@@ -119,12 +135,19 @@
         class="embed-preview-frame"
         src="/{{iframePath}}"
         title="Embed preview"
-        allow="credentialless"
+        credentialless
+        allow="{{allow}}"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
       ></iframe>
     {{else}}
       <p>
-        No tag in the database yet. Create a tagged scene first, then come
-        back to preview its collection embed.
+        {{#if isScene}}
+          No scene available. Create a scene first, then come back to preview
+          its embedded view.
+        {{else}}
+          No tag in the database yet. Create a tagged scene first, then come
+          back to preview its collection embed.
+        {{/if}}
       </p>
     {{/if}}
   </section>
