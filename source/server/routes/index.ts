@@ -94,6 +94,29 @@ export default async function createServer(locals:AppParameters) :Promise<expres
 
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
 
+  app.get("/robots.txt", (req, res)=>{
+    res.type("text/plain").set("Cache-Control", `max-age=${60*60}, public`).send(
+`User-agent: *
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /ui/admin/
+Disallow: /ui/user/
+Disallow: /ui/groups/
+Disallow: /ui/upload
+Disallow: /ui/standalone
+Disallow: /ui/design/
+Disallow: /users/
+Disallow: /groups/
+Disallow: /tasks/
+Disallow: /history/
+Disallow: /ui/scenes/*/edit
+Disallow: /ui/scenes/*/history
+Disallow: /ui/scenes/*/settings
+Disallow: /ui/scenes/*/tasks
+Allow: /ui/scenes/
+`);
+  });
+
    //Ideally we would like a really long cache time for /dist but it requires unique filenames for each build
   //Allow CORS for assets that might get embedded
   app.use("/dist", (req, res, next)=>{

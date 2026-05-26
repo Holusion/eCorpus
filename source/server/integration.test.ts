@@ -29,6 +29,16 @@ describe("Web Server Integration", function(){
     admin = await userManager.addUser("alice", "12345678", "admin");
   });
 
+  describe("robots.txt", function(){
+    it("is served at /robots.txt as text/plain", async function(){
+      const res = await request(this.server).get("/robots.txt").expect(200);
+      expect(res.headers["content-type"]).to.match(/^text\/plain/);
+      expect(res.text).to.match(/^User-agent: \*/);
+      expect(res.text).to.include("Disallow: /admin/");
+      expect(res.text).to.include("Disallow: /auth/");
+    });
+  });
+
   describe("permissions", function(){
     let scene_id :number;
     this.beforeEach(async function(){
