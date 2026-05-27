@@ -37,6 +37,75 @@ describe("Web Server Integration", function(){
       expect(res.text).to.include("Disallow: /admin/");
       expect(res.text).to.include("Disallow: /auth/");
     });
+    it("advertises the sitemap", async function(){
+      const res = await request(this.server).get("/robots.txt").expect(200);
+      expect(res.text).to.match(/Sitemap:\s+https?:\/\/[^\s]+\/sitemap\.xml/);
+    });
+  });
+
+  describe("sitemap.xml", function(){
+    this.beforeEach(async function(){
+      const pub = await vfs.createScene("public-scene", user.uid);
+      await vfs.writeDoc("{}", {scene:pub, user_id:user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+      await vfs.writeDoc("{}", {scene:pub, user_id:user.uid, name: "scene-image-thumb.jpg", mime: "image/jpeg"});
+      await userManager.setPublicAccess("public-scene", "read");
+
+      const noThumb = await vfs.createScene("public-no-thumb", user.uid);
+      await vfs.writeDoc("{}", {scene:noThumb, user_id:user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+      await userManager.setPublicAccess("public-no-thumb", "read");
+
+      await vfs.createScene("private-scene", user.uid);
+      await userManager.setPublicAccess("private-scene", "none");
+    });
+    it("is served at /sitemap.xml as application/xml", async function(){
+      const res = await request(this.server).get("/sitemap.xml").expect(200);
+      expect(res.headers["content-type"]).to.match(/^application\/xml/);
+      expect(res.text).to.match(/^<\?xml/);
+      expect(res.text).to.include("<urlset");
+      expect(res.text).to.include("</urlset>");
+    });
+    it("lists public scenes only", async function(){
+      const res = await request(this.server).get("/sitemap.xml").expect(200);
+      expect(res.text).to.include("/ui/scenes/public-scene");
+      expect(res.text).to.not.include("/ui/scenes/private-scene");
+    });
+    it("includes hreflang alternates for every supported locale", async function(){
+      const res = await request(this.server).get("/sitemap.xml").expect(200);
+      expect(res.text).to.match(/hreflang="en"/);
+      expect(res.text).to.match(/hreflang="fr"/);
+      expect(res.text).to.match(/hreflang="x-default"/);
+    });
+    it("declares the image-sitemap namespace and emits <image:image> for scenes with a thumbnail", async function(){
+      const res = await request(this.server).get("/sitemap.xml").expect(200);
+      expect(res.text).to.include('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"');
+      expect(res.text).to.include("<image:image><image:loc>");
+      expect(res.text).to.match(/\/scenes\/public-scene\/scene-image-thumb\.jpg/);
+    });
+    it("omits <image:image> for scenes without a thumbnail", async function(){
+      const res = await request(this.server).get("/sitemap.xml").expect(200);
+      // public-no-thumb appears, but no image entry sits inside its <url>
+      const noThumbBlock = res.text.match(/<url>\s*<loc>[^<]*public-no-thumb[^<]*<\/loc>[\s\S]*?<\/url>/);
+      expect(noThumbBlock, "public-no-thumb <url> block").to.exist;
+      expect(noThumbBlock![0]).to.not.include("<image:image>");
+    });
+    it("honours an explicit ?lang= query", async function(){
+      const res = await request(this.server).get("/sitemap.xml?lang=fr").expect(200);
+      expect(res.headers["content-language"]).to.equal("fr");
+    });
+    it("falls back to Accept-Language", async function(){
+      const res = await request(this.server)
+        .get("/sitemap.xml")
+        .set("Accept-Language", "fr;q=0.9, en;q=0.5")
+        .expect(200);
+      expect(res.headers["content-language"]).to.equal("fr");
+    });
+    it("ignores an unsupported ?lang= value", async function(){
+      const res = await request(this.server)
+        .get("/sitemap.xml?lang=xx")
+        .set("Accept-Language", "fr")
+        .expect(200);
+      expect(res.headers["content-language"]).to.equal("fr");
+    });
   });
 
   describe("permissions", function(){

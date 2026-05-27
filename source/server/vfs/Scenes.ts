@@ -315,6 +315,30 @@ export default abstract class ScenesVfs extends BaseVfs{
   }
 
   /**
+   * Stream every publicly-readable, non-archived scene as (name, mtime, thumb)
+   * tuples. Uses a cursor so it can be piped into a sitemap response without
+   * buffering the whole corpus in memory.
+   */
+  async *streamPublicScenes(): AsyncGenerator<{name: string, mtime: Date, thumb: string|null}, void, void>{
+    yield* this.db.each<{name: string, mtime: Date, thumb: string|null}>(`
+      SELECT
+        scene_name AS name,
+        GREATEST(scenes.ctime, (
+          SELECT MAX(ctime)
+          FROM current_files
+          WHERE current_files.fk_scene_id = scenes.scene_id
+        )) AS mtime,
+        (SELECT name FROM current_files
+          WHERE fk_scene_id = scenes.scene_id AND (${ScenesVfs._fragIsThumbnail()})
+          ORDER BY ctime DESC, name ASC LIMIT 1) AS thumb
+      FROM scenes
+      WHERE archived IS NULL
+        AND public_access >= ${toAccessLevel("read")}
+      ORDER BY mtime DESC, scene_name ASC
+    `, []);
+  }
+
+  /**
    * Gets the scene, with access property truncated to show only user-visible data.
    * Use userManager.getPermissions to get the full access map.
    * 
