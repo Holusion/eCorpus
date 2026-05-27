@@ -78,6 +78,21 @@ describe("GET /services/oembed", function(){
       .expect(/^<\?xml/);
     });
 
+    it("escapes XML special characters in scene-derived fields", async function(){
+      // Scene names (used as the oembed title when no primary_title is set) can
+      // contain XML metacharacters; the response must escape them rather than
+      // injecting raw markup.
+      await vfs.createScene("evil & <script>", user.uid);
+      await userManager.setPublicAccess("evil & <script>", "read");
+
+      const res = await request(this.server)
+        .get(makeURL("http://localhost/ui/scenes/" + encodeURIComponent("evil & <script>") + "/view", "xml"))
+        .expect(200);
+      expect(res.text).to.not.match(/<title>[^<]*<script>/);
+      expect(res.text).to.include("&amp;");
+      expect(res.text).to.include("&lt;script&gt;");
+    });
+
     it("rejects invalid formats", async function(){
       await request(this.server).get(makeURL("http://localhost/ui/scenes/public-scene/view", "foo" as any))
       .expect(501); //Not Implemented

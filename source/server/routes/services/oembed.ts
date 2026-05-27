@@ -62,21 +62,23 @@ const asJSON = (params: EmbedParams)=>JSON.stringify({
 	"html": asIframe(params),
 });
 
-const asXML = (params: EmbedParams)=>`<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<oembed>
-	<version>1.0</version>
-	<type>rich</type>
-	<provider_name>${new URL("/", params.url).hostname}</provider_name>
-	<provider_url>${new URL("", params.url).toString()}</provider_url>
-  <width>${params.width}</width>
-  <height>${params.height}</height>
-  <title>${params.title}</title>
-	<author_name>${params.author}</author_name>
-  ${js2xml({html:{ //properly escape the iframe string
-    _text: asIframe(params),
-  }}, {compact: true})}
-</oembed>
-`
+const asXML = (params: EmbedParams)=>{
+  const doc: Record<string, any> = {
+    _declaration: { _attributes: { version: "1.0", encoding: "utf-8", standalone: "yes" } },
+    oembed: {
+      version: { _text: "1.0" },
+      type: { _text: "rich" },
+      provider_name: { _text: new URL("/", params.url).hostname },
+      provider_url: { _text: new URL("", params.url).toString() },
+      width: { _text: params.width },
+      height: { _text: params.height },
+      title: { _text: params.title },
+      html: { _text: asIframe(params) },
+    },
+  };
+  if(params.author) doc.oembed.author_name = { _text: params.author };
+  return js2xml(doc, {compact: true});
+}
 
 export async function getEmbed(req: Request, res: Response){
   let vfs = getVfs(req);
