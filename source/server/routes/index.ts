@@ -8,10 +8,10 @@ import express from "express";
 import { HTTPError, UnauthorizedError } from "../utils/errors.js";
 import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "../utils/errorHandler.js";
 
-import {AppLocals, AppParameters, getLocals, getUserManager} from "../utils/locals.js";
+import {AppLocals, AppParameters, getHost, getLocals, getUserManager, getVfs} from "../utils/locals.js";
 
 import User from "../auth/User.js";
-import Templates from "../utils/templates/index.js";
+import Templates, { dicts } from "../utils/templates/index.js";
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
@@ -95,6 +95,7 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
 
   app.get("/robots.txt", (req, res)=>{
+    const sitemap = new URL("/sitemap.xml", getHost(req)).toString();
     res.type("text/plain").set("Cache-Control", `max-age=${60*60}, public`).send(
 `User-agent: *
 Disallow: /auth/
@@ -114,8 +115,89 @@ Disallow: /ui/scenes/*/history
 Disallow: /ui/scenes/*/settings
 Disallow: /ui/scenes/*/tasks
 Allow: /ui/scenes/
+
+Sitemap: ${sitemap}
 `);
   });
+
+  app.get("/sitemap.xml", async (req, res, next)=>{
+    try{
+      const vfs = getVfs(req);
+      const host = getHost(req);
+
+      const queryLang = typeof req.query.lang === "string" ? req.query.lang : undefined;
+      const lang = (queryLang && (dicts as readonly string[]).includes(queryLang))
+        ? queryLang
+        : (req.acceptsLanguages(dicts as unknown as string[]) || "en");
+      res.vary("Accept-Language");
+
+      const sceneUrl = (name: string, l?: string) => {
+        const u = new URL(`/ui/scenes/${encodeURIComponent(name)}`, host);
+        if(l) u.searchParams.set("lang", l);
+        return u.toString();
+      };
+
+      res.status(200);
+      res.set("Content-Type", "application/xml; charset=utf-8");
+      res.set("Cache-Control", `max-age=${60*60}, public`);
+      res.set("Content-Language", lang);
+
+      // If the client disconnects mid-stream, stop iterating so the underlying
+      // pg cursor's `finally` block runs and the pool connection is released.
+      let aborted = false;
+      res.on("close", () => { aborted = true; });
+
+      res.write(`<?xml version="1.0" encoding="UTF-8"?>\n`);
+      res.write(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`);
+
+      for(const p of ["/ui/scenes/", "/ui/tags/"]){
+        res.write(`  <url><loc>${xmlEscape(new URL(p, host).toString())}</loc></url>\n`);
+      }
+
+      for await (const {name, mtime, thumb} of vfs.streamPublicScenes()){
+        if(aborted) break;
+        const loc = sceneUrl(name);
+        let chunk = `  <url>\n    <loc>${xmlEscape(loc)}</loc>\n`;
+        if(mtime){
+          chunk += `    <lastmod>${mtime.toISOString()}</lastmod>\n`;
+        }
+        for(const d of dicts){
+          chunk += `    <xhtml:link rel="alternate" hreflang="${d}" href="${xmlEscape(sceneUrl(name, d))}"/>\n`;
+        }
+        chunk += `    <xhtml:link rel="alternate" hreflang="x-default" href="${xmlEscape(loc)}"/>\n`;
+        if(thumb){
+          const thumbUrl = new URL(`/scenes/${encodeURIComponent(name)}/${encodeURIComponent(thumb)}`, host).toString();
+          chunk += `    <image:image><image:loc>${xmlEscape(thumbUrl)}</image:loc></image:image>\n`;
+        }
+        chunk += `  </url>\n`;
+        if(!res.write(chunk)){
+          // backpressure: wait for drain, but also bail out on socket close
+          // so we don't sit on a half-written response and leak the DB cursor.
+          await new Promise<void>(resolve => {
+            const done = () => {
+              res.off("drain", done);
+              res.off("close", done);
+              resolve();
+            };
+            res.once("drain", done);
+            res.once("close", done);
+          });
+        }
+      }
+      if(!aborted) res.end(`</urlset>\n`);
+    }catch(e){
+      if(res.headersSent){
+        // headers are out: bail out of the response, no XML error envelope
+        res.destroy(e as Error);
+        return;
+      }
+      next(e);
+    }
+  });
+
+  function xmlEscape(s: string): string{
+    return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&apos;"})[c]!);
+  }
 
    //Ideally we would like a really long cache time for /dist but it requires unique filenames for each build
   //Allow CORS for assets that might get embedded
