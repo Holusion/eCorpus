@@ -663,20 +663,21 @@
         <input type="checkbox" id="{{idPrefix}}-checkbox-i">
       </div>
       <script>document.getElementById("{{idPrefix}}-checkbox-i").indeterminate = true;</script>
-      <fieldset class="form-item" style="border: none; padding: 0;">
-        <legend style="font-family: var(--font-heading); opacity: .7; min-width: var(--label-width); padding-right: 1.5rem; flex: 0 0 auto;">Radio group</legend>
-        <div class="form-input" style="gap: 1rem;">
-          <label class="form-item inline">
-            <input type="radio" name="{{idPrefix}}-radio" value="a" checked> A
-          </label>
-          <label class="form-item inline">
-            <input type="radio" name="{{idPrefix}}-radio" value="b"> B
-          </label>
-          <label class="form-item inline">
-            <input type="radio" name="{{idPrefix}}-radio" value="c"> C
-          </label>
-        </div>
-      </fieldset>
+        <fieldset class="form-item">
+          <legend>Radio group</legend>
+          <div class="form-input">
+            <label>
+              <input type="radio" name="{{idPrefix}}-radio" value="a" checked> A
+            </label>
+            <label>
+              <input type="radio" name="{{idPrefix}}-radio" value="b"> B
+            </label>
+            <label>
+              <input type="radio" name="{{idPrefix}}-radio" value="c"> C
+            </label>
+          </div>
+        </fieldset>
+
       <div class="form-item">
         <label for="{{idPrefix}}-readonly">Read-only</label>
         <input type="text" id="{{idPrefix}}-readonly" value="cannot be edited" readonly>

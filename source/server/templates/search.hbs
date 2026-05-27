@@ -22,19 +22,27 @@
   <div class="md-collapse" id="advanced-search-tools">
     <h3 id="advanced-search-title" style="margin-top: 0">{{i18n "labels.advancedSearch"}}</h3>
     <form aria-labelledby="advanced-search-title" autocomplete="off" id="search" class="form-control form-sidebar" method="GET" action="/ui/scenes">
+      <style>
+        @container (max-width: var(--form-break)){
+          .form-control .form-item:is(.sort-params){
+              flex-direction:row; 
+              flex-wrap:wrap; 
+              justify-content: space-between;
+              --label-width: fit-content;
+          }
+        }
+      </style>
       <div class="form-item">
-        <div style="display:flex;justify-content: space-between">
-          <label id="orderByLabel" style="display:block;">
-            {{i18n "labels.sortBy"}}
-            {{#> popover id="sortBy-tooltip" }}{{{i18n "tooltips.sortBy"}}}{{/popover}}
-          </label>
-          <fieldset style="padding-left: .5rem; font-weight: bold; flex-shrink: 0;">
-            <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
-            <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
-            <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
-            <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
-          </fieldset>
-        </div>
+        <label>
+          {{i18n "labels.sortBy"}}
+          {{#> popover id="sortBy-tooltip" }}{{{i18n "tooltips.sortBy"}}}{{/popover}}
+        </label>
+        <fieldset style="padding-left: 0; font-weight: bold; flex-shrink: 0;">
+          <input type="radio" form="search" name="orderDirection" hidden value="asc" id="order-asc" {{# if (test params.orderDirection "==" "asc")}}checked{{/if}}/>
+          <label for="order-asc" title="{{i18n "fields.ascendingOrder"}}" aria-label="ascending">⇈</label>
+          <input type="radio" form="search" name="orderDirection" hidden value="desc" id="order-desc" {{# if (test params.orderDirection "==" "desc")}}checked{{/if}}/>
+          <label for="order-desc" title="{{i18n "fields.descendingOrder"}}" aria-label="descending">⇊</label>
+        </fieldset>
         <select aria-labelledby="orderByLabel" name="orderBy" autocomplete="off" form="search">
           {{>inputs/option selected=(test params.orderBy "==" "mtime") value="mtime" text=(i18n "fields.mtime")}}
           {{>inputs/option selected=(test params.orderBy "==" "ctime") value="ctime" text=(i18n "fields.ctime")}}
@@ -43,19 +51,34 @@
         </select>
       </div>
 
-      {{!-- <h5 class="form-section">{{i18n "fields.myScenesOnly"}}</h5> --}}
-
-      <label class="form-item inline" style="justify-content: space-between">
-        <span>{{i18n "fields.showOnlyMyScenes"}}</span>
-        <input  name="author" type="checkbox" {{#if (test params.author "==" user.username)}} checked {{/if}} value={{user.username}}>
-      </label>
+      <div class="form-item">   
+        <label for="author-param">{{i18n "fields.author"}}</label>
+        <input id="author-param" name="author" type="text" value="{{params.author}}" placeholder="...">
+      </div>
+      <fieldset class="form-item">
+        <legend>{{i18n "labels.sceneType"}}</legend>
+        <div class="form-input">
+          <label>
+            <input type="radio" form="search" name="type" id="type-all" value="" {{#unless params.type}}checked{{/unless}}>
+            {{i18n "labels.all"}}
+          </label>
+          <label>
+            <input type="radio" form="search" name="type" id="type-voyager" value="voyager" {{#if (test params.type "==" "voyager")}}checked{{/if}}>
+            Voyager
+          </label>
+          <label>
+            <input type="radio" form="search" name="type" id="type-html" value="html" {{#if (test params.type "==" "html")}}checked{{/if}}>
+            HTML
+          </label>
+        </div>
+      </fieldset>
 
       <div class="form-item">
-        <label>
+        <label for="access-param">
           {{i18n "fields.myAccess"}}
           {{#> popover id="myAccess-tooltip" }}{{i18n "tooltips.myAccess"}}{{/popover}}
         </label>
-      <select name="access" autocomplete="off" form="search">
+      <select id="access-param" name="access" autocomplete="off" form="search">
         {{#if (test user.level "==" "admin")}}
         {{>inputs/option selected=(test params.access "==" "") text="..."}}
         {{/if}}
@@ -64,18 +87,18 @@
         {{>inputs/option selected=(test params.access "==" "admin") value="admin" text=(i18n "fields.admin")}}
       </select>
       </div>
-      
-      <label class="form-item">
-        {{i18n "fields.limit"}}
-        <input type="number" name="limit" min="1" max="100" value="{{params.limit}}">
-      </label>
+
+      <div class="form-item">
+        <label for="pageLimit-param">{{i18n "fields.limit"}}</label>
+        <input id="pageLimit-param" type="number" name="limit" min="1" max="100" value="{{params.limit}}">
+      </div>
     </form>
     <script async>
       (function registerFormAutoSubmit(){
         function onChange(){
           this.form?.submit();
         }
-        ["limit", "access", "orderBy", "orderDirection", "author"].forEach(sel=>{
+        ["limit", "access", "orderBy", "orderDirection", "author", "type"].forEach(sel=>{
           const els = document.querySelectorAll(`input[name="${sel}"],select[name="${sel}"]`);
           for (const el of els){
             if(!el) return console.warn(`Couldn't find selector matching 'input[name="${sel}"],select[name="${sel}"]'`);

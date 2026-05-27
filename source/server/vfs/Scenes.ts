@@ -156,6 +156,9 @@ export default abstract class ScenesVfs extends BaseVfs{
     if(typeof q.archived !== "undefined" && typeof q.archived != "boolean"){
       throw new BadRequestError(`Invalid archived query: ${typeof q.archived}`);
     }
+    if(typeof q.type !== "undefined" && (q.type !== "html" && q.type !== "voyager")){
+      throw new BadRequestError(`Invalid type filter: ${q.type}`);
+    }
     return q;
   }
   
@@ -173,7 +176,7 @@ export default abstract class ScenesVfs extends BaseVfs{
   async getScenes(user_id:null, q :SceneQuery) :Promise<Scene[]>;
   async getScenes(user_id ?:number|null, q:SceneQuery = {}) :Promise<Scene[]>{
     
-    const {access, author, match, limit = 10, offset = 0, orderBy = (q.match? "rank" : "mtime"), orderDirection = (q.orderBy =="name"?"asc": "desc"), archived}  = ScenesVfs._validateSceneQuery(q);
+    const {access, author, match, type, limit = 10, offset = 0, orderBy = (q.match? "rank" : "mtime"), orderDirection = (q.orderBy =="name"?"asc": "desc"), archived}  = ScenesVfs._validateSceneQuery(q);
 
     let args :any[] = [ //Be careful with this, as arguments index are statically defined in the query
       user_id,
@@ -206,6 +209,11 @@ export default abstract class ScenesVfs extends BaseVfs{
         throw new UnauthorizedError("Accessing archived scenes requires being authenticated")
       }
       whereClause +=` AND archived ${archived?"IS NOT":"IS"} NULL`;
+    }
+
+    if(typeof type === "string"){
+      let idx = args.push(type);
+      whereClause += ` AND scene_type = $${idx}`;
     }
 
     let fromScenes = "scenes";

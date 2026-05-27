@@ -270,6 +270,7 @@ routes.get("/scenes", wrap(async (req, res)=>{
     orderDirection,
     archived,
     author,
+    type,
   } = req.query;
 
   if ((! access )|| access == "none"){
@@ -283,7 +284,8 @@ routes.get("/scenes", wrap(async (req, res)=>{
     limit: qsToInt(limit) ?? 25,
     offset: qsToInt(offset)?? 0,
     archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
-    author: author as string,
+    author: (author || undefined) as string,
+    type: (type || undefined) as "html"|"voyager"|undefined,
   };
   
   let [scenes, serverTags] =  await Promise.all([

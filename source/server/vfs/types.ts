@@ -133,6 +133,7 @@ export interface SceneQuery {
    * When `true`, return only archived scenes.
    */
   archived ?:boolean;
+  type?: "html"|"voyager";
 }
 
 export interface Tag{

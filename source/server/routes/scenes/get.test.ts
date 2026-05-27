@@ -237,8 +237,72 @@ describe("GET /scenes", function(){
         .expect("Content-Type", "application/json; charset=utf-8");
         expect(r.body.scenes.map((s:any)=>s.name)).to.deep.equal(["charlie's"]);
       });
+
+      it("returns all scenes when author is an empty string", async function(){
+        let r = await request(this.server).get(`/scenes?author=`)
+        .auth(user.username, "12345678")
+        .set("Accept", "application/json")
+        .expect(200);
+        const names = r.body.scenes.map((s: any) => s.name);
+        expect(names).to.include("charlie's");
+        expect(names).to.include("read");
+        expect(names).to.include("write");
+      });
     });
     
+    describe("filter by type", function(){
+      let scenes: number[];
+      this.beforeAll(async function(){
+        scenes = [];
+        scenes.push(await vfs.createScene("voyager-scene"));
+        await vfs.writeDoc(`{"scenes":[]}`, {scene: "voyager-scene", name: "scene.svx.json", user_id: null});
+
+        scenes.push(await vfs.createScene("html-scene"));
+        await vfs.writeDoc(`<html></html>`, {scene: "html-scene", name: "index.html", user_id: null});
+
+        scenes.push(await vfs.createScene("untyped-scene"));
+      });
+
+      this.afterAll(async function(){
+        await Promise.all(scenes.map(id => vfs.removeScene(id)));
+      });
+
+      it("filters voyager scenes", async function(){
+        let r = await request(this.server).get("/scenes?type=voyager")
+          .set("Accept", "application/json")
+          .expect(200);
+        let names = r.body.scenes.map((s: any) => s.name);
+        expect(names).to.include("voyager-scene");
+        expect(names).not.to.include("html-scene");
+        expect(names).not.to.include("untyped-scene");
+      });
+
+      it("filters html scenes", async function(){
+        let r = await request(this.server).get("/scenes?type=html")
+          .set("Accept", "application/json")
+          .expect(200);
+        let names = r.body.scenes.map((s: any) => s.name);
+        expect(names).to.include("html-scene");
+        expect(names).not.to.include("voyager-scene");
+        expect(names).not.to.include("untyped-scene");
+      });
+
+      it("returns all scenes when type is an empty string", async function(){
+        let r = await request(this.server).get("/scenes?type=")
+          .set("Accept", "application/json")
+          .expect(200);
+        let names = r.body.scenes.map((s: any) => s.name);
+        expect(names).to.include("voyager-scene");
+        expect(names).to.include("html-scene");
+        expect(names).to.include("untyped-scene");
+      });
+
+      it("rejects an invalid type value with 400", async function(){
+        await request(this.server).get("/scenes?type=pdf")
+          .expect(400);
+      });
+    });
+
     describe("results order", function(){
       let scenes: number[];
       let searchResult: Scene[];

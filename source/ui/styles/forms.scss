@@ -39,6 +39,10 @@
     display: flex;
     flex-direction: row;
     align-items: baseline;
+    padding-inline: 0;
+    padding-top: 0;
+    margin-inline: 0;
+
     > label{
       flex: 0 0 auto;
       min-width: var(--label-width);
@@ -57,6 +61,15 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 1rem;
+    }
+
+    &:is(fieldset){
+      align-items: center;
+    }
+
+    legend{
+      float: left;
     }
     
   }
@@ -76,7 +89,7 @@
     .form-item {
       flex-direction: column;
 
-      > label {
+      >label, >legend {
         text-align: start;
         white-space: normal;
         padding-top: 0;
@@ -90,6 +103,10 @@
         > .form-input {
           justify-content: end;
         }
+      }
+      
+      &:is(fieldset){
+        align-items: baseline;
       }
     }
 
@@ -207,12 +224,12 @@
   // form-item collapses to the input row and the small provides its own height
   // (one line or more) — and .btn-addon stretches the full row since the var
   // resolves to 0.
-  &:has(> label):not(:has(+ small)) {
+  &:has(> label):not(:has(+ small)), &:is(fieldset) {
     --form-item-help-pad: 1.25rem;
     padding-bottom: var(--form-item-help-pad);
   }
 
-  > label {
+  > label, >legend {
     text-align: end;
     padding: 3px 0;
   }
@@ -274,9 +291,22 @@
     background-size: 100% 1px;
   }
 
-  > label{
+  label {
     font-family: var(--font-heading);
     opacity: 0.7;
+    
+    &:has(> input[type="radio"]){
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+
+  legend {
+    font-family: var(--font-heading);
+    opacity: 0.7;
+    min-width: var(--label-width);
+    padding-right: 1.5rem;
   }
 
 
