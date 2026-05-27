@@ -28,6 +28,7 @@ export default async function getScenes(req :Request, res :Response){
     orderDirection,
     archived,
     author,
+    type,
   } = req.query;
 
   let accessTypes :AccessType = ((Array.isArray(access))?access[0] : access) as any;
@@ -80,7 +81,8 @@ export default async function getScenes(req :Request, res :Response){
       limit: qsToInt(limit),
       offset: qsToInt(offset),
       archived: (archived === "any")?undefined: qsToBool(archived) ?? (false),
-      author: author,
+      author: (author || undefined) as string,
+      type: (type || undefined) as "html"|"voyager"|undefined,
     });
   }
   
