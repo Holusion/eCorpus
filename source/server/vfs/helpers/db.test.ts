@@ -251,5 +251,48 @@ describe("DbController", function(){
       });
     })
 
+    describe("orphaned transaction (regression)", function(){
+      // Models the production deadlock's root cause at the transaction layer, without the task
+      // system and without GC hooks. A workload inside a transaction never settles (in prod its
+      // async graph was garbage-collected while parked on an EventEmitter event that never fired).
+      // beginTransaction holds the pooled connection across `await work()`, so it is left
+      // BEGIN-but-never-COMMIT/ROLLBACK -- "idle in transaction" -- with nothing to reclaim it.
+      //
+      // This currently FAILS: there is no timeout/abort that tears a stuck transaction down. It
+      // should pass once such a safeguard exists (a transaction-level watchdog, and/or
+      // idle_in_transaction_session_timeout configured on the connection).
+      // TODO: change `it.skip` -> `it` in the same change that adds the reclaim safeguard.
+      it.skip("reclaims a connection whose workload never settles", async function(){
+        this.timeout(8000);
+        const delay = (ms:number)=> new Promise<void>((r)=> setTimeout(r, ms));
+
+        let release!: () => void;
+        const blocked = new Promise<void>((res)=>{ release = res; });
+
+        // Not awaited: stands in for work that never completes on its own.
+        const orphan = db.beginTransaction(async (tr)=>{
+          await tr.run("SELECT pg_backend_pid()"); // make the BEGIN real, then go idle
+          await blocked;                            // parks here -> transaction is orphaned
+        });
+        orphan.catch(()=>{}); // a fixed implementation may reject this; don't crash the run
+
+        const idleInTransaction = async ()=> (await db.all<{n:number}>(
+          `SELECT count(*)::int AS n FROM pg_stat_activity
+           WHERE datname = current_database() AND state = 'idle in transaction'`
+        ))[0].n;
+
+        try{
+          await delay(2500); // give any safeguard time to reclaim the stuck transaction
+          expect(
+            await idleInTransaction(),
+            "a transaction whose workload never settled was left idle-in-transaction (orphaned connection)"
+          ).to.equal(0);
+        }finally{
+          release();                 // unblock the workload so the test tears down cleanly
+          await orphan.catch(()=>{});
+        }
+      });
+    })
+
 
 });
