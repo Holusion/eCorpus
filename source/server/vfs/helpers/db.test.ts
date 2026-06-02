@@ -214,5 +214,42 @@ describe("DbController", function(){
       });
     })
 
+    describe("isolate with an abort signal", function(){
+      this.beforeEach(async function(){
+        await db.run("CREATE TABLE test (value TEXT)");
+      });
+
+      it("rejects queries issued after the signal aborts, and rolls back", async function(){
+        const c = new DbController(db);
+        const ac = new AbortController();
+
+        await expect(c.isolate(async (t)=>{
+          await t._db.run("INSERT INTO test VALUES ('a')"); // applied within the tx
+          ac.abort(new Error("cancelled"));                 // request cancellation
+          await t._db.run("INSERT INTO test VALUES ('b')"); // must throw, not run
+        }, { signal: ac.signal })).to.be.rejectedWith("cancelled");
+
+        // the whole transaction rolled back: neither write persisted
+        const count = (await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+        expect(count).to.equal(0);
+      });
+
+      it("guards nested (savepoint) transactions too", async function(){
+        const c = new DbController(db);
+        const ac = new AbortController();
+
+        await expect(c.isolate(async (t)=>{
+          await t._db.beginTransaction(async (sp)=>{
+            await sp.run("INSERT INTO test VALUES ('x')"); // ok
+            ac.abort(new Error("cancelled"));
+            await sp.run("INSERT INTO test VALUES ('y')"); // must throw inside the savepoint
+          });
+        }, { signal: ac.signal })).to.be.rejectedWith("cancelled");
+
+        const count = (await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+        expect(count).to.equal(0);
+      });
+    })
+
 
 });

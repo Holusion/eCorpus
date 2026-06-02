@@ -125,34 +125,73 @@ describe("TaskScheduler", function () {
     expect(task.status).to.equal("error");
   });
 
-  it("aborts and fails a task that exceeds its watchdog time budget", async function () {
-    // PURPOSE: a stuck / non-cooperative handler must not pin its slot forever — the watchdog
-    // fails the task (status "error") even when the handler never observes the abort signal.
-    scheduler.taskTimeoutOverrideMs = 80; // 80ms budget for the test
+  it("watchdog cancels a cooperative task that overruns its budget", async function () {
+    // PURPOSE: when a task overruns, the watchdog aborts context.signal; a handler that observes
+    // the signal stops and the task ends in "error".
+    scheduler.taskTimeoutOverrideMs = 50; // 50ms budget
 
     let id_ref: number;
+    await expect(scheduler.run({
+      scene_id: null,
+      user_id: null,
+      type: "coopTask",
+      data: {},
+      handler: async ({ task, context }) => {
+        id_ref = task.task_id;
+        // cooperative: waits on an event that never fires, but honors the abort signal
+        await once(new EventEmitter(), "never", { signal: context.signal });
+      }
+    })).to.be.rejected;
+
+    const task = await scheduler.getTask(id_ref!);
+    expect(task).to.have.property("status", "error");
+  });
+
+  it("watchdog keeps an uncooperative task running and logs it (no detached worker)", async function () {
+    // PURPOSE: a handler that ignores the abort signal is NOT force-settled or abandoned. It keeps
+    // its slot, stays "running", and the overrun is logged so an admin can see it. When it finally
+    // finishes on its own, it completes normally.
+    scheduler.taskTimeoutOverrideMs = 40; // budget
+    scheduler.uncooperativeGraceMs = 60;  // grace before the "uncooperative" log
+
+    let id_ref!: number;
     let release!: () => void;
     const blocked = new Promise<void>((res) => { release = res; });
 
-    try {
-      await expect(scheduler.run({
-        scene_id: null,
-        user_id: null,
-        type: "slowTask",
-        data: {},
-        handler: async ({ task }) => {
-          id_ref = task.task_id;
-          await blocked; // deliberately ignores context.signal
-          return "late";
-        }
-      })).to.be.rejectedWith(/time budget|watchdog/i);
+    const p = scheduler.run({
+      scene_id: null,
+      user_id: null,
+      type: "zombieTask",
+      data: {},
+      handler: async ({ task }) => {
+        id_ref = task.task_id;
+        await blocked; // deliberately ignores context.signal
+        return "finished-on-its-own";
+      }
+    });
 
-      const task = await scheduler.getTask(id_ref!);
-      expect(task).to.have.property("status", "error");
-      expect(task).to.have.property("output").ok;
+    try {
+      // wait past budget(40) + grace(60) + log debounce(100) for the warnings to be flushed
+      await timers.setTimeout(300);
+
+      // it must still be running — neither force-errored nor abandoned
+      const mid = await scheduler.getTask(id_ref);
+      expect(mid.status, "uncooperative task should stay running").to.equal("running");
+
+      // the overrun must be visible in the task log
+      const logs = await handle.all<{ severity: string, message: string }>(
+        `SELECT severity, message FROM tasks_logs WHERE fk_task_id = $1`, [id_ref]
+      );
+      expect(logs.some(l => /budget|cancellation|uncooperative|ignored/i.test(l.message)),
+        "expected a watchdog warning in the task log").to.be.true;
     } finally {
-      release(); // let the detached handler unwind so it doesn't linger
+      release(); // let it complete on its own
     }
+
+    // once it finishes, it completes normally (it was never force-failed)
+    expect(await p).to.equal("finished-on-its-own");
+    const fin = await scheduler.getTask(id_ref);
+    expect(fin.status).to.equal("success");
   });
 
   it("use a named function for task type", async function () {

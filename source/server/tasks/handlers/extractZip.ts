@@ -29,7 +29,7 @@ type ImportSceneResult = ImportSuccessResult|ImportErrorResult;
 /**
  * Analyze an uploaded file and create child tasks accordingly
  */
-export async function extractScenesArchive({task: {scene_id: scene_id, user_id: user_id, data: {fileLocation}}, context:{vfs, logger, userManager, tasks}}:TaskHandlerParams<FileArtifact>):Promise<ImportSuccessResult[]>{
+export async function extractScenesArchive({task: {scene_id: scene_id, user_id: user_id, data: {fileLocation}}, context:{vfs, logger, userManager, tasks, signal}}:TaskHandlerParams<FileArtifact>):Promise<ImportSuccessResult[]>{
   if(!fileLocation || typeof fileLocation !== "string") throw new Error(`invalid fileLocation provided`);
   const filepath = vfs.absolute(fileLocation);
   if(!user_id) throw new Error(`This task requires an authenticated user`);
@@ -42,6 +42,9 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
     
   logger.debug("Open database transaction");
   const ts = Date.now();
+  try{
+  // Pass the abort signal into the transaction: once cancelled, the next query throws and the
+  // whole transaction rolls back, neutralizing any further writes from this handler.
   const results = await vfs.isolate(async (vfs)=>{
     //Directory entries are optional in a zip file so we should handle their absence
     //We do this by maintaining a Map of scenes, and for each scene a Set of files
@@ -53,6 +56,8 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
      * Handles a zip entry.
      */
     const onEntry = async (record :Entry) =>{
+      // cooperative cancellation: stop before doing any work on this entry once aborted
+      if(signal?.aborted) throw signal.reason ?? new Error("Task aborted");
       const {scene, name, isDirectory} = parseFilepath(record.fileName);
       if(!scene ) return;
       if(!scenes.has(scene)){
@@ -118,7 +123,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
           chunk.copy(data, size);
           size += chunk.length;
         });
-        await finished(rs);
+        await finished(rs, { signal });
         await vfs.writeDoc(data, {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
       }else{
         //Add the file
@@ -127,7 +132,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
         if (mime.startsWith('text/')){
           await vfs.writeDoc(await text(rs), {user_id: requester.uid, scene, name, mime});
         } else {
-          await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime});
+          await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime, signal});
         }
       }
     };
@@ -142,7 +147,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
     });
     zip.readEntry();
     logger.debug("Start extracting zip entries");
-    await once(zip, "close");
+    await once(zip, "close", { signal });
     if(zipError){
       logger.error("Zip extraction encountered an error. This is most probably due to an invalid zip");
       throw zipError;
@@ -166,10 +171,15 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
       logger.debug("zip file closed successfully. Running database triggers.");
       return results as ImportSuccessResult[];
     }
-  });
+  }, { signal });
 
   logger.log("Database transaction took %dms", Date.now()- ts);
   return results;
+  }finally{
+    // Release the zip fd even if we bailed out before yauzl auto-closed (e.g. on cancellation).
+    // ZipFile.close() is idempotent, so this is a no-op after a normal, fully-consumed run.
+    zip.close();
+  }
 };
 
 export function isUploadedArchive(t: UploadedFile): t is UploadedArchive {

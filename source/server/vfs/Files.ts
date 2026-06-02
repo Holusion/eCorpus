@@ -54,17 +54,16 @@ export default abstract class FilesVfs extends BaseVfs{
     let size = 0;
     try{
       let ws = handle.createWriteStream();
-      await pipeline(
-        dataStream,
-        new Transform({
-          transform(chunk, encoding, callback){
-            hashsum.update(chunk);
-            size += chunk.length;
-            callback(null, chunk);
-          }
-        }),
-        ws,
-      );
+      const hasher = new Transform({
+        transform(chunk, encoding, callback){
+          hashsum.update(chunk);
+          size += chunk.length;
+          callback(null, chunk);
+        }
+      });
+      // cooperative cancellation: when signalled, pipeline aborts and destroys the streams
+      if(params.signal) await pipeline(dataStream, hasher, ws, { signal: params.signal });
+      else await pipeline(dataStream, hasher, ws);
       let hash = hashsum.digest("base64url");
       let destfile = path.join(this.objectsDir, hash);
 

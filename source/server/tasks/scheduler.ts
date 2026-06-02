@@ -13,34 +13,8 @@ import { BadRequestError, InternalError } from "../utils/errors.js";
 
 const debug = debuglog("tasks:scheduler");
 
-
-/**
- * Resolve/reject with `p`, but reject early with `signal.reason` if `signal` aborts first.
- * Used to enforce the task watchdog even when a handler never observes its abort signal:
- * the returned promise settles (freeing the queue slot and recording the task error) while
- * the underlying `p` may keep running detached. `p`'s eventual settlement is still consumed
- * here, so it never surfaces as an unhandled rejection.
- */
-function abortable<T>(p: Promise<T>, signal: AbortSignal): Promise<T> {
-  // `.addEventListener`/`.removeEventListener` aren't in this project's AbortSignal lib types
-  const sig = signal as unknown as {
-    addEventListener(t: "abort", cb: () => void, opts?: { once?: boolean }): void;
-    removeEventListener(t: "abort", cb: () => void): void;
-  };
-  if (signal.aborted) {
-    // still attach a sink so p's eventual settlement isn't an unhandled rejection
-    p.catch(() => {});
-    return Promise.reject(signal.reason);
-  }
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(signal.reason);
-    sig.addEventListener("abort", onAbort, { once: true });
-    p.then(
-      (v) => { sig.removeEventListener("abort", onAbort); resolve(v); },
-      (e) => { sig.removeEventListener("abort", onAbort); reject(e); },
-    );
-  });
-}
+/** Default grace period after a watchdog abort before a task is logged as uncooperative. */
+const DEFAULT_UNCOOPERATIVE_GRACE_MS = 1000;
 
 
 interface AsyncContext {
@@ -106,6 +80,12 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     return typeof seconds === "number" && seconds > 0 ? seconds * 1000 : 0;
   }
 
+  /**
+   * Grace period (ms) between requesting cancellation (watchdog abort) and logging the task as
+   * uncooperative. Public/mutable so tests can shorten it. The task is never force-settled.
+   */
+  public uncooperativeGraceMs: number = DEFAULT_UNCOOPERATIVE_GRACE_MS;
+
   constructor(protected _context: TContext) {
     super(_context.db);
 
@@ -169,18 +149,34 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     const work: TaskPackage = async ({ signal: queueSignal }) => {
       await using logger = createLogger(this.db, task.task_id);
 
-      // Watchdog: fail (and signal abort to) a task that overruns its time budget, so a stuck
-      // handler can't pin its queue slot / DB transaction forever. 0 (or no Config) disables it.
+      // Watchdog: when a task overruns its budget we *request* cancellation through its abort
+      // signal and, after a grace period, loudly log that it is uncooperative. We deliberately
+      // never abandon it or force its status: a detached/zombie handler could keep logging or
+      // writing. The task keeps its slot and stays "running" until it actually settles — either
+      // cooperatively (it observes the signal) or because the DB-level lock / idle-in-transaction
+      // timeouts make its next query fail. This trades throughput for safety, by design.
       const timeoutMs = this.taskTimeoutMs;
+      const graceMs = this.uncooperativeGraceMs;
       const watchdog = new AbortController();
-      let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+      let settled = false;
+      let budgetTimer: ReturnType<typeof setTimeout> | undefined;
+      let graceTimer: ReturnType<typeof setTimeout> | undefined;
       if (timeoutMs > 0) {
-        watchdogTimer = setTimeout(
-          () => watchdog.abort(new TaskTimeoutError(timeoutMs, task.type, task.task_id)),
-          timeoutMs,
-        );
+        budgetTimer = setTimeout(() => {
+          if (settled) return;
+          logger.warn(`Task exceeded its ${Math.round(timeoutMs / 1000)}s time budget; requesting cancellation`);
+          watchdog.abort(new TaskTimeoutError(timeoutMs, task.type, task.task_id));
+          graceTimer = setTimeout(() => {
+            if (settled) return;
+            const msg = `Task ${task.type}#${task.task_id} ignored cancellation for ${Math.round(graceMs / 1000)}s and is still running while holding its slot`;
+            logger.error(msg);
+            // also surface on stderr: the task's own DB log stream may be part of what is stuck
+            console.error(`[tasks] ${msg}`);
+          }, graceMs);
+          graceTimer.unref?.();
+        }, timeoutMs);
         // the watchdog must never keep the process alive on its own
-        watchdogTimer.unref?.();
+        budgetTimer.unref?.();
       }
 
       const signals = [queueSignal, taskSignal, timeoutMs > 0 ? watchdog.signal : undefined]
@@ -201,19 +197,20 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
 
       await this.takeTask(task.task_id);
       try {
-        const run = this.nest({ concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext }, handler.bind(context), { context, task })
-        // Race against the watchdog so the task settles even if the handler never observes the
-        // abort signal. A non-cooperative handler keeps running detached; the DB-level lock /
-        // idle-in-transaction timeouts reclaim any transaction it is holding.
-        const output = timeoutMs > 0 ? await abortable(run, watchdog.signal) : await run;
+        // Awaited normally: the task settles only when the handler does. The watchdog above only
+        // requests cancellation and logs — it never resolves/rejects this on the handler's behalf.
+        const output = await this.nest({ concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext }, handler.bind(context), { context, task })
+        settled = true;
         await this.releaseTask(task.task_id, output);
         return output;
       } catch (e: any) {
+        settled = true;
         //Here we might make an exception if e.name === "AbortError" and the database is closed
         await this.errorTask(task.task_id, e).catch(e => console.error("Failed to set task error : ", e));
         throw e;
       } finally {
-        if (watchdogTimer) clearTimeout(watchdogTimer);
+        if (budgetTimer) clearTimeout(budgetTimer);
+        if (graceTimer) clearTimeout(graceTimer);
       }
     }
 
