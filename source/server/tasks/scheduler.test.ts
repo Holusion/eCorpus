@@ -125,6 +125,36 @@ describe("TaskScheduler", function () {
     expect(task.status).to.equal("error");
   });
 
+  it("aborts and fails a task that exceeds its watchdog time budget", async function () {
+    // PURPOSE: a stuck / non-cooperative handler must not pin its slot forever — the watchdog
+    // fails the task (status "error") even when the handler never observes the abort signal.
+    scheduler.taskTimeoutOverrideMs = 80; // 80ms budget for the test
+
+    let id_ref: number;
+    let release!: () => void;
+    const blocked = new Promise<void>((res) => { release = res; });
+
+    try {
+      await expect(scheduler.run({
+        scene_id: null,
+        user_id: null,
+        type: "slowTask",
+        data: {},
+        handler: async ({ task }) => {
+          id_ref = task.task_id;
+          await blocked; // deliberately ignores context.signal
+          return "late";
+        }
+      })).to.be.rejectedWith(/time budget|watchdog/i);
+
+      const task = await scheduler.getTask(id_ref!);
+      expect(task).to.have.property("status", "error");
+      expect(task).to.have.property("output").ok;
+    } finally {
+      release(); // let the detached handler unwind so it doesn't linger
+    }
+  });
+
   it("use a named function for task type", async function () {
     const result = await scheduler.run({
       scene_id: null,

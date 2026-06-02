@@ -39,6 +39,9 @@ const runtime_values = {
   /// RETENTION (in days; 0 disables) ///
   task_retention_days:        [30,           "number"],
   task_errors_retention_days: [90,           "number"],
+  /// TASK SCHEDULER ///
+  /** Max wall-clock time a single task may run before the watchdog aborts and fails it (seconds; 0 disables) */
+  task_timeout_seconds:       [3600,         "number"],
   /// FEATURE FLAGS ///
   enable_document_merge: [isExperimental,    "boolean"],
 } as const;

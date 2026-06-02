@@ -3,6 +3,18 @@ import { HTTPError } from "../utils/errors.js";
 
 
 /**
+ * Raised by the scheduler watchdog when a task exceeds its configured time budget.
+ * @see runtime config `task_timeout_seconds`
+ */
+export class TaskTimeoutError extends Error {
+  constructor(public readonly timeoutMs: number, taskType?: string, taskId?: number){
+    super(`Task ${taskType ?? "?"}#${taskId ?? "?"} exceeded its ${Math.round(timeoutMs / 1000)}s time budget and was aborted by the watchdog`);
+    this.name = "TaskTimeoutError";
+  }
+}
+
+
+/**
  * Constructs an appropriate error from a generic object
  * returned from the database
  */

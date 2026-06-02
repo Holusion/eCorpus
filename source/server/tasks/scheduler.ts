@@ -5,12 +5,42 @@ import { Queue } from "./queue.js";
 import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunOptions, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
+import { TaskTimeoutError } from "./errors.js";
 import { BadRequestError, InternalError } from "../utils/errors.js";
 
 // Note: previously used stream/once for generator bridge; no longer required for Promise.all-style group
 
 
 const debug = debuglog("tasks:scheduler");
+
+
+/**
+ * Resolve/reject with `p`, but reject early with `signal.reason` if `signal` aborts first.
+ * Used to enforce the task watchdog even when a handler never observes its abort signal:
+ * the returned promise settles (freeing the queue slot and recording the task error) while
+ * the underlying `p` may keep running detached. `p`'s eventual settlement is still consumed
+ * here, so it never surfaces as an unhandled rejection.
+ */
+function abortable<T>(p: Promise<T>, signal: AbortSignal): Promise<T> {
+  // `.addEventListener`/`.removeEventListener` aren't in this project's AbortSignal lib types
+  const sig = signal as unknown as {
+    addEventListener(t: "abort", cb: () => void, opts?: { once?: boolean }): void;
+    removeEventListener(t: "abort", cb: () => void): void;
+  };
+  if (signal.aborted) {
+    // still attach a sink so p's eventual settlement isn't an unhandled rejection
+    p.catch(() => {});
+    return Promise.reject(signal.reason);
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    sig.addEventListener("abort", onAbort, { once: true });
+    p.then(
+      (v) => { sig.removeEventListener("abort", onAbort); resolve(v); },
+      (e) => { sig.removeEventListener("abort", onAbort); reject(e); },
+    );
+  });
+}
 
 
 interface AsyncContext {
@@ -55,6 +85,25 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
 
   public get closed() {
     return this.rootQueue.closed;
+  }
+
+  /**
+   * Test/override hook for the watchdog budget (ms). When set, it takes precedence
+   * over the dynamic config. Leave undefined in production to follow `task_timeout_seconds`.
+   */
+  public taskTimeoutOverrideMs?: number;
+
+  /**
+   * Effective per-task time budget in milliseconds (0 = watchdog disabled).
+   * Read from the override hook, else the `task_timeout_seconds` dynamic config.
+   * Returns 0 when no Config is available (e.g. in unit tests), preserving prior behaviour.
+   */
+  private get taskTimeoutMs(): number {
+    if (typeof this.taskTimeoutOverrideMs === "number") {
+      return this.taskTimeoutOverrideMs > 0 ? this.taskTimeoutOverrideMs : 0;
+    }
+    const seconds = (this._context as Partial<TaskSchedulerContext>).config?.get("task_timeout_seconds");
+    return typeof seconds === "number" && seconds > 0 ? seconds * 1000 : 0;
   }
 
   constructor(protected _context: TContext) {
@@ -119,11 +168,28 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     // and set its status
     const work: TaskPackage = async ({ signal: queueSignal }) => {
       await using logger = createLogger(this.db, task.task_id);
+
+      // Watchdog: fail (and signal abort to) a task that overruns its time budget, so a stuck
+      // handler can't pin its queue slot / DB transaction forever. 0 (or no Config) disables it.
+      const timeoutMs = this.taskTimeoutMs;
+      const watchdog = new AbortController();
+      let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+      if (timeoutMs > 0) {
+        watchdogTimer = setTimeout(
+          () => watchdog.abort(new TaskTimeoutError(timeoutMs, task.type, task.task_id)),
+          timeoutMs,
+        );
+        // the watchdog must never keep the process alive on its own
+        watchdogTimer.unref?.();
+      }
+
+      const signals = [queueSignal, taskSignal, timeoutMs > 0 ? watchdog.signal : undefined]
+        .filter((s): s is AbortSignal => !!s);
       const context: TaskHandlerContext<TContext> = {
         ...this.taskContext,
         tasks: Object.create(this),
         logger,
-        signal: taskSignal ? (AbortSignal as any).any([taskSignal, queueSignal]) : queueSignal,
+        signal: signals.length > 1 ? (AbortSignal as any).any(signals) : signals[0],
       };
 
       const thisContext: AsyncContext["parent"] = {
@@ -135,13 +201,19 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
 
       await this.takeTask(task.task_id);
       try {
-        const output = await this.nest({ concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext }, handler.bind(context), { context, task })
+        const run = this.nest({ concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext }, handler.bind(context), { context, task })
+        // Race against the watchdog so the task settles even if the handler never observes the
+        // abort signal. A non-cooperative handler keeps running detached; the DB-level lock /
+        // idle-in-transaction timeouts reclaim any transaction it is holding.
+        const output = timeoutMs > 0 ? await abortable(run, watchdog.signal) : await run;
         await this.releaseTask(task.task_id, output);
         return output;
       } catch (e: any) {
         //Here we might make an exception if e.name === "AbortError" and the database is closed
         await this.errorTask(task.task_id, e).catch(e => console.error("Failed to set task error : ", e));
         throw e;
+      } finally {
+        if (watchdogTimer) clearTimeout(watchdogTimer);
       }
     }
 
