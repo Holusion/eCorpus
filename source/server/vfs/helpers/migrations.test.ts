@@ -101,13 +101,19 @@ describe("Database migration", function(){
   describe("migrate()", function(){
     let db :Client;
     let uri: string, dir :string;
+    let errMessages :any[][];
+    let origError :typeof console.error;
     this.beforeEach(async function(){
       dir = await fs.mkdtemp(path.join(this.dir, "migrate-"));
       uri = await getUniqueDb(this.currentTest?.title);
       db = new Client({connectionString: uri});
       await db.connect();
+      errMessages = [];
+      origError = console.error;
+      console.error = (...a:any[])=> errMessages.push(a);
     });
     this.afterEach(async function(){
+      console.error = origError;
       await db.end();
       await dropDb(uri);
     });
@@ -130,6 +136,20 @@ describe("Database migration", function(){
       await expect(migrate({db, migrations:dir, force: false})).to.be.rejectedWith("Syntax error at line 2");
       expect((await db.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")).rows).to.deep.equal([{table_name: "migrations"}]);
       expect((await db.query("SELECT * FROM migrations")).rows).to.deep.equal([]);
+    });
+
+    it("dumps a report to console.error on failure", async function(){
+      await fs.writeFile(path.join(dir, "001-initial.sql"), "CREATE TABLE foo(name TEXT);\n-- down\nDROP TABLE foo;");
+      await fs.writeFile(path.join(dir, "002-broken.sql"), "xxx\n");
+      await expect(migrate({db, migrations:dir, force: false})).to.be.rejected;
+      expect(errMessages, "console.error should have been called once").to.have.length(1);
+      const report = errMessages[0].join(" ");
+      //Target database name
+      expect(report).to.match(/target database:.*dumps_a_report/);
+      //Migration that was being processed when it crashed
+      expect(report).to.contain("002-broken");
+      //Migration applied before the crash
+      expect(report).to.match(/applied in this run:.*001-initial/);
     });
 
     it("reapplies last migration if force == true", async function(){
