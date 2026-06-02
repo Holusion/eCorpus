@@ -1,12 +1,11 @@
 
-import { debuglog } from "util";
-
 import cookieSession from "cookie-session";
 import express from "express";
 
 
 import { HTTPError, UnauthorizedError } from "../utils/errors.js";
-import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "../utils/errorHandler.js";
+import { errorHandlerMdw, notFoundHandlerMdw } from "../utils/errorHandler.js";
+import { accessLogMdw, logContextMdw } from "../utils/log/index.js";
 
 import {AppLocals, AppParameters, getHost, getLocals, getUserManager, getVfs} from "../utils/locals.js";
 
@@ -26,6 +25,12 @@ export default async function createServer(locals:AppParameters) :Promise<expres
     sessionMaxAge: 31 * 24 * 60 * 60*1000, // 1 month, in milliseconds
     templates,
   }, locals) as AppLocals;
+
+  // Establish the per-request logging context (the proxy's `X-Request-Id`)
+  // first, so every downstream handler and the error handler inherit it.
+  app.use(logContextMdw());
+  // Access logging (trace level) wraps everything below it.
+  app.use(accessLogMdw());
 
   app.use(cookieSession({
     name: 'session',
@@ -77,16 +82,6 @@ export default async function createServer(locals:AppParameters) :Promise<expres
     });
   });
 
-  
-  /* istanbul ignore next */
-  if (locals.config.get("verbose") ||debuglog("http:requests").enabled) {
-    let {default: morgan} = await import("morgan"); 
-    //Requests logging is enabled only in dev mode as a proxy would handle it in production
-    app.use(morgan(process.stdout.isTTY?"dev": "tiny", {
-    }));
-  }
-
-  
   app.engine('.hbs', templates.middleware);
   app.set('view engine', '.hbs');
   app.set('views', templates.dir);
@@ -227,9 +222,6 @@ Sitemap: ${sitemap}
   app.use("/groups", (await import("./groups/index.js")).default);
   app.use("/services", (await import("./services/index.js")).default);
   app.use("/tasks", (await import("./tasks/index.js")).default);
-  
-  const logLevel = (locals.config.get("verbose") || debuglog("http:errors").enabled)?LogLevel.Verbose:LogLevel.InternalError;
-  const isTTY = process.stderr.isTTY;
 
   // error handling
   //404: Not Found handler This should be last as it will match everything
@@ -237,7 +229,7 @@ Sitemap: ${sitemap}
 
   // istanbul ignore next
   //@ts-ignore
-  app.use(errorHandlerMdw({isTTY, logLevel}));
+  app.use(errorHandlerMdw());
 
   return app;
 }

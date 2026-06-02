@@ -1,60 +1,30 @@
-import util from "node:util";
 import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
 import { getUser, useTemplateProperties } from "./locals.js";
 import { locales } from "./templates/index.js";
+import { createLogger } from "./log/index.js";
+
+const log = createLogger("http");
 
 
-export enum LogLevel{
-  /** Print nothing to the console */
-  Quiet = 0,
-  /**Only print uncategorized or Internal (5xx) errors */
-  InternalError = 1,
-  /**print a log on each error, even routine ones */
-  Verbose = 2,
-}
-
-interface ErrorHandlerOptions{
-  /** is stdout is a TTY, we print the full error, with stack trace. If not we try to shorten and collapse it */
-  isTTY:boolean;
-  logLevel: number;
-}
-
-
-/** uses util.inspect with compact settings to print manageable stack traces */
-/* c8 ignore start */
-function compactError(error:Error):string{
-  return util.inspect(error, {
-    compact: 3,
-    breakLength: Infinity,
-  }).replace(/\n/g,"\\n")
-}
-/* c8 ignore end */
-
-
-export function errorHandlerMdw({
-  isTTY,
-  logLevel = LogLevel.InternalError,
-}: ErrorHandlerOptions){
+export function errorHandlerMdw(){
   return function errorHandler(error:HTTPError|Error, req:Request, res:Response, next:NextFunction){
+
+    const code = (error instanceof HTTPError )? error.code : 500;
 
     if (res.headersSent) {
       req.socket.destroy();
-      if(logLevel != LogLevel.Quiet) console.warn("An error happened after headers were sent for %s %s", req.method, req.originalUrl, compactError(error));
+      log.warn({ err: error, method: req.method, url: req.originalUrl }, "An error happened after headers were sent");
       return;
     }
-    
-    if(LogLevel.Verbose <= logLevel) {
-      /* c8 ignore next */
-      console.error((isTTY ? error : compactError(error)));
-    }else if(LogLevel.InternalError <= logLevel && (!("code" in error) || error.code === 500)){
-      console.error("Internal error", error.message);
-    }
-    
 
-    let code = (error instanceof HTTPError )? error.code : 500;
+    // Severity follows the HTTP status: 5xx are genuine server faults, 4xx are
+    // routine client errors. Operators tune visibility through the logger's
+    // own level (LOG_LEVEL) rather than a bespoke switch here.
+    if(code >= 500) log.error({ err: error }, error.message);
+    else log.info({ err: error }, error.message);
 
-    if(code === 401 
+    if(code === 401
     //We try to NOT send the header for browser requests because we prefer the HTML login to the browser's popup
       //Browser tends to prefer text/html and always send Mozilla/5.0 at the beginning of their user-agent
       //If someone has customized their headers, they'll get the ugly popup and live with it.

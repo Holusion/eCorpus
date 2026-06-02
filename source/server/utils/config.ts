@@ -21,6 +21,10 @@ const static_values = {
   database_uri:    [parsePGEnv,   "string"],
   trust_proxy:     [true,         "boolean"],
   build_ref:       ["dev",        "string"],
+  /** Log output format: "json" for structured logs, anything else for human-readable output. */
+  log_format:      ["pretty",     "string"],
+  /** Minimum pino level emitted ("trace".."fatal", or "silent"). Defaults looser in development. */
+  log_level:       [({node_env}:{node_env: string})=> node_env === "production"? "info": "debug", "string"],
 } as const;
 
 /**
@@ -33,7 +37,6 @@ const runtime_values = {
   color_primary:         ["#e6b900",       "color"],
   color_secondary:       ["#4735df",       "color"],
   contact_email:         [({hostname}:{hostname: string})=> "noreply@"+hostname, "string"],
-  verbose:               [false,             "boolean"],
   smart_host:            ["smtp://localhost:25", "string"],
   experimental:          [false,             "boolean"],
   /// RETENTION (in days; 0 disables) ///

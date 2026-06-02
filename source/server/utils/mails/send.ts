@@ -2,6 +2,9 @@
 import nodemailer from "nodemailer";
 
 import {Config} from "../config.js";
+import { createLogger } from "../log/index.js";
+
+const log = createLogger("mail");
 
 
 interface MailInput{
@@ -45,8 +48,8 @@ export default async function send(
       _transporter = nodemailer.createTransport({ jsonTransport: true });
     } else {
       let transportURL = new URL(Config.get("smart_host"));
-      //Set logger to the value of VERBOSE env var
-      if(!transportURL.searchParams.has("logger")) transportURL.searchParams.set("logger", Config.get("verbose")? "true": "false");
+      //Enable nodemailer's own logging only when our log level would emit it
+      if(!transportURL.searchParams.has("logger")) transportURL.searchParams.set("logger", log.isLevelEnabled("debug")? "true": "false");
       if(!transportURL.searchParams.has("name")) transportURL.searchParams.set("name", Config.get("hostname"));
       _transporter = nodemailer.createTransport(transportURL.toString())
     }
@@ -60,8 +63,6 @@ export default async function send(
     ...message,
   });
 
-  if(Config.get("verbose")){
-    console.log("SMTP info :", info);
-  }
+  log.debug({ info }, "SMTP send result");
   return info;
 }

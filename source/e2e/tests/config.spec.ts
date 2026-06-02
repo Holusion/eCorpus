@@ -53,27 +53,27 @@ test("can reset a config option", async ({page, request})=>{
 
 test("can toggle checkboxes", async ({page, request})=>{
   let res = await request.get("/admin/config");
-  let {verbose: verbose_initial} = await res.json();
+  let {experimental: experimental_initial} = await res.json();
 
-  expect(verbose_initial).toHaveProperty("value");
-  expect(typeof verbose_initial.value).toEqual("boolean")
+  expect(experimental_initial).toHaveProperty("value");
+  expect(typeof experimental_initial.value).toEqual("boolean")
 
   await page.goto("/ui/admin/");
 
-  const brand_row = page.locator(".conf-line").filter({has: page.locator("#conf-verbose")});
-  await brand_row.locator("[data-action='edit']").click();
-  await brand_row.getByRole("checkbox").click();
-  const save_btn = brand_row.getByRole("button", {name: "labels.save"});
+  const row = page.locator(".conf-line").filter({has: page.locator("#conf-experimental")});
+  await row.locator("[data-action='edit']").click();
+  await row.getByRole("checkbox").click();
+  const save_btn = row.getByRole("button", {name: "labels.save"});
   await save_btn.click();
   await expect(save_btn).not.toBeVisible();
 
 
   res = await request.get("/admin/config");
   const config = await res.json();
-  expect(config).toHaveProperty("verbose", {
-    value: !verbose_initial.value,
+  expect(config).toHaveProperty("experimental", {
+    value: !experimental_initial.value,
     locked: false,
     type: "checkbox",
-    defaultValue: verbose_initial.defaultValue,
+    defaultValue: experimental_initial.defaultValue,
   });
 });
