@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { expect } from "chai";
 import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
-import { errorHandlerMdw, LogLevel, notFoundHandlerMdw } from "./errorHandler.js";
+import { errorHandlerMdw, notFoundHandlerMdw } from "./errorHandler.js";
 import { InternalError } from "./errors.js";
 import Templates from "./templates/index.js";
 
@@ -19,7 +19,7 @@ describe("errorHandler middleware", function(){
       app.get("/", (req, res)=>{
         throw new InternalError("Internal Error");
       });
-      app.use(errorHandlerMdw({isTTY:false, logLevel: LogLevel.Quiet}));
+      app.use(errorHandlerMdw());
     })
 
 
@@ -70,7 +70,7 @@ describe("errorHandler middleware", function(){
         throw new InternalError("FOO");
       });
 
-      app.use(errorHandlerMdw({isTTY:false, logLevel: LogLevel.Quiet}));
+      app.use(errorHandlerMdw());
 
       await expect(request(app).get("/headers")
       .set("Accept", "text/plain")

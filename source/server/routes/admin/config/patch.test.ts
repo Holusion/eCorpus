@@ -8,7 +8,8 @@ describe("PATCH /admin/config", function(){
   let userManager :UserManager, user :User, admin :User;
 
   this.beforeAll(async function(){
-    let locals = await createIntegrationContext(this);
+    // EXPERIMENTAL is provided through the environment, so it is locked at runtime.
+    let locals = await createIntegrationContext(this, { EXPERIMENTAL: "false" });
     userManager = locals.userManager;
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
@@ -76,10 +77,10 @@ describe("PATCH /admin/config", function(){
     expect(brandEntry.value).to.equal("My Brand");
   });
 
-  it("rejects updates with bad data type", async function(){
+  it("rejects updates to runtime keys locked by an environment variable", async function(){
     await request(this.server).patch(`/admin/config`)
     .auth(admin.username, "12345678")
-    .send({ verbose: "X"})
+    .send({ experimental: "X"})
     .expect(403);
   });
 

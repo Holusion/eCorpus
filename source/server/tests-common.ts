@@ -107,7 +107,6 @@ global.createIntegrationContext = async function(c :Mocha.Context, config_overri
       ROOT_DIR: c.dir,
       DATABASE_URI: c.db_uri,
       CLEAN_DATABASE: "false",
-      VERBOSE: "false",
     },
     //Options we might want to customize
     config_override
