@@ -81,8 +81,48 @@ async function undoMigration(db:ClientBase, record :MigrationRecord){
   }
 }
 
+function fmtMigration(m:{id:number, name:string}){
+  return `${m.id.toString(10).padStart(3, "0")}-${m.name}`;
+}
+
+export interface MigrationReport{
+  database?: string;
+  /** Migrations found on disk and already applied to the database (skipped this run) */
+  skipped: Array<{id:number, name:string}>;
+  /** Migrations rolled back during this run (missing file or force flag) */
+  undone: Array<{id:number, name:string}>;
+  /** Migrations successfully applied during this run, in order */
+  applied: Array<{id:number, name:string}>;
+  /** Migration that was being processed when the error occurred, if any */
+  current?: {id:number, name:string, filepath:string};
+}
+
+function formatReport(report:MigrationReport, err:Error):string{
+  const lines = [
+    `Database migration failed: ${err.message}`,
+    `\ttarget database: ${report.database ?? "<unknown>"}`,
+    `\tfailed on: ${report.current ? `${fmtMigration(report.current)} (${report.current.filepath})` : "<none>"}`,
+    `\tskipped (already applied): ${report.skipped.length? report.skipped.map(fmtMigration).join(", "): "<none>"}`,
+    `\tundone in this run: ${report.undone.length? report.undone.map(fmtMigration).join(", "): "<none>"}`,
+    `\tapplied in this run: ${report.applied.length? report.applied.map(fmtMigration).join(", "): "<none>"}`,
+  ];
+  return lines.join("\n");
+}
+
 export async function migrate({db, migrations: dir, force}: MigrationParams){
   const files = await listMigrations(dir);
+  const report :MigrationReport = {
+    skipped: [],
+    undone: [],
+    applied: [],
+  };
+  try{
+    const r = await db.query<{current_database:string}>(`SELECT current_database()`);
+    report.database = r.rows[0]?.current_database;
+  }catch(e){
+    debug(`Failed to resolve current database name: `, e);
+  }
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS "migrations" (
     id   INTEGER PRIMARY KEY,
@@ -97,22 +137,32 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
     //Undo any migration that has no file
     for(const record of records.slice().reverse()){
       if(files.find(m=>m.id === record.id)) continue;
+      report.current = {id: record.id, name: record.name, filepath: "<missing file>"};
       await undoMigration(db, record);
+      report.undone.push({id: record.id, name: record.name});
       records = records.filter(r=>r.id!== record.id);
+      report.current = undefined;
     }
 
     if(force && records.length){
       console.log("Force Migration")
       const lastMigration = records[records.length - 1];
       if(lastMigration){
+        report.current = {id: lastMigration.id, name: lastMigration.name, filepath: "<force re-apply>"};
         await undoMigration(db, lastMigration);
+        report.undone.push({id: lastMigration.id, name: lastMigration.name});
         records = records.slice(0, -1);
+        report.current = undefined;
       }
     }
 
     const lastMigrationId = records.length? records[records.length -1].id :0;
     for(let file of files){
-      if(file.id <= lastMigrationId) continue;
+      if(file.id <= lastMigrationId){
+        report.skipped.push({id: file.id, name: file.name});
+        continue;
+      }
+      report.current = file;
       const m = await parseMigrationFile(file.filepath);
       debug(`Apply migration ${path.basename(file.filepath)}`);
       await db.query("BEGIN TRANSACTION");
@@ -120,8 +170,8 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
           await db.query("SET CONSTRAINTS ALL DEFERRED");
           await db.query(m.up);
           await db.query(`
-            INSERT 
-            INTO migrations 
+            INSERT
+            INTO migrations
               (id, name, up, down)
             VALUES
               ($1, $2, $3, $4)
@@ -131,16 +181,18 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
       }finally{
           await db.query("END TRANSACTION");
       }
-      
+      report.applied.push({id: file.id, name: file.name});
+      report.current = undefined;
     }
     await db.query("COMMIT TRANSACTION");
   }catch(e:any){
     try{
       await db.query("ROLLBACK TRANSACTION");
       /* c8 ignore start */
-    }catch(e){ 
+    }catch(e){
       console.warn("Failed to rollback migration transaction :", e);
     }
+    console.error(formatReport(report, e));
     if(e.detail && debug.enabled) debug(`Databse migration error: ${e.message}\n\t${e.detail}${e.hint?"\n\t"+e.hint:""}`);
     /* c8 ignore stop */
     throw e;
