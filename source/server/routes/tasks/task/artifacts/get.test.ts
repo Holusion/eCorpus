@@ -70,6 +70,14 @@ describe("GET /tasks/:id/artifact", function () {
         .expect(401);
     });
 
+    it("allows server admins to download artifacts of tasks created by others", async function () {
+      await request(this.server)
+        .get(`/tasks/${task_id}/artifact`)
+        .auth("alice", "12345678")
+        .accept("application/json")
+        .expect(200);
+    });
+
     it("returns 405 when task is not yet successful", async function () {
       let task = await taskScheduler.create({user_id: bob.uid, data: {}, status: "initializing", type: "initTask"});
       await request(this.server)
