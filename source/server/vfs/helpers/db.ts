@@ -196,6 +196,30 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
 
 export type Isolate<that, T> = (this: that, vfs :that)=> T|Promise<T>;
 
+export interface IsolateOptions{
+  /**
+   * When provided, every query issued through the isolated transaction first checks the signal
+   * and throws `signal.reason` if it has been aborted. This neutralizes any write attempted after
+   * cancellation: the transaction unwinds and rolls back instead of persisting partial changes.
+   */
+  signal ?:AbortSignal;
+}
+
+/**
+ * Wraps a transaction handle so each query rejects with the abort reason once `signal` fires.
+ * Nested (savepoint) transactions inherit the same guard.
+ */
+function withAbortSignal(handle :Transaction, signal :AbortSignal) :Transaction{
+  const check = ()=>{ if(signal.aborted) throw (signal.reason ?? new Error("Operation aborted")); };
+  return {
+    all<T extends QueryResultRow = any>(sql:string, params?:any[]){ check(); return handle.all<T>(sql, params); },
+    get<T extends QueryResultRow = any>(sql:string, params?:any[]){ check(); return handle.get<T>(sql, params); },
+    run(sql:string, params?:any[]){ check(); return handle.run(sql, params); },
+    each<T extends QueryResultRow = any>(sql:string, params?:any[]){ check(); return handle.each<T>(sql, params); },
+    beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>){ check(); return handle.beginTransaction<T>((inner)=> work(withAbortSignal(inner, signal))); },
+  };
+}
+
 /**
  * Base class to centralize database handling functions.
  * Mainly: assigning an internal "db" property and setting up an isolate function
@@ -225,19 +249,26 @@ export class DbController{
    * })
    * @see Database.beginTransaction
    */
-  public async isolate<T>(controller: DbController, fn :Isolate<typeof this, T>) :Promise<T>
-  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>
-  public async isolate<T>(fnOrController :DbController|Isolate<typeof this, T>, fnParam?:Isolate<typeof this, T>) :Promise<T>{
-    const controller = (typeof fnOrController == "object" && typeof fnParam !== "undefined")? fnOrController : this;
-    const fn = (typeof fnParam === "undefined" && typeof fnOrController === "function")? fnOrController: fnParam;
+  public async isolate<T>(controller: DbController, fn :Isolate<typeof this, T>, opts ?:IsolateOptions) :Promise<T>
+  public async isolate<T>(fn :Isolate<typeof this, T>, opts ?:IsolateOptions) :Promise<T>
+  public async isolate<T>(a :DbController|Isolate<typeof this, T>, b ?:Isolate<typeof this, T>|IsolateOptions, c ?:IsolateOptions) :Promise<T>{
+    let controller :DbController, fn :Isolate<typeof this, T>|undefined, opts :IsolateOptions|undefined;
+    if(typeof a === "function"){
+      controller = this; fn = a; opts = b as IsolateOptions|undefined;
+    }else{
+      controller = a; fn = b as Isolate<typeof this, T>|undefined; opts = c;
+    }
     if(!fn) throw new Error(`Can't call undefined isolate workload`);
+    const workload = fn; // const binding so it narrows inside the transaction closure
     const parent = this;
+    const signal = opts?.signal;
     return await controller.db.beginTransaction(async function isolatedTransaction(transaction){
       let closed = false;
+      const db = signal ? withAbortSignal(transaction, signal) : transaction;
       let that = new Proxy<typeof parent>(parent, {
         get(target, prop, receiver){
           if(prop === "db"){
-            return transaction;
+            return db;
           }else if (prop === "isOpen"){
             return !closed;
           }
@@ -245,7 +276,7 @@ export class DbController{
         }
       });
       try{
-        return await fn.call(that, that);
+        return await workload.call(that, that);
       }finally{
         closed = true;
       }

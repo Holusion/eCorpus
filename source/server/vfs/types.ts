@@ -19,6 +19,8 @@ export interface WriteFileParams extends CommonFileParams{
   user_id: number | null;
   /** mime is application/octet-stream if omitted */
   mime ?:string;
+  /** when provided, aborts the streaming write (cooperative cancellation) */
+  signal ?:AbortSignal;
 }
 
 export interface GetFileParams extends CommonFileParams{
