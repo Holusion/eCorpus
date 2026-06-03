@@ -1,4 +1,4 @@
-export { createLogger, rootLogger, buildLoggerOptions } from "./logger.js";
+export { createLogger, rootLogger, buildLoggerOptions, captureLogs } from "./logger.js";
 export { accessLogMdw } from "./access.js";
 export {
   type LogContext,

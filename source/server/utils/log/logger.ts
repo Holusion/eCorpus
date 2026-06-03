@@ -1,3 +1,5 @@
+import { PassThrough, Writable } from "node:stream";
+
 import pino, { type Logger, type LoggerOptions } from "pino";
 
 import staticConfig from "../config.js";
@@ -60,13 +62,22 @@ export function buildLoggerOptions(): LoggerOptions {
   };
 }
 
-async function buildRootLogger(): Promise<Logger> {
-  const options = buildLoggerOptions();
-  if (useJSON()) return pino(options);
+/**
+ * All log output flows through this internal sink. We forward each `data`
+ * chunk to whatever {@link _dest} is currently installed, which lets tests
+ * swap the destination at runtime via {@link captureLogs} without rebuilding
+ * existing module loggers.
+ */
+const _sink = new PassThrough();
+let _dest: NodeJS.WritableStream;
+_sink.on("data", (chunk) => _dest.write(chunk));
+
+async function buildDefaultDest(): Promise<NodeJS.WritableStream> {
+  if (useJSON()) return process.stdout;
   // Imported lazily so JSON deployments don't pay for it, but `pino-pretty` is
   // a regular dependency, so this always resolves.
   const { default: pretty } = await import("pino-pretty");
-  return pino(options, pretty({
+  return pretty({
     colorize: process.stdout.isTTY,
     // Keep human-readable output terse: drop the timestamp, operational
     // constants and the structured-only correlation/access fields (all still
@@ -79,11 +90,22 @@ async function buildRootLogger(): Promise<Logger> {
       const module = logObj["module"];
       return module ? `[${module}] ${msg}` : `${msg}`;
     },
-  }));
+  });
 }
 
-/** Process-wide root logger. */
-export const rootLogger: Logger = await buildRootLogger();
+_dest = await buildDefaultDest();
+
+/** Process-wide root logger. Writes raw JSON to {@link _sink}. */
+export const rootLogger: Logger = pino(buildLoggerOptions(), _sink);
+
+/**
+ * Registry of every child logger created via {@link createLogger}, keyed by
+ * module name. {@link captureLogs} walks this to temporarily lower per-child
+ * levels — pino children snapshot the parent level at creation, so bumping
+ * `rootLogger.level` alone wouldn't reach them when the test suite runs at
+ * `LOG_LEVEL=silent`.
+ */
+const _moduleLoggers = new Map<string, Logger>();
 
 /**
  * Returns a child logger tagged with a `module` field — our "call site"
@@ -91,5 +113,76 @@ export const rootLogger: Logger = await buildRootLogger();
  * (e.g. `"http"`, `"vfs/db"`), mirroring the existing `debuglog` namespaces.
  */
 export function createLogger(module: string): Logger {
-  return rootLogger.child({ module });
+  let child = _moduleLoggers.get(module);
+  if (!child) {
+    child = rootLogger.child({ module });
+    _moduleLoggers.set(module, child);
+  }
+  return child;
+}
+
+/**
+ * Test helper: capture every structured-log line emitted during the returned
+ * scope, parsed back from JSON. Bumps the level on `rootLogger` *and* every
+ * already-registered child logger to `trace` so a test suite running with
+ * `LOG_LEVEL=silent` still sees output. Call `stop()` to restore the previous
+ * destination and levels.
+ *
+ * ```ts
+ * const cap = captureLogs();
+ * try {
+ *   await someCodePathThatLogs();
+ *   expect(cap.records).to.have.length(1);
+ *   expect(cap.records[0]).to.include({ level: "error", module: "pg:migration" });
+ * } finally {
+ *   cap.stop();
+ * }
+ * ```
+ */
+export function captureLogs(): { records: any[]; stop: () => void } {
+  const records: any[] = [];
+  let buf = "";
+  const cap = new Writable({
+    write(chunk, _enc, cb) {
+      buf += chunk.toString();
+      let nl: number;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl);
+        buf = buf.slice(nl + 1);
+        if (!line.trim()) continue;
+        try { records.push(JSON.parse(line)); } catch { /* not JSON, drop */ }
+      }
+      cb();
+    },
+  });
+
+  const prevDest = _dest;
+  _dest = cap;
+
+  // Snapshot every level BEFORE bumping anything: pino's child loggers report
+  // their parent's level until they're explicitly overridden, so reading
+  // `child.level` after we've bumped the root would falsely record "trace"
+  // and stop() would never restore the real previous level.
+  const prevRootLevel = rootLogger.level;
+  const prevChildLevels = new Map<string, string>();
+  for (const [mod, child] of _moduleLoggers) {
+    prevChildLevels.set(mod, child.level);
+  }
+
+  rootLogger.level = "trace";
+  for (const child of _moduleLoggers.values()) {
+    child.level = "trace";
+  }
+
+  return {
+    records,
+    stop() {
+      _dest = prevDest;
+      rootLogger.level = prevRootLevel;
+      for (const [mod, lvl] of prevChildLevels) {
+        const child = _moduleLoggers.get(mod);
+        if (child) child.level = lvl;
+      }
+    },
+  };
 }
