@@ -192,7 +192,7 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
     }catch(rollbackErr){
       log.warn({ err: rollbackErr }, "Failed to rollback migration transaction");
     }
-    log.error({ err: e, detail: e.detail, hint: e.hint, report }, formatReport(report, e));
+    console.error(formatReport(report, e));
     /* c8 ignore stop */
     throw e;
   }

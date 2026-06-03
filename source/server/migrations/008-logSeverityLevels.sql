@@ -21,20 +21,20 @@ ALTER TABLE tasks_logs ALTER COLUMN severity SET DEFAULT 'info';
 -- set. Any rows holding the new-only values are coerced to the closest
 -- equivalent (`trace` -> `debug`, `fatal` -> `error`) before the swap.
 
-ALTER TABLE tasks_logs ALTER COLUMN severity SET DEFAULT 'log';
+ALTER TABLE tasks_logs ALTER COLUMN severity DROP DEFAULT;
 
 CREATE TYPE log_severity_old AS ENUM('debug', 'log', 'warn', 'error');
 
 ALTER TABLE tasks_logs
-  ALTER COLUMN severity DROP DEFAULT,
   ALTER COLUMN severity TYPE log_severity_old
   USING (CASE severity::text
     WHEN 'trace' THEN 'debug'
     WHEN 'info'  THEN 'log'
     WHEN 'fatal' THEN 'error'
     ELSE severity::text
-  END)::log_severity_old,
-  ALTER COLUMN severity SET DEFAULT 'log';
+  END)::log_severity_old;
 
 DROP TYPE log_severity;
 ALTER TYPE log_severity_old RENAME TO log_severity;
+
+ALTER TABLE tasks_logs ALTER COLUMN severity SET DEFAULT 'log';
