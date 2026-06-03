@@ -200,28 +200,21 @@ describe("DbController", function(){
         });
         // `_db` is a getter that internally reads `this.db`, which the proxy
         // intercepts and now refuses once the callback has returned.
-        expect(()=>leaked!._db).to.throw(/isolate\(\) has returned/);
+        // The error originates in withTransaction's proxy because isolate
+        // delegates to it.
+        expect(()=>leaked!._db).to.throw(/has returned/);
       });
 
-      it("test nested isolation", async function(){
-        let values_t1:number, values_t2: number, values_c1: number;
-        //Check if our test case reliably fails when isolate doesn't work as intended
+      it("rejects mixing proxied and unproxied controllers", async function(){
+        // The old two-argument `c2.isolate(t1, ...)` form would silently open a
+        // savepoint on `t1`'s active transaction; that asymmetric bridge is the
+        // shape we're deprecating. Now that isolate delegates to
+        // withTransaction, mixing a proxied controller (t1) with an unproxied
+        // one (c2) trips the same-Database check loudly. The savepoint nesting
+        // pattern itself is exercised by the withTransaction tests below.
         await c1.isolate(async (t1)=>{
-          await c2.isolate(t1, async (t2)=>{
-            //This will not be visible in the transaction
-            await t1._db.run("INSERT INTO test VALUES ('bar')");
-            await t2._db.run("INSERT INTO test VALUES ('baz')");
-            values_t1 = (await t1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
-            values_t2 = (await t2._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
-            values_c1 = (await c1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
-
-            await t2._db.run("INSERT INTO test VALUES ('bazz')");
-          })
+          await expect(c2.isolate(t1, async ()=>{})).to.be.rejectedWith(/single connection pool/);
         });
-        expect(values_t1!, "added value should be visible in the transaction").to.equal(3);
-        expect(values_t2!, "added value should be visible in the transaction").to.equal(3);
-        expect(values_c1!, "added value should not be visible outside of the transaction").to.equal(1);
-        expect((await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count, "after transaction, all values should exist").to.equal(4);
       });
     })
 

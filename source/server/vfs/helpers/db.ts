@@ -283,32 +283,19 @@ export class DbController{
       controller = a; fn = b as Isolate<typeof this, T>|undefined; opts = c;
     }
     if(!fn) throw new Error(`Can't call undefined isolate workload`);
-    const workload = fn; // const binding so it narrows inside the transaction closure
-    const parent = this;
-    const signal = opts?.signal;
-    return await controller.db.beginTransaction(async function isolatedTransaction(transaction){
-      let closed = false;
-      const db = signal ? withAbortSignal(transaction, signal) : transaction;
-      let that = new Proxy<typeof parent>(parent, {
-        get(target, prop, receiver){
-          if(prop === "db"){
-            // Once isolate() has returned the connection is back in the pool —
-            // continuing to query through `transaction` would hit a connection
-            // now owned by someone else. Fail loudly instead.
-            if(closed) throw new Error(`Use of an isolated controller after isolate() has returned`);
-            return db;
-          }else if (prop === "isOpen"){
-            return !closed;
-          }
-          return Reflect.get(target, prop, receiver);
-        }
-      });
-      try{
-        return await workload.call(that, that);
-      }finally{
-        closed = true;
-      }
-    }) as T;
+    // Delegate entirely to withTransaction. The two-argument form passes both
+    // controllers in the bundle so that withTransaction's same-Database check
+    // applies — a stricter constraint than the old code, and the reason this
+    // method is being phased out. `opts` (incl. AbortSignal) flows through.
+    const workload = fn;
+    const bundle: Record<string, DbController> = (controller === this)
+      ? { _self: this }
+      : { _controller: controller, _self: this };
+    return await withTransaction(
+      bundle,
+      ({ _self }) => workload.call(_self as typeof this, _self as typeof this),
+      opts,
+    ) as T;
   }
 }
 
@@ -359,7 +346,7 @@ type Bundle<T extends Record<string, DbController>> = { [K in keyof T]: T[K] };
 export async function withTransaction<
   T extends Record<string, DbController>,
   R,
->(controllers: T, fn: (controllers: Bundle<T>) => Promise<R>): Promise<R> {
+>(controllers: T, fn: (controllers: Bundle<T>) => R | Promise<R>, opts?: IsolateOptions): Promise<R> {
   const entries = Object.entries(controllers) as Array<[keyof T & string, DbController]>;
   if(entries.length === 0){
     throw new Error(`withTransaction requires at least one controller`);
@@ -380,7 +367,10 @@ export async function withTransaction<
     }
   }
 
-  return await sharedDb.beginTransaction(async (tr) => {
+  return await sharedDb.beginTransaction(async (raw) => {
+    // Apply the abort-signal guard once; the wrapper propagates itself into
+    // nested savepoints, so every query under this transaction observes it.
+    const tr = opts?.signal ? withAbortSignal(raw, opts.signal) : raw;
     let closed = false;
     // `_db` is a getter that does `return this.db`, so it routes through the
     // proxy too — one intercept covers both.
