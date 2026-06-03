@@ -4,6 +4,9 @@ import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
 import { debuglog } from 'node:util';
 import { expandSQLError } from './errors.js';
+import { createLogger } from "../../utils/log/index.js";
+
+const log = createLogger("pg:connect");
 
 
 export interface DbOptions {
@@ -111,7 +114,7 @@ export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "begin
 
 let _id :number = 0;
 export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
-  debug("connect to database at : "+ uri)
+  log.debug({ uri }, "connect to database");
   let pool = new Pool({
     connectionString: uri,
     // a connection timeout is a bad thing to have.
@@ -120,7 +123,7 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
   });
 
   pool.on("error", (err, client)=>{
-    console.error("psql client pool error :", err);
+    log.error({ err }, "psql client pool error");
   });
   
   
@@ -128,6 +131,10 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
     ...toHandle(pool),
     async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>): Promise<T>{
       const client = await pool.connect();
+      // When cleanup fails we can't safely return the client to the pool: the
+      // session might still hold a transaction, a SET, or an aborted state.
+      // Passing `true` to release() asks pg-pool to destroy the connection.
+      let dirty = false;
       try{
         await client.query(`BEGIN TRANSACTION`);
         const res = await work({
@@ -135,27 +142,38 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
           async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>):Promise<T>{
             const sp = `SP_${(++_id).toString(16)}`;
             await client.query(`SAVEPOINT ${sp}`);
+            let result :T;
             try{
-              return await work(this);
+              result = await work(this);
             }catch(e){
               try{
                 await client.query(`ROLLBACK TRANSACTION TO ${sp}`);
-              }catch(e:any){
-                console.error(new Error(`Failed to rollback transaction: `+e.message));
+                await client.query(`RELEASE SAVEPOINT ${sp}`);
+              }catch(rbErr:any){
+                // Savepoint cleanup failed: the outer transaction is unrecoverable.
+                dirty = true;
+                console.error(`Failed to roll back savepoint ${sp}: ${rbErr.message}`);
               }
               throw e;
-            }finally{
-              await client.query(`RELEASE SAVEPOINT ${sp}`);
             }
+            await client.query(`RELEASE SAVEPOINT ${sp}`);
+            return result;
           }
         });
         await client.query(`COMMIT TRANSACTION`);
         return res;
       }catch(e){
-       await client.query('ROLLBACK TRANSACTION');
-       throw e;
+        if(!dirty){
+          try{
+            await client.query('ROLLBACK TRANSACTION');
+          }catch(rbErr){
+            // Don't let a failing ROLLBACK mask the original error.
+            dirty = true;
+          }
+        }
+        throw e;
       }finally{
-        client.release();
+        client.release(dirty);
       }
 
     },
@@ -196,6 +214,30 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
 
 export type Isolate<that, T> = (this: that, vfs :that)=> T|Promise<T>;
 
+export interface IsolateOptions{
+  /**
+   * When provided, every query issued through the isolated transaction first checks the signal
+   * and throws `signal.reason` if it has been aborted. This neutralizes any write attempted after
+   * cancellation: the transaction unwinds and rolls back instead of persisting partial changes.
+   */
+  signal ?:AbortSignal;
+}
+
+/**
+ * Wraps a transaction handle so each query rejects with the abort reason once `signal` fires.
+ * Nested (savepoint) transactions inherit the same guard.
+ */
+function withAbortSignal(handle :Transaction, signal :AbortSignal) :Transaction{
+  const check = ()=>{ if(signal.aborted) throw (signal.reason ?? new Error("Operation aborted")); };
+  return {
+    all<T extends QueryResultRow = any>(sql:string, params?:any[]){ check(); return handle.all<T>(sql, params); },
+    get<T extends QueryResultRow = any>(sql:string, params?:any[]){ check(); return handle.get<T>(sql, params); },
+    run(sql:string, params?:any[]){ check(); return handle.run(sql, params); },
+    each<T extends QueryResultRow = any>(sql:string, params?:any[]){ check(); return handle.each<T>(sql, params); },
+    beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>){ check(); return handle.beginTransaction<T>((inner)=> work(withAbortSignal(inner, signal))); },
+  };
+}
+
 /**
  * Base class to centralize database handling functions.
  * Mainly: assigning an internal "db" property and setting up an isolate function
@@ -213,42 +255,145 @@ export class DbController{
 
   
   /**
-   * Runs a sequence of methods in isolation
-   * Every calls to Vfs.db inside of the callback will be wrapped in a transaction
-   * 
-   * Can be combined through multiple DbController instances. For example: 
-   * ```javascript
-   * vfs.isolate(async vfs =>{
-   *  return userManager.isolate(vfs, async (userManager)=>{
-   *    //Here both `userManager` and `vfs` will execute queries within the explicit transaction
-   *  })
-   * })
+   * @deprecated Use {@link withTransaction} instead.
+   *
+   * Drop-in replacement:
+   * ```ts
+   * // before
+   * await vfs.isolate(async (vfs) => { ... })
+   * // after
+   * await withTransaction({vfs}, async ({vfs}) => { ... })
+   * ```
+   *
+   * Multi-controller form: `userManager.isolate(vfs, async userManager => ...)`
+   * becomes `withTransaction({vfs, userManager}, async ({vfs, userManager}) => ...)`.
+   * The new form is symmetric (no privileged "primary" controller), N-ary, and
+   * enforces at runtime that every participant shares the same Database — which
+   * the two-argument form silently allowed to diverge.
+   *
+   * Runs a sequence of methods in isolation. Every call to `Vfs.db` inside the
+   * callback is wrapped in a transaction.
    * @see Database.beginTransaction
+   * @see withTransaction
    */
-  public async isolate<T>(controller: DbController, fn :Isolate<typeof this, T>) :Promise<T>
-  public async isolate<T>(fn :Isolate<typeof this, T>) :Promise<T>
-  public async isolate<T>(fnOrController :DbController|Isolate<typeof this, T>, fnParam?:Isolate<typeof this, T>) :Promise<T>{
-    const controller = (typeof fnOrController == "object" && typeof fnParam !== "undefined")? fnOrController : this;
-    const fn = (typeof fnParam === "undefined" && typeof fnOrController === "function")? fnOrController: fnParam;
+  public async isolate<T>(controller: DbController, fn :Isolate<typeof this, T>, opts ?:IsolateOptions) :Promise<T>
+  public async isolate<T>(fn :Isolate<typeof this, T>, opts ?:IsolateOptions) :Promise<T>
+  public async isolate<T>(a :DbController|Isolate<typeof this, T>, b ?:Isolate<typeof this, T>|IsolateOptions, c ?:IsolateOptions) :Promise<T>{
+    let controller :DbController, fn :Isolate<typeof this, T>|undefined, opts :IsolateOptions|undefined;
+    if(typeof a === "function"){
+      controller = this; fn = a; opts = b as IsolateOptions|undefined;
+    }else{
+      controller = a; fn = b as Isolate<typeof this, T>|undefined; opts = c;
+    }
     if(!fn) throw new Error(`Can't call undefined isolate workload`);
-    const parent = this;
-    return await controller.db.beginTransaction(async function isolatedTransaction(transaction){
-      let closed = false;
-      let that = new Proxy<typeof parent>(parent, {
-        get(target, prop, receiver){
-          if(prop === "db"){
-            return transaction;
-          }else if (prop === "isOpen"){
-            return !closed;
-          }
-          return Reflect.get(target, prop, receiver);
-        }
-      });
-      try{
-        return await fn.call(that, that);
-      }finally{
-        closed = true;
-      }
-    }) as T;
+    // Delegate entirely to withTransaction. The two-argument form passes both
+    // controllers in the bundle so that withTransaction's same-Database check
+    // applies — a stricter constraint than the old code, and the reason this
+    // method is being phased out. `opts` (incl. AbortSignal) flows through.
+    const workload = fn;
+    const bundle: Record<string, DbController> = (controller === this)
+      ? { _self: this }
+      : { _controller: controller, _self: this };
+    return await withTransaction(
+      bundle,
+      ({ _self }) => workload.call(_self as typeof this, _self as typeof this),
+      opts,
+    ) as T;
   }
+}
+
+
+/**
+ * Map of names → tx-bound versions of the same controllers, preserving the
+ * subclass type of each entry so consumers keep their full Vfs / UserManager
+ * APIs inside the callback.
+ */
+type Bundle<T extends Record<string, DbController>> = { [K in keyof T]: T[K] };
+
+/**
+ * Run `fn` inside a database transaction with each provided controller proxied
+ * so its queries route through that transaction. Atomically commits if `fn`
+ * resolves, rolls back if it throws.
+ *
+ * All controllers must share the same underlying {@link Database}. This is
+ * asserted at runtime: a "transaction" spanning two different connection pools
+ * isn't a transaction. Mixing controllers from different `Database` instances
+ * is the kind of mistake the old two-argument `isolate()` form could not catch.
+ *
+ * Nested calls reuse the active connection via SAVEPOINTs (see
+ * {@link Database.beginTransaction}).
+ *
+ * @example single controller (drop-in for `vfs.isolate(fn)`)
+ * ```ts
+ * await withTransaction({vfs}, async ({vfs}) => {
+ *   await vfs.createScene("foo")
+ * })
+ * ```
+ *
+ * @example multi-controller — the case the old API made awkward
+ * ```ts
+ * await withTransaction({vfs, userManager}, async ({vfs, userManager}) => {
+ *   const id = await vfs.createScene("foo", user.uid)
+ *   await userManager.grant(id, user.uid, "admin")
+ * })
+ * ```
+ *
+ * @example name your bindings differently if outer shadowing is confusing
+ * ```ts
+ * await withTransaction({vfs, userManager}, async ({vfs: tx, userManager: um}) => {
+ *   await tx.createScene("foo")
+ *   await um.grant("foo", user.uid, "admin")
+ * })
+ * ```
+ */
+export async function withTransaction<
+  T extends Record<string, DbController>,
+  R,
+>(controllers: T, fn: (controllers: Bundle<T>) => R | Promise<R>, opts?: IsolateOptions): Promise<R> {
+  const entries = Object.entries(controllers) as Array<[keyof T & string, DbController]>;
+  if(entries.length === 0){
+    throw new Error(`withTransaction requires at least one controller`);
+  }
+
+  // Every controller must talk to the same handle. For top-level controllers
+  // that's the shared Database; for already-wrapped controllers (nested call)
+  // it's the active Transaction. Either way, identity comparison is the right
+  // check — a transaction is meaningless across distinct connection pools.
+  const [rootName, root] = entries[0];
+  const sharedDb = root._db;
+  for(const [name, c] of entries){
+    if(c._db !== sharedDb){
+      throw new Error(
+        `withTransaction: controller "${name}" does not share a Database with "${rootName}". `
+        + `Atomicity requires a single connection pool.`,
+      );
+    }
+  }
+
+  return await sharedDb.beginTransaction(async (raw) => {
+    // Apply the abort-signal guard once; the wrapper propagates itself into
+    // nested savepoints, so every query under this transaction observes it.
+    const tr = opts?.signal ? withAbortSignal(raw, opts.signal) : raw;
+    let closed = false;
+    // `_db` is a getter that does `return this.db`, so it routes through the
+    // proxy too — one intercept covers both.
+    const wrap = <C extends DbController>(c: C): C => new Proxy(c, {
+      get(target, prop, receiver){
+        if(prop === "db"){
+          if(closed) throw new Error(`Use of an isolated controller after withTransaction() has returned`);
+          return tr;
+        }
+        if(prop === "isOpen") return !closed;
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as C;
+    const bundle = Object.fromEntries(
+      entries.map(([name, c]) => [name, wrap(c)]),
+    ) as Bundle<T>;
+    try{
+      return await fn(bundle);
+    }finally{
+      closed = true;
+    }
+  });
 }

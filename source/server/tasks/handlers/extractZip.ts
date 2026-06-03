@@ -8,7 +8,6 @@ import { BadRequestError, HTTPError, InternalError, UnauthorizedError } from "..
 import { parseFilepath } from "../../utils/archives.js";
 import { toAccessLevel } from "../../auth/UserManager.js";
 import { getMimeType } from "../../utils/filetypes.js";
-import { text } from "node:stream/consumers";
 import { finished } from "node:stream/promises";
 import { UploadHandlerParams, ParsedUserUpload, UploadedArchive, UploadedFile } from "./uploads.js";
 
@@ -29,7 +28,7 @@ type ImportSceneResult = ImportSuccessResult|ImportErrorResult;
 /**
  * Analyze an uploaded file and create child tasks accordingly
  */
-export async function extractScenesArchive({task: {scene_id: scene_id, user_id: user_id, data: {fileLocation}}, context:{vfs, logger, userManager, tasks}}:TaskHandlerParams<FileArtifact>):Promise<ImportSuccessResult[]>{
+export async function extractScenesArchive({task: {scene_id: scene_id, user_id: user_id, data: {fileLocation}}, context:{vfs, logger, userManager, tasks, signal}}:TaskHandlerParams<FileArtifact>):Promise<ImportSuccessResult[]>{
   if(!fileLocation || typeof fileLocation !== "string") throw new Error(`invalid fileLocation provided`);
   const filepath = vfs.absolute(fileLocation);
   if(!user_id) throw new Error(`This task requires an authenticated user`);
@@ -42,6 +41,9 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
     
   logger.debug("Open database transaction");
   const ts = Date.now();
+  try{
+  // Pass the abort signal into the transaction: once cancelled, the next query throws and the
+  // whole transaction rolls back, neutralizing any further writes from this handler.
   const results = await vfs.isolate(async (vfs)=>{
     //Directory entries are optional in a zip file so we should handle their absence
     //We do this by maintaining a Map of scenes, and for each scene a Set of files
@@ -53,6 +55,8 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
      * Handles a zip entry.
      */
     const onEntry = async (record :Entry) =>{
+      // cooperative cancellation: stop before doing any work on this entry once aborted
+      if(signal?.aborted) throw signal.reason ?? new Error("Task aborted");
       const {scene, name, isDirectory} = parseFilepath(record.fileName);
       if(!scene ) return;
       if(!scenes.has(scene)){
@@ -108,45 +112,50 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
           //409 == Folder already exist, it's OK.
         }
       }
+      // Is a directory. Do nothing, handled above.
+      if(isDirectory) return;
 
-      if(isDirectory){
-        // Is a directory. Do nothing, handled above.
-      }else if(name.endsWith(".svx.json")){
-        let data = Buffer.alloc(record.uncompressedSize), size = 0;
-        let rs = await openZipEntry(record);
-        rs.on("data", (chunk)=>{
-          chunk.copy(data, size);
+      let mime = getMimeType(name);
+      logger.debug(`Open zip entry ${record.fileName} (${mime})`);
+      let rs = await openZipEntry(record);
+      if(mime == "application/si-dpo-3d.document+json" || mime.startsWith('text/')){
+        logger.debug("casting %s/%s from stream to string", scene, name);
+        let data = Buffer.allocUnsafe(record.uncompressedSize), size = 0;
+        rs.on("data", (chunk: Buffer)=>{
+          data.set(chunk, size);
           size += chunk.length;
         });
-        await finished(rs);
-        await vfs.writeDoc(data, {scene, user_id: requester.uid, name, mime: "application/si-dpo-3d.document+json"});
-      }else{
-        //Add the file
-        let rs = await openZipEntry(record);
-        let mime = getMimeType(name);
-        if (mime.startsWith('text/')){
-          await vfs.writeDoc(await text(rs), {user_id: requester.uid, scene, name, mime});
-        } else {
-          await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime});
+        await finished(rs, { signal });
+        //Check size because we alloc'd unsafe
+        if(size != record.uncompressedSize){
+          logger.error(`${record.fileName} has ${size} bytes of data (expected ${record.uncompressedSize})`);
+          throw new Error(`Corrupted or truncated Zip file: Bad file size for ${record.fileName}`);
         }
+        await vfs.writeDoc(data, {scene, user_id: requester.uid, name, mime });
+      }else{
+        await vfs.writeFile(rs, {user_id: requester.uid, scene, name, mime, signal});
       }
     };
 
     zip.on("entry", (record)=>{
       onEntry(record).then(()=>{
-        zip.readEntry()
+        zip.readEntry();
       }, (e)=>{
+        logger.log("Closing the zip file early due to a readEntry error");
         zip.close();
         zipError=e;
       });
     });
     zip.readEntry();
+
     logger.debug("Start extracting zip entries");
-    await once(zip, "close");
+    await once(zip, "close", { signal });
+
     if(zipError){
       logger.error("Zip extraction encountered an error. This is most probably due to an invalid zip");
       throw zipError;
     }
+
     const results = [...scenes.values()].map<ImportSceneResult>(({folders, ...r})=> r as any);
     if(has_errors){
       let errors = results.filter(function(r):r is ImportErrorResult {return r.action == "error"});
@@ -166,10 +175,15 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
       logger.debug("zip file closed successfully. Running database triggers.");
       return results as ImportSuccessResult[];
     }
-  });
+  }, { signal });
 
   logger.log("Database transaction took %dms", Date.now()- ts);
   return results;
+  }finally{
+    // Release the zip fd even if we bailed out before yauzl auto-closed (e.g. on cancellation).
+    // ZipFile.close() is idempotent, so this is a no-op after a normal, fully-consumed run.
+    zip.close();
+  }
 };
 
 export function isUploadedArchive(t: UploadedFile): t is UploadedArchive {

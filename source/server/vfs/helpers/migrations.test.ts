@@ -4,6 +4,7 @@ import { expect } from "chai";
 import path from "path";
 import { listMigrations, mapMigrations, migrate, parseMigrationString } from "./migrations.js";
 import { Client } from "pg";
+import { captureLogs } from "../../utils/log/index.js";
 
 
 
@@ -101,19 +102,16 @@ describe("Database migration", function(){
   describe("migrate()", function(){
     let db :Client;
     let uri: string, dir :string;
-    let errMessages :any[][];
-    let origError :typeof console.error;
+    let logCapture: ReturnType<typeof captureLogs>;
     this.beforeEach(async function(){
       dir = await fs.mkdtemp(path.join(this.dir, "migrate-"));
       uri = await getUniqueDb(this.currentTest?.title);
       db = new Client({connectionString: uri});
       await db.connect();
-      errMessages = [];
-      origError = console.error;
-      console.error = (...a:any[])=> errMessages.push(a);
+      logCapture = captureLogs();
     });
     this.afterEach(async function(){
-      console.error = origError;
+      logCapture.stop();
       await db.end();
       await dropDb(uri);
     });
@@ -138,14 +136,15 @@ describe("Database migration", function(){
       expect((await db.query("SELECT * FROM migrations")).rows).to.deep.equal([]);
     });
 
-    it("dumps a report to console.error on failure", async function(){
+    it("emits a structured report at error level on failure", async function(){
       await fs.writeFile(path.join(dir, "001-initial.sql"), "CREATE TABLE foo(name TEXT);\n-- down\nDROP TABLE foo;");
       await fs.writeFile(path.join(dir, "002-broken.sql"), "xxx\n");
       await expect(migrate({db, migrations:dir, force: false})).to.be.rejected;
-      expect(errMessages, "console.error should have been called once").to.have.length(1);
-      const report = errMessages[0].join(" ");
+      const errorRecords = logCapture.records.filter(r => r.module === "pg:migration" && r.level === "error");
+      expect(errorRecords, "pg:migration error log should be emitted once").to.have.length(1);
+      const report = errorRecords[0].msg as string;
       //Target database name
-      expect(report).to.match(/target database:.*dumps_a_report/);
+      expect(report).to.match(/target database:.*emits_a_structured_report/);
       //Migration that was being processed when it crashed
       expect(report).to.contain("002-broken");
       //Migration applied before the crash

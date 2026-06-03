@@ -1,11 +1,11 @@
-import { debuglog } from "node:util";
 import { BadRequestError, HTTPError, NotFoundError } from "../utils/errors.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { serializeTaskError } from "./errors.js";
 import { TaskStatus, TaskDataPayload, TaskDefinition, CreateTaskParams, TaskNode, TaskLogEntry, TaskTreeResult, LogSeverity } from "./types.js";
+import { createLogger } from "../utils/log/index.js";
 
-const debug_status = debuglog("tasks:status");
-const debug_logs = debuglog("tasks:logs");
+const log_status = createLogger("tasks:status");
+const log_release = createLogger("tasks:logs");
 
 /**
  * Contains base interface to manage tasks: creation, status changes, etc...
@@ -35,7 +35,7 @@ export class TaskManager{
    * eg. {@link TaskManager.takeTask} will only work on tasks that have not already started
    */
   public async setTaskStatus(id: number, status:Omit<TaskStatus, "success"|"error">): Promise<void>{
-    debug_status("Set task %d to status %s", id, status);
+    log_status.debug({ task_id: id, status }, `Set task #${id} to status ${status}`);
     let r = await this.db.run(`UPDATE tasks SET status = $2 WHERE task_id = $1`, [id, status]);
     if(!r.changes) throw new NotFoundError(`No task found with id ${id}`);
   }
@@ -47,7 +47,7 @@ export class TaskManager{
    * @throws {BadRequestError} if task status doesn't match 'pending' or 'initializing'
    */
   public async takeTask(id: number): Promise<void>{
-    debug_status("Take task %d", id);
+    log_status.debug({ task_id: id }, `Take task #${id}`);
     const r = await this.db.run(`UPDATE tasks SET status = 'running' WHERE task_id = $1 AND status IN ('initializing', 'pending')`, [id]);
     if(!r.changes){
       const t = await this.getTask(id); //will throw NotFoundError if task doesn't exist
@@ -61,9 +61,9 @@ export class TaskManager{
    * @throws {NotFoundError} if task doesn't exist
    */
   async releaseTask(id: number, output: any = null){
-    if(debug_logs.enabled) debug_logs(`Release task #${id}`, output);
-    else debug_status(`Release task #${id}`);
-    
+    log_status.debug({ task_id: id }, `Release task #${id}`);
+    log_release.debug({ task_id: id, output }, `Release task #${id} output`);
+
     const result = await this.db.run(`UPDATE tasks SET status = 'success', output = $2 WHERE task_id = $1`, [id, JSON.stringify(output)]);
     if(!result.changes){
       throw new NotFoundError(`No task found with id ${id}`);
@@ -77,15 +77,15 @@ export class TaskManager{
    */
   async errorTask(id: number, reason: HTTPError|Error|string){
     try{
-      debug_status(`Task #${id} Error : `, reason);
+      log_status.warn({ task_id: id, err: reason }, `Task #${id} errored`);
       const serialized = serializeTaskError(reason)
       const result = await this.db.run(`UPDATE tasks SET status = 'error', output = $2 WHERE task_id = $1`, [id, serialized]);
-      
+
       if(!result.changes){
         throw new NotFoundError(`No task found with id ${id}`);
       }
     }catch(e:any){
-      console.error("While trying to set task status:", e);
+      log_status.error({ task_id: id, err: e }, "While trying to set task status");
       throw e;
     }
   }
@@ -171,8 +171,8 @@ export class TaskManager{
    * - `logs` – flat array of {@link TaskLogEntry} ordered by `log_id ASC`,
    *   optionally filtered to lines at or above `options.level`.
    *
-   * @param options.level  Minimum severity to include. Defaults to `'debug'` (all lines).
-   *                       Severity order: `debug` < `log` < `warn` < `error`.
+   * @param options.level  Minimum severity to include. Defaults to `'trace'` (all lines).
+   *                       Severity order: `trace` < `debug` < `info` < `warn` < `error` < `fatal`.
    * @throws {NotFoundError} when no task with `id` exists
    */
   public async getTaskTree<TData extends TaskDataPayload = any, TReturn = any>(
@@ -189,7 +189,7 @@ export class TaskManager{
      *
      * Post-processing in JS is O(n) and avoids a second round-trip.
      */
-    const level: LogSeverity = options?.level ?? 'debug';
+    const level: LogSeverity = options?.level ?? 'trace';
     const rows = await this.db.all<{
       // task columns
       scene_id: number;

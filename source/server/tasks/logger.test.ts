@@ -30,7 +30,7 @@ describe("createBatcher", function () {
     const { batches, sink } = collectBatches(batcher);
 
     for (let i = 0; i < 3; i++) {
-      batcher.write({ severity: "log" as LogSeverity, message: `msg${i}` });
+      batcher.write({ severity: "info" as LogSeverity, message: `msg${i}` });
     }
 
     // Batch should have been pushed synchronously
@@ -45,7 +45,7 @@ describe("createBatcher", function () {
     const batcher = createBatcher(100, 30); // small debounce
     const { batches, sink } = collectBatches(batcher);
 
-    batcher.write({ severity: "log" as LogSeverity, message: "hello" });
+    batcher.write({ severity: "info" as LogSeverity, message: "hello" });
     expect(batches, "should not have flushed synchronously").to.have.length(0);
 
     await timers.setTimeout(60); // wait for debounce
@@ -60,8 +60,8 @@ describe("createBatcher", function () {
     const batcher = createBatcher(100, 5000); // neither count nor timer should trigger naturally
     const { batches, sink } = collectBatches(batcher);
 
-    batcher.write({ severity: "log" as LogSeverity, message: "a" });
-    batcher.write({ severity: "log" as LogSeverity, message: "b" });
+    batcher.write({ severity: "info" as LogSeverity, message: "a" });
+    batcher.write({ severity: "info" as LogSeverity, message: "b" });
     expect(batches).to.have.length(0);
 
     batcher.end();
@@ -83,7 +83,7 @@ describe("createBatcher", function () {
     const batcher = createBatcher(100, 20);
     const { batches, sink } = collectBatches(batcher);
 
-    batcher.write({ severity: "log" as LogSeverity, message: "early" });
+    batcher.write({ severity: "info" as LogSeverity, message: "early" });
 
     // Wait for timer to fire
     await timers.setTimeout(50);
@@ -116,7 +116,7 @@ describe("createBatcher", function () {
     const { batches, sink } = collectBatches(batcher);
 
     for (let i = 0; i < 12; i++) {
-      batcher.write({ severity: "log" as LogSeverity, message: `msg${i}` });
+      batcher.write({ severity: "info" as LogSeverity, message: `msg${i}` });
     }
     batcher.end();
     await new Promise<void>((res) => sink.on("finish", res));
@@ -142,7 +142,7 @@ describe("createBatcher", function () {
     batcher.pipe(slowSink);
 
     // Write some data, triggering a timer
-    batcher.write({ severity: "log" as LogSeverity, message: "slow1" });
+    batcher.write({ severity: "info" as LogSeverity, message: "slow1" });
 
     // Wait for the timer to fire and the slow write to start
     await timers.setTimeout(80);
@@ -239,6 +239,35 @@ describe("createLogger (integration)", function () {
     );
     expect(logs).to.have.length(3);
     expect(logs[0].message).to.equal("msg1");
+  });
+
+  it("persists every pino severity level and maps the deprecated `log` to `info`", async function () {
+    this.timeout(1000);
+    const logger = createLogger(handle, task_id);
+
+    logger.trace("msg-trace");
+    logger.debug("msg-debug");
+    logger.info("msg-info");
+    logger.log("msg-log-alias"); // deprecated alias for info
+    logger.warn("msg-warn");
+    logger.error("msg-error");
+    logger.fatal("msg-fatal");
+
+    await (logger as any)[Symbol.asyncDispose]();
+
+    const logs = await handle.all<{ severity: string; message: string }>(
+      `SELECT severity, message FROM tasks_logs WHERE fk_task_id = $1 ORDER BY log_id`,
+      [task_id]
+    );
+    expect(logs.map(l => [l.severity, l.message])).to.deep.equal([
+      ["trace", "msg-trace"],
+      ["debug", "msg-debug"],
+      ["info",  "msg-info"],
+      ["info",  "msg-log-alias"],
+      ["warn",  "msg-warn"],
+      ["error", "msg-error"],
+      ["fatal", "msg-fatal"],
+    ]);
   });
 
 

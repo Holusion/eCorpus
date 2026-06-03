@@ -1,6 +1,6 @@
 import os from "os";
 import { expect } from "chai";
-import open, { Database, DbController } from "./db.js";
+import open, { Database, DbController, withTransaction } from "./db.js";
 import path from "path";
 import { fileURLToPath } from 'url';
 import Vfs from "../index.js";
@@ -144,10 +144,11 @@ describe("Database", function(){
           await tr.run(`INSERT INTO test (name) VALUES ('bob')`);
           return await tr.all("SELECT * FROM test");
         })).to.eventually.deep.equal(exp);
-    
+
         expect(await db.all("SELECT * FROM test"), `changes should not be rolled back`).to.deep.equal(exp);
-    
+
       })
+
     });
     
   })
@@ -192,27 +193,137 @@ describe("DbController", function(){
         expect(values_c2!, "added value should not be visible for non-isolated controllers").to.equal(1);
       });
 
-      it("test nested isolation", async function(){
-        let values_t1:number, values_t2: number, values_c1: number;
-        //Check if our test case reliably fails when isolate doesn't work as intended
+      it("throws when an isolated controller is used after isolate() returns", async function(){
+        let leaked :DbController|null = null;
         await c1.isolate(async (t1)=>{
-          await c2.isolate(t1, async (t2)=>{
-            //This will not be visible in the transaction
-            await t1._db.run("INSERT INTO test VALUES ('bar')");
-            await t2._db.run("INSERT INTO test VALUES ('baz')");
-            values_t1 = (await t1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
-            values_t2 = (await t2._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
-            values_c1 = (await c1._db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
-
-            await t2._db.run("INSERT INTO test VALUES ('bazz')");
-          })
+          leaked = t1;
         });
-        expect(values_t1!, "added value should be visible in the transaction").to.equal(3);
-        expect(values_t2!, "added value should be visible in the transaction").to.equal(3);
-        expect(values_c1!, "added value should not be visible outside of the transaction").to.equal(1);
-        expect((await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count, "after transaction, all values should exist").to.equal(4);
+        // `_db` is a getter that internally reads `this.db`, which the proxy
+        // intercepts and now refuses once the callback has returned.
+        // The error originates in withTransaction's proxy because isolate
+        // delegates to it.
+        expect(()=>leaked!._db).to.throw(/has returned/);
+      });
+
+      it("rejects mixing proxied and unproxied controllers", async function(){
+        // The old two-argument `c2.isolate(t1, ...)` form would silently open a
+        // savepoint on `t1`'s active transaction; that asymmetric bridge is the
+        // shape we're deprecating. Now that isolate delegates to
+        // withTransaction, mixing a proxied controller (t1) with an unproxied
+        // one (c2) trips the same-Database check loudly. The savepoint nesting
+        // pattern itself is exercised by the withTransaction tests below.
+        await c1.isolate(async (t1)=>{
+          await expect(c2.isolate(t1, async ()=>{})).to.be.rejectedWith(/single connection pool/);
+        });
       });
     })
 
+    describe("isolate with an abort signal", function(){
+      this.beforeEach(async function(){
+        await db.run("CREATE TABLE test (value TEXT)");
+      });
+
+      it("rejects queries issued after the signal aborts, and rolls back", async function(){
+        const c = new DbController(db);
+        const ac = new AbortController();
+
+        await expect(c.isolate(async (t)=>{
+          await t._db.run("INSERT INTO test VALUES ('a')"); // applied within the tx
+          ac.abort(new Error("cancelled"));                 // request cancellation
+          await t._db.run("INSERT INTO test VALUES ('b')"); // must throw, not run
+        }, { signal: ac.signal })).to.be.rejectedWith("cancelled");
+
+        // the whole transaction rolled back: neither write persisted
+        const count = (await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+        expect(count).to.equal(0);
+      });
+
+      it("guards nested (savepoint) transactions too", async function(){
+        const c = new DbController(db);
+        const ac = new AbortController();
+
+        await expect(c.isolate(async (t)=>{
+          await t._db.beginTransaction(async (sp)=>{
+            await sp.run("INSERT INTO test VALUES ('x')"); // ok
+            ac.abort(new Error("cancelled"));
+            await sp.run("INSERT INTO test VALUES ('y')"); // must throw inside the savepoint
+          });
+        }, { signal: ac.signal })).to.be.rejectedWith("cancelled");
+
+        const count = (await db.all<{count:number}>("SELECT COUNT(*) as count FROM test"))[0].count;
+        expect(count).to.equal(0);
+      });
+    })
+
+
+    describe("withTransaction", function(){
+      let c1 :DbController, c2 :DbController;
+      this.beforeEach(async function(){
+        await db.run("CREATE TABLE test (value TEXT)");
+        await db.run("INSERT INTO test VALUES ('foo')");
+        c1 = new DbController(db);
+        c2 = new DbController(db);
+      });
+
+      it("wraps every controller in the same transaction", async function(){
+        await withTransaction({c1, c2}, async ({c1, c2})=>{
+          await c1._db.run("INSERT INTO test VALUES ('bar')");
+          await c2._db.run("INSERT INTO test VALUES ('baz')");
+          const {count: inside} = (await c1._db.get<{count:number}>(`SELECT COUNT(*) as count FROM test`))!;
+          expect(inside, "both controllers should see each other's writes inside the txn").to.equal(3);
+        });
+        const {count: after} = (await db.get<{count:number}>(`SELECT COUNT(*) as count FROM test`))!;
+        expect(after, "writes should be committed atomically").to.equal(3);
+      });
+
+      it("rolls back all controllers' writes when the callback throws", async function(){
+        await expect(withTransaction({c1, c2}, async ({c1, c2})=>{
+          await c1._db.run("INSERT INTO test VALUES ('bar')");
+          await c2._db.run("INSERT INTO test VALUES ('baz')");
+          throw new Error("nope");
+        })).to.be.rejectedWith("nope");
+        const {count} = (await db.get<{count:number}>(`SELECT COUNT(*) as count FROM test`))!;
+        expect(count).to.equal(1);
+      });
+
+      it("refuses controllers backed by different Database instances", async function(){
+        const otherUri = await getUniqueDb(this.currentTest?.title);
+        const other = await open({uri: otherUri, forceMigration: true});
+        try{
+          const stray = new DbController(other);
+          await expect(
+            withTransaction({c1, stray}, async ()=>{ throw new Error("must not get here") })
+          ).to.be.rejectedWith(/single connection pool/);
+        }finally{
+          await other.end();
+          await dropDb(otherUri);
+        }
+      });
+
+      it("throws on use of the bundle after withTransaction returns", async function(){
+        let leaked: DbController | null = null;
+        await withTransaction({c1}, async ({c1})=>{ leaked = c1 });
+        expect(()=>leaked!._db).to.throw(/withTransaction\(\) has returned/);
+      });
+
+      it("nests via savepoints when one of the controllers is already proxied", async function(){
+        // Nested call passes the *proxied* c1 + c2. The validation should pass
+        // (they share the active transaction), and the inner block should see
+        // a savepoint, not a fresh top-level transaction.
+        await withTransaction({c1, c2}, async (outer)=>{
+          await outer.c1._db.run("INSERT INTO test VALUES ('outer')");
+          await withTransaction(outer, async (inner)=>{
+            await inner.c1._db.run("INSERT INTO test VALUES ('inner-1')");
+            await expect(withTransaction(inner, async (innerInner)=>{
+              await innerInner.c2._db.run("INSERT INTO test VALUES ('inner-2')");
+              throw new Error("rollback me");
+            })).to.be.rejectedWith("rollback me");
+            await inner.c2._db.run("INSERT INTO test VALUES ('inner-3')");
+          });
+        });
+        const rows = (await db.all<{value:string}>(`SELECT value FROM test ORDER BY value`));
+        expect(rows.map(r=>r.value)).to.deep.equal(["foo", "inner-1", "inner-3", "outer"]);
+      });
+    });
 
 });

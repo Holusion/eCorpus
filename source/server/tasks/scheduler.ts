@@ -1,16 +1,20 @@
-import { debuglog } from "node:util";
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { Queue } from "./queue.js";
 import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunOptions, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
+import { TaskTimeoutError } from "./errors.js";
 import { BadRequestError, InternalError } from "../utils/errors.js";
+import { createLogger as createStructuredLogger } from "../utils/log/index.js";
 
 // Note: previously used stream/once for generator bridge; no longer required for Promise.all-style group
 
 
-const debug = debuglog("tasks:scheduler");
+const log = createStructuredLogger("tasks:scheduler");
+
+/** Default grace period after a watchdog abort before a task is logged as uncooperative. */
+const DEFAULT_UNCOOPERATIVE_GRACE_MS = 1000;
 
 
 interface AsyncContext {
@@ -56,6 +60,31 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
   public get closed() {
     return this.rootQueue.closed;
   }
+
+  /**
+   * Test/override hook for the watchdog budget (ms). When set, it takes precedence
+   * over the dynamic config. Leave undefined in production to follow `task_timeout_seconds`.
+   */
+  public taskTimeoutOverrideMs?: number;
+
+  /**
+   * Effective per-task time budget in milliseconds (0 = watchdog disabled).
+   * Read from the override hook, else the `task_timeout_seconds` dynamic config.
+   * Returns 0 when no Config is available (e.g. in unit tests), preserving prior behaviour.
+   */
+  private get taskTimeoutMs(): number {
+    if (typeof this.taskTimeoutOverrideMs === "number") {
+      return this.taskTimeoutOverrideMs > 0 ? this.taskTimeoutOverrideMs : 0;
+    }
+    const seconds = (this._context as Partial<TaskSchedulerContext>).config?.get("task_timeout_seconds");
+    return typeof seconds === "number" && seconds > 0 ? seconds * 1000 : 0;
+  }
+
+  /**
+   * Grace period (ms) between requesting cancellation (watchdog abort) and logging the task as
+   * uncooperative. Public/mutable so tests can shorten it. The task is never force-settled.
+   */
+  public uncooperativeGraceMs: number = DEFAULT_UNCOOPERATIVE_GRACE_MS;
 
   constructor(protected _context: TContext) {
     super(_context.db);
@@ -118,12 +147,45 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     // Create a wrapper function around the handler to provide the task's execution context
     // and set its status
     const work: TaskPackage = async ({ signal: queueSignal }) => {
-      await using logger = createLogger(this.db, task.task_id);
+      await using logger = createLogger(this.db, task.task_id, { scene_id: task.scene_id, user_id: task.user_id });
+
+      // Watchdog: when a task overruns its budget we *request* cancellation through its abort
+      // signal and, after a grace period, loudly log that it is uncooperative. We deliberately
+      // never abandon it or force its status: a detached/zombie handler could keep logging or
+      // writing. The task keeps its slot and stays "running" until it actually settles — either
+      // cooperatively (it observes the signal) or because the DB-level lock / idle-in-transaction
+      // timeouts make its next query fail. This trades throughput for safety, by design.
+      const timeoutMs = this.taskTimeoutMs;
+      const graceMs = this.uncooperativeGraceMs;
+      const watchdog = new AbortController();
+      let settled = false;
+      let budgetTimer: ReturnType<typeof setTimeout> | undefined;
+      let graceTimer: ReturnType<typeof setTimeout> | undefined;
+      if (timeoutMs > 0) {
+        budgetTimer = setTimeout(() => {
+          if (settled) return;
+          logger.warn(`Task exceeded its ${Math.round(timeoutMs / 1000)}s time budget; requesting cancellation`);
+          watchdog.abort(new TaskTimeoutError(timeoutMs, task.type, task.task_id));
+          graceTimer = setTimeout(() => {
+            if (settled) return;
+            const msg = `Task ${task.type}#${task.task_id} ignored cancellation for ${Math.round(graceMs / 1000)}s and is still running while holding its slot`;
+            logger.error(msg);
+            // also surface on stderr: the task's own DB log stream may be part of what is stuck
+            console.error(`[tasks] ${msg}`);
+          }, graceMs);
+          graceTimer.unref?.();
+        }, timeoutMs);
+        // the watchdog must never keep the process alive on its own
+        budgetTimer.unref?.();
+      }
+
+      const signals = [queueSignal, taskSignal, timeoutMs > 0 ? watchdog.signal : undefined]
+        .filter((s): s is AbortSignal => !!s);
       const context: TaskHandlerContext<TContext> = {
         ...this.taskContext,
         tasks: Object.create(this),
         logger,
-        signal: taskSignal ? (AbortSignal as any).any([taskSignal, queueSignal]) : queueSignal,
+        signal: signals.length > 1 ? (AbortSignal as any).any(signals) : signals[0],
       };
 
       const thisContext: AsyncContext["parent"] = {
@@ -135,13 +197,20 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
 
       await this.takeTask(task.task_id);
       try {
+        // Awaited normally: the task settles only when the handler does. The watchdog above only
+        // requests cancellation and logs — it never resolves/rejects this on the handler's behalf.
         const output = await this.nest({ concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext }, handler.bind(context), { context, task })
+        settled = true;
         await this.releaseTask(task.task_id, output);
         return output;
       } catch (e: any) {
+        settled = true;
         //Here we might make an exception if e.name === "AbortError" and the database is closed
         await this.errorTask(task.task_id, e).catch(e => console.error("Failed to set task error : ", e));
         throw e;
+      } finally {
+        if (budgetTimer) clearTimeout(budgetTimer);
+        if (graceTimer) clearTimeout(graceTimer);
       }
     }
 
@@ -151,7 +220,7 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     if (async_ctx.parent?.logger) {
       async_ctx.parent.logger.debug(`Schedule child task ${task.type}#${task.task_id}`);
     }
-    debug("Schedule work for task #%d on Queue(%s)", task.task_id, async_ctx.queue.name);
+    log.debug({ task_id: task.task_id, queue: async_ctx.queue.name }, `Schedule work for task #${task.task_id} on Queue(${async_ctx.queue.name})`);
     return await (immediate ? async_ctx.queue.unshift(work) : async_ctx.queue.add(work));
   }
 
@@ -211,7 +280,7 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
    */
   override async create<T extends TaskDataPayload = any>(params: CreateTaskParams<T>): Promise<TaskDefinition<T>> {
     const { parent } = this.context();
-    if (parent) debug(`Inherit values from Parent task #${parent.task_id}: ${parent.scene_id ? "Scene: " + parent.scene_id : ""} ${parent.user_id ? "User: " + parent.user_id : ""}`);
+    if (parent) log.debug({ parent_task_id: parent.task_id, scene_id: parent.scene_id, user_id: parent.user_id }, `Inherit values from Parent task #${parent.task_id}`);
     if (!params.scene_id && parent?.scene_id) params.scene_id = parent.scene_id;
     if (!params.user_id && parent?.user_id) params.user_id = parent.user_id;
     if (!params.parent && parent?.task_id) params.parent = parent.task_id;
