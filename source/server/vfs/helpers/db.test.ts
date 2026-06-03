@@ -144,10 +144,11 @@ describe("Database", function(){
           await tr.run(`INSERT INTO test (name) VALUES ('bob')`);
           return await tr.all("SELECT * FROM test");
         })).to.eventually.deep.equal(exp);
-    
+
         expect(await db.all("SELECT * FROM test"), `changes should not be rolled back`).to.deep.equal(exp);
-    
+
       })
+
     });
     
   })
@@ -190,6 +191,16 @@ describe("DbController", function(){
         });
         expect(values_c1!, "added value should be visible in the transaction").to.equal(2);
         expect(values_c2!, "added value should not be visible for non-isolated controllers").to.equal(1);
+      });
+
+      it("throws when an isolated controller is used after isolate() returns", async function(){
+        let leaked :DbController|null = null;
+        await c1.isolate(async (t1)=>{
+          leaked = t1;
+        });
+        // `_db` is a getter that internally reads `this.db`, which the proxy
+        // intercepts and now refuses once the callback has returned.
+        expect(()=>leaked!._db).to.throw(/isolate\(\) has returned/);
       });
 
       it("test nested isolation", async function(){

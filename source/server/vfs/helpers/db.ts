@@ -128,6 +128,10 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
     ...toHandle(pool),
     async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>): Promise<T>{
       const client = await pool.connect();
+      // When cleanup fails we can't safely return the client to the pool: the
+      // session might still hold a transaction, a SET, or an aborted state.
+      // Passing `true` to release() asks pg-pool to destroy the connection.
+      let dirty = false;
       try{
         await client.query(`BEGIN TRANSACTION`);
         const res = await work({
@@ -135,27 +139,38 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
           async beginTransaction<T>(work:(db:DatabaseHandle)=>Promise<T>):Promise<T>{
             const sp = `SP_${(++_id).toString(16)}`;
             await client.query(`SAVEPOINT ${sp}`);
+            let result :T;
             try{
-              return await work(this);
+              result = await work(this);
             }catch(e){
               try{
                 await client.query(`ROLLBACK TRANSACTION TO ${sp}`);
-              }catch(e:any){
-                console.error(new Error(`Failed to rollback transaction: `+e.message));
+                await client.query(`RELEASE SAVEPOINT ${sp}`);
+              }catch(rbErr:any){
+                // Savepoint cleanup failed: the outer transaction is unrecoverable.
+                dirty = true;
+                console.error(`Failed to roll back savepoint ${sp}: ${rbErr.message}`);
               }
               throw e;
-            }finally{
-              await client.query(`RELEASE SAVEPOINT ${sp}`);
             }
+            await client.query(`RELEASE SAVEPOINT ${sp}`);
+            return result;
           }
         });
         await client.query(`COMMIT TRANSACTION`);
         return res;
       }catch(e){
-       await client.query('ROLLBACK TRANSACTION');
-       throw e;
+        if(!dirty){
+          try{
+            await client.query('ROLLBACK TRANSACTION');
+          }catch(rbErr){
+            // Don't let a failing ROLLBACK mask the original error.
+            dirty = true;
+          }
+        }
+        throw e;
       }finally{
-        client.release();
+        client.release(dirty);
       }
 
     },
@@ -268,6 +283,10 @@ export class DbController{
       let that = new Proxy<typeof parent>(parent, {
         get(target, prop, receiver){
           if(prop === "db"){
+            // Once isolate() has returned the connection is back in the pool —
+            // continuing to query through `transaction` would hit a connection
+            // now owned by someone else. Fail loudly instead.
+            if(closed) throw new Error(`Use of an isolated controller after isolate() has returned`);
             return db;
           }else if (prop === "isOpen"){
             return !closed;
