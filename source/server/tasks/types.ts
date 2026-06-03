@@ -126,13 +126,21 @@ export interface TaskSettledCallback<T> {
 }
 
 export interface ITaskLogger{
+  trace: (message?: any, ...optionalParams: any[]) => void,
   debug: (message?: any, ...optionalParams: any[]) => void,
-  log: (message?: any, ...optionalParams: any[]) => void,
-  warn: (message?: any, ...optionalParams: any[]) => void,
+  info:  (message?: any, ...optionalParams: any[]) => void,
+  /** @deprecated use {@link ITaskLogger.info} instead. Kept as an alias for now. */
+  log:   (message?: any, ...optionalParams: any[]) => void,
+  warn:  (message?: any, ...optionalParams: any[]) => void,
   error: (message?: any, ...optionalParams: any[]) => void,
+  fatal: (message?: any, ...optionalParams: any[]) => void,
 }
 
-export type LogSeverity = keyof ITaskLogger;
+/**
+ * Pino-aligned severity levels persisted in `tasks_logs.severity`.
+ * `log` is intentionally excluded — `logger.log(...)` is stored as `info`.
+ */
+export type LogSeverity = Exclude<keyof ITaskLogger, "log">;
 
 /**
  * A single log line produced by a task

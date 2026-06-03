@@ -4,6 +4,9 @@ import Cursor from 'pg-cursor';
 import { migrate } from './migrations.js';
 import { debuglog } from 'node:util';
 import { expandSQLError } from './errors.js';
+import { createLogger } from "../../utils/log/index.js";
+
+const log = createLogger("pg:connect");
 
 
 export interface DbOptions {
@@ -111,7 +114,7 @@ export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "begin
 
 let _id :number = 0;
 export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
-  debug("connect to database at : "+ uri)
+  log.debug({ uri }, "connect to database");
   let pool = new Pool({
     connectionString: uri,
     // a connection timeout is a bad thing to have.
@@ -120,7 +123,7 @@ export default async function open({uri, forceMigration=true} :DbOptions) :Promi
   });
 
   pool.on("error", (err, client)=>{
-    console.error("psql client pool error :", err);
+    log.error({ err }, "psql client pool error");
   });
   
   

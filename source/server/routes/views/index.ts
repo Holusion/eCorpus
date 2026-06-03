@@ -7,12 +7,12 @@ import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { BadRequestError } from "../../utils/errors.js";
-import { debuglog } from "util";
 import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
+import { createLogger } from "../../utils/log/index.js";
 
 
-const debug = debuglog("http:views");
+const log = createLogger("http:views");
 
 
 function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
@@ -103,7 +103,7 @@ routes.get("/upload", wrap(async (req, res)=>{
   if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
     throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
   }
-  debug("Render previous upload tasks : ", ids);
+  log.trace({ task_ids: ids }, "Render previous upload tasks");
   type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
   type TaskError =  {error: string, action: "error",  task_id: number|null}
   type TaskLine = TaskScene|TaskError;
@@ -861,18 +861,19 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
   } = getLocals(req);
   const requester = getUser(req);
   const id = parseInt(req.params.id);
-  const validLevels = ["debug", "log", "warn", "error"] as const;
+  const validLevels = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
   type Level = typeof validLevels[number];
   const rawLevel = req.query.level as string | undefined;
-  const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "log";
+  const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "info";
   const {root, logs} = await taskScheduler.getTaskTree(id, {level});
 
   // Logs at severity >= warn, regardless of the UI filter.
-  // For level debug/log/warn the displayed list already contains every warn+error line;
-  // when level is "error", warn lines are filtered out and we need a separate fetch.
-  const warnCount = level === "error"
-    ? (await taskScheduler.getTaskTree(id, {level: "warn"})).logs.length
-    : logs.filter(l => l.severity === "warn" || l.severity === "error").length;
+  // When the displayed list filters above warn (level error/fatal), warn lines
+  // are missing and we need a separate fetch to count them.
+  const warnAlreadyVisible = level === "trace" || level === "debug" || level === "info" || level === "warn";
+  const warnCount = warnAlreadyVisible
+    ? logs.filter(l => l.severity === "warn" || l.severity === "error" || l.severity === "fatal").length
+    : (await taskScheduler.getTaskTree(id, {level: "warn"})).logs.length;
 
   const owner = root.user_id? (root.user_id == requester?.uid ?requester.username :(await userManager.getUserById(root.user_id)).username):null;
   const scene = root.scene_id? (await vfs.getScene(root.scene_id)).name : null;

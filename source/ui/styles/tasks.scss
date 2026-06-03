@@ -120,10 +120,12 @@
   .log-task-id  { color: #aaa; white-space: nowrap; width: 1%; }
   .log-time     { color:  #aaa; white-space: nowrap; width: 1%; }
   .log-level    { white-space: nowrap; width: 1%; }
+  .log-trace    { color: var(--color-secondary, #888); }
   .log-debug    { color: var(--color-info, #aaa); }
-  .log-log      { color: var(--color-light, #eee); }
+  .log-info     { color: var(--color-light, #eee); }
   .log-warn     { color: #d4a030; }
   .log-error    { color: #e05050; }
+  .log-fatal    { color: #e05050; font-weight: bold; }
   .log-message  { white-space: pre-wrap; word-break: break-all; width: 100%; }
 
   /* Small responsive helpers */

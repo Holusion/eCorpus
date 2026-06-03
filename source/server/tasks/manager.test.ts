@@ -281,9 +281,10 @@ describe("TaskManager", function(){
       const root = await listener.create({scene_id: null, user_id: null, type: "root", data: {}});
 
       await handle.run(
-        `INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'first'), ($1, 'warn', 'second')`,
+        `INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'first'), ($1, 'warn', 'second')`,
         [root.task_id]
       );
+
 
       const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
 
@@ -301,8 +302,8 @@ describe("TaskManager", function(){
       const child1 = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: root.task_id});
       const child2 = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: root.task_id});
 
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'root-log')`, [root.task_id]);
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'child1-log')`, [child1.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'root-log')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'child1-log')`, [child1.task_id]);
       await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'error', 'child2-log')`, [child2.task_id]);
 
       const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
@@ -326,7 +327,7 @@ describe("TaskManager", function(){
       const child = await listener.create({scene_id: null, user_id: null, type: "child",      data: {}, parent: root.task_id});
       const grand = await listener.create({scene_id: null, user_id: null, type: "grandchild", data: {}, parent: child.task_id});
 
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'grand-log')`, [grand.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'grand-log')`, [grand.task_id]);
 
       const {root: rootNode, logs} = await listener.getTaskTree(root.task_id);
 
@@ -359,9 +360,9 @@ describe("TaskManager", function(){
       const child = await listener.create({scene_id: null, user_id: null, type: "child", data: {}, parent: root.task_id});
 
       // Interleave inserts from different tasks to test global ordering
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'a')`, [root.task_id]);
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'b')`, [child.task_id]);
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'c')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'a')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'b')`, [child.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'c')`, [root.task_id]);
 
       const {logs} = await listener.getTaskTree(root.task_id);
 
@@ -374,26 +375,28 @@ describe("TaskManager", function(){
     it("filters logs by minimum severity level", async function(){
       const root = await listener.create({scene_id: null, user_id: null, type: "root", data: {}});
 
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'trace', 'msg-trace')`, [root.task_id]);
       await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'debug', 'msg-debug')`, [root.task_id]);
-      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log',   'msg-log')`,   [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info',  'msg-info')`,  [root.task_id]);
       await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'warn',  'msg-warn')`,  [root.task_id]);
       await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'error', 'msg-error')`, [root.task_id]);
+      await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'fatal', 'msg-fatal')`, [root.task_id]);
 
-      // no filter → all four lines
+      // no filter → all six lines
       const {logs: all} = await listener.getTaskTree(root.task_id);
-      expect(all.map(l => l.message)).to.deep.equal(['msg-debug', 'msg-log', 'msg-warn', 'msg-error']);
+      expect(all.map(l => l.message)).to.deep.equal(['msg-trace', 'msg-debug', 'msg-info', 'msg-warn', 'msg-error', 'msg-fatal']);
 
-      // level: 'log' → excludes 'debug'
-      const {logs: fromLog} = await listener.getTaskTree(root.task_id, {level: 'log'});
-      expect(fromLog.map(l => l.message)).to.deep.equal(['msg-log', 'msg-warn', 'msg-error']);
+      // level: 'info' → excludes 'trace' and 'debug'
+      const {logs: fromInfo} = await listener.getTaskTree(root.task_id, {level: 'info'});
+      expect(fromInfo.map(l => l.message)).to.deep.equal(['msg-info', 'msg-warn', 'msg-error', 'msg-fatal']);
 
-      // level: 'warn' → only warn and error
+      // level: 'warn' → warn and above
       const {logs: fromWarn} = await listener.getTaskTree(root.task_id, {level: 'warn'});
-      expect(fromWarn.map(l => l.message)).to.deep.equal(['msg-warn', 'msg-error']);
+      expect(fromWarn.map(l => l.message)).to.deep.equal(['msg-warn', 'msg-error', 'msg-fatal']);
 
-      // level: 'error' → only errors
+      // level: 'error' → error and above
       const {logs: fromError} = await listener.getTaskTree(root.task_id, {level: 'error'});
-      expect(fromError.map(l => l.message)).to.deep.equal(['msg-error']);
+      expect(fromError.map(l => l.message)).to.deep.equal(['msg-error', 'msg-fatal']);
     });
 
     describe("cycles handling", function(){
@@ -420,9 +423,9 @@ describe("TaskManager", function(){
         const c = await listener.create({scene_id: null, user_id: null, type: "normal-c", data: {}, parent: a.task_id});
         await handle.run(`UPDATE tasks SET parent = $1 WHERE task_id = $2`, [b.task_id, a.task_id]);
 
-        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'log-a')`, [a.task_id]);
-        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'log-b')`, [b.task_id]);
-        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'log', 'log-c')`, [c.task_id]);
+        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'log-a')`, [a.task_id]);
+        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'log-b')`, [b.task_id]);
+        await handle.run(`INSERT INTO tasks_logs(fk_task_id, severity, message) VALUES ($1, 'info', 'log-c')`, [c.task_id]);
 
         const {logs} = await listener.getTaskTree(a.task_id);
         expect(logs.map(l => l.message).sort()).to.deep.equal(['log-a', 'log-b', 'log-c']);

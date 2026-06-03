@@ -46,10 +46,12 @@
           {{i18n "fields.minLevel" default="Min level"}}
         </label>
         <select name="level" autocomplete="off" onchange="this.form.submit()">
+          <option value="trace" {{#if (test level "==" "trace" )}}selected{{/if}}>trace</option>
           <option value="debug" {{#if (test level "==" "debug" )}}selected{{/if}}>debug</option>
-          <option value="log"   {{#if (test level "==" "log"   )}}selected{{/if}}>log</option>
+          <option value="info"  {{#if (test level "==" "info"  )}}selected{{/if}}>info</option>
           <option value="warn"  {{#if (test level "==" "warn"  )}}selected{{/if}}>warn</option>
           <option value="error" {{#if (test level "==" "error" )}}selected{{/if}}>error</option>
+          <option value="fatal" {{#if (test level "==" "fatal" )}}selected{{/if}}>fatal</option>
         </select>
       </form>
     </div>

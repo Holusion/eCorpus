@@ -1,9 +1,17 @@
 import { Writable, Transform } from "node:stream";
+import { format } from "node:util";
 import { ITaskLogger, LogSeverity } from "./types.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
-import { debuglog, format } from "node:util";
+import { createLogger as createStructuredLogger } from "../utils/log/index.js";
 
-const debug = debuglog("tasks:logs");
+/**
+ * Shared structured logger for everything emitted by tasks. Child loggers
+ * are created per task so each line carries `task_id`/`scene_id`/`user_id`.
+ */
+const tasksLog = createStructuredLogger("tasks:logs");
+
+/** Severity passed to {@link ITaskLogger}, including the deprecated `log` alias. */
+type LoggerCallSeverity = LogSeverity | "log";
 
 /**
  * Creates a Transform stream that batches logs by count or time
@@ -76,11 +84,21 @@ export function createInserter(db: DatabaseHandle, task_id: number) {
   });
 }
 
+/** Per-task identification fields forwarded to the structured logger. */
+export interface TaskLoggerContext {
+  scene_id?: number | null;
+  user_id?: number | null;
+}
+
 /**
  * Disposable logger that batches log inserts using Transform streams
  * Reduces database lock contention by grouping multiple inserts
+ *
+ * Every line is also forwarded to the {@link tasksLog `tasks:logs`} structured
+ * logger at its original severity, carrying `task_id`/`scene_id`/`user_id` as
+ * structured fields so production logs can be filtered/joined by task.
  */
-export function createLogger(db: DatabaseHandle, task_id: number) {
+export function createLogger(db: DatabaseHandle, task_id: number, ctx: TaskLoggerContext = {}) {
   const batcher = createBatcher(10, 100);
 
   const inserter = createInserter(db, task_id);
@@ -88,16 +106,25 @@ export function createLogger(db: DatabaseHandle, task_id: number) {
   batcher.pipe(inserter);
   batcher.on("error", (err) => inserter.destroy(err));
 
-  function log(severity: LogSeverity, message: string) {
-    debug(`[${severity.toUpperCase()}] ${message}`);
-    batcher.write({ severity, message, timestamp: new Date() });
+  const fields = { task_id, scene_id: ctx.scene_id ?? undefined, user_id: ctx.user_id ?? undefined };
+  const child = tasksLog.child(fields);
+
+  function log(severity: LoggerCallSeverity, message: string) {
+    // `logger.log(...)` is the deprecated alias for `info`; both emit at info
+    // severity, both persist as `info` in the DB.
+    const persistSeverity: LogSeverity = severity === "log" ? "info" : severity;
+    child[persistSeverity](message);
+    batcher.write({ severity: persistSeverity, message, timestamp: new Date() });
   }
 
   return {
+    trace: (...args: any[]) => log('trace', format(...args)),
     debug: (...args: any[]) => log('debug', format(...args)),
-    log: (...args: any[]) => log('log', format(...args)),
-    warn: (...args: any[]) => log('warn', format(...args)),
+    info:  (...args: any[]) => log('info',  format(...args)),
+    log:   (...args: any[]) => log('log',   format(...args)),
+    warn:  (...args: any[]) => log('warn',  format(...args)),
     error: (...args: any[]) => log('error', format(...args)),
+    fatal: (...args: any[]) => log('fatal', format(...args)),
     [Symbol.asyncDispose]: async function (): Promise<void> {
       // Close both streams and wait for them to finish
       batcher.end(); //We expect batcher.end to be effective immediately and never throw, so we don't wait for it
