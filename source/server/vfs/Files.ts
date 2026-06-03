@@ -136,12 +136,11 @@ export default abstract class FilesVfs extends BaseVfs{
   async writeDoc(data:string|Buffer|null, props :WriteFileParams) :Promise<FileProps>{
     if(data == null) return await this.createFile(props, {hash:null, data: null, size: 0});
     let b = Buffer.isBuffer(data)? data: Buffer.from(data);
-    let text = typeof data === "string"? data: b.toString("utf-8");
     let hashsum = createHash("sha256");
     hashsum.update(b as any);
     let hash = hashsum.digest("base64url");
     let size = b.length;
-    return await this.createFile(props, {data: text, size, hash});
+    return await this.createFile(props, {data, size, hash});
   }
 
   /**
@@ -161,7 +160,7 @@ export default abstract class FilesVfs extends BaseVfs{
     let data = ((typeof theFile === "object" && "data" in theFile && theFile.data)? theFile.data : null);
 
     return await this.db.beginTransaction<FileProps>(async tr =>{
-      let r = await tr.get<{id:number, generation: number, ctime: Date}>(`
+      let r = await tr.all<{id:number, generation: number, ctime: Date}>(`
         WITH 
           cte_scene AS MATERIALIZED (
             SELECT scene_id
@@ -188,6 +187,7 @@ export default abstract class FilesVfs extends BaseVfs{
           $7 AS fk_author_id
         FROM cte_scene
         LEFT JOIN cte_current_file USING(scene_id)
+        LIMIT 1
         RETURNING 
           file_id as id,
           generation,
@@ -201,9 +201,9 @@ export default abstract class FilesVfs extends BaseVfs{
         fileParams.size,
         params.user_id || null,
       ]);
-      if(!r) throw new NotFoundError(`Can't find a scene ${typeof params.scene === "number"?"with id": "named"} ${params.scene}`);
+      if(!r.length) throw new NotFoundError(`Can't find a scene ${typeof params.scene === "number"?"with id": "named"} ${params.scene}`);
 
-      let {id: newfile_id, generation, ctime} = r;
+      let {id: newfile_id, generation, ctime} = r[0];
       
       if(typeof theFile === "function"){
         fileParams = await theFile({id: newfile_id, tr});
@@ -213,7 +213,7 @@ export default abstract class FilesVfs extends BaseVfs{
         }
       }
 
-      let author = await tr.get(`SELECT username FROM users WHERE user_id = $1`,[params.user_id]);
+      let author = (await tr.all(`SELECT username FROM users WHERE user_id = $1 LIMIT 1`,[params.user_id]))[0];
       return {
         generation,
         id: newfile_id,
