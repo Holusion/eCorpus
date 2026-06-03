@@ -252,17 +252,26 @@ export class DbController{
 
   
   /**
-   * Runs a sequence of methods in isolation
-   * Every calls to Vfs.db inside of the callback will be wrapped in a transaction
-   * 
-   * Can be combined through multiple DbController instances. For example: 
-   * ```javascript
-   * vfs.isolate(async vfs =>{
-   *  return userManager.isolate(vfs, async (userManager)=>{
-   *    //Here both `userManager` and `vfs` will execute queries within the explicit transaction
-   *  })
-   * })
+   * @deprecated Use {@link withTransaction} instead.
+   *
+   * Drop-in replacement:
+   * ```ts
+   * // before
+   * await vfs.isolate(async (vfs) => { ... })
+   * // after
+   * await withTransaction({vfs}, async ({vfs}) => { ... })
+   * ```
+   *
+   * Multi-controller form: `userManager.isolate(vfs, async userManager => ...)`
+   * becomes `withTransaction({vfs, userManager}, async ({vfs, userManager}) => ...)`.
+   * The new form is symmetric (no privileged "primary" controller), N-ary, and
+   * enforces at runtime that every participant shares the same Database — which
+   * the two-argument form silently allowed to diverge.
+   *
+   * Runs a sequence of methods in isolation. Every call to `Vfs.db` inside the
+   * callback is wrapped in a transaction.
    * @see Database.beginTransaction
+   * @see withTransaction
    */
   public async isolate<T>(controller: DbController, fn :Isolate<typeof this, T>, opts ?:IsolateOptions) :Promise<T>
   public async isolate<T>(fn :Isolate<typeof this, T>, opts ?:IsolateOptions) :Promise<T>
@@ -301,4 +310,97 @@ export class DbController{
       }
     }) as T;
   }
+}
+
+
+/**
+ * Map of names → tx-bound versions of the same controllers, preserving the
+ * subclass type of each entry so consumers keep their full Vfs / UserManager
+ * APIs inside the callback.
+ */
+type Bundle<T extends Record<string, DbController>> = { [K in keyof T]: T[K] };
+
+/**
+ * Run `fn` inside a database transaction with each provided controller proxied
+ * so its queries route through that transaction. Atomically commits if `fn`
+ * resolves, rolls back if it throws.
+ *
+ * All controllers must share the same underlying {@link Database}. This is
+ * asserted at runtime: a "transaction" spanning two different connection pools
+ * isn't a transaction. Mixing controllers from different `Database` instances
+ * is the kind of mistake the old two-argument `isolate()` form could not catch.
+ *
+ * Nested calls reuse the active connection via SAVEPOINTs (see
+ * {@link Database.beginTransaction}).
+ *
+ * @example single controller (drop-in for `vfs.isolate(fn)`)
+ * ```ts
+ * await withTransaction({vfs}, async ({vfs}) => {
+ *   await vfs.createScene("foo")
+ * })
+ * ```
+ *
+ * @example multi-controller — the case the old API made awkward
+ * ```ts
+ * await withTransaction({vfs, userManager}, async ({vfs, userManager}) => {
+ *   const id = await vfs.createScene("foo", user.uid)
+ *   await userManager.grant(id, user.uid, "admin")
+ * })
+ * ```
+ *
+ * @example name your bindings differently if outer shadowing is confusing
+ * ```ts
+ * await withTransaction({vfs, userManager}, async ({vfs: tx, userManager: um}) => {
+ *   await tx.createScene("foo")
+ *   await um.grant("foo", user.uid, "admin")
+ * })
+ * ```
+ */
+export async function withTransaction<
+  T extends Record<string, DbController>,
+  R,
+>(controllers: T, fn: (controllers: Bundle<T>) => Promise<R>): Promise<R> {
+  const entries = Object.entries(controllers) as Array<[keyof T & string, DbController]>;
+  if(entries.length === 0){
+    throw new Error(`withTransaction requires at least one controller`);
+  }
+
+  // Every controller must talk to the same handle. For top-level controllers
+  // that's the shared Database; for already-wrapped controllers (nested call)
+  // it's the active Transaction. Either way, identity comparison is the right
+  // check — a transaction is meaningless across distinct connection pools.
+  const [rootName, root] = entries[0];
+  const sharedDb = root._db;
+  for(const [name, c] of entries){
+    if(c._db !== sharedDb){
+      throw new Error(
+        `withTransaction: controller "${name}" does not share a Database with "${rootName}". `
+        + `Atomicity requires a single connection pool.`,
+      );
+    }
+  }
+
+  return await sharedDb.beginTransaction(async (tr) => {
+    let closed = false;
+    // `_db` is a getter that does `return this.db`, so it routes through the
+    // proxy too — one intercept covers both.
+    const wrap = <C extends DbController>(c: C): C => new Proxy(c, {
+      get(target, prop, receiver){
+        if(prop === "db"){
+          if(closed) throw new Error(`Use of an isolated controller after withTransaction() has returned`);
+          return tr;
+        }
+        if(prop === "isOpen") return !closed;
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as C;
+    const bundle = Object.fromEntries(
+      entries.map(([name, c]) => [name, wrap(c)]),
+    ) as Bundle<T>;
+    try{
+      return await fn(bundle);
+    }finally{
+      closed = true;
+    }
+  });
 }

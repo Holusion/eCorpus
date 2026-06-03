@@ -1,6 +1,6 @@
 import os from "os";
 import { expect } from "chai";
-import open, { Database, DbController } from "./db.js";
+import open, { Database, DbController, withTransaction } from "./db.js";
 import path from "path";
 import { fileURLToPath } from 'url';
 import Vfs from "../index.js";
@@ -262,5 +262,75 @@ describe("DbController", function(){
       });
     })
 
+
+    describe("withTransaction", function(){
+      let c1 :DbController, c2 :DbController;
+      this.beforeEach(async function(){
+        await db.run("CREATE TABLE test (value TEXT)");
+        await db.run("INSERT INTO test VALUES ('foo')");
+        c1 = new DbController(db);
+        c2 = new DbController(db);
+      });
+
+      it("wraps every controller in the same transaction", async function(){
+        await withTransaction({c1, c2}, async ({c1, c2})=>{
+          await c1._db.run("INSERT INTO test VALUES ('bar')");
+          await c2._db.run("INSERT INTO test VALUES ('baz')");
+          const {count: inside} = (await c1._db.get<{count:number}>(`SELECT COUNT(*) as count FROM test`))!;
+          expect(inside, "both controllers should see each other's writes inside the txn").to.equal(3);
+        });
+        const {count: after} = (await db.get<{count:number}>(`SELECT COUNT(*) as count FROM test`))!;
+        expect(after, "writes should be committed atomically").to.equal(3);
+      });
+
+      it("rolls back all controllers' writes when the callback throws", async function(){
+        await expect(withTransaction({c1, c2}, async ({c1, c2})=>{
+          await c1._db.run("INSERT INTO test VALUES ('bar')");
+          await c2._db.run("INSERT INTO test VALUES ('baz')");
+          throw new Error("nope");
+        })).to.be.rejectedWith("nope");
+        const {count} = (await db.get<{count:number}>(`SELECT COUNT(*) as count FROM test`))!;
+        expect(count).to.equal(1);
+      });
+
+      it("refuses controllers backed by different Database instances", async function(){
+        const otherUri = await getUniqueDb(this.currentTest?.title);
+        const other = await open({uri: otherUri, forceMigration: true});
+        try{
+          const stray = new DbController(other);
+          await expect(
+            withTransaction({c1, stray}, async ()=>{ throw new Error("must not get here") })
+          ).to.be.rejectedWith(/single connection pool/);
+        }finally{
+          await other.end();
+          await dropDb(otherUri);
+        }
+      });
+
+      it("throws on use of the bundle after withTransaction returns", async function(){
+        let leaked: DbController | null = null;
+        await withTransaction({c1}, async ({c1})=>{ leaked = c1 });
+        expect(()=>leaked!._db).to.throw(/withTransaction\(\) has returned/);
+      });
+
+      it("nests via savepoints when one of the controllers is already proxied", async function(){
+        // Nested call passes the *proxied* c1 + c2. The validation should pass
+        // (they share the active transaction), and the inner block should see
+        // a savepoint, not a fresh top-level transaction.
+        await withTransaction({c1, c2}, async (outer)=>{
+          await outer.c1._db.run("INSERT INTO test VALUES ('outer')");
+          await withTransaction(outer, async (inner)=>{
+            await inner.c1._db.run("INSERT INTO test VALUES ('inner-1')");
+            await expect(withTransaction(inner, async (innerInner)=>{
+              await innerInner.c2._db.run("INSERT INTO test VALUES ('inner-2')");
+              throw new Error("rollback me");
+            })).to.be.rejectedWith("rollback me");
+            await inner.c2._db.run("INSERT INTO test VALUES ('inner-3')");
+          });
+        });
+        const rows = (await db.all<{value:string}>(`SELECT value FROM test ORDER BY value`));
+        expect(rows.map(r=>r.value)).to.deep.equal(["foo", "inner-1", "inner-3", "outer"]);
+      });
+    });
 
 });
