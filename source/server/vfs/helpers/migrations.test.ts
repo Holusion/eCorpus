@@ -144,7 +144,7 @@ describe("Database migration", function(){
       expect(errorRecords, "pg:migration error log should be emitted once").to.have.length(1);
       const report = errorRecords[0].msg as string;
       //Target database name
-      expect(report).to.match(/target database:.*dumps_a_report/);
+      expect(report).to.match(/target database:.*emits_a_structured_report/);
       //Migration that was being processed when it crashed
       expect(report).to.contain("002-broken");
       //Migration applied before the crash
