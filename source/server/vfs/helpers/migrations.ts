@@ -1,13 +1,13 @@
 import path from 'node:path';
 import { readFile, readdir } from "node:fs/promises";
-import { debuglog } from "node:util";
 
 import { ClientBase } from "pg";
 
 import errors, { expandSQLError } from "./errors.js";
 import { DatabaseHandle } from './db.js';
+import { createLogger } from "../../utils/log/index.js";
 
-const debug = debuglog("pg:migration");
+const log = createLogger("pg:migration");
 
 export interface MigrationParams{
   db: ClientBase,
@@ -68,7 +68,7 @@ export async function parseMigrationFile(file:string){
 }
 
 async function undoMigration(db:ClientBase, record :MigrationRecord){
-  debug(`Undo migration ${record.id.toString(10).padStart(3, "0")}-${record.name} (file not found)`);
+  log.warn({ migration: fmtMigration(record) }, `Undo migration ${fmtMigration(record)} (file not found)`);
   await db.query("BEGIN TRANSACTION");
   try{
     await db.query("SET CONSTRAINTS ALL DEFERRED");
@@ -120,7 +120,7 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
     const r = await db.query<{current_database:string}>(`SELECT current_database()`);
     report.database = r.rows[0]?.current_database;
   }catch(e){
-    debug(`Failed to resolve current database name: `, e);
+    log.warn({ err: e }, `Failed to resolve current database name`);
   }
 
   await db.query(`
@@ -145,7 +145,7 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
     }
 
     if(force && records.length){
-      console.log("Force Migration")
+      log.info("Force migration");
       const lastMigration = records[records.length - 1];
       if(lastMigration){
         report.current = {id: lastMigration.id, name: lastMigration.name, filepath: "<force re-apply>"};
@@ -164,7 +164,7 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
       }
       report.current = file;
       const m = await parseMigrationFile(file.filepath);
-      debug(`Apply migration ${path.basename(file.filepath)}`);
+      log.info({ migration: fmtMigration(file) }, `Apply migration ${path.basename(file.filepath)}`);
       await db.query("BEGIN TRANSACTION");
       try{
           await db.query("SET CONSTRAINTS ALL DEFERRED");
@@ -189,11 +189,10 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
     try{
       await db.query("ROLLBACK TRANSACTION");
       /* c8 ignore start */
-    }catch(e){
-      console.warn("Failed to rollback migration transaction :", e);
+    }catch(rollbackErr){
+      log.warn({ err: rollbackErr }, "Failed to rollback migration transaction");
     }
     console.error(formatReport(report, e));
-    if(e.detail && debug.enabled) debug(`Databse migration error: ${e.message}\n\t${e.detail}${e.hint?"\n\t"+e.hint:""}`);
     /* c8 ignore stop */
     throw e;
   }

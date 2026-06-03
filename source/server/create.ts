@@ -1,5 +1,3 @@
-import { debuglog } from "node:util";
-
 import type express from "express";
 
 
@@ -12,9 +10,9 @@ import defaultConfig, { Config, parse } from "./utils/config.js";
 import createServer from "./routes/index.js";
 import { TaskScheduler } from "./tasks/scheduler.js";
 import { runCleanup } from "./tasks/handlers/cleanup.js";
+import { createLogger } from "./utils/log/index.js";
 
-
-const debug = debuglog("pg:connect");
+const log = createLogger("pg:connect");
 
 export interface Services{
   app: express.Application;
@@ -30,7 +28,7 @@ export default async function createService(env = process.env) :Promise<Services
   await Promise.all([files_dir].map(d=>mkdir(d, {recursive: true})));
   let db = await openDatabase({uri: database_uri, forceMigration: force_migration});
   let uri = new URL(database_uri);
-  debug(`Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`);
+  log.debug({ host: uri.hostname, port: uri.port, database: uri.pathname }, `Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`);
 
   /**
    * When running tests, this may throw an error on singleton duplicate

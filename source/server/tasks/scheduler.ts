@@ -1,4 +1,3 @@
-import { debuglog } from "node:util";
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { Queue } from "./queue.js";
@@ -7,11 +6,12 @@ import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
 import { TaskTimeoutError } from "./errors.js";
 import { BadRequestError, InternalError } from "../utils/errors.js";
+import { createLogger as createStructuredLogger } from "../utils/log/index.js";
 
 // Note: previously used stream/once for generator bridge; no longer required for Promise.all-style group
 
 
-const debug = debuglog("tasks:scheduler");
+const log = createStructuredLogger("tasks:scheduler");
 
 /** Default grace period after a watchdog abort before a task is logged as uncooperative. */
 const DEFAULT_UNCOOPERATIVE_GRACE_MS = 1000;
@@ -147,7 +147,7 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     // Create a wrapper function around the handler to provide the task's execution context
     // and set its status
     const work: TaskPackage = async ({ signal: queueSignal }) => {
-      await using logger = createLogger(this.db, task.task_id);
+      await using logger = createLogger(this.db, task.task_id, { scene_id: task.scene_id, user_id: task.user_id });
 
       // Watchdog: when a task overruns its budget we *request* cancellation through its abort
       // signal and, after a grace period, loudly log that it is uncooperative. We deliberately
@@ -220,7 +220,7 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     if (async_ctx.parent?.logger) {
       async_ctx.parent.logger.debug(`Schedule child task ${task.type}#${task.task_id}`);
     }
-    debug("Schedule work for task #%d on Queue(%s)", task.task_id, async_ctx.queue.name);
+    log.debug({ task_id: task.task_id, queue: async_ctx.queue.name }, `Schedule work for task #${task.task_id} on Queue(${async_ctx.queue.name})`);
     return await (immediate ? async_ctx.queue.unshift(work) : async_ctx.queue.add(work));
   }
 
@@ -280,7 +280,7 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
    */
   override async create<T extends TaskDataPayload = any>(params: CreateTaskParams<T>): Promise<TaskDefinition<T>> {
     const { parent } = this.context();
-    if (parent) debug(`Inherit values from Parent task #${parent.task_id}: ${parent.scene_id ? "Scene: " + parent.scene_id : ""} ${parent.user_id ? "User: " + parent.user_id : ""}`);
+    if (parent) log.debug({ parent_task_id: parent.task_id, scene_id: parent.scene_id, user_id: parent.user_id }, `Inherit values from Parent task #${parent.task_id}`);
     if (!params.scene_id && parent?.scene_id) params.scene_id = parent.scene_id;
     if (!params.user_id && parent?.user_id) params.user_id = parent.user_id;
     if (!params.parent && parent?.task_id) params.parent = parent.task_id;
