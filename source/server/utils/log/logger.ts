@@ -29,9 +29,7 @@ function useJSON(): boolean {
  * Base fields attached to every line:
  * - `time`        ISO-8601 timestamp (added by pino).
  * - `level`       severity label (`info`, `error`, …) rather than pino's numeric default.
- * - `service`     constant service name, to disambiguate sources in a shared backend.
  * - `build_ref`   the running build/release, to correlate logs with a deployment.
- * - `pid`         process id, useful when several workers share a log stream.
  * - `module`      logical source, attached per-logger via {@link createLogger}.
  * - `request_id`  injected per-line from the active request {@link getLogContext context},
  *                 so the proxy access log and application logs join on it.
@@ -41,9 +39,7 @@ export function buildLoggerOptions(): LoggerOptions {
   return {
     level: staticConfig.log_level,
     base: {
-      service: "ecorpus",
       build_ref: staticConfig.build_ref,
-      pid: process.pid,
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
@@ -83,7 +79,7 @@ async function buildDefaultDest(): Promise<NodeJS.WritableStream> {
     // constants and the structured-only correlation/access fields (all still
     // present in JSON). `module` moves into the message prefix below, the
     // access details are already summarised in the message string.
-    ignore: "time,pid,service,build_ref,request_id,module,method,url,status,length,duration_ms",
+    ignore: "time,build_ref,request_id,module,method,url,status,length,duration_ms",
     // Prefix the message with its module, e.g. "[http:access] GET / 200".
     messageFormat: (logObj, messageKey) => {
       const msg = logObj[messageKey] ?? "";

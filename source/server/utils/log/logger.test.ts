@@ -23,9 +23,10 @@ describe("log/logger", function () {
 
     expect(records).to.have.lengthOf(1);
     const [line] = records;
-    expect(line).to.include({ level: "info", msg: "hello", module: "test", service: "ecorpus" });
+    expect(line).to.include({ level: "info", msg: "hello", module: "test" });
     expect(line).to.have.property("build_ref");
-    expect(line).to.have.property("pid");
+    expect(line).to.not.have.property("pid");
+    expect(line).to.not.have.property("service");
     expect(line).to.have.property("time").that.is.a("string");
   });
 

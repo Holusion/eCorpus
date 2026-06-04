@@ -22,7 +22,7 @@ export function errorHandlerMdw(){
     // routine client errors. Operators tune visibility through the logger's
     // own level (LOG_LEVEL) rather than a bespoke switch here.
     if(code >= 500) log.error({ err: error }, error.message);
-    else log.info({ err: error }, error.message);
+    else log.debug({ err: error }, error.message);
 
     if(code === 401
     //We try to NOT send the header for browser requests because we prefer the HTML login to the browser's popup
