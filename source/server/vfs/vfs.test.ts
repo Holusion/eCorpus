@@ -1136,6 +1136,22 @@ describe("Vfs", function(){
 
               expect(await vfs.getTag("foo", bob.uid)).to.deep.equal([]);
             });
+
+            it("returns scenes readable through a group", async function(){
+              const id = await vfs.createScene("group-shared", alice.uid);
+              await userManager.setPublicAccess("group-shared", "none");
+              await userManager.setDefaultAccess("group-shared", "none");
+              await vfs.addTag("group-shared", "foo");
+
+              // bob has no direct access yet
+              expect(await vfs.getTag("foo", bob.uid), "before group grant").to.deep.equal([]);
+
+              const group = await userManager.addGroup("collection-group");
+              await userManager.addMemberToGroup(bob.uid, group.groupUid);
+              await userManager.grantGroup("group-shared", group.groupUid, "write");
+
+              expect(await vfs.getTag("foo", bob.uid), "after group grant").to.deep.equal([id]);
+            });
           })
         });
       });

@@ -128,10 +128,16 @@ export default abstract class TagsVfs extends BaseVfs{
     }
     let scenes = await this.db.all<{scene_id:number}>(`
       SELECT scene_id , scene_name
-      FROM tags 
+      FROM tags
       LEFT JOIN scenes ON fk_scene_id = scene_id
       LEFT JOIN users_acl ON users_acl.fk_scene_id = scene_id ${args.length == 2 ?`AND users_acl.fk_user_id = $2`:""}
       LEFT JOIN users ON ( users_acl.fk_user_id = user_id ${args.length == 2 ?`OR user_id = $2`:""} )
+      ${args.length == 2 ? `LEFT JOIN (
+          SELECT MAX(access_level) AS group_access, fk_scene_id
+          FROM groups_acl JOIN groups_membership
+          ON ( groups_membership.fk_user_id = $2 AND groups_acl.fk_group_id = groups_membership.fk_group_id)
+          GROUP BY fk_scene_id) AS group_accesses
+        ON ( group_accesses.fk_scene_id = scene_id)`: ``}
       WHERE (
         tags.tag_name = $1
         AND scenes.archived IS NULL
@@ -139,6 +145,7 @@ export default abstract class TagsVfs extends BaseVfs{
           users.level = ${UserLevels.ADMIN} OR
           GREATEST(
             users_acl.access_level, 
+            group_access,
             CASE WHEN users.level IS NOT NULL THEN scenes.default_access ELSE 0 END,
             public_access
           ) >= ${toAccessLevel("read")}
