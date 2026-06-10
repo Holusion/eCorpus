@@ -2,7 +2,7 @@ import { createHmac } from "crypto";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../auth/User.js";
 import { BadRequestError, ForbiddenError, HTTPError, NotFoundError, UnauthorizedError } from "../../utils/errors.js";
-import { AppLocals, getHost, getLocals, getSession, getTaskScheduler, getUser, getUserManager, validateRedirect, useTemplateProperties  } from "../../utils/locals.js";
+import { AppLocals, getHost, getLocals, getSession, getTaskScheduler, getUser, getUserManager, setUser, validateRedirect, useTemplateProperties  } from "../../utils/locals.js";
 import { sendEmail } from "../../tasks/handlers/sendEmail.js";
 
 /**
@@ -47,12 +47,11 @@ export async function postLogin(req :Request, res :Response){
 
   let safeUser = User.safe(user);
 
-  //Update user session accordingly
-  Object.assign(
-    (req as any).session as any,
-    {expires: Date.now() + sessionMaxAge},
-    safeUser
-  );
+  //Open a server-side session: the cookie only carries the opaque sid
+  const expires = new Date(Date.now() + sessionMaxAge);
+  const {sid} = await userManager.createSession(user.uid, {expires, userAgent: req.get("User-Agent")});
+  req.session = {lang: getSession(req)?.lang, sid, expires: expires.valueOf()};
+  setUser(res, safeUser, "session");
 
   if(redirect && typeof redirect === "string"){
     return res.redirect(302, validateRedirect(req, redirect).toString());
@@ -77,10 +76,9 @@ export async function getLogin(req :Request, res:Response){
   let host = getHost(req);
 
   const redirect = unsafeRedirect? validateRedirect(req, unsafeRedirect): undefined;
-  const session = getSession(req);
   res.format({
     "application/json": ()=> {
-      res.status(200).send(User.safe(session ?? {}));
+      res.status(200).send(User.safe(requester ?? {}));
     },
     "text/html": ()=>{
       if(requester && requester.level !== "none") return res.redirect(302, redirect ?redirect.pathname: "/ui/");
@@ -93,7 +91,7 @@ export async function getLogin(req :Request, res:Response){
       });
     },
     "text/plain": ()=>{
-      res.status(200).send(`${session?.username} (${session?.uid})`);
+      res.status(200).send(`${requester?.username} (${requester?.uid})`);
     },
   });
 };
@@ -122,12 +120,11 @@ export async function getLoginPayload(req: Request, res: Response){
     throw new BadRequestError(`Failed to parse login payload`);
   }
 
-  //Assign user sessing accordingly
-  Object.assign(
-    (req as any).session as any,
-    {expires: Date.now() + getLocals(req).sessionMaxAge },
-    User.safe(user),
-  );
+  //Open a server-side session: the cookie only carries the opaque sid
+  const expires = new Date(Date.now() + getLocals(req).sessionMaxAge);
+  const {sid} = await userManager.createSession(user.uid, {expires, userAgent: req.get("User-Agent")});
+  req.session = {lang: getSession(req)?.lang, sid, expires: expires.valueOf()};
+  setUser(res, User.safe(user), "session");
 
   return res.redirect(302, redirect.toString());
 }

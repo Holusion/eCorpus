@@ -3,10 +3,11 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, either, isAdministrator, isUser, useTemplateProperties  } from "../../utils/locals.js";
+import { canAdmin, canRead, either, getUser, isAdministrator, isUser, useTemplateProperties  } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
+import { deleteSession, getOwnSessions } from "./sessions.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
@@ -28,13 +29,22 @@ router.use((req, res, next)=>{
 
 
 router.get("/", wrap(async function(req, res){
-  return res.status(200).send(User.safe((req as any).session as any));
+  return res.status(200).send(User.safe(getUser(req) ?? {}));
 }));
 
 router.get("/payload/:payload", wrap(getLoginPayload));
 
 router.get("/login", wrap(getLogin));
-router.post("/login", 
+router.post("/login",
+  //Password verification costs a full scrypt: rate-limit to slow down online brute-force.
+  //The TEST escape hatch is for integration tests that log in dozens of times from one IP.
+  rateLimit({
+    windowMs: 60 * 1000,
+    limit: process.env["TEST"] ? 10000 : 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    validate: {trustProxy: false},
+  }),
   useJSON,
   useURLEncoded,
   useTemplateProperties,
@@ -50,7 +60,10 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
   validate: {trustProxy: false}
 })), wrap(sendLoginLink));
 
-router.post("/logout",  useJSON, useURLEncoded, postLogout);
+router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
+
+router.get("/sessions", isUser, wrap(getOwnSessions));
+router.delete("/sessions/:id", isUser, wrap(deleteSession));
 
 
 router.get("/access/:scene", isUser, canRead, wrap(getPermissions));

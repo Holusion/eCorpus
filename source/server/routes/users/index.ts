@@ -10,6 +10,7 @@ import bodyParser from "body-parser";
 import postUser from "./post.js";
 import handleDeleteUser from "./uid/delete.js";
 import { handlePatchUser } from "./uid/patch.js";
+import { getUserSessions } from "../auth/sessions.js";
 
 const router = Router();
 
@@ -38,5 +39,6 @@ router.get("/", isAdministrator, wrap(async (req, res)=>{
 router.post("/", isAdministratorOrOpen, bodyParser.json(), bodyParser.urlencoded({extended: false}), wrap(postUser));
 router.delete("/:uid", isAdministrator, wrap(handleDeleteUser));
 router.patch("/:uid", bodyParser.json(), wrap(handlePatchUser));
+router.get("/:uid/sessions", isAdministrator, wrap(getUserSessions));
 
 export default router;

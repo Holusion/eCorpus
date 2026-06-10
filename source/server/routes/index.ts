@@ -2,14 +2,13 @@
 import cookieSession from "cookie-session";
 import express from "express";
 
-
-import { HTTPError, UnauthorizedError } from "../utils/errors.js";
 import { errorHandlerMdw, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { accessLogMdw, logContextMdw } from "../utils/log/index.js";
 
-import {AppLocals, AppParameters, getHost, getLocals, getUserManager, getVfs} from "../utils/locals.js";
+import {AppLocals, AppParameters, getHost, getVfs} from "../utils/locals.js";
 
-import User from "../auth/User.js";
+import authenticate from "../utils/authenticate.js";
+import securityHeaders from "../utils/headers.js";
 import Templates, { dicts } from "../utils/templates/index.js";
 
 
@@ -32,12 +31,19 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   // Access logging (trace level) wraps everything below it.
   app.use(accessLogMdw());
 
+  //Baseline security headers. CSP needs a dedicated effort (inline scripts in
+  //scene templates) and embedding (oembed, /dist with permissive CORS) forbids
+  //frame and cross-origin-isolation restrictions.
+  app.use(securityHeaders({hsts: locals.config.get("node_env") === "production"}));
+
   app.use(cookieSession({
     name: 'session',
     keys: await locals.userManager.getKeys(),
     // Cookie Options
     maxAge: (app.locals as AppLocals).sessionMaxAge,
-    sameSite: "lax"
+    sameSite: "lax",
+    httpOnly: true,
+    secure: locals.config.get("node_env") === "production",
   }));
 
   app.use("/", (req, res, next)=>{
@@ -48,39 +54,11 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   })
 
   /**
-   * Does authentication-related work like renewing and expiring session-cookies
+   * Resolves the request's identity (read with `getUser()`) from the session
+   * cookie (server-side sessions) or an Authorization header.
+   * Handles session expiry and sliding renewal.
    */
-  app.use((req, res, next)=>{
-    const {sessionMaxAge} = getLocals(req);
-    const now = Date.now();
-    if(req.session && !req.session.isNew){
-      if(!req.session.expires || req.session.expires < now){
-        req.session = null;
-        return next(new UnauthorizedError(`Session Token expired. Please reauthenticate`));
-      }else if(now < req.session.expires + sessionMaxAge*0.66){
-        req.session.expires = now + sessionMaxAge;
-      }
-    }
-    
-    if(req.session?.uid) return next();
-    
-    let auth = req.get("Authorization");
-    if(!auth) return next()
-    else if(!auth.startsWith("Basic ") ||  auth.length <= "Basic ".length ) return next();
-    let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
-    if(!username || !password) return next();
-    getUserManager(req).getUserByNamePassword(username, password).then((user)=>{
-      Object.assign(
-        req.session as any,
-        {expires: now + sessionMaxAge},
-        User.safe(user),
-      );
-      next();
-    }, (e)=>{
-      if((e as HTTPError).code === 404) next();
-      else next(e);
-    });
-  });
+  app.use(authenticate);
 
   app.engine('.hbs', templates.middleware);
   app.set('view engine', '.hbs');
