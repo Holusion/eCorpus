@@ -30,14 +30,44 @@ export function getLocals(req: Request) {
   return req.app.locals as AppLocals;
 }
 
-export interface SessionData extends SafeUser {
-  /** Expire date, in ms since epoch */
+export interface SessionData {
+  /**
+   * Opaque server-side session credential.
+   * Identity is resolved from the user_sessions table by the authenticate
+   * middleware: the cookie itself carries no identity claims.
+   */
+  sid?: string;
+  /** Advisory expiry mirror, in ms since epoch. Authority is the user_sessions table */
   expires?: number;
   lang?: AcceptedLocales;
 }
 
 export function getSession(req: Request) {
   return req.session as SessionData | null | undefined;
+}
+
+/** How the current request was authenticated */
+export type AuthMethod = "session" | "basic";
+
+/**
+ * Request-scoped authentication state, carried in `res.locals`
+ * (like `res.locals.access`). Use {@link getUser}/{@link getAuthMethod} to
+ * read it and {@link setUser} to write it: the storage itself is untyped.
+ */
+interface AuthLocals {
+  user?: SafeUser;
+  authMethod?: AuthMethod;
+}
+
+/**
+ * Record the identity resolved for this request (authenticate middleware,
+ * login handlers). Always request-scoped: header-based authentication never
+ * writes to the session cookie, so revoking the credential takes effect
+ * immediately.
+ */
+export function setUser(res: Response, user: SafeUser, method: AuthMethod) {
+  (res.locals as AuthLocals).user = user;
+  (res.locals as AuthLocals).authMethod = method;
 }
 
 export function canonical(req: Request): URL
@@ -65,7 +95,7 @@ export function getFileDir(req: Request): string {
 
 export function isUser(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  if ((req.session as User).uid) next();
+  if (getUser(req)?.uid) next();
   else next(new UnauthorizedError());
 }
 
@@ -92,7 +122,7 @@ export function isAdministratorOrOpen(req: Request, res: Response, next: NextFun
 export function isAdministrator(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
 
-  if ((req.session as User).level == "admin") next();
+  if (getUser(req)?.level == "admin") next();
   else next(new UnauthorizedError());
 }
 
@@ -102,7 +132,7 @@ export function isAdministrator(req: Request, res: Response, next: NextFunction)
  */
 export function isCreator(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  if (isUserAtLeast((req.session as User), "create")) next();
+  if (isUserAtLeast(getUser(req), "create")) next();
   else next(new UnauthorizedError());
 }
 
@@ -112,7 +142,7 @@ export function isCreator(req: Request, res: Response, next: NextFunction) {
  */
 export function isManage(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
-  if (isUserAtLeast((req.session as User), "manage")) next();
+  if (isUserAtLeast(getUser(req), "manage")) next();
   else next(new UnauthorizedError());
 }
 
@@ -153,7 +183,7 @@ export function either(...handlers: Readonly<RequestHandler[]>): RequestHandler 
  */
 function _perms(check: number, req: Request, res: Response, next: NextFunction) {
   let { scene } = req.params;
-  let { level = "create", uid = null } = (req.session ?? {}) as SafeUser;
+  let { level = "create", uid = null } = (getUser(req) ?? {}) as Partial<SafeUser>;
   if (!scene) throw new BadRequestError("no scene parameter in this request");
   if (check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${check}`);
 
@@ -195,9 +225,24 @@ export const canWrite = _perms.bind(null, toAccessLevel("write"));
  */
 export const canAdmin = _perms.bind(null, toAccessLevel("admin"));
 
-export function getUser(req: Request) {
-  return (req.session && req.session.username && req.session.uid && req.session.level) ?
-    req.session as SafeUser : null;
+/**
+ * Identity resolved for this request by the authenticate middleware.
+ * This is the single accessor downstream code should use: it does not care
+ * whether the request authenticated with a session cookie or a header.
+ * Takes the request (most call sites have nothing else) and reaches the
+ * response locals through Express' `req.res` back-reference.
+ */
+export function getUser(req: Request): SafeUser | null {
+  return (req.res?.locals as AuthLocals | undefined)?.user ?? null;
+}
+
+/**
+ * How the current request was authenticated, or `null` when anonymous.
+ * Lets handlers restrict an operation to one credential type (eg. only a
+ * session may mint tokens or grant OAuth consent).
+ */
+export function getAuthMethod(res: Response): AuthMethod | null {
+  return (res.locals as AuthLocals).authMethod ?? null;
 }
 
 export function getUserId(req: Request) {

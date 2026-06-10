@@ -64,6 +64,41 @@ export interface UserQuery {
 export const any_id = 1 as const;
 export const default_id = 0 as const;
 
+export interface UserSession {
+  /** Management handle: safe to expose, the session credential never leaves the cookie */
+  id: number;
+  uid: number;
+  created: Date;
+  expires: Date;
+  lastSeen: Date;
+  userAgent: string | null;
+}
+
+interface StoredSession {
+  session_id: string | number;
+  fk_user_id: string | number;
+  created_at: Date;
+  expires_at: Date;
+  last_seen: Date;
+  user_agent: string | null;
+}
+
+function deserializeSession(s: StoredSession): UserSession {
+  return {
+    id: typeof s.session_id === "string" ? parseInt(s.session_id, 10) : s.session_id,
+    uid: typeof s.fk_user_id === "string" ? parseInt(s.fk_user_id, 10) : s.fk_user_id,
+    created: s.created_at,
+    expires: s.expires_at,
+    lastSeen: s.last_seen,
+    userAgent: s.user_agent,
+  };
+}
+
+/** sha256 digest of a session credential. Sessions are stored hashed (like tokens) so a database leak doesn't yield usable credentials */
+function hashSid(sid: string): Buffer {
+  return crypto.createHash("sha256").update(sid).digest();
+}
+
 export default class UserManager extends DbController {
 
   static async open(opts :DbOptions){
@@ -361,6 +396,11 @@ export default class UserManager extends DbController {
       RETURNING *
     `, params);
     if(!r) throw new NotFoundError(`Can't find user with uid : ${uid}`);
+    if(typeof u.password !== "undefined"){
+      //A password change evicts every active session for this user (OWASP ASVS V3).
+      //The route handler may mint a fresh session for the requester afterwards.
+      await this.removeUserSessions(uid);
+    }
     return UserManager.deserialize(r);
   }
 
@@ -543,6 +583,101 @@ export default class UserManager extends DbController {
       }
       throw e;
     }
+  }
+
+  /**
+   * Open a new server-side session for a user.
+   * The returned `sid` is the session credential: it is stored hashed and can not be retrieved afterwards.
+   */
+  async createSession(uid: number, {expires, userAgent}: {expires: Date, userAgent?: string}): Promise<{sid: string, session: UserSession}>{
+    const sid = crypto.randomBytes(32).toString("base64url");
+    let r = await this.db.get<StoredSession>(`
+      INSERT INTO user_sessions (sid_hash, fk_user_id, expires_at, user_agent)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [
+      hashSid(sid),
+      uid.toString(10),
+      expires,
+      userAgent ?? null,
+    ]);
+    //istanbul ignore if
+    if(!r) throw new InternalError(`Failed to create a session for user ${uid}`);
+    return {sid, session: deserializeSession(r)};
+  }
+
+  /**
+   * Resolve a session credential into its user.
+   * Identity (including level) always comes from the users table so revocations and level changes are immediate.
+   * Expiry is **not** checked here: the caller is expected to compare `expires` and handle renewal.
+   * @throws {UnauthorizedError} if the session does not exist (never existed, or was revoked)
+   */
+  async authenticateSession(sid: string): Promise<{user: SafeUser, sessionId: number, expires: Date}>{
+    let r = await this.db.get<StoredSession & Pick<StoredUser, "user_id"|"username"|"email"|"level">>(`
+      SELECT s.session_id, s.fk_user_id, s.created_at, s.expires_at, s.last_seen, s.user_agent,
+        u.user_id, u.username, u.email, u.level
+      FROM user_sessions AS s
+      INNER JOIN users AS u ON u.user_id = s.fk_user_id
+      WHERE s.sid_hash = $1
+    `, [hashSid(sid)]);
+    if(!r) throw new UnauthorizedError(`Invalid session`);
+    return {
+      user: User.safe(UserManager.deserialize({...r, password: undefined})),
+      sessionId: deserializeSession(r).id,
+      expires: r.expires_at,
+    };
+  }
+
+  /**
+   * Slide a session's expiry forward. Doubles as the (renewal-throttled) `last_seen` update.
+   */
+  async renewSession(sessionId: number, expires: Date): Promise<void>{
+    await this.db.run(`
+      UPDATE user_sessions
+      SET expires_at = $2, last_seen = CURRENT_TIMESTAMP
+      WHERE session_id = $1
+    `, [sessionId.toString(10), expires]);
+  }
+
+  /**
+   * List a user's active sessions (inventory). Never exposes the credential.
+   */
+  async getSessions(uid: number): Promise<UserSession[]>{
+    return (await this.db.all<StoredSession>(`
+      SELECT session_id, fk_user_id, created_at, expires_at, last_seen, user_agent
+      FROM user_sessions
+      WHERE fk_user_id = $1
+      ORDER BY last_seen DESC
+    `, [uid.toString(10)])).map(deserializeSession);
+  }
+
+  /**
+   * Revoke a session by its management id.
+   * @param uid when provided, restricts deletion to this user's sessions (owner-scoped revocation)
+   * @throws {NotFoundError} if no matching session exists
+   */
+  async removeSession(sessionId: number, uid?: number): Promise<void>{
+    const args: any[] = [sessionId.toString(10)];
+    if(typeof uid === "number") args.push(uid.toString(10));
+    let r = await this.db.run(`
+      DELETE FROM user_sessions
+      WHERE session_id = $1 ${typeof uid === "number" ? "AND fk_user_id = $2" : ""}
+    `, args);
+    if(!r || !r.changes) throw new NotFoundError(`No session to delete with id ${sessionId}`);
+  }
+
+  /**
+   * Revoke a session by its credential (logout)
+   */
+  async removeSessionBySid(sid: string): Promise<void>{
+    await this.db.run(`DELETE FROM user_sessions WHERE sid_hash = $1`, [hashSid(sid)]);
+  }
+
+  /**
+   * Revoke all of a user's sessions, eg. after a password change
+   */
+  async removeUserSessions(uid: number): Promise<void>{
+    await this.db.run(`DELETE FROM user_sessions WHERE fk_user_id = $1`, [uid.toString(10)]);
   }
 
   async getKeys() :Promise<string[]>{

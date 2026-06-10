@@ -43,6 +43,29 @@ describe("/auth/login", function(){
     expect(expiresDate.valueOf()).to.be.below(Date.now()+ maxAge + 1);
   });
 
+  it("scopes the cookie's Secure flag to the connection (not NODE_ENV)", async function(){
+    //Plain HTTP: the cookie must not be Secure, or it would never round-trip.
+    //This is exactly what the dockerised e2e hits against the production image.
+    let res = await request(this.server).post("/auth/login")
+      .send({username: user.username, password: "12345678"})
+      .set("Content-Type", "application/json")
+      .set("Accept", "")
+      .expect(200);
+    let cookies = ([] as string[]).concat(res.headers["set-cookie"]).join("; ");
+    expect(cookies, `did not expect a Secure cookie over http, got ${cookies}`).not.to.match(/secure/i);
+
+    //Behind a TLS-terminating proxy (trust proxy is on by default) the
+    //forwarded protocol marks the cookie Secure.
+    res = await request(this.server).post("/auth/login")
+      .send({username: user.username, password: "12345678"})
+      .set("Content-Type", "application/json")
+      .set("Accept", "")
+      .set("X-Forwarded-Proto", "https")
+      .expect(200);
+    cookies = ([] as string[]).concat(res.headers["set-cookie"]).join("; ");
+    expect(cookies, `expected a Secure cookie behind https, got ${cookies}`).to.match(/secure/i);
+  });
+
   it("can get login status (not connected)", async function(){
     await request(this.server).get("/auth/login")
     .set("Accept", "application/json")
