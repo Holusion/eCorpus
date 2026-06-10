@@ -4,6 +4,7 @@ import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
 import { canAdmin, canRead, either, getUser, isAdministrator, isUser, useTemplateProperties  } from "../../utils/locals.js";
+import { noFraming } from "../../utils/headers.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
@@ -28,6 +29,10 @@ router.use((req, res, next)=>{
   res.set("Cache-Control", "no-cache");
   next();
 });
+
+//A clickjacked click on the OAuth consent page would grant a token:
+//deny framing for the whole auth scope (none of it is meant to be embedded).
+router.use(noFraming);
 
 
 router.get("/", wrap(async function(req, res){
