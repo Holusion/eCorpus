@@ -8,6 +8,7 @@ import { accessLogMdw, logContextMdw } from "../utils/log/index.js";
 import {AppLocals, AppParameters, getHost, getVfs} from "../utils/locals.js";
 
 import authenticate from "../utils/authenticate.js";
+import csrfProtection from "../utils/csrf.js";
 import securityHeaders from "../utils/headers.js";
 import wrap from "../utils/wrapAsync.js";
 import Templates, { dicts } from "../utils/templates/index.js";
@@ -33,9 +34,9 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   // Access logging (trace level) wraps everything below it.
   app.use(accessLogMdw());
 
-  //Baseline security headers. CSP needs a dedicated effort (inline scripts in
-  //scene templates) and embedding (oembed, /dist with permissive CORS) forbids
-  //frame and cross-origin-isolation restrictions.
+  //Baseline security headers (incl. the Report-Only CSP). Embedding (oembed,
+  ///dist with permissive CORS) forbids frame and cross-origin-isolation
+  //restrictions as site-wide defaults; /auth opts back into frame denial.
   app.use(securityHeaders({hsts: locals.config.get("node_env") === "production"}));
 
   app.use(cookieSession({
@@ -61,6 +62,12 @@ export default async function createServer(locals:AppParameters) :Promise<expres
    * Handles session expiry and sliding renewal.
    */
   app.use(authenticate);
+
+  /**
+   * Origin checks for unsafe methods on cookie-authenticated requests.
+   * Bearer-token and anonymous requests are exempt (CSRF-immune).
+   */
+  app.use(csrfProtection);
 
   app.engine('.hbs', templates.middleware);
   app.set('view engine', '.hbs');
