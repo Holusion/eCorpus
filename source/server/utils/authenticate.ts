@@ -7,8 +7,10 @@ import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
 
 /**
  * Resolves the request's identity (read it back with `getUser()`) from, in order:
- *  1. an `Authorization: Basic` header (transitional: to be replaced by Bearer tokens);
- *  2. the session cookie's `sid`, looked up in the `user_sessions` table.
+ *  1. an `Authorization: Bearer ecorpus_…` API token, looked up in the `api_tokens` table;
+ *  2. an `Authorization: Basic` header (transitional: removed in the next commit
+ *     once the test suite is migrated to tokens);
+ *  3. the session cookie's `sid`, looked up in the `user_sessions` table.
  *
  * Identity (including level) always comes from the database, so revocations,
  * password changes and level changes take effect on the next request.
@@ -21,6 +23,16 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
   const session = getSession(req);
 
   let auth = req.get("Authorization");
+  if (auth && auth.startsWith("Bearer ") && "Bearer ".length < auth.length) {
+    //A presented token that doesn't verify is an error: don't fall through to anonymous.
+    //The error message never echoes the token itself.
+    getUserManager(req).authenticateToken(auth.slice("Bearer ".length).trim()).then(({ user }) => {
+      setUser(res, user, "token");
+      next();
+    }, next);
+    return;
+  }
+
   if (auth && auth.startsWith("Basic ") && "Basic ".length < auth.length) {
     let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
     if (!username || !password) return next();
@@ -28,7 +40,10 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
       setUser(res, User.safe(user), "basic");
       next();
     }, (e) => {
-      if ((e as HTTPError).code === 404) next();
+      //A pair that doesn't match a user is not an error: it may be addressed
+      //to the OAuth token endpoint (client_secret_basic), which reads the
+      //header itself.
+      if ((e as HTTPError).code === 404 || (e as HTTPError).code === 400) next();
       else next(e);
     });
     return;

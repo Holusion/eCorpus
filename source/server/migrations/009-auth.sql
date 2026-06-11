@@ -20,8 +20,57 @@ CREATE TABLE user_sessions (
 
 CREATE INDEX user_sessions_user ON user_sessions(fk_user_id);
 
+-- OAuth2 clients, registered by administrators (no dynamic registration).
+-- secret_hash is NULL for public clients (eg. CLIs), which rely on PKCE only.
+CREATE TABLE oauth_clients (
+  client_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  name TEXT NOT NULL UNIQUE CHECK(0 < length(name)),
+  secret_hash BYTEA,
+  redirect_uris TEXT[] NOT NULL,
+  created_by BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Opaque API tokens: the credential is "ecorpus_<id>_<secret>", only
+-- sha256(secret) is stored. Backs both OAuth2-granted tokens (fk_client_id
+-- set; deleting a client revokes everything it minted) and personal access
+-- tokens (fk_client_id NULL).
+-- scope is a set of scope strings (RFC6749 §3.3); v1 has a single scope,
+-- `all`: the token grants everything its owner could do in a session.
+CREATE TABLE api_tokens (
+  token_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  fk_client_id BIGINT REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+  name TEXT NOT NULL CHECK(0 < length(name)),
+  hash BYTEA NOT NULL,
+  scope TEXT[] NOT NULL DEFAULT '{all}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMPTZ,
+  last_used_at TIMESTAMPTZ
+);
+
+CREATE INDEX api_tokens_user ON api_tokens(fk_user_id);
+
+-- Single-use authorization codes (deleted on exchange), stored hashed.
+CREATE TABLE oauth_codes (
+  code_hash BYTEA PRIMARY KEY,
+  fk_client_id BIGINT NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+  fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  scope TEXT[] NOT NULL,
+  redirect_uri TEXT NOT NULL,
+  code_challenge TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
+
+DROP TABLE oauth_codes;
+
+DROP TABLE api_tokens;
+
+DROP TABLE oauth_clients;
 
 DROP TABLE user_sessions;

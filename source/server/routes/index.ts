@@ -9,7 +9,9 @@ import {AppLocals, AppParameters, getHost, getVfs} from "../utils/locals.js";
 
 import authenticate from "../utils/authenticate.js";
 import securityHeaders from "../utils/headers.js";
+import wrap from "../utils/wrapAsync.js";
 import Templates, { dicts } from "../utils/templates/index.js";
+import { getMetadata } from "./auth/oauth.js";
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
@@ -66,6 +68,9 @@ export default async function createServer(locals:AppParameters) :Promise<expres
 
 
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
+
+  //OAuth2 authorization server metadata (RFC8414)
+  app.get("/.well-known/oauth-authorization-server", wrap(getMetadata));
 
   app.get("/robots.txt", (req, res)=>{
     const sitemap = new URL("/sitemap.xml", getHost(req)).toString();

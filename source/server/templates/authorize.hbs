@@ -1,0 +1,29 @@
+<div class="landing-page grid-fullwidth">
+
+  <div class="user-login">
+    <h2>{{i18n "titles.authorize"}}</h2>
+
+    <p>
+      <b>{{client.name}}</b> ({{client.host}}) {{i18n "leads.authorize"}}
+      <b>{{user.username}}</b>
+    </p>
+    <p>{{i18n "labels.scope"}}&nbsp;: <b>{{scope}}</b></p>
+
+    <form id="oauth-consent" class="form-control" method="POST"
+      action="/auth/oauth/authorize"
+      enctype="application/x-www-form-urlencoded"
+    >
+      {{#each fields}}
+      <input type="hidden" name="{{@key}}" value="{{this}}">
+      {{/each}}
+      <div class="form-group">
+        <div class="form-item">
+          <button class="btn btn-primary" type="submit" name="action" value="allow">{{i18n "labels.authorize"}}</button>
+        </div>
+        <div class="form-item">
+          <button class="btn" type="submit" name="action" value="deny">{{i18n "labels.deny"}}</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
