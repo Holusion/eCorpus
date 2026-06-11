@@ -99,3 +99,64 @@
     })();
   </script>
 </section>
+
+<section class="user-grants" style="margin-top: 2rem;">
+  <h3>{{i18n "titles.authorizedApps"}}</h3>
+  <p>{{i18n "leads.authorizedApps"}}</p>
+
+  <table class="list-table">
+    <thead>
+      <tr>
+        <th>{{i18n "labels.clientName"}}</th>
+        <th>{{i18n "labels.scope"}}</th>
+        <th>{{i18n "fields.ctime"}}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="grant-list"></tbody>
+  </table>
+
+  <script>
+    (function manageGrants(){
+      const list = document.querySelector("#grant-list");
+
+      function refresh(){
+        fetch("/auth/oauth/grants", {headers: {"Accept": "application/json"}}).then(async (r)=>{
+          if(!r.ok) throw new Error(await r.text());
+          const grants = await r.json();
+          if(grants.length === 0){
+            const tr = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 4;
+            td.style.textAlign = "center";
+            td.innerText = `{{i18n "leads.noAuthorizedApps"}}`;
+            tr.appendChild(td);
+            list.replaceChildren(tr);
+            return;
+          }
+          list.replaceChildren(...grants.map((g)=>{
+            const tr = document.createElement("tr");
+            for(const text of [g.client_name, g.scope.join(" "), new Date(g.created).toLocaleDateString()]){
+              const td = document.createElement("td");
+              td.innerText = text;
+              tr.appendChild(td);
+            }
+            const td = document.createElement("td");
+            const btn = document.createElement("button");
+            btn.className = "btn btn-danger";
+            btn.innerText = `{{i18n "labels.revoke"}}`;
+            btn.title = `{{i18n "leads.revokeGrant"}}`;
+            btn.onclick = ()=>{
+              fetch(`/auth/oauth/grants/${encodeURIComponent(g.client_id)}`, {method: "DELETE"}).then(refresh);
+            };
+            td.appendChild(btn);
+            tr.appendChild(td);
+            return tr;
+          }));
+        }).catch((e)=>console.error("Failed to fetch grants:", e));
+      }
+
+      refresh();
+    })();
+  </script>
+</section>

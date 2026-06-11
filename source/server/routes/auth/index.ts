@@ -10,7 +10,7 @@ import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } fro
 import { postLogout } from "./logout.js";
 import { deleteSession, getOwnSessions } from "./sessions.js";
 import { deleteOwnToken, getOwnTokens, postToken } from "./tokens.js";
-import { deleteClient, getAuthorize, getClients, postAuthorize, postClient, postRevoke, postToken as postOAuthToken } from "./oauth.js";
+import { deleteClient, deleteGrant, getAuthorize, getClients, getGrants, postAuthorize, postClient, postRevoke, postToken as postOAuthToken } from "./oauth.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
@@ -78,6 +78,11 @@ router.delete("/sessions/:id", isFullUser, wrap(deleteSession));
 router.get("/tokens", isFullUser, wrap(getOwnTokens));
 router.post("/tokens", isFullUser, useJSON, wrap(postToken));
 router.delete("/tokens/:id", isFullUser, wrap(deleteOwnToken));
+
+//"Authorized applications": persisted OAuth consents. Revoking one stops
+//silent re-authorization and revokes the client's tokens for this user.
+router.get("/oauth/grants", isFullUser, wrap(getGrants));
+router.delete("/oauth/grants/:clientId", isFullUser, wrap(deleteGrant));
 
 //OAuth2 authorization server (authorization code + PKCE)
 router.get("/oauth/authorize", wrap(getAuthorize));

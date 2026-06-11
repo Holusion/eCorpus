@@ -74,21 +74,73 @@ function validateGrantParams(res: Response, redirectUri: string, q: Record<strin
   return scope;
 }
 
+/** Does a persisted consent cover the scope a client is now requesting? */
+function scopeCovers(granted: string[], requested: string[]): boolean{
+  return granted.includes("all") || requested.every(s=> granted.includes(s));
+}
+
+/** Mint a single-use code and deliver it through the (validated) redirect URI */
+async function issueCode(req: Request, res: Response, opts: {clientId: number, uid: number, scope: string[], redirectUri: string, codeChallenge: string, state: string}){
+  const code = await getUserManager(req).createAuthorizationCode({
+    clientId: opts.clientId,
+    uid: opts.uid,
+    scope: opts.scope,
+    redirectUri: opts.redirectUri,
+    codeChallenge: opts.codeChallenge,
+  });
+  const target = new URL(opts.redirectUri);
+  target.searchParams.set("code", code);
+  if(opts.state) target.searchParams.set("state", opts.state);
+  res.redirect(302, target.toString());
+}
+
 /**
  * GET /auth/oauth/authorize
- * Validates the authorization request and renders the consent page.
- * Anonymous users are bounced through the login page and back.
+ * Validates the authorization request, then either re-issues a code silently
+ * (the user holds a session and a persisted consent covering the requested
+ * scope — this is what makes periodic token renewal a no-click affair) or
+ * renders the consent page. Anonymous users are bounced through the login
+ * page and back.
+ *
+ * The `prompt` parameter follows the OIDC convention:
+ * - `none`: never interact — report `login_required`/`consent_required`
+ *   through the redirect URI instead, so clients can renew in a hidden frame
+ *   or probe before falling back to an interactive flow;
+ * - `consent`: always show the consent page, even when a grant covers it.
  */
 export async function getAuthorize(req: Request, res: Response){
   const {client, redirectUri} = await validateClient(req, req.query.client_id, req.query.redirect_uri);
+  const prompt = typeof req.query.prompt === "string" ? req.query.prompt : "";
+  const state = typeof req.query.state === "string" ? req.query.state : "";
 
   const user = getUser(req);
   if(!user || user.level === "none" || getAuthMethod(res) !== "session"){
+    if(prompt === "none"){
+      return errorRedirect(res, redirectUri, state, "login_required");
+    }
     return res.redirect(302, `/auth/login?redirect=${encodeURIComponent(req.originalUrl)}`);
   }
 
   const scope = validateGrantParams(res, redirectUri, req.query);
   if(scope === null) return;
+
+  if(prompt !== "consent"){
+    const grant = await getUserManager(req).getGrant(user.uid, client.id);
+    if(grant && scopeCovers(grant.scope, scope)){
+      //Renewal: the user already consented to (at least) this scope.
+      return issueCode(req, res, {
+        clientId: client.id,
+        uid: user.uid,
+        scope,
+        redirectUri,
+        codeChallenge: req.query.code_challenge as string,
+        state,
+      });
+    }
+  }
+  if(prompt === "none"){
+    return errorRedirect(res, redirectUri, state, "consent_required");
+  }
 
   useTemplateProperties(req, res, ()=>{
     res.render("authorize", {
@@ -99,7 +151,7 @@ export async function getAuthorize(req: Request, res: Response){
         response_type: "code",
         client_id: String(client.id),
         redirect_uri: redirectUri,
-        state: typeof req.query.state === "string" ? req.query.state : "",
+        state,
         scope: scope.join(" "),
         code_challenge: req.query.code_challenge,
         code_challenge_method: "S256",
@@ -130,18 +182,47 @@ export async function postAuthorize(req: Request, res: Response){
     return errorRedirect(res, redirectUri, state, "access_denied");
   }
 
-  const code = await getUserManager(req).createAuthorizationCode({
+  //Persist the consent so future authorizations for a covered scope are
+  //silent (see getAuthorize). Revocable from the "authorized applications" UI.
+  await getUserManager(req).upsertGrant(user.uid, client.id, scope);
+
+  return issueCode(req, res, {
     clientId: client.id,
     uid: user.uid,
     scope,
     redirectUri,
     codeChallenge: req.body.code_challenge,
+    state,
   });
+}
 
-  const target = new URL(redirectUri);
-  target.searchParams.set("code", code);
-  if(state) target.searchParams.set("state", state);
-  res.redirect(302, target.toString());
+/**
+ * GET /auth/oauth/grants
+ * The requester's "authorized applications": every client they consented to.
+ */
+export async function getGrants(req: Request, res: Response){
+  const user = getUser(req)!;
+  const grants = await getUserManager(req).getGrants(user.uid);
+  res.status(200).send(grants.map(g=>({
+    client_id: g.clientId,
+    client_name: g.clientName,
+    scope: g.scope,
+    created: g.created.toISOString(),
+    updated: g.updated.toISOString(),
+  })));
+}
+
+/**
+ * DELETE /auth/oauth/grants/:clientId
+ * Withdraw one's own consent: stops silent re-authorization and revokes every
+ * token the client obtained for this user. Idempotent.
+ */
+export async function deleteGrant(req: Request, res: Response){
+  const clientId = parseInt(req.params.clientId, 10);
+  if(Number.isNaN(clientId)) throw new BadRequestError(`Invalid client id: ${req.params.clientId}`);
+  const user = getUser(req)!;
+  await getUserManager(req).removeGrant(user.uid, clientId);
+  res.status(204).send();
 }
 
 

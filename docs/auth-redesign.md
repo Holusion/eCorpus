@@ -305,12 +305,23 @@ One table backs both OAuth2-granted tokens and personal access tokens.
 * **Consent page** (session-authenticated, served on the Phase 1 session
   layer) shows the client name and the requested scope (§3.4); an invalid
   scope is an `invalid_scope` error redirect.
+* **Consent is persisted** (`oauth_grants`: user × client → union of approved
+  scopes). While the user holds a session, later authorizations whose scope is
+  covered by the grant skip the consent page and issue the code directly — so
+  renewing an expired token is a no-click redirect for an active user. The
+  `prompt` parameter follows the OIDC convention: `none` never interacts
+  (errors `login_required`/`consent_required` through the redirect URI, for
+  hidden-frame renewal), `consent` always re-prompts. Users manage this under
+  "Authorized applications" (`/ui/user/tokens`): revoking a grant stops silent
+  renewal *and* revokes every token that client obtained for them.
 * **Access tokens** are minted into the shared store (§3.3). Default lifetime
   is a config key (proposal: 30 days). **No refresh tokens in v1**: tokens are
-  long-lived but revocable and inspectable; clients re-run the flow on expiry.
-  Refresh-token rotation is an additive follow-up (extra column + grant type,
-  conventionally gated on an `offline_access` scope) if integrators need
-  short-lived access tokens.
+  long-lived but revocable and inspectable; clients re-run the flow on expiry —
+  silently, thanks to persisted consent, as long as the user is signed in.
+  There is deliberately no renewal for a signed-out user: delegated access
+  outliving the user's own presence is exactly what refresh tokens would add,
+  as an additive follow-up (extra column + grant type, conventionally gated on
+  an `offline_access` scope) if integrators ever need it.
 * **RFC 8414** discovery document (`/.well-known/oauth-authorization-server`)
   and **RFC 7009** revocation endpoint are included — both cheap, both high
   value for integrators.
@@ -451,6 +462,19 @@ CREATE TABLE oauth_codes (
 );
 ```
 
+Migration `010-oauthGrants.sql` adds persisted consent (silent renewal, §3.5):
+
+```sql
+CREATE TABLE oauth_grants (
+  fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  fk_client_id BIGINT NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+  scope TEXT[] NOT NULL,                -- union of every approved scope set
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (fk_user_id, fk_client_id)
+);
+```
+
 ## 5. API surface
 
 | Endpoint | Method | Auth | Phase | Description |
@@ -462,12 +486,13 @@ CREATE TABLE oauth_codes (
 | `/auth/tokens` | POST | user, **not** token-auth | 2 | Create personal token; 201 with show-once secret. Tokens must not mint tokens. |
 | `/auth/tokens/:id` | DELETE | owner | 2 | Revoke own token |
 | `/users/:uid/tokens[/:id]` | GET/DELETE | admin | 2 | Inspect / revoke any user's tokens |
-| `/auth/oauth/authorize` | GET | session (redirects to login) | 2 | Validate client/redirect/scope/PKCE, render consent page |
-| `/auth/oauth/authorize` | POST | session (origin-checked) | 2 | Consent grant → 302 with single-use code + `state` |
+| `/auth/oauth/authorize` | GET | session (redirects to login) | 2 | Validate client/redirect/scope/PKCE; issue code silently when a persisted grant covers the scope, else render consent page (`prompt=none|consent` honored) |
+| `/auth/oauth/authorize` | POST | session (origin-checked) | 2 | Consent grant (persisted) → 302 with single-use code + `state` |
 | `/auth/oauth/token` | POST | client (`client_secret_basic` or `client_secret_post`) + PKCE verifier | 2 | Exchange code for access token; standard OAuth error JSON |
 | `/auth/oauth/revoke` | POST | client or bearer | 2 | RFC 7009 token revocation |
 | `/.well-known/oauth-authorization-server` | GET | none | 2 | RFC 8414 server metadata |
 | `/auth/oauth/clients[/:id]` | GET/POST/DELETE | admin | 2 | Client registration & management |
+| `/auth/oauth/grants[/:clientId]` | GET/DELETE | owner (full authority) | 2 | "Authorized applications": list / withdraw own consents (withdrawal also revokes the client's tokens) |
 
 Removed in Phase 2: the user-credential `Authorization: Basic` handling
 (`routes/index.ts:67-83`).

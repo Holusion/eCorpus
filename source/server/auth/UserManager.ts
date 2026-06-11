@@ -150,6 +150,18 @@ export interface OAuthClient {
   created: Date;
 }
 
+/**
+ * A user's persisted consent for a client: the union of every scope set they
+ * approved. Lets the authorize endpoint re-issue codes without a consent page.
+ */
+export interface OAuthGrant {
+  clientId: number;
+  clientName: string;
+  scope: string[];
+  created: Date;
+  updated: Date;
+}
+
 interface StoredClient {
   client_id: string | number;
   name: string;
@@ -996,6 +1008,63 @@ export default class UserManager extends DbController {
       codeChallenge: r.code_challenge,
       expires: r.expires_at,
     };
+  }
+
+  /**
+   * Record (or extend) a user's consent for a client.
+   * The stored scope is the union of every approved scope set, so a later
+   * request for a previously-approved subset stays covered.
+   */
+  async upsertGrant(uid: number, clientId: number, scope: string[]): Promise<void>{
+    await this.db.run(`
+      INSERT INTO oauth_grants (fk_user_id, fk_client_id, scope)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (fk_user_id, fk_client_id) DO UPDATE SET
+        scope = (SELECT array_agg(DISTINCT s) FROM unnest(oauth_grants.scope || EXCLUDED.scope) AS s),
+        updated_at = CURRENT_TIMESTAMP
+    `, [uid.toString(10), clientId.toString(10), scope]);
+  }
+
+  /** @returns null when the user never consented for this client (or revoked it) */
+  async getGrant(uid: number, clientId: number): Promise<OAuthGrant | null>{
+    const r = await this.db.get<{name: string, scope: string[], created_at: Date, updated_at: Date}>(`
+      SELECT c.name, g.scope, g.created_at, g.updated_at
+      FROM oauth_grants AS g INNER JOIN oauth_clients AS c ON c.client_id = g.fk_client_id
+      WHERE g.fk_user_id = $1 AND g.fk_client_id = $2
+    `, [uid.toString(10), clientId.toString(10)]);
+    if(!r) return null;
+    return {clientId, clientName: r.name, scope: r.scope, created: r.created_at, updated: r.updated_at};
+  }
+
+  /** Every client this user has authorized (the "authorized applications" list) */
+  async getGrants(uid: number): Promise<OAuthGrant[]>{
+    const rows = await this.db.all<{client_id: string | number, name: string, scope: string[], created_at: Date, updated_at: Date}>(`
+      SELECT g.fk_client_id AS client_id, c.name, g.scope, g.created_at, g.updated_at
+      FROM oauth_grants AS g INNER JOIN oauth_clients AS c ON c.client_id = g.fk_client_id
+      WHERE g.fk_user_id = $1
+      ORDER BY c.name ASC
+    `, [uid.toString(10)]);
+    return rows.map(r=>({
+      clientId: typeof r.client_id === "string" ? parseInt(r.client_id, 10) : r.client_id,
+      clientName: r.name,
+      scope: r.scope,
+      created: r.created_at,
+      updated: r.updated_at,
+    }));
+  }
+
+  /**
+   * Withdraw a user's consent for a client: stops silent re-authorization and
+   * revokes every token this client obtained for this user (atomically).
+   * Idempotent: revoking an absent grant is a no-op.
+   */
+  async removeGrant(uid: number, clientId: number): Promise<void>{
+    await this.db.run(`
+      WITH revoked_consent AS (
+        DELETE FROM oauth_grants WHERE fk_user_id = $1 AND fk_client_id = $2
+      )
+      DELETE FROM api_tokens WHERE fk_user_id = $1 AND fk_client_id = $2
+    `, [uid.toString(10), clientId.toString(10)]);
   }
 
   async getKeys() :Promise<string[]>{
