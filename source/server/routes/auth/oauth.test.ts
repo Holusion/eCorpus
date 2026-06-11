@@ -244,6 +244,172 @@ describe("OAuth2 authorization server", function(){
     });
   });
 
+  describe("persisted consent (silent renewal)", function(){
+    /** Expect a 302 carrying an authorization code, return the code */
+    function expectCode(res: request.Response): string{
+      const location = new URL(res.headers["location"]);
+      expect(location.origin + location.pathname).to.equal(redirectUri);
+      expect(location.searchParams.get("error"), `expected a code, got error=${location.searchParams.get("error")}`).to.be.null;
+      const code = location.searchParams.get("code");
+      expect(code, "expected an authorization code").to.be.ok;
+      return code as string;
+    }
+
+    it("re-issues codes without a consent page once consent was given", async function(){
+      const {client, secret} = await makeClient();
+      const agent = await login(this.server, user);
+      //First authorization: interactive consent
+      const first = makePkce();
+      await getCode(this.server, agent, client.id, first.challenge);
+
+      //Renewal: same client, fresh PKCE — no consent page, straight to a code
+      const second = makePkce();
+      const res = await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, second.challenge)}`)
+        .expect(302);
+      const code = expectCode(res);
+
+      //The silently-issued code exchanges into a working token
+      const tokenRes = await request(this.server).post("/auth/oauth/token")
+        .type("form")
+        .send({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+          client_id: String(client.id),
+          client_secret: secret,
+          code_verifier: second.verifier,
+        })
+        .expect(200);
+      await request(this.server).get("/auth/")
+        .set("Authorization", `Bearer ${tokenRes.body.access_token}`)
+        .set("Accept", "application/json")
+        .expect(200);
+    });
+
+    it("covers narrower scopes, re-prompts for broader ones", async function(){
+      const {client} = await makeClient();
+      const agent = await login(this.server, user);
+      //Consent to scenes:read only
+      const first = makePkce();
+      await getCode(this.server, agent, client.id, first.challenge, {scope: "scenes:read"});
+
+      //scenes:read again: silent
+      const second = makePkce();
+      expectCode(await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, second.challenge, {scope: "scenes:read"})}`)
+        .expect(302));
+
+      //all is broader: consent page again
+      await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, makePkce().challenge, {scope: "all"})}`)
+        .expect(200);
+    });
+
+    it("consent is per-client", async function(){
+      const {client} = await makeClient();
+      const {client: other} = await userManager.createClient("other-app", [redirectUri]);
+      const agent = await login(this.server, user);
+      await getCode(this.server, agent, client.id, makePkce().challenge);
+      //No consent stored for the other client: consent page
+      await agent.get(`/auth/oauth/authorize?${authorizeQuery(other.id, makePkce().challenge)}`)
+        .expect(200);
+    });
+
+    it("prompt=none reports login_required to anonymous users", async function(){
+      const {client} = await makeClient();
+      const res = await request(this.server)
+        .get(`/auth/oauth/authorize?${authorizeQuery(client.id, makePkce().challenge, {prompt: "none"})}`)
+        .expect(302);
+      const location = new URL(res.headers["location"]);
+      expect(location.origin + location.pathname).to.equal(redirectUri);
+      expect(location.searchParams.get("error")).to.equal("login_required");
+      expect(location.searchParams.get("state")).to.equal("some-state");
+    });
+
+    it("prompt=none reports consent_required when no grant covers the scope", async function(){
+      const {client} = await makeClient();
+      const agent = await login(this.server, user);
+      const res = await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, makePkce().challenge, {prompt: "none"})}`)
+        .expect(302);
+      const location = new URL(res.headers["location"]);
+      expect(location.searchParams.get("error")).to.equal("consent_required");
+    });
+
+    it("prompt=none issues a code when a grant covers the scope", async function(){
+      const {client} = await makeClient();
+      const agent = await login(this.server, user);
+      await getCode(this.server, agent, client.id, makePkce().challenge);
+      expectCode(await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, makePkce().challenge, {prompt: "none"})}`)
+        .expect(302));
+    });
+
+    it("prompt=consent always shows the consent page", async function(){
+      const {client} = await makeClient();
+      const agent = await login(this.server, user);
+      await getCode(this.server, agent, client.id, makePkce().challenge);
+      await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, makePkce().challenge, {prompt: "consent"})}`)
+        .expect(200);
+    });
+
+    it("lists authorized applications", async function(){
+      const {client} = await makeClient();
+      const agent = await login(this.server, user);
+      const empty = await agent.get("/auth/oauth/grants").expect(200);
+      expect(empty.body).to.have.length(0);
+
+      await getCode(this.server, agent, client.id, makePkce().challenge, {scope: "scenes:read"});
+      const list = await agent.get("/auth/oauth/grants").expect(200);
+      expect(list.body).to.have.length(1);
+      expect(list.body[0]).to.have.property("client_name", "packager");
+      expect(list.body[0]).to.have.property("scope").deep.equal(["scenes:read"]);
+    });
+
+    it("revoking a grant stops silent renewal and kills the client's tokens", async function(){
+      const {client, secret} = await makeClient();
+      const agent = await login(this.server, user);
+      const {verifier, challenge} = makePkce();
+      const code = await getCode(this.server, agent, client.id, challenge);
+      const tokenRes = await request(this.server).post("/auth/oauth/token")
+        .type("form")
+        .send({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+          client_id: String(client.id),
+          client_secret: secret,
+          code_verifier: verifier,
+        })
+        .expect(200);
+
+      await agent.delete(`/auth/oauth/grants/${client.id}`).expect(204);
+
+      //The token the client held is revoked along with the consent
+      await request(this.server).get("/auth/")
+        .set("Authorization", `Bearer ${tokenRes.body.access_token}`)
+        .expect(401);
+      //Renewal is interactive again
+      await agent.get(`/auth/oauth/authorize?${authorizeQuery(client.id, makePkce().challenge)}`)
+        .expect(200);
+      //But personal tokens (not minted through this client) survive
+      const personal = await agent.post("/auth/tokens").send({name: "mine"}).expect(201);
+      await agent.delete(`/auth/oauth/grants/${client.id}`).expect(204);
+      await request(this.server).get("/auth/")
+        .set("Authorization", `Bearer ${personal.body.token}`)
+        .expect(200);
+    });
+
+    it("grants management requires the owner's full authority", async function(){
+      const {client} = await makeClient();
+      const agent = await login(this.server, user);
+      await getCode(this.server, agent, client.id, makePkce().challenge, {scope: "scenes:read"});
+      const restricted = await agent.post("/auth/tokens").send({name: "restricted", scope: ["scenes:read"]}).expect(201);
+      await request(this.server).get("/auth/oauth/grants")
+        .set("Authorization", `Bearer ${restricted.body.token}`)
+        .expect(401);
+      await request(this.server).delete(`/auth/oauth/grants/${client.id}`)
+        .set("Authorization", `Bearer ${restricted.body.token}`)
+        .expect(401);
+    });
+  });
+
   describe("POST /auth/oauth/authorize", function(){
     it("requires a session: API tokens can not consent", async function(){
       const {client} = await makeClient();

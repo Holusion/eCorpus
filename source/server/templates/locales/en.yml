@@ -255,6 +255,7 @@ onboarding:
 
 titles:
   userTokens: API tokens
+  authorizedApps: Authorized applications
   authorize: Authorization request
   myScenesSection: my scenes
   gettingStarted: Getting started
@@ -314,6 +315,10 @@ leads:
   userTokens: >
     API tokens let third-party services and scripts make authenticated requests on your behalf, without your password. They can be revoked at any time
   authorize: is requesting access to your eCorpus account, as
+  authorizedApps: >
+    Applications you allowed to access your account. As long as you stay signed in, they renew their access automatically without asking again. Revoking an application stops this renewal and invalidates the tokens it holds
+  noAuthorizedApps: No authorized application
+  revokeGrant: Revoke this application's access and its tokens
   tokenCreated: >
     Here is your new token. Copy it now: it will never be shown again
   appLead: >

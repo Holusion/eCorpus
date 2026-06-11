@@ -263,6 +263,7 @@ onboarding:
 
 titles:
   userTokens: Jetons d'API
+  authorizedApps: Applications autorisées
   authorize: Demande d'autorisation
   myScenesSection: mes scenes
   gettingStarted: Pour commencer
@@ -328,6 +329,10 @@ leads:
   userTokens: >
     Les jetons d'API permettent à des services tiers de faire des requêtes authentifiées en votre nom, sans votre mot de passe. Ils sont révocables à tout moment
   authorize: demande l'accès à votre compte eCorpus, en tant que
+  authorizedApps: >
+    Applications que vous avez autorisées à accéder à votre compte. Tant que vous restez connecté, elles renouvellent leur accès automatiquement sans redemander. Révoquer une application arrête ce renouvellement et invalide ses jetons
+  noAuthorizedApps: Aucune application autorisée
+  revokeGrant: Révoquer l'accès de cette application et ses jetons
   tokenCreated: >
     Voici votre nouveau jeton. Copiez-le maintenant : il ne sera plus jamais affiché
   appLead: >
