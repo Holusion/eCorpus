@@ -35,8 +35,9 @@ CREATE TABLE oauth_clients (
 -- sha256(secret) is stored. Backs both OAuth2-granted tokens (fk_client_id
 -- set; deleting a client revokes everything it minted) and personal access
 -- tokens (fk_client_id NULL).
--- scope is a set of scope strings (RFC6749 §3.3); v1 has a single scope,
--- `all`: the token grants everything its owner could do in a session.
+-- scope is a set of scope strings (RFC6749 §3.3). `all` grants everything
+-- the owner could do in a session; `scenes:read|write|admin` cap the access
+-- level granted on per-scene routes (never their visibility).
 CREATE TABLE api_tokens (
   token_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   fk_user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,

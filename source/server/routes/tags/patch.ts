@@ -1,7 +1,8 @@
 
 import { Request, Response } from "express";
-import { getUser, getUserManager, getVfs } from "../../utils/locals.js";
+import { getSceneCap, getUser, getUserManager, getVfs } from "../../utils/locals.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utils/errors.js";
+import { fromAccessLevel, toAccessLevel } from "../../auth/UserManager.js";
 
 
 /**
@@ -24,11 +25,16 @@ export default async function patchTags(req: Request, res: Response) {
     }
   };
 
+  //Tagging is a per-scene write: a token's scope caps it like the canWrite
+  //guard would (the cap applies to the access level, never to visibility)
+  const cap = toAccessLevel(getSceneCap(res));
   await userManager.isolate(async userManager => {
     for (let { name, scene, action } of patch) {
       // action equals "action" OR "delete"
       let rights = await userManager.getAccessRights(scene, requester ? requester.uid: null);
-      if (rights == "write" || rights == "admin" || (requester && requester.level == "admin")) {
+      if (requester && requester.level == "admin") rights = "admin";
+      const effective = fromAccessLevel(Math.min(toAccessLevel(rights), cap));
+      if (effective == "write" || effective == "admin") {
         action == "create" ? await vfs.addTag(scene, name) : await vfs.removeTag(scene, name);
       } else {
         if (rights == "none") {
