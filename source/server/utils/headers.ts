@@ -31,8 +31,12 @@ export default function securityHeaders({ hsts }: { hsts: boolean }): RequestHan
   return function setSecurityHeaders(req, res, next) {
     //Browsers must not sniff content types away from Content-Type
     res.set("X-Content-Type-Options", "nosniff");
-    //Don't leak (possibly private) URLs to external sites
-    res.set("Referrer-Policy", "no-referrer");
+    //Don't leak (possibly private) URLs to external sites, but keep the full
+    //referrer on same-origin requests: the app relies on it (e.g. redirecting
+    //a user-creation form POST back to the originating admin page), and a
+    //strict `no-referrer` also makes browsers send `Origin: null` on form
+    //navigations, which the CSRF origin check would then reject.
+    res.set("Referrer-Policy", "same-origin");
     //Explicitly disable the legacy XSS auditor: it enables side-channels of its own
     res.set("X-XSS-Protection", "0");
     res.set("Content-Security-Policy-Report-Only", cspReportOnly);

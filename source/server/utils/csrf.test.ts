@@ -64,6 +64,26 @@ describe("CSRF protection (origin checks)", function(){
         .expect(201);
     });
 
+    it("accepts Sec-Fetch-Site: same-origin even when Origin is null", async function(){
+      //A strict Referrer-Policy makes browsers send `Origin: null` on form
+      //navigations (e.g. the user-creation or logout forms). Fetch Metadata is
+      //trustworthy and says same-origin, so the mismatched Origin must be ignored.
+      const agent = await login(this.server);
+      await agent.post("/auth/tokens")
+        .set("Sec-Fetch-Site", "same-origin")
+        .set("Origin", "null")
+        .send({name: "null-origin"})
+        .expect(201);
+    });
+
+    it("rejects Sec-Fetch-Site: same-site (sibling subdomain)", async function(){
+      const agent = await login(this.server);
+      await agent.post("/auth/tokens")
+        .set("Sec-Fetch-Site", "same-site")
+        .send({name: "same-site"})
+        .expect(403);
+    });
+
     it("accepts requests without Origin (non-browser clients)", async function(){
       const agent = await login(this.server);
       await agent.post("/auth/tokens")

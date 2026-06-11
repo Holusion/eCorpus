@@ -338,9 +338,18 @@ all pass `_perms`. **No new read endpoints are needed.**
   after `authenticate.ts`, applied to unsafe methods
   (`POST/PUT/PATCH/DELETE/MKCOL/MOVE/COPY`) **only when
   `authMethod === "session"`**:
-  * reject if `Sec-Fetch-Site: cross-site`;
-  * reject if an `Origin` header is present and does not match
-    `getHost(req)` (`locals.ts:230`).
+  * trust `Sec-Fetch-Site` when present (the browser sets it and web content
+    can neither forge nor strip it): allow `same-origin` and `none`, reject
+    `same-site` and `cross-site`;
+  * only when `Sec-Fetch-Site` is absent (older / non-browser client), fall
+    back to comparing the `Origin` header against `getHost(req)`.
+
+  The Origin comparison is *not* applied alongside `Sec-Fetch-Site`: a strict
+  `Referrer-Policy` makes browsers send `Origin: null` on form navigations, and
+  a reverse proxy can make the reconstructed host differ from the public
+  origin — either would wrongly reject a genuine same-origin form POST. For the
+  same reason `Referrer-Policy` is `same-origin` (not `no-referrer`), which also
+  preserves the same-origin `Referer` the user-creation form relies on.
 
   Bearer-token requests are CSRF-immune by construction and exempt, which
   keeps non-browser clients (including WebDAV-over-token) working. This covers
