@@ -11,6 +11,7 @@ import postUser from "./post.js";
 import handleDeleteUser from "./uid/delete.js";
 import { handlePatchUser } from "./uid/patch.js";
 import { getUserSessions } from "../auth/sessions.js";
+import { deleteUserToken, getUserTokens } from "../auth/tokens.js";
 
 const router = Router();
 
@@ -40,5 +41,7 @@ router.post("/", isAdministratorOrOpen, bodyParser.json(), bodyParser.urlencoded
 router.delete("/:uid", isAdministrator, wrap(handleDeleteUser));
 router.patch("/:uid", bodyParser.json(), wrap(handlePatchUser));
 router.get("/:uid/sessions", isAdministrator, wrap(getUserSessions));
+router.get("/:uid/tokens", isAdministrator, wrap(getUserTokens));
+router.delete("/:uid/tokens/:id", isAdministrator, wrap(deleteUserToken));
 
 export default router;

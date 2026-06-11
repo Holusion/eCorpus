@@ -1,0 +1,88 @@
+<section class="user-tokens">
+  <h3>{{i18n "titles.userTokens"}}</h3>
+  <p>{{i18n "leads.userTokens"}}</p>
+
+  <form id="token-create" class="form-control" autocomplete="off">
+    <div class="form-group">
+      <div class="form-item">
+        <label for="token-name">{{i18n "fields.name"}}</label>
+        <input type="text" name="name" id="token-name" required>
+      </div>
+      <div class="form-item">
+        <input class="btn btn-primary" type="submit" value="{{i18n "labels.create"}}">
+      </div>
+    </div>
+  </form>
+
+  <div id="token-secret" style="display:none">
+    <p role="alert">{{i18n "leads.tokenCreated"}}</p>
+    <pre><code id="token-secret-value"></code></pre>
+  </div>
+
+  <table class="list-table">
+    <thead>
+      <tr>
+        <th>{{i18n "fields.name"}}</th>
+        <th>{{i18n "labels.scope"}}</th>
+        <th>client</th>
+        <th>{{i18n "fields.ctime"}}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="token-list"></tbody>
+  </table>
+
+  <script>
+    (function manageTokens(){
+      const list = document.querySelector("#token-list");
+      const form = document.querySelector("#token-create");
+
+      function refresh(){
+        fetch("/auth/tokens", {headers: {"Accept": "application/json"}}).then(async (r)=>{
+          if(!r.ok) throw new Error(await r.text());
+          const tokens = await r.json();
+          list.replaceChildren(...tokens.map((t)=>{
+            const tr = document.createElement("tr");
+            for(const text of [t.name, t.scope.join(" "), t.client ?? "—", new Date(t.created).toLocaleDateString()]){
+              const td = document.createElement("td");
+              td.innerText = text;
+              tr.appendChild(td);
+            }
+            const td = document.createElement("td");
+            const btn = document.createElement("button");
+            btn.className = "btn btn-danger";
+            btn.innerText = `{{i18n "labels.revoke"}}`;
+            btn.onclick = ()=>{
+              fetch(`/auth/tokens/${encodeURIComponent(t.id)}`, {method: "DELETE"}).then(refresh);
+            };
+            td.appendChild(btn);
+            tr.appendChild(td);
+            return tr;
+          }));
+        }).catch((e)=>console.error("Failed to fetch tokens:", e));
+      }
+
+      form.onsubmit = (ev)=>{
+        ev.preventDefault();
+        fetch("/auth/tokens", {
+          method: "POST",
+          headers: {"Content-Type": "application/json", "Accept": "application/json"},
+          body: JSON.stringify({
+            name: form.name.value,
+          }),
+        }).then(async (r)=>{
+          const body = await r.json();
+          if(!r.ok) throw new Error(body.message ?? JSON.stringify(body));
+          //The secret is shown exactly once and never persisted client-side
+          document.querySelector("#token-secret-value").innerText = body.token;
+          document.querySelector("#token-secret").style.removeProperty("display");
+          form.reset();
+          refresh();
+        }).catch((e)=>console.error("Failed to create token:", e));
+        return false;
+      };
+
+      refresh();
+    })();
+  </script>
+</section>

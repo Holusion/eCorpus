@@ -8,6 +8,8 @@ import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
 import { deleteSession, getOwnSessions } from "./sessions.js";
+import { deleteOwnToken, getOwnTokens, postToken } from "./tokens.js";
+import { deleteClient, getAuthorize, getClients, postAuthorize, postClient, postRevoke, postToken as postOAuthToken } from "./oauth.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
@@ -64,6 +66,19 @@ router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
 
 router.get("/sessions", isUser, wrap(getOwnSessions));
 router.delete("/sessions/:id", isUser, wrap(deleteSession));
+
+router.get("/tokens", isUser, wrap(getOwnTokens));
+router.post("/tokens", isUser, useJSON, wrap(postToken));
+router.delete("/tokens/:id", isUser, wrap(deleteOwnToken));
+
+//OAuth2 authorization server (authorization code + PKCE)
+router.get("/oauth/authorize", wrap(getAuthorize));
+router.post("/oauth/authorize", useURLEncoded, wrap(postAuthorize));
+router.post("/oauth/token", useURLEncoded, wrap(postOAuthToken));
+router.post("/oauth/revoke", useURLEncoded, wrap(postRevoke));
+router.get("/oauth/clients", isAdministrator, wrap(getClients));
+router.post("/oauth/clients", isAdministrator, useJSON, wrap(postClient));
+router.delete("/oauth/clients/:id", isAdministrator, wrap(deleteClient));
 
 
 router.get("/access/:scene", isUser, canRead, wrap(getPermissions));

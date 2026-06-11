@@ -348,6 +348,17 @@ routes.get("/user/groups", wrap(async (req, res)=>{
   });
 }));
 
+routes.get("/user/tokens", wrap(async (req, res)=>{
+  const user = getUser(req);
+  if(user == null || UserRoles.indexOf(user.level) < 1){
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tokens")}`);
+  }
+  res.render("user/tokens", {
+    layout: "user",
+    title: "API Tokens — User",
+  });
+}));
+
 routes.get("/user/archives", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);

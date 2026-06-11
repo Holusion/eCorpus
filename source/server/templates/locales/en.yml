@@ -4,6 +4,10 @@ lang:
   en: English
   es: Spanish
 labels:
+  authorize: Authorize
+  deny: Deny
+  revoke: Revoke
+  scope: scope
   optional: optional
   scene: Scene
   sceneTitle: scene title
@@ -138,6 +142,7 @@ fields:
   status: Status
   minLevel: Min level
 nav:
+  tokens: API tokens
   tags: collections
   login: connection
   administration: administration
@@ -235,6 +240,8 @@ onboarding:
     link: "About background tasks"
 
 titles:
+  userTokens: API tokens
+  authorize: Authorization request
   myScenesSection: my scenes
   gettingStarted: Getting started
   myGroups: My groups
@@ -288,6 +295,11 @@ tooltips:
     Restrict results to scenes on which you have at least this level of rights.
     Administrators can leave this empty to list every scene on the instance.
 leads:
+  userTokens: >
+    API tokens let third-party services and scripts make authenticated requests on your behalf, without your password. They can be revoked at any time
+  authorize: is requesting access to your eCorpus account, as
+  tokenCreated: >
+    Here is your new token. Copy it now: it will never be shown again
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared
     with the Smithsonian Institute's Digitization Project Office
