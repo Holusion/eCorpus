@@ -1,0 +1,160 @@
+<div style="margin-bottom: 1.5rem; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: end; gap: 1rem;">
+  <h2>{{i18n "titles.oauthClients"}}</h2>
+  <button class="btn btn-main" aria-label="{{i18n "labels.createClient"}}" onclick="document.querySelector('#create-client-modal').showModal()">
+    <ui-icon name="plus"></ui-icon>
+    {{i18n "labels.createClient"}}
+  </button>
+</div>
+
+<div class="list-table-wrap flush" style="position:relative;">
+  <style>
+    .clients-list table.list-table td.col-uris div { white-space: normal; word-break: break-all; }
+    .clients-list table.list-table td.col-id { font-family: monospace; }
+    .clients-list code { user-select: all; }
+  </style>
+  <table class="list-table clients-list">
+    <thead><tr>
+      <th>{{i18n "labels.clientName"}}</th>
+      <th>{{i18n "labels.clientId"}}</th>
+      <th>{{i18n "labels.redirectUris"}}</th>
+      <th>{{i18n "fields.type"}}</th>
+      <th>{{i18n "fields.ctime"}}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      {{#each clients}}
+        <tr>
+          <td>{{name}}</td>
+          <td class="col-id compact">{{id}}</td>
+          <td class="col-uris">{{#each redirectUris}}<div>{{this}}</div>{{/each}}</td>
+          <td>{{#if confidential}}{{i18n "labels.confidentialClient"}}{{else}}{{i18n "labels.publicClient"}}{{/if}}</td>
+          <td class="compact">{{created}}</td>
+          <td class="compact" style="text-align:right;">
+            <submit-fragment method="DELETE" action="/auth/oauth/clients/{{id}}" encoding="application/json" onsubmit="window.location.reload()">
+              <form>
+                <button role="submit" class="btn btn-inline btn-icon btn-danger" aria-label="{{i18n "labels.delete"}}" title="{{i18n "labels.deletingAClientIsPermanent"}}">
+                  <ui-icon name="trash"></ui-icon>
+                </button>
+              </form>
+            </submit-fragment>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="6" style="text-align:center;">{{i18n "labels.noClients"}}</td></tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+<dialog id="create-client-modal" aria-labelledby="create-client-title">
+  <form id="clientcreate" class="form-control" autocomplete="off">
+    <div style="position: relative">
+      <h2 id="create-client-title">{{i18n "titles.createOAuthClient"}}</h2>
+      <button type="button"
+        style="position:absolute;top:0;right:0"
+        class="btn btn-transparent btn-small btn-inline btn-danger"
+        onclick="document.querySelector('#create-client-modal').close()"
+        title="{{i18n "labels.close"}}">
+        <ui-icon name="close"></ui-icon>
+      </button>
+    </div>
+
+    <div class="form-item">
+      <label for="client-name">{{i18n "labels.clientName"}}</label>
+      <input type="text" name="name" id="client-name" autocomplete="off" required>
+    </div>
+    <div class="form-item">
+      <label for="client-redirect-uris">{{i18n "labels.redirectUris"}}</label>
+      <textarea name="redirect_uris" id="client-redirect-uris" rows="3" required placeholder="https://app.example.com/callback"></textarea>
+    </div>
+    <div class="form-item" style="display:flex; flex-direction:row-reverse; justify-content:flex-end; align-items:center; gap:.5rem;">
+      <label for="client-confidential">{{i18n "labels.confidential"}}</label>
+      <input type="checkbox" name="confidential" id="client-confidential" checked>
+    </div>
+    <div class="form-item" style="margin-top: 15px">
+      <input class="btn" type="submit" value="{{i18n "buttons.create"}}">
+    </div>
+    <div class="form-item"><span id="clientcreate-error" role="alert" class="submit-error" style="color:var(--color-error); text-align:center;"></span></div>
+  </form>
+</dialog>
+
+<dialog id="client-secret-modal" aria-labelledby="client-secret-title">
+  <div class="form-control">
+    <h2 id="client-secret-title">{{i18n "labels.clientRegistered"}}</h2>
+    <p role="alert" style="color:var(--color-error);">{{i18n "labels.clientSecretWarning"}}</p>
+    <div class="form-item">
+      <label>{{i18n "labels.clientId"}}</label>
+      <code id="reveal-client-id"></code>
+    </div>
+    <div class="form-item">
+      <label>{{i18n "labels.clientSecret"}}</label>
+      <div style="display:flex; gap:.5rem; align-items:center;">
+        <code id="reveal-client-secret" style="word-break:break-all; flex:1;"></code>
+        <button type="button" class="btn btn-inline" id="copy-client-secret">{{i18n "labels.copy"}}</button>
+      </div>
+    </div>
+    <div class="form-item" style="margin-top: 15px">
+      <button type="button" class="btn btn-main" id="close-secret-modal">{{i18n "labels.close"}}</button>
+    </div>
+  </div>
+</dialog>
+
+<script type="module">
+  const createForm = document.querySelector("#clientcreate");
+  const createDialog = document.querySelector("#create-client-modal");
+  const secretDialog = document.querySelector("#client-secret-modal");
+  const errEl = document.querySelector("#clientcreate-error");
+  const copyBtn = document.querySelector("#copy-client-secret");
+
+  createForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errEl.textContent = "";
+    const fd = new FormData(createForm);
+    const redirect_uris = String(fd.get("redirect_uris") || "")
+      .split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    const body = {
+      name: String(fd.get("name") || "").trim(),
+      redirect_uris,
+      // An unchecked checkbox is absent from FormData; present (value "on") when ticked.
+      confidential: fd.get("confidential") != null,
+    };
+    try {
+      const res = await fetch("/auth/oauth/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        let msg = `[${res.status}] ${res.statusText}`;
+        try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (_) {}
+        throw new Error(msg);
+      }
+      const client = await res.json();
+      createDialog.close();
+      createForm.reset();
+      document.querySelector("#reveal-client-id").textContent = client.id;
+      const secretEl = document.querySelector("#reveal-client-secret");
+      if (client.client_secret) {
+        secretEl.textContent = client.client_secret;
+        copyBtn.style.display = "";
+      } else {
+        // Public client: PKCE only, no secret to reveal.
+        secretEl.textContent = "—";
+        copyBtn.style.display = "none";
+      }
+      secretDialog.showModal();
+    } catch (err) {
+      errEl.textContent = err.message;
+    }
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(document.querySelector("#reveal-client-secret").textContent); } catch (_) {}
+  });
+
+  // Reload on close so the new client shows up in the list.
+  document.querySelector("#close-secret-modal").addEventListener("click", () => {
+    secretDialog.close();
+    window.location.reload();
+  });
+</script>
