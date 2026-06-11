@@ -330,10 +330,13 @@ all pass `_perms`. **No new read endpoints are needed.**
   top-level GET navigations: `strict` would make every externally-linked visit
   appear logged out, for no CSRF gain (lax already withholds the cookie on
   cross-site POSTs).
-* Add explicit cookie flags: `httpOnly: true` (today implicit) and
-  `secure` in production (the `trust_proxy` setting already exists, so secure
-  cookies work behind the reverse proxy). These land in Phase 1 with the rest
-  of the cookie work.
+* Add explicit cookie flags: `httpOnly: true` (today implicit) and a
+  connection-scoped `secure` — the cookie is marked Secure whenever the
+  request is HTTPS, honoring `trust proxy` (X-Forwarded-Proto) so it works
+  behind a TLS-terminating reverse proxy. It is deliberately *not* pinned to
+  `NODE_ENV === production`: that would force Secure on the plain-HTTP
+  connection the dockerised end-to-end run uses against the production image,
+  dropping the cookie. These land in Phase 1 with the rest of the cookie work.
 * New origin-check middleware (`source/server/utils/csrf.ts`), mounted right
   after `authenticate.ts`, applied to unsafe methods
   (`POST/PUT/PATCH/DELETE/MKCOL/MOVE/COPY`) **only when

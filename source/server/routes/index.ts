@@ -46,7 +46,12 @@ export default async function createServer(locals:AppParameters) :Promise<expres
     maxAge: (app.locals as AppLocals).sessionMaxAge,
     sameSite: "lax",
     httpOnly: true,
-    secure: locals.config.get("node_env") === "production",
+    // `secure` is left to the connection rather than pinned to NODE_ENV:
+    // cookie-session marks the cookie Secure when the request is HTTPS, which
+    // honors `trust proxy` (X-Forwarded-Proto). A deployment behind a
+    // TLS-terminating proxy still gets Secure cookies, while plain-HTTP access
+    // (e.g. the dockerised end-to-end run, which talks to the production image
+    // over http://) keeps working instead of dropping the cookie.
   }));
 
   app.use("/", (req, res, next)=>{
