@@ -9,6 +9,18 @@
         <input type="text" name="name" id="token-name" required>
       </div>
       <div class="form-item">
+        <label for="token-scope">{{i18n "labels.scope"}}</label>
+        <select name="scope" id="token-scope" multiple size="7">
+          <option value="all" selected>all</option>
+          <option value="scenes:read">scenes:read</option>
+          <option value="scenes:write">scenes:write</option>
+          <option value="scenes:admin">scenes:admin</option>
+          <option value="scenes:create">scenes:create</option>
+          <option value="tasks:read">tasks:read</option>
+          <option value="tasks:write">tasks:write</option>
+        </select>
+      </div>
+      <div class="form-item">
         <input class="btn btn-primary" type="submit" value="{{i18n "labels.create"}}">
       </div>
     </div>
@@ -69,6 +81,7 @@
           headers: {"Content-Type": "application/json", "Accept": "application/json"},
           body: JSON.stringify({
             name: form.name.value,
+            scope: Array.from(form.scope.selectedOptions).map((o)=>o.value),
           }),
         }).then(async (r)=>{
           const body = await r.json();

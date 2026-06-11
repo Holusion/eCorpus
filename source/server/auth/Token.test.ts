@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 
-import { formatToken, hashSecret, isValidScope, makeSecret, parseToken, verifySecret } from "./Token.js";
+import { formatToken, hashSecret, isValidScope, makeSecret, parseToken, sceneCap, verifySecret } from "./Token.js";
 
 
 describe("Token", function(){
@@ -58,12 +58,29 @@ describe("Token", function(){
   describe("scopes", function(){
     it("validates scope sets", function(){
       expect(isValidScope(["all"])).to.be.true;
+      expect(isValidScope(["scenes:read"])).to.be.true;
+      expect(isValidScope(["scenes:write", "scenes:admin"])).to.be.true;
+      expect(isValidScope(["scenes:create", "scenes:write"])).to.be.true;
+      expect(isValidScope(["tasks:read", "tasks:write"])).to.be.true;
       expect(isValidScope([])).to.be.false;
       expect(isValidScope(["banana"])).to.be.false;
       //User-level names are not scopes
       expect(isValidScope(["use"])).to.be.false;
       expect(isValidScope(["admin"])).to.be.false;
       expect(isValidScope("all")).to.be.false;
+    });
+
+    it("maps a scope set to its scene-access cap", function(){
+      expect(sceneCap(["all"])).to.equal("admin");
+      expect(sceneCap(["scenes:admin"])).to.equal("admin");
+      expect(sceneCap(["scenes:write"])).to.equal("write");
+      expect(sceneCap(["scenes:read"])).to.equal("read");
+      expect(sceneCap(["scenes:read", "scenes:write"])).to.equal("write");
+      expect(sceneCap(["scenes:read", "all"])).to.equal("admin");
+      //Grants for other route families contribute no per-scene access
+      expect(sceneCap(["scenes:create"])).to.equal("none");
+      expect(sceneCap(["tasks:read", "tasks:write"])).to.equal("none");
+      expect(sceneCap([])).to.equal("none");
     });
   });
 });

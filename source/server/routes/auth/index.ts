@@ -3,7 +3,7 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, either, getUser, isAdministrator, isUser, useTemplateProperties  } from "../../utils/locals.js";
+import { canAdmin, canRead, either, getUser, isAdministrator, isFullUser, isUser, useTemplateProperties  } from "../../utils/locals.js";
 import { noFraming } from "../../utils/headers.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
@@ -69,12 +69,15 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
 
 router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
 
-router.get("/sessions", isUser, wrap(getOwnSessions));
-router.delete("/sessions/:id", isUser, wrap(deleteSession));
+//Account management requires the owner's full authority (session or
+//`all`-scoped token): a restriction-scoped token must not inspect or alter
+//the credentials it lives next to.
+router.get("/sessions", isFullUser, wrap(getOwnSessions));
+router.delete("/sessions/:id", isFullUser, wrap(deleteSession));
 
-router.get("/tokens", isUser, wrap(getOwnTokens));
-router.post("/tokens", isUser, useJSON, wrap(postToken));
-router.delete("/tokens/:id", isUser, wrap(deleteOwnToken));
+router.get("/tokens", isFullUser, wrap(getOwnTokens));
+router.post("/tokens", isFullUser, useJSON, wrap(postToken));
+router.delete("/tokens/:id", isFullUser, wrap(deleteOwnToken));
 
 //OAuth2 authorization server (authorization code + PKCE)
 router.get("/oauth/authorize", wrap(getAuthorize));

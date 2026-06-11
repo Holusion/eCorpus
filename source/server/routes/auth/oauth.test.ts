@@ -121,6 +121,25 @@ describe("OAuth2 authorization server", function(){
         .expect(401);
     });
 
+    it("issues restricted tokens (scenes:read)", async function(){
+      const {client, secret} = await makeClient();
+      const {verifier, challenge} = makePkce();
+      const agent = await login(this.server, user);
+      const code = await getCode(this.server, agent, client.id, challenge, {scope: "scenes:read"});
+      const tokenRes = await request(this.server).post("/auth/oauth/token")
+        .type("form")
+        .send({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+          client_id: String(client.id),
+          client_secret: secret,
+          code_verifier: verifier,
+        })
+        .expect(200);
+      expect(tokenRes.body).to.have.property("scope", "scenes:read");
+    });
+
     it("supports client_secret_basic at the token endpoint", async function(){
       const {client, secret} = await makeClient();
       const {verifier, challenge} = makePkce();
@@ -146,7 +165,11 @@ describe("OAuth2 authorization server", function(){
       expect(res.body).to.have.property("authorization_endpoint").match(/\/auth\/oauth\/authorize$/);
       expect(res.body).to.have.property("token_endpoint").match(/\/auth\/oauth\/token$/);
       expect(res.body).to.have.property("code_challenge_methods_supported").deep.equal(["S256"]);
-      expect(res.body).to.have.property("scopes_supported").deep.equal(["all"]);
+      expect(res.body).to.have.property("scopes_supported").deep.equal([
+        "all",
+        "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
+        "tasks:read", "tasks:write",
+      ]);
     });
   });
 

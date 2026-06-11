@@ -72,11 +72,39 @@ export function parseToken(token: string): ParsedToken | null {
 
 /**
  * The set of scope strings a token may carry.
- * v1 has a single scope, `all`: the token grants everything its owner could
- * do in a session — no more, no less. Restriction scopes can be added to this
- * list later; existing scope strings are never reinterpreted.
+ * A token grants only what its scopes name (deny-by-default), always within
+ * the limits of what its owner can do:
+ * - `all`: everything the owner could do in a session — the only scope that
+ *   passes the manage/admin-level guards and account management;
+ * - `scenes:read|write|admin`: per-scene routes, at the named access level at
+ *   most (see {@link sceneCap});
+ * - `scenes:create`: scene creation and import (a separate grant, not part of
+ *   the read<write<admin hierarchy: combine with `scenes:write` to populate
+ *   what was created);
+ * - `tasks:read|write`: the tasks API (processing jobs).
+ * New scopes may be added to this list; existing scope strings are never
+ * reinterpreted.
  */
-export const TOKEN_SCOPES: readonly string[] = ["all"];
+export const TOKEN_SCOPES: readonly string[] = [
+  "all",
+  "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
+  "tasks:read", "tasks:write",
+];
+
+/**
+ * The cap a scope set puts on per-scene access (the `canRead`/`canWrite`/
+ * `canAdmin` route guards). The cap applies to the *access level* obtained on
+ * a scene, never to its visibility: a `scenes:read` token still sees exactly
+ * the scenes its owner sees — read-only.
+ * `admin` means no restriction. `scenes:create` and `tasks:*` grant other
+ * route families and contribute nothing here.
+ */
+export function sceneCap(scope: readonly string[]): "none" | "read" | "write" | "admin" {
+  if (scope.includes("all") || scope.includes("scenes:admin")) return "admin";
+  if (scope.includes("scenes:write")) return "write";
+  if (scope.includes("scenes:read")) return "read";
+  return "none";
+}
 
 /**
  * Validate a scope set: a non-empty subset of {@link TOKEN_SCOPES}.

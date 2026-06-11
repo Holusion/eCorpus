@@ -26,8 +26,8 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
   if (auth && auth.startsWith("Bearer ") && "Bearer ".length < auth.length) {
     //A presented token that doesn't verify is an error: don't fall through to anonymous.
     //The error message never echoes the token itself.
-    getUserManager(req).authenticateToken(auth.slice("Bearer ".length).trim()).then(({ user }) => {
-      setUser(res, user, "token");
+    getUserManager(req).authenticateToken(auth.slice("Bearer ".length).trim()).then(({ user, token }) => {
+      setUser(res, user, "token", token.scope);
       next();
     }, next);
     return;
