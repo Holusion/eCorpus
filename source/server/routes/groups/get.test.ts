@@ -22,14 +22,14 @@ describe("GET /groups", function () {
 
     it("can get all groups as manage", async function () {
         let response = await expect(request(this.server).get(`/groups`)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")).to.be.fulfilled;
         expect(response.body).to.have.deep.members([group1, group2]);
     });
 
     it("can get all groups as admin", async function () {
         let response = await expect(request(this.server).get(`/groups`)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")).to.be.fulfilled;
         expect(response.body).to.have.deep.members([group1, group2]);
     });
@@ -37,14 +37,14 @@ describe("GET /groups", function () {
 
     it("can't get groups as use", async function () {
         await request(this.server).get(`/groups`)
-            .auth(user.username, "12345678")
+            .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
             .expect(401);
     });
 
     it("can't get groups as create", async function () {
         await request(this.server).get(`/groups`)
-            .auth(creator.username, "12345678")
+            .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
             .expect(401);
     });

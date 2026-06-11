@@ -27,24 +27,24 @@ describe("GET /admin/config", function(){
     .expect(401);
     //read-only User 
     await request(this.server).get(`/admin/config`)
-    .auth(user.username, "12345678")
+    .set("Authorization", await bearer(user.username))
     .expect(401);
 
     await request(this.server).get(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .expect(200);
   });
   
   it("can return text/plain env file", async function(){
     await request(this.server).get(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .accept("text/plain")
     .expect(200)
     .expect("Content-Type", "text/plain; charset=utf-8");
   });
   it("can return application/json", async function(){
     const res = await request(this.server).get(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .accept("application/json")
     .expect(200)
     .expect("Content-Type", "application/json; charset=utf-8");

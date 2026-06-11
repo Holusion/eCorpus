@@ -34,7 +34,7 @@ describe("PATCH /auth/access/:scene", function () {
   describe("user permissions", async function () {
     it("can change user permissions", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ username: opponent.username, access: "write" })
         .expect(204);
@@ -46,7 +46,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can use user ids", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ uid: opponent.uid, access: "write" })
         .expect(204);
@@ -58,7 +58,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can set multiple accesses at once", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send([
           { uid: opponent.uid, access: "write" },
@@ -79,7 +79,7 @@ describe("PATCH /auth/access/:scene", function () {
       //ie. will not apply part of the PATCH if something fails down the line
 
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send([
           { username: admin.username, access: "write" },
@@ -94,7 +94,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("rejects invalid access levels", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ username: opponent.username, access: "xxx" })
         .expect(400);
@@ -105,7 +105,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("rejects invalid usernames", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ username: "made-up-user", access: "read" })
         .expect(404);
@@ -113,7 +113,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can use access:\"none\" string to remove a user", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(admin.username, "12345678")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ username: user.username, access: "none" })
         .expect(204);
@@ -123,7 +123,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can use an empty string to remove a user", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(admin.username, "12345678")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ username: user.username, access: "" })
         .expect(204);
@@ -136,7 +136,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can change group permissions", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ groupName: group.groupName, access: "write" })
         .expect(204);
@@ -148,7 +148,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can use group ids", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ groupUid: group.groupUid, access: "write" })
         .expect(204);
@@ -160,7 +160,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("can set multiple accesses at once", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send([
           { uid: opponent.uid, access: "write" },
@@ -179,7 +179,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("rejects invalid access levels", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ "groupName": group.groupName, "access": "xxx" })
         .expect(400);
@@ -190,7 +190,7 @@ describe("PATCH /auth/access/:scene", function () {
 
     it("rejects invalid groupName", async function () {
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ username: "made-up-group", access: "read" })
         .expect(404);
@@ -199,7 +199,7 @@ describe("PATCH /auth/access/:scene", function () {
     it("can use access:\"none\" string to remove a group", async function () {
       await userManager.grantGroup(titleSlug, group.groupUid, "write");
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(admin.username, "12345678")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ groupName: group.groupName, access: "none" })
         .expect(204);
@@ -212,7 +212,7 @@ describe("PATCH /auth/access/:scene", function () {
     it("can use an empty string to remove a group", async function () {
       await userManager.grantGroup(titleSlug, group.groupUid, "write");
       await request(this.server).patch(`/auth/access/${titleSlug}`)
-        .auth(admin.username, "12345678")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ groupName: group.groupName, access: "" })
         .expect(204);
@@ -227,19 +227,19 @@ describe("PATCH /auth/access/:scene", function () {
     //It's generally accepted practice for PATCh requests
     await userManager.grantGroup(titleSlug, group.groupUid, "write");
     let getRes = await request(this.server).get(`/auth/access/${titleSlug}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .expect(200);
 
     expect(getRes.body).to.be.ok;
     await request(this.server).patch(`/auth/access/${titleSlug}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Content-Type", "application/json")
       .send(getRes.body)
       .expect(204);
 
     let getAfter = await request(this.server).get(`/auth/access/${titleSlug}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .expect(200);
     expect(getAfter.body).to.deep.equal(getRes.body);
@@ -249,13 +249,13 @@ describe("PATCH /auth/access/:scene", function () {
     const body = [{ username: opponent.username, access: "admin" }, { groupName: group.groupName, access: "write" }];
     await userManager.grant(titleSlug, opponent.username, "write");
     await request(this.server).patch(`/auth/access/${titleSlug}`)
-      .auth(opponent.username, "12345678")
+      .set("Authorization", await bearer(opponent.username))
       .set("Content-Type", "application/json")
       .send(body)
       .expect(401);
 
     let r = await request(this.server).patch(`/auth/access/${titleSlug}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Content-Type", "application/json")
       .send(body)
       .expect(204);

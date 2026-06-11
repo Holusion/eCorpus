@@ -148,7 +148,7 @@ describe("GET /scenes", function(){
       delete writeScene.thumb;
       delete adminScene.thumb;
       let r = await request(this.server).get(`/scenes?access=write`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .send({scenes: scenes})
       .expect(200)
@@ -177,7 +177,7 @@ describe("GET /scenes", function(){
       delete s2.thumb;
 
       let r = await request(this.server).get(`/scenes?access=write&access=admin`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .send({scenes: scenes})
       .expect(200)
@@ -201,7 +201,7 @@ describe("GET /scenes", function(){
       let scene = await vfs.getScene("read", user.uid);
       delete scene.thumb;
       let r = await request(this.server).get(`/scenes?match=read`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .send({scenes: scenes})
       .expect(200)
@@ -220,7 +220,7 @@ describe("GET /scenes", function(){
 
       it("by username", async function(){
         let r = await request(this.server).get(`/scenes?author=${charlie.username}`)
-        .auth(charlie.username, "12345678")
+        .set("Authorization", await bearer(charlie.username))
         .set("Accept", "application/json")
         .send({scenes: scenes})
         .expect(200)
@@ -230,7 +230,7 @@ describe("GET /scenes", function(){
 
       it("as someone else", async function(){
         let r = await request(this.server).get(`/scenes?author=${charlie.username}`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Accept", "application/json")
         .send({scenes: scenes})
         .expect(200)
@@ -240,7 +240,7 @@ describe("GET /scenes", function(){
 
       it("returns all scenes when author is an empty string", async function(){
         let r = await request(this.server).get(`/scenes?author=`)
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Accept", "application/json")
         .expect(200);
         const names = r.body.scenes.map((s: any) => s.name);
@@ -504,7 +504,7 @@ describe("GET /scenes", function(){
 
     it("can get only archived scenes (as an admin)", async function(){
       let r = await request(this.server).get("/scenes?archived=true")
-      .auth(admin.username, "12345678")
+      .set("Authorization", await bearer(admin.username))
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
       expect(names).to.include(`scene_archived#${scenes[0]}`);
@@ -512,7 +512,7 @@ describe("GET /scenes", function(){
 
     it("can get archived scenes (as an author)", async function(){
       let r = await request(this.server).get("/scenes?archived=true")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
       expect(names).to.include(`scene_archived#${scenes[0]}`);
@@ -522,13 +522,13 @@ describe("GET /scenes", function(){
       //This is the default but the client may want to be explicit about it
       //*false* values include 0 and "false"
       let r = await request(this.server).get("/scenes?archived=false")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
       expect(names).not.to.include(`scene_archived#${scenes[0]}`);
       
       r = await request(this.server).get("/scenes?archived=0")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
       names = r.body.scenes.map((s:any)=>s.name)
       expect(names).not.to.include(`scene_archived#${scenes[0]}`);
@@ -536,7 +536,7 @@ describe("GET /scenes", function(){
 
     it("can get all scenes (archived and not)", async function(){
       let r = await request(this.server).get("/scenes?archived=any")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
       expect(names).to.include(`scene_archived#${scenes[0]}`);
@@ -550,7 +550,7 @@ describe("GET /scenes", function(){
 
     it("won't return archived scenes in a default query", async function(){
       let r = await request(this.server).get("/scenes")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
       let names = r.body.scenes.map((s:any)=>s.name)
       expect(names).not.to.include(`scene_archived#${scenes[0]}`);

@@ -46,7 +46,7 @@ describe("POST /history/:scene", function(){
     await antidate();
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send(expectedDoc)
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -70,7 +70,7 @@ describe("POST /history/:scene", function(){
     await antidate(new Date(Date.now() -5000)); //otherwise ordering might be unstable
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({name: ref.name, generation: ref.generation })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -89,7 +89,7 @@ describe("POST /history/:scene", function(){
     let {scene_id:_, ...ref} = await vfs.getFileById(id);
     
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({...ref })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -124,7 +124,7 @@ describe("POST /history/:scene", function(){
     expect(allFiles[1]).to.have.property("hash" ).ok;
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({...ref })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -159,7 +159,7 @@ describe("POST /history/:scene", function(){
     expect(allFiles.find(({id})=> id != doc.id)).to.have.property("hash" ).not.ok;
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({...doc })
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -182,7 +182,7 @@ describe("POST /history/:scene", function(){
     let head = await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({id: head.id})
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -201,7 +201,7 @@ describe("POST /history/:scene", function(){
     await vfs.writeDoc(`{"id": 1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
 
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({name: "articles/hello.txt", generation: 1})
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -215,7 +215,7 @@ describe("POST /history/:scene", function(){
 
     //no generation
     let res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({name: ref.name})
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -224,7 +224,7 @@ describe("POST /history/:scene", function(){
 
     //no name
     res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({generation: 1})
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -233,7 +233,7 @@ describe("POST /history/:scene", function(){
 
     //invalid generation name
     res = await request(this.server).post(`/history/${titleSlug}`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/json")
     .send({name: ref.name, generation: ref.generation + 1})
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -252,7 +252,7 @@ describe("POST /history/:scene", function(){
       const oscar = await userManager.addUser("oscar", "12345678");
       //Fails with read-only
       await request(this.server).post(`/history/${titleSlug}`)
-      .auth("oscar", "12345678")
+      .set("Authorization", await bearer("oscar"))
       .set("Content-Type", "application/json")
       .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
@@ -261,7 +261,7 @@ describe("POST /history/:scene", function(){
       await userManager.grant(titleSlug, "oscar", "write");
       //Fails with write access
       await request(this.server).post(`/history/${titleSlug}`)
-      .auth("oscar", "12345678")
+      .set("Authorization", await bearer("oscar"))
       .set("Content-Type", "application/json")
       .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
@@ -271,7 +271,7 @@ describe("POST /history/:scene", function(){
       await userManager.grant(titleSlug, "oscar", "admin");
       //Succeeds with admin access
       await request(this.server).post(`/history/${titleSlug}`)
-      .auth("oscar", "12345678")
+      .set("Authorization", await bearer("oscar"))
       .set("Content-Type", "application/json")
       .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")
@@ -280,7 +280,7 @@ describe("POST /history/:scene", function(){
 
     it("admins can always restore scenes", async function(){
       await request(this.server).post(`/history/${titleSlug}`)
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Type", "application/json")
       .send(body)
       .expect("Content-Type", "application/json; charset=utf-8")

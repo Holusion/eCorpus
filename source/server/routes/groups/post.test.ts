@@ -21,7 +21,7 @@ describe("POST /groups", function () {
 
     it("can create a group as manage", async function () {
         await request(this.server).post(`/groups`)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")
             .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(201);
@@ -30,7 +30,7 @@ describe("POST /groups", function () {
 
     it("can create a group as admin", async function () {
         await request(this.server).post(`/groups`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(201);
@@ -39,7 +39,7 @@ describe("POST /groups", function () {
 
     it("can't create a group as creator", async function () {
         await request(this.server).post(`/groups`)
-            .auth(creator.username, "12345678")
+            .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
             .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(401);
@@ -48,7 +48,7 @@ describe("POST /groups", function () {
 
     it("can't create a group as user", async function () {
         await request(this.server).post(`/groups`)
-            .auth(user.username, "12345678")
+            .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
             .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(401);
@@ -66,7 +66,7 @@ describe("POST /groups", function () {
     it("Fail when trying to create an existing group", async function () {
         userManager.addGroup("MyGroup");
         await request(this.server).post(`/groups`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .send(JSON.stringify({ groupName: "MyGroup" }))
             .expect(409);
@@ -74,7 +74,7 @@ describe("POST /groups", function () {
 
     it("Can create a group with members", async function () {
         await request(this.server).post(`/groups`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .send(JSON.stringify({ groupName: "MyGroup", members: [user.username, creator.uid]}))
             .expect(201);

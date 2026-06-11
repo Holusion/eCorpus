@@ -28,7 +28,7 @@ describe("PUT /tasks/:id/artifact", function(){
     filename = randomBytes(4).toString("hex")+".bin";
     size = randomInt(16, 512);
     const {body} = await request(this.server).post(`/tasks`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .set("Content-Type", "application/json")
     .send({
       type: "parseUserUpload",
@@ -43,12 +43,12 @@ describe("PUT /tasks/:id/artifact", function(){
   it("Can handle a single-chunk upload (no headers)", async function(){
     const data = randomBytes(size);
     await request(this.server).put(`/tasks/${task}/artifact`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .send(data)
     .expect(201);
 
     const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .accept("application/json")
     .expect(200);
 
@@ -60,14 +60,14 @@ describe("PUT /tasks/:id/artifact", function(){
   it("Can handle a single-chunk upload (chunk headers)", async function(){
     const data = randomBytes(size);
     await request(this.server).put(`/tasks/${task}/artifact`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .set("Content-Length", size.toString())
     .set("Content-Range", `bytes 0-${size-1 /*end is inclusive*/}/${size}`)
     .send(data)
     .expect(201);
 
     const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .accept("application/json")
     .expect(200);
 
@@ -84,7 +84,7 @@ describe("PUT /tasks/:id/artifact", function(){
     while(offset < size){
       const len = Math.min(size - offset, chunkSize);
       await request(this.server).put(`/tasks/${task}/artifact`)
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Length", len.toString())
       .set("Content-Range", `bytes ${offset}-${offset+len-1 /*end is inclusive*/}/${size}`)
       .send(data.subarray(offset, offset + len))
@@ -93,7 +93,7 @@ describe("PUT /tasks/:id/artifact", function(){
     }
 
     const {body} = await request(this.server).get(`/tasks/${task}/artifact`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .accept("application/json")
     .expect(200);
 
@@ -105,12 +105,12 @@ describe("PUT /tasks/:id/artifact", function(){
   it("can parse uploaded contents (simple)", async function(){
     const data = randomBytes(size);
     await request(this.server).put(`/tasks/${task}/artifact`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .send(data)
     .expect(201);
 
     const {body} = await request(this.server).get(`/tasks/${task}`)
-    .auth("alice", "12345678")
+    .set("Authorization", await bearer("alice"))
     .expect(200);
 
     expect(body).to.have.property("task").to.have.property("status", "success");
@@ -124,7 +124,7 @@ describe("PUT /tasks/:id/artifact", function(){
   it("rejects out-of-order bytes", async function(){
     const data = randomBytes(6);
     const res = await request(this.server).put(`/tasks/${task}/artifact`)
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Length", '6')
       .set("Content-Range", `bytes 10-15/${size}`)
       .send(data)

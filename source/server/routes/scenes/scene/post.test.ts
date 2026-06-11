@@ -36,32 +36,32 @@ describe("POST /scenes/:scene", function(){
     });
     it("creates .glb and .svx.json files", async function () {
       await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .send(data)
         .expect(201);
       await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
 
 
       await request(app).get("/scenes/foo/foo.glb")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .expect(200)
         .expect("Content-Type", "model/gltf-binary");
 
       await request(app).get("/scenes/foo/scene.svx.json")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .expect(200)
         .expect("Content-Type", "application/si-dpo-3d.document+json");
     });
 
     it("can force scene's setup language", async function () {
       await request(app).post("/scenes/foo?language=fr")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .send(data)
         .expect(201);
 
       await expect(vfs.getScenes()).to.eventually.have.property("length", 1);
       let { body: document } = await request(app).get("/scenes/foo/scene.svx.json")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .expect(200)
         .expect("Content-Type", "application/si-dpo-3d.document+json");
       expect(document.setups[0]).to.have.deep.property("language", { language: "FR" });
@@ -72,7 +72,7 @@ describe("POST /scenes/:scene", function(){
       this.retries(2);
       //Tries to do two concurrent requests over the same file
       const r1 = request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .send(data);
       await timers.setImmediate();
       const r2 = request(app).post("/scenes/foo")
@@ -86,7 +86,7 @@ describe("POST /scenes/:scene", function(){
 
     it("rejects bad files", async function () {
       let res = await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/zip")
         .send("foo");
       expect(res.status, `${res.error}`).to.equal(500);
@@ -98,7 +98,7 @@ describe("POST /scenes/:scene", function(){
 
     it("rejects multipart form-data", async function () {
       await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "multipart/form-data")
         .send(data) //Don't care
         .expect(400);
@@ -106,7 +106,7 @@ describe("POST /scenes/:scene", function(){
 
     it("rejects urlencoded form-data", async function () {
       await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/x-www-form-urlencoded")
         .send(data) //Don't care
         .expect(400);
@@ -122,12 +122,12 @@ describe("POST /scenes/:scene", function(){
     it("can't overwrite an existing scene", async function () {
       //Create the scene as "bob"
       await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .send(data)
         .expect(201);
 
       await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .send(data)
         .expect(409);
     });
@@ -140,7 +140,7 @@ describe("POST /scenes/:scene", function(){
 
     it("cannot create scene ", async function () {
         await request(app).post("/scenes/foo")
-        .auth(user.username, "12345678")
+        .set("Authorization", await bearer(user.username))
         .send(data)
         .expect(401);
     });

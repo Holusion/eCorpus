@@ -27,7 +27,7 @@ describe("GET /groups/:group", function () {
 
     it("can get any group as manage", async function () {
         let response = await expect(request(this.server).get(`/groups/My first group`)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")).to.be.fulfilled;
         let group: Group = response.body;
         expect(group.groupName).to.be.equal(group1.groupName);
@@ -38,7 +38,7 @@ describe("GET /groups/:group", function () {
 
     it("can get any group as admin", async function () {
         let response = await expect(request(this.server).get(`/groups/My first group`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")).to.be.fulfilled;
         let group: Group = response.body;
         expect(group.groupName).to.be.equal(group1.groupName);
@@ -51,14 +51,14 @@ describe("GET /groups/:group", function () {
 
     it("can't get a group as use", async function () {
         await request(this.server).get(`/groups/My first group`)
-            .auth(user.username, "12345678")
+            .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
             .expect(401);
     });
 
     it("can't get a group as create", async function () {
         await request(this.server).get(`/groups/My first group`)
-            .auth(creator.username, "12345678")
+            .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
             .expect(401);
     });

@@ -46,7 +46,7 @@ describe("POST /scenes", function(){
       await vfs.writeFile(dataStream(), {scene:"bar", name:"articles/hello.html", mime: "text/html", user_id:user.uid});
   
       let zip = await request(this.server).get("/scenes")
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Accept", "application/zip")
       .parse(binaryParser)
       .expect(200)
@@ -61,7 +61,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getScene("bar")).to.be.rejectedWith(NotFoundError);
   
       let res = await request(this.server).post("/scenes")
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Type", "application/zip")
       .send(zip.body)
       .expect(200);
@@ -80,7 +80,7 @@ describe("POST /scenes", function(){
   
       //Scene is exported from the `GET /scenes/{id}` endpoint
       let zip = await request(this.server).get("/scenes/foo")
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Accept", "application/zip")
       .parse(binaryParser)
       .expect(200)
@@ -91,7 +91,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getFileProps({scene:"foo", name:"articles/hello.html"})).to.be.rejectedWith(NotFoundError);
   
       let res = await request(this.server).post("/scenes")
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Type", "application/zip")
       .send(zip.body)
       .expect(200)
@@ -111,7 +111,7 @@ describe("POST /scenes", function(){
   
     it("rejects invalid Zip file", async function(){
       let res = await request(this.server).post("/scenes")
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Type", "application/zip")
       .send("Foo")
       .expect(500);
@@ -122,7 +122,7 @@ describe("POST /scenes", function(){
   
     it("rejects multipart-encoded data", async function(){
       let res = await request(this.server).post("/scenes")
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .set("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundaryguENXa8ihViAuUPl")
       .attach("files", Buffer.from("foo\n"), {filename: "scenes.zip"})
       .expect(400);
@@ -136,7 +136,7 @@ describe("POST /scenes", function(){
       let { hash: fileHash } = await vfs.writeFile(dataStream(), { scene: "foo", name: "articles/hello.html", mime: "text/html", user_id: user2.uid });
 
       let zip = await request(this.server).get("/scenes")
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .set("Accept", "application/zip")
         .parse(binaryParser)
         .expect(200)
@@ -148,7 +148,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
       let res = await request(this.server).post("/scenes")
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
@@ -170,7 +170,7 @@ describe("POST /scenes", function(){
       await vfs.writeFile(dataStream(), { scene: "bar", name: "articles/hello.html", mime: "text/html", user_id: user.uid });
 
       let zip = await request(this.server).get("/scenes")
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .set("Accept", "application/zip")
         .parse(binaryParser)
         .expect(200)
@@ -184,7 +184,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getFileProps({ scene: "bar", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
       let res = await request(this.server).post("/scenes")
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
@@ -219,7 +219,7 @@ describe("POST /scenes", function(){
         await vfs.writeFile(dataStream(), { scene: "bar", name: "articles/hello.html", mime: "text/html", user_id: user.uid });
 
         let zip = await request(this.server).get("/scenes")
-          .auth("ulysse", "12345678")
+          .set("Authorization", await bearer("ulysse"))
           .set("Accept", "application/zip")
           .parse(binaryParser)
           .expect(200)
@@ -231,7 +231,7 @@ describe("POST /scenes", function(){
         await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
         let res = await request(this.server).post("/scenes")
-          .auth("ulysse", "12345678")
+          .set("Authorization", await bearer("ulysse"))
           .set("Content-Type", "application/zip")
           .send(zip.body)
           .expect(200);
@@ -250,7 +250,7 @@ describe("POST /scenes", function(){
 
         //Scene is exported from the `GET /scenes/{id}` endpoint
         let zip = await request(this.server).get("/scenes/foo")
-          .auth("ulysse", "12345678")
+          .set("Authorization", await bearer("ulysse"))
           .set("Accept", "application/zip")
           .parse(binaryParser)
           .expect(200)
@@ -261,7 +261,7 @@ describe("POST /scenes", function(){
         await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
         let res = await request(this.server).post("/scenes")
-          .auth("ulysse", "12345678")
+          .set("Authorization", await bearer("ulysse"))
           .set("Content-Type", "application/zip")
           .send(zip.body)
           .expect(200);
@@ -279,7 +279,7 @@ describe("POST /scenes", function(){
 
       it("rejects invalid Zip file", async function () {
         let res = await request(this.server).post("/scenes")
-          .auth("ulysse", "12345678")
+          .set("Authorization", await bearer("ulysse"))
           .set("Content-Type", "application/zip")
           .send("Foo")
           .expect(500);
@@ -290,7 +290,7 @@ describe("POST /scenes", function(){
 
       it("rejects multipart-encoded data", async function () {
         let res = await request(this.server).post("/scenes")
-          .auth("ulysse", "12345678")
+          .set("Authorization", await bearer("ulysse"))
           .set("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundaryguENXa8ihViAuUPl")
           .attach("files", Buffer.from("foo\n"), { filename: "scenes.zip" })
           .expect(400);
@@ -304,7 +304,7 @@ describe("POST /scenes", function(){
       let { hash: fileHash } = await vfs.writeFile(dataStream(), { scene: "foo", name: "articles/hello.html", mime: "text/html", user_id: user.uid });
 
       let zip = await request(this.server).get("/scenes")
-        .auth("ulysse", "12345678")
+        .set("Authorization", await bearer("ulysse"))
         .set("Accept", "application/zip")
         .parse(binaryParser)
         .expect(200)
@@ -316,7 +316,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getScene("foo")).to.be.rejectedWith(NotFoundError);
 
       let res = await request(this.server).post("/scenes")
-        .auth("ulysse", "12345678")
+        .set("Authorization", await bearer("ulysse"))
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
@@ -335,7 +335,7 @@ describe("POST /scenes", function(){
       let { hash: fileHash } = await vfs.writeFile(dataStream(), { scene: "foo", name: "articles/hello.html", mime: "text/html", user_id: user2.uid });
 
       let zip = await request(this.server).get("/scenes")
-        .auth("ulysse", "12345678")
+        .set("Authorization", await bearer("ulysse"))
         .set("Accept", "application/zip")
         .parse(binaryParser)
         .expect(200)
@@ -347,7 +347,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
       let res = await request(this.server).post("/scenes")
-        .auth("ulysse", "12345678")
+        .set("Authorization", await bearer("ulysse"))
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
@@ -369,7 +369,7 @@ describe("POST /scenes", function(){
       await vfs.writeFile(dataStream(), { scene: "bar", name: "articles/hello.html", mime: "text/html", user_id: user.uid });
 
       let zip = await request(this.server).get("/scenes")
-        .auth("ulysse", "12345678")
+        .set("Authorization", await bearer("ulysse"))
         .set("Accept", "application/zip")
         .parse(binaryParser)
         .expect(200)
@@ -383,7 +383,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getFileProps({ scene: "bar", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
       let res = await request(this.server).post("/scenes")
-        .auth("ulysse", "12345678")
+        .set("Authorization", await bearer("ulysse"))
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(401);
@@ -412,7 +412,7 @@ describe("POST /scenes", function(){
       let { hash: fileHash } = await vfs.writeFile(dataStream(), { scene: "foo", name: "articles/hello.html", mime: "text/html", user_id: user2.uid });
 
       let zip = await request(this.server).get("/scenes")
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .set("Accept", "application/zip")
         .parse(binaryParser)
         .expect(200)
@@ -424,7 +424,7 @@ describe("POST /scenes", function(){
       await expect(vfs.getFileProps({ scene: "foo", name: "articles/hello.html" })).to.be.rejectedWith(NotFoundError);
 
       let res = await request(this.server).post("/scenes")
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .set("Content-Type", "application/zip")
         .send(zip.body)
         .expect(200);
