@@ -127,9 +127,9 @@ describe("authenticate middleware (server-side sessions)", function(){
   });
 
   describe("header authentication is request-scoped", function(){
-    it("authenticates with Basic and mints no cookie", async function(){
+    it("authenticates with a Bearer token and mints no cookie", async function(){
       const res = await request(this.server).get("/auth/")
-        .auth(admin.username, "12345678")
+        .set("Authorization", await bearer(admin.username))
         .set("Accept", "application/json")
         .expect(200);
       expect(res.body).to.have.property("username", admin.username);

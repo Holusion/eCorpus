@@ -19,7 +19,7 @@ describe("PUT /groups/:group/:member", function () {
     it("can put a member of a group as manage", async function () {
         let manage = await userManager.addUser("maelle", "12345678", "manage", "maelle@example.com");
         await request(this.server).put(`/groups/My Group/` + member.username)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")
             .expect(200);
         const group = await userManager.getGroup("My Group");
@@ -29,7 +29,7 @@ describe("PUT /groups/:group/:member", function () {
     it("can put a member of a group as admin", async function () {
         let admin = await userManager.addUser("alice", "12345678", "admin");
         await request(this.server).put(`/groups/My Group/` + member.username)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .expect(200);
         const group = await userManager.getGroup("My Group");
@@ -39,7 +39,7 @@ describe("PUT /groups/:group/:member", function () {
     it("can't put a member of a group as creator", async function () {
         let creator = await userManager.addUser("celia", "12345678", "create", "celia@example.com");
         await request(this.server).put(`/groups/My Group/` + member.username)
-            .auth(creator.username, "12345678")
+            .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
             .expect(401);
         const group = await userManager.getGroup("My Group");
@@ -49,7 +49,7 @@ describe("PUT /groups/:group/:member", function () {
     it("can't put a member of a group as user", async function () {
         let user = await userManager.addUser("ulysse", "12345678", "use", "ulysse@example.com");
         await request(this.server).put(`/groups/My Group/` + member.username)
-            .auth(user.username, "12345678")
+            .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
             .expect(401);
         const group = await userManager.getGroup("My Group");
@@ -67,7 +67,7 @@ describe("PUT /groups/:group/:member", function () {
     it("Fail when trying to put an inexisting member of a group", async function () {
         let admin = await userManager.addUser("alice", "12345678", "admin");
         await request(this.server).put(`/groups/My Group/not_a_user`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .expect(404);
         const group = await userManager.getGroup("My Group");

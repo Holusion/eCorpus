@@ -42,7 +42,7 @@ describe("GET /scenes/:scene/scene.svx.json", function(){
     let {id} = await vfs.getDoc(titleSlug);
     expect(id).to.be.a("number");
     let res = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(200)
     .expect("Content-Type", "application/si-dpo-3d.document+json");
 

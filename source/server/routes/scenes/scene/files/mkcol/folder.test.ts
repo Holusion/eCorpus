@@ -30,7 +30,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
 
   it("can create a folder", async function(){
     await request(this.server).mkcol(`/scenes/${titleSlug}/new_folder`)
-    .auth(user.username, "12345678")
+    .set("Authorization", await bearer(user.username))
     .expect(201);
 
     let folders = await collapseAsync(vfs.listFolders(scene_id));
@@ -40,7 +40,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
 
   it("can create a folder with trailing slash", async function(){
     await request(this.server).mkcol(`/scenes/${titleSlug}/new_folder`)
-    .auth(user.username, "12345678")
+    .set("Authorization", await bearer(user.username))
     .expect(201);
 
     let folders = await collapseAsync(vfs.listFolders(scene_id));
@@ -56,7 +56,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
     ];
     for (let name of badNames){
       let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 400)`).to.equal(400);
     }
     let self = [
@@ -66,7 +66,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
     ]
     for (let name of self){
       let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 409)`).to.equal(409);
     }
     
@@ -77,7 +77,7 @@ describe("MKCOL /scenes/:scene/.*", function(){
     ];
     for(let name of parents){
       let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 404)`).to.equal(404);
     }
   });

@@ -1,21 +1,21 @@
 
 import { NextFunction, Request, RequestHandler, Response } from "express";
 
-import User from "../auth/User.js";
 import { HTTPError, UnauthorizedError } from "./errors.js";
 import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
 
 /**
  * Resolves the request's identity (read it back with `getUser()`) from, in order:
  *  1. an `Authorization: Bearer ecorpus_…` API token, looked up in the `api_tokens` table;
- *  2. an `Authorization: Basic` header (transitional: removed in the next commit
- *     once the test suite is migrated to tokens);
- *  3. the session cookie's `sid`, looked up in the `user_sessions` table.
+ *  2. the session cookie's `sid`, looked up in the `user_sessions` table.
  *
  * Identity (including level) always comes from the database, so revocations,
  * password changes and level changes take effect on the next request.
  * A presented-but-invalid credential fails with 401; an absent credential
  * leaves the request anonymous.
+ *
+ * `Authorization: Basic` (user passwords) is not supported anymore: services
+ * authenticate with revocable, scoped tokens (see docs/auth-redesign.md).
  */
 export default function authenticate(req: Request, res: Response, next: NextFunction) {
   const { sessionMaxAge } = getLocals(req);
@@ -30,22 +30,6 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
       setUser(res, user, "token");
       next();
     }, next);
-    return;
-  }
-
-  if (auth && auth.startsWith("Basic ") && "Basic ".length < auth.length) {
-    let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
-    if (!username || !password) return next();
-    getUserManager(req).getUserByNamePassword(username, password).then((user) => {
-      setUser(res, User.safe(user), "basic");
-      next();
-    }, (e) => {
-      //A pair that doesn't match a user is not an error: it may be addressed
-      //to the OAuth token endpoint (client_secret_basic), which reads the
-      //header itself.
-      if ((e as HTTPError).code === 404 || (e as HTTPError).code === 400) next();
-      else next(e);
-    });
     return;
   }
 

@@ -41,7 +41,7 @@ describe("GET /scenes/:scene", function(){
       await userManager.setPublicAccess("foo", "none");
       await userManager.setDefaultAccess("foo", "none");
       await request(this.server).get("/scenes/foo")
-      .auth(adminUser.username, "12345678")
+      .set("Authorization", await bearer(adminUser.username))
       .expect(200);
     });
   });

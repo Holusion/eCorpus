@@ -42,7 +42,7 @@ describe("GET /history/:scene", function(){
 
     it("get a scene's history", async function(){
       let res = await request(this.server).get("/history/foo")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -59,7 +59,7 @@ describe("GET /history/:scene", function(){
 
     it("get text history", async function(){
       let res = await request(this.server).get("/history/foo")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "text/plain")
       .expect(200)
       .expect("Content-Type", "text/plain; charset=utf-8");
@@ -69,13 +69,13 @@ describe("GET /history/:scene", function(){
     it("get an empty history", async function(){
       await vfs.createScene("empty", user.uid);
       let res = await request(this.server).get("/history/empty")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
     });
 
     it("can ?limit results", async function(){
       let res = await request(this.server).get("/history/foo?limit=1")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -87,7 +87,7 @@ describe("GET /history/:scene", function(){
 
     it("can ?offset results", async function(){
       let res = await request(this.server).get("/history/foo?limit=1&offset=1")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
@@ -99,7 +99,7 @@ describe("GET /history/:scene", function(){
 
     it("exposes the total count via X-Total-Count for pagination", async function(){
       let res = await request(this.server).get("/history/foo?limit=1")
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .set("Accept", "application/json")
       .expect(200)
       .expect("X-Total-Count", "6");
@@ -120,7 +120,7 @@ describe("GET /history/:scene", function(){
   
       it("(user)", async function(){
         await request(this.server).get("/history/private")
-        .auth(opponent.username, "12345678")
+        .set("Authorization", await bearer(opponent.username))
         .expect(404);
       });
     })

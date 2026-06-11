@@ -21,38 +21,38 @@ describe("PATCH /admin/config", function(){
     .expect(401);
 
     await request(this.server).patch(`/admin/config`)
-    .auth(user.username, "12345678")
+    .set("Authorization", await bearer(user.username))
     .send({})
     .expect(401);
 
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({})
     .expect(204);
   });
 
   it("rejects non-object body", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send([])
     .expect(400);
   });
 
   it("rejects entry without value key", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({ brand: { locked: false } })
     .expect(400);
   });
 
   it("updates a runtime config value using raw entry", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({ brand: "Raw Brand" })
     .expect(204);
 
     const res = await request(this.server).get(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .accept("application/json")
     .expect(200);
 
@@ -63,12 +63,12 @@ describe("PATCH /admin/config", function(){
 
   it("updates a runtime config value", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({ brand: { value: "My Brand" } })
     .expect(204);
 
     const res = await request(this.server).get(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .accept("application/json")
     .expect(200);
 
@@ -79,14 +79,14 @@ describe("PATCH /admin/config", function(){
 
   it("rejects updates to runtime keys locked by an environment variable", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({ experimental: "X"})
     .expect(403);
   });
 
   it("rejects updates to locked (static) config keys", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({ port: { value: "9999" } })
     .expect(403);
   });
@@ -94,7 +94,7 @@ describe("PATCH /admin/config", function(){
 
   it("rejects unknown config keys", async function(){
     await request(this.server).patch(`/admin/config`)
-    .auth(admin.username, "12345678")
+    .set("Authorization", await bearer(admin.username))
     .send({ nonexistent_key: { value: "foo" } })
     .expect(400);
   });
