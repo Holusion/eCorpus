@@ -291,7 +291,9 @@ One table backs both OAuth2-granted tokens and personal access tokens.
 * **Clients** are registered by administrators (no dynamic registration):
   `client_id`, display name, exact-match `redirect_uris`, and — for
   confidential clients — a hashed `client_secret`. Public clients (e.g. a CLI)
-  have no secret.
+  have no secret. Registration is done from the admin UI (`/ui/admin/oauth`,
+  backed by `POST /auth/oauth/clients`); the secret is revealed once at
+  creation and never stored in the clear.
 * **PKCE S256 is mandatory for all clients** (OAuth 2.1 posture).
 * **Client authentication at the token endpoint** supports both
   `client_secret_basic` and `client_secret_post`. RFC 6749 §2.3.1 *requires*

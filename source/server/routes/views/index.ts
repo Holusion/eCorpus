@@ -544,6 +544,21 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   });
 }));
 
+routes.get("/admin/oauth", isAdministrator, wrap(async (req, res)=>{
+  const clients = (await getUserManager(req).getClients()).map(c=>({
+    id: c.id,
+    name: c.name,
+    redirectUris: c.redirectUris,
+    confidential: c.confidential,
+    created: c.created.toISOString().slice(0, 10),
+  }));
+  res.render("admin/oauth", {
+    layout: "admin",
+    title: "OAuth clients — Administration",
+    clients,
+  });
+}));
+
 routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
   let groups = await getUserManager(req).getGroups();
   res.render("admin/groups", {

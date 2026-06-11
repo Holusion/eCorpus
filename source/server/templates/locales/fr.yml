@@ -53,6 +53,19 @@ labels:
   role: Role
   close: Fermer
   createUser: Créer un utilisateur
+  createClient: Enregistrer un client
+  clientName: Nom de l'application
+  clientId: Identifiant client
+  clientSecret: Secret client
+  redirectUris: URIs de redirection (une par ligne)
+  confidential: Client confidentiel (avec secret)
+  confidentialClient: Confidentiel
+  publicClient: Public (PKCE)
+  clientRegistered: Client enregistré
+  clientSecretWarning: Copiez le secret maintenant — il est haché sur le serveur et ne sera plus jamais affiché.
+  copy: Copier
+  deletingAClientIsPermanent: Supprimer un client révoque tous les jetons qu'il a émis
+  noClients: Aucun client OAuth enregistré
   lastModified: Dernière modification
   totalScenesCount: Nombre total de scènes
   totalFilesCount: Nombre total de fichiers
@@ -148,6 +161,7 @@ nav:
   administration: administration
   summary: récapitulatif
   adminUsers: utilisateurs
+  adminClients: clients OAuth
   adminGroups: groupes
   adminStats: statistiques
   adminArchives: archives
@@ -275,6 +289,8 @@ titles:
   testEmail: Test du système d'email de {{what}}
   testEmailVerify: Vérifications supplémentaires
   userManager: Gestion des utilisateurs
+  oauthClients: Clients OAuth
+  createOAuthClient: Enregistrer un client OAuth
   groupManager: Gestion des groupes
   adminHome: Interface d'administration
   serverStatistics: Statistiques de l'instance
