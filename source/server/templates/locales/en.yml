@@ -4,6 +4,10 @@ lang:
   en: English
   es: Spanish
 labels:
+  authorize: Authorize
+  deny: Deny
+  revoke: Revoke
+  scope: scope
   optional: optional
   scene: Scene
   sceneTitle: scene title
@@ -49,6 +53,19 @@ labels:
   role: Role
   close: Close
   createUser: Create a user
+  createClient: Register a client
+  clientName: Application name
+  clientId: Client ID
+  clientSecret: Client secret
+  redirectUris: Redirect URIs (one per line)
+  confidential: Confidential client (issues a secret)
+  confidentialClient: Confidential
+  publicClient: Public (PKCE)
+  clientRegistered: Client registered
+  clientSecretWarning: Copy the client secret now — it is hashed on the server and will never be shown again.
+  copy: Copy
+  deletingAClientIsPermanent: Deleting a client revokes every token it issued
+  noClients: No OAuth client registered yet
   lastModified: "Last modified"
   totalScenesCount: Total scenes count
   totalFilesCount: Total files count
@@ -138,11 +155,13 @@ fields:
   status: Status
   minLevel: Min level
 nav:
+  tokens: API tokens
   tags: collections
   login: connection
   administration: administration
   summary: summary
   adminUsers: users
+  adminClients: OAuth clients
   adminGroups: groups
   adminStats: statistics
   adminArchives: archives
@@ -235,6 +254,9 @@ onboarding:
     link: "About background tasks"
 
 titles:
+  userTokens: API tokens
+  authorizedApps: Authorized applications
+  authorize: Authorization request
   myScenesSection: my scenes
   gettingStarted: Getting started
   myGroups: My groups
@@ -260,6 +282,8 @@ titles:
   testEmail: "{{what}} email system test"
   testEmailVerify: Additional verifications
   userManager: Users management
+  oauthClients: OAuth clients
+  createOAuthClient: Register an OAuth client
   groupManager: Groups management
   adminHome: Administration Interface
   serverStatistics: Instance Statistics
@@ -288,6 +312,15 @@ tooltips:
     Restrict results to scenes on which you have at least this level of rights.
     Administrators can leave this empty to list every scene on the instance.
 leads:
+  userTokens: >
+    API tokens let third-party services and scripts make authenticated requests on your behalf, without your password. They can be revoked at any time
+  authorize: is requesting access to your eCorpus account, as
+  authorizedApps: >
+    Applications you allowed to access your account. As long as you stay signed in, they renew their access automatically without asking again. Revoking an application stops this renewal and invalidates the tokens it holds
+  noAuthorizedApps: No authorized application
+  revokeGrant: Revoke this application's access and its tokens
+  tokenCreated: >
+    Here is your new token. Copy it now: it will never be shown again
   appLead: >
     eCorpus is a database of 3D scenes using a rich scene editor shared
     with the Smithsonian Institute's Digitization Project Office

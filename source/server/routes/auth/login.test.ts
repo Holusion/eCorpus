@@ -43,6 +43,29 @@ describe("/auth/login", function(){
     expect(expiresDate.valueOf()).to.be.below(Date.now()+ maxAge + 1);
   });
 
+  it("scopes the cookie's Secure flag to the connection (not NODE_ENV)", async function(){
+    //Plain HTTP: the cookie must not be Secure, or it would never round-trip.
+    //This is exactly what the dockerised e2e hits against the production image.
+    let res = await request(this.server).post("/auth/login")
+      .send({username: user.username, password: "12345678"})
+      .set("Content-Type", "application/json")
+      .set("Accept", "")
+      .expect(200);
+    let cookies = ([] as string[]).concat(res.headers["set-cookie"]).join("; ");
+    expect(cookies, `did not expect a Secure cookie over http, got ${cookies}`).not.to.match(/secure/i);
+
+    //Behind a TLS-terminating proxy (trust proxy is on by default) the
+    //forwarded protocol marks the cookie Secure.
+    res = await request(this.server).post("/auth/login")
+      .send({username: user.username, password: "12345678"})
+      .set("Content-Type", "application/json")
+      .set("Accept", "")
+      .set("X-Forwarded-Proto", "https")
+      .expect(200);
+    cookies = ([] as string[]).concat(res.headers["set-cookie"]).join("; ");
+    expect(cookies, `expected a Secure cookie behind https, got ${cookies}`).to.match(/secure/i);
+  });
+
   it("can get login status (not connected)", async function(){
     await request(this.server).get("/auth/login")
     .set("Accept", "application/json")
@@ -209,43 +232,47 @@ describe("/auth/login", function(){
   });
   
   describe("Authorization header", function(){
-    it("can use header to authenticate a request", async function(){
-      let res = {
-        username: user.username, 
+    it("can use a Bearer token to authenticate a request", async function(){
+      await request(this.server).get("/auth/login")
+      .set("Authorization", await bearer(user.username))
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect({
+        username: user.username,
         uid: user.uid,
         level: "create",
-      };
-
-      //Manually build the header
-      await request(this.server).get("/auth/login")
-      .set("Authorization", `Basic ${Buffer.from(`${user.username}:12345678`).toString("base64")}`)
-      .set("Accept", "application/json")
-      .expect(200)
-      .expect(res);
-
-      //make supertest build the header
-      await request(this.server).get("/auth/login")
-      .auth(user.username, "12345678")
-      .set("Accept", "application/json")
-      .expect(200)
-      .expect(res);
+      });
     });
-  
-    it("rejects bad header", async function(){
-      // Missing the "Basic " part
+
+    it("ignores non-Bearer headers", async function(){
       let res = await request(this.server).get("/auth/login")
       .set("Authorization", `${Buffer.from(`${user.username}:12345678`).toString("base64")}`)
       .expect(200); //Still answers 200, but no login data
 
       expect(res.body).to.deep.equal({ uid: 0, username: "default", level: "none" });
     });
-    it("rejects bad user:password", async function(){
+
+    it("does not support Basic (user password) authentication", async function(){
+      //Services authenticate with revocable tokens, never with the user's password
       let res = await request(this.server).get("/auth/login")
-      .auth(user.username, "badPassword")
+      .auth(user.username, "12345678")
+      .expect(200); //Basic is simply ignored: no login data
+      expect(res.body).to.deep.equal({ uid: 0, username: "default", level: "none" });
+      expect(res.headers).not.to.have.property("set-cookie");
+    });
+
+    it("rejects invalid tokens", async function(){
+      let res = await request(this.server).get("/auth/login")
+      .set("Authorization", `Bearer ecorpus_AAAAAAAA_${Buffer.alloc(32).toString("base64url")}`)
       .expect(401);
       expect(res.headers).not.to.have.property("set-cookie");
     });
 
+    it("rejects malformed tokens", async function(){
+      await request(this.server).get("/auth/login")
+      .set("Authorization", `Bearer not-a-token`)
+      .expect(401);
+    });
   });
   
   describe("Login links", function(){
@@ -261,7 +288,7 @@ describe("/auth/login", function(){
     it("obtains a valid login link (text/plain)", async function(){
       const maxAge = this.server.locals.sessionMaxAge;
       let res = await request(this.server).get(`/auth/login/${user.username}/link`)
-      .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
+      .set("Authorization", await bearer(admin.username))
       .set("Accept", "text/plain")
       .expect(200)
       .expect("Content-Type", "text/plain; charset=utf-8");
@@ -293,13 +320,13 @@ describe("/auth/login", function(){
       .expect(401);
 
       await request(this.server).get(`/auth/login/${user.username}/link`)
-      .auth(user.username, "12345678")
+      .set("Authorization", await bearer(user.username))
       .expect(401);
     });
 
     it("accepts custom redirect URL", async function(){
       let res = await request(this.server).get(`/auth/login/${user.username}/link`)
-      .set("Authorization", `Basic ${Buffer.from(`${admin.username}:12345678`).toString("base64")}`)
+      .set("Authorization", await bearer(admin.username))
       .set("Accept", "text/plain")
       .expect(200)
       .expect("Content-Type", "text/plain; charset=utf-8");

@@ -66,14 +66,14 @@ describe("GET /tasks/:id/artifact", function () {
     it("returns 401 when task belongs to another user", async function () {
       await request(this.server)
         .get(`/tasks/${task_id}/artifact`)
-        .auth("charlie", "12345678")
+        .set("Authorization", await bearer("charlie"))
         .expect(401);
     });
 
     it("allows server admins to download artifacts of tasks created by others", async function () {
       await request(this.server)
         .get(`/tasks/${task_id}/artifact`)
-        .auth("alice", "12345678")
+        .set("Authorization", await bearer("alice"))
         .accept("application/json")
         .expect(200);
     });
@@ -82,14 +82,14 @@ describe("GET /tasks/:id/artifact", function () {
       let task = await taskScheduler.create({user_id: bob.uid, data: {}, status: "initializing", type: "initTask"});
       await request(this.server)
         .get(`/tasks/${task.task_id}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", await bearer("bob"))
         .expect(405);
     });
 
     it("returns 200 with an empty files array (json)", async function () {
       const { body } = await request(this.server)
         .get(`/tasks/${task_id}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", await bearer("bob"))
         .accept("application/json")
         .expect(200);
       expect(body).to.have.property("files").that.is.an("array").with.lengthOf(0);
@@ -98,7 +98,7 @@ describe("GET /tasks/:id/artifact", function () {
     it("returns 200 with an empty zip", async function () {
       const res = await request(this.server)
         .get(`/tasks/${task_id}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", await bearer("bob"))
         .accept("application/zip")
         .expect(200);
       const entries = await getZipEntries(Buffer.from(res.text, "binary"));
@@ -113,19 +113,21 @@ describe("GET /tasks/:id/artifact", function () {
       size = randomInt(16, 512);
       const { body } = await request(this.server)
         .post("/tasks")
-        .auth("bob", "12345678")
+        .set("Authorization", await bearer("bob"))
         .set("Content-Type", "application/json")
         .send({ type: "parseUserUpload", data: { filename, size }, status: "initializing" })
         .expect(201);
       task = body.task_id;
     });
     let data: Buffer;
+    let bobToken: string;
 
     this.beforeEach(async function () {
+      bobToken = await bearer("bob");
       data = randomBytes(size);
       await request(this.server)
         .put(`/tasks/${task}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", bobToken)
         .send(data)
         .expect(201);
     });
@@ -133,7 +135,7 @@ describe("GET /tasks/:id/artifact", function () {
     function getArtifact(server: any) {
       return request(server)
         .get(`/tasks/${task}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", bobToken)
         .accept("application/zip")
         .buffer(true)
         .parse((res, callback) => {
@@ -146,7 +148,7 @@ describe("GET /tasks/:id/artifact", function () {
     it("returns 200 with Content-Type application/zip", async function () {
       await request(this.server)
         .get(`/tasks/${task}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", await bearer("bob"))
         .expect(200)
         .expect("Content-Type", /application\/zip/);
     });
@@ -154,7 +156,7 @@ describe("GET /tasks/:id/artifact", function () {
     it("rejects Not Acceptable content types", async function(){
         await request(this.server)
         .get(`/tasks/${task}/artifact`)
-        .auth("bob", "12345678")
+        .set("Authorization", await bearer("bob"))
         .accept("text/plain")
         .expect(406); //Not Acceptable
     });
@@ -190,7 +192,7 @@ describe("GET /tasks/:id/artifact", function () {
       function getArtifactJson(server: any) {
         return request(server)
           .get(`/tasks/${task}/artifact`)
-          .auth("bob", "12345678")
+          .set("Authorization", bobToken)
           .accept("application/json");
       }
 

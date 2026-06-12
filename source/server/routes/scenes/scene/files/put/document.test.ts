@@ -42,7 +42,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
   it("can PUT a scene's document", async function(){
     sampleDoc.asset.copyright = "Something Else";
     await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
     .expect(204);
@@ -75,7 +75,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     sampleDoc.asset.id = firstDocId;
     sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
     let r = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
     .expect(204);
@@ -141,7 +141,7 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
       ]
     });
     let r = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
     .expect(204);

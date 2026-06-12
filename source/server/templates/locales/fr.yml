@@ -4,6 +4,10 @@ lang:
   en: Anglais
   es: Espagnol
 labels:
+  authorize: Autoriser
+  deny: Refuser
+  revoke: Révoquer
+  scope: portée
   optional: optionnel
   scene: Scène
   sceneTitle: titre de la scène
@@ -49,6 +53,19 @@ labels:
   role: Role
   close: Fermer
   createUser: Créer un utilisateur
+  createClient: Enregistrer un client
+  clientName: Nom de l'application
+  clientId: Identifiant client
+  clientSecret: Secret client
+  redirectUris: URIs de redirection (une par ligne)
+  confidential: Client confidentiel (avec secret)
+  confidentialClient: Confidentiel
+  publicClient: Public (PKCE)
+  clientRegistered: Client enregistré
+  clientSecretWarning: Copiez le secret maintenant — il est haché sur le serveur et ne sera plus jamais affiché.
+  copy: Copier
+  deletingAClientIsPermanent: Supprimer un client révoque tous les jetons qu'il a émis
+  noClients: Aucun client OAuth enregistré
   lastModified: Dernière modification
   totalScenesCount: Nombre total de scènes
   totalFilesCount: Nombre total de fichiers
@@ -138,11 +155,13 @@ fields:
   status: Statut
   minLevel: Niveau min
 nav:
+  tokens: Jetons d'API
   tags: collections
   login: connexion
   administration: administration
   summary: récapitulatif
   adminUsers: utilisateurs
+  adminClients: clients OAuth
   adminGroups: groupes
   adminStats: statistiques
   adminArchives: archives
@@ -243,6 +262,9 @@ onboarding:
     link: "À propos des tâches"
 
 titles:
+  userTokens: Jetons d'API
+  authorizedApps: Applications autorisées
+  authorize: Demande d'autorisation
   myScenesSection: mes scenes
   gettingStarted: Pour commencer
   myGroups: Mes groupes
@@ -268,6 +290,8 @@ titles:
   testEmail: Test du système d'email de {{what}}
   testEmailVerify: Vérifications supplémentaires
   userManager: Gestion des utilisateurs
+  oauthClients: Clients OAuth
+  createOAuthClient: Enregistrer un client OAuth
   groupManager: Gestion des groupes
   adminHome: Interface d'administration
   serverStatistics: Statistiques de l'instance
@@ -302,6 +326,15 @@ tooltips:
     Le titre ne sera pris en compte que si un seul glb est importé à la fois.
     Pour renommer les scènes importées sous forme de zip, utilisez la page de scène. 
 leads:
+  userTokens: >
+    Les jetons d'API permettent à des services tiers de faire des requêtes authentifiées en votre nom, sans votre mot de passe. Ils sont révocables à tout moment
+  authorize: demande l'accès à votre compte eCorpus, en tant que
+  authorizedApps: >
+    Applications que vous avez autorisées à accéder à votre compte. Tant que vous restez connecté, elles renouvellent leur accès automatiquement sans redemander. Révoquer une application arrête ce renouvellement et invalide ses jetons
+  noAuthorizedApps: Aucune application autorisée
+  revokeGrant: Révoquer l'accès de cette application et ses jetons
+  tokenCreated: >
+    Voici votre nouveau jeton. Copiez-le maintenant : il ne sera plus jamais affiché
   appLead: >
     eCorpus est un modèle de base de données d'objets 3D développé par holusion
     et utilisant un éditeur et visualisateur enrichi issu du projet DPO-Voyager

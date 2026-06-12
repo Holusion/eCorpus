@@ -60,13 +60,15 @@ test("can change password", async ({baseURL, page})=>{
   const {username, password} = account;
   const new_password = randomBytes(10).toString("base64");
 
-  let res = await fetch(new URL(`/auth/login`, baseURL), {
-    method: "GET",
-    headers: {
-        "Authorization":  `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
-    }
-  })
-  expect(res.ok).toBeTruthy();
+  //Basic auth is not supported anymore: probe credentials through the login
+  //endpoint instead (a fresh request that doesn't touch the page's session).
+  const tryLogin = (pw :string) => fetch(new URL(`/auth/login`, baseURL), {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({username, password: pw}),
+  });
+
+  expect((await tryLogin(password)).ok).toBeTruthy();
 
   await page.goto("/ui/user/");
   const form = page.getByRole("form", {name: "titles.changePassword"});
@@ -78,22 +80,9 @@ test("can change password", async ({baseURL, page})=>{
   await expect(page.getByRole("alert")).not.toBeVisible();
   await expect(page.getByRole("status")).toBeVisible();
 
-  res = await fetch(new URL(`/auth/login`, baseURL), {
-    method: "GET",
-    headers: {
-        "Authorization":  `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
-    }
-  })
-  expect(res.ok).toBeFalsy();
-
-  res = await fetch(new URL(`/auth/login`, baseURL), {
-    method: "GET",
-    headers: {
-        "Authorization":  `Basic ${Buffer.from(`${username}:${new_password}`).toString("base64")}`
-    }
-  })
-  expect(res.ok).toBeTruthy();
-
+  //The old password must no longer authenticate, the new one must.
+  expect((await tryLogin(password)).ok).toBeFalsy();
+  expect((await tryLogin(new_password)).ok).toBeTruthy();
 });
 
 

@@ -3,10 +3,14 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, either, isAdministrator, isUser, useTemplateProperties  } from "../../utils/locals.js";
+import { canAdmin, canRead, either, getUser, isAdministrator, isFullUser, isUser, useTemplateProperties  } from "../../utils/locals.js";
+import { noFraming } from "../../utils/headers.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
+import { deleteSession, getOwnSessions } from "./sessions.js";
+import { deleteOwnToken, getOwnTokens, postToken } from "./tokens.js";
+import { deleteClient, deleteGrant, getAuthorize, getClients, getGrants, postAuthorize, postClient, postRevoke, postToken as postOAuthToken } from "./oauth.js";
 import getPermissions from "./access/get.js";
 import patchPermissions from "./access/patch.js";
 import User from "../../auth/User.js";
@@ -26,15 +30,28 @@ router.use((req, res, next)=>{
   next();
 });
 
+//A clickjacked click on the OAuth consent page would grant a token:
+//deny framing for the whole auth scope (none of it is meant to be embedded).
+router.use(noFraming);
+
 
 router.get("/", wrap(async function(req, res){
-  return res.status(200).send(User.safe((req as any).session as any));
+  return res.status(200).send(User.safe(getUser(req) ?? {}));
 }));
 
 router.get("/payload/:payload", wrap(getLoginPayload));
 
 router.get("/login", wrap(getLogin));
-router.post("/login", 
+router.post("/login",
+  //Password verification costs a full scrypt: rate-limit to slow down online brute-force.
+  //The TEST escape hatch is for integration tests that log in dozens of times from one IP.
+  rateLimit({
+    windowMs: 60 * 1000,
+    limit: process.env["TEST"] ? 10000 : 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    validate: {trustProxy: false},
+  }),
   useJSON,
   useURLEncoded,
   useTemplateProperties,
@@ -50,7 +67,31 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
   validate: {trustProxy: false}
 })), wrap(sendLoginLink));
 
-router.post("/logout",  useJSON, useURLEncoded, postLogout);
+router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
+
+//Account management requires the owner's full authority (session or
+//`all`-scoped token): a restriction-scoped token must not inspect or alter
+//the credentials it lives next to.
+router.get("/sessions", isFullUser, wrap(getOwnSessions));
+router.delete("/sessions/:id", isFullUser, wrap(deleteSession));
+
+router.get("/tokens", isFullUser, wrap(getOwnTokens));
+router.post("/tokens", isFullUser, useJSON, wrap(postToken));
+router.delete("/tokens/:id", isFullUser, wrap(deleteOwnToken));
+
+//"Authorized applications": persisted OAuth consents. Revoking one stops
+//silent re-authorization and revokes the client's tokens for this user.
+router.get("/oauth/grants", isFullUser, wrap(getGrants));
+router.delete("/oauth/grants/:clientId", isFullUser, wrap(deleteGrant));
+
+//OAuth2 authorization server (authorization code + PKCE)
+router.get("/oauth/authorize", wrap(getAuthorize));
+router.post("/oauth/authorize", useURLEncoded, wrap(postAuthorize));
+router.post("/oauth/token", useURLEncoded, wrap(postOAuthToken));
+router.post("/oauth/revoke", useURLEncoded, wrap(postRevoke));
+router.get("/oauth/clients", isAdministrator, wrap(getClients));
+router.post("/oauth/clients", isAdministrator, useJSON, wrap(postClient));
+router.delete("/oauth/clients/:id", isAdministrator, wrap(deleteClient));
 
 
 router.get("/access/:scene", isUser, canRead, wrap(getPermissions));

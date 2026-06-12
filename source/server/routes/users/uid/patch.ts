@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { getLocals, getUser, getUserManager } from "../../../utils/locals.js";
+import { getAuthMethod, getLocals, getUser, getUserManager, isFullAccess } from "../../../utils/locals.js";
 import User, { SafeUser } from "../../../auth/User.js";
 import { UnauthorizedError } from "../../../utils/errors.js";
 
@@ -18,6 +18,12 @@ export async function handlePatchUser(req:Request, res :Response){
   const isTargetUid = requester? requester.uid === targetUid : false;
   const userManager = getUserManager(req);
 
+  if(!isFullAccess(res)){
+    //A restriction-scoped token must not modify accounts: changing the
+    //password would escalate it back to its owner's full authority.
+    throw new UnauthorizedError(`token scope does not allow account modification`);
+  }
+
   if(!isAdmin && typeof update.level !== "undefined" && update.level !== level){
     throw new UnauthorizedError(`Only administrators can change user levels`);
   }else if(isAdmin && isTargetUid && typeof update.level !== "undefined" && update.level !== level){
@@ -27,12 +33,12 @@ export async function handlePatchUser(req:Request, res :Response){
   }
 
   let u = await userManager.patchUser(targetUid, update);
-  if(isTargetUid){
-    Object.assign(
-      req.session as SafeUser,
-      {expires: Date.now() + sessionMaxAge},
-      User.safe(u)
-    );
+  if(isTargetUid && typeof update.password !== "undefined" && getAuthMethod(res) === "session"){
+    //Changing one's own password evicted every session (see UserManager.patchUser):
+    //keep the requester logged in by minting a fresh one.
+    const expires = new Date(Date.now() + sessionMaxAge);
+    const {sid} = await userManager.createSession(targetUid, {expires, userAgent: req.get("User-Agent")});
+    req.session = {lang: req.session?.lang, sid, expires: expires.valueOf()};
   }
   res.status(200).send(User.safe(u));
 }

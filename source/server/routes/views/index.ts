@@ -348,6 +348,17 @@ routes.get("/user/groups", wrap(async (req, res)=>{
   });
 }));
 
+routes.get("/user/tokens", wrap(async (req, res)=>{
+  const user = getUser(req);
+  if(user == null || UserRoles.indexOf(user.level) < 1){
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tokens")}`);
+  }
+  res.render("user/tokens", {
+    layout: "user",
+    title: "API Tokens — User",
+  });
+}));
+
 routes.get("/user/archives", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
@@ -530,6 +541,21 @@ routes.get("/admin/users", wrap(async (req, res)=>{
     params: {limit, offset, match},
     pager,
     users,
+  });
+}));
+
+routes.get("/admin/oauth", isAdministrator, wrap(async (req, res)=>{
+  const clients = (await getUserManager(req).getClients()).map(c=>({
+    id: c.id,
+    name: c.name,
+    redirectUris: c.redirectUris,
+    confidential: c.confidential,
+    created: c.created.toISOString().slice(0, 10),
+  }));
+  res.render("admin/oauth", {
+    layout: "admin",
+    title: "OAuth clients — Administration",
+    clients,
   });
 }));
 

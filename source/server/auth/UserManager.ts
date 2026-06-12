@@ -10,6 +10,7 @@ import User, {SafeUser, StoredUser, UserLevels, UserRole, UserRoles} from "./Use
 import openDatabase, {Database, DbController, DbOptions} from "../vfs/helpers/db.js";
 import errors, { expandSQLError } from "../vfs/helpers/errors.js";
 import Group, { StoredGroup } from "./Group.js";
+import { CODE_LIFETIME, formatToken, hashSecret, isValidScope, makeSecret, parseToken, verifySecret } from "./Token.js";
 import { group } from "console";
 
 
@@ -63,6 +64,130 @@ export interface UserQuery {
 
 export const any_id = 1 as const;
 export const default_id = 0 as const;
+
+export interface UserSession {
+  /** Management handle: safe to expose, the session credential never leaves the cookie */
+  id: number;
+  uid: number;
+  created: Date;
+  expires: Date;
+  lastSeen: Date;
+  userAgent: string | null;
+}
+
+interface StoredSession {
+  session_id: string | number;
+  fk_user_id: string | number;
+  created_at: Date;
+  expires_at: Date;
+  last_seen: Date;
+  user_agent: string | null;
+}
+
+function deserializeSession(s: StoredSession): UserSession {
+  return {
+    id: typeof s.session_id === "string" ? parseInt(s.session_id, 10) : s.session_id,
+    uid: typeof s.fk_user_id === "string" ? parseInt(s.fk_user_id, 10) : s.fk_user_id,
+    created: s.created_at,
+    expires: s.expires_at,
+    lastSeen: s.last_seen,
+    userAgent: s.user_agent,
+  };
+}
+
+/** sha256 digest of a session credential. Sessions are stored hashed (like tokens) so a database leak doesn't yield usable credentials */
+function hashSid(sid: string): Buffer {
+  return crypto.createHash("sha256").update(sid).digest();
+}
+
+export interface ApiToken {
+  /** Management handle: safe to expose, the token secret is only stored hashed */
+  id: number;
+  uid: number;
+  /** OAuth2 client this token was granted to, or null for personal access tokens */
+  clientId: number | null;
+  clientName?: string | null;
+  name: string;
+  scope: string[];
+  created: Date;
+  expires: Date | null;
+  lastUsed: Date | null;
+}
+
+interface StoredToken {
+  token_id: string | number;
+  fk_user_id: string | number;
+  fk_client_id: string | number | null;
+  client_name?: string | null;
+  name: string;
+  hash: Buffer;
+  scope: string[];
+  created_at: Date;
+  expires_at: Date | null;
+  last_used_at: Date | null;
+}
+
+function deserializeToken(t: StoredToken): ApiToken {
+  return {
+    id: typeof t.token_id === "string" ? parseInt(t.token_id, 10) : t.token_id,
+    uid: typeof t.fk_user_id === "string" ? parseInt(t.fk_user_id, 10) : t.fk_user_id,
+    clientId: t.fk_client_id == null ? null : (typeof t.fk_client_id === "string" ? parseInt(t.fk_client_id, 10) : t.fk_client_id),
+    clientName: t.client_name ?? null,
+    name: t.name,
+    scope: t.scope,
+    created: t.created_at,
+    expires: t.expires_at,
+    lastUsed: t.last_used_at,
+  };
+}
+
+export interface OAuthClient {
+  id: number;
+  name: string;
+  redirectUris: string[];
+  /** Confidential clients hold a secret; public clients (eg. CLIs) rely on PKCE only */
+  confidential: boolean;
+  created: Date;
+}
+
+/**
+ * A user's persisted consent for a client: the union of every scope set they
+ * approved. Lets the authorize endpoint re-issue codes without a consent page.
+ */
+export interface OAuthGrant {
+  clientId: number;
+  clientName: string;
+  scope: string[];
+  created: Date;
+  updated: Date;
+}
+
+interface StoredClient {
+  client_id: string | number;
+  name: string;
+  secret_hash: Buffer | null;
+  redirect_uris: string[];
+  created_at: Date;
+}
+
+function deserializeClient(c: StoredClient): OAuthClient {
+  return {
+    id: typeof c.client_id === "string" ? parseInt(c.client_id, 10) : c.client_id,
+    name: c.name,
+    redirectUris: c.redirect_uris,
+    confidential: c.secret_hash != null,
+    created: c.created_at,
+  };
+}
+
+export interface AuthorizationCode {
+  clientId: number;
+  uid: number;
+  scope: string[];
+  redirectUri: string;
+  codeChallenge: string;
+  expires: Date;
+}
 
 export default class UserManager extends DbController {
 
@@ -361,6 +486,11 @@ export default class UserManager extends DbController {
       RETURNING *
     `, params);
     if(!r) throw new NotFoundError(`Can't find user with uid : ${uid}`);
+    if(typeof u.password !== "undefined"){
+      //A password change evicts every active session for this user (OWASP ASVS V3).
+      //The route handler may mint a fresh session for the requester afterwards.
+      await this.removeUserSessions(uid);
+    }
     return UserManager.deserialize(r);
   }
 
@@ -543,6 +673,398 @@ export default class UserManager extends DbController {
       }
       throw e;
     }
+  }
+
+  /**
+   * Open a new server-side session for a user.
+   * The returned `sid` is the session credential: it is stored hashed and can not be retrieved afterwards.
+   */
+  async createSession(uid: number, {expires, userAgent}: {expires: Date, userAgent?: string}): Promise<{sid: string, session: UserSession}>{
+    const sid = crypto.randomBytes(32).toString("base64url");
+    let r = await this.db.get<StoredSession>(`
+      INSERT INTO user_sessions (sid_hash, fk_user_id, expires_at, user_agent)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [
+      hashSid(sid),
+      uid.toString(10),
+      expires,
+      userAgent ?? null,
+    ]);
+    //istanbul ignore if
+    if(!r) throw new InternalError(`Failed to create a session for user ${uid}`);
+    return {sid, session: deserializeSession(r)};
+  }
+
+  /**
+   * Resolve a session credential into its user.
+   * Identity (including level) always comes from the users table so revocations and level changes are immediate.
+   * Expiry is **not** checked here: the caller is expected to compare `expires` and handle renewal.
+   * @throws {UnauthorizedError} if the session does not exist (never existed, or was revoked)
+   */
+  async authenticateSession(sid: string): Promise<{user: SafeUser, sessionId: number, expires: Date}>{
+    let r = await this.db.get<StoredSession & Pick<StoredUser, "user_id"|"username"|"email"|"level">>(`
+      SELECT s.session_id, s.fk_user_id, s.created_at, s.expires_at, s.last_seen, s.user_agent,
+        u.user_id, u.username, u.email, u.level
+      FROM user_sessions AS s
+      INNER JOIN users AS u ON u.user_id = s.fk_user_id
+      WHERE s.sid_hash = $1
+    `, [hashSid(sid)]);
+    if(!r) throw new UnauthorizedError(`Invalid session`);
+    return {
+      user: User.safe(UserManager.deserialize({...r, password: undefined})),
+      sessionId: deserializeSession(r).id,
+      expires: r.expires_at,
+    };
+  }
+
+  /**
+   * Slide a session's expiry forward. Doubles as the (renewal-throttled) `last_seen` update.
+   */
+  async renewSession(sessionId: number, expires: Date): Promise<void>{
+    await this.db.run(`
+      UPDATE user_sessions
+      SET expires_at = $2, last_seen = CURRENT_TIMESTAMP
+      WHERE session_id = $1
+    `, [sessionId.toString(10), expires]);
+  }
+
+  /**
+   * List a user's active sessions (inventory). Never exposes the credential.
+   */
+  async getSessions(uid: number): Promise<UserSession[]>{
+    return (await this.db.all<StoredSession>(`
+      SELECT session_id, fk_user_id, created_at, expires_at, last_seen, user_agent
+      FROM user_sessions
+      WHERE fk_user_id = $1
+      ORDER BY last_seen DESC
+    `, [uid.toString(10)])).map(deserializeSession);
+  }
+
+  /**
+   * Revoke a session by its management id.
+   * @param uid when provided, restricts deletion to this user's sessions (owner-scoped revocation)
+   * @throws {NotFoundError} if no matching session exists
+   */
+  async removeSession(sessionId: number, uid?: number): Promise<void>{
+    const args: any[] = [sessionId.toString(10)];
+    if(typeof uid === "number") args.push(uid.toString(10));
+    let r = await this.db.run(`
+      DELETE FROM user_sessions
+      WHERE session_id = $1 ${typeof uid === "number" ? "AND fk_user_id = $2" : ""}
+    `, args);
+    if(!r || !r.changes) throw new NotFoundError(`No session to delete with id ${sessionId}`);
+  }
+
+  /**
+   * Revoke a session by its credential (logout)
+   */
+  async removeSessionBySid(sid: string): Promise<void>{
+    await this.db.run(`DELETE FROM user_sessions WHERE sid_hash = $1`, [hashSid(sid)]);
+  }
+
+  /**
+   * Revoke all of a user's sessions, eg. after a password change
+   */
+  async removeUserSessions(uid: number): Promise<void>{
+    await this.db.run(`DELETE FROM user_sessions WHERE fk_user_id = $1`, [uid.toString(10)]);
+  }
+
+  /**
+   * Create an API token for a user.
+   * A token never grants more than its owner can do: identity — including
+   * level — is resolved from the owner's user row on every use
+   * ({@link authenticateToken}).
+   * @returns the serialized token (shown exactly once: only its hash is stored) and its metadata
+   */
+  async createToken(uid: number, {name, scope = ["all"], clientId = null, expires = null}: {
+    name: string,
+    scope?: string[],
+    clientId?: number | null,
+    expires?: Date | null,
+  }): Promise<{token: string, meta: ApiToken}>{
+    if(typeof name !== "string" || name.length == 0) throw new BadRequestError(`A token name is required`);
+    if(!isValidScope(scope)) throw new BadRequestError(`Invalid token scope : ${JSON.stringify(scope)}`);
+    const secret = makeSecret();
+    let r = await this.db.get<StoredToken>(`
+      INSERT INTO api_tokens (fk_user_id, fk_client_id, name, hash, scope, expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [
+      uid.toString(10),
+      clientId == null ? null : clientId.toString(10),
+      name,
+      hashSecret(secret),
+      scope,
+      expires,
+    ]);
+    //istanbul ignore if
+    if(!r) throw new InternalError(`Failed to create a token for user ${uid}`);
+    return {token: formatToken(deserializeToken(r).id, secret), meta: deserializeToken(r)};
+  }
+
+  /**
+   * Resolve an API token into its user.
+   * Identity — including level — is the owner's *current* one, joined here on
+   * every use, so revocations and level changes apply to the next request.
+   * @throws {UnauthorizedError} for anything but a valid, unexpired token
+   */
+  async authenticateToken(token: string): Promise<{user: SafeUser, token: ApiToken}>{
+    const parsed = parseToken(token);
+    if(!parsed) throw new UnauthorizedError(`Invalid authorization token`);
+    let r = await this.db.get<StoredToken & Pick<StoredUser, "user_id"|"username"|"email"|"level">>(`
+      SELECT t.*, u.user_id, u.username, u.email, u.level
+      FROM api_tokens AS t
+      INNER JOIN users AS u ON u.user_id = t.fk_user_id
+      WHERE t.token_id = $1
+    `, [parsed.id.toString(10)]);
+    if(!r || !verifySecret(parsed.secret, r.hash)){
+      throw new UnauthorizedError(`Invalid authorization token`);
+    }
+    if(r.expires_at && r.expires_at.valueOf() < Date.now()){
+      throw new UnauthorizedError(`Token expired`);
+    }
+    //Throttled usage tracking: at most one write per 5 minutes per token
+    await this.db.run(`
+      UPDATE api_tokens SET last_used_at = CURRENT_TIMESTAMP
+      WHERE token_id = $1
+        AND (last_used_at IS NULL OR last_used_at < CURRENT_TIMESTAMP - interval '5 minutes')
+    `, [parsed.id.toString(10)]);
+    return {
+      user: User.safe(UserManager.deserialize({...r, password: undefined})),
+      token: deserializeToken(r),
+    };
+  }
+
+  /**
+   * List a user's API tokens (inventory). Never exposes secrets.
+   */
+  async getTokens(uid: number): Promise<ApiToken[]>{
+    return (await this.db.all<StoredToken>(`
+      SELECT t.*, c.name AS client_name
+      FROM api_tokens AS t
+      LEFT JOIN oauth_clients AS c ON c.client_id = t.fk_client_id
+      WHERE t.fk_user_id = $1
+      ORDER BY t.created_at DESC
+    `, [uid.toString(10)])).map(deserializeToken);
+  }
+
+  /**
+   * Revoke a token by its management id.
+   * @param uid when provided, restricts deletion to this user's tokens (owner-scoped revocation)
+   * @throws {NotFoundError} if no matching token exists
+   */
+  async removeToken(tokenId: number, uid?: number): Promise<void>{
+    const args: any[] = [tokenId.toString(10)];
+    if(typeof uid === "number") args.push(uid.toString(10));
+    let r = await this.db.run(`
+      DELETE FROM api_tokens
+      WHERE token_id = $1 ${typeof uid === "number" ? "AND fk_user_id = $2" : ""}
+    `, args);
+    if(!r || !r.changes) throw new NotFoundError(`No token to delete with id ${tokenId}`);
+  }
+
+  /**
+   * Revoke a token by its credential (RFC7009: possession of the token is sufficient).
+   * Idempotent and silent: revoking an invalid or unknown token is not an error.
+   */
+  async removeTokenBySecret(token: string): Promise<void>{
+    const parsed = parseToken(token);
+    if(!parsed) return;
+    let r = await this.db.get<StoredToken>(`SELECT * FROM api_tokens WHERE token_id = $1`, [parsed.id.toString(10)]);
+    if(!r || !verifySecret(parsed.secret, r.hash)) return;
+    await this.db.run(`DELETE FROM api_tokens WHERE token_id = $1`, [parsed.id.toString(10)]);
+  }
+
+  /**
+   * Register an OAuth2 client.
+   * @returns the client and, for confidential clients, its secret (shown exactly once)
+   */
+  async createClient(name: string, redirectUris: string[], {createdBy = null, confidential = true}: {
+    createdBy?: number | null,
+    confidential?: boolean,
+  } = {}): Promise<{client: OAuthClient, secret: string | null}>{
+    if(typeof name !== "string" || name.length == 0) throw new BadRequestError(`A client name is required`);
+    if(!Array.isArray(redirectUris) || redirectUris.length == 0){
+      throw new BadRequestError(`At least one redirect URI is required`);
+    }
+    for(const uri of redirectUris){
+      let u;
+      try{
+        u = new URL(uri);
+      }catch(e){
+        throw new BadRequestError(`Invalid redirect URI : ${uri}`);
+      }
+      if(u.protocol !== "https:" && u.protocol !== "http:") throw new BadRequestError(`Invalid redirect URI scheme : ${uri}`);
+      if(u.hash) throw new BadRequestError(`Redirect URIs must not have a fragment : ${uri}`);
+    }
+    const secret = confidential ? makeSecret() : null;
+    let r;
+    try{
+      r = await this.db.get<StoredClient>(`
+        INSERT INTO oauth_clients (name, secret_hash, redirect_uris, created_by)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+      `, [
+        name,
+        secret ? hashSecret(secret) : null,
+        redirectUris,
+        createdBy == null ? null : createdBy.toString(10),
+      ]);
+    }catch(e: any){
+      if(e.code == errors.unique_violation && e.constraint === "oauth_clients_name_key") throw new ConflictError(`A client named ${name} already exists`);
+      throw e;
+    }
+    //istanbul ignore if
+    if(!r) throw new InternalError(`Failed to create client ${name}`);
+    return {client: deserializeClient(r), secret: secret ? secret.toString("base64url") : null};
+  }
+
+  /**
+   * @throws {NotFoundError}
+   */
+  async getClient(clientId: number): Promise<OAuthClient>{
+    let r = await this.db.get<StoredClient>(`SELECT * FROM oauth_clients WHERE client_id = $1`, [clientId.toString(10)]);
+    if(!r) throw new NotFoundError(`No client with id ${clientId}`);
+    return deserializeClient(r);
+  }
+
+  async getClients(): Promise<OAuthClient[]>{
+    return (await this.db.all<StoredClient>(`SELECT * FROM oauth_clients ORDER BY name ASC`)).map(deserializeClient);
+  }
+
+  /**
+   * Deleting a client cascades: every token it minted is revoked.
+   * @throws {NotFoundError}
+   */
+  async removeClient(clientId: number): Promise<void>{
+    let r = await this.db.run(`DELETE FROM oauth_clients WHERE client_id = $1`, [clientId.toString(10)]);
+    if(!r || !r.changes) throw new NotFoundError(`No client to delete with id ${clientId}`);
+  }
+
+  /**
+   * Authenticate an OAuth2 client at the token endpoint.
+   * Confidential clients must present their secret; public clients must not have one to present.
+   * @throws {UnauthorizedError} so callers can map it to the `invalid_client` OAuth error
+   */
+  async authenticateClient(clientId: number, secret?: string | null): Promise<OAuthClient>{
+    let r = await this.db.get<StoredClient>(`SELECT * FROM oauth_clients WHERE client_id = $1`, [clientId.toString(10)]);
+    if(!r) throw new UnauthorizedError(`Unknown client`);
+    if(r.secret_hash){
+      if(!secret || !verifySecret(Buffer.from(secret, "base64url"), r.secret_hash)){
+        throw new UnauthorizedError(`Bad client credentials`);
+      }
+    }else if(secret){
+      throw new UnauthorizedError(`Bad client credentials`);
+    }
+    return deserializeClient(r);
+  }
+
+  /**
+   * Mint a single-use authorization code, bound to its client, redirect URI,
+   * scope and PKCE challenge.
+   * @returns the code (stored hashed, can not be retrieved afterwards)
+   */
+  async createAuthorizationCode({clientId, uid, scope, redirectUri, codeChallenge}: Omit<AuthorizationCode, "expires">): Promise<string>{
+    const code = makeSecret().toString("base64url");
+    await this.db.run(`
+      INSERT INTO oauth_codes (code_hash, fk_client_id, fk_user_id, scope, redirect_uri, code_challenge, expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [
+      hashSecret(code),
+      clientId.toString(10),
+      uid.toString(10),
+      scope,
+      redirectUri,
+      codeChallenge,
+      new Date(Date.now() + CODE_LIFETIME),
+    ]);
+    return code;
+  }
+
+  /**
+   * Consume an authorization code (single-use: it is deleted atomically).
+   * The caller still has to validate the binding (client, redirect URI, PKCE) and expiry.
+   * @returns null if the code does not exist (never existed, already used, or swept)
+   */
+  async exchangeAuthorizationCode(code: string): Promise<AuthorizationCode | null>{
+    let r = await this.db.get<{
+      fk_client_id: string | number,
+      fk_user_id: string | number,
+      scope: string[],
+      redirect_uri: string,
+      code_challenge: string,
+      expires_at: Date,
+    }>(`
+      DELETE FROM oauth_codes WHERE code_hash = $1
+      RETURNING *
+    `, [hashSecret(code)]);
+    if(!r) return null;
+    return {
+      clientId: typeof r.fk_client_id === "string" ? parseInt(r.fk_client_id, 10) : r.fk_client_id,
+      uid: typeof r.fk_user_id === "string" ? parseInt(r.fk_user_id, 10) : r.fk_user_id,
+      scope: r.scope,
+      redirectUri: r.redirect_uri,
+      codeChallenge: r.code_challenge,
+      expires: r.expires_at,
+    };
+  }
+
+  /**
+   * Record (or extend) a user's consent for a client.
+   * The stored scope is the union of every approved scope set, so a later
+   * request for a previously-approved subset stays covered.
+   */
+  async upsertGrant(uid: number, clientId: number, scope: string[]): Promise<void>{
+    await this.db.run(`
+      INSERT INTO oauth_grants (fk_user_id, fk_client_id, scope)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (fk_user_id, fk_client_id) DO UPDATE SET
+        scope = (SELECT array_agg(DISTINCT s) FROM unnest(oauth_grants.scope || EXCLUDED.scope) AS s),
+        updated_at = CURRENT_TIMESTAMP
+    `, [uid.toString(10), clientId.toString(10), scope]);
+  }
+
+  /** @returns null when the user never consented for this client (or revoked it) */
+  async getGrant(uid: number, clientId: number): Promise<OAuthGrant | null>{
+    const r = await this.db.get<{name: string, scope: string[], created_at: Date, updated_at: Date}>(`
+      SELECT c.name, g.scope, g.created_at, g.updated_at
+      FROM oauth_grants AS g INNER JOIN oauth_clients AS c ON c.client_id = g.fk_client_id
+      WHERE g.fk_user_id = $1 AND g.fk_client_id = $2
+    `, [uid.toString(10), clientId.toString(10)]);
+    if(!r) return null;
+    return {clientId, clientName: r.name, scope: r.scope, created: r.created_at, updated: r.updated_at};
+  }
+
+  /** Every client this user has authorized (the "authorized applications" list) */
+  async getGrants(uid: number): Promise<OAuthGrant[]>{
+    const rows = await this.db.all<{client_id: string | number, name: string, scope: string[], created_at: Date, updated_at: Date}>(`
+      SELECT g.fk_client_id AS client_id, c.name, g.scope, g.created_at, g.updated_at
+      FROM oauth_grants AS g INNER JOIN oauth_clients AS c ON c.client_id = g.fk_client_id
+      WHERE g.fk_user_id = $1
+      ORDER BY c.name ASC
+    `, [uid.toString(10)]);
+    return rows.map(r=>({
+      clientId: typeof r.client_id === "string" ? parseInt(r.client_id, 10) : r.client_id,
+      clientName: r.name,
+      scope: r.scope,
+      created: r.created_at,
+      updated: r.updated_at,
+    }));
+  }
+
+  /**
+   * Withdraw a user's consent for a client: stops silent re-authorization and
+   * revokes every token this client obtained for this user (atomically).
+   * Idempotent: revoking an absent grant is a no-op.
+   */
+  async removeGrant(uid: number, clientId: number): Promise<void>{
+    await this.db.run(`
+      WITH revoked_consent AS (
+        DELETE FROM oauth_grants WHERE fk_user_id = $1 AND fk_client_id = $2
+      )
+      DELETE FROM api_tokens WHERE fk_user_id = $1 AND fk_client_id = $2
+    `, [uid.toString(10), clientId.toString(10)]);
   }
 
   async getKeys() :Promise<string[]>{

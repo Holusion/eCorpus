@@ -44,14 +44,14 @@ describe("GET /auth/access/:scene", function () {
     await userManager.setDefaultAccess(titleSlug, "none");
     //connect User can access the API route, but should not know there is a scene if they do not have read rights.
     await request(this.server).get(`/auth/access/${titleSlug}`)
-      .auth(opponent.username, "12345678")
+      .set("Authorization", await bearer(opponent.username))
       .expect(404);
   });
 
   it("Works when user has read access", async function () {
     await userManager.setDefaultAccess(titleSlug, "read");
     let r = await request(this.server).get(`/auth/access/${titleSlug}`)
-      .auth(opponent.username, "12345678")
+      .set("Authorization", await bearer(opponent.username))
       .expect(200);
     expect(r.body).to.deep.equal([{ uid: user.uid, username: user.username, access: 'admin' }])
   });

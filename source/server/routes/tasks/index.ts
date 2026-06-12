@@ -2,7 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 
 import wrap from "../../utils/wrapAsync.js";
 
-import { getLocals, getUser, isCreator, isUser } from "../../utils/locals.js";
+import { getLocals, getUser, isCreator, isUser, requireScope } from "../../utils/locals.js";
 
 import { createUserTask } from "./post.js";
 import { putTaskArtifact } from "./task/artifacts/put.js";
@@ -18,8 +18,9 @@ const jsonParser = bodyParser.json();
 
 const router = Router();
 
-router.use("/", isUser);
-router.post("/", isCreator, jsonParser, wrap(createUserTask));
+//Tokens need a tasks:* grant anywhere here; writes additionally need tasks:write
+router.use("/", requireScope("tasks:read", "tasks:write"));
+router.post("/", requireScope("tasks:write"), isCreator, jsonParser, wrap(createUserTask));
 
 
 function taskAccess(name: AccessType) {
@@ -49,8 +50,8 @@ function taskAccess(name: AccessType) {
 
 router.get("/:id(\\d+)", isUser, wrap(getTask));
 router.get("/:id(\\d+)/tree", taskAccess("read"), wrap(getTaskTree));
-router.delete("/:id(\\d+)", taskAccess("admin"), wrap(deleteTask));
-router.put("/:id(\\d+)/artifact", taskAccess("admin"), wrap(putTaskArtifact));
+router.delete("/:id(\\d+)", requireScope("tasks:write"), taskAccess("admin"), wrap(deleteTask));
+router.put("/:id(\\d+)/artifact", requireScope("tasks:write"), taskAccess("admin"), wrap(putTaskArtifact));
 router.get("/:id(\\d+)/artifact", taskAccess("read"), wrap(getTaskArtifact));
 
 export default router;

@@ -26,6 +26,14 @@ declare global{
   var dataStream:(src ?:Array<Buffer|string>)=>AsyncGenerator<Buffer, void, unknown>;
   var expect :typeof chai.expect;
   /**
+   * Mint a Bearer `Authorization` header value for a user of the current
+   * integration context (the replacement for Basic auth in tests).
+   * A fresh full-rights token is created on each call.
+   * Unknown/deleted users get a syntactically valid token that will fail
+   * verification, mirroring how bad Basic credentials used to behave.
+   */
+  var bearer: (user: string | number | {uid: number}) => Promise<string>;
+  /**
    * Create a full-fledged service stack. using a unique-named clean database.
    * It takes some time so create / drop a database so this should ideally be called once per test file, using {@link resetIntegrationContext} between individual tests
    * Cleanup will be auto-registered to an after(each) hook, though it can sometimes fail to execute if tests are interrupted
@@ -48,6 +56,24 @@ declare global{
 }
 
 global.expect = chai.expect;
+
+let currentLocals: AppLocals | null = null;
+
+global.bearer = async function(userRef){
+  if(!currentLocals) throw new Error("bearer() requires an active integration context");
+  const userManager = currentLocals.userManager;
+  let user;
+  try{
+    user = typeof userRef === "object" ? await userManager.getUserById(userRef.uid)
+      : typeof userRef === "number" ? await userManager.getUserById(userRef)
+      : await userManager.getUserByName(userRef);
+  }catch(e){
+    //Unknown user: a well-formed token that fails verification (→ 401)
+    return `Bearer ecorpus_AAAAAAAA_${Buffer.alloc(32).toString("base64url")}`;
+  }
+  const {token} = await userManager.createToken(user.uid, {name: "test-bearer"});
+  return `Bearer ${token}`;
+};
 
 global.dataStream = async function* (src :Array<Buffer|string> =["foo", "\n"]){
   for(let d of src){
@@ -113,6 +139,7 @@ global.createIntegrationContext = async function(c :Mocha.Context, config_overri
   );
   c.services = await createService( c.config_env );
   c.server = c.services.app;
+  currentLocals = c.server.locals;
   const suite = c.test?.parent as any;
   if(suite?._beforeEach?.includes(c.test)){
     suite.afterEach(async function(this: Mocha.Context){ await cleanIntegrationContext(this); });

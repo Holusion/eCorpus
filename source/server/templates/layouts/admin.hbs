@@ -6,6 +6,7 @@
       {{#navLink "/ui/admin/users" "exact"}}<ui-icon name="users"></ui-icon><span>{{i18n "nav.adminUsers"}}</span>{{/navLink}}
       {{#navLink "/ui/admin/groups" "exact"}}<ui-icon name="groups" style="display:flex"></ui-icon> <span>{{i18n "nav.adminGroups"}}</span>{{/navLink}}
       {{#if (test user.level "==" "admin")}}
+        {{#navLink "/ui/admin/oauth" "exact"}}<ui-icon name="key"></ui-icon> <span>{{i18n "nav.adminClients"}}</span>{{/navLink}}
         {{#navLink "/ui/admin/stats" "exact"}}<ui-icon name="stats"></ui-icon> <span>{{i18n "nav.adminStats"}}</span>{{/navLink}}
         {{#navLink "/ui/admin/archives" "exact"}}<ui-icon name="folder"></ui-icon> <span>{{i18n "nav.adminArchives"}}</span>{{/navLink}}
         {{#navLink "/ui/admin/tasks" "exact"}}<ui-icon name="tools"></ui-icon> <span>{{i18n "nav.tasks"}}</span>{{/navLink}}
