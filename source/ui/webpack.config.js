@@ -156,6 +156,14 @@ module.exports = function createAppConfig(env, argv={})
                         filename: "images/[name][ext]",
                     }
                 },
+                {
+                    // Self-hosted fonts (referenced from theme.scss @font-face)
+                    test: /\.woff2?$/i,
+                    type: 'asset/resource',
+                    generator: {
+                        filename: "fonts/[name][ext]",
+                    }
+                },
             ]
         },
         devtool: isDevMode? "eval-source-map":"source-map",

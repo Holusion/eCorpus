@@ -132,6 +132,14 @@ describe("CSRF protection (origin checks)", function(){
       expect(res.headers).to.have.property("content-security-policy-report-only").match(/default-src 'self'/);
     });
 
+    it("keeps fonts and styles first-party (Noto Serif is self-hosted)", async function(){
+      const res = await request(this.server).get("/auth/login").expect(200);
+      const csp = res.headers["content-security-policy-report-only"];
+      //Self-hosted: no third-party font/style origins leak into the policy.
+      expect(csp, csp).not.to.match(/fonts\.(googleapis|gstatic)\.com/);
+      expect(csp, csp).to.match(/font-src 'self' data:/);
+    });
+
     it("emits X-Content-Type-Options", async function(){
       const res = await request(this.server).get("/auth/login").expect(200);
       expect(res.headers).to.have.property("x-content-type-options", "nosniff");
