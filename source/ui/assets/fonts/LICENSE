@@ -1,0 +1,24 @@
+Noto Serif
+==========
+
+Self-hosted to avoid hot-linking Google Fonts (which would send every
+visitor's IP to Google — a GDPR concern — and require a third-party origin
+in the Content-Security-Policy).
+
+Files:
+  NotoSerif-latin.woff2      Latin subset (U+0000–00FF + common punctuation)
+  NotoSerif-latin-ext.woff2  Latin Extended subset
+
+These cover the en/fr/es interface. They are the regular (400) upright
+weight, version v33, extracted from the Google Fonts CDN's woff2 build of
+Noto Serif. To refresh, fetch the per-subset woff2 referenced by
+https://fonts.googleapis.com/css2?family=Noto+Serif (with a modern browser
+User-Agent) and keep the @font-face unicode-ranges in styles/theme.scss in
+sync.
+
+License: SIL Open Font License, Version 1.1 — https://openfontlicense.org
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+
+The font may be used, embedded and redistributed under the OFL; it must not
+be sold by itself and the "Noto" reserved font name applies to modified
+versions. This project ships the fonts unmodified.

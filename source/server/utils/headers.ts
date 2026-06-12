@@ -17,12 +17,11 @@ function buildCspReportOnly({ dev }: { dev: boolean }): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
-    // theme.scss `@import`s the Google Fonts stylesheet (fonts.googleapis.com),
-    // which in turn pulls the woff2 files from fonts.gstatic.com.
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    //Fonts are self-hosted (Noto Serif woff2 under /dist/fonts), so no third party.
+    "font-src 'self' data:",
     "connect-src 'self' blob: data:",
     "worker-src 'self' blob:",
   ].join("; ");
