@@ -132,6 +132,13 @@ describe("CSRF protection (origin checks)", function(){
       expect(res.headers).to.have.property("content-security-policy-report-only").match(/default-src 'self'/);
     });
 
+    it("allows the Google Fonts stylesheet and woff2 files in the CSP", async function(){
+      const res = await request(this.server).get("/auth/login").expect(200);
+      const csp = res.headers["content-security-policy-report-only"];
+      expect(csp, csp).to.match(/style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+      expect(csp, csp).to.match(/font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+    });
+
     it("emits X-Content-Type-Options", async function(){
       const res = await request(this.server).get("/auth/login").expect(200);
       expect(res.headers).to.have.property("x-content-type-options", "nosniff");

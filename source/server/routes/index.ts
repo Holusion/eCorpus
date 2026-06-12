@@ -37,7 +37,8 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   //Baseline security headers (incl. the Report-Only CSP). Embedding (oembed,
   ///dist with permissive CORS) forbids frame and cross-origin-isolation
   //restrictions as site-wide defaults; /auth opts back into frame denial.
-  app.use(securityHeaders({hsts: locals.config.get("node_env") === "production"}));
+  const isProduction = locals.config.get("node_env") === "production";
+  app.use(securityHeaders({hsts: isProduction, dev: !isProduction}));
 
   app.use(cookieSession({
     name: 'session',

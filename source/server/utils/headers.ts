@@ -6,17 +6,27 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
  * Voyager loads workers/assets from blob:, so an enforced policy needs a
  * dedicated effort. Report-Only surfaces violations in the browser console
  * without breaking anything.
+ *
+ * `dev` relaxes one directive that is only exercised in development: webpack's
+ * `eval-source-map` devtool runs modules through `eval()`, so `'unsafe-eval'`
+ * is needed to keep the dev console free of false positives. The production
+ * bundle uses external `.map` files and never evals, so production stays
+ * strict (no `'unsafe-eval'`).
  */
-const cspReportOnly = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "media-src 'self' blob:",
-  "font-src 'self' data:",
-  "connect-src 'self' blob: data:",
-  "worker-src 'self' blob:",
-].join("; ");
+function buildCspReportOnly({ dev }: { dev: boolean }): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
+    // theme.scss `@import`s the Google Fonts stylesheet (fonts.googleapis.com),
+    // which in turn pulls the woff2 files from fonts.gstatic.com.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob:",
+    "media-src 'self' blob:",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' blob: data:",
+    "worker-src 'self' blob:",
+  ].join("; ");
+}
 
 /**
  * Baseline security headers, set on every response.
@@ -27,7 +37,8 @@ const cspReportOnly = [
  * what remains is a handful of static strings better declared in one
  * readable place.
  */
-export default function securityHeaders({ hsts }: { hsts: boolean }): RequestHandler {
+export default function securityHeaders({ hsts, dev = false }: { hsts: boolean, dev?: boolean }): RequestHandler {
+  const cspReportOnly = buildCspReportOnly({ dev });
   return function setSecurityHeaders(req, res, next) {
     //Browsers must not sniff content types away from Content-Type
     res.set("X-Content-Type-Options", "nosniff");
