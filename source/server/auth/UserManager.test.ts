@@ -812,3 +812,89 @@ describe("UserManager methods", function(){
     })
   })
 });
+
+// Direct unit coverage of the OAuth client methods. The route integration
+// tests (routes/auth/oauth.test.ts) check they are wired up; these exercise the
+// full matrix of expected cases, especially the security-sensitive client
+// authentication branches.
+describe("UserManager OAuth client methods", function(){
+  let userManager: UserManager;
+  let db_uri: string;
+  this.beforeAll(async function(){
+    db_uri = await getUniqueDb("userManager-oauth-clients-"+randomBytes(2).toString("hex"));
+    this.db = await openDatabase({uri: db_uri, forceMigration: true});
+    userManager = new UserManager(this.db);
+  });
+  this.afterAll(async function(){
+    await this.db.end();
+    await dropDb(db_uri);
+  });
+
+  const uri = "https://client.example.com/callback";
+
+  describe("createClient()", function(){
+    it("creates a confidential client and returns a one-time secret", async function(){
+      const {client, secret} = await userManager.createClient("conf-1", [uri]);
+      expect(client).to.have.property("id").a("number");
+      expect(client).to.have.property("name", "conf-1");
+      expect(client).to.have.property("confidential", true);
+      expect(client).to.have.property("redirectUris").deep.equal([uri]);
+      expect(secret, "confidential clients get a secret").to.be.a("string");
+    });
+
+    it("creates a public client with no secret", async function(){
+      const {client, secret} = await userManager.createClient("pub-1", [uri], {confidential: false});
+      expect(client).to.have.property("confidential", false);
+      expect(secret).to.equal(null);
+    });
+
+    it("requires a non-empty name", async function(){
+      await expect(userManager.createClient("", [uri])).to.be.rejectedWith(BadRequestError);
+      await expect(userManager.createClient(undefined as any, [uri])).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("requires at least one redirect URI", async function(){
+      await expect(userManager.createClient("no-uri", [])).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("rejects malformed or non-http(s) redirect URIs", async function(){
+      await expect(userManager.createClient("bad-1", ["not-a-url"])).to.be.rejectedWith(BadRequestError);
+      await expect(userManager.createClient("bad-2", ["ftp://example.com/cb"])).to.be.rejectedWith(BadRequestError);
+      await expect(userManager.createClient("bad-3", ["https://example.com/cb#frag"])).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("rejects a duplicate name", async function(){
+      await userManager.createClient("dup-client", [uri]);
+      await expect(userManager.createClient("dup-client", [uri])).to.be.rejectedWith(ConflictError);
+    });
+  });
+
+  describe("authenticateClient()", function(){
+    it("accepts a confidential client's correct secret", async function(){
+      const {client, secret} = await userManager.createClient("auth-conf", [uri]);
+      const authed = await userManager.authenticateClient(client.id, secret);
+      expect(authed).to.have.property("id", client.id);
+    });
+
+    it("rejects a wrong or missing secret for a confidential client", async function(){
+      const {client} = await userManager.createClient("auth-conf-2", [uri]);
+      await expect(userManager.authenticateClient(client.id, randomBytes(32).toString("base64url"))).to.be.rejectedWith(UnauthorizedError);
+      await expect(userManager.authenticateClient(client.id, null)).to.be.rejectedWith(UnauthorizedError);
+    });
+
+    it("accepts a public client presenting no secret", async function(){
+      const {client} = await userManager.createClient("auth-pub", [uri], {confidential: false});
+      const authed = await userManager.authenticateClient(client.id, null);
+      expect(authed).to.have.property("id", client.id);
+    });
+
+    it("rejects a public client that presents a secret", async function(){
+      const {client} = await userManager.createClient("auth-pub-2", [uri], {confidential: false});
+      await expect(userManager.authenticateClient(client.id, "anything")).to.be.rejectedWith(UnauthorizedError);
+    });
+
+    it("rejects an unknown client id", async function(){
+      await expect(userManager.authenticateClient(57005, "x")).to.be.rejectedWith(UnauthorizedError);
+    });
+  });
+});
