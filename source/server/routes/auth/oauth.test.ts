@@ -480,6 +480,37 @@ describe("OAuth2 authorization server", function(){
       expect(res.body).to.have.property("error", "invalid_client");
     });
 
+    it("a public client exchanges a code with PKCE and no secret", async function(){
+      const {client: pub} = await userManager.createClient("public-cli", [redirectUri], {confidential: false});
+      const pkce = makePkce();
+      const agent = await login(this.server, user);
+      const pubCode = await getCode(this.server, agent, pub.id, pkce.challenge);
+      const res = await request(this.server).post("/auth/oauth/token").type("form").send({
+        grant_type: "authorization_code",
+        code: pubCode,
+        redirect_uri: redirectUri,
+        client_id: String(pub.id),
+        code_verifier: pkce.verifier,
+      }).expect(200);
+      expect(res.body).to.have.property("access_token").match(/^ecorpus_/);
+    });
+
+    it("a public client must not present a client secret", async function(){
+      const {client: pub} = await userManager.createClient("public-cli2", [redirectUri], {confidential: false});
+      const pkce = makePkce();
+      const agent = await login(this.server, user);
+      const pubCode = await getCode(this.server, agent, pub.id, pkce.challenge);
+      const res = await request(this.server).post("/auth/oauth/token").type("form").send({
+        grant_type: "authorization_code",
+        code: pubCode,
+        redirect_uri: redirectUri,
+        client_id: String(pub.id),
+        client_secret: "should-not-be-here",
+        code_verifier: pkce.verifier,
+      }).expect(401);
+      expect(res.body).to.have.property("error", "invalid_client");
+    });
+
     it("rejects a PKCE verifier mismatch", async function(){
       const res = await exchange(this.server, {code_verifier: randomBytes(32).toString("base64url")}).expect(400);
       expect(res.body).to.have.property("error", "invalid_grant");
