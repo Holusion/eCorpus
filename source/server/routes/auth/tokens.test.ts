@@ -75,6 +75,21 @@ describe("/auth/tokens", function(){
       await agent.post("/auth/tokens").send({scope: ["use"]}).expect(400);
     });
 
+    it("honors an explicit expiry and echoes the token's metadata", async function(){
+      const agent = await login(this.server, user);
+      const expires = new Date(Date.now() + 7*24*3600*1000).toISOString();
+      const res = await agent.post("/auth/tokens").send({name: "expiring", expires}).expect(201);
+      expect(res.body).to.have.property("expires", expires);
+      //A personal token (not minted through an OAuth client) reports no client.
+      expect(res.body).to.have.property("client", null);
+      expect(res.body).to.have.property("lastUsed", null);
+    });
+
+    it("rejects an invalid expiry", async function(){
+      const agent = await login(this.server, user);
+      await agent.post("/auth/tokens").send({name: "bad", expires: "not-a-date"}).expect(400);
+    });
+
     it("tokens can not mint other tokens", async function(){
       const res = await request(this.server).post("/auth/tokens")
         .set("Authorization", await bearer(user.username))
