@@ -520,6 +520,54 @@ describe("OAuth2 authorization server", function(){
       expect(list.body[0]).not.to.have.property("client_secret");
     });
 
+    it("registers a public client without a secret", async function(){
+      const agent = await login(this.server, admin);
+      const res = await agent.post("/auth/oauth/clients")
+        .send({name: "spa", redirect_uris: [redirectUri], confidential: false})
+        .expect(201);
+      expect(res.body).to.have.property("client_secret", null);
+      expect(res.body).to.have.property("confidential", false);
+
+      const list = await agent.get("/auth/oauth/clients").expect(200);
+      const created = list.body.find((c: any)=> c.name === "spa");
+      expect(created, "the public client is listed").to.be.ok;
+      expect(created).to.deep.include({name: "spa", confidential: false, redirect_uris: [redirectUri]});
+      expect(created).to.have.property("id").a("number");
+      expect(created).to.have.property("created").a("string");
+      //The list never leaks the stored digest, even by its column name.
+      expect(created).not.to.have.property("secret_hash");
+      expect(created).not.to.have.property("client_secret");
+    });
+
+    it("defaults to a confidential client when the flag is omitted", async function(){
+      const agent = await login(this.server, admin);
+      const res = await agent.post("/auth/oauth/clients")
+        .send({name: "default-conf", redirect_uris: [redirectUri]})
+        .expect(201);
+      expect(res.body).to.have.property("confidential", true);
+      expect(res.body).to.have.property("client_secret").a("string");
+    });
+
+    it("rejects a duplicate client name", async function(){
+      const agent = await login(this.server, admin);
+      await agent.post("/auth/oauth/clients")
+        .send({name: "dup", redirect_uris: [redirectUri]})
+        .expect(201);
+      await agent.post("/auth/oauth/clients")
+        .send({name: "dup", redirect_uris: [redirectUri]})
+        .expect(409);
+    });
+
+    it("requires a non-empty name", async function(){
+      const agent = await login(this.server, admin);
+      await agent.post("/auth/oauth/clients")
+        .send({redirect_uris: [redirectUri]})
+        .expect(400);
+      await agent.post("/auth/oauth/clients")
+        .send({name: "", redirect_uris: [redirectUri]})
+        .expect(400);
+    });
+
     it("regular users can not", async function(){
       const agent = await login(this.server, user);
       await agent.get("/auth/oauth/clients").expect(401);
