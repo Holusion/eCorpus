@@ -1,0 +1,50 @@
+---
+title: 404 - Not found
+sitemap: false
+---
+{% comment %}
+This page's localization is handled with javascript because we do not know in which language it's gonna be beforehand.
+{% endcomment %}
+<div style="text-align:center; width:100%; padding-bottom:25px; padding-top:25px; min-height:25vh">
+  <h2 id="404-title">Sorry this page does not exist.</h2>
+  <h1 style="font-size:5em;">404</h1>
+  <div id="404-long">
+    Maybe it has been moved. You can signal us a dead link.
+  </div>
+</div>
+<div>
+<center>
+
+
+  <a id="404-home" class="button button-primary" href="/">Go to Home</a>
+</center>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded",function(){
+    'use strict';
+    var path_parts = location.pathname.split('/');
+
+    var is_dev = path_parts[1] && path_parts[1] == "dev";
+    var lang = ((is_dev)?path_parts[2]:path_parts[1]).toLowerCase();
+
+    if (! lang) return; //Keep default english locale
+    var strings = [
+      {name:"404-title",fr:"La page demandée n'existe pas"}
+    , {name:"404-long",fr:"Peut-être a-t-elle été déplacée? N'hésitez pas à nous signaler si vous avez suivi un lien mort."}
+    , {name:"404-signal",fr:"Signaler un lien mort"}
+    , {name:"404-home",fr:"Retour à l'Acceuil"}
+    //, {name:"404-search",fr:"Pages similaires :"}
+    ]
+    strings.forEach(function(str){
+      var elem =  document.getElementById(str.name);
+      if(typeof str[lang] === "string" && elem){
+       elem.innerHTML = str[lang];
+      }else{
+        console.warn('Supposed to put "%s" into "#%s". One or both of them doesn\'t exist', str[lang], str.name);
+      }
+    });
+    document.getElementById("404-home").href = "/"+(is_dev?"dev/":"" )+lang+"/";
+  });
+
+</script>
