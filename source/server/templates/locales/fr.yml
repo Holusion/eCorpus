@@ -23,6 +23,7 @@ labels:
   forgottenPassword: Mot de passe oublié?
   pagination: pagination
   searchPlaceholder: chercher une scène
+  searchUserPlaceholder: chercher par nom ou email
   ignoredIfMultipleScenes: ignoré si plusieurs scènes sont créées simultanément
   sortBy: Trier par
   loginLink: Copier un lien de connexion
