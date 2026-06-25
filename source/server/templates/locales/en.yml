@@ -23,6 +23,7 @@ labels:
   forgottenPassword: Forgotten password
   pagination: pagination
   searchPlaceholder: search a scene
+  searchUserPlaceholder: search by name or email
   ignoredIfMultipleScenes: ignored if multiple scenes are created at the same time
   sortBy: Sort by
   loginLink: Copy direct login link
