@@ -95,14 +95,14 @@ layout: page
 </div>
 </section>
 
-<section class="section" id="Medicis">
+<section class="section" id="inraphdf">
     <h2>
-        Collection of archeological objects from miscelleanous eras, discovered in Dunkirk, France
+         INRAP, Hauts-de-France
     </h2>
     <p>Collection of archeological objects from the Medieval era to the Modern era, discovered by INRAP Hauts-de-France in Dunkirk, France.</p>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrapdunkerque" %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrap" %}
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="list-group-item" style="display: flex;">

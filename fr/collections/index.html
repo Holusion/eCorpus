@@ -95,14 +95,14 @@ layout: page
 </div>
 </section>
 
-<section class="section" id="Medicis">
+<section class="section" id="inraphdf">
     <h2>
-        Ensemble d'oeuvre, datant de diverses époques, mis au jour à Dunkerque
+        INRAP des Hauts-de-France
     </h2>
     <p>Collection d'objets d'archéologie datant du Moyen-Âge et de l'époque moderne mis au jour par l'INRAP Hauts-de-France à Dunkerque.</p>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrapdunkerque" %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrap" %}
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="list-group-item" style="display: flex;">
