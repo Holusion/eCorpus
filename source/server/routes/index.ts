@@ -1,6 +1,7 @@
 
 import cookieSession from "cookie-session";
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 
 import { errorHandlerMdw, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { accessLogMdw, logContextMdw } from "../utils/log/index.js";
@@ -13,6 +14,29 @@ import securityHeaders from "../utils/headers.js";
 import wrap from "../utils/wrapAsync.js";
 import Templates, { dicts } from "../utils/templates/index.js";
 import { getMetadata } from "./auth/oauth.js";
+
+
+/**
+ * `Authorization: Basic` verifies a user password with a full scrypt on every
+ * request — the same cost `POST /auth/login` rate-limits. Apply an equally
+ * aggressive per-IP limit so the Basic path can't become a server-wide
+ * CPU-amplification lever. Skipped for:
+ *  - non-Basic requests (Bearer/session/anonymous cost only an indexed lookup);
+ *  - `POST /auth/oauth/token`, where a Basic header carries the *client* secret
+ *    (client_secret_basic), read by that route — never a user password, and
+ *    matching no user so it costs no scrypt.
+ * The TEST escape hatch mirrors the login limiter, for integration runs that
+ * authenticate many times from one address. High-volume automation should use a
+ * token, not Basic.
+ */
+const basicAuthLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: process.env["TEST"] ? 10000 : 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+  skip: (req) => !req.get("Authorization")?.startsWith("Basic ") || req.path === "/auth/oauth/token",
+});
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
@@ -67,6 +91,7 @@ export default async function createServer(locals:AppParameters) :Promise<expres
    * cookie (server-side sessions) or an Authorization header.
    * Handles session expiry and sliding renewal.
    */
+  app.use(basicAuthLimiter);
   app.use(authenticate);
 
   /**

@@ -48,7 +48,7 @@ export function getSession(req: Request) {
 }
 
 /** How the current request was authenticated */
-export type AuthMethod = "session" | "token";
+export type AuthMethod = "session" | "token" | "basic";
 
 /**
  * Request-scoped authentication state, carried in `res.locals`

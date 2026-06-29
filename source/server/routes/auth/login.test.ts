@@ -252,12 +252,24 @@ describe("/auth/login", function(){
       expect(res.body).to.deep.equal({ uid: 0, username: "default", level: "none" });
     });
 
-    it("does not support Basic (user password) authentication", async function(){
-      //Services authenticate with revocable tokens, never with the user's password
+    it("can use Basic (user password) authentication, minting no cookie", async function(){
+      //A stateless re-login for ad-hoc scripts/curl: full authority, no cookie.
       let res = await request(this.server).get("/auth/login")
       .auth(user.username, "12345678")
-      .expect(200); //Basic is simply ignored: no login data
-      expect(res.body).to.deep.equal({ uid: 0, username: "default", level: "none" });
+      .set("Accept", "application/json")
+      .expect(200)
+      .expect({
+        username: user.username,
+        uid: user.uid,
+        level: "create",
+      });
+      expect(res.headers).not.to.have.property("set-cookie");
+    });
+
+    it("rejects a Basic credential with a wrong password", async function(){
+      let res = await request(this.server).get("/auth/login")
+      .auth(user.username, "wrong-password")
+      .expect(401);
       expect(res.headers).not.to.have.property("set-cookie");
     });
 

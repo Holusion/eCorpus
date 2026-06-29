@@ -135,5 +135,45 @@ describe("authenticate middleware (server-side sessions)", function(){
       expect(res.body).to.have.property("username", admin.username);
       expect(res.headers, "header auth must never mint a session cookie").not.to.have.property("set-cookie");
     });
+
+    it("authenticates with Basic and mints no cookie", async function(){
+      const res = await request(this.server).get("/auth/")
+        .auth(user.username, "12345678")
+        .set("Accept", "application/json")
+        .expect(200);
+      expect(res.body).to.deep.equal({uid: user.uid, username: user.username, level: "create"});
+      expect(res.headers, "header auth must never mint a session cookie").not.to.have.property("set-cookie");
+    });
+
+    it("rejects a Basic credential with a wrong password", async function(){
+      const res = await request(this.server).get("/auth/")
+        .auth(user.username, "wrong-password")
+        .set("Accept", "application/json")
+        .expect(401);
+      expect(res.headers).not.to.have.property("set-cookie");
+    });
+
+    it("leaves the request anonymous for an unknown Basic user", async function(){
+      //A pair matching no user is not an error: the same header is also the
+      //OAuth token endpoint's client_secret_basic, read by that route itself.
+      const res = await request(this.server).get("/auth/")
+        .auth("no-such-user", "12345678")
+        .set("Accept", "application/json")
+        .expect(200);
+      expect(res.body).to.deep.equal({uid: 0, username: "default", level: "none"});
+    });
+
+    it("reflects live identity changes on every Basic request", async function(){
+      await request(this.server).get("/auth/")
+        .auth(user.username, "12345678")
+        .set("Accept", "application/json")
+        .expect(200);
+      await userManager.patchUser(user.uid, {level: "use"});
+      const res = await request(this.server).get("/auth/")
+        .auth(user.username, "12345678")
+        .set("Accept", "application/json")
+        .expect(200);
+      expect(res.body).to.have.property("level", "use");
+    });
   });
 });
