@@ -5,10 +5,12 @@ import { ForbiddenError } from "./errors.js";
 import { getAuthMethod, getHost } from "./locals.js";
 
 /**
- * Methods that may change state. Includes the WebDAV methods served by the
- * scenes routes.
+ * Safe (read-only) methods, exempt from CSRF checks. Everything else — every
+ * state-changing verb, including any WebDAV method the scenes routes may grow
+ * (MKCOL/MOVE/COPY/PROPPATCH, …) — is treated as unsafe and checked, so a new
+ * method is covered by default instead of silently slipping past an allowlist.
  */
-const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE", "MKCOL", "MOVE", "COPY", "PROPPATCH"]);
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
  * Cross-site request forgery protection for cookie-authenticated requests.
@@ -36,7 +38,7 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE", "MKCOL", "MOVE
  * same-origin request if the Origin check were applied unconditionally.
  */
 export default function csrfProtection(req: Request, res: Response, next: NextFunction) {
-  if (!UNSAFE_METHODS.has(req.method)) return next();
+  if (SAFE_METHODS.has(req.method)) return next();
   if (getAuthMethod(res) !== "session") return next();
 
   const fetchSite = req.get("Sec-Fetch-Site");
