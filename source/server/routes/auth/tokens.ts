@@ -32,8 +32,10 @@ export async function getOwnTokens(req: Request, res: Response){
  */
 export async function postToken(req: Request, res: Response){
   const requester = getUser(req)!;
-  if(getAuthMethod(res) === "token"){
-    //An exfiltrated token must not be able to mint fresh credentials for itself
+  if(getAuthMethod(res) !== "session"){
+    //Only an interactive session may mint credentials: an exfiltrated token
+    //(even an `all`-scoped one) must not create fresh tokens for itself.
+    //Whitelisting the session fails closed if other auth methods are added.
     throw new ForbiddenError(`Tokens can not be used to create other tokens`);
   }
   const {name, scope, expires} = req.body ?? {};
