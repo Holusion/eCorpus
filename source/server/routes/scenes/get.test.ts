@@ -89,6 +89,26 @@ describe("GET /scenes", function(){
     })).to.be.fulfilled;
   })
 
+  it("denies the zip export to a token whose scope can't read scenes", async function(){
+    //A tasks-only (or scenes:create-only) token caps scene access to "none":
+    //the per-file routes deny it, so the bulk zip must too.
+    const {token} = await userManager.createToken(user.uid, {name: "ci", scope: ["tasks:read"]});
+    await request(this.server).get("/scenes")
+    .set("Authorization", `Bearer ${token}`)
+    .set("Accept", "application/zip")
+    .expect(401);
+  });
+
+  it("allows the zip export to a scenes:read token", async function(){
+    const {token} = await userManager.createToken(user.uid, {name: "reader", scope: ["scenes:read"]});
+    await request(this.server).get("/scenes")
+    .set("Authorization", `Bearer ${token}`)
+    .set("Accept", "application/zip")
+    .responseType('blob')
+    .expect(200)
+    .expect("Content-Type", "application/zip");
+  });
+
   describe("can get a list of scenes", function(){
     let scenes:number[];
     this.beforeAll(async ()=>{
