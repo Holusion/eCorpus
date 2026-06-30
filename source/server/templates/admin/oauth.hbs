@@ -81,7 +81,10 @@
 <dialog id="client-secret-modal" aria-labelledby="client-secret-title">
   <div class="form-control">
     <h2 id="client-secret-title">{{i18n "labels.clientRegistered"}}</h2>
-    <p role="alert" style="color:var(--color-error);">{{i18n "labels.clientSecretWarning"}}</p>
+    <p role="alert">
+      <span class="text-warning" style="font-size: 1.5em;"><ui-icon name="info"></ui-icon></span>
+      <span>{{i18n "labels.clientSecretWarning"}}</span>
+    </p>
     <div class="form-item">
       <label>{{i18n "labels.clientId"}}</label>
       <code id="reveal-client-id"></code>
@@ -93,7 +96,7 @@
         <button type="button" class="btn btn-inline" id="copy-client-secret">{{i18n "labels.copy"}}</button>
       </div>
     </div>
-    <div class="form-item" style="margin-top: 15px">
+    <div class="form-item" style="margin-top: 15px; justify-content: end;">
       <button type="button" class="btn btn-main" id="close-secret-modal">{{i18n "labels.close"}}</button>
     </div>
   </div>

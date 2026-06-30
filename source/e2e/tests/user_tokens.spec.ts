@@ -30,10 +30,10 @@ test("creates a personal token shown once, usable as Bearer, then revocable", as
   await page.goto("/ui/user/tokens");
   await page.locator("#token-name").fill(tokenName);
   // The "all" scope is selected by default.
-  await page.getByRole("button", {name: "labels.create"}).click();
+  await page.getByRole("button", {name: "buttons.create"}).click();
 
   // The secret is revealed exactly once.
-  await expect(page.locator("#token-secret")).toBeVisible();
+  await expect(page.locator("#token-secret-modal")).toBeVisible();
   const token = (await page.locator("#token-secret-value").innerText()).trim();
   expect(token).toMatch(/^ecorpus_/);
 
@@ -60,10 +60,12 @@ test("creates a scope-restricted token via the scope picker", async ({page, uniq
 
   await page.goto("/ui/user/tokens");
   await page.locator("#token-name").fill(tokenName);
-  await page.locator("#token-scope").selectOption(["scenes:read"]);
-  await page.getByRole("button", {name: "labels.create"}).click();
+  // Unchecking "all" re-enables the individual scope checkboxes.
+  await page.locator('#token-scope input[value="all"]').uncheck();
+  await page.locator('#token-scope input[value="scenes:read"]').check();
+  await page.getByRole("button", {name: "buttons.create"}).click();
 
-  await expect(page.locator("#token-secret")).toBeVisible();
+  await expect(page.locator("#token-secret-modal")).toBeVisible();
   const row = page.locator("#token-list").getByRole("row", {name: new RegExp(tokenName)});
   await expect(row).toBeVisible();
   await expect(row).toContainText("scenes:read");

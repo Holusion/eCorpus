@@ -64,6 +64,7 @@ labels:
   clientRegistered: Client enregistré
   clientSecretWarning: Copiez le secret maintenant — il est haché sur le serveur et ne sera plus jamais affiché.
   copy: Copier
+  copied: Copié
   deletingAClientIsPermanent: Supprimer un client révoque tous les jetons qu'il a émis
   noClients: Aucun client OAuth enregistré
   lastModified: Dernière modification
@@ -263,6 +264,7 @@ onboarding:
 
 titles:
   userTokens: Jetons d'API
+  tokenCreated: Jeton créé
   authorizedApps: Applications autorisées
   authorize: Demande d'autorisation
   myScenesSection: mes scenes

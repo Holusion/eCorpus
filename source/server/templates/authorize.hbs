@@ -16,12 +16,12 @@
       {{#each fields}}
       <input type="hidden" name="{{@key}}" value="{{this}}">
       {{/each}}
-      <div class="form-group">
-        <div class="form-item">
-          <button class="btn btn-primary" type="submit" name="action" value="allow">{{i18n "labels.authorize"}}</button>
-        </div>
+      <div class="form-group" style="flex-direction: row; gap: 5px;justify-content: end;">
         <div class="form-item">
           <button class="btn" type="submit" name="action" value="deny">{{i18n "labels.deny"}}</button>
+        </div>
+        <div class="form-item">
+          <button class="btn btn-primary" type="submit" name="action" value="allow">{{i18n "labels.authorize"}}</button>
         </div>
       </div>
     </form>

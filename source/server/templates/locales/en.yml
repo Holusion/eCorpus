@@ -64,6 +64,7 @@ labels:
   clientRegistered: Client registered
   clientSecretWarning: Copy the client secret now — it is hashed on the server and will never be shown again.
   copy: Copy
+  copied: Copied
   deletingAClientIsPermanent: Deleting a client revokes every token it issued
   noClients: No OAuth client registered yet
   lastModified: "Last modified"
@@ -255,6 +256,7 @@ onboarding:
 
 titles:
   userTokens: API tokens
+  tokenCreated: Token created
   authorizedApps: Authorized applications
   authorize: Authorization request
   myScenesSection: my scenes
