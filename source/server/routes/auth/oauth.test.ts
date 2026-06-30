@@ -222,15 +222,16 @@ describe("OAuth2 authorization server", function(){
       }
     });
 
-    it("an omitted scope defaults to 'all'", async function(){
+    it("rejects an omitted scope (no implicit full access)", async function(){
       const {client} = await makeClient();
       const {challenge} = makePkce();
       const agent = await login(this.server, user);
       const q = authorizeQuery(client.id, challenge);
       q.delete("scope");
       const res = await agent.get(`/auth/oauth/authorize?${q}`)
-        .expect(200);
-      expect(res.text).to.match(/name="scope" value="all"/);
+        .expect(302);
+      const location = new URL(res.headers["location"]);
+      expect(location.searchParams.get("error")).to.equal("invalid_scope");
     });
 
     it("user-level names are not scopes", async function(){

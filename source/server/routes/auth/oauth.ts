@@ -66,7 +66,13 @@ function validateGrantParams(res: Response, redirectUri: string, q: Record<strin
     errorRedirect(res, redirectUri, state, "invalid_request", "code_challenge_method must be S256");
     return null;
   }
-  let scope: string[] = (typeof rawScope === "string" && rawScope.length) ? parseScope(rawScope) : ["all"];
+  //Require an explicit scope rather than defaulting to `all`: an omitted scope
+  //must not silently grant a client the owner's full account authority.
+  if(typeof rawScope !== "string" || !rawScope.length){
+    errorRedirect(res, redirectUri, state, "invalid_scope", "A scope is required");
+    return null;
+  }
+  let scope: string[] = parseScope(rawScope);
   if(!isValidScope(scope)){
     errorRedirect(res, redirectUri, state, "invalid_scope");
     return null;
