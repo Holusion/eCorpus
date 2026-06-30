@@ -1,7 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 
-import { Uid } from "../utils/uid.js";
-
 /**
  * Constant prefix of every eCorpus API token.
  * Makes tokens recognizable to secret-scanning tools (CI hooks, GitHub push protection).
@@ -13,11 +11,6 @@ export const DEFAULT_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1000;
 
 /** Maximum lifetime of an authorization code (RFC6749 recommends 10 minutes maximum) */
 export const CODE_LIFETIME = 10 * 60 * 1000;
-
-export interface ParsedToken {
-  id: number;
-  secret: Buffer;
-}
 
 /** Generate a token (or client, or code) secret. 32 bytes = 256 bits of entropy */
 export function makeSecret(): Buffer {
@@ -39,35 +32,31 @@ export function verifySecret(secret: Buffer | string, hash: Buffer): boolean {
 }
 
 /**
- * Serialize a token as `ecorpus_<id>_<secret>`.
- * The id part allows a primary-key lookup on verification (no table scan).
+ * Serialize a token as `ecorpus_<secret>`. No id is embedded: verification
+ * looks the token up by `sha256(secret)` (a unique index), so nothing about
+ * the token's number or creation order leaks, and the string is shorter.
  */
-export function formatToken(id: number, secret: Buffer): string {
-  return `${TOKEN_PREFIX}_${Uid.toString(id)}_${secret.toString("base64url")}`;
+export function formatToken(secret: Buffer): string {
+  return `${TOKEN_PREFIX}_${secret.toString("base64url")}`;
 }
 
 /**
- * Anatomy of a token: `ecorpus_<id>_<secret>` where id is 6 bytes and secret
- * 32 bytes, both base64url. The base64url alphabet itself contains `_`, so the
- * parts are matched by their fixed length, not by splitting on the separator.
+ * Anatomy of a token: `ecorpus_<secret>` where secret is 32 bytes base64url
+ * (43 chars). Matched by fixed length rather than by splitting on `_`, since
+ * the base64url alphabet itself contains `_`.
  */
-const tokenRe = new RegExp(`^${TOKEN_PREFIX}_([-\\w]{8})_([-\\w]{43})$`);
+const tokenRe = new RegExp(`^${TOKEN_PREFIX}_([-\\w]{43})$`);
 
 /**
- * Parse a token string into its id and secret parts.
- * @returns null for anything that is not a well-formed eCorpus token
+ * Parse a token string into its 32-byte secret.
+ * @returns the secret, or null for anything that is not a well-formed eCorpus token
  */
-export function parseToken(token: string): ParsedToken | null {
+export function parseToken(token: string): Buffer | null {
   const m = tokenRe.exec(token);
   if (!m) return null;
-  try {
-    const id = Uid.toNumber(m[1]);
-    const secret = Buffer.from(m[2], "base64url");
-    if (secret.length != 32) return null;
-    return { id, secret };
-  } catch (e) {
-    return null;
-  }
+  const secret = Buffer.from(m[1], "base64url");
+  if (secret.length != 32) return null;
+  return secret;
 }
 
 /**

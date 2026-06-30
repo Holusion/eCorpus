@@ -759,7 +759,7 @@ export default class UserManager extends DbController {
     ]);
     //istanbul ignore if
     if(!r) throw new InternalError(`Failed to create a token for user ${uid}`);
-    return {token: formatToken(deserializeToken(r).id, secret), meta: deserializeToken(r)};
+    return {token: formatToken(secret), meta: deserializeToken(r)};
   }
 
   /**
@@ -769,15 +769,19 @@ export default class UserManager extends DbController {
    * @throws {UnauthorizedError} for anything but a valid, unexpired token
    */
   async authenticateToken(token: string): Promise<{user: SafeUser, token: ApiToken}>{
-    const parsed = parseToken(token);
-    if(!parsed) throw new UnauthorizedError(`Invalid authorization token`);
+    const secret = parseToken(token);
+    if(!secret) throw new UnauthorizedError(`Invalid authorization token`);
+    //The secret is 256 bits of entropy, so an exact sha256(secret) match (a
+    //unique index) IS the verification: no id is transmitted, and no separate
+    //constant-time compare is needed.
+    const hash = hashSecret(secret);
     let r = await this.db.get<StoredToken & Pick<StoredUser, "user_id"|"username"|"email"|"level">>(`
       SELECT t.*, u.user_id, u.username, u.email, u.level
       FROM api_tokens AS t
       INNER JOIN users AS u ON u.user_id = t.fk_user_id
-      WHERE t.token_id = $1
-    `, [parsed.id.toString(10)]);
-    if(!r || !verifySecret(parsed.secret, r.hash)){
+      WHERE t.hash = $1
+    `, [hash]);
+    if(!r){
       throw new UnauthorizedError(`Invalid authorization token`);
     }
     if(r.expires_at && r.expires_at.valueOf() < Date.now()){
@@ -786,9 +790,9 @@ export default class UserManager extends DbController {
     //Throttled usage tracking: at most one write per 5 minutes per token
     await this.db.run(`
       UPDATE api_tokens SET last_used_at = CURRENT_TIMESTAMP
-      WHERE token_id = $1
+      WHERE hash = $1
         AND (last_used_at IS NULL OR last_used_at < CURRENT_TIMESTAMP - interval '5 minutes')
-    `, [parsed.id.toString(10)]);
+    `, [hash]);
     return {
       user: User.safe(UserManager.deserialize({...r, password: undefined})),
       token: deserializeToken(r),
@@ -828,11 +832,11 @@ export default class UserManager extends DbController {
    * Idempotent and silent: revoking an invalid or unknown token is not an error.
    */
   async removeTokenBySecret(token: string): Promise<void>{
-    const parsed = parseToken(token);
-    if(!parsed) return;
-    let r = await this.db.get<StoredToken>(`SELECT * FROM api_tokens WHERE token_id = $1`, [parsed.id.toString(10)]);
-    if(!r || !verifySecret(parsed.secret, r.hash)) return;
-    await this.db.run(`DELETE FROM api_tokens WHERE token_id = $1`, [parsed.id.toString(10)]);
+    const secret = parseToken(token);
+    if(!secret) return;
+    //Possession of the token is sufficient (RFC7009); an unknown secret simply
+    //matches no row, so the delete is idempotent and silent.
+    await this.db.run(`DELETE FROM api_tokens WHERE hash = $1`, [hashSecret(secret)]);
   }
 
   /**

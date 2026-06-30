@@ -52,6 +52,10 @@ CREATE TABLE api_tokens (
 
 CREATE INDEX api_tokens_user ON api_tokens(fk_user_id);
 
+-- Tokens carry no id; they are verified by a sha256(secret) lookup, so the
+-- digest is uniquely indexed.
+CREATE UNIQUE INDEX api_tokens_hash ON api_tokens(hash);
+
 -- Single-use authorization codes (deleted on exchange), stored hashed.
 CREATE TABLE oauth_codes (
   code_hash BYTEA PRIMARY KEY,

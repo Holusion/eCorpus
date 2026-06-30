@@ -7,13 +7,11 @@ describe("Token", function(){
   describe("formatToken() / parseToken()", function(){
     it("round-trips", function(){
       for(let i = 0; i < 50; i++){
-        const id = i * 7919 + 1;
         const secret = makeSecret();
-        const token = formatToken(id, secret);
+        const token = formatToken(secret);
         const parsed = parseToken(token);
         expect(parsed, token).to.be.ok;
-        expect(parsed!.id, token).to.equal(id);
-        expect(parsed!.secret.equals(secret), token).to.be.true;
+        expect(parsed!.equals(secret), token).to.be.true;
       }
     });
 
@@ -22,15 +20,14 @@ describe("Token", function(){
       //parsing must not split on it
       const secret = Buffer.from("ff".repeat(32), "hex"); //0xff... → "____" prefix in base64url
       expect(secret.toString("base64url")).to.match(/^__/);
-      const token = formatToken(1, secret);
+      const token = formatToken(secret);
       const parsed = parseToken(token);
       expect(parsed).to.be.ok;
-      expect(parsed!.id).to.equal(1);
-      expect(parsed!.secret.equals(secret)).to.be.true;
+      expect(parsed!.equals(secret)).to.be.true;
     });
 
     it("rejects malformed tokens", function(){
-      const valid = formatToken(1, makeSecret());
+      const valid = formatToken(makeSecret());
       expect(parseToken(valid)).to.be.ok;
       for(const bad of [
         "",
@@ -40,7 +37,7 @@ describe("Token", function(){
         valid + "a",
         "other" + valid.slice("ecorpus".length),
         valid.replace("_", "."),
-        `ecorpus_${"!".repeat(8)}_${"a".repeat(43)}`,
+        `ecorpus_${"!".repeat(43)}`,
       ]){
         expect(parseToken(bad), bad).to.be.null;
       }

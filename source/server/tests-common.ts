@@ -69,7 +69,7 @@ global.bearer = async function(userRef){
       : await userManager.getUserByName(userRef);
   }catch(e){
     //Unknown user: a well-formed token that fails verification (→ 401)
-    return `Bearer ecorpus_AAAAAAAA_${Buffer.alloc(32).toString("base64url")}`;
+    return `Bearer ecorpus_${Buffer.alloc(32).toString("base64url")}`;
   }
   const {token} = await userManager.createToken(user.uid, {name: "test-bearer"});
   return `Bearer ${token}`;
