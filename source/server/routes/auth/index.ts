@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 
 import { canAdmin, canRead, either, getUser, isAdministrator, isFullUser, isUser, useTemplateProperties  } from "../../utils/locals.js";
 import { noFraming } from "../../utils/headers.js";
+import { csrfProtectAnonymous } from "../../utils/csrf.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
@@ -43,6 +44,9 @@ router.get("/payload/:payload", wrap(getLoginPayload));
 
 router.get("/login", wrap(getLogin));
 router.post("/login",
+  //A forged cross-site login would seat the victim in the attacker's account.
+  //The global csrfProtection exempts anonymous requests, so guard login itself.
+  csrfProtectAnonymous,
   //Password verification costs a full scrypt: rate-limit to slow down online brute-force.
   //The TEST escape hatch is for integration tests that log in dozens of times from one IP.
   rateLimit({

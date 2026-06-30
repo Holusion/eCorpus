@@ -126,6 +126,41 @@ describe("CSRF protection (origin checks)", function(){
     });
   });
 
+  describe("login (anonymous, but session-establishing)", function(){
+    //Login is anonymous, so the main csrfProtection exempts it — yet a forged
+    //cross-site login seats the victim in the attacker's account, so it gets
+    //its own guard.
+    it("rejects a cross-origin login POST (forged Origin)", async function(){
+      const res = await request(this.server).post("/auth/login")
+        .set("Origin", "https://evil.example.com")
+        .send({username: user.username, password: "12345678"})
+        .expect(403);
+      expect(res.body).to.have.property("message").match(/Cross-origin/);
+    });
+
+    it("rejects Sec-Fetch-Site: cross-site on login", async function(){
+      await request(this.server).post("/auth/login")
+        .set("Sec-Fetch-Site", "cross-site")
+        .send({username: user.username, password: "12345678"})
+        .expect(403);
+    });
+
+    it("accepts a same-origin login", async function(){
+      await request(this.server).post("/auth/login")
+        .set("Sec-Fetch-Site", "same-origin")
+        .send({username: user.username, password: "12345678"})
+        .set("Accept", "")
+        .expect(200);
+    });
+
+    it("accepts a scripted login (no Origin, no Fetch Metadata)", async function(){
+      await request(this.server).post("/auth/login")
+        .send({username: user.username, password: "12345678"})
+        .set("Accept", "")
+        .expect(200);
+    });
+  });
+
   describe("security headers", function(){
     it("emits a Content-Security-Policy-Report-Only header", async function(){
       const res = await request(this.server).get("/auth/login").expect(200);

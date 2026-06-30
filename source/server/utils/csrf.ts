@@ -37,20 +37,43 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
  * not equal the public origin — either would wrongly reject a genuine
  * same-origin request if the Origin check were applied unconditionally.
  */
+/**
+ * Decide whether an unsafe request looks cross-origin, using Fetch Metadata
+ * first and an Origin/host comparison as the fallback. See the rationale on
+ * {@link csrfProtection}.
+ */
+function isCrossOrigin(req: Request): boolean {
+  const fetchSite = req.get("Sec-Fetch-Site");
+  if (fetchSite) {
+    //The browser sets it and web content can neither forge nor strip it.
+    return fetchSite !== "same-origin" && fetchSite !== "none";
+  }
+  //No Fetch Metadata (older or non-browser client): fall back to an Origin check.
+  const origin = req.get("Origin");
+  return !!origin && origin !== getHost(req).origin;
+}
+
 export default function csrfProtection(req: Request, res: Response, next: NextFunction) {
   if (SAFE_METHODS.has(req.method)) return next();
   if (getAuthMethod(res) !== "session") return next();
+  if (isCrossOrigin(req)) return next(new ForbiddenError(`Cross-origin request rejected`));
+  next();
+}
 
-  const fetchSite = req.get("Sec-Fetch-Site");
-  if (fetchSite) {
-    if (fetchSite === "same-origin" || fetchSite === "none") return next();
-    return next(new ForbiddenError(`Cross-origin request rejected`));
-  }
-
-  //No Fetch Metadata (older or non-browser client): fall back to an Origin check.
-  const origin = req.get("Origin");
-  if (origin && origin !== getHost(req).origin) {
-    return next(new ForbiddenError(`Cross-origin request rejected`));
-  }
+/**
+ * CSRF protection for the anonymous endpoints that *establish* a session
+ * (login, magic-link submission). {@link csrfProtection} exempts anonymous
+ * requests because they carry no ambient authority to abuse — but a forged
+ * cross-site POST here logs the victim into the *attacker's* account (login
+ * CSRF / session fixation), so the credential they keep using is the
+ * attacker's. This variant runs the same same-origin check without the
+ * auth-method exemption.
+ *
+ * Non-browser clients still pass: with no Fetch Metadata and no Origin header
+ * there is nothing to reject, so scripted logins keep working.
+ */
+export function csrfProtectAnonymous(req: Request, res: Response, next: NextFunction) {
+  if (SAFE_METHODS.has(req.method)) return next();
+  if (isCrossOrigin(req)) return next(new ForbiddenError(`Cross-origin request rejected`));
   next();
 }
