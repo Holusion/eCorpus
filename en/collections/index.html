@@ -10,17 +10,17 @@ layout: page
     <h2>
         Medieval goldsmithing pieces
     </h2>
-    <p>Collection gathered from the <a href="/en/about">eThesaurus</a> consortium's works</p>.
+    <p>Collection gathered from the <a href="/en/about">eThesaurus</a> consortium's works.</p>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}" alt="{{p.title}}">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
                 <div style="padding-left: 5px;">
                     <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
+                    <p>{{ p.abstract }}</p>
                 </div>
             </a>
         {% endfor %}
@@ -28,11 +28,33 @@ layout: page
 </div>
 </section>
 
-<section class="section" id="NotreDamedeParis"></section>
+<section class="section" id="IRHiS">
+    <h2>
+        Digitized artworks from the Palais des Beaux-Arts de Lille
+    </h2>
+    <p>Collection assembled by the <a href="/en/about">IRHiS</a> laboratory (Institut de Recherches historiques du Septentrion, University of Lille).</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
+
+<section class="section" id="NotreDamedeParis">
     <h2>
         Digitized elements of Notre-Dame de Paris
     </h2>
-    <p>Collection assembled as part of the restoration work and the exhibition <a href="/fr/2024/05/06/suad.html">Notre-Dame de Paris</a> at Sorbonne Abu Dhabi University.</p>
+    <p>Collection assembled as part of the restoration work and the exhibition <a href="/en/2024/05/06/suad.html">Notre-Dame de Paris</a> at Sorbonne Abu Dhabi University.</p>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredamedeparis" %}
