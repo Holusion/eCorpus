@@ -37,6 +37,11 @@ test("creates a personal token shown once, usable as Bearer, then revocable", as
   const token = (await page.locator("#token-secret-value").innerText()).trim();
   expect(token).toMatch(/^ecorpus_/);
 
+  // Close the one-time-secret modal before touching the list: while it is open
+  // (showModal) its backdrop intercepts pointer events on the rows behind it.
+  await page.locator("#close-token-secret").click();
+  await expect(page.locator("#token-secret-modal")).toBeHidden();
+
   // It is listed (personal tokens have no client → "—").
   const row = page.locator("#token-list").getByRole("row", {name: new RegExp(tokenName)});
   await expect(row).toBeVisible();
