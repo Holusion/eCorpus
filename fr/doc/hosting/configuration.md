@@ -65,7 +65,7 @@ Les options de configuration peuvent être données sous forme de *query string*
 # autorise l'utilisation de certificats self-signed : 
 smtp://localhost:465?tls.rejectUnauthorized=false
 ```
-D'autres options utiles peuvent être : `?logger=true&debug=true` pour activer le mode verbeux. Voir la [liste des options](https://nodemailer.com/smtp/){:target="_blank"}.
+D'autres options utiles peuvent être : `?logger=true&debug=true` pour activer le mode verbeux. Voir la [liste des options](https://nodemailer.com/smtp){:target="_blank"}.
 
 
 ##### TRUST_PROXY

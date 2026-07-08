@@ -3,7 +3,7 @@ title: Utiliser Voyager Story de manière collaborative
 tags: [dev]
 ---
 
-Comme toute application web, l'éditeur de [Voyager Story](https://smithsonian.github.io/) de la Smithsonian Digitization Office est susceptible d'être utilisé en parallèle par plusieurs personnes. Cela pose problème lorsque deux personnes modifient le même fichier en même temps, car la dernière personne à enregistrer écrasera les modifications de l'autre.
+Comme toute application web, l'éditeur de [Voyager Story](https://smithsonian.github.io/dpo-voyager/) de la Smithsonian Digitization Office est susceptible d'être utilisé en parallèle par plusieurs personnes. Cela pose problème lorsque deux personnes modifient le même fichier en même temps, car la dernière personne à enregistrer écrasera les modifications de l'autre.
 
 Rien ne protège nativement contre cela dans l'architecture originale, car ce n'est pas quelque chose qui semble se produire dans le pipeline des auteurs. Cependant, à mesure que nous ciblons de plus en plus les environnements d'apprentissage, il est devenu l'une de nos fonctionnalités les plus demandées.
 

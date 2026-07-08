@@ -29,7 +29,7 @@ scene: "NoceDeCana_Puzzle"
             C'est au profit de cette fermeture exceptionnelle que les ouvrages exposés ont pu être numérisées via un processus de photogrammétrie. Une fois créés, ces jumeaux numériques peuvent non seulement assurer une pérénité aux oeuvres du musée, mais aussi être utilisé pour leur reconstitution numérique, dans une continuité du travail entamé par les Pressouyre des années auparavant.
         </p>
         <p>
-            <a href="https://musees.chalonsenchampagne.fr/musees/actualites/reouverture-du-musee-du-cloitre-de-notre-dame-en-vaux">En savoir plus sur la réouverture du musée du cloître de Notre-Dame-en-Vaux</a>
+            <a href="https://web.archive.org/web/20251213153346/https://musees.chalonsenchampagne.fr/musees/actualites/reouverture-du-musee-du-cloitre-de-notre-dame-en-vaux">En savoir plus sur la réouverture du musée du cloître de Notre-Dame-en-Vaux</a>
         </p>
     </div>
 </section>

@@ -47,10 +47,11 @@ jobs:
           JEKYLL_ENV: production
       - name: test HTML validity
         run: >
-          bundle exec htmlproofer _site/ 
-          --disable-external  
+          bundle exec htmlproofer _site/
           --no-enforce-https
           --allow-missing-href
+          --ignore-status-codes "403,412,429"
+          --ignore-urls "/fonts\.googleapis\.com/,/fonts\.gstatic\.com/,/^https?:\/\/localhost/,/threejs\.org\/docs/,/expressjs\.com/"
           --log-level :debug
       - name: Upload artifact
         if: ${{ github.ref == 'refs/heads/gh_pages' }}

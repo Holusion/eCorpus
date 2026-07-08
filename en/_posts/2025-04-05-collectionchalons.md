@@ -31,7 +31,7 @@ excerpt: "Known for its collegiate church listed as a UNESCO World Heritage Site
             During this exceptional closure, the exhibited works were digitized using photogrammetry. Once created, these digital twins not only ensure the preservation of the museum’s works but can also be used for their digital reconstruction, continuing the work begun by the Pressouyres decades earlier.
         </p>
         <p>
-            <a href="https://musees.chalonsenchampagne.fr/musees/actualites/reouverture-du-musee-du-cloitre-de-notre-dame-en-vaux">Learn more about the reopening of the Notre-Dame-en-Vaux Cloister Museum</a>
+            <a href="https://web.archive.org/web/20251213153346/https://musees.chalonsenchampagne.fr/musees/actualites/reouverture-du-musee-du-cloitre-de-notre-dame-en-vaux">Learn more about the reopening of the Notre-Dame-en-Vaux Cloister Museum</a>
         </p>
     </div>
 </section>

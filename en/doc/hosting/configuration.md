@@ -62,7 +62,7 @@ Additional configuration options can be added to the url as query parameters.
 # allow self-signed certificates:
 smtp://localhost:465?tls.rejectUnauthorized=false
 ```
-See the full [list](https://nodemailer.com/smtp/){:target="_blank"}.
+See the full [list](https://nodemailer.com/smtp){:target="_blank"}.
 
 
 ##### TRUST_PROXY
