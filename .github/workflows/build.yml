@@ -50,6 +50,7 @@ jobs:
           bundle exec htmlproofer _site/
           --no-enforce-https
           --allow-missing-href
+          --swap-urls "^https?\:\/\/ecorpus\.eu:"
           --ignore-status-codes "403,412,429"
           --ignore-urls "/fonts\.googleapis\.com/,/fonts\.gstatic\.com/,/^https?:\/\/localhost/,/threejs\.org\/docs/,/expressjs\.com/"
           --log-level :debug
