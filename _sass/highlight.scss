@@ -2,9 +2,9 @@
 
 pre.highlight{
   padding: 1rem;
-}
-
-pre code{
+  /* The block, not the inline <code>, is the scroll container: long code lines
+     scroll within the page width instead of stretching the layout. */
+  max-width: 100%;
   overflow-x: auto;
 }
 

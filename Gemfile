@@ -11,7 +11,7 @@ end
 group :plugins do
   gem 'jekyll-sitemap', "~>1.4.0"
   gem 'jekyll-last-modified-at', "~>1.3.0"
-  gem 'jekyll-openapi', "~>0.1.0"
+  gem 'jekyll-openapi', "~>0.2.0"
 end
 
 group :test do

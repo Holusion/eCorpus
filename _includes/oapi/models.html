@@ -1,0 +1,23 @@
+{% comment %}
+  "Models" reference section: every named component schema, each anchored with
+  the id that oapi_html_schema links to (#schema-<name>). Reused component
+  schemas are documented once here and cross-linked from operation bodies.
+
+  Usage: {% include oapi/models.html api=api %}
+  where `api` is the OpenAPI document (raw or dereferenced — oapi_schemas
+  dereferences internally, and oapi_html_schema links named refs either way).
+{% endcomment %}
+{% assign schemas = include.api | oapi_schemas %}
+{% unless schemas == empty %}
+  <section class="oapi-models">
+    <h2 id="models"><span class="tag-name">Models</span></h2>
+    <p>Reusable schemas referenced by the operations above.</p>
+    {% for entry in schemas %}
+      {% assign name = entry[0] %}
+      <section class="oapi-model" id="{{ name | oapi_schema_anchor }}">
+        <h3 class="oapi-model-name"><code>{{ name }}</code></h3>
+        <div class="oapi-schema">{{ entry[1] | oapi_html_schema }}</div>
+      </section>
+    {% endfor %}
+  </section>
+{% endunless %}

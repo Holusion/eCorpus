@@ -55,6 +55,28 @@
   width: 100%;
   border-collapse: collapse;
   display: table;
+
+  /* Schema/code blocks and long prose must stay inside the table cell: long
+     code lines scroll horizontally, long words wrap, instead of stretching the
+     table past the page. (The rouge markup puts the block on <pre>/<figure>,
+     not the inline <code>, so the scroll container has to live here.) */
+  .highlight,
+  pre{
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  td{
+    overflow-wrap: anywhere;
+  }
+}
+
+/* The response headers table renders a schema per row; pin its layout so a
+   cell can never grow to its content and push the table off the page. */
+.response-headers{
+  table-layout: fixed;
+  .param-name{
+    width: 22ch;
+  }
 }
 
 .operation-body{
@@ -116,3 +138,67 @@
     color: #E6B900;
   }
 }
+
+/* Linked HTML schema renderer (jekyll-openapi `oapi_html_schema`).
+   Every class the renderer emits is `oapi-` prefixed. */
+.oapi-object{
+  margin: 0;
+  > .oapi-prop{
+    display: grid;
+    grid-template-columns: minmax(8ch, 22ch) 1fr;
+    gap: 0 1rem;
+    padding: .35rem 0;
+    border-bottom: 1px solid rgba(136, 136, 136, .3);
+    > dt{ margin: 0; }
+    > dd{ margin: 0; min-width: 0; }
+  }
+}
+
+.oapi-prop-name,
+.oapi-type,
+.oapi-ref{ font-family: monospace; }
+
+.oapi-required{
+  margin-left: .5ch;
+  font-size: 75%;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #dc3545;
+}
+
+.oapi-format,
+.oapi-nullable,
+.oapi-or{ color: #888; }
+
+.oapi-pattern{ color: #186faf; }
+
+.oapi-ref{ font-weight: 600; }
+.oapi-ref-external{ color: #888; }
+
+.oapi-array-label{ color: #888; font-style: italic; }
+
+.oapi-enum{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5ch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  > li > code{
+    background: rgba(136, 136, 136, .15);
+    border-radius: 3px;
+    padding: 0 .4ch;
+  }
+}
+
+.oapi-union{
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.oapi-desc{
+  color: #999;
+  font-size: 90%;
+}
+
+.oapi-model{ scroll-margin-top: 2rem; }
