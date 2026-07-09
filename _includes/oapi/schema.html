@@ -1,13 +1,22 @@
-
-
+{% comment %}
+  Renders a schema in one of three representations:
+    - "application/xml" content -> simplified XML example (text)
+    - representation="text"     -> TypeScript-like signature (text)
+    - default                   -> semantic, linked HTML; named component
+                                   schemas link to the Models section (#schema-<name>)
+  Usage: {% include oapi/schema.html schema=someSchema type="application/json" %}
+{% endcomment %}
 {% unless include.schema %}
   <div class="language-plaintext highlighter-rouge">
     <pre class="highlight"><code>No schema provided</code></pre>
   </div>
 {% else %}
-  {% if include.type == "application/xml" %}
-  {% highlight xml %}{{include.schema | oapi_xml_schema }}{%endhighlight %}
+  {% assign is_xml = include.type | oapi_is_xml %}
+  {% if is_xml %}
+    {% highlight xml %}{{ include.schema | oapi_xml_schema }}{% endhighlight %}
+  {% elsif include.representation == "text" %}
+    {% highlight typescript %}{{ include.schema | oapi_schema }}{% endhighlight %}
   {% else %}
-    {% highlight typescript %}{{include.schema | oapi_schema }}{% endhighlight %}
+    <div class="oapi-schema">{{ include.schema | oapi_html_schema }}</div>
   {% endif %}
 {% endunless %}

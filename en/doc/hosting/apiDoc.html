@@ -5,7 +5,8 @@ rank: 5
 
 <link rel="stylesheet" href="/assets/css/apidoc.css">
 
-{% assign api = site.data.openapi | oapi_dereference %}
+{% comment %} The oapi_* filters dereference internally, so no oapi_dereference is needed. {% endcomment %}
+{% assign api = site.data.openapi %}
 {% assign tags = api | oapi_tags %}
 
 <h1>eCorpus HTTP API</h1>
@@ -21,17 +22,21 @@ rank: 5
   <ul>
     {% for tag in tags %}
       <li>
-        <a href="#{{tag.name | slugify}}">{{tag.name}}</a>:
+        <a href="#{{tag | oapi_tag_anchor}}">{{tag.name}}</a>:
         <div>{{tag.description | markdownify}}</div>
       </li>
     {% endfor %}
+    <li>
+      <a href="#models">Models</a>:
+      <div>Reusable schemas referenced throughout the operations.</div>
+    </li>
   </ul>
 </div>
 <h2 id="introduction">Introduction</h2>
 {{ api.info.description  | markdownify }}
 
 {% for tag in tags %}
-  <h2 id="{{tag.name | slugify}}"><span class="tag-name">{{tag.name}}</span></h2>
+  <h2 id="{{tag | oapi_tag_anchor}}"><span class="tag-name">{{tag.name}}</span></h2>
   <!--Global API Description -->
   {{tag.description  | markdownify }}
 
@@ -40,7 +45,7 @@ rank: 5
   {% for op in operations %}
 
       <!--Operation title-->
-      <h3 id="{{op.operation.operationId |slugify}}" class="operation-title">
+      <h3 id="{{op | oapi_operation_anchor}}" class="operation-title">
         <span class="method {{ op.method }}">
           {{ op.method }}
         </span>
@@ -87,23 +92,24 @@ rank: 5
                       <div>
                         {% include oapi/schema.html schema=param.schema %}
                       </div>
-                      {% if param.schema.examples %}
+                      {% assign examples = param | oapi_examples %}
+                      {% unless examples == empty %}
                         <h5>Examples</h5>
                         <table class="group-table">
                           <tbody>
-                            {% for example in param.schema.examples %}
+                            {% for example in examples %}
                               <tr>
-                                <td><h6>{{example[0]}}</h6></td>
+                                <td><h6>{{example.name}}</h6></td>
                                 <td>
-                                  <pre><code>{{example[1].value}}</code></pre>
+                                  <pre><code>{{example.value}}</code></pre>
                                 </td>
-                                <td>{{example[1].summary | markdownify}}</td>
+                                <td>{{example.summary | default: example.description | markdownify}}</td>
                               </tr>
                             {% endfor %}
 
                           </tbody>
                         </table>
-                      {% endif %}
+                      {% endunless %}
                     </div>
                   {% endif %}
                 </td>
@@ -142,6 +148,24 @@ rank: 5
             </div>
             <div class="response-contents">
               <div>{{ response[1].description | markdownify }}</div>
+              {% assign headers = response[1] | oapi_headers %}
+              {% unless headers == empty %}
+                <h5>Headers</h5>
+                <table class="group-table response-headers">
+                  {% for header in headers %}
+                    <tr class="param">
+                      <td class="param-name">
+                        <code>{{header.name}}</code>
+                        {% if header.required %}<span class="required">required</span>{% endif %}
+                      </td>
+                      <td>
+                        <div>{{header.description | markdownify}}</div>
+                        {% if header.schema %}{% include oapi/schema.html schema=header.schema %}{% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </table>
+              {% endunless %}
               {% for content in response[1].content %}
                 <div class="response-content">
                   {% assign content_schema = content[1].schema %}
@@ -160,3 +184,6 @@ rank: 5
   {% endfor %}
 
 {% endfor %}
+
+<!--Models: reusable component schemas, cross-linked from the operation bodies above-->
+{% include oapi/models.html api=api %}

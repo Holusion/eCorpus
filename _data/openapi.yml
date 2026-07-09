@@ -80,21 +80,21 @@ paths:
           Matches a string against a scene's name, author, authorized users  and document meta.
 
           See examples for the accepted syntax
-        schema: 
+        schema:
           type: string
-          examples:
-            simple:
-              value: foo
-              description: |
-                Match scenes that contains the string "foo"
-            words:
-              value: foo bar
-              description: |
-                Match scenes that contains both words in unrelated places.
-            quoted:
-              value: '"foo bar"'
-              description: |
-                Match scenes that contains those words next to each other
+        examples:
+          simple:
+            value: foo
+            description: |
+              Match scenes that contains the string "foo"
+          words:
+            value: foo bar
+            description: |
+              Match scenes that contains both words in unrelated places.
+          quoted:
+            value: '"foo bar"'
+            description: |
+              Match scenes that contains those words next to each other
       - name: access
         in: query
         style: form
@@ -147,8 +147,12 @@ paths:
 
             Can be used to return a ZIP archive of the matched scenes content.
           headers:
-            Etag: {$ref: "#/components/schemas/Etag"}
-            Last-Modified: {$ref: "#/components/schemas/LastModified"}
+            Etag:
+              description: Entity tag for the returned resource, usable for cache validation.
+              schema: {$ref: "#/components/schemas/Etag"}
+            Last-Modified:
+              description: Last modification date of the resource.
+              schema: {$ref: "#/components/schemas/LastModified"}
 
           content:
             application/json:
@@ -208,10 +212,14 @@ paths:
         '200':
           description: The requested scene's data
           headers:
-            Etag: {$ref: "#/components/schemas/Etag"}
-            Last-Modified: {$ref: "#/components/schemas/LastModified"}
+            Etag:
+              description: Entity tag for the returned resource, usable for cache validation.
+              schema: {$ref: "#/components/schemas/Etag"}
+            Last-Modified:
+              description: Last modification date of the resource.
+              schema: {$ref: "#/components/schemas/LastModified"}
           content:
-            application/json: { $ref: "#/components/schemas/Scene" }
+            application/json: { schema: { $ref: "#/components/schemas/Scene" } }
         '404':
           description: scene not found. It doesn't exist or isn't readable with the current authentication
 
@@ -295,7 +303,6 @@ paths:
                 permissions:
                   type: object
                   required: []
-                  properties:
                   additionalProperties:
                     $ref: "#/components/schemas/AccessType"
                   description: user ids to change
@@ -303,12 +310,12 @@ paths:
                   type: array
                   items:
                     type: string
-        responses:
-          '200':
-            description: "The updated scene data"
-            content:
-              application/json:
-                schema: { $ref: "#/components/schemas/Scene" }
+      responses:
+        '200':
+          description: "The updated scene data"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scene" }
 
   /scenes/{scene}/{file:.*}:
     parameters:
@@ -318,13 +325,15 @@ paths:
       tags: [scenes]
       operationId: getFile
       description: get a file in scene
-      content:
-        default:
+      responses:
+        '200':
           description: |
             The file.
-            
+
             It's `Content-Type` header should match the expected [MIME](https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types) type.
-          schema: { type: string, format: binary }
+          content:
+            '*/*':
+              schema: { type: string, format: binary }
 
     put:
       tags: [scenes]
@@ -628,7 +637,7 @@ components:
         author:  {type: "string"}
         id:  { $ref: "#/components/schemas/Uid"}
         name: {type: "string"}
-        thumb: {type: "string", desciption: "URI to the scene's thumbnail representation if it exists"}
+        thumb: {type: "string", description: "URI to the scene's thumbnail representation if it exists"}
         access: {$ref: "#/components/schemas/AccessType" }
         public_access:  {$ref: "#/components/schemas/AccessType" }
         default_access:  {$ref: "#/components/schemas/AccessType" }
@@ -656,12 +665,8 @@ components:
         unique string describing the resource state, generally used for caching. A base64url sha256 hash sum is generally used but the exact format's stability shouldn't be relied-upon.
       type: string
       examples:
-        weak: 
-          value: "W/oFpbfs6awWPgScobk7dDvUnjEWYnDvqCekDfVnMKAWI"
-          summary: "Weak Etag, calculated upon the resource's identifying data, which could lead to an Etag change while the content hasn't changed"
-        strong: 
-          value: "hohW3ydF34xbzWteINtEmJ69ftqMXcyX3HO5S4hp4lo"
-          summary: Calculated on a resource's content, which is expected to stay stable.
+        - "W/oFpbfs6awWPgScobk7dDvUnjEWYnDvqCekDfVnMKAWI"
+        - "hohW3ydF34xbzWteINtEmJ69ftqMXcyX3HO5S4hp4lo"
     LastModified:
       description: a date's UTC representation
       type: string
@@ -709,12 +714,8 @@ components:
           type: string
           xml: { prefix: "D"}
           examples:
-            ok:
-              value: HTTP/1.1 200 OK
-              description: successful response
-            forbidden:
-              value: HTTP/1.1 403 Forbidden
-              description: 403 HTTP error
+            - HTTP/1.1 200 OK
+            - HTTP/1.1 403 Forbidden
         prop:
           type: object
           xml: { prefix: "D" }
