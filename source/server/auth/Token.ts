@@ -145,32 +145,14 @@ export function expand(scopes: readonly string[]): Set<string> {
 }
 
 /**
- * The per-scene access cap an effective scope set implies (the level a
- * `canRead`/`canWrite`/`canAdmin` requester may reach on a scene; the ACL
- * still decides *which* scene). This is the {@link expand}-based replacement
- * for the old `sceneCap`: `maxSceneScope(expand(s))` equals `sceneCap(s)`.
+ * The per-scene access cap an effective scope set implies (the level a scene-ACL
+ * requester may reach on a scene; the ACL still decides *which* scene). Read off
+ * the effective (expanded) credential set — `maxSceneScope(expand(scope))`.
  */
 export function maxSceneScope(scopes: ReadonlySet<string>): "none" | "read" | "write" | "admin" {
   if (scopes.has("scenes:admin")) return "admin";
   if (scopes.has("scenes:write")) return "write";
   if (scopes.has("scenes:read")) return "read";
-  return "none";
-}
-
-/**
- * The cap a scope set puts on per-scene access (the `canRead`/`canWrite`/
- * `canAdmin` route guards). The cap applies to the *access level* obtained on
- * a scene, never to its visibility: a `scenes:read` token still sees exactly
- * the scenes its owner sees — read-only.
- * `admin` means no restriction. `scenes:create` and `tasks:*` grant other
- * route families and contribute nothing here.
- * @deprecated superseded by {@link maxSceneScope}(`expand(scope)`); kept until
- * `utils/locals.ts` migrates to the effective-scope-set model.
- */
-export function sceneCap(scope: readonly string[]): "none" | "read" | "write" | "admin" {
-  if (scope.includes("all") || scope.includes("scenes:admin")) return "admin";
-  if (scope.includes("scenes:write")) return "write";
-  if (scope.includes("scenes:read")) return "read";
   return "none";
 }
 

@@ -3,7 +3,7 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, either, getUser, isAdministrator, isUser, policy, useTemplateProperties  } from "../../utils/locals.js";
+import { either, getUser, isAdministrator, isUser, policy, useTemplateProperties  } from "../../utils/locals.js";
 import { noFraming } from "../../utils/headers.js";
 import { csrfProtectAnonymous } from "../../utils/csrf.js";
 import wrap from "../../utils/wrapAsync.js";
@@ -99,8 +99,8 @@ router.post("/oauth/clients", isAdministrator, useJSON, wrap(postClient));
 router.delete("/oauth/clients/:id", isAdministrator, wrap(deleteClient));
 
 
-router.get("/access/:scene", isUser, canRead, wrap(getPermissions));
-router.patch("/access/:scene", canAdmin, useJSON, wrap(patchPermissions));
+router.get("/access/:scene", isUser, policy({ perms: "read" }), wrap(getPermissions));
+router.patch("/access/:scene", policy({ perms: "admin" }), useJSON, wrap(patchPermissions));
 
 
 export default router;

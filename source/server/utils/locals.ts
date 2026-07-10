@@ -122,22 +122,12 @@ export function isUser(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
- * Like {@link isUser}, but additionally requires the credential's full
- * authority ({@link isFullAccess}). Reserved for what no restriction scope
- * may ever grant: account management (sessions, tokens, password) — anything
- * a token could use to escalate back to its owner's full authority.
- */
-export function isFullUser(req: Request, res: Response, next: NextFunction) {
-  res.append("Cache-Control", "private");
-  if (getUser(req)?.uid && isFullAccess(res)) next();
-  else next(new UnauthorizedError());
-}
-
-/**
  * Route guard requiring an authenticated user whose credential grants one of
- * the named scopes ({@link hasScope}).
- * Scopes gate the *token*; combine with a level guard (`isCreator`…) to gate
- * the *user*: `router.post("/:scene", requireScope("scenes:create"), isCreator, …)`.
+ * the named scopes ({@link hasScope}) — a credential-only delegation gate,
+ * independent of the user's level. Used where the *token* needs a scope but the
+ * *level* requirement isn't a point on the ACL ladder, e.g. the bulk scene
+ * import (`scenes:create` on the token, any authenticated user, per-scene ACL
+ * inside the handler). Where both are needed, prefer {@link policy}.
  */
 export function requireScope(...names: string[]): RequestHandler {
   return function requireScopeMdw(req: Request, res: Response, next: NextFunction) {
@@ -169,8 +159,12 @@ export function isAdministratorOrOpen(req: Request, res: Response, next: NextFun
   });
 }
 /**
- * Checks if user.isAdministrator is true
- * Not the same thing as canAdmin() that checks if the user has admin rights over a scene
+ * Requires an administrator with full-authority credential.
+ * Not the same as canAdmin(), which checks admin rights over a *scene*.
+ * @deprecated On JSON API routes prefer {@link policy}`({scope: "admin:write"|
+ * "users:write"|…})`, which also yields 403 `insufficient_scope` for a
+ * too-narrow token. Retained for `/ui` page guards and the not-yet-migrated
+ * `admin`/OAuth-client routes.
  */
 export function isAdministrator(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
@@ -180,21 +174,9 @@ export function isAdministrator(req: Request, res: Response, next: NextFunction)
 }
 
 /**
- * Checks if user.isCreator is true
- * Not the same thing as canWrite() that checks if the user has write rights over a scene
- * Checks the *user's* level only: every route it guards also carries a
- * {@link requireScope} guard naming the scope a token needs (`scenes:create`,
- * `tasks:write`).
- */
-export function isCreator(req: Request, res: Response, next: NextFunction) {
-  res.append("Cache-Control", "private");
-  if (isUserAtLeast(getUser(req), "create")) next();
-  else next(new UnauthorizedError());
-}
-
-/**
- * Checks if user.isCreator is true
- * Not the same thing as canWrite() that checks if the user has write rights over a scene
+ * Requires a manage-level user with full-authority credential.
+ * @deprecated On JSON API routes prefer {@link policy}`({scope: "groups:write"|
+ * …})`. Retained for `/ui` page guards.
  */
 export function isManage(req: Request, res: Response, next: NextFunction) {
   res.append("Cache-Control", "private");
@@ -331,19 +313,6 @@ function _perms(on: PolicyTarget, min: AccessType, req: Request, res: Response, 
   }, next);
 }
 
-/**
- * Check user read access over a scene
- */
-export const canRead = _perms.bind(null, "scene", "read");
-/**
- * Check user write access over a scene
- */
-export const canWrite = _perms.bind(null, "scene", "write");
-/**
- * Check user administrative access over a scene
- */
-export const canAdmin = _perms.bind(null, "scene", "admin");
-
 /** Resource-ACL level a {@link policy} enforces, or `null` for none. */
 export type PolicyPerms = "read" | "write" | "admin" | null;
 
@@ -460,8 +429,9 @@ export function getCredentialScopes(res: Response): ReadonlySet<string> | null {
  * The cap the authenticating credential puts on per-scene access. Sessions and
  * `all`-scoped tokens are not capped. Equivalent to the former
  * `sceneCap(token.scope)`, now read off the effective credential set.
+ * Internal to this module ({@link accessCap}/{@link effectiveAccess}).
  */
-export function getSceneCap(res: Response): AccessType {
+function getSceneCap(res: Response): AccessType {
   const credential = getCredentialScopes(res);
   return credential ? maxSceneScope(credential) : "admin";
 }
@@ -483,8 +453,10 @@ export function effectiveAccess(res: Response, aclAccess: AccessType): AccessTyp
  * account management, however privileged its owner.
  * Anonymous requests hold no restricting credential: this returns true and
  * identity checks reject them.
+ * Internal to this module (the `isAdministrator`/`isManage`/`isMemberOrManage`
+ * guards); route code expresses "session-only" via the `account:grant` scope.
  */
-export function isFullAccess(res: Response): boolean {
+function isFullAccess(res: Response): boolean {
   const credential = getCredentialScopes(res);
   if (!credential) return true;
   for (const s of FULL_CREDENTIAL) if (!credential.has(s)) return false;

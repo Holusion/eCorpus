@@ -177,11 +177,13 @@ describe("/auth/tokens", function(){
         .set("Authorization", auth)
         .set("Content-Type", "text/html")
         .expect(403);
+      //Permission changes need scenes:admin: insufficient_scope (403), like the
+      //scene/task routes (was 401 while /auth/access still used canAdmin).
       await request(this.server).patch("/auth/access/private")
         .set("Authorization", auth)
         .set("Content-Type", "application/json")
         .send({username: user.username, access: "read"})
-        .expect(401);
+        .expect(403);
     });
 
     it("scenes:write allows writes but no permission changes", async function(){
@@ -190,11 +192,12 @@ describe("/auth/tokens", function(){
         .set("Authorization", auth)
         .set("Content-Type", "text/html")
         .expect(201);
+      //scenes:write lacks scenes:admin → 403 insufficient_scope.
       await request(this.server).patch("/auth/access/private")
         .set("Authorization", auth)
         .set("Content-Type", "application/json")
         .send({username: admin.username, access: "read"})
-        .expect(401);
+        .expect(403);
     });
 
     it("scenes:admin grants full scene control", async function(){

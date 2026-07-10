@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 
-import { CONCRETE_SCOPES, expand, formatToken, hashSecret, isValidScope, levelScopes, makeSecret, maxSceneScope, parseToken, PUBLIC_SCOPES, sceneCap, verifySecret } from "./Token.js";
+import { CONCRETE_SCOPES, expand, formatToken, hashSecret, isValidScope, levelScopes, makeSecret, maxSceneScope, parseToken, PUBLIC_SCOPES, verifySecret } from "./Token.js";
 import { isUserAtLeast, UserRoles } from "./User.js";
 
 
@@ -74,17 +74,23 @@ describe("Token", function(){
       expect(isValidScope(["scenes:read", "account:grant"])).to.be.false;
     });
 
-    it("maps a scope set to its scene-access cap", function(){
-      expect(sceneCap(["all"])).to.equal("admin");
-      expect(sceneCap(["scenes:admin"])).to.equal("admin");
-      expect(sceneCap(["scenes:write"])).to.equal("write");
-      expect(sceneCap(["scenes:read"])).to.equal("read");
-      expect(sceneCap(["scenes:read", "scenes:write"])).to.equal("write");
-      expect(sceneCap(["scenes:read", "all"])).to.equal("admin");
-      //Grants for other route families contribute no per-scene access
-      expect(sceneCap(["scenes:create"])).to.equal("none");
-      expect(sceneCap(["tasks:read", "tasks:write"])).to.equal("none");
-      expect(sceneCap([])).to.equal("none");
+    it("maxSceneScope(expand(s)) is the scene-access cap a scope set implies", function(){
+      const cases: Array<[string[], "none" | "read" | "write" | "admin"]> = [
+        [["all"], "admin"],
+        [["scenes:admin"], "admin"],
+        [["scenes:write"], "write"],
+        [["scenes:read"], "read"],
+        [["scenes:read", "scenes:write"], "write"],
+        [["scenes:read", "all"], "admin"],
+        //Grants for other route families contribute no per-scene access
+        [["scenes:create"], "none"],
+        [["tasks:read", "tasks:write"], "none"],
+        [["users:write"], "none"],
+        [[], "none"],
+      ];
+      for(const [scope, cap] of cases){
+        expect(maxSceneScope(expand(scope)), JSON.stringify(scope)).to.equal(cap);
+      }
     });
 
     it("expand() takes the downward closure of each read<write<admin ladder", function(){
@@ -112,18 +118,6 @@ describe("Token", function(){
       for(const s of CONCRETE_SCOPES){
         if(s === "account:grant") expect(all.has(s), s).to.be.false;
         else expect(all.has(s), s).to.be.true;
-      }
-    });
-
-    it("maxSceneScope(expand(s)) reproduces sceneCap(s) for every input", function(){
-      const cases = [
-        ["all"], ["scenes:admin"], ["scenes:write"], ["scenes:read"],
-        ["scenes:read", "scenes:write"], ["scenes:read", "all"],
-        ["scenes:create"], ["tasks:read", "tasks:write"], [],
-        ["users:write"], ["account:write", "tasks:read"],
-      ];
-      for(const c of cases){
-        expect(maxSceneScope(expand(c)), JSON.stringify(c)).to.equal(sceneCap(c));
       }
     });
 

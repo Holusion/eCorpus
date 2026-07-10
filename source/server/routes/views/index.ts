@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, canAdmin, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
+import { policy, getHost, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
@@ -582,7 +582,7 @@ routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template
-routes.use("/scenes/:scene", canRead);
+routes.use("/scenes/:scene", policy({ perms: "read" }));
 
 routes.get("/scenes/:scene", wrap(async (req, res)=>{
   const requester = getUser(req);
@@ -632,7 +632,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
+routes.get("/scenes/:scene/tasks", policy({ perms: "admin" }), wrap(async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
@@ -700,7 +700,7 @@ routes.get("/scenes/:scene/view", async (req, res) => {
 });
 
 
-routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
+routes.get("/scenes/:scene/edit", policy({ perms: "write" }), (req, res)=>{
   let {scene} = req.params;
   let {mode="Edit"} = req.query;
   let host = getHost(req);
@@ -717,7 +717,7 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
   });
 });
 
-routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   let host = getHost(req);
   let {scene:scene_name} = req.params;
@@ -770,7 +770,7 @@ routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   });
 }))
 
-routes.get("/scenes/:scene/settings", canAdmin, wrap(async (req, res) => {
+routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (req, res) => {
   const requester = getUser(req);
   const vfs = getVfs(req);
   const um = getUserManager(req);
@@ -796,7 +796,7 @@ routes.get("/scenes/:scene/settings", canAdmin, wrap(async (req, res) => {
   });
 }));
 
-routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history/:id/view", policy({ perms: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   //scene_name is actually already validated through canAdmin
   let {scene:scene_name, id} = req.params;
