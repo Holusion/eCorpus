@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 
 import { ApiToken } from "../../auth/Token.js";
-import { BadRequestError, ForbiddenError, UnauthorizedError } from "../../utils/errors.js";
-import { getAuthMethod, getUser, getUserManager } from "../../utils/locals.js";
+import { BadRequestError } from "../../utils/errors.js";
+import { getUser, getUserManager } from "../../utils/locals.js";
 
 export function serializeToken(t: ApiToken){
   return {
@@ -32,12 +32,9 @@ export async function getOwnTokens(req: Request, res: Response){
  */
 export async function postToken(req: Request, res: Response){
   const requester = getUser(req)!;
-  if(getAuthMethod(res) !== "session"){
-    //Only an interactive session may mint credentials: an exfiltrated token
-    //(even an `all`-scoped one) must not create fresh tokens for itself.
-    //Whitelisting the session fails closed if other auth methods are added.
-    throw new ForbiddenError(`Tokens can not be used to create other tokens`);
-  }
+  //Only an interactive session reaches here: minting a token requires the
+  //`account:grant` scope (see the route's policy), which is non-mintable, so no
+  //token — even an `all`-scoped one — can create another token for itself.
   const {name, scope, expires} = req.body ?? {};
   let expiresDate: Date | null = null;
   if(expires != null){

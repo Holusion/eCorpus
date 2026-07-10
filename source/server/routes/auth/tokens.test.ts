@@ -95,7 +95,8 @@ describe("/auth/tokens", function(){
         .set("Authorization", await bearer(user.username))
         .send({name: "sneaky"})
         .expect(403);
-      expect(res.body).to.have.property("message").match(/Tokens can not be used/);
+      //account:grant is non-mintable, so an all-scoped token still can't mint.
+      expect(res.body).to.have.property("message").match(/insufficient_scope/);
     });
   });
 
@@ -170,11 +171,12 @@ describe("/auth/tokens", function(){
       await request(this.server).get("/scenes/private")
         .set("Authorization", auth)
         .expect(200);
-      //Writes are rejected as insufficient rights (401), not hidden (404)
+      //Writes are rejected as insufficient_scope (403), not hidden (404): the
+      //credential can read scenes but wasn't delegated scenes:write.
       await request(this.server).put("/scenes/private/articles/foo.html")
         .set("Authorization", auth)
         .set("Content-Type", "text/html")
-        .expect(401);
+        .expect(403);
       await request(this.server).patch("/auth/access/private")
         .set("Authorization", auth)
         .set("Content-Type", "application/json")
@@ -218,26 +220,28 @@ describe("/auth/tokens", function(){
     });
 
     it("denies everything outside the granted families (deny-by-default)", async function(){
-      //A token grants only what its scopes name: however privileged its owner,
-      //a scenes:* token fails every level-based guard and account management.
+      //A token grants only what its scopes name. Routes migrated to policy()
+      //answer 403 insufficient_scope (the credential lacks the scope); routes
+      //still on the legacy full-authority guards answer 401. Either way, a
+      //scenes:* token reaches none of these.
       const auth = await scopedBearer(this.server, admin, ["scenes:admin"]);
-      //User administration (isAdministrator)
+      //User administration (users:read scope)
       await request(this.server).get("/users/")
         .set("Authorization", auth)
-        .expect(401);
-      //Scene creation (isCreator): creation is not named by scenes:*
+        .expect(403);
+      //Scene creation (scenes:create scope): not named by scenes:admin
       await request(this.server).mkcol("/scenes/newscene")
         .set("Authorization", auth)
-        .expect(401);
-      //Groups (isManage)
+        .expect(403);
+      //Groups (still on isManage/full-authority)
       await request(this.server).get("/groups/")
         .set("Authorization", auth)
         .expect(401);
-      //Tasks
-      await request(this.server).get("/tasks/")
+      //Tasks (task creation needs the tasks:write scope)
+      await request(this.server).post("/tasks/")
         .set("Authorization", auth)
-        .expect(401);
-      //Admin pages
+        .expect(403);
+      //Admin pages (still on isAdministrator/full-authority)
       await request(this.server).get("/admin/stats")
         .set("Authorization", auth)
         .expect(401);
@@ -245,23 +249,24 @@ describe("/auth/tokens", function(){
 
     it("denies account management (session/token escalation)", async function(){
       const auth = await scopedBearer(this.server, admin, ["scenes:admin"]);
-      //Inspecting or revoking credentials
+      //Inspecting or revoking credentials needs account:read/write; minting
+      //needs account:grant — none of which a scenes:* token carries (403).
       await request(this.server).get("/auth/sessions")
         .set("Authorization", auth)
-        .expect(401);
+        .expect(403);
       await request(this.server).get("/auth/tokens")
         .set("Authorization", auth)
-        .expect(401);
+        .expect(403);
       await request(this.server).post("/auth/tokens")
         .set("Authorization", auth)
         .send({name: "sneaky"})
-        .expect(401);
+        .expect(403);
       //Changing the owner's password would escalate back to full authority
       await request(this.server).patch(`/users/${admin.uid}`)
         .set("Authorization", auth)
         .set("Content-Type", "application/json")
         .send({password: "hijacked1"})
-        .expect(401);
+        .expect(403);
     });
 
     it("keeps the identity endpoint available", async function(){
@@ -312,7 +317,7 @@ describe("/auth/tokens", function(){
       const reader = await scopedBearer(this.server, admin, ["scenes:admin"]);
       await request(this.server).mkcol("/scenes/other")
         .set("Authorization", reader)
-        .expect(401);
+        .expect(403);
     });
 
     it("scenes:create grants the zip import endpoint", async function(){
@@ -324,7 +329,7 @@ describe("/auth/tokens", function(){
       const reader = await scopedBearer(this.server, user, ["scenes:read"]);
       await request(this.server).post("/scenes/")
         .set("Authorization", reader)
-        .expect(401);
+        .expect(403);
     });
 
     it("tasks:read grants task inspection, not creation", async function(){
@@ -337,7 +342,7 @@ describe("/auth/tokens", function(){
         .set("Authorization", auth)
         .set("Content-Type", "application/json")
         .send({})
-        .expect(401);
+        .expect(403);
     });
 
     it("tasks:write grants task creation", async function(){

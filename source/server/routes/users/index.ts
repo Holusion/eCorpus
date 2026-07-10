@@ -2,7 +2,7 @@
 import { Router } from "express";
 
 import UserManager from "../../auth/UserManager.js";
-import { getUserManager, isAdministrator, isAdministratorOrOpen, isUser } from "../../utils/locals.js";
+import { getUserManager, isAdministratorOrOpen, policy } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import { qsToInt } from "../../utils/query.js";
 import bodyParser from "body-parser";
@@ -26,7 +26,7 @@ router.use((req, res, next)=>{
 
 
 
-router.get("/", isAdministrator, wrap(async (req, res)=>{
+router.get("/", policy({ scope: "users:read", perms: null }), wrap(async (req, res)=>{
   let userManager :UserManager = getUserManager(req);
   //istanbul ignore if
   if(!userManager) throw new Error("Badly configured app : userManager is not defined in app.locals");
@@ -38,10 +38,13 @@ router.get("/", isAdministrator, wrap(async (req, res)=>{
 }));
 
 router.post("/", isAdministratorOrOpen, bodyParser.json(), bodyParser.urlencoded({extended: false}), wrap(postUser));
-router.delete("/:uid", isAdministrator, wrap(handleDeleteUser));
-router.patch("/:uid", bodyParser.json(), wrap(handlePatchUser));
-router.get("/:uid/sessions", isAdministrator, wrap(getUserSessions));
-router.get("/:uid/tokens", isAdministrator, wrap(getUserTokens));
-router.delete("/:uid/tokens/:id", isAdministrator, wrap(deleteUserToken));
+router.delete("/:uid", policy({ scope: "users:write", perms: null }), wrap(handleDeleteUser));
+//Self-service profile edits or admin-on-others: account:write gates the
+//credential, and the `on:"user"` ACL gates self-or-admin (write = yourself,
+//admin = an administrator). handlePatchUser still refines the level-change rules.
+router.patch("/:uid", policy({ scope: "account:write", perms: "write", on: "user" }), bodyParser.json(), wrap(handlePatchUser));
+router.get("/:uid/sessions", policy({ scope: "users:read", perms: null }), wrap(getUserSessions));
+router.get("/:uid/tokens", policy({ scope: "users:read", perms: null }), wrap(getUserTokens));
+router.delete("/:uid/tokens/:id", policy({ scope: "users:write", perms: null }), wrap(deleteUserToken));
 
 export default router;

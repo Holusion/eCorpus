@@ -3,7 +3,7 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, either, getUser, isAdministrator, isFullUser, isUser, useTemplateProperties  } from "../../utils/locals.js";
+import { canAdmin, canRead, either, getUser, isAdministrator, isUser, policy, useTemplateProperties  } from "../../utils/locals.js";
 import { noFraming } from "../../utils/headers.js";
 import { csrfProtectAnonymous } from "../../utils/csrf.js";
 import wrap from "../../utils/wrapAsync.js";
@@ -73,20 +73,21 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
 
 router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
 
-//Account management requires the owner's full authority (session or
-//`all`-scoped token): a restriction-scoped token must not inspect or alter
-//the credentials it lives next to.
-router.get("/sessions", isFullUser, wrap(getOwnSessions));
-router.delete("/sessions/:id", isFullUser, wrap(deleteSession));
+//Account management. Listing/revoking one's own credentials is account:read/
+//write; *minting* a new token is account:grant — the non-mintable, session-only
+//capability, so a token (even `all`-scoped) can never create another token or
+//inspect the credentials it lives next to.
+router.get("/sessions", policy({ scope: "account:read", perms: null }), wrap(getOwnSessions));
+router.delete("/sessions/:id", policy({ scope: "account:write", perms: null }), wrap(deleteSession));
 
-router.get("/tokens", isFullUser, wrap(getOwnTokens));
-router.post("/tokens", isFullUser, useJSON, wrap(postToken));
-router.delete("/tokens/:id", isFullUser, wrap(deleteOwnToken));
+router.get("/tokens", policy({ scope: "account:read", perms: null }), wrap(getOwnTokens));
+router.post("/tokens", policy({ scope: "account:grant", perms: null }), useJSON, wrap(postToken));
+router.delete("/tokens/:id", policy({ scope: "account:write", perms: null }), wrap(deleteOwnToken));
 
 //"Authorized applications": persisted OAuth consents. Revoking one stops
 //silent re-authorization and revokes the client's tokens for this user.
-router.get("/oauth/grants", isFullUser, wrap(getGrants));
-router.delete("/oauth/grants/:clientId", isFullUser, wrap(deleteGrant));
+router.get("/oauth/grants", policy({ scope: "account:read", perms: null }), wrap(getGrants));
+router.delete("/oauth/grants/:clientId", policy({ scope: "account:write", perms: null }), wrap(deleteGrant));
 
 //OAuth2 authorization server (authorization code + PKCE)
 router.get("/oauth/authorize", wrap(getAuthorize));

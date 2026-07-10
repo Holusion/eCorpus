@@ -6,7 +6,7 @@ import { once } from "events";
 import yazl from "yazl";
 
 import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
-import { getVfs, getUser, getHost, getUserManager, getSceneCap } from "../../utils/locals.js";
+import { getVfs, getUser, getHost, getUserManager, hasScope } from "../../utils/locals.js";
 import { wrapFormat } from "../../utils/wrapAsync.js";
 import { compressedMime } from "../../utils/filetypes.js";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
@@ -116,7 +116,7 @@ export default async function getScenes(req :Request, res :Response){
       //per-file routes go through canRead, which applies the same cap), so it
       //must not receive the whole set in bulk here either. Visibility is left
       //untouched: the json/text variants still list what the owner sees.
-      if(toAccessLevel(getSceneCap(res)) < toAccessLevel("read")){
+      if(!hasScope(res, "scenes:read")){
         throw new UnauthorizedError(`token scope does not allow reading scene content`);
       }
       res.set("Content-Disposition", `attachment; filename="scenes.zip"`);

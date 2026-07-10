@@ -169,6 +169,10 @@ describe("OAuth2 authorization server", function(){
         "all",
         "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
         "tasks:read", "tasks:write",
+        "users:read", "users:write",
+        "groups:read", "groups:write",
+        "admin:read", "admin:write",
+        "account:read", "account:write",
       ]);
     });
   });
@@ -402,12 +406,14 @@ describe("OAuth2 authorization server", function(){
       const agent = await login(this.server, user);
       await getCode(this.server, agent, client.id, makePkce().challenge, {scope: "scenes:read"});
       const restricted = await agent.post("/auth/tokens").send({name: "restricted", scope: ["scenes:read"]}).expect(201);
+      //Listing/revoking consents needs account:read/write; a scenes:read token
+      //wasn't delegated them → 403 insufficient_scope.
       await request(this.server).get("/auth/oauth/grants")
         .set("Authorization", `Bearer ${restricted.body.token}`)
-        .expect(401);
+        .expect(403);
       await request(this.server).delete(`/auth/oauth/grants/${client.id}`)
         .set("Authorization", `Bearer ${restricted.body.token}`)
-        .expect(401);
+        .expect(403);
     });
   });
 

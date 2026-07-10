@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
+import type { UserRole } from "./User.js";
 
 /**
  * Constant prefix of every eCorpus API token.
@@ -60,25 +61,101 @@ export function parseToken(token: string): Buffer | null {
 }
 
 /**
- * The set of scope strings a token may carry.
- * A token grants only what its scopes name (deny-by-default), always within
- * the limits of what its owner can do:
- * - `all`: everything the owner could do in a session — the only scope that
- *   passes the manage/admin-level guards and account management;
- * - `scenes:read|write|admin`: per-scene routes, at the named access level at
- *   most (see {@link sceneCap});
- * - `scenes:create`: scene creation and import (a separate grant, not part of
- *   the read<write<admin hierarchy: combine with `scenes:write` to populate
- *   what was created);
- * - `tasks:read|write`: the tasks API (processing jobs).
- * New scopes may be added to this list; existing scope strings are never
- * reinterpreted.
+ * Every concrete capability string (the expansion universe). This is the
+ * vocabulary authorization is expressed in: a request's *effective* scope set
+ * (see `utils/locals.ts`) is always a subset of these, and every route guard
+ * asks "is capability C in that set?".
+ *
+ * Hierarchical families (`read < write < admin`) expand downward: holding
+ * `scenes:write` implies `scenes:read` (see {@link expand}). `scenes:create`
+ * is orthogonal — creating a scene is not a point on the read/write/admin
+ * ladder. `account:grant` (mint a token, grant OAuth consent) is the
+ * escalation-critical capability: it is **non-mintable** (never carried by a
+ * token), so a session holds it but no delegated credential can.
+ *
+ * New scopes may be added here; existing scope strings are never reinterpreted.
+ */
+export const CONCRETE_SCOPES = [
+  "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
+  "tasks:read", "tasks:write",
+  "users:read", "users:write",
+  "groups:read", "groups:write",
+  "admin:read", "admin:write",
+  "account:read", "account:write", "account:grant",
+] as const;
+
+export type Scope = typeof CONCRETE_SCOPES[number];
+
+/**
+ * The universal capability ladder: for any `family:level` scope, holding a
+ * level implies every lower one (`read ⊆ write ⊆ admin`). A scope whose suffix
+ * is not one of these (`scenes:create`, `account:grant`) is standalone — no
+ * ladder. This single rule is the source of the hierarchy; families do not
+ * declare it individually (see {@link expand}).
+ */
+const SCOPE_LADDER = ["read", "write", "admin"] as const;
+
+/**
+ * Scopes that possession would let a credential use to escalate back to its
+ * owner's full authority, so they can never be delegated: not mintable as a
+ * token, not requestable as an OAuth scope, and not part of `all`.
+ * Only a session (which carries no `token.scope` factor) ever holds these.
+ */
+export const NON_MINTABLE_SCOPES: readonly string[] = ["account:grant"];
+
+/**
+ * The scope strings a token or OAuth grant may carry: every concrete scope
+ * except the non-mintable ones, plus the `all` shorthand. This is what
+ * {@link isValidScope} accepts and what the OAuth metadata advertises.
+ * `all` deliberately excludes `account:grant` — an `all` token still cannot
+ * mint further tokens.
  */
 export const TOKEN_SCOPES: readonly string[] = [
   "all",
-  "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
-  "tasks:read", "tasks:write",
+  ...CONCRETE_SCOPES.filter(s => NON_MINTABLE_SCOPES.indexOf(s) === -1),
 ];
+
+/**
+ * Resolve a scope set into the full set of concrete capabilities it grants:
+ * expand each `read < write < admin` ladder downward, and expand `all` into
+ * every mintable concrete scope. Membership in the result is the single
+ * primitive every guard is built on (plain set containment). Replaces the
+ * hand-rolled `sceneCap`/`min(access,cap)`/`tasks:read|write` or-lists.
+ */
+export function expand(scopes: readonly string[]): Set<string> {
+  const out = new Set<string>();
+  const add = (s: string) => {
+    if (out.has(s)) return;
+    out.add(s);
+    //Derive the down-ladder from the `family:level` suffix: a level implies
+    //every lower one. A standalone scope (no colon, or a non-ladder suffix like
+    //`create`/`grant`) has rung -1, so the loop adds nothing.
+    const i = s.indexOf(":");
+    const rung = i === -1 ? -1 : (SCOPE_LADDER as readonly string[]).indexOf(s.slice(i + 1));
+    for (let j = 0; j < rung; j++) out.add(`${s.slice(0, i)}:${SCOPE_LADDER[j]}`);
+  };
+  for (const s of scopes) {
+    if (s === "all") {
+      for (const c of CONCRETE_SCOPES) if (NON_MINTABLE_SCOPES.indexOf(c) === -1) add(c);
+    } else {
+      add(s);
+    }
+  }
+  return out;
+}
+
+/**
+ * The per-scene access cap an effective scope set implies (the level a
+ * `canRead`/`canWrite`/`canAdmin` requester may reach on a scene; the ACL
+ * still decides *which* scene). This is the {@link expand}-based replacement
+ * for the old `sceneCap`: `maxSceneScope(expand(s))` equals `sceneCap(s)`.
+ */
+export function maxSceneScope(scopes: ReadonlySet<string>): "none" | "read" | "write" | "admin" {
+  if (scopes.has("scenes:admin")) return "admin";
+  if (scopes.has("scenes:write")) return "write";
+  if (scopes.has("scenes:read")) return "read";
+  return "none";
+}
 
 /**
  * The cap a scope set puts on per-scene access (the `canRead`/`canWrite`/
@@ -87,6 +164,8 @@ export const TOKEN_SCOPES: readonly string[] = [
  * the scenes its owner sees — read-only.
  * `admin` means no restriction. `scenes:create` and `tasks:*` grant other
  * route families and contribute nothing here.
+ * @deprecated superseded by {@link maxSceneScope}(`expand(scope)`); kept until
+ * `utils/locals.ts` migrates to the effective-scope-set model.
  */
 export function sceneCap(scope: readonly string[]): "none" | "read" | "write" | "admin" {
   if (scope.includes("all") || scope.includes("scenes:admin")) return "admin";
@@ -96,12 +175,53 @@ export function sceneCap(scope: readonly string[]): "none" | "read" | "write" | 
 }
 
 /**
- * Validate a scope set: a non-empty subset of {@link TOKEN_SCOPES}.
+ * Validate a scope set for minting/granting: a non-empty subset of
+ * {@link TOKEN_SCOPES} (i.e. mintable scopes only — `account:grant` and any
+ * other non-mintable scope are rejected).
  */
 export function isValidScope(scope: any): scope is string[] {
   return Array.isArray(scope)
     && 0 < scope.length
     && scope.every(s => TOKEN_SCOPES.includes(s));
+}
+
+/**
+ * The scope set an anonymous request holds. Anonymous is *not* unscoped: it
+ * carries a small public set, so a `perms:"read"` route (which derives
+ * `scenes:read`) still lets an anonymous reader through to a public scene's
+ * ACL. A future non-public scope simply cannot leak here.
+ */
+export const PUBLIC_SCOPES: ReadonlySet<string> = expand(["scenes:read"]);
+
+/**
+ * The minimal scopes each user level grants — **un-expanded** (ladder tops only:
+ * `scenes:admin`, not `scenes:read/write/admin`), cumulative up the levels. The
+ * scene ACL (`perms`) still gates *which* scene, so `scenes:admin` at `use`
+ * means "may act on scenes they have the ACL for", not "on every scene".
+ */
+const USE_SCOPES = ["scenes:admin", "tasks:read", "account:write", "account:grant"];
+const CREATE_SCOPES = [...USE_SCOPES, "scenes:create", "tasks:write"];
+const MANAGE_SCOPES = [...CREATE_SCOPES, "groups:write"];
+const LEVEL_SCOPES: Record<UserRole, readonly string[]> = {
+  none: ["scenes:read"],
+  use: USE_SCOPES,
+  create: CREATE_SCOPES,
+  manage: MANAGE_SCOPES,
+  admin: ["all", ...NON_MINTABLE_SCOPES], // every mintable scope + the non-mintable grant(s)
+};
+
+/**
+ * The capabilities a user of the given level may *exercise*, as the **raw,
+ * un-expanded** generating set (see {@link LEVEL_SCOPES}). Callers must
+ * {@link expand} it before membership-testing — the `readonly string[]` return
+ * type makes a bare `.has()` a compile error — so the `read ⊆ write ⊆ admin`
+ * inclusion rule is produced solely by `expand`, never mis-declared here.
+ *
+ * The level is read live from the DB each request, so a demotion takes effect
+ * immediately even for a long-lived token.
+ */
+export function levelScopes(level: UserRole | null | undefined): readonly string[] {
+  return LEVEL_SCOPES[level ?? "none"] ?? LEVEL_SCOPES.none;
 }
 
 /**

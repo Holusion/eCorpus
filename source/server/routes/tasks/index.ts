@@ -1,8 +1,8 @@
-import { NextFunction, Request, Response, Router } from "express";
+import { Router } from "express";
 
 import wrap from "../../utils/wrapAsync.js";
 
-import { getLocals, getUser, isCreator, isUser, requireScope } from "../../utils/locals.js";
+import { policy } from "../../utils/locals.js";
 
 import { createUserTask } from "./post.js";
 import { putTaskArtifact } from "./task/artifacts/put.js";
@@ -11,47 +11,22 @@ import { getTaskArtifact } from "./task/artifacts/get.js";
 import { getTask } from "./task/get.js";
 import { deleteTask } from "./task/delete.js";
 import { getTaskTree } from "./task/tree/get.js";
-import { UnauthorizedError } from "../../utils/errors.js";
-import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
 
 const jsonParser = bodyParser.json();
 
 const router = Router();
 
-//Tokens need a tasks:* grant anywhere here; writes additionally need tasks:write
-router.use("/", requireScope("tasks:read", "tasks:write"));
-router.post("/", requireScope("tasks:write"), isCreator, jsonParser, wrap(createUserTask));
+//Creating a task is a create-level operation (tasks:write in levelScopes ⟺
+//level ≥ create, reproducing the old isCreator) plus the tasks:write credential.
+router.post("/", policy({ scope: "tasks:write" }), jsonParser, wrap(createUserTask));
 
-
-function taskAccess(name: AccessType) {
-  const minLevel = toAccessLevel(name);
-  return function taskAccessMiddleware(req: Request, res: Response, next: NextFunction) {
-    const {
-      taskScheduler,
-      userManager,
-    } = getLocals(req);
-    const requester = getUser(req)!;
-    if (!requester) return next(new UnauthorizedError(`Route requires a valid user`));
-
-    const { id: idString } = req.params;
-    const id = parseInt(idString);
-    taskScheduler.getTask(id).then(async (task) => {
-      if (requester.level == "admin") return next(); //Even if requester is admin, check for task existence
-      else if (task.user_id && task.user_id == requester.uid) return next();
-      else if (!task.scene_id || toAccessLevel(await userManager.getAccessRights(task.scene_id, requester.uid)) < minLevel) {
-        return next(new UnauthorizedError(`Administrative rights are required to delete tasks`))
-      } else {
-        return next();
-      }
-    }).catch(next);
-  }
-}
-
-
-router.get("/:id(\\d+)", isUser, wrap(getTask));
-router.get("/:id(\\d+)/tree", taskAccess("read"), wrap(getTaskTree));
-router.delete("/:id(\\d+)", requireScope("tasks:write"), taskAccess("admin"), wrap(deleteTask));
-router.put("/:id(\\d+)/artifact", requireScope("tasks:write"), taskAccess("admin"), wrap(putTaskArtifact));
-router.get("/:id(\\d+)/artifact", taskAccess("read"), wrap(getTaskArtifact));
+//Task authorization is derived from the task (own it, or have access to its
+//scene): the `on:"task"` resolver folds in what taskAccess did by hand. read
+//needs tasks:read, admin (delete/artifact write) needs tasks:write.
+router.get("/:id(\\d+)", policy({ perms: "read", on: "task" }), wrap(getTask));
+router.get("/:id(\\d+)/tree", policy({ perms: "read", on: "task" }), wrap(getTaskTree));
+router.delete("/:id(\\d+)", policy({ perms: "admin", on: "task" }), wrap(deleteTask));
+router.put("/:id(\\d+)/artifact", policy({ perms: "admin", on: "task" }), wrap(putTaskArtifact));
+router.get("/:id(\\d+)/artifact", policy({ perms: "read", on: "task" }), wrap(getTaskArtifact));
 
 export default router;

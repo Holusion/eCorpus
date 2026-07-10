@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 import { DEFAULT_TOKEN_LIFETIME, TOKEN_SCOPES, isValidScope, parseScope } from "../../auth/Token.js";
 import { OAuthClient } from "../../auth/UserManager.js";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
-import { getAuthMethod, getHost, getUser, getUserManager, useTemplateProperties } from "../../utils/locals.js";
+import { getHost, getUser, getUserManager, hasScope, useTemplateProperties } from "../../utils/locals.js";
 
 /**
  * OAuth2 authorization server endpoints (authorization code grant with
@@ -120,7 +120,7 @@ export async function getAuthorize(req: Request, res: Response){
   const state = typeof req.query.state === "string" ? req.query.state : "";
 
   const user = getUser(req);
-  if(!user || user.level === "none" || getAuthMethod(res) !== "session"){
+  if(!user || user.level === "none" || !hasScope(res, "account:grant")){
     if(prompt === "none"){
       return errorRedirect(res, redirectUri, state, "login_required");
     }
@@ -176,7 +176,7 @@ export async function postAuthorize(req: Request, res: Response){
   const {client, redirectUri} = await validateClient(req, req.body.client_id, req.body.redirect_uri);
 
   const user = getUser(req);
-  if(!user || user.level === "none" || getAuthMethod(res) !== "session"){
+  if(!user || user.level === "none" || !hasScope(res, "account:grant")){
     throw new UnauthorizedError(`Consent requires an authenticated session`);
   }
 

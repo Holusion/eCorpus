@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { getAuthMethod, getLocals, getUser, getUserManager, isFullAccess } from "../../../utils/locals.js";
+import { getAuthMethod, getLocals, getUser, getUserManager } from "../../../utils/locals.js";
 import User, { SafeUser } from "../../../auth/User.js";
 import { UnauthorizedError } from "../../../utils/errors.js";
 
@@ -18,18 +18,14 @@ export async function handlePatchUser(req:Request, res :Response){
   const isTargetUid = requester? requester.uid === targetUid : false;
   const userManager = getUserManager(req);
 
-  if(!isFullAccess(res)){
-    //A restriction-scoped token must not modify accounts: changing the
-    //password would escalate it back to its owner's full authority.
-    throw new UnauthorizedError(`token scope does not allow account modification`);
-  }
-
+  //The route's policy({scope:"account:write", perms:"write", on:"user"}) already
+  //enforced the credential (403) and the self-or-admin gate (401). What remains
+  //is the finer level-change rule, which a single ACL level can't express:
+  //only admins change levels, and an admin can't demote themselves.
   if(!isAdmin && typeof update.level !== "undefined" && update.level !== level){
     throw new UnauthorizedError(`Only administrators can change user levels`);
   }else if(isAdmin && isTargetUid && typeof update.level !== "undefined" && update.level !== level){
     throw new UnauthorizedError(`Administrators can't demote themselves`);
-  }else if(!isAdmin && !isTargetUid){
-    throw new UnauthorizedError(`Can't change user ${uidString}`);
   }
 
   let u = await userManager.patchUser(targetUid, update);
