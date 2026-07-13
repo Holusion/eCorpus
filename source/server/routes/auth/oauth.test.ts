@@ -167,11 +167,12 @@ describe("OAuth2 authorization server", function(){
       expect(res.body).to.have.property("code_challenge_methods_supported").deep.equal(["S256"]);
       expect(res.body).to.have.property("scopes_supported").deep.equal([
         "all",
-        "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
-        "tasks:read", "tasks:write",
+        "corpus:read", "corpus:write",
+        "scenes:read", "scenes:write", "scenes:admin",
+        "tasks:read", "tasks:write", "tasks:admin",
         "users:read", "users:write",
         "groups:read", "groups:write",
-        "admin:read", "admin:write",
+        "instance:read",
         "account:read", "account:write",
       ]);
     });

@@ -90,7 +90,7 @@ describe("GET /scenes", function(){
   })
 
   it("denies the zip export to a token whose scope can't read scenes", async function(){
-    //A tasks-only (or scenes:create-only) token caps scene access to "none":
+    //A tasks-only (or corpus:write-only) token caps scene access to "none":
     //the per-file routes deny it, so the bulk zip must too.
     const {token} = await userManager.createToken(user.uid, {name: "ci", scope: ["tasks:read"]});
     await request(this.server).get("/scenes")

@@ -1,7 +1,7 @@
 
 import { NextFunction, Request, RequestHandler, Response } from "express";
 
-import { expand } from "../auth/Token.js";
+import { expandCredential } from "../auth/Token.js";
 import { HTTPError, UnauthorizedError } from "./errors.js";
 import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
 
@@ -28,9 +28,10 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
     //A presented token that doesn't verify is an error: don't fall through to anonymous.
     //The error message never echoes the token itself.
     getUserManager(req).authenticateToken(auth.slice("Bearer ".length).trim()).then(({ user, token }) => {
-      //The credential's frozen scope, expanded to concrete capabilities. The
-      //account factor (levelScopes) is added by setUser from the live level.
-      setUser(res, user, "token", expand(token.scope));
+      //The credential's frozen scope, expanded to concrete capabilities (plus
+      //the implicit corpus:read every credential carries). The account factor
+      //(levelScopes) is added by setUser from the live level.
+      setUser(res, user, "token", expandCredential(token.scope));
       next();
     }, next);
     return;

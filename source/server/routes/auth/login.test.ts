@@ -276,7 +276,18 @@ describe("/auth/login", function(){
   });
   
   describe("Login links", function(){
-    
+    //Obtaining a login link requires the non-mintable users:admin scope:
+    //only an admin's *session* qualifies, never a token (see below).
+    async function adminAgent(server: any){
+      const agent = request.agent(server);
+      await agent.post("/auth/login")
+        .send({username: admin.username, password: "12345678"})
+        .set("Content-Type", "application/json")
+        .set("Accept", "")
+        .expect(200);
+      return agent;
+    }
+
     it("rejects bad login links", async function(){
       await request(this.server).get("/auth/payload/foo")
       .expect(400);
@@ -287,8 +298,7 @@ describe("/auth/login", function(){
 
     it("obtains a valid login link (text/plain)", async function(){
       const maxAge = this.server.locals.sessionMaxAge;
-      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
-      .set("Authorization", await bearer(admin.username))
+      let res = await (await adminAgent(this.server)).get(`/auth/login/${user.username}/link`)
       .set("Accept", "text/plain")
       .expect(200)
       .expect("Content-Type", "text/plain; charset=utf-8");
@@ -324,9 +334,16 @@ describe("/auth/login", function(){
       .expect(401);
     });
 
-    it("accepts custom redirect URL", async function(){
-      let res = await request(this.server).get(`/auth/login/${user.username}/link`)
+    it("requires a session: an admin's token is refused", async function(){
+      //users:admin is non-mintable — a login link would let a (revocable,
+      //expiring) token seat a durable session for any user.
+      await request(this.server).get(`/auth/login/${user.username}/link`)
       .set("Authorization", await bearer(admin.username))
+      .expect(403);
+    });
+
+    it("accepts custom redirect URL", async function(){
+      let res = await (await adminAgent(this.server)).get(`/auth/login/${user.username}/link`)
       .set("Accept", "text/plain")
       .expect(200)
       .expect("Content-Type", "text/plain; charset=utf-8");

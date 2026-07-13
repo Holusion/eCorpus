@@ -120,7 +120,7 @@ export async function getAuthorize(req: Request, res: Response){
   const state = typeof req.query.state === "string" ? req.query.state : "";
 
   const user = getUser(req);
-  if(!user || user.level === "none" || !hasScope(res, "account:grant")){
+  if(!user || user.level === "none" || !hasScope(res, "account:admin")){
     if(prompt === "none"){
       return errorRedirect(res, redirectUri, state, "login_required");
     }
@@ -176,7 +176,7 @@ export async function postAuthorize(req: Request, res: Response){
   const {client, redirectUri} = await validateClient(req, req.body.client_id, req.body.redirect_uri);
 
   const user = getUser(req);
-  if(!user || user.level === "none" || !hasScope(res, "account:grant")){
+  if(!user || user.level === "none" || !hasScope(res, "account:admin")){
     throw new UnauthorizedError(`Consent requires an authenticated session`);
   }
 

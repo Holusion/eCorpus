@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { policy, getHost, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser } from "../../utils/locals.js";
+import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
@@ -240,7 +240,7 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/groups/:group", isMemberOrManage, wrap(async (req, res)=>{
+routes.get("/groups/:group", policy({ perms: "read", on: "group" }), wrap(async (req, res)=>{
   const host = getHost(req);
   const userManager = getUserManager(req);
   const requester = getUser(req);
@@ -375,7 +375,7 @@ routes.get("/user/archives", wrap(async (req, res)=>{
 
 
 
-routes.use("/design", isManage);
+routes.use("/design", requireLevel("manage"));
 routes.get("/design", (req, res)=>{
   res.render("design/components", {
     layout: "design",
@@ -474,7 +474,7 @@ routes.get("/design/emails", wrap(async (req, res)=>{
 }));
 
 
-routes.use("/admin", isManage);
+routes.use("/admin", requireLevel("manage"));
 routes.get("/admin", (req, res)=>{
   const withStatic = qsToBool(req.query.static) ?? false;
   const withDefaults = !(qsToBool(req.query.changes) ?? false);
@@ -494,7 +494,7 @@ routes.get("/admin", (req, res)=>{
   });
 });
 
-routes.get("/admin/archives", isAdministrator, wrap(async (req, res)=>{
+routes.get("/admin/archives", requireLevel("admin"), wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
@@ -544,7 +544,7 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/oauth", isAdministrator, wrap(async (req, res)=>{
+routes.get("/admin/oauth", requireLevel("admin"), wrap(async (req, res)=>{
   const clients = (await getUserManager(req).getClients()).map(c=>({
     id: c.id,
     name: c.name,
@@ -559,7 +559,7 @@ routes.get("/admin/oauth", isAdministrator, wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
+routes.get("/admin/groups", wrap(async (req, res)=>{
   let groups = await getUserManager(req).getGroups();
   res.render("admin/groups", {
     layout: "admin",
@@ -571,7 +571,7 @@ routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
+routes.get("/admin/stats", requireLevel("admin"),  wrap(async (req, res)=>{
   const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
@@ -855,7 +855,7 @@ routes.get("/user/tasks", wrap(async (req, res) => {
   });
 }));
 
-routes.get("/admin/tasks", isAdministrator, wrap(async (req, res) => {
+routes.get("/admin/tasks", requireLevel("admin"), wrap(async (req, res) => {
   const taskScheduler = getTaskScheduler(req);
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;

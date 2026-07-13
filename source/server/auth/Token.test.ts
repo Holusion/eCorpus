@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 
-import { CONCRETE_SCOPES, expand, formatToken, hashSecret, isValidScope, levelScopes, makeSecret, maxSceneScope, parseToken, PUBLIC_SCOPES, verifySecret } from "./Token.js";
+import { CONCRETE_SCOPES, expand, expandCredential, formatToken, hashSecret, isValidScope, levelScopes, makeSecret, maxSceneScope, NON_MINTABLE_SCOPES, parseToken, PUBLIC_SCOPES, verifySecret } from "./Token.js";
 import { isUserAtLeast, UserRoles } from "./User.js";
 
 
@@ -56,12 +56,14 @@ describe("Token", function(){
   describe("scopes", function(){
     it("validates scope sets", function(){
       expect(isValidScope(["all"])).to.be.true;
+      //The implicit baseline is redundant but requestable (pure identity token)
+      expect(isValidScope(["corpus:read"])).to.be.true;
       expect(isValidScope(["scenes:read"])).to.be.true;
       expect(isValidScope(["scenes:write", "scenes:admin"])).to.be.true;
-      expect(isValidScope(["scenes:create", "scenes:write"])).to.be.true;
-      expect(isValidScope(["tasks:read", "tasks:write"])).to.be.true;
+      expect(isValidScope(["corpus:write", "scenes:write"])).to.be.true;
+      expect(isValidScope(["tasks:read", "tasks:write", "tasks:admin"])).to.be.true;
       //New mintable scope families
-      expect(isValidScope(["users:read", "admin:write"])).to.be.true;
+      expect(isValidScope(["users:read", "instance:read"])).to.be.true;
       expect(isValidScope(["groups:write", "account:write"])).to.be.true;
       expect(isValidScope([])).to.be.false;
       expect(isValidScope(["banana"])).to.be.false;
@@ -69,9 +71,11 @@ describe("Token", function(){
       expect(isValidScope(["use"])).to.be.false;
       expect(isValidScope(["admin"])).to.be.false;
       expect(isValidScope("all")).to.be.false;
-      //account:grant is non-mintable: it must never be requestable
-      expect(isValidScope(["account:grant"])).to.be.false;
-      expect(isValidScope(["scenes:read", "account:grant"])).to.be.false;
+      //The non-mintable top rungs must never be requestable
+      expect(isValidScope(["account:admin"])).to.be.false;
+      expect(isValidScope(["users:admin"])).to.be.false;
+      expect(isValidScope(["instance:write"])).to.be.false;
+      expect(isValidScope(["scenes:read", "account:admin"])).to.be.false;
     });
 
     it("maxSceneScope(expand(s)) is the scene-access cap a scope set implies", function(){
@@ -83,7 +87,7 @@ describe("Token", function(){
         [["scenes:read", "scenes:write"], "write"],
         [["scenes:read", "all"], "admin"],
         //Grants for other route families contribute no per-scene access
-        [["scenes:create"], "none"],
+        [["corpus:write"], "none"],
         [["tasks:read", "tasks:write"], "none"],
         [["users:write"], "none"],
         [[], "none"],
@@ -97,9 +101,10 @@ describe("Token", function(){
       expect([...expand(["scenes:write"])].sort()).to.deep.equal(["scenes:read", "scenes:write"]);
       expect([...expand(["scenes:admin"])].sort()).to.deep.equal(["scenes:admin", "scenes:read", "scenes:write"]);
       expect([...expand(["tasks:write"])].sort()).to.deep.equal(["tasks:read", "tasks:write"]);
+      expect([...expand(["tasks:admin"])].sort()).to.deep.equal(["tasks:admin", "tasks:read", "tasks:write"]);
       expect([...expand(["account:write"])].sort()).to.deep.equal(["account:read", "account:write"]);
-      //orthogonal grant: no implication
-      expect([...expand(["scenes:create"])]).to.deep.equal(["scenes:create"]);
+      //corpus:write is a ladder scope like any other: it implies the baseline
+      expect([...expand(["corpus:write"])].sort()).to.deep.equal(["corpus:read", "corpus:write"]);
       expect([...expand([])]).to.deep.equal([]);
     });
 
@@ -113,19 +118,28 @@ describe("Token", function(){
       }
     });
 
-    it("expand(['all']) is every mintable scope, never account:grant", function(){
+    it("expand(['all']) is every mintable scope, never a non-mintable one", function(){
       const all = expand(["all"]);
       for(const s of CONCRETE_SCOPES){
-        if(s === "account:grant") expect(all.has(s), s).to.be.false;
+        if(NON_MINTABLE_SCOPES.includes(s)) expect(all.has(s), s).to.be.false;
         else expect(all.has(s), s).to.be.true;
       }
     });
 
     it("anonymous PUBLIC_SCOPES is exactly scenes:read", function(){
+      //In particular NOT corpus:read: the baseline separates "any identified
+      //requester" from "anyone".
       expect([...PUBLIC_SCOPES]).to.deep.equal(["scenes:read"]);
     });
 
-    it("levelScopes() is cumulative and never grants account:grant to a token", function(){
+    it("expandCredential() adds the implicit corpus:read to any credential", function(){
+      expect(expandCredential([]).has("corpus:read")).to.be.true;
+      expect(expandCredential(["tasks:read"]).has("corpus:read")).to.be.true;
+      //…and nothing else: the baseline grants identity, not content
+      expect([...expandCredential(["tasks:read"])].sort()).to.deep.equal(["corpus:read", "tasks:read"]);
+    });
+
+    it("levelScopes() is cumulative and never grants account:admin to a token", function(){
       //Each level is a superset of the one below it. levelScopes is the raw,
       //un-expanded grant — expand() before membership-testing.
       for(let i = 1; i < UserRoles.length; i++){
@@ -133,25 +147,28 @@ describe("Token", function(){
         const higher = expand(levelScopes(UserRoles[i]));
         for(const s of lower) expect(higher.has(s), `${UserRoles[i]} ⊇ ${UserRoles[i-1]}: ${s}`).to.be.true;
       }
-      //account:grant belongs to a session's authority (levelScopes) but is
+      //account:admin belongs to a session's authority (levelScopes) but is
       //non-mintable, so a token can never carry it (verified via isValidScope).
-      expect(expand(levelScopes("use")).has("account:grant")).to.be.true;
-      expect(expand(levelScopes("none")).has("account:grant")).to.be.false;
+      expect(expand(levelScopes("use")).has("account:admin")).to.be.true;
+      expect(expand(levelScopes("none")).has("account:admin")).to.be.false;
     });
 
     it("levelScopes() reproduces the isUserAtLeast decisions the guards used", function(){
       //Each capability ⟺ the minimum level whose guard granted it.
       const table: Array<[string, typeof UserRoles[number]]> = [
+        ["corpus:read", "none"],   //the "identified requester" baseline
         ["scenes:read", "none"],   //public read
         ["scenes:write", "use"],   //canWrite is ACL-gated but the capability exists from `use`
         ["scenes:admin", "use"],
         ["tasks:read", "use"],
-        ["scenes:create", "create"],
+        ["corpus:write", "create"],
         ["tasks:write", "create"],
+        ["tasks:admin", "create"],
         ["groups:write", "manage"],
         ["users:write", "admin"],
-        ["admin:write", "admin"],
-        ["account:grant", "use"],
+        ["users:admin", "admin"],
+        ["instance:write", "admin"],
+        ["account:admin", "use"],
       ];
       for(const [scope, minRole] of table){
         for(const role of UserRoles){

@@ -21,8 +21,9 @@ const router = Router();
 router.post("/", policy({ scope: "tasks:write" }), jsonParser, wrap(createUserTask));
 
 //Task authorization is derived from the task (own it, or have access to its
-//scene): the `on:"task"` resolver folds in what taskAccess did by hand. read
-//needs tasks:read, admin (delete/artifact write) needs tasks:write.
+//scene): the `on:"task"` resolver folds in what taskAccess did by hand. The
+//credential scope follows the family ladder: read needs tasks:read, admin
+//(delete/artifact write) needs tasks:admin.
 router.get("/:id(\\d+)", policy({ perms: "read", on: "task" }), wrap(getTask));
 router.get("/:id(\\d+)/tree", policy({ perms: "read", on: "task" }), wrap(getTaskTree));
 router.delete("/:id(\\d+)", policy({ perms: "admin", on: "task" }), wrap(deleteTask));

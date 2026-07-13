@@ -1,28 +1,14 @@
 import { rm } from "node:fs/promises";
 
 import { Request, Response } from "express";
-import { getUser, getLocals } from "../../../utils/locals.js";
-import { UnauthorizedError } from "../../../utils/errors.js";
+import { getLocals } from "../../../utils/locals.js";
 
 
 export async function deleteTask(req: Request, res: Response){
-  const {
-    vfs,
-    taskScheduler,
-    userManager,
-  } = getLocals(req);
-  const requester = getUser(req)!;
-  const {id:idString} = req.params;
-  const id = parseInt(idString);
-  const task = await taskScheduler.getTask(id);
-
-  if(requester.level !== "admin" 
-    && task.user_id !== requester.uid 
-    && (!task.scene_id
-      || await userManager.getAccessRights(task.scene_id, requester.uid)) != "admin"
-  ){
-    throw new UnauthorizedError(`Administrative rights are required to delete tasks`);
-  }
+  //Authorization (owner, or admin ACL on the task's scene — and a 404 for a
+  //missing task) was resolved by the route's policy({perms:"admin", on:"task"}).
+  const { vfs, taskScheduler } = getLocals(req);
+  const id = parseInt(req.params.id);
 
   await taskScheduler.deleteTask(id);
   await rm(vfs.getTaskWorkspace(id), {force: true, recursive: true});

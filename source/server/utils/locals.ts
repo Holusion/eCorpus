@@ -1,7 +1,7 @@
 
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import { basename, dirname } from "path";
-import User, { isUserAtLeast, SafeUser } from "../auth/User.js";
+import User, { isUserAtLeast, SafeUser, UserRole } from "../auth/User.js";
 import { expand, levelScopes, maxSceneScope, PUBLIC_SCOPES } from "../auth/Token.js";
 import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
@@ -115,25 +115,20 @@ export function getFileDir(req: Request): string {
   return fileDir;
 }
 
-export function isUser(req: Request, res: Response, next: NextFunction) {
-  res.append("Cache-Control", "private");
-  if (getUser(req)?.uid) next();
-  else next(new UnauthorizedError());
-}
-
 /**
- * Route guard requiring an authenticated user whose credential grants one of
- * the named scopes ({@link hasScope}) — a credential-only delegation gate,
- * independent of the user's level. Used where the *token* needs a scope but the
+ * Route guard requiring an authenticated user whose credential grants *every*
+ * named scope ({@link hasScope}) — a credential-only delegation gate,
+ * independent of the user's level. Used where the *token* needs scopes but the
  * *level* requirement isn't a point on the ACL ladder, e.g. the bulk scene
- * import (`scenes:create` on the token, any authenticated user, per-scene ACL
- * inside the handler). Where both are needed, prefer {@link policy}.
+ * import (`corpus:write scenes:write` on the token, any authenticated user,
+ * per-scene checks inside the task). Where both layers are needed, prefer
+ * {@link policy}.
  */
 export function requireScope(...names: string[]): RequestHandler {
   return function requireScopeMdw(req: Request, res: Response, next: NextFunction) {
     res.append("Cache-Control", "private");
     if (!getUser(req)?.uid) return next(new UnauthorizedError());
-    if (!hasScope(res, ...names)) {
+    if (!names.every(n => hasScope(res, n))) {
       //Authenticated, but the credential wasn't delegated this scope.
       res.set("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${names.join(" ")}"`);
       return next(new ForbiddenError(`insufficient_scope: ${names.join(" ")}`));
@@ -145,63 +140,29 @@ export function requireScope(...names: string[]): RequestHandler {
 
 
 /**
- * Special case to allow user creation if no user exists in the database
+ * Level gate for the server-rendered `/ui` pages — deliberately the only
+ * level-based guard left. Requires a user at least `min`, bearing their full
+ * authority (a session, or an `all`-scoped token). Views aggregate content
+ * across scope families (the admin panel mixes config, users and groups; the
+ * design showcase belongs to no family), so they are gated by *who the user
+ * is*, not by a delegated capability. JSON API routes must use {@link policy}
+ * instead, which tells a level failure (401) apart from a too-narrow
+ * credential (403 `insufficient_scope`) per scope.
  */
-export function isAdministratorOrOpen(req: Request, res: Response, next: NextFunction) {
-  isAdministrator(req, res, (err) => {
-    if (!err) return next();
-    Promise.resolve().then(async () => {
-      let userManager = getUserManager(req);
-      let users = (await userManager.getUsers());
-      if (users.length == 0) return;
-      else throw err;
-    }).then(() => next(), next);
-  });
-}
-/**
- * Requires an administrator with full-authority credential.
- * Not the same as canAdmin(), which checks admin rights over a *scene*.
- * @deprecated On JSON API routes prefer {@link policy}`({scope: "admin:write"|
- * "users:write"|…})`, which also yields 403 `insufficient_scope` for a
- * too-narrow token. Retained for `/ui` page guards and the not-yet-migrated
- * `admin`/OAuth-client routes.
- */
-export function isAdministrator(req: Request, res: Response, next: NextFunction) {
-  res.append("Cache-Control", "private");
-
-  if (getUser(req)?.level == "admin" && isFullAccess(res)) next();
-  else next(new UnauthorizedError());
+export function requireLevel(min: UserRole): RequestHandler {
+  return function requireLevelMdw(req: Request, res: Response, next: NextFunction) {
+    res.append("Cache-Control", "private");
+    if (isUserAtLeast(getUser(req), min) && isFullAccess(res)) next();
+    else next(new UnauthorizedError());
+  };
 }
 
 /**
- * Requires a manage-level user with full-authority credential.
- * @deprecated On JSON API routes prefer {@link policy}`({scope: "groups:write"|
- * …})`. Retained for `/ui` page guards.
- */
-export function isManage(req: Request, res: Response, next: NextFunction) {
-  res.append("Cache-Control", "private");
-  if (isUserAtLeast(getUser(req), "manage") && isFullAccess(res)) next();
-  else next(new UnauthorizedError());
-}
-
-/**
- * Checks if user is a member of a group or is at least Manage
- */
-export async function isMemberOrManage(req: Request, res: Response, next: NextFunction) {
-  res.append("Cache-Control", "private");
-  let userManager = getUserManager(req);
-  let user = getUser(req)
-  let { group } = req.params;
-  const canSeeGroup = user && isFullAccess(res)
-    && (await userManager.isMemberOfGroup(user.uid, group) || isUserAtLeast(user, "manage"));
-  if (canSeeGroup) next();
-  else next(new UnauthorizedError());
-}
-
-/**
- * Wraps middlewares to find if at least one passes
- * Usefull for conditional rate-limiting
- * @example either(isAdministrator, isUser, rateLimit({...}))
+ * Wraps middlewares to find if at least one passes.
+ * Usefull for conditional rate-limiting: a branch's authorization failure
+ * (401 — or 403, a too-narrow credential) must not veto an alternative grant,
+ * so both fall through to the next handler. Any other error propagates.
+ * @example either(policy({scope: "users:admin"}), rateLimit({...}))
  */
 export function either(...handlers: Readonly<RequestHandler[]>): RequestHandler {
   return (req, res, next) => {
@@ -209,14 +170,14 @@ export function either(...handlers: Readonly<RequestHandler[]>): RequestHandler 
     if (!mdw) return next(new UnauthorizedError());
     return mdw(req, res, (err) => {
       if (!err) return next();
-      else if (err instanceof UnauthorizedError) return either(...handlers.slice(1))(req, res, next);
+      else if (err instanceof UnauthorizedError || err instanceof ForbiddenError) return either(...handlers.slice(1))(req, res, next);
       else return next(err);
     });
   }
 }
 
 /** The resource a {@link policy} `perms` check applies to. */
-export type PolicyTarget = "scene" | "task" | "user";
+export type PolicyTarget = "scene" | "task" | "user" | "group";
 
 /**
  * Resolve the requester's access level on the resource named by a
@@ -229,10 +190,12 @@ type AccessResolver = (req: Request, requester: SafeUser | null) => Promise<Acce
 const RESOLVERS: Record<PolicyTarget, AccessResolver> = {
   scene: (req, requester) => getUserManager(req).getAccessRights(req.params.scene, requester?.uid ?? null),
   //A task: owned by the requester (admin), else derived from its scene's ACL.
+  //Anonymous is rejected *before* the task is fetched: getTask's 404 must not
+  //become an unauthenticated task-id existence oracle (tasks answer 401).
   task: async (req, requester) => {
+    if (!requester) return "none";
     const { taskScheduler, userManager } = getLocals(req);
     const task = await taskScheduler.getTask(parseInt(req.params.id, 10));
-    if (!requester) return "none";
     if (task.user_id != null && task.user_id === requester.uid) return "admin";
     return task.scene_id ? userManager.getAccessRights(task.scene_id, requester.uid) : "none";
   },
@@ -241,26 +204,36 @@ const RESOLVERS: Record<PolicyTarget, AccessResolver> = {
     requester?.level === "admin" ? "admin"
       : (requester && requester.uid === parseInt(req.params.uid, 10)) ? "write"
         : "none",
+  //A group: its members may read it; whole-group administration is a level
+  //(manage), not a membership role. A future per-group role (owner, moderator…)
+  //would slot in here as "write" — extending this resolver, not the scopes.
+  group: async (req, requester) => {
+    if (!requester) return "none";
+    if (isUserAtLeast(requester, "manage")) return "admin";
+    return (await getUserManager(req).isMemberOfGroup(requester.uid, req.params.group)) ? "read" : "none";
+  },
 };
 
 /**
- * Scenes hide a resource the requester can't see (404 on a GET, or any method
- * once access is `none`) so existence stays private; tasks and users answer a
- * plain 401 for insufficient access (their current, test-pinned behavior).
+ * Scenes and groups hide a resource the requester can't see (404 on a GET, or
+ * any method once access is `none`) so existence stays private; tasks and
+ * users answer a plain 401 for insufficient access (their current,
+ * test-pinned behavior).
  */
-function hidesExistence(on: PolicyTarget): boolean { return on === "scene"; }
+function hidesExistence(on: PolicyTarget): boolean { return on === "scene" || on === "group"; }
 
 /**
  * The scope a too-narrow credential lacks for a `perms:min` check on `on` — the
  * pre-ACL 403 — or null when the credential is gated by the explicit `scope`
- * instead (user routes). Tasks have no `tasks:admin`: write and admin both
- * require `tasks:write`.
+ * instead (user routes). Scenes and tasks map 1:1 onto their family's ladder.
  */
 function requiredScope(on: PolicyTarget, min: "read" | "write" | "admin"): string | null {
   switch (on) {
     case "scene": return `scenes:${min}`;
-    case "task": return min === "read" ? "tasks:read" : "tasks:write";
+    case "task": return `tasks:${min}`;
     case "user": return null;
+    //groups is a two-rung family: write and admin both require groups:write.
+    case "group": return min === "read" ? "groups:read" : "groups:write";
   }
 }
 
@@ -320,6 +293,9 @@ export interface PolicyOptions {
   /**
    * Capability the request's authority must include (401 if the account lacks
    * it, 403 `insufficient_scope` if only the credential does). Omit for none.
+   * "Any identified requester, whatever its level" is `scope: "corpus:read"` —
+   * the baseline every user level holds and every credential carries
+   * implicitly, but anonymous ({@link PUBLIC_SCOPES}) does not.
    */
   scope?: string | null;
   /** Resource-ACL level to enforce, or omit for no ACL check. */
@@ -453,8 +429,9 @@ export function effectiveAccess(res: Response, aclAccess: AccessType): AccessTyp
  * account management, however privileged its owner.
  * Anonymous requests hold no restricting credential: this returns true and
  * identity checks reject them.
- * Internal to this module (the `isAdministrator`/`isManage`/`isMemberOrManage`
- * guards); route code expresses "session-only" via the `account:grant` scope.
+ * Internal to this module (the {@link requireLevel} view guard); route code
+ * expresses "session-only" via a non-mintable scope (`account:admin`,
+ * `users:admin`, `instance:write`).
  */
 function isFullAccess(res: Response): boolean {
   const credential = getCredentialScopes(res);
@@ -467,10 +444,10 @@ function isFullAccess(res: Response): boolean {
  * Whether the request's *credential* grants one of the named scopes — a
  * delegation gate, independent of the user's level. A session (or anonymous)
  * carries no credential restriction and passes; a token passes only for the
- * scopes it named (`account:grant` is non-mintable, so no token ever has it).
+ * scopes it named (`account:admin` is non-mintable, so no token ever has it).
  *
  * This is deliberately credential-only, not effective (account ∩ credential):
- * routes like bulk scene import gate the *token* on `scenes:create` while the
+ * routes like bulk scene import gate the *token* on `corpus:write` while the
  * per-scene ACL — not the user's global level — decides what may be written.
  * The level check lives in {@link policy} (which also needs the two facts
  * apart, to return 401 for a level failure vs. 403 for a scope failure).

@@ -77,7 +77,7 @@
         "@types/express": "^5.0.0",
         "@types/mime-types": "^2.1.4",
         "@types/mocha": "^10.0.10",
-        "@types/node": "^16",
+        "@types/node": "^22",
         "@types/nodemailer": "^6.4.17",
         "@types/pg": "^8.15.4",
         "@types/pg-cursor": "^2.7.2",

@@ -67,30 +67,50 @@ export function parseToken(token: string): Buffer | null {
  * asks "is capability C in that set?".
  *
  * Hierarchical families (`read < write < admin`) expand downward: holding
- * `scenes:write` implies `scenes:read` (see {@link expand}). `scenes:create`
- * is orthogonal — creating a scene is not a point on the read/write/admin
- * ladder. `account:grant` (mint a token, grant OAuth consent) is the
- * escalation-critical capability: it is **non-mintable** (never carried by a
- * token), so a session holds it but no delegated credential can.
+ * `scenes:write` implies `scenes:read` (see {@link expand}).
+ *
+ * The `corpus` family is the *collection*, as opposed to any one scene:
+ * - `corpus:read` is the baseline "recognized user of this instance"
+ *   capability: every user level holds it and every credential carries it
+ *   implicitly (see {@link expandCredential}), so
+ *   `policy({scope: "corpus:read"})` means "any identified requester" —
+ *   anonymous does not hold it. It does NOT grant scene content access (that
+ *   is `scenes:read`, which anonymous *does* hold). An OAuth client may
+ *   request it alone for a pure identity token.
+ * - `corpus:write` is adding scenes to the collection (level ≥ create). The
+ *   family split is what keeps the model sound: `scenes:admin` means "may
+ *   reach admin level on scenes the ACL grants" (`use`-level users hold it
+ *   over their own scenes) and must NOT imply creation — which a same-family
+ *   ladder would force. A creation token usually wants "corpus:write
+ *   scenes:write": creating an empty scene is useless without the right to
+ *   populate it.
+ *
+ * The top rung of the `account` and `users` families is escalation-critical
+ * (see {@link NON_MINTABLE_SCOPES}): a session holds it but no delegated
+ * credential ever can.
  *
  * New scopes may be added here; existing scope strings are never reinterpreted.
+ * That makes two-rung families (`corpus`, `groups`, `instance`) a permanent
+ * commitment: adding a higher rung later would silently demote already-minted
+ * `:write` credentials on the routes that move to the new rung.
  */
 export const CONCRETE_SCOPES = [
-  "scenes:read", "scenes:write", "scenes:admin", "scenes:create",
-  "tasks:read", "tasks:write",
-  "users:read", "users:write",
+  "corpus:read", "corpus:write",
+  "scenes:read", "scenes:write", "scenes:admin",
+  "tasks:read", "tasks:write", "tasks:admin",
+  "users:read", "users:write", "users:admin",
   "groups:read", "groups:write",
-  "admin:read", "admin:write",
-  "account:read", "account:write", "account:grant",
+  "instance:read", "instance:write",
+  "account:read", "account:write", "account:admin",
 ] as const;
 
 export type Scope = typeof CONCRETE_SCOPES[number];
 
 /**
  * The universal capability ladder: for any `family:level` scope, holding a
- * level implies every lower one (`read ⊆ write ⊆ admin`). A scope whose suffix
- * is not one of these (`scenes:create`, `account:grant`) is standalone — no
- * ladder. This single rule is the source of the hierarchy; families do not
+ * level implies every lower one (`read ⊆ write ⊆ admin`). Every scope in the
+ * vocabulary sits on it; a scope with another suffix would be standalone (no
+ * ladder). This single rule is the source of the hierarchy; families do not
  * declare it individually (see {@link expand}).
  */
 const SCOPE_LADDER = ["read", "write", "admin"] as const;
@@ -100,20 +120,52 @@ const SCOPE_LADDER = ["read", "write", "admin"] as const;
  * owner's full authority, so they can never be delegated: not mintable as a
  * token, not requestable as an OAuth scope, and not part of `all`.
  * Only a session (which carries no `token.scope` factor) ever holds these.
+ *
+ * - `account:admin` — mint a token, grant OAuth consent, and change the
+ *   account's own credentials (password/email): each converts a credential
+ *   into a fresh one, or into a session.
+ * - `users:admin` — obtain login links for arbitrary users and create
+ *   administrator accounts: session-minting by another name.
+ * - `instance:write` — rewrite runtime config: redirecting `smart_host` lets
+ *   the holder intercept login-link emails for any account. `instance:read`
+ *   stays mintable — it is the monitoring use case (scraping `/admin/stats`).
+ *
+ * Non-mintability is a property of the *scope*, orthogonal to the ladder: the
+ * lower rungs of these families stay mintable.
  */
-export const NON_MINTABLE_SCOPES: readonly string[] = ["account:grant"];
+export const NON_MINTABLE_SCOPES: readonly string[] = ["account:admin", "users:admin", "instance:write"];
 
 /**
  * The scope strings a token or OAuth grant may carry: every concrete scope
  * except the non-mintable ones, plus the `all` shorthand. This is what
  * {@link isValidScope} accepts and what the OAuth metadata advertises.
- * `all` deliberately excludes `account:grant` — an `all` token still cannot
- * mint further tokens.
+ * `all` deliberately excludes the non-mintable scopes — an `all` token still
+ * cannot mint further tokens, change its owner's password, or fabricate users
+ * it could sign in as.
  */
 export const TOKEN_SCOPES: readonly string[] = [
   "all",
   ...CONCRETE_SCOPES.filter(s => NON_MINTABLE_SCOPES.indexOf(s) === -1),
 ];
+
+/**
+ * Scopes every *credential* carries whatever it was minted with. Requesting
+ * them is a no-op (but valid: an OAuth client may ask for `corpus:read` alone
+ * to get a pure identity token). Deliberately NOT part of {@link PUBLIC_SCOPES}:
+ * anonymous requests hold no credential, so `corpus:read` separates "any
+ * identified requester" from "anyone".
+ */
+const IMPLICIT_SCOPES: readonly string[] = ["corpus:read"];
+
+/**
+ * {@link expand} for a delegated credential (`token.scope`): adds the
+ * {@link IMPLICIT_SCOPES} baseline. This is the single expansion the
+ * authenticate middleware applies to a verified token; sessions carry no
+ * credential restriction at all (`credentialScopes = null`).
+ */
+export function expandCredential(scopes: readonly string[]): Set<string> {
+  return expand([...scopes, ...IMPLICIT_SCOPES]);
+}
 
 /**
  * Resolve a scope set into the full set of concrete capabilities it grants:
@@ -158,7 +210,7 @@ export function maxSceneScope(scopes: ReadonlySet<string>): "none" | "read" | "w
 
 /**
  * Validate a scope set for minting/granting: a non-empty subset of
- * {@link TOKEN_SCOPES} (i.e. mintable scopes only — `account:grant` and any
+ * {@link TOKEN_SCOPES} (i.e. mintable scopes only — `account:admin` and any
  * other non-mintable scope are rejected).
  */
 export function isValidScope(scope: any): scope is string[] {
@@ -181,15 +233,19 @@ export const PUBLIC_SCOPES: ReadonlySet<string> = expand(["scenes:read"]);
  * scene ACL (`perms`) still gates *which* scene, so `scenes:admin` at `use`
  * means "may act on scenes they have the ACL for", not "on every scene".
  */
-const USE_SCOPES = ["scenes:admin", "tasks:read", "account:write", "account:grant"];
-const CREATE_SCOPES = [...USE_SCOPES, "scenes:create", "tasks:write"];
+const USE_SCOPES = ["corpus:read", "scenes:admin", "tasks:read", "account:admin"];
+const CREATE_SCOPES = [...USE_SCOPES, "corpus:write", "tasks:admin"];
 const MANAGE_SCOPES = [...CREATE_SCOPES, "groups:write"];
 const LEVEL_SCOPES: Record<UserRole, readonly string[]> = {
-  none: ["scenes:read"],
+  //"none" is the anonymous floor plus identity — the UI never assigns it as a
+  //stored level. Stored via the raw API it acts as a quarantine: the account
+  //may sign in but holds no account:* scope, so it cannot mint tokens, revoke
+  //sessions or rotate its own credentials; an administrator does that for it.
+  none: ["corpus:read", "scenes:read"],
   use: USE_SCOPES,
   create: CREATE_SCOPES,
   manage: MANAGE_SCOPES,
-  admin: ["all", ...NON_MINTABLE_SCOPES], // every mintable scope + the non-mintable grant(s)
+  admin: ["all", ...NON_MINTABLE_SCOPES], // every mintable scope + the non-mintable top rungs
 };
 
 /**

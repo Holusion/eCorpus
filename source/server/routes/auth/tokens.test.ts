@@ -4,15 +4,17 @@ import request from "supertest";
 import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import Vfs from "../../vfs/index.js";
+import { TaskScheduler } from "../../tasks/scheduler.js";
 
 
 describe("/auth/tokens", function(){
-  let vfs: Vfs, userManager :UserManager, user :User, admin :User;
+  let vfs: Vfs, userManager :UserManager, taskScheduler :TaskScheduler, user :User, admin :User;
 
   this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+    taskScheduler = locals.taskScheduler;
   });
 
   this.beforeEach(async function(){
@@ -95,7 +97,7 @@ describe("/auth/tokens", function(){
         .set("Authorization", await bearer(user.username))
         .send({name: "sneaky"})
         .expect(403);
-      //account:grant is non-mintable, so an all-scoped token still can't mint.
+      //account:admin is non-mintable, so an all-scoped token still can't mint.
       expect(res.body).to.have.property("message").match(/insufficient_scope/);
     });
   });
@@ -123,6 +125,52 @@ describe("/auth/tokens", function(){
       await request(this.server).get("/users/")
         .set("Authorization", `Bearer ${res.body.token}`)
         .expect(401);
+    });
+
+    it("an all token cannot change its owner's password", async function(){
+      //Rotating the password would convert the token into a session (whose
+      //account:admin authority can then mint tokens, outliving revocation):
+      //PATCH /users/:uid requires the non-mintable account:admin.
+      const res = await request(this.server).patch(`/users/${user.uid}`)
+        .set("Authorization", await bearer(user.username))
+        .set("Content-Type", "application/json")
+        .send({password: "hijacked1"})
+        .expect(403);
+      expect(res.body).to.have.property("message").match(/insufficient_scope/);
+      //The password (and with it, every session) is untouched
+      await login(this.server, user);
+    });
+
+    it("an all token cannot obtain a login link", async function(){
+      //A login link is a session for whoever holds it: users:admin is
+      //non-mintable, so even an admin's all token gets insufficient_scope.
+      await request(this.server).get(`/auth/login/${user.username}/link`)
+        .set("Authorization", await bearer(admin.username))
+        .expect(403);
+      //The admin's own session still may
+      const agent = await login(this.server, admin);
+      await agent.get(`/auth/login/${user.username}/link`).expect(200);
+    });
+
+    it("an all token cannot create an administrator", async function(){
+      //Provisioning regular users over a token is allowed (users:write)…
+      await request(this.server).post("/users/")
+        .set("Authorization", await bearer(admin.username))
+        .set("Content-Type", "application/json")
+        .send({username: "imported", password: "12345678", email: "imported@example.com", level: "create"})
+        .expect(201);
+      //…but a fresh admin with a known password would be a sign-in-able
+      //backdoor: that needs the non-mintable users:admin (a session).
+      await request(this.server).post("/users/")
+        .set("Authorization", await bearer(admin.username))
+        .set("Content-Type", "application/json")
+        .send({username: "backdoor", password: "12345678", email: "backdoor@example.com", level: "admin"})
+        .expect(403);
+      const agent = await login(this.server, admin);
+      await agent.post("/users/")
+        .set("Content-Type", "application/json")
+        .send({username: "colleague", password: "12345678", email: "colleague@example.com", level: "admin"})
+        .expect(201);
     });
 
     it("per-scene grants apply to tokens like they do to sessions", async function(){
@@ -223,37 +271,36 @@ describe("/auth/tokens", function(){
     });
 
     it("denies everything outside the granted families (deny-by-default)", async function(){
-      //A token grants only what its scopes name. Routes migrated to policy()
-      //answer 403 insufficient_scope (the credential lacks the scope); routes
-      //still on the legacy full-authority guards answer 401. Either way, a
-      //scenes:* token reaches none of these.
+      //A token grants only what its scopes name: every API family answers
+      //403 insufficient_scope (the account could, the credential can't) —
+      //a scenes:* token reaches none of these.
       const auth = await scopedBearer(this.server, admin, ["scenes:admin"]);
       //User administration (users:read scope)
       await request(this.server).get("/users/")
         .set("Authorization", auth)
         .expect(403);
-      //Scene creation (scenes:create scope): not named by scenes:admin
+      //Scene creation (corpus:write scope): a different family than scenes:admin
       await request(this.server).mkcol("/scenes/newscene")
         .set("Authorization", auth)
         .expect(403);
-      //Groups (still on isManage/full-authority)
+      //Groups (groups:read scope)
       await request(this.server).get("/groups/")
         .set("Authorization", auth)
-        .expect(401);
+        .expect(403);
       //Tasks (task creation needs the tasks:write scope)
       await request(this.server).post("/tasks/")
         .set("Authorization", auth)
         .expect(403);
-      //Admin pages (still on isAdministrator/full-authority)
+      //Instance administration (instance:read scope)
       await request(this.server).get("/admin/stats")
         .set("Authorization", auth)
-        .expect(401);
+        .expect(403);
     });
 
     it("denies account management (session/token escalation)", async function(){
       const auth = await scopedBearer(this.server, admin, ["scenes:admin"]);
       //Inspecting or revoking credentials needs account:read/write; minting
-      //needs account:grant — none of which a scenes:* token carries (403).
+      //needs account:admin — none of which a scenes:* token carries (403).
       await request(this.server).get("/auth/sessions")
         .set("Authorization", auth)
         .expect(403);
@@ -270,6 +317,22 @@ describe("/auth/tokens", function(){
         .set("Content-Type", "application/json")
         .send({password: "hijacked1"})
         .expect(403);
+    });
+
+    it("every token carries the implicit corpus:read baseline", async function(){
+      //Routes gated on corpus:read mean "any identified requester": a narrowly
+      //scoped token passes that gate (here: reading a scene's ACL), subject to
+      //the route's other checks — anonymous does not.
+      await request(this.server).get("/auth/access/private")
+        .set("Authorization", await scopedBearer(this.server, user, ["scenes:read"]))
+        .expect(200);
+      //The baseline grants identity, not content: without scenes:read the
+      //same route still refuses the scene ACL part.
+      await request(this.server).get("/auth/access/private")
+        .set("Authorization", await scopedBearer(this.server, user, ["tasks:read"]))
+        .expect(403);
+      await request(this.server).get("/auth/access/private")
+        .expect(401);
     });
 
     it("keeps the identity endpoint available", async function(){
@@ -299,15 +362,15 @@ describe("/auth/tokens", function(){
     });
   });
 
-  describe("granular grants (scenes:create, tasks:*)", function(){
+  describe("granular grants (corpus:write, tasks:*)", function(){
     async function scopedBearer(server: any, u: User, scope: string[]){
       const agent = await login(server, u);
       const res = await agent.post("/auth/tokens").send({name: "scoped", scope}).expect(201);
       return `Bearer ${res.body.token}`;
     }
 
-    it("scenes:create grants scene creation", async function(){
-      const auth = await scopedBearer(this.server, user, ["scenes:create", "scenes:write"]);
+    it("corpus:write grants scene creation", async function(){
+      const auth = await scopedBearer(this.server, user, ["corpus:write", "scenes:write"]);
       await request(this.server).mkcol("/scenes/fresh")
         .set("Authorization", auth)
         .expect(201);
@@ -323,15 +386,21 @@ describe("/auth/tokens", function(){
         .expect(403);
     });
 
-    it("scenes:create grants the zip import endpoint", async function(){
-      const auth = await scopedBearer(this.server, user, ["scenes:create"]);
+    it("the zip import endpoint requires corpus:write AND scenes:write", async function(){
+      //Import both creates scenes and overwrites existing ones the user has
+      //write ACL on: the credential must prove both up front, since the
+      //detached extraction task can't consult it afterwards.
+      const auth = await scopedBearer(this.server, user, ["corpus:write", "scenes:write"]);
       //Past the guard: fails on the missing file headers (400), not on authorization
       await request(this.server).post("/scenes/")
         .set("Authorization", auth)
         .expect(400);
-      const reader = await scopedBearer(this.server, user, ["scenes:read"]);
+      //Either scope alone is refused
       await request(this.server).post("/scenes/")
-        .set("Authorization", reader)
+        .set("Authorization", await scopedBearer(this.server, user, ["corpus:write"]))
+        .expect(403);
+      await request(this.server).post("/scenes/")
+        .set("Authorization", await scopedBearer(this.server, user, ["scenes:write"]))
         .expect(403);
     });
 
@@ -358,10 +427,22 @@ describe("/auth/tokens", function(){
         .expect(400);
     });
 
+    it("task deletion needs tasks:admin, not just tasks:write", async function(){
+      //The tasks family follows the standard read<write<admin ladder: deleting
+      //(or overwriting the artifact of) a task is its admin rung.
+      const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
+      await request(this.server).delete(`/tasks/${task.task_id}`)
+        .set("Authorization", await scopedBearer(this.server, user, ["tasks:write"]))
+        .expect(403);
+      await request(this.server).delete(`/tasks/${task.task_id}`)
+        .set("Authorization", await scopedBearer(this.server, user, ["tasks:admin"]))
+        .expect(204);
+    });
+
     it("user level still applies (scopes never extend)", async function(){
       //A "use"-level user can't create scenes, however scoped their token
       const limited = await userManager.addUser("uma", "12345678", "use");
-      const auth = await scopedBearer(this.server, limited, ["scenes:create"]);
+      const auth = await scopedBearer(this.server, limited, ["corpus:write"]);
       await request(this.server).mkcol("/scenes/nope")
         .set("Authorization", auth)
         .expect(401);

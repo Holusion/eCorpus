@@ -33,7 +33,7 @@ export async function getOwnTokens(req: Request, res: Response){
 export async function postToken(req: Request, res: Response){
   const requester = getUser(req)!;
   //Only an interactive session reaches here: minting a token requires the
-  //`account:grant` scope (see the route's policy), which is non-mintable, so no
+  //`account:admin` scope (see the route's policy), which is non-mintable, so no
   //token — even an `all`-scoped one — can create another token for itself.
   const {name, scope, expires} = req.body ?? {};
   let expiresDate: Date | null = null;

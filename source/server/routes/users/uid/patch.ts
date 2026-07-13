@@ -18,9 +18,10 @@ export async function handlePatchUser(req:Request, res :Response){
   const isTargetUid = requester? requester.uid === targetUid : false;
   const userManager = getUserManager(req);
 
-  //The route's policy({scope:"account:write", perms:"write", on:"user"}) already
-  //enforced the credential (403) and the self-or-admin gate (401). What remains
-  //is the finer level-change rule, which a single ACL level can't express:
+  //The route's policy({scope:"account:admin", perms:"write", on:"user"}) already
+  //enforced the credential (403 — account:admin is non-mintable, so only a
+  //session gets here) and the self-or-admin gate (401). What remains is the
+  //finer level-change rule, which a single ACL level can't express:
   //only admins change levels, and an admin can't demote themselves.
   if(!isAdmin && typeof update.level !== "undefined" && update.level !== level){
     throw new UnauthorizedError(`Only administrators can change user levels`);

@@ -27,6 +27,14 @@ describe("GET /tasks/:id", function(){
     .expect(401);
   });
 
+  it("answers anonymous requests uniformly (no task-id existence oracle)", async function(){
+    //An existing and a non-existent task must be indistinguishable without
+    //credentials: the access resolver rejects anonymous before fetching.
+    const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
+    await request(this.server).get(`/tasks/${task.task_id}`).expect(401);
+    await request(this.server).get(`/tasks/999999`).expect(401);
+  });
+
   it("returns task with logs", async function(){
     const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
     const {body} = await request(this.server).get(`/tasks/${task.task_id}`)

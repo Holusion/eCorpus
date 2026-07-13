@@ -3,7 +3,7 @@ import { Router } from "express";
 import { rateLimit } from 'express-rate-limit'
 import bodyParser from "body-parser";
 
-import { either, getUser, isAdministrator, isUser, policy, useTemplateProperties  } from "../../utils/locals.js";
+import { either, getUser, policy, useTemplateProperties  } from "../../utils/locals.js";
 import { noFraming } from "../../utils/headers.js";
 import { csrfProtectAnonymous } from "../../utils/csrf.js";
 import wrap from "../../utils/wrapAsync.js";
@@ -61,8 +61,17 @@ router.post("/login",
   useTemplateProperties,
   wrap(postLogin),
 );
-router.get("/login/:username/link", isAdministrator, wrap(getLoginLink));
-router.post("/login/:username/link", either(isAdministrator, rateLimit({
+//Returning a login link for an arbitrary user mints a session for whoever
+//holds it: users:admin is non-mintable, so this stays session-only — an `all`
+//token cannot impersonate its way past token revocation or expiry.
+router.get("/login/:username/link", policy({ scope: "users:admin" }), wrap(getLoginLink));
+//Sending the link (to the *target user's* mailbox — never returned to the
+//requester, so no escalation) is open to everyone under a strict rate limit.
+//The user-provisioning capability (users:write — an admin session or an
+//admin's users:write/all token, consistent with POST /users onboarding
+//emails) is exempt; any authorization refusal falls through to the
+//rate-limited branch.
+router.post("/login/:username/link", either(policy({ scope: "users:write" }), rateLimit({
   //Special case of real low rate-limiting for non-admin users to send emails
 	windowMs: 1 * 60 * 1000, // 1 minute
 	limit: 1, // Limit each IP to 1 request per `window`.
@@ -74,14 +83,14 @@ router.post("/login/:username/link", either(isAdministrator, rateLimit({
 router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
 
 //Account management. Listing/revoking one's own credentials is account:read/
-//write; *minting* a new token is account:grant — the non-mintable, session-only
-//capability, so a token (even `all`-scoped) can never create another token or
-//inspect the credentials it lives next to.
+//write; *minting* a new token is account:admin — the non-mintable, session-only
+//top of the family, so a token (even `all`-scoped) can never create another
+//token or inspect the credentials it lives next to.
 router.get("/sessions", policy({ scope: "account:read", perms: null }), wrap(getOwnSessions));
 router.delete("/sessions/:id", policy({ scope: "account:write", perms: null }), wrap(deleteSession));
 
 router.get("/tokens", policy({ scope: "account:read", perms: null }), wrap(getOwnTokens));
-router.post("/tokens", policy({ scope: "account:grant", perms: null }), useJSON, wrap(postToken));
+router.post("/tokens", policy({ scope: "account:admin", perms: null }), useJSON, wrap(postToken));
 router.delete("/tokens/:id", policy({ scope: "account:write", perms: null }), wrap(deleteOwnToken));
 
 //"Authorized applications": persisted OAuth consents. Revoking one stops
@@ -94,12 +103,19 @@ router.get("/oauth/authorize", wrap(getAuthorize));
 router.post("/oauth/authorize", useURLEncoded, wrap(postAuthorize));
 router.post("/oauth/token", useURLEncoded, wrap(postOAuthToken));
 router.post("/oauth/revoke", useURLEncoded, wrap(postRevoke));
-router.get("/oauth/clients", isAdministrator, wrap(getClients));
-router.post("/oauth/clients", isAdministrator, useJSON, wrap(postClient));
-router.delete("/oauth/clients/:id", isAdministrator, wrap(deleteClient));
+//The OAuth client registry is instance configuration. Registering a client
+//(a name users will trust on the consent page, plus its redirect URIs) is a
+//phishing primitive, so like the config PATCH it rides the non-mintable
+//instance:write; the inventory is instance:read (mintable, monitoring).
+router.get("/oauth/clients", policy({ scope: "instance:read" }), wrap(getClients));
+router.post("/oauth/clients", policy({ scope: "instance:write" }), useJSON, wrap(postClient));
+router.delete("/oauth/clients/:id", policy({ scope: "instance:write" }), wrap(deleteClient));
 
 
-router.get("/access/:scene", isUser, policy({ perms: "read" }), wrap(getPermissions));
+//Reading a scene's ACL needs an identity (corpus:read — the baseline scope
+//anonymous doesn't hold) on top of scene read access: anonymous readers of a
+//public scene don't get to enumerate its users.
+router.get("/access/:scene", policy({ scope: "corpus:read", perms: "read" }), wrap(getPermissions));
 router.patch("/access/:scene", policy({ perms: "admin" }), useJSON, wrap(patchPermissions));
 
 
