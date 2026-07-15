@@ -274,13 +274,24 @@ footer a:hover {
   max-width: $sidebar_width;
   background-color: $darkgrey;
   height: fit-content;
-  // overflow: hidden;
+
+  // thin, trackless scrollbar for when a nav scrolls on its own
+  scrollbar-width: thin;
+  scrollbar-color: $middlegrey transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: $middlegrey;
+    border-radius: 3px;
+  }
 
 
 
   ul{
     // padding: 1rem 1rem 1rem 0;
-    padding: 0;
+    padding: 0 0 1.5rem 0;
     width: 100%;
     list-style: none;
 
@@ -327,8 +338,10 @@ footer a:hover {
   
   &.nav-left{
     grid-area: nav-left;
-    position: relative;
-    padding: 0;
+    position: sticky;
+    top: calc($navbar_height + 0.8rem);
+    max-height: calc(100vh - $navbar_height - 1.6rem);
+    overflow-y: auto;
 
 
     .navbar-toggle{
@@ -342,6 +355,11 @@ footer a:hover {
 
     @media screen and (max-width: #{$sidebar_width + $main_width} ){
       grid-area: main;
+      // back to a plain static anchor for the absolute-positioned toggle
+      position: relative;
+      top: auto;
+      max-height: none;
+      overflow-y: visible;
       width: 0;
       margin: .5rem;
       transition: width 0.35s linear;
@@ -374,6 +392,10 @@ footer a:hover {
     grid-area: nav-right;
     overflow-x: hidden;
     padding-left: .75rem;
+    position: sticky;
+    top: calc($navbar_height + 0.8rem);
+    max-height: calc(100vh - $navbar_height - 1.6rem);
+    overflow-y: auto;
     li{
       text-overflow: ellipsis;
       li{
