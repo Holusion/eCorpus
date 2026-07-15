@@ -13,12 +13,28 @@ eCorpus provides a comprehensive API that covers the needs of DPO Voyager while 
 
 ### Authentication
 
-To authenticate via command line, use an `Authorization` header with the value `Basic <base64(username:password)>`.
+> **Note:** HTTP *Basic* authentication with a username and password is **no longer supported** for API
+> requests. The recommended way to authenticate a script or command-line client is now a **personal access
+> token**, sent in the `Authorization` header as a Bearer token. See the [authentication guide](/en/doc/hosting/apiDoc#auth)
+> in the API reference for the full picture (sessions, tokens, scopes and OAuth2).
 
-The header encoding is handled automatically by most utilities. Example with curl:
+Create a token from the web interface (or with `POST /auth/tokens` from a logged-in session), then use it as a
+Bearer token:
 
 ```bash
-curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com/[...]
+curl -XGET -H "Authorization: Bearer ecorpus_xxxxxxxx" https://ecorpus.holusion.com/[...]
+```
+
+You can also open a browser-style session and reuse its cookie:
+
+```bash
+# Log in, saving the session cookie to a jar
+curl -c cookies.txt -XPOST https://ecorpus.holusion.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"<username>","password":"<password>"}'
+
+# Reuse the cookie on subsequent requests
+curl -b cookies.txt -XGET https://ecorpus.holusion.com/[...]
 ```
 
 ### Scenes Organisation
@@ -45,10 +61,10 @@ Files orgnisation :
 To retrieve a model:
 
 ```bash
-curl -XGET -u "<username>:<password>" https://ecorpus.holusion.com//scenes/foo/models/foo.glb
+curl -XGET -H "Authorization: Bearer ecorpus_xxxxxxxx" https://ecorpus.holusion.com/scenes/foo/models/foo.glb
 ```
 
-The verbs `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` and `PROPFIND` are supported, with behavior generally conforming to the [specification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}. However, please note: This is a partial implementation of the specification.
+The verbs `GET` `PUT` `MOVE` `DELETE` `MKCOL` and `PROPFIND` are supported, with behavior generally conforming to the [specification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}. However, please note: This is a partial implementation of the specification (`COPY` and `LOCK`/`UNLOCK` are not implemented).
 
 
 ### Exporting data
@@ -56,7 +72,7 @@ The verbs `GET` `PUT` `MOVE` `COPY` `DELETE` `MKCOL` and `PROPFIND` are supporte
 Retreving a model :
 
 ```bash
-curl -XGET -u "${USERNAME}:${PASSWORD}" https://${HOSTNAME}/scenes/foo/models/foo.glb
+curl -XGET -H "Authorization: Bearer ${TOKEN}" https://${HOSTNAME}/scenes/foo/models/foo.glb
 ```
 
 Exporting one or more scene :
@@ -71,10 +87,10 @@ You can add as many `name="..."` parameters as you need, separated by `&` charac
 Import zip scene or collection of scenes from a eCorpus instance.
 
 ```bash
-curl -XPOST https://${HOSTNAME}/scenes --data-binary "@${ZIP_FILE}" -u "${USERNAME}:${PASSWORD}" | jq .
+curl -XPOST https://${HOSTNAME}/scenes --data-binary "@${ZIP_FILE}" -H "Authorization: Bearer ${TOKEN}" | jq .
 ```
 
-Only user with global **admin** right can user this request.
+The token must carry the `scenes:create` scope (or be `all`-scoped), and importing requires global **admin** rights.
 
 The request returns a (potentially very large) JSON object describing the result. You can filter only failure by running `jq .fail` or if you don't have `jq` installed you can skip it and use the `curl -s --fail -o /dev/null -w "%{http_code}"`.
 
