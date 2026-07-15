@@ -14,7 +14,7 @@ Often wrongly overlooked, audio narration is a real asset for visitor immersion.
 <iframe src="https://pod.univ-lille.fr/video/43709-creation-de-contenus-audio-pour-ecorpus/?is_iframe=true" width="640" height="360" style="padding: 0; margin: 0; border:0" allowfullscreen title="Création de contenus audio pour eCorpus" ></iframe>
 
 ## Test an Audio Scene on eCorpus
-{% include voyager.html embed="BoulogneSurMer_Gargouille" server="https://ecorpus.holusion.com" class="h-100" %}
+{% include voyager.html url="https://ecorpus.holusion.com/ui/scenes/BoulogneSurMer_Gargouille/view" title="Gargoyle from Boulogne-sur-Mer" class="h-100" %}
     
 ### Summary
 

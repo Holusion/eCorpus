@@ -1,24 +1,167 @@
 {%comment %}
-iframe for e-corpus items
+iframe embed for eCorpus scenes
 Usage :
-include voyager.html embed=item-id
+  include voyager.html url="https://ecorpus.example.com/ui/scenes/item-id/view" title="..."
+
+  `url` is the canonical scene viewer URL (the one you copy from the browser
+  when looking at the scene). The iframe embeds it as-is.
+
+  `title` is required (the build fails without it). Used for the iframe title,
+  the poster alt text, the figcaption and the JSON-LD name. Copy the scene's
+  own title (metas[].collection.titles in the scene's
+  https://<server>/scenes/<item-id>/scene.svx.json document) when it carries a
+  meaningful value, otherwise write your own.
+
+  Unless the URL (or `params`) already sets a `lang=` value, the current page
+  language is appended automatically (e.g. `?lang=FR`).
+
+  A poster image (the scene-image-* renders published by the eCorpus server)
+  is always rendered so search engines and no-JS browsers see an indexable
+  image instead of an empty rectangle. By default it is shown with a "play"
+  button and the heavy iframe viewer is only loaded once the user clicks it,
+  so no superfluous data is fetched for uninterested visitors.
+
+  The iframe is part of the markup, inert (data-src, hidden by the
+  .ecorpus-facade styles). The script promotes data-src to src on click (or
+  immediately with autoplay) and reveals the viewer only once it has actually
+  loaded, so the poster survives when the cross-origin viewer never loads
+  (search engines, server down).
+
+Optional :
+  autoplay=true
+    Replace the poster with the iframe viewer as soon as the page loads
+    instead of waiting for a click. Defaults to false.
+  placeholder="/assets/img/path/to/poster.webp"
+    Custom poster image, used in place of the server's scene-image-* renders.
+  params="..."
+    Extra query string appended to the scene URL. Merged correctly whether or
+    not `url` already carries a query string.
+  abstract="..."
+    Short description of the scene (typically the intro found next to the
+    title in the scene document), shown under the caption and added to the
+    JSON-LD block.
+  model="https://.../scene.glb"
+    URL of a glb derivative of the scene, added to the JSON-LD block.
+  class="..."  extra classes added to the figure wrapper
 {%endcomment%}
 
-{% assign lang = {{page.lang}} | upcase %}
-{% assign itemSrc = {{include.embed}} | prepend: "/ui/scenes/"  | prepend: {{include.server}} | append: "/view?lang=" | append: lang %}
-{% assign root = {{include.embed}} | prepend: "/scenes/"  | prepend: {{include.server}}}
-{% assign server = {{include.server}} %}
-{% assign itemClass = {{include.class}} | prepend: " media ratio ratio-16x9 "%}
+{% assign itemSrc = include.url %}
+{% if include.params %}
+  {% if itemSrc contains "?" %}
+    {% assign itemSrc = itemSrc | append: "&" | append: include.params %}
+  {% else %}
+    {% assign itemSrc = itemSrc | append: "?" | append: include.params %}
+  {% endif %}
+{% endif %}
+{% unless itemSrc contains "lang=" %}
+  {% assign lang = page.lang | upcase %}
+  {% if itemSrc contains "?" %}
+    {% assign itemSrc = itemSrc | append: "&lang=" | append: lang %}
+  {% else %}
+    {% assign itemSrc = itemSrc | append: "?lang=" | append: lang %}
+  {% endif %}
+{% endunless %}
+
+{% assign sceneUrl = include.url | split: "?" | first %}
+{% assign sceneRoot = sceneUrl | split: "/view" | first | replace: "/ui/scenes/", "/scenes/" %}
+{% unless include.title %}
+  {% comment %} fail the build with a self-describing error {% endcomment %}
+  {% include voyager.html-requires-a-title-parameter %}
+{% endunless %}
+{% assign itemTitle = include.title %}
+{% if include.placeholder %}
+  {% assign poster = include.placeholder %}
+  {% unless poster contains "://" %}{% assign poster = poster | relative_url %}{% endunless %}
+{% else %}
+  {% assign poster = sceneRoot | append: "/scene-image-medium.jpg" %}
+{% endif %}
+{% if page.lang == "fr" %}
+  {% assign loadLabel = "Charger la vue 3D interactive" %}
+{% else %}
+  {% assign loadLabel = "Load the interactive 3D view" %}
+{% endif %}
+{% assign autoplay = false %}
+{% if include.autoplay and include.autoplay != "false" %}
+  {% assign autoplay = true %}
+{% endif %}
 
 
-<div class="{{itemClass}}">
-    <div class="ecorpus_container">
-      <iframe 
-        src="{{itemSrc}}"
-        allowfullscreen 
-        frameborder="0" 
+<figure class="ecorpus-embed{% if include.class %} {{include.class}}{% endif %}">
+  <div class="media ratio ratio-16x9">
+    <div class="ecorpus_container ecorpus-facade"{% if autoplay %} data-autoplay="true"{% else %} role="button" tabindex="0" aria-label="{{itemTitle | escape}} — {{loadLabel}}"{% endif %}>
+      {% if include.placeholder %}
+      <img class="ecorpus_placeholder" loading="lazy"
+        src="{{poster}}"
+        alt="{{itemTitle | escape}}">
+      {% else %}
+      <img class="ecorpus_placeholder" loading="lazy"
+        src="{{sceneRoot}}/scene-image-low.jpg"
+        srcset="{{sceneRoot}}/scene-image-thumb.jpg 320w,
+          {{sceneRoot}}/scene-image-low.jpg 640w,
+          {{sceneRoot}}/scene-image-medium.jpg 1280w,
+          {{sceneRoot}}/scene-image-high.jpg 2560w"
+        sizes="(max-width: 1000px) 100vw, 1000px"
+        alt="{{itemTitle | escape}}">
+      {% endif %}
+      {% unless autoplay %}<div class="play-button"></div>{% endunless %}
+      <iframe
+        data-src="{{itemSrc}}"
+        title="{{itemTitle | escape}}"
+        credentialless
+        referrerpolicy="strict-origin"
+        allowfullscreen
         allow="fullscreen; xr; xr-spatial-tracking; accelerometer; gyroscope"
         sandbox="allow-scripts allow-same-origin allow-popups allow-downloads allow-forms"
         loading="lazy"></iframe>
+      <script>
+        (function(){ //anonymous function to avoid polluting the global space
+          var container = document.currentScript.parentNode;
+          var iframe = container.querySelector("iframe");
+          function load(){
+            if(iframe.getAttribute("src")) return;
+            iframe.addEventListener("load", function(){
+              // reveal the viewer (see .ecorpus-facade in base.scss); if the
+              // cross-origin request is blocked (search engines) or the server
+              // is down, "load" never fires and the poster stays visible
+              container.classList.remove("ecorpus-facade");
+            });
+            iframe.setAttribute("src", iframe.getAttribute("data-src"));
+            container.removeAttribute("role");
+            container.removeAttribute("tabindex");
+            container.removeAttribute("aria-label");
+            var button = container.querySelector(".play-button");
+            if(button) container.removeChild(button);
+          }
+          if(container.hasAttribute("data-autoplay")){
+            load();
+          }else{
+            container.addEventListener("click", load);
+            container.addEventListener("keydown", function(e){
+              if(e.key === "Enter" || e.key === " "){ e.preventDefault(); load(); }
+            });
+          }
+        })();
+      </script>
     </div>
-</div>
+  </div>
+  <figcaption>
+    <a href="{{itemSrc}}">{{itemTitle}}</a>
+    {% if include.abstract %}<p class="ecorpus-intro">{{include.abstract}}</p>{% endif %}
+  </figcaption>
+  {% unless poster contains "://" %}{% assign poster = poster | absolute_url %}{% endunless %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "3DModel",
+    "name": {{itemTitle | jsonify}},
+    {% if include.abstract %}"abstract": {{include.abstract | jsonify}},
+    {% endif %}"image": {{poster | jsonify}},
+    "url": {{sceneUrl | jsonify}}{% if include.model %},
+    "encoding": {
+      "@type": "MediaObject",
+      "contentUrl": {{include.model | jsonify}},
+      "encodingFormat": "model/gltf-binary"
+    }{% endif %}
+  }
+  </script>
+</figure>

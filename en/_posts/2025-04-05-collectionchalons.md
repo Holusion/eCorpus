@@ -92,7 +92,8 @@ excerpt: "Known for its collegiate church listed as a UNESCO World Heritage Site
     <p>
     <a href="https://ecorpus.holusion.com/ui/scenes/NoceDeCana_Puzzle/view">View the eCorpus scene presenting the fragmentation of the Wedding at Cana</a>
     
-    {% include voyager.html server=page.server embed=page.scene class="h-100 larg100" %}
+    {% capture scene_url %}{{page.server}}/ui/scenes/{{page.scene}}/view{% endcapture %}
+    {% include voyager.html url=scene_url title="The Wedding at Cana (reconstruction)" class="h-100 larg100" %}
 
     </p>
 
