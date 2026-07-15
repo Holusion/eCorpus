@@ -6,6 +6,7 @@ import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
+import { AccessLevel } from "../../auth/UserManager.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
@@ -240,7 +241,7 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/groups/:group", policy({ perms: "read", on: "group" }), wrap(async (req, res)=>{
+routes.get("/groups/:group", policy({ access: "read", on: "group" }), wrap(async (req, res)=>{
   const host = getHost(req);
   const userManager = getUserManager(req);
   const requester = getUser(req);
@@ -582,7 +583,7 @@ routes.get("/admin/stats", requireLevel("admin"),  wrap(async (req, res)=>{
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template
-routes.use("/scenes/:scene", policy({ perms: "read" }));
+routes.use("/scenes/:scene", policy({ access: "read" }));
 
 routes.get("/scenes/:scene", wrap(async (req, res)=>{
   const requester = getUser(req);
@@ -592,7 +593,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   let scene = mapScene(req, await vfs.getScene(scene_name, requester? requester.uid: undefined));
 
   let [permissions, meta, serverTags] = await Promise.all([
-    um.getPermissions(scene.id),
+    um.getAcl(scene.id),
     vfs.getSceneMeta(scene_name),
     vfs.getTags(),
   ]);
@@ -632,7 +633,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/scenes/:scene/tasks", policy({ perms: "admin" }), wrap(async (req, res) => {
+routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), wrap(async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
@@ -700,7 +701,7 @@ routes.get("/scenes/:scene/view", async (req, res) => {
 });
 
 
-routes.get("/scenes/:scene/edit", policy({ perms: "write" }), (req, res)=>{
+routes.get("/scenes/:scene/edit", policy({ access: "write" }), (req, res)=>{
   let {scene} = req.params;
   let {mode="Edit"} = req.query;
   let host = getHost(req);
@@ -717,12 +718,12 @@ routes.get("/scenes/:scene/edit", policy({ perms: "write" }), (req, res)=>{
   });
 });
 
-routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history", policy({ access: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   let host = getHost(req);
   let {scene:scene_name} = req.params;
   let scene = mapScene(req, await vfs.getScene(scene_name));
-  const access = res.locals.access as string;
+  const access = res.locals.access as AccessLevel;
 
   const limit = Math.min(100, Math.max(1, qsToInt(req.query.limit) ?? 25));
   const offset = Math.max(0, qsToInt(req.query.offset) ?? 0);
@@ -760,7 +761,7 @@ routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req
     title: `eCorpus: History of ${scene_name}`,
     scene,
     name: scene_name,
-    canAdmin: access === "admin",
+    canAdmin: AccessLevel.Admin <= access,
     days,
     headId,
     pager,
@@ -770,7 +771,7 @@ routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req
   });
 }))
 
-routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (req, res) => {
+routes.get("/scenes/:scene/settings", policy({ access: "admin" }), wrap(async (req, res) => {
   const requester = getUser(req);
   const vfs = getVfs(req);
   const um = getUserManager(req);
@@ -778,7 +779,7 @@ routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (re
   const scene = mapScene(req, await vfs.getScene(scene_name, requester?.uid));
 
   const [permissions, serverTags] = await Promise.all([
-    um.getPermissions(scene.id),
+    um.getAcl(scene.id),
     vfs.getTags(),
   ]);
 
@@ -796,7 +797,7 @@ routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (re
   });
 }));
 
-routes.get("/scenes/:scene/history/:id/view", policy({ perms: "write" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history/:id/view", policy({ access: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   //scene_name is actually already validated through canAdmin
   let {scene:scene_name, id} = req.params;

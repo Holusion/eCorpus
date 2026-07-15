@@ -5,7 +5,7 @@ import { getUserManager } from "../../../utils/locals.js";
 
 
 
-export default async function patchPermissions(req :Request, res :Response){
+export default async function patchSceneAccess(req :Request, res :Response){
   let userManager = getUserManager(req);
   let {scene} = req.params;
   let patch = Array.isArray(req.body)? req.body: [req.body];

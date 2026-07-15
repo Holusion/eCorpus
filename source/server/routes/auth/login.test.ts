@@ -263,7 +263,7 @@ describe("/auth/login", function(){
 
     it("rejects invalid tokens", async function(){
       let res = await request(this.server).get("/auth/login")
-      .set("Authorization", `Bearer ecorpus_AAAAAAAA_${Buffer.alloc(32).toString("base64url")}`)
+      .set("Authorization", `Bearer ec_AAAAAAAA_${Buffer.alloc(32).toString("base64url")}`)
       .expect(401);
       expect(res.headers).not.to.have.property("set-cookie");
     });

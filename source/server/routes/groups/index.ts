@@ -13,17 +13,21 @@ import deleteGroup from "./group/delete.js";
 
 const router = Router();
 
-//Group management follows the two-rung groups family: groups:read to inspect
-//the group inventory, groups:write (⟺ level ≥ manage) to create, delete and
-//re-member. Reading *one* group is resource-scoped (`on:"group"`) instead: its
-//members may read it without holding groups:read, like the group's HTML view.
-//A future per-group role (owner, moderator…) extends the "group" access
-//resolver in locals.ts — these routes and scopes would not change.
+//Group management follows the three-rung groups family: groups:read to
+//inspect the group inventory, groups:admin (⟺ level ≥ manage) to create
+//groups. groups:write is reserved for per-group metadata edits — the rung a
+//future per-group role (owner, moderator…) will exercise; no route uses it yet.
+//Per-group operations are resource-scoped (`on:"group"`): members may read a
+//group without holding groups:read (like the group's HTML view), and deletion
+//or membership changes require "admin" access on *that* group — today only
+//manage-level users reach it, but a future per-group role extends the "group"
+//access resolver in locals.ts without touching these routes. Like scenes,
+//insufficient access answers an existence-hiding 404.
 router.get("/", policy({ scope: "groups:read" }), wrap(getGroups));
-router.post("/", policy({ scope: "groups:write" }), bodyParser.json(), wrap(postGroups));
-router.get("/:group", policy({ perms: "read", on: "group" }), wrap(getGroup));
-router.delete("/:group", policy({ scope: "groups:write" }), wrap(deleteGroup))
-router.put("/:group/:member", policy({ scope: "groups:write" }), wrap(putMember));
-router.delete("/:group/:member", policy({ scope: "groups:write" }), wrap(deleteMember));
+router.post("/", policy({ scope: "groups:admin" }), bodyParser.json(), wrap(postGroups));
+router.get("/:group", policy({ access: "read", on: "group" }), wrap(getGroup));
+router.delete("/:group", policy({ access: "admin", on: "group" }), wrap(deleteGroup))
+router.put("/:group/:member", policy({ access: "admin", on: "group" }), wrap(putMember));
+router.delete("/:group/:member", policy({ access: "admin", on: "group" }), wrap(deleteMember));
 
 export default router;

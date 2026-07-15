@@ -1,5 +1,6 @@
 
 import { Request, Response } from "express";
+import { AccessLevel } from "../../auth/UserManager.js";
 import { effectiveAccess, getUser, getUserManager, getVfs } from "../../utils/locals.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utils/errors.js";
 
@@ -31,12 +32,12 @@ export default async function patchTags(req: Request, res: Response) {
     for (let { name, scene, action } of patch) {
       // action equals "action" OR "delete"
       let rights = await userManager.getAccessRights(scene, requester ? requester.uid: null);
-      if (requester && requester.level == "admin") rights = "admin";
+      if (requester && requester.level == "admin") rights = AccessLevel.Admin;
       const effective = effectiveAccess(res, rights);
-      if (effective == "write" || effective == "admin") {
+      if (AccessLevel.Write <= effective) {
         action == "create" ? await vfs.addTag(scene, name) : await vfs.removeTag(scene, name);
       } else {
-        if (rights == "none") {
+        if (rights == AccessLevel.None) {
           throw new NotFoundError(`Scene ${typeof (scene) == "number" ? `${scene} id` : `named ${scene}`} was not found`);
         } else {
           throw new ForbiddenError(`Insufficient rights on scene ${typeof (scene) == "number" ? `${scene} id` : `named ${scene}`}`);

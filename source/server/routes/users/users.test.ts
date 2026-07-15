@@ -239,14 +239,14 @@ describe("/users", function(){
         let props :WriteFileParams= {scene:"foo", mime: "model/gltf-binary", name: "models/foo.glb", user_id: user.uid}
         let scene = await vfs.createScene("foo", user.uid);
         let doc_id = await vfs.writeDoc("{}", {scene: scene, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-        expect(await userManager.getPermissions(scene)).to.deep.equal([
+        expect(await userManager.getAcl(scene)).to.deep.equal([
           {uid: user.uid, username: user.username, access: "admin"},
         ]);
         let f = await vfs.createFile(props, {hash: "xxxxxx", size:10});
         await this.agent.delete(`/users/${user.uid}`)
         .expect(204);
         expect(await vfs.getFileProps(props)).to.have.property("author", "default");
-        expect(await userManager.getPermissions(scene)).to.deep.equal([ ]);
+        expect(await userManager.getAcl(scene)).to.deep.equal([ ]);
       });
 
       it("can patch a user", async function(){

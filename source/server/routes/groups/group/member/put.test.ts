@@ -36,12 +36,13 @@ describe("PUT /groups/:group/:member", function () {
         expect(group.members).to.have.members([member.username]);
     });
 
+    //Requesters without access to the group get existence-hiding 404s, like scenes
     it("can't put a member of a group as creator", async function () {
         let creator = await userManager.addUser("celia", "12345678", "create", "celia@example.com");
         await request(this.server).put(`/groups/My Group/` + member.username)
             .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         const group = await userManager.getGroup("My Group");
         expect(group.members).to.not.have.members([member.username]);
     });
@@ -51,7 +52,7 @@ describe("PUT /groups/:group/:member", function () {
         await request(this.server).put(`/groups/My Group/` + member.username)
             .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         const group = await userManager.getGroup("My Group");
         expect(group.members).to.not.have.members([member.username]);
     });
@@ -59,7 +60,7 @@ describe("PUT /groups/:group/:member", function () {
     it("can't put a member of a group as anonmyous", async function () {
         await request(this.server).put(`/groups/My Group/` + member.username)
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         const group = await userManager.getGroup("My Group");
         expect(group.members).to.not.have.members([member.username]);
     });

@@ -12,8 +12,8 @@ import { postLogout } from "./logout.js";
 import { deleteSession, getOwnSessions } from "./sessions.js";
 import { deleteOwnToken, getOwnTokens, postToken } from "./tokens.js";
 import { deleteClient, deleteGrant, getAuthorize, getClients, getGrants, postAuthorize, postClient, postRevoke, postToken as postOAuthToken } from "./oauth.js";
-import getPermissions from "./access/get.js";
-import patchPermissions from "./access/patch.js";
+import getSceneAccess from "./access/get.js";
+import patchSceneAccess from "./access/patch.js";
 import User from "../../auth/User.js";
 
 const useJSON = bodyParser.json();
@@ -67,7 +67,7 @@ router.post("/login",
 router.get("/login/:username/link", policy({ scope: "users:admin" }), wrap(getLoginLink));
 //Sending the link (to the *target user's* mailbox — never returned to the
 //requester, so no escalation) is open to everyone under a strict rate limit.
-//The user-provisioning capability (users:write — an admin session or an
+//The user-provisioning scope (users:write — an admin session or an
 //admin's users:write/all token, consistent with POST /users onboarding
 //emails) is exempt; any authorization refusal falls through to the
 //rate-limited branch.
@@ -86,17 +86,17 @@ router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));
 //write; *minting* a new token is account:admin — the non-mintable, session-only
 //top of the family, so a token (even `all`-scoped) can never create another
 //token or inspect the credentials it lives next to.
-router.get("/sessions", policy({ scope: "account:read", perms: null }), wrap(getOwnSessions));
-router.delete("/sessions/:id", policy({ scope: "account:write", perms: null }), wrap(deleteSession));
+router.get("/sessions", policy({ scope: "account:read", access: null }), wrap(getOwnSessions));
+router.delete("/sessions/:id", policy({ scope: "account:write", access: null }), wrap(deleteSession));
 
-router.get("/tokens", policy({ scope: "account:read", perms: null }), wrap(getOwnTokens));
-router.post("/tokens", policy({ scope: "account:admin", perms: null }), useJSON, wrap(postToken));
-router.delete("/tokens/:id", policy({ scope: "account:write", perms: null }), wrap(deleteOwnToken));
+router.get("/tokens", policy({ scope: "account:read", access: null }), wrap(getOwnTokens));
+router.post("/tokens", policy({ scope: "account:admin", access: null }), useJSON, wrap(postToken));
+router.delete("/tokens/:id", policy({ scope: "account:write", access: null }), wrap(deleteOwnToken));
 
 //"Authorized applications": persisted OAuth consents. Revoking one stops
 //silent re-authorization and revokes the client's tokens for this user.
-router.get("/oauth/grants", policy({ scope: "account:read", perms: null }), wrap(getGrants));
-router.delete("/oauth/grants/:clientId", policy({ scope: "account:write", perms: null }), wrap(deleteGrant));
+router.get("/oauth/grants", policy({ scope: "account:read", access: null }), wrap(getGrants));
+router.delete("/oauth/grants/:clientId", policy({ scope: "account:write", access: null }), wrap(deleteGrant));
 
 //OAuth2 authorization server (authorization code + PKCE)
 router.get("/oauth/authorize", wrap(getAuthorize));
@@ -115,8 +115,8 @@ router.delete("/oauth/clients/:id", policy({ scope: "instance:write" }), wrap(de
 //Reading a scene's ACL needs an identity (corpus:read — the baseline scope
 //anonymous doesn't hold) on top of scene read access: anonymous readers of a
 //public scene don't get to enumerate its users.
-router.get("/access/:scene", policy({ scope: "corpus:read", perms: "read" }), wrap(getPermissions));
-router.patch("/access/:scene", policy({ perms: "admin" }), useJSON, wrap(patchPermissions));
+router.get("/access/:scene", policy({ scope: "corpus:read", access: "read" }), wrap(getSceneAccess));
+router.patch("/access/:scene", policy({ access: "admin" }), useJSON, wrap(patchSceneAccess));
 
 
 export default router;

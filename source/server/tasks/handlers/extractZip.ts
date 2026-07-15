@@ -6,7 +6,7 @@ import path from "node:path";
 import { isUserAtLeast } from "../../auth/User.js";
 import { BadRequestError, HTTPError, InternalError, UnauthorizedError } from "../../utils/errors.js";
 import { parseFilepath } from "../../utils/archives.js";
-import { toAccessLevel } from "../../auth/UserManager.js";
+import { AccessLevel, fromAccessLevel } from "../../auth/UserManager.js";
 import { getMimeType } from "../../utils/filetypes.js";
 import { finished } from "node:stream/promises";
 import { UploadHandlerParams, ParsedUserUpload, UploadedArchive, UploadedFile } from "./uploads.js";
@@ -64,11 +64,11 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
         //Create the scene
         try{
           const rights = await userManager.getAccessRights(scene, requester.uid)
-          if(toAccessLevel("write") <= toAccessLevel(rights)){
+          if(AccessLevel.Write <= rights){
             result = {name: scene, action: "update"};
             logger.log(`Scene ${scene} will be updated`);
           }else{
-            logger.warn(`Scene ${scene} can't be updated: User only has access level "${toAccessLevel(rights)}"`);
+            logger.warn(`Scene ${scene} can't be updated: User only has access level "${fromAccessLevel(rights)}"`);
             result = {name: scene, action: "error", error: new UnauthorizedError(`User doesn't have write permissions on scene "${scene}"`)};
             has_errors = true;
           }

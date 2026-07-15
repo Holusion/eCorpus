@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import request from "supertest";
 import User, { UserLevels } from "../../../auth/User.js";
-import UserManager from "../../../auth/UserManager.js";
+import UserManager, { AccessLevel } from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 import Group from "../../../auth/Group.js";
 
@@ -38,7 +38,7 @@ describe("PATCH /auth/access/:scene", function () {
         .set("Content-Type", "application/json")
         .send({ username: opponent.username, access: "write" })
         .expect(204);
-      expect(await userManager.getPermissions(titleSlug)).to.have.deep.members([
+      expect(await userManager.getAcl(titleSlug)).to.have.deep.members([
         { "uid": user.uid, "username": "bob", "access": "admin" },
         { "uid": opponent.uid, "username": "oscar", "access": "write" }
       ]);
@@ -50,7 +50,7 @@ describe("PATCH /auth/access/:scene", function () {
         .set("Content-Type", "application/json")
         .send({ uid: opponent.uid, access: "write" })
         .expect(204);
-      expect(await userManager.getPermissions(titleSlug)).to.have.deep.members([
+      expect(await userManager.getAcl(titleSlug)).to.have.deep.members([
         { "uid": user.uid, "username": "bob", "access": "admin" },
         { "uid": opponent.uid, "username": "oscar", "access": "write" }
       ]);
@@ -66,9 +66,9 @@ describe("PATCH /auth/access/:scene", function () {
         ])
         .expect(204);
 
-      let perms = await userManager.getPermissions(titleSlug);
-      expect(perms).to.have.length(3);
-      expect(perms).to.deep.include.members([
+      let acl = await userManager.getAcl(titleSlug);
+      expect(acl).to.have.length(3);
+      expect(acl).to.deep.include.members([
         { "uid": user.uid, "username": "bob", "access": "admin" },
         { "uid": admin.uid, "username": "alice", "access": "admin" },
         { "uid": opponent.uid, "username": "oscar", "access": "write" }
@@ -87,7 +87,7 @@ describe("PATCH /auth/access/:scene", function () {
         ])
         .expect(404);
 
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([
         { "uid": user.uid, "username": "bob", "access": "admin" },
       ]);
     });
@@ -98,7 +98,7 @@ describe("PATCH /auth/access/:scene", function () {
         .set("Content-Type", "application/json")
         .send({ username: opponent.username, access: "xxx" })
         .expect(400);
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([
         { "uid": user.uid, "username": "bob", "access": "admin" },
       ]);
     });
@@ -118,7 +118,7 @@ describe("PATCH /auth/access/:scene", function () {
         .send({ username: user.username, access: "none" })
         .expect(204);
 
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([]);
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([]);
     });
 
     it("can use an empty string to remove a user", async function () {
@@ -128,7 +128,7 @@ describe("PATCH /auth/access/:scene", function () {
         .send({ username: user.username, access: "" })
         .expect(204);
 
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([]);
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([]);
     });
   });
 
@@ -140,7 +140,7 @@ describe("PATCH /auth/access/:scene", function () {
         .set("Content-Type", "application/json")
         .send({ groupName: group.groupName, access: "write" })
         .expect(204);
-      expect(await userManager.getPermissions(titleSlug)).to.have.deep.members([
+      expect(await userManager.getAcl(titleSlug)).to.have.deep.members([
         { "groupUid": group.groupUid, "groupName": group.groupName, "access": "write" },
         { "uid": user.uid, "username": "bob", "access": "admin" }
       ]);
@@ -152,7 +152,7 @@ describe("PATCH /auth/access/:scene", function () {
         .set("Content-Type", "application/json")
         .send({ groupUid: group.groupUid, access: "write" })
         .expect(204);
-      expect(await userManager.getPermissions(titleSlug)).to.have.deep.members([
+      expect(await userManager.getAcl(titleSlug)).to.have.deep.members([
         { "groupUid": group.groupUid, "groupName": group.groupName, "access": "write" },
         { "uid": user.uid, "username": "bob", "access": "admin" },
       ]);
@@ -168,9 +168,9 @@ describe("PATCH /auth/access/:scene", function () {
         ])
         .expect(204);
 
-      let perms = await userManager.getPermissions(titleSlug);
-      expect(perms).to.have.length(3);
-      expect(perms).to.deep.include.members([
+      let acl = await userManager.getAcl(titleSlug);
+      expect(acl).to.have.length(3);
+      expect(acl).to.deep.include.members([
         { "uid": user.uid, "username": "bob", "access": "admin" },
         { "groupUid": group.groupUid, "groupName": group.groupName, "access": "write" },
         { "uid": opponent.uid, "username": "oscar", "access": "write" }
@@ -183,7 +183,7 @@ describe("PATCH /auth/access/:scene", function () {
         .set("Content-Type", "application/json")
         .send({ "groupName": group.groupName, "access": "xxx" })
         .expect(400);
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([
         { "uid": user.uid, "username": "bob", "access": "admin" },
       ]);
     });
@@ -204,7 +204,7 @@ describe("PATCH /auth/access/:scene", function () {
         .send({ groupName: group.groupName, access: "none" })
         .expect(204);
 
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([
         { "uid": user.uid, "username": "bob", "access": "admin" }
       ]);
     });
@@ -217,7 +217,7 @@ describe("PATCH /auth/access/:scene", function () {
         .send({ groupName: group.groupName, access: "" })
         .expect(204);
 
-      expect(await userManager.getPermissions(titleSlug)).to.deep.equal([
+      expect(await userManager.getAcl(titleSlug)).to.deep.equal([
         { "uid": user.uid, "username": "bob", "access": "admin" }
       ]);
     });
@@ -260,6 +260,6 @@ describe("PATCH /auth/access/:scene", function () {
       .send(body)
       .expect(204);
 
-    expect(await userManager.getAccessRights(titleSlug, opponent.uid)).to.equal("admin");
+    expect(await userManager.getAccessRights(titleSlug, opponent.uid)).to.equal(AccessLevel.Admin);
   });
 });

@@ -45,7 +45,7 @@ describe("/auth/tokens", function(){
       const res = await agent.post("/auth/tokens")
         .send({name: "my service"})
         .expect(201);
-      expect(res.body).to.have.property("token").match(/^ecorpus_/);
+      expect(res.body).to.have.property("token").match(/^ec_/);
       expect(res.body).to.have.property("name", "my service");
       expect(res.body).to.have.property("scope").deep.equal(["all"]);
 

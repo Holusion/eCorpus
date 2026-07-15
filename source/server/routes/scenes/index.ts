@@ -48,31 +48,31 @@ router.propfind("/", wrap(handlePropfind));
 router.post("/", requireScope("corpus:write", "scenes:write"), bodyParser.json(), wrap(handlePostScenes));
 
 //Creating or overwriting one named scene: create level + corpus:write scope.
-router.post("/:scene", policy({ scope: "corpus:write", perms: null }), wrap(handlePostScene));
-router.mkcol(`/:scene`, policy({ scope: "corpus:write", perms: null }), wrap(handleCreateScene));
+router.post("/:scene", policy({ scope: "corpus:write", access: null }), wrap(handlePostScene));
+router.mkcol(`/:scene`, policy({ scope: "corpus:write", access: null }), wrap(handleCreateScene));
 
 //Per-leaf policies (were a blanket `router.use("/:scene", canRead)` prefix):
 //each declares its own scene-ACL level, from which the scenes:* scope derives.
-router.get("/:scene", policy({ scope: null, perms: "read" }), wrap(handleGetScene));
-router.propfind("/:scene", policy({ scope: null, perms: "read" }), wrap(handlePropfind));
-router.patch("/:scene", policy({ scope: null, perms: "admin" }), bodyParser.json(), wrap(handlePatchScene));
-router.delete("/:scene", policy({ scope: null, perms: "admin" }), wrap(handleDeleteScene));
+router.get("/:scene", policy({ scope: null, access: "read" }), wrap(handleGetScene));
+router.propfind("/:scene", policy({ scope: null, access: "read" }), wrap(handlePropfind));
+router.patch("/:scene", policy({ scope: null, access: "admin" }), bodyParser.json(), wrap(handlePatchScene));
+router.delete("/:scene", policy({ scope: null, access: "admin" }), wrap(handleDeleteScene));
 
 
-router.propfind("/:scene/*", policy({ scope: null, perms: "read" }), wrap(handlePropfind));
+router.propfind("/:scene/*", policy({ scope: null, access: "read" }), wrap(handlePropfind));
 
-router.get("/:scene/:file(*.svx.json)", policy({ scope: null, perms: "read" }), wrap(handleGetDocument));
+router.get("/:scene/:file(*.svx.json)", policy({ scope: null, access: "read" }), wrap(handleGetDocument));
 router.put("/:scene/:file(*.svx.json)",
-  policy({ scope: null, perms: "write" }),
+  policy({ scope: null, access: "write" }),
   bodyParser.json({type:["application/si-dpo-3d.document+json", "application/json"], limit: 4e6}),
   wrap(handlePutDocument)
 );
 
 
-router.get(`/:scene/:name(*)`, policy({ scope: null, perms: "read" }), wrap(handleGetFile));
-router.put(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handlePutFile));
-router.move(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handleMoveFile));
-router.delete(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handleDeleteFile));
-router.mkcol(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handleCreateFolder));
+router.get(`/:scene/:name(*)`, policy({ scope: null, access: "read" }), wrap(handleGetFile));
+router.put(`/:scene/:name(*)`, policy({ scope: null, access: "write" }), wrap(handlePutFile));
+router.move(`/:scene/:name(*)`, policy({ scope: null, access: "write" }), wrap(handleMoveFile));
+router.delete(`/:scene/:name(*)`, policy({ scope: null, access: "write" }), wrap(handleDeleteFile));
+router.mkcol(`/:scene/:name(*)`, policy({ scope: null, access: "write" }), wrap(handleCreateFolder));
 
 export default router;

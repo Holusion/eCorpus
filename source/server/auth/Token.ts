@@ -5,7 +5,7 @@ import type { UserRole } from "./User.js";
  * Constant prefix of every eCorpus API token.
  * Makes tokens recognizable to secret-scanning tools (CI hooks, GitHub push protection).
  */
-export const TOKEN_PREFIX = "ecorpus";
+export const TOKEN_PREFIX = "ec";
 
 /** Default lifetime of an OAuth2-granted access token: 30 days, in milliseconds */
 export const DEFAULT_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1000;
@@ -33,7 +33,7 @@ export function verifySecret(secret: Buffer | string, hash: Buffer): boolean {
 }
 
 /**
- * Serialize a token as `ecorpus_<secret>`. No id is embedded: verification
+ * Serialize a token as `ec_<secret>`. No id is embedded: verification
  * looks the token up by `sha256(secret)` (a unique index), so nothing about
  * the token's number or creation order leaks, and the string is shorter.
  */
@@ -42,7 +42,7 @@ export function formatToken(secret: Buffer): string {
 }
 
 /**
- * Anatomy of a token: `ecorpus_<secret>` where secret is 32 bytes base64url
+ * Anatomy of a token: `ec_<secret>` where secret is 32 bytes base64url
  * (43 chars). Matched by fixed length rather than by splitting on `_`, since
  * the base64url alphabet itself contains `_`.
  */
@@ -61,45 +61,26 @@ export function parseToken(token: string): Buffer | null {
 }
 
 /**
- * Every concrete capability string (the expansion universe). This is the
+ * Every concrete scope string (after expansion). This is the
  * vocabulary authorization is expressed in: a request's *effective* scope set
  * (see `utils/locals.ts`) is always a subset of these, and every route guard
- * asks "is capability C in that set?".
+ * asks "is scope S in that set?".
  *
  * Hierarchical families (`read < write < admin`) expand downward: holding
  * `scenes:write` implies `scenes:read` (see {@link expand}).
  *
- * The `corpus` family is the *collection*, as opposed to any one scene:
- * - `corpus:read` is the baseline "recognized user of this instance"
- *   capability: every user level holds it and every credential carries it
- *   implicitly (see {@link expandCredential}), so
- *   `policy({scope: "corpus:read"})` means "any identified requester" —
- *   anonymous does not hold it. It does NOT grant scene content access (that
- *   is `scenes:read`, which anonymous *does* hold). An OAuth client may
- *   request it alone for a pure identity token.
- * - `corpus:write` is adding scenes to the collection (level ≥ create). The
- *   family split is what keeps the model sound: `scenes:admin` means "may
- *   reach admin level on scenes the ACL grants" (`use`-level users hold it
- *   over their own scenes) and must NOT imply creation — which a same-family
- *   ladder would force. A creation token usually wants "corpus:write
- *   scenes:write": creating an empty scene is useless without the right to
- *   populate it.
- *
- * The top rung of the `account` and `users` families is escalation-critical
+ * The top level of the `account` and `users` families is escalation-critical
  * (see {@link NON_MINTABLE_SCOPES}): a session holds it but no delegated
  * credential ever can.
  *
- * New scopes may be added here; existing scope strings are never reinterpreted.
- * That makes two-rung families (`corpus`, `groups`, `instance`) a permanent
- * commitment: adding a higher rung later would silently demote already-minted
- * `:write` credentials on the routes that move to the new rung.
+ * New scopes may be added here; existing scope strings should not be reinterpreted.
  */
 export const CONCRETE_SCOPES = [
   "corpus:read", "corpus:write",
   "scenes:read", "scenes:write", "scenes:admin",
   "tasks:read", "tasks:write", "tasks:admin",
   "users:read", "users:write", "users:admin",
-  "groups:read", "groups:write",
+  "groups:read", "groups:write", "groups:admin",
   "instance:read", "instance:write",
   "account:read", "account:write", "account:admin",
 ] as const;
@@ -107,7 +88,7 @@ export const CONCRETE_SCOPES = [
 export type Scope = typeof CONCRETE_SCOPES[number];
 
 /**
- * The universal capability ladder: for any `family:level` scope, holding a
+ * The universal scope ladder: for any `family:level` scope, holding a
  * level implies every lower one (`read ⊆ write ⊆ admin`). Every scope in the
  * vocabulary sits on it; a scope with another suffix would be standalone (no
  * ladder). This single rule is the source of the hierarchy; families do not
@@ -116,22 +97,13 @@ export type Scope = typeof CONCRETE_SCOPES[number];
 const SCOPE_LADDER = ["read", "write", "admin"] as const;
 
 /**
- * Scopes that possession would let a credential use to escalate back to its
- * owner's full authority, so they can never be delegated: not mintable as a
+ * Scopes that would let a credential "escalate itself" full authority,
+ * so they can never be delegated: not mintable as a
  * token, not requestable as an OAuth scope, and not part of `all`.
  * Only a session (which carries no `token.scope` factor) ever holds these.
  *
- * - `account:admin` — mint a token, grant OAuth consent, and change the
- *   account's own credentials (password/email): each converts a credential
- *   into a fresh one, or into a session.
- * - `users:admin` — obtain login links for arbitrary users and create
- *   administrator accounts: session-minting by another name.
- * - `instance:write` — rewrite runtime config: redirecting `smart_host` lets
- *   the holder intercept login-link emails for any account. `instance:read`
- *   stays mintable — it is the monitoring use case (scraping `/admin/stats`).
- *
  * Non-mintability is a property of the *scope*, orthogonal to the ladder: the
- * lower rungs of these families stay mintable.
+ * lower levels of these families stay mintable.
  */
 export const NON_MINTABLE_SCOPES: readonly string[] = ["account:admin", "users:admin", "instance:write"];
 
@@ -168,7 +140,7 @@ export function expandCredential(scopes: readonly string[]): Set<string> {
 }
 
 /**
- * Resolve a scope set into the full set of concrete capabilities it grants:
+ * Resolve a scope set into the full set of concrete scopes it grants:
  * expand each `read < write < admin` ladder downward, and expand `all` into
  * every mintable concrete scope. Membership in the result is the single
  * primitive every guard is built on (plain set containment). Replaces the
@@ -197,14 +169,15 @@ export function expand(scopes: readonly string[]): Set<string> {
 }
 
 /**
- * The per-scene access cap an effective scope set implies (the level a scene-ACL
- * requester may reach on a scene; the ACL still decides *which* scene). Read off
- * the effective (expanded) credential set — `maxSceneScope(expand(scope))`.
+ * The per-resource access cap an effective scope set implies for one family:
+ * the highest rung of `family` present in the set (the level a resource-ACL
+ * requester may reach; the ACL still decides on *which* resource). Read off
+ * the effective (expanded) credential set — `maxFamilyScope(expand(scope), f)`.
  */
-export function maxSceneScope(scopes: ReadonlySet<string>): "none" | "read" | "write" | "admin" {
-  if (scopes.has("scenes:admin")) return "admin";
-  if (scopes.has("scenes:write")) return "write";
-  if (scopes.has("scenes:read")) return "read";
+export function maxFamilyScope(scopes: ReadonlySet<string>, family: string): "none" | "read" | "write" | "admin" {
+  for (let i = SCOPE_LADDER.length - 1; 0 <= i; i--) {
+    if (scopes.has(`${family}:${SCOPE_LADDER[i]}`)) return SCOPE_LADDER[i];
+  }
   return "none";
 }
 
@@ -221,7 +194,7 @@ export function isValidScope(scope: any): scope is string[] {
 
 /**
  * The scope set an anonymous request holds. Anonymous is *not* unscoped: it
- * carries a small public set, so a `perms:"read"` route (which derives
+ * carries a small public set, so an `access:"read"` route (which derives
  * `scenes:read`) still lets an anonymous reader through to a public scene's
  * ACL. A future non-public scope simply cannot leak here.
  */
@@ -230,12 +203,12 @@ export const PUBLIC_SCOPES: ReadonlySet<string> = expand(["scenes:read"]);
 /**
  * The minimal scopes each user level grants — **un-expanded** (ladder tops only:
  * `scenes:admin`, not `scenes:read/write/admin`), cumulative up the levels. The
- * scene ACL (`perms`) still gates *which* scene, so `scenes:admin` at `use`
+ * scene ACL (`access`) still gates *which* scene, so `scenes:admin` at `use`
  * means "may act on scenes they have the ACL for", not "on every scene".
  */
 const USE_SCOPES = ["corpus:read", "scenes:admin", "tasks:read", "account:admin"];
 const CREATE_SCOPES = [...USE_SCOPES, "corpus:write", "tasks:admin"];
-const MANAGE_SCOPES = [...CREATE_SCOPES, "groups:write"];
+const MANAGE_SCOPES = [...CREATE_SCOPES, "groups:admin"];
 const LEVEL_SCOPES: Record<UserRole, readonly string[]> = {
   //"none" is the anonymous floor plus identity — the UI never assigns it as a
   //stored level. Stored via the raw API it acts as a quarantine: the account
@@ -249,7 +222,7 @@ const LEVEL_SCOPES: Record<UserRole, readonly string[]> = {
 };
 
 /**
- * The capabilities a user of the given level may *exercise*, as the **raw,
+ * The scopes a user of the given level may *exercise*, as the **raw,
  * un-expanded** generating set (see {@link LEVEL_SCOPES}). Callers must
  * {@link expand} it before membership-testing — the `readonly string[]` return
  * type makes a bare `.has()` a compile error — so the `read ⊆ write ⊆ admin`

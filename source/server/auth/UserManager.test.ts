@@ -1,4 +1,4 @@
-import UserManager, { AccessTypes, fromAccessLevel, toAccessLevel } from "./UserManager.js";
+import UserManager, { AccessLevel, AccessTypes, fromAccessLevel, toAccessLevel } from "./UserManager.js";
 import {tmpdir} from "os";
 import fs from "fs/promises";
 import path from "path";
@@ -463,13 +463,13 @@ describe("UserManager methods", function(){
     it("can return default permissions", async function(){
       //Return the value of scene.visible
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
-      expect(access).to.equal("read");
+      expect(access).to.equal(AccessLevel.Read);
     });
 
     it("returns read for allowed anonymous access", async function () {
       //Return the value of scene.visible
-      await expect(await userManager.getAccessRights("foo-grant-access-rights", undefined)).to.equal("read");
-      await expect(await userManager.getAccessRights("foo-grant-access-rights", null as any)).to.equal("read");
+      await expect(await userManager.getAccessRights("foo-grant-access-rights", undefined)).to.equal(AccessLevel.Read);
+      await expect(await userManager.getAccessRights("foo-grant-access-rights", null as any)).to.equal(AccessLevel.Read);
     });
 
     it("returns Not Found for forbidden anonymous access", async function () {
@@ -486,38 +486,38 @@ describe("UserManager methods", function(){
 
     it("can set user permissions by username", async function(){
       
-      for(let role of AccessTypes.slice(2).reverse()){
+      for(let role of AccessTypes.slice(1).reverse()){
         // we use reverse so that we do not set permission to "none" when there is no permission existing.
         await userManager.grant("foo-grant-access-rights-private", user.username, role);
         let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
-        expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(role);
+        expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(toAccessLevel(role));
       }
     });
     it("can set user permissions by uid", async function(){
       await userManager.grant("foo-grant-access-rights-private", user.username, "write");
       let access = await userManager.getAccessRights("foo-grant-access-rights-private", user.uid);
-      expect(access, `Access level write was requested. Received ${access}`).to.equal("write");
+      expect(access, `Access level write was requested. Received ${access}`).to.equal(AccessLevel.Write);
     });
 
     it("returns actual user permissions", async function(){
       let u2 = await userManager.addUser("foo-grant-otheruser", "12345678", "create");
       await userManager.grant("foo-grant-access-rights", u2.uid, "write");
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
-      expect(access).to.equal("read");
+      expect(access).to.equal(AccessLevel.Read);
       let u2access = await userManager.getAccessRights("foo-grant-access-rights", u2.uid);
-      expect(u2access).to.equal("write");
+      expect(u2access).to.equal(AccessLevel.Write);
     });
 
     it("can unset user permissions", async function(){
       await userManager.grant("foo-grant-access-rights", user.username, "write");
       await userManager.grant("foo-grant-access-rights", user.username, null);
       let access = await userManager.getAccessRights("foo-grant-access-rights", user.uid);
-      expect(access).to.equal("read"); // default
+      expect(access).to.equal(AccessLevel.Read); // default
     });
 
     it("admin level user scene access is admin", async function () {
       let access = await userManager.getAccessRights("foo-grant-access-rights-private", admin.uid);
-      expect(access).to.equal("admin"); 
+      expect(access).to.equal(AccessLevel.Admin); 
     })
 
 
@@ -571,7 +571,7 @@ describe("UserManager methods", function(){
     });
   });
 
-  describe("getPermissions()", async function(){
+  describe("getAcl()", async function(){
     let user :User
     this.beforeAll(async function(){
       user = await userManager.addUser("get-permissions-user", "12345678", "create");
@@ -579,8 +579,8 @@ describe("UserManager methods", function(){
       await userManager.grant("foo-get-permissions", user.username, "write");
     });
     it("get a scene permissions from name", async function(){
-      let perms = await userManager.getPermissions("foo-get-permissions");
-      expect(perms).to.deep.equal([
+      let acl = await userManager.getAcl("foo-get-permissions");
+      expect(acl).to.deep.equal([
         { uid: user.uid, username: user.username, access: 'write' }
       ]);
     });
@@ -765,24 +765,24 @@ describe("UserManager methods", function(){
       });
 
       it("can set group permissions by groupName", async function () {
-        for (let role of AccessTypes.slice(2).reverse()) {
+        for (let role of AccessTypes.slice(1).reverse()) {
           // we use reverse so that we do not set permission to "none" when there is no permission existing.
           await userManager.grantGroup("foo-grant-group-access-rights-private", group.groupName, role);
           let access = await userManager.getAccessRights("foo-grant-group-access-rights-private", member.uid);
-          expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(role);
+          expect(access, `Access level ${role} was requested. Received ${access}`).to.equal(toAccessLevel(role));
         }
       });
       it("can set group permissions by uid", async function () {
         await userManager.grantGroup("foo-grant-group-access-rights-private", group.groupUid, "write");
         let access = await userManager.getAccessRights("foo-grant-group-access-rights-private", member.uid);
-        expect(access, `Access level write was requested. Received ${access}`).to.equal("write");
+        expect(access, `Access level write was requested. Received ${access}`).to.equal(AccessLevel.Write);
       });
 
       it("can unset group permissions", async function () {
         await userManager.grantGroup("foo-grant-group-access-rights", group.groupUid, "write");
         await userManager.grantGroup("foo-grant-group-access-rights", group.groupUid, null);
         let access = await userManager.getAccessRights("foo-grant-group-access-rights", member.uid);
-        expect(access).to.equal("read"); // default*/
+        expect(access).to.equal(AccessLevel.Read); // default*/
       });
 
       it("can get scenes and user when getting the group with permissions", async function () {
