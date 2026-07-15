@@ -91,7 +91,8 @@ scene: "NoceDeCana_Puzzle"
     <p>
     <a href="https://ecorpus.holusion.com/ui/scenes/NoceDeCana_Puzzle/view">Pour visualiser la scène eCorpus présentant la fragmentation des Noces de Cana</a>
     
-    {% include voyager.html server=page.server embed=page.scene class="h-100 larg100" %}
+    {% capture scene_url %}{{page.server}}/ui/scenes/{{page.scene}}/view{% endcapture %}
+    {% include voyager.html url=scene_url title="Les Noces de Cana (reconstitution)" class="h-100 larg100" %}
 
     </p>
 
