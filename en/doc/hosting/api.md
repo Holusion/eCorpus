@@ -48,7 +48,7 @@ An anonymous visitor only ever gets a scene's `public_access`.
 
 A request is identified, in order of precedence:
 
-1. **Bearer token** — send `Authorization: Bearer ecorpus_…`. Used by scripts, services and CLIs.
+1. **Bearer token** — send `Authorization: Bearer ec_…`. Used by scripts, services and CLIs.
    A token that is presented but invalid/revoked is a hard `401` (it never silently falls back to anonymous).
 2. **Session cookie** — the browser login path. The `session` cookie only carries an opaque session id;
    the identity (and the account's *current* level) is re-read server-side on every request, so logouts,
@@ -58,7 +58,7 @@ Create a token from the web interface (or with `POST /auth/tokens` from a logged
 Bearer token:
 
 ```bash
-curl -XGET -H "Authorization: Bearer ecorpus_xxxxxxxx" https://ecorpus.holusion.com/[...]
+curl -XGET -H "Authorization: Bearer ec_xxxxxxxx" https://ecorpus.holusion.com/[...]
 ```
 
 You can also open a browser-style session and reuse its cookie, though that will create unrestricted access credentials stored as clear text on your disk:
@@ -77,7 +77,7 @@ curl -b cookies.txt -XGET https://ecorpus.holusion.com/[...]
 
 A logged-in user mints a token with `POST /auth/tokens`, **from an interactive session only** — a token can
 never create another token, even an `all`-scoped one. You choose a name, a set of *scopes* and an optional
-expiry; the `ecorpus_…` secret is returned **once** and never stored server-side. A token can never do more
+expiry; the `ec_…` secret is returned **once** and never stored server-side. A token can never do more
 than its owner's current level allows, and its scopes further cap it:
 
 | Scope | Grants |
@@ -144,7 +144,7 @@ Files orgnisation :
 To retrieve a model:
 
 ```bash
-curl -XGET -H "Authorization: Bearer ecorpus_xxxxxxxx" https://ecorpus.holusion.com/scenes/foo/models/foo.glb
+curl -XGET -H "Authorization: Bearer ec_xxxxxxxx" https://ecorpus.holusion.com/scenes/foo/models/foo.glb
 ```
 
 The verbs `GET` `PUT` `MOVE` `DELETE` `MKCOL` and `PROPFIND` are supported, with behavior generally conforming to the [specification](http://www.webdav.org/specs/rfc4918.html){:target="_blank"}. However, please note: This is a partial implementation of the specification (`COPY` and `LOCK`/`UNLOCK` are not implemented).
