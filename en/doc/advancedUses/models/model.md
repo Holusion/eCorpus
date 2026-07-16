@@ -58,7 +58,7 @@ The models use a PBR (*Physically Based Rendering*) system allowing renderings t
 
 *Tip: The three textures of Metallic, Roughness and Ambient Occlusion share a single image using the R, G and B channels. Thus, using only one of them or all 3 at the same time has no influence on the size of the file and its performance.*
 
-**Complete Documentation** : [Everything you need to know about GLTF export on Blender](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html)
+**Complete Documentation** : [Everything you need to know about GLTF export on Blender](https://docs.blender.org/manual/en/latest/addons/scene_gltf2.html)
 
 
 
