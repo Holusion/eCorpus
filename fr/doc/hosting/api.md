@@ -53,7 +53,7 @@ Un visiteur anonyme n'obtient jamais plus que le `public_access` d'une scène.
 
 Une requête est identifiée, par ordre de précédence :
 
-1. **Jeton Bearer** — envoyez `Authorization: Bearer ecorpus_…`. Utilisé par les scripts, services et clients en
+1. **Jeton Bearer** — envoyez `Authorization: Bearer ec_…`. Utilisé par les scripts, services et clients en
    ligne de commande. Un jeton présenté mais invalide/révoqué provoque un `401` immédiat (jamais de repli
    silencieux vers l'anonyme).
 2. **Cookie de session** — le mode de connexion du navigateur. Le cookie `session` ne transporte qu'un identifiant
@@ -64,7 +64,7 @@ Une requête est identifiée, par ordre de précédence :
 Créez un jeton depuis l'interface web (ou avec `POST /auth/tokens` depuis une session connectée), puis utilisez-le comme jeton porteur :
 
 ```bash
-curl -XGET -H "Authorization: Bearer ecorpus_xxxxxxxx" https://ecorpus.holusion.com/[...]
+curl -XGET -H "Authorization: Bearer ec_xxxxxxxx" https://ecorpus.holusion.com/[...]
 ```
 
 Vous pouvez aussi ouvrir une session de type navigateur et réutiliser son cookie :
@@ -85,7 +85,7 @@ Dans ce cas un jeton d'authentification "session" sera stocké sur votre disque.
 
 Un utilisateur connecté crée un jeton avec `POST /auth/tokens`, **depuis une session interactive uniquement** — un
 jeton ne peut jamais créer un autre jeton, même avec la portée `all`. Vous choisissez un nom, un ensemble de
-*portées* (scopes) et une expiration optionnelle ; le secret `ecorpus_…` n'est renvoyé qu'**une seule fois** et
+*portées* (scopes) et une expiration optionnelle ; le secret `ec_…` n'est renvoyé qu'**une seule fois** et
 n'est jamais stocké côté serveur. Un jeton ne peut jamais faire plus que ce que le niveau actuel de son
 propriétaire permet, et ses portées le restreignent davantage :
 

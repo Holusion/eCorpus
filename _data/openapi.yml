@@ -25,7 +25,13 @@ info:
 
     # Authentication in a nutshell
 
-    Requests generally authenticate using a **Bearer token** (`Authorization: Bearer ecorpus_…`).
+    Requests generally authenticate using a **Bearer token** (`Authorization: Bearer ec_…`).
+    Personal tokens can be created from an authenticated user's personnal page (`/ui/user/tokens`), then used like this:
+
+    ```bash
+    curl -XGET -H "Authorization: Bearer ec_xxxxxxxx" "https://<server>/<path>"
+    ```
+
     See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication)
     for the complete picture (user levels, tokens and scopes, OAuth2), and the [auth](#auth) section below
     for the route reference.
@@ -55,7 +61,7 @@ tags:
       eCorpus combines two notions of authority on every request: a server-wide **user level**
       (`none < use < create < manage < admin`) and a per-scene **access level**
       (`none < read < write < admin`). Requests authenticate with a **session cookie**
-      (obtained through `POST /auth/login`) or a **Bearer token** (`Authorization: Bearer ecorpus_…`);
+      (obtained through `POST /auth/login`) or a **Bearer token** (`Authorization: Bearer ec_…`);
       HTTP *Basic* authentication only identifies a registered OAuth *client* on the token endpoint
       (user Basic auth was dropped in v0.3.0 — see the
       [legacy guide](https://ecorpus.eu/en/doc/hosting/basic_auth) for older instances).
@@ -1166,7 +1172,7 @@ paths:
                   - type: object
                     required: ["token"]
                     properties:
-                      token: {type: string, example: "ecorpus_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+                      token: {type: string, example: "ec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
         '400':
           $ref: "#/components/responses/HTTPError"
         '403':
@@ -1334,7 +1340,7 @@ paths:
                 type: object
                 required: ["access_token", "token_type", "expires_in", "scope"]
                 properties:
-                  access_token: {type: string, example: "ecorpus_xxxxxxxx"}
+                  access_token: {type: string, example: "ec_xxxxxxxx"}
                   token_type: {type: string, enum: ["Bearer"]}
                   expires_in: {type: number, format: int32, example: 2592000}
                   scope: {type: string}
@@ -1807,7 +1813,7 @@ components:
       scheme: bearer
       bearerFormat: ecorpus
       description: |
-        Personal access token or OAuth-issued access token, sent as `Authorization: Bearer ecorpus_…`. Its scopes
+        Personal access token or OAuth-issued access token, sent as `Authorization: Bearer ec_…`. Its scopes
         cap what it can do.
     oauth2:
       type: oauth2
