@@ -18,9 +18,10 @@ eCorpus combine deux notions d'autorité distinctes sur chaque requête :
 - un **niveau utilisateur** global à l'instance, et
 - un **niveau d'accès** propre à chaque scène.
 
-> **Note :** l'authentification HTTP *Basic* avec un nom d'utilisateur et un mot de passe n'est **plus acceptée**
-> pour les utilisateurs. `Authorization: Basic …` ne sert plus qu'à authentifier un *client* OAuth enregistré sur
-> `POST /auth/oauth/token`.
+> **Note :** l'authentification HTTP *Basic* avec un nom d'utilisateur et un mot de passe a été **supprimée dans
+> eCorpus v0.3.0**. `Authorization: Basic …` ne sert plus qu'à authentifier un *client* OAuth enregistré sur
+> `POST /auth/oauth/token`. Si votre instance utilise encore la **v0.2.x**, consultez le
+> [guide d'authentification de l'ancienne version](/fr/doc/hosting/basic_auth).
 
 #### Niveaux utilisateur
 
@@ -127,6 +128,9 @@ requêtes par jeton Bearer et les requêtes anonymes en sont exemptées (un head
 sites).
 
 Le détail des routes `/auth` est documenté (en anglais) dans la [section auth de la référence de l'API](/en/doc/hosting/apiDoc#auth).
+Pour la logique de conception derrière ce modèle (vocabulaire des scopes, middleware de garde, contrat de codes
+de statut), voir le [document de conception Identity & Access Control](/en/doc/hosting/development/auth_system)
+(en anglais).
 
 ### Organisation des scenes
 

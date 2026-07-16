@@ -15,8 +15,9 @@ eCorpus has two distinct notions of authority that combine on every request:
 - a server-wide **user level**, and
 - a per-scene **access level**.
 
-> **Note:** HTTP *Basic* authentication with a username and password is **no longer accepted** for users.
+> **Note:** HTTP *Basic* authentication with a username and password was **dropped in eCorpus v0.3.0**.
 > `Authorization: Basic …` is only used to authenticate a registered OAuth *client* on `POST /auth/oauth/token`.
+> If your instance still runs **v0.2.x**, see the [legacy authentication guide](/en/doc/hosting/basic_auth).
 
 #### User levels
 
@@ -116,6 +117,8 @@ an account's sessions. Unsafe methods on **cookie-authenticated** requests are p
 cross-site on its own).
 
 The individual `/auth` routes are documented in the [auth section of the API reference](/en/doc/hosting/apiDoc#auth).
+For the design rationale behind this model (scope vocabulary, guard middleware, status-code contract), see the
+[Identity & Access Control design document](/en/doc/hosting/development/auth_system).
 
 ### Scenes Organisation
 

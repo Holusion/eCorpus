@@ -4,19 +4,9 @@ title: Identity, Access Control
 # eCorpus authentication & authorization system
 
 This document explains the authorization model of the eCorpus server: the
-concepts and their names, the scope conventions, the token/OAuth machinery, and how to actually use it with the `policy()` middleware.
+concepts and their names, the scope conventions, the token/OAuth machinery, and how to actually use it with the [`policy()`](http://localhost:4000/en/doc/hosting/development/auth_system#guarding-a-route) middleware.
 
-For an actual guide on how to use the authentication API, the [API documentation](./api) or [OpenAPI specification](./apiDoc) might be better starting points.
-
-Implementation lives in four places:
-
-| What | Where |
-|---|---|
-| Scope vocabulary, ladder, expansion, token format | [source/server/auth/Token.ts](source/server/auth/Token.ts) |
-| `policy()` and the other guards, request-scoped auth state | [source/server/utils/locals.ts](source/server/utils/locals.ts) |
-| Identity resolution (Bearer token / session cookie) | [source/server/utils/authenticate.ts](source/server/utils/authenticate.ts) |
-| User levels, scene ACL storage, sessions, tokens, OAuth grants | [source/server/auth/User.ts](source/server/auth/User.ts), [source/server/auth/UserManager.ts](source/server/auth/UserManager.ts) |
-| OAuth2 endpoints | [source/server/routes/auth/oauth.ts](source/server/routes/auth/oauth.ts) |
+For an actual guide on how to use the authentication API, the [Using the API guide](/en/doc/hosting/api#authentication) or the [API reference](/en/doc/hosting/apiDoc#auth) are better starting points; this page is aimed at peaople trying to understand the implementation details.
 
 ---
 
@@ -33,8 +23,7 @@ Every request's **effective authority** is the *intersection of three factors*:
 3. **the resource ACL** — what this **user** may do **on** *this particular resource*
    (per-scene access rows, task ownership, group membership…).
 
-A route passes only when all applicable factors allow it. `policy()` is the
-single middleware that evaluates this conjunction.
+A route passes only when all applicable factors allow it. [`policy()`](http://localhost:4000/en/doc/hosting/development/auth_system#guarding-a-route) is the single middleware that evaluates this conjunction.
 
 ---
 
@@ -44,9 +33,9 @@ The code use several short names. They are **not** interchangeable:
 
 ### level / role
 
-The account-wide **user level** (`UserRole` in `User.ts`):
+The account-wide **user level** (`UserRole` in [`User.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/User.ts)):
 `none < use < create < manage < admin`. 
-Each level *generates a scope set* (`LEVEL_SCOPES` in `Token.ts`) and
+Each level *generates a scope set* (`LEVEL_SCOPES` in [`Token.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/Token.ts)) and
 routes are gated on scopes.
 
 The `/ui/` views are gated behind the **user level**, since they are accessible only for "session" credentials and typically hold mixed content that can't easily be expressed as individual scopes.
@@ -56,20 +45,21 @@ The `/ui/` views are gated behind the **user level**, since they are accessible 
 A **scope** is a string like `scenes:write` naming a kind of operation —
 independent of any particular resource. This is OAuth's word (RFC6749 §3.3)
 and the only one we use for this dimension. The full vocabulary is
-`CONCRETE_SCOPES` in `Token.ts`; a **concrete scope** is a member of that
+`CONCRETE_SCOPES` in [`Token.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/Token.ts); a **concrete scope** is a member of that
 list, as opposed to shorthands like `all` that `expand()` resolves into
 concrete ones. Scopes appear in three roles:
 
 - **account scopes** — what the user's level grants (`levelScopes(level)`),
   recomputed from the live level each request. For an anonymous request this
-  is `PUBLIC_SCOPES` (never the empty set — see §3);
+  is `PUBLIC_SCOPES` (never the empty set — see [Special scope sets](#special-scope-sets));
 - **credential scopes** — what a token was minted with (`token.scope`,
   frozen at mint time), or `null` when no restricting credential was
   presented: a session, **or an anonymous request**. Credential checks are
   restrictions, so `null` passes all of them — anonymous is stopped by the
   *account* half (or by the ACL), never by the credential half;
 - **effective scopes** — conceptually `account ∩ credential`; guards check the
-  two halves separately because the failure modes differ (401 vs 403, see §5).
+  two halves separately because the failure modes differ (401 vs 403, see
+  [Guarding a route](#guarding-a-route-policy)).
 
 **Cap** (as in `accessCap`) means *ceiling*, nothing else: the highest rung of
 a family a credential holds caps the access level a token may exercise on a
@@ -92,7 +82,7 @@ as returned by `getAuthMethod(res)`: `"session" | "token" | null`.
 
 **access** (an *access level*) is the per-resource dimension:
 `none < read < write < admin`. It answers *"what may this user do on this
-scene / task / group?"*. It has two representations in `UserManager.ts`:
+scene / task / group?"*. It has two representations in [`UserManager.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/UserManager.ts):
 
 - **`AccessLevel`** — a numeric enum (`None=0 < Read < Write < Admin`,
   matching the integers the `*_acl` tables store). This is the in-memory
@@ -118,18 +108,18 @@ ACL check to happen* up to `write` on scenes the user could already write.
 
 ---
 
-## 3. Scope conventions
+## Scope conventions
 
-### Anatomy: `family:rung`
+### Scope syntax
 
 A scope is `<family>:<level>`. The part before the `:` is the **family** (or
-"area"); the part after is generally a level on the universal ladder.
+"area"); the part after is generally a level on the universal `read, write, admin` ladder.
 
 ### The scope ladder
 
-Most families have a standard set of nested levels: `read ⊂ write ⊂ admin` and **holding a level implies every level below it**.
+Most families have a standard set of [subset (`⊂`)](https://en.wikipedia.org/wiki/Subset) chain : `read ⊂ write ⊂ admin` and **holding a level implies every level below it**.
 
-> This is enforced in exactly one place — `expand()` in `Token.ts`
+> This is enforced in exactly one place — `expand()` in [`Token.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/Token.ts)
 > which resolves any scope list into the full set of concrete scopes it grants.
 > Guards then reduce to plain set membership: *"is scope S in the expanded set?"*.
 
@@ -201,7 +191,9 @@ Cumulative, un-expanded (ladder tops only):
 
 The technical implementation
 
-### Identity resolution (`utils/authenticate.ts`)
+### Identity resolution
+
+In [`utils/authenticate.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/authenticate.ts)
 
 Mounted once, before every route. It checks, in this order:
 
@@ -212,7 +204,8 @@ Mounted once, before every route. It checks, in this order:
    cleared. Sliding renewal when less than 66% of `sessionMaxAge` remains.
 3. Neither → anonymous.
 
-> `Authorization: Basic` (user passwords on API calls) is **not supported**:
+> `Authorization: Basic` (user passwords on API calls) is **not supported** —
+> dropped in v0.3.0 (see the [v0.2.x legacy guide](/en/doc/hosting/basic_auth)):
 > services authenticate with revocable, scoped tokens. (The only Basic auth left
 > is OAuth *client* authentication on `/auth/oauth/token`.)
 
@@ -222,7 +215,9 @@ even for long-lived credentials. The resolved state is request-scoped in
 `res.locals`; read it with `getUser(req)` / `getAuthMethod(res)` /
 `getAccountScopes(res)` / `getCredentialScopes(res)`.
 
-### Token anatomy (`auth/Token.ts`)
+### Token anatomy
+
+In [`auth/Token.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/Token.ts)
 
 There are two _kind_ of tokens:
 
@@ -249,9 +244,12 @@ Both share the `api_tokens` table. and the same base format:
 
 ---
 
-## Guarding a route: `policy()`
+## Guarding a route
 
-`policy(options)` in `utils/locals.ts` is **the** route guard.
+
+In [`utils/locals.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/locals.ts)
+
+`policy(options)` in [`utils/locals.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/locals.ts) is **the** route guard.
 Everything exception should be documented (eg: the  `/ui/` views).
 
 ```ts
@@ -308,7 +306,7 @@ re-applies the credential cap when *displaying* access. Templates receive it
 through the render locals: the `accessLevel` Handlebars helper accepts the
 numeric form as well as the wire string.
 
-> the resolvers live in the `RESOLVERS` map in `utils/locals.ts`
+> the resolvers live in the `RESOLVERS` map in [`utils/locals.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/locals.ts)
 
 Failure shape depends on the target: **scenes and groups hide existence** —
 insufficient access answers **404** on a GET, or on any method when the
@@ -335,9 +333,9 @@ matching parameter under that exact name.
 
 ### Common cases
 
-#### access: null
+#### access: null
 
-`null` is already the default, so it changes nothing mechanically. Writing it
+It changes nothing mechanically since `null` is the default value. Writing it
 out is a **declaration of intent**: *"this route touches no `:scene`-like
 resource; the scope alone is the whole decision"*
 You'll see it on account/user/token routes:
@@ -377,8 +375,8 @@ router.get("/:scene", policy({ scope: null, access: "read", on: "scene" }), …)
 | Self-or-admin on a user account | `policy({scope: …, access: "write", on: "user"})` |
 | Identity check *and* scene ACL | both: `policy({scope: "corpus:read", access: "read"})` (e.g. reading a scene's ACL: anonymous readers of a public scene must not enumerate its users) |
 | Two unrelated scopes (AND) | chain two guards: `policy({scope: "a:x"}), policy({scope: "b:y"})` — `scope` takes a single string. (Credential-only AND on one middleware: `requireScope("a:x", "b:y")`.) |
-| Grant A **or** fallback B (e.g. rate-limited anonymous path) | `either(policy({scope: …}), rateLimit(…))` — 401/403 from one branch falls through to the next (§6) |
-| Batch route acting on many resources | gate identity/credential up-front, re-check each item in the handler with `getAccessRights` + `effectiveAccess` (see `routes/tags/patch.ts`, `POST /scenes`) |
+| Grant A **or** fallback B (e.g. rate-limited anonymous path) | `either(policy({scope: …}), rateLimit(…))` — 401/403 from one branch falls through to the next (see [The deliberate exceptions](#the-deliberate-exceptions)) |
+| Batch route acting on many resources | gate identity/credential up-front, re-check each item in the handler with `getAccessRights` + `effectiveAccess` (see [`routes/tags/patch.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/routes/tags/patch.ts), `POST /scenes`) |
 
 ### Status-code contract (what clients can rely on)
 
@@ -394,10 +392,24 @@ router.get("/:scene", policy({ scope: null, access: "read", on: "scene" }), …)
 
 ---
 
-## 6. The deliberate exceptions
+## Implementation
+
+The IAM code lives in four places (links point to the `main` branch of the
+[eCorpus repository](https://github.com/Holusion/eCorpus)):
+
+| What | Where |
+|---|---|
+| Scope vocabulary, ladder, expansion, token format | [`source/server/auth/Token.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/Token.ts) |
+| `policy()` and the other guards, request-scoped auth state | [`source/server/utils/locals.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/locals.ts) |
+| Identity resolution (Bearer token / session cookie) | [`source/server/utils/authenticate.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/authenticate.ts) |
+| User levels, scene ACL storage, sessions, tokens, OAuth grants | [`source/server/auth/User.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/User.ts), [`source/server/auth/UserManager.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/auth/UserManager.ts) |
+| OAuth2 endpoints | [`source/server/routes/auth/oauth.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/routes/auth/oauth.ts) |
+
+
+### The deliberate exceptions
 
 A few guards other than `policy()` survive, each for a stated reason (all in
-`utils/locals.ts`):
+[`utils/locals.ts`](https://github.com/Holusion/eCorpus/blob/main/source/server/utils/locals.ts)):
 
 - **`policy.public()`** — a no-op, but greppable: "this route is open on
   purpose", as opposed to a forgotten guard.
@@ -433,9 +445,10 @@ Handler-level helpers, once past the guard:
 - `effectiveAccess(res, aclAccess)` — cap an ACL level by the credential for
   *display* (the scene "edit" button must not show for a read-only token).
 
----
 
-## 7. Design invariants (don't break these)
+### Design invariants 
+
+> don't break these
 
 1. **Sessions outrank tokens, structurally.** Only a session holds the
    non-mintable scopes; minting, consent and password/email changes all

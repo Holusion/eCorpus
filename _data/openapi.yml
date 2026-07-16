@@ -25,10 +25,8 @@ info:
 
     # Authentication in a nutshell
 
-    Requests authenticate in one of two ways: a **browser session cookie** (obtained through `POST /auth/login`)
-    or a **Bearer token** (`Authorization: Bearer ecorpus_…`). HTTP *Basic* authentication with a username
-    and password is **no longer supported** for users — it now only authenticates a registered OAuth client
-    on the token endpoint. See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication)
+    Requests generally authenticate using a **Bearer token** (`Authorization: Bearer ecorpus_…`).
+    See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication)
     for the complete picture (user levels, tokens and scopes, OAuth2), and the [auth](#auth) section below
     for the route reference.
   contact:
@@ -58,11 +56,12 @@ tags:
       (`none < use < create < manage < admin`) and a per-scene **access level**
       (`none < read < write < admin`). Requests authenticate with a **session cookie**
       (obtained through `POST /auth/login`) or a **Bearer token** (`Authorization: Bearer ecorpus_…`);
-      HTTP *Basic* authentication only identifies a registered OAuth *client* on the token endpoint.
+      HTTP *Basic* authentication only identifies a registered OAuth *client* on the token endpoint
+      (user Basic auth was dropped in v0.3.0 — see the
+      [legacy guide](https://ecorpus.eu/en/doc/hosting/basic_auth) for older instances).
 
-      See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication) for the
-      complete picture: user levels, effective access resolution, personal access tokens and their
-      scopes, the OAuth2 flow and CSRF rules.
+      See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication) for usage examples
+      or the [design document](https://ecorpus.eu/en/doc/hosting/development/auth_system) for an in-depth explanation of its structure.
   - name: scenes
     summary: Scenes storage — where all the actual data lives.
     description: |
@@ -1830,7 +1829,9 @@ components:
       scheme: basic
       description: |
         HTTP Basic authentication of a *confidential OAuth client* (`client_id`:`client_secret`) on the token
-        endpoint. This is the only remaining use of HTTP Basic — it does **not** authenticate a user.
+        endpoint. This is the only remaining use of HTTP Basic — it does **not** authenticate a user
+        (user-facing Basic auth was dropped in v0.3.0; see the
+        [v0.2.x legacy guide](https://ecorpus.eu/en/doc/hosting/basic_auth)).
 
   parameters:
     scene:
