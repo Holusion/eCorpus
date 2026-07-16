@@ -1,4 +1,4 @@
-openapi: '3.1.0'
+openapi: '3.2.0'
 info:
   title: eCorpus
   version: '1.0.0'
@@ -19,17 +19,18 @@ info:
     It provides some **webDAV** utility routes for the `/scenes` resources
     but is far from [Class 1](http://www.webdav.org/specs/rfc4918.html#rfc.section.18.1) Compliance:
     Only routes that are necessary for proper [Voyager](https://smithsonian.github.io/dpo-voyager/) support are implemented.
-    WebDAV-specific methods are defined as an extension with a `x-` prefix to prevent breaking openAPI tooling.
+    WebDAV-specific methods (`PROPFIND`, `MKCOL`, `MOVE`) are declared through OpenAPI 3.2's `additionalOperations`.
 
     Other namespaces tends to adhere to a stricter **REST** philosophy where possible.
 
-    ## Authentication in a nutshell
+    # Authentication in a nutshell
 
     Requests authenticate in one of two ways: a **browser session cookie** (obtained through `POST /auth/login`)
     or a **Bearer token** (`Authorization: Bearer ecorpus_…`). HTTP *Basic* authentication with a username
     and password is **no longer supported** for users — it now only authenticates a registered OAuth client
-    on the token endpoint. See the [auth](#auth) section for the complete authentication guide, personal access
-    tokens, and the OAuth2 flow.
+    on the token endpoint. See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication)
+    for the complete picture (user levels, tokens and scopes, OAuth2), and the [auth](#auth) section below
+    for the route reference.
   contact:
     name: eCorpus Support
     url: https://github.com/Holusion/eCorpus
@@ -48,135 +49,57 @@ security:
 
 tags:
   - name: auth
+    summary: Login, personal access tokens, OAuth2 and per-scene access control.
     description: |
       Authentication, personal access tokens, OAuth2 authorization server, session management
       and per-scene access-control edition routes.
 
-      # Authentication guide
+      eCorpus combines two notions of authority on every request: a server-wide **user level**
+      (`none < use < create < manage < admin`) and a per-scene **access level**
+      (`none < read < write < admin`). Requests authenticate with a **session cookie**
+      (obtained through `POST /auth/login`) or a **Bearer token** (`Authorization: Bearer ecorpus_…`);
+      HTTP *Basic* authentication only identifies a registered OAuth *client* on the token endpoint.
 
-      eCorpus has two distinct notions of authority that combine on every request:
-
-      - a server-wide **user level**, and
-      - a per-scene **access level**.
-
-      ## User levels
-
-      Every account has exactly one level. They are ordered — a higher level includes the abilities of the lower ones:
-
-      | Level | Meaning |
-      | --- | --- |
-      | `none` | Not a real account. Anonymous/unauthenticated requests resolve to a synthetic `none`-level user with `uid` `0`. |
-      | `use` | Authenticated user. Can consume scenes they are granted access to, but cannot create scenes. |
-      | `create` | Default level of a newly-created account. Can create scenes. |
-      | `manage` | Can additionally manage groups. |
-      | `admin` | Instance administrator. Implicitly has `admin` access over **every** scene and can reach the `/admin` routes. |
-
-      ## Per-scene access levels
-
-      Independently of their level, a user is granted an access level over each scene, ordered
-      `none < read < write < admin`. The **effective** access on a scene is the *maximum* of:
-
-      - the user's explicit per-user grant (see `PATCH /auth/access/{scene}`),
-      - any grant inherited from a group the user belongs to,
-      - the scene's `default_access` (applies to any logged-in user; capped at `write`),
-      - the scene's `public_access` (applies to everyone including anonymous visitors; capped at `read`),
-      - the administrator override (`admin` users always get `admin`).
-
-      An anonymous visitor only ever gets a scene's `public_access`.
-
-      ## Authenticating a request
-
-      A request is identified, in order of precedence:
-
-      1. **Bearer token** — send `Authorization: Bearer ecorpus_…`. Used by scripts, services and CLIs.
-         A token that is presented but invalid/revoked is a hard `401` (it never silently falls back to anonymous).
-      2. **Session cookie** — the browser login path. The `session` cookie only carries an opaque session id;
-         the identity (and the account's *current* level) is re-read server-side on every request, so logouts,
-         password changes and level changes take effect immediately. Sessions last 31 days and auto-renew (sliding window).
-
-      > HTTP **Basic** authentication with a username/password is **no longer accepted** for users.
-      > `Authorization: Basic …` is only used to authenticate a registered OAuth *client* on `POST /auth/oauth/token`.
-
-      ```bash
-      # Log in and keep the session cookie in a jar
-      curl -c cookies.txt -XPOST https://ecorpus.holusion.com/auth/login \
-        -H "Content-Type: application/json" \
-        -d '{"username":"alice","password":"…"}'
-
-      # Use a personal access token (preferred for scripts)
-      curl -H "Authorization: Bearer ecorpus_xxxxxxxx" https://ecorpus.holusion.com/scenes
-      ```
-
-      ## Personal access tokens
-
-      A logged-in user mints a token with `POST /auth/tokens`, **from an interactive session only** — a token can
-      never create another token, even an `all`-scoped one. You choose a name, a set of *scopes* and an optional
-      expiry; the `ecorpus_…` secret is returned **once** and never stored server-side. A token can never do more
-      than its owner's current level allows, and its scopes further cap it:
-
-      | Scope | Grants |
-      | --- | --- |
-      | `all` | Full authority. The only scope that passes level-based guards and account-management routes. |
-      | `scenes:read` / `scenes:write` / `scenes:admin` | Caps the *level* obtainable on scenes (visibility is unchanged). |
-      | `scenes:create` | Scene creation and archive import. |
-      | `tasks:read` / `tasks:write` | The `/tasks` API. |
-
-      List and revoke your tokens with `GET`/`DELETE /auth/tokens`. Anyone holding a token can revoke it through
-      `POST /auth/oauth/revoke`.
-
-      ## OAuth2 (authorization code + PKCE)
-
-      For third-party applications. An administrator registers a **client** (`POST /auth/oauth/clients`) with one or
-      more redirect URIs; *confidential* clients receive a secret, *public* clients (CLIs, SPAs) rely on PKCE only.
-      The flow is a standard authorization-code grant with **mandatory PKCE (S256)**:
-
-      1. Send the user to `GET /auth/oauth/authorize` with `client_id`, an exact `redirect_uri`, `response_type=code`,
-         an explicit `scope`, and a `code_challenge` (+`code_challenge_method=S256`).
-      2. The user logs in (a session is required) and approves on the consent page (`POST /auth/oauth/authorize`).
-         The approval is persisted as a **grant**, so later requests covered by an existing grant are issued
-         silently — convenient for renewals. `prompt=none` probes without UI, `prompt=consent` forces the page.
-      3. The app exchanges the single-use `code` at `POST /auth/oauth/token` with its `code_verifier`, receiving a
-         30-day Bearer access token.
-
-      Users review the applications they approved with `GET /auth/oauth/grants` and revoke one with
-      `DELETE /auth/oauth/grants/{clientId}` — which also revokes every token that client holds for them. Server
-      metadata is discoverable at `/.well-known/oauth-authorization-server`.
-
-      ## Sessions & CSRF
-
-      Users list their active sessions (`GET /auth/sessions`) and revoke any by id; a password change evicts all of
-      an account's sessions. Unsafe methods on **cookie-authenticated** requests are protected against CSRF using
-      `Sec-Fetch-Site`/`Origin` checks; Bearer-token and anonymous requests are exempt (a header does not travel
-      cross-site on its own).
+      See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication) for the
+      complete picture: user levels, effective access resolution, personal access tokens and their
+      scopes, the OAuth2 flow and CSRF rules.
   - name: scenes
+    summary: Scenes storage — where all the actual data lives.
     description: |
       Where all the actual data is stored.
       API design for the `/scenes/*` makes use of the liberal definition of
       [GET for collections](https://datatracker.ietf.org/doc/html/rfc2518#section-8.4) in the webDAV specification
       to return well-defined JSON documents for those queries, allowing most use cases to bypass cumbersome PROPFIND queries.
   - name: history
+    summary: Version history of scenes, with diff and restore utilities.
     description: |
       History management utilities for the `/scenes` namespace.
       Scene names in `/history` directly and uniquely maps to scenes in `/scenes`.
       The whole namespace requires **write** access to the target scene.
   - name: tags
+    summary: Collections of scenes, grouped under shared tags.
     description: |
       Collections (tags) management routes.
   - name: users
+    summary: User accounts management.
     description: Users management
   - name: groups
+    summary: User groups bundling members and shared access grants.
     description: |
       User groups management. A group bundles users together and can hold per-scene access grants that all its
       members inherit. Managing groups requires the `manage` level.
   - name: tasks
+    summary: Background tasks scheduling, monitoring and artifacts.
     description: |
       Background tasks: schedulable, persisted units of server-side work (uploads, archive extraction, scene
       creation, email sending, cleanup jobs…). Access is gated by the `tasks:read`/`tasks:write` token scopes plus
       a per-task ACL.
   - name: services
+    summary: Public discovery and embedding endpoints (OpenSearch, oEmbed).
     description: |
       Public, CORS-enabled discovery/embedding endpoints (OpenSearch description and oEmbed provider).
   - name: admin
+    summary: Instance administration, reserved to administrators.
     description: Administrative tasks routes, reserved to instance administrators.
 
 paths:
@@ -325,23 +248,24 @@ paths:
                 items: {$ref: "#/components/schemas/ImportResult"}
         '400':
           $ref: "#/components/responses/HTTPError"
-    x-propfind:
-      tags: [scenes]
-      operationId: propfindScenes
-      security:
-        - {}
-        - cookieSession: []
-        - bearerToken: []
-      description: |
-        List all readable content in `scenes/`. See [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND).
-        A minimal implementation that lists contained elements, respecting the
-        [Depth](http://www.webdav.org/specs/rfc4918.html#HEADER_Depth) header (defaults to infinite depth).
-      responses:
-        '207':
-          description: A PROPFIND multistatus response.
-          content:
-            application/xml:
-              schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
+    additionalOperations:
+      PROPFIND:
+        tags: [scenes]
+        operationId: propfindScenes
+        security:
+          - {}
+          - cookieSession: []
+          - bearerToken: []
+        description: |
+          List all readable content in `scenes/`. See [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND).
+          A minimal implementation that lists contained elements, respecting the
+          [Depth](http://www.webdav.org/specs/rfc4918.html#HEADER_Depth) header (defaults to infinite depth).
+        responses:
+          '207':
+            description: A PROPFIND multistatus response.
+            content:
+              application/xml:
+                schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
 
   /scenes/{scene}:
     parameters:
@@ -453,27 +377,28 @@ paths:
           description: |
             Unauthorized, either due to improper authentication or insufficient access rights.
             Archiving requires `admin` rights over the scene; force-delete requires instance-level administrative rights.
-    x-mkcol:
-      tags: [scenes]
-      operationId: mkScene
-      description: |
-        Create a new empty scene. Requires the `scenes:create` scope and at least `create` level.
-        The scene is essentially invisible until populated.
-      responses:
-        '201':
-          description: The empty scene was created.
-        '409':
-          description: A scene with this name already exists.
-    x-propfind:
-      tags: [scenes]
-      operationId: propfindScene
-      description: Fetch the scene's content tree as a WebDAV multistatus response.
-      responses:
-        '207':
-          description: A PROPFIND multistatus response.
-          content:
-            application/xml:
-              schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
+    additionalOperations:
+      MKCOL:
+        tags: [scenes]
+        operationId: mkScene
+        description: |
+          Create a new empty scene. Requires the `scenes:create` scope and at least `create` level.
+          The scene is essentially invisible until populated.
+        responses:
+          '201':
+            description: The empty scene was created.
+          '409':
+            description: A scene with this name already exists.
+      PROPFIND:
+        tags: [scenes]
+        operationId: propfindScene
+        description: Fetch the scene's content tree as a WebDAV multistatus response.
+        responses:
+          '207':
+            description: A PROPFIND multistatus response.
+            content:
+              application/xml:
+                schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
 
   /scenes/{scene}/{file}:
     parameters:
@@ -535,32 +460,33 @@ paths:
       responses:
         '204':
           description: Success.
-    x-move:
-      tags: [scenes]
-      operationId: moveFile
-      description: |
-        Move/rename a file within the same scene. Requires `write` access and a `Destination` header pointing under
-        the same scene. Cross-scene moves are rejected. The `Overwrite` header is not supported.
-      responses:
-        '201':
-          description: The file was moved.
-    x-mkcol:
-      tags: [scenes]
-      operationId: mkFolder
-      description: Create a folder in a scene. Requires `write` access.
-      responses:
-        '201':
-          description: The folder was created.
-    x-propfind:
-      tags: [scenes]
-      operationId: propfindFile
-      description: Get a file's (or folder subtree's) WebDAV properties.
-      responses:
-        '207':
-          description: A PROPFIND multistatus response.
-          content:
-            application/xml:
-              schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
+    additionalOperations:
+      MOVE:
+        tags: [scenes]
+        operationId: moveFile
+        description: |
+          Move/rename a file within the same scene. Requires `write` access and a `Destination` header pointing under
+          the same scene. Cross-scene moves are rejected. The `Overwrite` header is not supported.
+        responses:
+          '201':
+            description: The file was moved.
+      MKCOL:
+        tags: [scenes]
+        operationId: mkFolder
+        description: Create a folder in a scene. Requires `write` access.
+        responses:
+          '201':
+            description: The folder was created.
+      PROPFIND:
+        tags: [scenes]
+        operationId: propfindFile
+        description: Get a file's (or folder subtree's) WebDAV properties.
+        responses:
+          '207':
+            description: A PROPFIND multistatus response.
+            content:
+              application/xml:
+                schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
 
   /history/{scene}:
     parameters:

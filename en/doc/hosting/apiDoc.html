@@ -11,34 +11,43 @@ rank: 5
 
 <h1>eCorpus HTTP API</h1>
 
+<p>
+  If you're just getting started with the API, you are probably interested in <a href="#auth">authentication</a> the <a href="#scenes">Scenes</a> section.
+</p>
+<p>
+  For more advanced uses, this API is organized in <a href="api-sections">sections</a> (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.2.0">OpenAPI language</a>), each under a namespace prefix.
+</p>
 
+<h2 id="introduction">Introduction</h2>
+{{ api.info.description  | markdownify | offset_headers: 2 }}
 
 
 <div class="tag-cloud">
-  <p>If you're just getting started with the API, you are probably interested in the <a href="#scenes">Scenes</a> section.</p>
-  <p>
-    For more advanced uses, this API is organized in sections (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.1.0">OpenAPI language</a>), each under a namespace prefix :
-  </p>
-  <ul>
+
+  <h2 id="api-sections">API Sections</h2>
+
+  <ul class="tag-list">
     {% for tag in tags %}
-      <li>
-        <a href="#{{tag | oapi_tag_anchor}}">{{tag.name}}</a>:
-        <div>{{tag.description | markdownify}}</div>
+      <li class="tag-content">
+        <a href="#{{tag | oapi_tag_anchor}}" class="tag-header">{{ tag.name }}</a>
+        <div class="tag-description">
+          {{ tag.summary }}
+        </div>
       </li>
     {% endfor %}
-    <li>
-      <a href="#models">Models</a>:
-      <div>Reusable schemas referenced throughout the operations.</div>
+    <li class="tag-content">
+      <a href="#models"  class="tag-header">Models</h3></a>
+      <div class="tag-description">
+        Reusable schemas referenced throughout the operations.
+      </div>
     </li>
   </ul>
 </div>
-<h2 id="introduction">Introduction</h2>
-{{ api.info.description  | markdownify }}
 
 {% for tag in tags %}
   <h2 id="{{tag | oapi_tag_anchor}}"><span class="tag-name">{{tag.name}}</span></h2>
   <!--Global API Description -->
-  {{tag.description  | markdownify }}
+  {{tag.description  | markdownify | offset_headers: 2 }}
 
   <!--API Operations, merged and normalized by the jekyll-openapi gem-->
   {% assign operations = api | oapi_operations: tag.name %}
@@ -54,7 +63,7 @@ rank: 5
 
       <!--Operation description-->
       <div class="operation-description">
-        {{op.operation.description | markdownify }}
+        {{op.operation.description | markdownify | offset_headers: 3 }}
       </div>
       <div class="operation-parameters">
         <!--Path and operation parameters, merged and grouped by location-->
