@@ -1,4 +1,6 @@
-
+---
+title: Identity, Access Control
+---
 # eCorpus authentication & authorization system
 
 This document explains the authorization model of the eCorpus server: the
