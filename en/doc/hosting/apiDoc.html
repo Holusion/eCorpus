@@ -12,10 +12,11 @@ rank: 5
 <h1>eCorpus HTTP API</h1>
 
 <p>
-  If you're just getting started with the API, you are probably interested in <a href="#auth">authentication</a> the <a href="#scenes">Scenes</a> section.
+  If you're just getting started with the API, you are probably interested in <a href="#auth">authentication</a> and the <a href="#scenes">Scenes</a> section.
+  The <a href="/en/doc/hosting/api">Using the API</a> guide offers a more task-oriented walkthrough.
 </p>
 <p>
-  For more advanced uses, this API is organized in <a href="api-sections">sections</a> (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.2.0">OpenAPI language</a>), each under a namespace prefix.
+  For more advanced uses, this API is organized in <a href="#api-sections">sections</a> (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.2.0">OpenAPI language</a>), each under a namespace prefix.
 </p>
 
 <h2 id="introduction">Introduction</h2>
@@ -30,16 +31,12 @@ rank: 5
     {% for tag in tags %}
       <li class="tag-content">
         <a href="#{{tag | oapi_tag_anchor}}" class="tag-header">{{ tag.name }}</a>
-        <div class="tag-description">
-          {{ tag.summary }}
-        </div>
+        <div>{{ tag.summary }}</div>
       </li>
     {% endfor %}
     <li class="tag-content">
-      <a href="#models"  class="tag-header">Models</h3></a>
-      <div class="tag-description">
-        Reusable schemas referenced throughout the operations.
-      </div>
+      <a href="#models"  class="tag-header">Models</a>
+      <div>Reusable schemas referenced throughout the operations.</div>
     </li>
   </ul>
 </div>

@@ -271,6 +271,7 @@ footer a:hover {
 
 
 .nav-doc {
+  --indent: 10px;
   max-width: $sidebar_width;
   background-color: $darkgrey;
   height: fit-content;
@@ -303,7 +304,7 @@ footer a:hover {
       // min-width: 240px;
       width: 100%;
       // max-width: calc(300px - 1.1rem);
-      padding: 0.2rem 0rem 0.2rem 1rem;
+      padding: 0.2rem 0rem 0.2rem var(--indent);
       &.current > a.dropdown-toggle{
         color: $yellow;
       }
@@ -325,7 +326,9 @@ footer a:hover {
         padding: 0.1rem 0rem 0.1rem 0;
       }
       a:first-child{
-        margin-left: -1ch;
+        &.dropdown-toggle{
+          margin-left: calc(-3px - 0.255em);
+        }
       }
     }
   }

@@ -1,4 +1,18 @@
-
+.tag-cloud > .tag-list{
+  display: grid;
+  /* max-content: the link column is as wide as the longest tag name, never wrapping */
+  grid-template-columns: [start] max-content 1fr [end];
+  grid-auto-rows: auto;
+  column-gap: .5rem;
+  > .tag-content{
+    /* subgrid only applies to a grid container: the li must be a grid itself,
+       spanning both parent tracks; its <a> and <div> then land in the shared
+       columns, giving every link the same width. */
+    display: grid;
+    grid-column: start / end;
+    grid-template-columns: subgrid;
+  }
+}
 
 .operation-title{
   border: none;

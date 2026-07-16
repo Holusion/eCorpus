@@ -2,7 +2,9 @@
 title:  Développement
 rank: 10
 ---
-
+{% comment %}
+For this section of the doc, contrary to most of the site, the english version is generally to be considered authoritative and most up to date.
+{% endcomment %}
 # Développement
 
 ## Mise en route
