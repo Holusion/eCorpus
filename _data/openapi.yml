@@ -58,8 +58,10 @@ tags:
       Authentication, personal access tokens, OAuth2 authorization server, session management
       and per-scene access-control edition routes.
 
-      eCorpus combines two notions of authority on every request: a server-wide **user level**
-      (`none < use < create < manage < admin`) and a per-scene **access level**
+      Every request's effective authority is the intersection of three factors: the server-wide
+      **user level** (`none < use < create < manage < admin`), the **scopes** delegated to the
+      presented credential (a token carries a frozen `family:level` scope list; a session carries
+      its user's full authority) and the per-resource **access level**
       (`none < read < write < admin`). Requests authenticate with a **session cookie**
       (obtained through `POST /auth/login`) or a **Bearer token** (`Authorization: Bearer ec_…`);
       HTTP *Basic* authentication only identifies a registered OAuth *client* on the token endpoint
@@ -92,13 +94,14 @@ tags:
     summary: User groups bundling members and shared access grants.
     description: |
       User groups management. A group bundles users together and can hold per-scene access grants that all its
-      members inherit. Managing groups requires the `manage` level.
+      members inherit. Members can read their own groups; managing groups requires the `manage` level
+      (the `groups:admin` scope).
   - name: tasks
     summary: Background tasks scheduling, monitoring and artifacts.
     description: |
       Background tasks: schedulable, persisted units of server-side work (uploads, archive extraction, scene
-      creation, email sending, cleanup jobs…). Access is gated by the `tasks:read`/`tasks:write` token scopes plus
-      a per-task ACL.
+      creation, email sending, cleanup jobs…). Access is gated by the `tasks:*` scope family plus a per-task
+      ACL: a task's owner has `admin` access to it; anyone else derives access from the task's scene.
   - name: services
     summary: Public discovery and embedding endpoints (OpenSearch, oEmbed).
     description: |
@@ -233,7 +236,9 @@ paths:
       operationId: postScenes
       description: |
         Import an archive of scenes to be extracted into the `scenes/` folder.
-        Requires the `scenes:create` scope and an authenticated user.
+        The credential must carry both the `corpus:write` (create scenes) and `scenes:write` (overwrite scenes)
+        scopes. Any authenticated user may start an import: each scene found in the archive is re-checked as it
+        is processed — `write` access to update an existing scene, `create` level to create a new one.
 
         eCorpus uses a simplified internal zip decoder guaranteed to handle only data exported from another eCorpus
         instance. A `Content-Length` header is required (chunked uploads are not supported).
@@ -306,7 +311,7 @@ paths:
       operationId: postScene
       description: |
         Create a new scene initialized from an uploaded GLB model, positioned at (0,0,0), together with a default
-        `scene.svx.json` document. Requires the `scenes:create` scope and at least `create` level.
+        `scene.svx.json` document. Requires the `corpus:write` scope and at least `create` level.
       parameters:
         - name: language
           in: query
@@ -387,7 +392,7 @@ paths:
         tags: [scenes]
         operationId: mkScene
         description: |
-          Create a new empty scene. Requires the `scenes:create` scope and at least `create` level.
+          Create a new empty scene. Requires the `corpus:write` scope and at least `create` level.
           The scene is essentially invisible until populated.
         responses:
           '201':
@@ -657,8 +662,9 @@ paths:
       tags: [tags]
       operationId: patchTags
       description: |
-        Batch-add or remove tags on scenes. Requires an authenticated user; each item is authorized individually
-        against the requester's `write` access on the target scene.
+        Batch-add or remove tags on scenes. Requires an identified requester (the `corpus:read` baseline — any
+        level, any token); each item is authorized individually against the requester's `write` access on the
+        target scene.
       requestBody:
         required: true
         description: A single operation or an array of operations.
@@ -701,7 +707,7 @@ paths:
     get:
       tags: [users]
       operationId: getUsers
-      description: Get the list of registered users. Requires instance administrator rights.
+      description: Get the list of registered users. Requires the `users:read` scope (administrators only — no other level holds it).
       parameters:
         - name: limit
           in: query
@@ -725,8 +731,9 @@ paths:
       tags: [users]
       operationId: postUser
       description: |
-        Create a new user. Requires administrator rights — except when no users exist yet, allowing the first
-        account to be bootstrapped.
+        Create a new user. Requires the `users:write` scope — mintable, so a provisioning script may run on a
+        token — except when no users exist yet, allowing the first account to be bootstrapped unauthenticated.
+        Creating an **administrator** requires the non-mintable `users:admin` scope (an interactive admin session).
       requestBody:
         required: true
         description: The user to create.
@@ -760,7 +767,7 @@ paths:
     delete:
       tags: [users]
       operationId: deleteUser
-      description: Delete a user. Requires administrator rights. A user cannot delete themselves.
+      description: Delete a user. Requires the `users:write` scope. A user cannot delete themselves.
       responses:
         '204':
           description: Success.
@@ -772,7 +779,9 @@ paths:
       description: |
         Change a user's data. Administrators may edit any account, including its `level` (but cannot demote
         themselves). A regular user may only edit their own account and cannot change their own `level`.
-        At least one editable field must be provided. Requires full-access credentials (not a restriction-scoped token).
+        At least one editable field must be provided. Session-only: gated on the non-mintable `account:admin`
+        scope (a patch may rotate a password or email, converting a credential into a session), so no token —
+        even `all`-scoped — can reach it.
       requestBody:
         required: true
         content:
@@ -797,7 +806,7 @@ paths:
     get:
       tags: [users]
       operationId: getUserSessions
-      description: List a user's active sessions. Requires administrator rights.
+      description: List a user's active sessions. Requires the `users:read` scope.
       responses:
         '200':
           description: The user's sessions.
@@ -813,7 +822,7 @@ paths:
     get:
       tags: [users]
       operationId: getUserTokens
-      description: List a user's personal access tokens (metadata only). Requires administrator rights.
+      description: List a user's personal access tokens (metadata only). Requires the `users:read` scope.
       responses:
         '200':
           description: The user's tokens.
@@ -834,7 +843,7 @@ paths:
     delete:
       tags: [users]
       operationId: deleteUserToken
-      description: Revoke one of a user's tokens. Requires administrator rights.
+      description: Revoke one of a user's tokens. Requires the `users:write` scope.
       responses:
         '204':
           description: Success.
@@ -843,7 +852,7 @@ paths:
     get:
       tags: [groups]
       operationId: getGroups
-      description: List all groups (name and id only). Requires the `manage` level.
+      description: List all groups (name and id only). Requires the `groups:read` scope (the `manage` level and above).
       responses:
         '200':
           description: The list of groups.
@@ -855,7 +864,7 @@ paths:
     post:
       tags: [groups]
       operationId: postGroup
-      description: Create a group, optionally with an initial member list. Requires the `manage` level.
+      description: Create a group, optionally with an initial member list. Requires the `groups:admin` scope (the `manage` level and above).
       requestBody:
         required: true
         content:
@@ -884,7 +893,9 @@ paths:
     get:
       tags: [groups]
       operationId: getGroup
-      description: Get a group with its members and per-scene access grants. Requires the `manage` level.
+      description: |
+        Get a group with its members and per-scene access grants. Requires `read` access on the group:
+        members can read their own group, `manage`-level users any group.
       responses:
         '200':
           description: The group, including `members` and `scenes`.
@@ -896,7 +907,7 @@ paths:
     delete:
       tags: [groups]
       operationId: deleteGroup
-      description: Delete a group. Requires the `manage` level.
+      description: Delete a group. Requires `admin` access on the group (the `manage` level).
       responses:
         '204':
           description: Success.
@@ -914,7 +925,7 @@ paths:
     put:
       tags: [groups]
       operationId: addGroupMember
-      description: Add a user to a group (idempotent). Requires the `manage` level.
+      description: Add a user to a group (idempotent). Requires `admin` access on the group (the `manage` level).
       responses:
         '200':
           description: The member was added (or was already present).
@@ -923,7 +934,7 @@ paths:
     delete:
       tags: [groups]
       operationId: removeGroupMember
-      description: Remove a user from a group. Requires the `manage` level.
+      description: Remove a user from a group. Requires `admin` access on the group (the `manage` level).
       responses:
         '204':
           description: Success.
@@ -1023,7 +1034,8 @@ paths:
       tags: [auth]
       operationId: getLoginLink
       description: |
-        Get a signed magic login link for this user. Requires administrator rights. Returns the URL as plain text.
+        Get a signed magic login link for this user. Session-only: requires the non-mintable `users:admin`
+        scope (an interactive administrator session). Returns the URL as plain text.
       parameters:
         - name: redirect
           in: query
@@ -1042,8 +1054,8 @@ paths:
         - cookieSession: []
         - bearerToken: []
       description: |
-        Email a signed login link to the user. Administrators are unlimited; other callers are rate-limited to
-        1 request/minute/IP. Fails if the user has no registered email.
+        Email a signed login link to the user. Callers holding the `users:write` scope (administrators) are
+        unlimited; other callers are rate-limited to 1 request/minute/IP. Fails if the user has no registered email.
       responses:
         '204':
           description: The email was queued.
@@ -1100,7 +1112,7 @@ paths:
     get:
       tags: [auth]
       operationId: getOwnSessions
-      description: List the requester's own active sessions. Requires full-access credentials.
+      description: List the requester's own active sessions. Requires the `account:read` scope.
       responses:
         '200':
           description: The active sessions.
@@ -1121,7 +1133,7 @@ paths:
       tags: [auth]
       operationId: deleteSession
       description: |
-        Revoke a session by id. Owner-scoped; administrators may revoke anyone's. Requires full-access credentials.
+        Revoke a session by id. Owner-scoped; administrators may revoke anyone's. Requires the `account:write` scope.
       responses:
         '204':
           description: Success.
@@ -1132,7 +1144,7 @@ paths:
     get:
       tags: [auth]
       operationId: getOwnTokens
-      description: List the requester's personal access tokens (metadata only). Requires full-access credentials.
+      description: List the requester's personal access tokens (metadata only). Requires the `account:read` scope.
       responses:
         '200':
           description: The tokens.
@@ -1145,8 +1157,9 @@ paths:
       tags: [auth]
       operationId: postToken
       description: |
-        Create a personal access token. Only allowed from an interactive **session** — a token cannot mint another
-        token. The secret is returned once, in the `token` field, and is never stored server-side.
+        Create a personal access token. Minting requires the non-mintable `account:admin` scope, i.e. an
+        interactive **session** — a token, even `all`-scoped, cannot mint another token. The secret is returned
+        once, in the `token` field, and is never stored server-side.
       requestBody:
         required: true
         content:
@@ -1188,7 +1201,7 @@ paths:
     delete:
       tags: [auth]
       operationId: deleteOwnToken
-      description: Revoke one of the requester's own tokens. Requires full-access credentials.
+      description: Revoke one of the requester's own tokens. Requires the `account:write` scope.
       responses:
         '204':
           description: Success.
@@ -1197,7 +1210,7 @@ paths:
     get:
       tags: [auth]
       operationId: getGrants
-      description: List the OAuth applications the requester has authorized. Requires full-access credentials.
+      description: List the OAuth applications the requester has authorized. Requires the `account:read` scope.
       responses:
         '200':
           description: The persisted grants.
@@ -1219,7 +1232,7 @@ paths:
       operationId: deleteGrant
       description: |
         Withdraw consent for a client and revoke every token that client holds for the requester. Idempotent.
-        Requires full-access credentials.
+        Requires the `account:write` scope.
       responses:
         '204':
           description: Success.
@@ -1381,7 +1394,7 @@ paths:
     get:
       tags: [auth]
       operationId: getClients
-      description: List registered OAuth clients. Requires administrator rights.
+      description: List registered OAuth clients. Requires the `instance:read` scope.
       responses:
         '200':
           description: The registered clients.
@@ -1394,8 +1407,9 @@ paths:
       tags: [auth]
       operationId: postClient
       description: |
-        Register an OAuth client. Requires administrator rights. Confidential clients (the default) receive a secret,
-        shown once. Redirect URIs must be valid http/https URLs without a fragment.
+        Register an OAuth client. Session-only: requires the non-mintable `instance:write` scope. Confidential
+        clients (the default) receive a secret, shown once. Redirect URIs must be valid http/https URLs without
+        a fragment.
       requestBody:
         required: true
         content:
@@ -1434,7 +1448,8 @@ paths:
       tags: [auth]
       operationId: deleteClient
       description: |
-        Delete an OAuth client, cascading a revocation of every token minted through it. Requires administrator rights.
+        Delete an OAuth client, cascading a revocation of every token minted through it. Session-only: requires
+        the non-mintable `instance:write` scope.
       responses:
         '204':
           description: Success.
@@ -1445,7 +1460,9 @@ paths:
     get:
       tags: [auth]
       operationId: getAccess
-      description: Get a scene's explicit access grants. Requires `read` access on the scene.
+      description: |
+        Get a scene's explicit access grants. Requires an identified requester (the `corpus:read` baseline)
+        with `read` access on the scene — anonymous readers of a public scene cannot enumerate its users.
       responses:
         '200':
           description: The access grants defined for this scene (per-user and per-group).
@@ -1544,8 +1561,8 @@ paths:
       tags: [tasks]
       operationId: deleteTask
       description: |
-        Delete a task and its workspace. Requires the `tasks:write` scope and admin-level access to the task
-        (owner, scene admin, or instance admin).
+        Delete a task and its workspace. Requires `admin` access to the task (owner, scene admin, or instance
+        admin); a token credential must carry the `tasks:admin` scope.
       responses:
         '204':
           description: Success.
@@ -1605,8 +1622,9 @@ paths:
       operationId: putTaskArtifact
       description: |
         Upload the payload of a `parseUserUpload` task, in one shot or as resumable chunks (`Content-Range`,
-        GCS-style). The task must be owned by the requester and be in the `initializing` state. Requires the
-        `tasks:write` scope. On the final chunk the parse handler runs.
+        GCS-style). The task must be owned by the requester and be in the `initializing` state; ownership grants
+        the required `admin` task access, and a token credential must carry the `tasks:admin` scope. On the
+        final chunk the parse handler runs.
       requestBody:
         required: true
         content:
@@ -1629,7 +1647,8 @@ paths:
       tags: [admin]
       operationId: getAdminStats
       description: |
-        Get server usage statistics (data footprint, process load) and build metadata. Requires administrator rights.
+        Get server usage statistics (data footprint, process load) and build metadata. Requires the
+        `instance:read` scope (mintable, for monitoring agents).
       responses:
         '200':
           description: Server statistics.
@@ -1644,7 +1663,7 @@ paths:
       tags: [admin]
       operationId: getAdminConfig
       description: |
-        Get the full instance configuration. Requires administrator rights.
+        Get the full instance configuration. Requires the `instance:read` scope.
 
         > ⚠️ The JSON form exposes **every** configuration key, including env-only static values such as
         > `database_uri` (which may embed a database password), `files_dir`, `root_dir`, etc. Handle the response
@@ -1663,8 +1682,9 @@ paths:
       tags: [admin]
       operationId: patchAdminConfig
       description: |
-        Update one or more **runtime** configuration values. Requires administrator rights. Keys locked by an
-        environment variable cannot be changed; static (env-only) keys are always locked.
+        Update one or more **runtime** configuration values. Session-only: requires the non-mintable
+        `instance:write` scope. Keys locked by an environment variable cannot be changed; static (env-only)
+        keys are always locked.
       requestBody:
         required: true
         description: |
@@ -1687,7 +1707,8 @@ paths:
       tags: [admin]
       operationId: postAdminMailTest
       description: |
-        Send a test email. Requires administrator rights. Defaults to the requesting admin's own address.
+        Send a test email. Session-only: requires the non-mintable `instance:write` scope. Defaults to the
+        requesting admin's own address.
         A `to` address ending in `@example.com` short-circuits: no mail is sent and the rendered HTML is returned.
       requestBody:
         required: false
@@ -1728,7 +1749,7 @@ paths:
       tags: [admin]
       operationId: getAdminMailRender
       description: |
-        Render an email template to a standalone HTML preview (no mail is sent). Requires administrator rights.
+        Render an email template to a standalone HTML preview (no mail is sent). Requires the `instance:read` scope.
       parameters:
         - name: username
           in: query
@@ -1817,19 +1838,33 @@ components:
         cap what it can do.
     oauth2:
       type: oauth2
-      description: OAuth2 authorization-code flow with mandatory PKCE (S256). Access tokens are used as Bearer tokens.
+      description: |
+        OAuth2 authorization-code flow with mandatory PKCE (S256). Access tokens are used as Bearer tokens.
+        Scopes follow a `family:level` pattern: holding a level implies every lower one on the
+        `read ⊂ write ⊂ admin` ladder. The non-mintable scopes (`account:admin`, `users:admin`,
+        `instance:write`) cannot be requested — only an interactive session holds them.
       flows:
         authorizationCode:
           authorizationUrl: https://ecorpus.holusion.com/auth/oauth/authorize
           tokenUrl: https://ecorpus.holusion.com/auth/oauth/token
           scopes:
-            all: Full authority (equivalent to the owner's own credentials).
-            scenes:read: Read access to scenes.
-            scenes:write: Write access to scenes.
-            scenes:admin: Administrative access to scenes.
-            scenes:create: Create scenes and import archives.
-            tasks:read: Read background tasks.
-            tasks:write: Create and manage background tasks.
+            all: Every mintable scope (all of the below). Still less than a session — the non-mintable scopes stay out of reach of any token.
+            corpus:read: The identity baseline — "is a recognized user of this instance". Carried implicitly by every credential; requesting it alone yields a pure identity token.
+            corpus:write: Add scenes to the collection (scene creation, archive import).
+            scenes:read: Read scene content, on scenes the per-scene ACL grants.
+            scenes:write: Edit scene content (ACL-gated). Does not include creating scenes — that is `corpus:write`.
+            scenes:admin: Scene administration — rename, archive, permission edits (ACL-gated).
+            tasks:read: Read background tasks and their logs (ACL-gated).
+            tasks:write: Create background tasks.
+            tasks:admin: Delete tasks and upload task payloads (ACL-gated).
+            users:read: List user accounts, their sessions and token metadata.
+            users:write: Provision and delete user accounts, revoke their tokens.
+            groups:read: List groups.
+            groups:write: Reserved for a future per-group role; no route uses it yet.
+            groups:admin: Create and delete groups, edit membership.
+            instance:read: Server statistics and configuration inventory (the monitoring use case).
+            account:read: List one's own sessions, tokens and OAuth grants.
+            account:write: Revoke one's own sessions, tokens and OAuth grants.
     clientBasicAuth:
       type: http
       scheme: basic
@@ -2054,7 +2089,18 @@ components:
 
     TokenScope:
       type: string
-      enum: ["all", "scenes:read", "scenes:write", "scenes:admin", "scenes:create", "tasks:read", "tasks:write"]
+      enum: ["all", "corpus:read", "corpus:write",
+             "scenes:read", "scenes:write", "scenes:admin",
+             "tasks:read", "tasks:write", "tasks:admin",
+             "users:read", "users:write",
+             "groups:read", "groups:write", "groups:admin",
+             "instance:read",
+             "account:read", "account:write"]
+      description: |
+        A mintable scope, of the form `family:level`: holding a level implies every lower one on the
+        `read ⊂ write ⊂ admin` ladder, and `all` expands to every mintable scope. The non-mintable scopes
+        (`account:admin`, `users:admin`, `instance:write`) can never be put on a token or OAuth grant —
+        only an interactive session holds them.
 
     OAuthClient:
       type: object
