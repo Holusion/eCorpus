@@ -1,0 +1,31 @@
+---
+title: "Galerie"
+layout: page
+---
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 3rem">Collection d'oeuvres scannées par des étudiants de l'IRHiS</h2>
+</section>
+<section class="section" id="IRHiS">
+    <h2>
+        Œuvres numérisées du Palais des Beaux-Arts de Lille
+    </h2>
+    <p>Collection assemblée par le laboratoire <a href="/fr/about">IRHiS</a> (Institut de Recherches historiques du Septentrion, Université de Lille).</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
+<a href="/fr/collections/index.html">Retour à la page Collections</a>

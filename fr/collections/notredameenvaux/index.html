@@ -1,0 +1,53 @@
+---
+title: "Galerie"
+layout: page
+---
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection de sculptures du Notre-Dame en Vaux à
+        Chalons-en-Champagne</h2>
+</section>
+
+<section class="section">
+    <h3 class="text-white my-5" style="font-size: 2rem">A propos</h3>
+
+
+    <p>
+        Le <b>cloître de la collégiale de Notre-Dame-en-Vaux</b> abritait une collection unique de statues-colonnes finement
+        ouvragées présentant les scènes de l'Ancien et du Nouveau Testament. Edifiées vers <b>1170-1180</b>, elles jouent pour
+        les chanoines un rôle de <b>contemplation et d'éducation</b>, bien que cette mode, liée au premier art gothique soit de
+        courte durée et vite abandonnée lors des réformes suivantes de la liturgie.
+    </p>
+    <p>
+        En manque cruel de moyen pour l'entretien de leur cloître au XVIIIeme siècle, les moines procèdent à la
+        <b>destruction du cloître entre 1759 et 1766</b>. Le cloître est détruit et les terrains rebâtis en se servant des
+        débris pour leurs fondations. Le cloître et ses sculptures tomberont dans l'oubli pendant deux siècles et
+        échapperont aux destructions de la période révolutionnaire. Retrouvées en fragments lors des <b>fouilles de Léon
+        Pressouyre entre 1963 et 1976</b>, les statues sont remontées et complétées par de la métaline.
+    </p>
+</section>
+
+<section class="section" id="NotreDameEnVaux">
+    <h4>
+        Liste des oeuvres:
+    </h4>
+    <!-- <p>Collection assemblée pour le musée du Cloître de Notre Dame en Vaux à Châlons en Champagne.</p> -->
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredameenvaux" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    </div>
+</section>
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
