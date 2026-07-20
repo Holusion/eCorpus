@@ -1,0 +1,51 @@
+---
+title: "Gallery"
+layout: page
+---
+<a href="/en/collections/index.html">Back to Collections page</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection of sculptures from Notre-Dame-en-Vaux in
+        Châlons-en-Champagne</h2>
+</section>
+
+<section class="section">
+    <h3 class="text-white my-5" style="font-size: 2rem">About</h3>
+
+    <p>
+        The <b>cloister of the collegiate church of Notre-Dame-en-Vaux</b> once housed a unique collection of finely
+        carved column-statues depicting scenes from the Old and New Testaments. Built around <b>1170–1180</b>, they served
+        the canons as objects of <b>contemplation and education</b>, although this fashion, tied to early Gothic art, was
+        short-lived and quickly abandoned during subsequent liturgical reforms.
+    </p>
+    <p>
+        Severely lacking funds to maintain their cloister in the 18th century, the monks carried out its
+        <b>destruction between 1759 and 1766</b>. The cloister was torn down and the land rebuilt, using the debris for
+        foundations. The cloister and its sculptures fell into oblivion for two centuries and escaped the destruction
+        of the Revolutionary period. Rediscovered in fragments during <b>excavations led by Léon Pressouyre from 1963 to
+        1976</b>, the statues were reassembled and completed with metaline.
+    </p>
+</section>
+
+<section class="section" id="NotreDameEnVaux">
+    <h4>
+        List of works:
+    </h4>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredameenvaux" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    </div>
+</section>
+<a href="/en/collections/index.html">Back to Collections page</a>
