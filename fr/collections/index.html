@@ -11,13 +11,13 @@ layout: page
         <a href="/fr/collections/ethesaurus/index.html">Pièces d'orfévrerie médiévale</a>
     </h2>
     <p>Collection de pièces majeures d'orfévrerie médiévale mosanes assemblée dans le cadre du consortium <a href="/fr/about">eThesaurus</a> en 2015.</p>
-    <div class="jumbotron" style="display:flex; flex-direction: row;gap: -50px; overflow: auto;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img  src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -30,13 +30,13 @@ layout: page
     </a></h2>
     <p>Collection assemblée par le laboratoire <a href="/fr/about">IRHiS</a> (Institut de Recherches historiques du Septentrion, Université de Lille) à partir des oeuvres du Palais des Beaux-Arts de Lille.</p>
     <p>Ces objets ont été numérisés par des étudiants du Master Histoire des Arts à l'IRHiS, afin de leur faire découvrir la photogrammétrie et le logiciel Scaniverse.</p>
-    <div style="display:flex; flex-direction: row;gap: 5px; overflow: auto">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -49,13 +49,13 @@ layout: page
     </a></h2>
     <p>Collection assemblée dans le cadre des travaux de restauration 2018 et de l'exposition <a href="/fr/2024/05/06/suad.html">Notre-Dame de Paris</a> à la Sorbonne Université Abu Dhabi en 2024.</p>
     <p>Les numérisations ont été réalisées par Plémo 3D.</p>
-    <div style="display:flex; flex-direction: row;gap: 5px;overflow: auto;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredamedeparis" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -68,13 +68,13 @@ layout: page
     </a></h2>
     <p>Collection assemblée pour le <a href="/fr/_posts/2025-04-05-collectionchalons.md">musée du Cloître de Notre Dame en Vaux</a> à Châlons en Champagne pour sa réouverture de 2025.</p>
     <p>Les numérisations ont été réalisées par Digitage, tandis que les reconstitutions des oeuvres lacunaires ont été assurées par <a href="holusion.com">Holusion</a>.</p>
-    <div style="display:flex; flex-direction: row;gap: 5px; overflow: auto;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredameenvaux" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -87,13 +87,13 @@ layout: page
     </a></h2>
     <p>Collection des réalisation des 9 établissements participants et des compagnons du devoir dans le cadre d'un projet Erasmus+ impliquant 250 élèves et 50 accompagnateurs.</p>
     <p>Les numérisations ont été faites, pour la majeure partie, par des étudiants via le logiciel Scaniverse. A l'exception des modèles de ferroneries d'art, trop complexes pour un étudiant, dont la numérisation a été assurée par <a href="holusion.com">Holusion</a> en photogrammétrie.</p>
-    <div style="display:flex; flex-direction: row;gap: 5px; overflow: auto;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "medicis" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -104,15 +104,15 @@ layout: page
     <h2><a href="/fr/collections/inrapHDF/index.html">
         INRAP des Hauts-de-France
     </a></h2>
-    <p>Collection d'objets d'archéologie datant du Moyen-Âge et de l'époque moderne mis au jour par l'INRAP Hauts-de-France à Dunkerque.</p>
-    <p>Les objets ont été selectionnée pour une exposition lors d'un évènement à Dunkerque en 2026. Ils ont été numérisés la même année par l'équipe de <a href="holusion.com">Holusion</a>.</p>
-    <div style="display:flex; flex-direction: row;gap: 5px; overflow: auto;">
+    <p>Collection d'objets d'archéologie mis au jour par l'INRAP Hauts-de-France</p>
+    <p>Une partie de ces objets ont été selectionnée pour une exposition lors d'un évènement à Dunkerque en 2026. Ils ont été numérisés la même année par l'équipe de <a href="holusion.com">Holusion</a>.</p>
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrap" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -124,13 +124,13 @@ layout: page
         Centre Culturel Ipoustéguy
     </a></h2>
     <p>Collection d'œuvres de Jean Robert Ipoustéguy conservées au Centre Culturel de Dulcon.</p>
-    <div style="display:flex; flex-direction: row;gap: 5px; overflow: auto;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "ipousteguy" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>

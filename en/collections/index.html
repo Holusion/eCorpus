@@ -11,17 +11,13 @@ layout: page
         Medieval goldsmithing pieces
     </h2>
     <p>Collection gathered from the <a href="/en/about">eThesaurus</a> consortium's works.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p>
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -33,17 +29,14 @@ layout: page
         Digitized artworks from the Palais des Beaux-Arts de Lille
     </h2>
     <p>Collection assembled by the <a href="/en/about">IRHiS</a> laboratory (Institut de Recherches historiques du Septentrion, University of Lille).</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <p>These objects were scanned by students of the Master in Art History at IRHiS, introducing them to photogrammetry and Scaniverse.</p>
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p>
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -55,17 +48,14 @@ layout: page
         Digitized elements of Notre-Dame de Paris
     </h2>
     <p>Collection assembled as part of the restoration work and the exhibition <a href="/en/2024/05/06/suad.html">Notre-Dame de Paris</a> at Sorbonne Abu Dhabi University.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <p>Scans were produced by Plémo 3D.</p>
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredamedeparis" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -76,18 +66,15 @@ layout: page
     <h2>
         Digitalized elements from the Cloister Museum of Notre-Dame-en-Vaux
     </h2>
-    <p>Collection assembled for the Cloister Museum of Notre-Dame-en-Vaux in Châlons-en-Champagne</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <p>Collection assembled for the <a href="/en/_posts/2025-04-05-collectionchalons.md">Cloister Museum of Notre-Dame-en-Vaux</a> in Châlons-en-Champagne for its 2025 reopening.</p>
+    <p>Scans were produced by Digitage while reconstructions of missing parts were done by <a href="holusion.com">Holusion</a>.</p>
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredameenvaux" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -96,21 +83,17 @@ layout: page
 
 <section class="section" id="Medicis">
     <h2>
-        Digitalized elements from a project made by high schools located in the Hauts-de-France for the Villa Medici
+        Masterpieces from Hauts-de-France high schools — Résidence Pro 2026 at the Villa Medici
     </h2>
-    <p>Collection assembled from digitalizations of artworks made by high schoolers from the Hauts-de-France about the Villa Medici.
-    </p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <p>Collection of works from 9 participating schools and the Compagnons du Devoir, part of an Erasmus+ project involving 250 students and 50 supervisors.</p>
+    <p>Most scans were done by students using Scaniverse. Art metalwork, too complex for students, was scanned by <a href="holusion.com">Holusion</a> using photogrammetry.</p>
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "medicis" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -121,18 +104,15 @@ layout: page
     <h2>
          INRAP, Hauts-de-France
     </h2>
-    <p>Collection of archeological objects from the Medieval era to the Modern era, discovered by INRAP Hauts-de-France in Dunkirk, France.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <p>Collection of archaeological objects from the Medieval era to the Modern era, discovered by INRAP Hauts-de-France in Dunkirk, France.</p>
+    <p>The objects were selected for an exhibition at an event in Dunkirk in 2026. They were scanned the same year by the <a href="holusion.com">Holusion</a> team.</p>
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrap" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -144,17 +124,13 @@ layout: page
         Centre Culturel Ipoustéguy
     </h2>
     <p>Collection of works by Jean Robert Ipoustéguy, held at the Centre Culturel de Dulcon.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "ipousteguy" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>

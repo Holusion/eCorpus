@@ -899,3 +899,71 @@ div > ul > li:has(> .voyager-btn:first-child){
     }
   }
 }
+
+//////////////////////////////
+/// GALLERY — Collection tile carousel
+//////////////////////////////
+
+.tile-carousel {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 200px;
+  align-items: center;
+
+  // Subtle horizontal scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: rgba(180, 180, 180, 0.45) transparent;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(180, 180, 180, 0.45);
+    border-radius: 2px;
+  }
+
+  // Tile link: square, scales up 10 % from centre on hover
+  .tile-item {
+    flex: 0 0 auto;
+    width: 180px;
+    height: 180px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 0;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    scroll-snap-align: start;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      aspect-ratio: 1;
+      transition: filter 0.35s ease;
+    }
+
+    &:hover {
+      transform: scale(1.10);
+      z-index: 1;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+      img {
+        filter: none;
+      }
+    }
+  }
+
+  // Sibling desaturation: hover any tile → desaturate the rest
+  &:hover > .tile-item:not(:hover) img {
+    filter: grayscale(0.35);
+  }
+}
+
