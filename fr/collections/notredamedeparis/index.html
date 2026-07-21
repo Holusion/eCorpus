@@ -5,27 +5,44 @@ layout: page
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection de sculptures issues de la Cathédrale Notre-Dame de Paris</h2>
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection de sculptures issues de la Cathédrale Notre-Dame de
+        Paris</h2>
+</section>
+<section class="section">
+    <h3 class="test-white my-5" style="font-size: 2rem">A propos</h3>
+    <p>
+        Des travaux de restauration débutent à la cathédrale Notre-Dame de Paris suite à un incendie en 2018. Ils
+        permetteront exceptionnelement aux chercheurs <b>l'accès à des élévations inédit</b> dans le monument, grâce à
+        l'installation d'échauffaudages.
+        <br>
+        Plémo 3D a profité de cette occasion unique pour numériser les oeuvres d'ordinaires innacessibles de la
+        Cathédrale.
+    </p>
+    <p>
+        Cette collection regroupe un échantillon de ces sculptures, témoin de la multiplicité des riches décorations du
+        célèbre monument. <a href="../../2024/05/06/suad.html">Ces modèles seront ensuite utilisés pour valoriser le
+            patrimoine français</a> lors d'une semaine dédiée, à la Sorbonne d'Abu Dhabi.
+    </p>
 </section>
 <section class="section" id="NotreDamedeParis">
-    <h2>
-        Elèments numérisés de Notre-Dame de Paris
-    </h2>
-    <p>Collection assemblée dans le cadre des travaux de restauration et de l'exposition <a href="/fr/2024/05/06/suad.html">Notre-Dame de Paris</a> à la Sorbonne Université Abu Dhabi.</p>
+    <h4>
+        Liste des oeuvres:
+    </h4>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredamedeparis" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
-            </a>
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "notredamedeparis" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+    </div>
 </section>
 <a href="/fr/collections/index.html">Retour à la page Collections</a>

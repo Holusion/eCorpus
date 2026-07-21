@@ -5,27 +5,43 @@ layout: page
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection d'oeuvres scannées par des étudiants de l'IRHiS</h2>
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection d'oeuvres scannées par des étudiants de l'IRHiS</h2>
+</section>
+<section class="section">
+    <h3 class="text-white my-5" style="font-size: 2rem">A propos</h3>
+    <p>
+        C'est en 2023 que débute <a href="../../2024/09/09/photogrammetrie.html">la formation à la photogrammétrie</a>
+        pour <b>sensibiliser les jeunes étudiant en license d'Histoire des Arts de l'IRHiS</b> à la pérennité numérique des
+        oeuvres d'art.
+        <br>
+        Grâce à la collaboration de l'IRHiS, du Palais des Beaux-Arts de Lille et de Holusion, les oeuvres phares du
+        Musées sont numérisées chaque année avec Scaniverse, importées sur eCorpus et enrichies sémantiquement par les
+        étudiants eux-mêmes.
+    </p>
+    <p>
+        Cette collection n'a pas pour but d'être exhaustive, et ne montre qu'une petite sélection, parmie lesquels, les
+        oeuvres les plus populaires auprès des étudiants.
+    </p>
 </section>
 <section class="section" id="IRHiS">
-    <h2>
-        Œuvres numérisées du Palais des Beaux-Arts de Lille
-    </h2>
-    <p>Collection assemblée par le laboratoire <a href="/fr/about">IRHiS</a> (Institut de Recherches historiques du Septentrion, Université de Lille).</p>
+    <h4>
+        Liste des oeuvres:
+    </h4>>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p>
-                </div>
-            </a>
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+    </div>
 </section>
 <a href="/fr/collections/index.html">Retour à la page Collections</a>

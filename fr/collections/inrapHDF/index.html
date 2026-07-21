@@ -5,27 +5,40 @@ layout: page
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection d'archéologie de l'INRAP Hauts-de-France</h2>
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection d'archéologie de l'INRAP Hauts-de-France</h2>
+</section>
+<section class="section">
+    <h3 class="text-white my-5" style="font-size: 2rem">A propos</h3>
+    <p>
+        Cette collection numérique a pu voir le jour grâce à une volonté de l'INRAP Hauts-de-France de <b>valoriser ses
+        découvertes archéologiques</b> retrouvées à Dunkerque, lors d'un festival dédié.
+        <br>
+        Depuis, cette collection s'enrichie, au fur et à mesure, de nouvelles trouvailles numérisées de l'INRAP des
+        Hauts-de-France.
+    </p>
+    <p>
+        Ces objets ont été numérisés par Holusion, avec la participation de la FRSCV.
+    </p>
 </section>
 <section class="section" id="inraphdf">
-    <h2>
-        INRAP des Hauts-de-France
-    </h2>
-    <p>Collection d'objets d'archéologie datant du Moyen-Âge et de l'époque moderne mis au jour par l'INRAP Hauts-de-France à Dunkerque.</p>
+    <h4>
+        Liste des oeuvres:
+    </h4>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrap" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
-            </a>
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "inrap" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+    </div>
 </section>
 <a href="/fr/collections/index.html">Retour à la page Collections</a>

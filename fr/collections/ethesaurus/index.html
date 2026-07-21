@@ -5,27 +5,42 @@ layout: page
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection de pièces d'orfévrerie médiévale</h2>
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection de pièces d'orfévrerie médiévale</h2>
+</section>
+<section class="section">
+    <h4 class="text-white my-5" style="font-size: 2rem">A propos</h4>
+    <p>
+        Il s'agit de la <b>toute première collection eCorpus</b> à avoir vu le jour sur ce site, tandis que le projet n'en était alors
+        qu'à ses prémices.
+        <br>
+        Provenant du projet <a href="/fr/about">eThesaurus</a>, porté par Marc Gil et Pierre Hallot en 2015 ce corpus
+        est composé <b>d'oeuvres majeures d'orfévreries mosanes</b>, encore très peu documentée en ligne.
+    </p>
+    <p>
+        Grâce au travail de plusieurs équipes transfrontalières entre le Nord de la France et la Belgique, il est
+        désormais possible de visionner ces pièces d'orfévreries médiévales en ligne et gratuitement. La plupart de ces
+        pièces sont issues du prestigieux orfévre: <b>Hugo d'Oignies</b>.
+    </p>
 </section>
 <section class="section" id="eThesaurus">
-    <h2>
-        Pièces d’orfèvrerie médiévale.
-    </h2>
-    <p>Collection assemblée dans le cadre du consortium <a href="/fr/about">eThesaurus</a>.</p>
+    <h4>
+        Liste des oeuvres:
+    </h4>
     <div class="jumbotron" style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
-            </a>
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "ethesaurus" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+    </div>
 </section>
 <a href="/fr/collections/index.html">Retour à la page Collections</a>

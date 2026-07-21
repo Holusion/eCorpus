@@ -5,27 +5,38 @@ layout: page
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection d'oeuvres de Jean Robert Ipoustéguy</h2>
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection d'oeuvres de Jean Robert Ipoustéguy</h2>
+</section>
+<section class="section">
+    <h3 classe="text-white my-5" style="font-size: 2rem">A propos</h3>
+    <p>
+        Le <b>Centre Culturel de Dulcon</b> est un espace dédié à la valorisation du patrimoine artistique et culturel. Il
+        <b>abrite des oeuvres contemporaines et organise des expositions</b> mettant en lumière les liens entre création
+        artistique, histoire locale et mémoire collective.
+        <br>
+
+    </p>
+
 </section>
 <section class="section" id="ipousteguy">
-    <h2>
-        Centre Culturel Ipoustéguy
-    </h2>
-    <p>Collection d'œuvres de Jean Robert Ipoustéguy conservées au Centre Culturel de Dulcon.</p>
+    <h4>
+        Liste des oeuvres:
+    </h4>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "ipousteguy" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
-            </a>
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "ipousteguy" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+    </div>
 </section>
 <a href="/fr/collections/index.html">Retour à la page Collections</a>

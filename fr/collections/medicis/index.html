@@ -5,27 +5,50 @@ layout: page
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection d'oeuvres réalisées par des lycéens pour la Villa Médicis</h2>
+    <h2 class="text-white my-5" style="font-size: 2rem">Collection d'oeuvres réalisées par des lycéens pour la Villa
+        Médicis</h2>
+</section>
+<section class="section">
+    <h3 class="text-white my-5" style="font-size: 2rem">A propos</h3>
+    <p>
+        En 2026, les Hauts-de-France et Erasmus+ ont permis à 9 établissements, soit 250 élèves et 50 accompagnateurs,
+        de participer au projet <b>Residence Pro de la Villa Médicis</b>.
+        <br>
+        Le but est simple: <b>valoriser le travail d'étudiant-artisans</b> réaliser pour l'occasion. Le corpus d'oeuvres a été
+        réalisés dans leurs établissements respectifs avant de partir être exposer à la Villa Médicis, en Italie, avec
+        leur concepteurs.
+    </p>
+    <p>
+        Briévement former à la photogrammétrie, les jeunes ont eu l'occasion d'utiliser Scaniverse pour numérisés les
+        chef-d'oeuvres finaux avec leurs portables.
+    </p>
+    <p>
+        Quelques exceptions sont toutefois notables: certaines oeuvres, réalisées avec des matériaux trop brillants et
+        inadaptées à la photogrammétrie, ont été modélisées à l'aide de logiciel 3D.
+        <br>
+        Pour le lycée Joliot-Curie, c'est l'équipe de Holusion qui s'est chargée de numériser les travaux de ferroneries
+        d'art avec des méthodes de photogrammétrie à l'appareil photo.
+    </p>
 </section>
 <section class="section" id="Medicis">
-    <h2>
-        Chef-d'oeuvres des lycées des Hauts-de-France pour la Résidence Pro 2026 à la Villa Médicis
-    </h2>
-    <p>Collection des réalisation des 9 établissements participants et des compagnons du devoir dans le cadre d'un projet Erasmus+ impliquant 250 élèves et 50 accompagnateurs.</p>
+    <h4>
+        Liste des oeuvres:
+    </h4>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "medicis" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
-            </a>
+        {%if p.layout != "item" or p.lang != page.lang or p.collection != "medicis" %}
+        {% continue %}
+        {% endif %}
+        <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+            <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;"
+                src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            <div style="padding-left: 5px;">
+                <h4>{{ p.title }}</h4>
+                <p>{{ p.abstract }}</p>
+            </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+    </div>
 </section>
 <a href="/fr/collections/index.html">Retour à la page Collections</a>
