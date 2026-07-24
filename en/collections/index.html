@@ -136,3 +136,21 @@ layout: page
     </div>
 </div>
 </section>
+
+<section class="section" id="MAN">
+    <h2><a href="/en/collections/MAN/index.html">
+        Musée d'Archéologie Nationale
+    </a></h2>
+    <p>Digitized objects from the Musée d'Archéologie Nationale (Saint-Germain-en-Laye), part of the « History of Archaeology » collection.</p>
+    <div class="tile-carousel">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "MAN" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>

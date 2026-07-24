@@ -1,0 +1,31 @@
+---
+title: "Gallery"
+layout: page
+---
+<a href="/en/collections/index.html">Back to Gallery page</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 3rem">Musée d'Archéologie Nationale</h2>
+</section>
+<section class="section" id="MAN">
+    <h2>
+        Musée d'Archéologie Nationale — « History of Archaeology » collection
+    </h2>
+    <p>Digitized objects from the Musée d'Archéologie Nationale (Saint-Germain-en-Laye), part of the « History of Archaeology » collection.</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "MAN" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p> 
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
+<a href="/en/collections/index.html">Back to Gallery page</a>
