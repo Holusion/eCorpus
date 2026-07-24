@@ -201,7 +201,8 @@ paths:
           in: query
           description: |
             Force the response representation, bypassing `Accept` header negotiation.
-          schema: {type: string, enum: ["json", "text", "zip"]}
+            The plain-text name list is only available through `Accept: text/plain`.
+          schema: {type: string, enum: ["json", "zip"]}
       responses:
         '200':
           description: |
@@ -384,9 +385,11 @@ paths:
         '204':
           description: Success.
         '401':
+          description: The request presented no valid authentication.
+        '403':
           description: |
-            Unauthorized, either due to improper authentication or insufficient access rights.
-            Archiving requires `admin` rights over the scene; force-delete requires instance-level administrative rights.
+            Insufficient access rights. Archiving requires `admin` rights over the scene;
+            force-delete requires instance-level administrative rights.
     additionalOperations:
       MKCOL:
         tags: [scenes]
@@ -630,8 +633,9 @@ paths:
       tags: [history]
       operationId: getHistoryFile
       description: |
-        Fetch a file as it existed just before the history point `{id}` — the newest version of `{file}` strictly
-        older than `{id}`. Requires `write` access.
+        Fetch a file as it existed at the history point `{id}` — the newest generation of `{file}` that is not
+        newer than `{id}` (inclusive: if `{id}` is a generation of `{file}` itself, that very generation is
+        returned). Requires `write` access.
       responses:
         '200':
           description: The historical file bytes, with its stored MIME type.
@@ -1461,8 +1465,8 @@ paths:
       tags: [auth]
       operationId: getAccess
       description: |
-        Get a scene's explicit access grants. Requires an identified requester (the `corpus:read` baseline)
-        with `read` access on the scene — anonymous readers of a public scene cannot enumerate its users.
+        Get a scene's explicit access grants. Requires the `scenes:read` scope and `read` access on the
+        scene — anonymous readers of a public scene cannot enumerate its users.
       responses:
         '200':
           description: The access grants defined for this scene (per-user and per-group).
@@ -2241,7 +2245,7 @@ components:
           type: object
           required: ["size", "scenes"]
           properties:
-            size: {type: number, format: int32, description: "Total deduplicated file size, in bytes."}
+            size: {type: string, description: "Total deduplicated file size in bytes, as a decimal string."}
             scenes: {type: number, format: int32}
         process:
           type: object
