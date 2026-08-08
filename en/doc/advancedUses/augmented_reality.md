@@ -90,7 +90,7 @@ Quality recommendations :
 - Polycount : 200k
 - Texture 4k 
 
-**Using a Mac**, use [Reality Converter](https://developer.apple.com/augmented-reality/tools/) to export a 3D fil into a usdz file.
+**Using a Mac**, use [Reality Converter](https://developer.apple.com/reality-composer-pro/) to export a 3D fil into a usdz file.
 
 #### Import the USDZ
 

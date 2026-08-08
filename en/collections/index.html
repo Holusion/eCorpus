@@ -154,3 +154,21 @@ layout: page
     </div>
 </div>
 </section>
+
+<section class="section" id="seclin">
+    <h2><a href="/en/collections/seclin/index.html">
+        Archaeological collection of the city of Seclin
+    </a></h2>
+    <p>3D digitizations of the archaeological and architectural heritage of the city of Seclin (Nord).</p>
+    <div class="tile-carousel">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "seclin" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>

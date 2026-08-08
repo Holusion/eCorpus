@@ -90,7 +90,7 @@ Recommandation de qualité :
 - Polycount : 200k
 - Texture 4k 
 
-**Depuis un Mac**, utiliser [Reality Converter](https://developer.apple.com/augmented-reality/tools/) pour transformer un fichier 3D en usdz.
+**Depuis un Mac**, utiliser [Reality Converter](https://developer.apple.com/reality-composer-pro/) pour transformer un fichier 3D en usdz.
 
 #### Importer le USDZ
 

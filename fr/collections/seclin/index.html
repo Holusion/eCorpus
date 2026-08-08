@@ -1,0 +1,31 @@
+---
+title: "Galerie"
+layout: page
+---
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 3rem">Fond archéologique de la ville de Seclin</h2>
+</section>
+<section class="section" id="seclin">
+    <h2>
+        Fond archéologique de la ville de Seclin
+    </h2>
+    <p>Numérisations 3D du patrimoine archéologique et architectural de la ville de Seclin (Nord).</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "seclin" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p> 
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+</section>
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
