@@ -5,9 +5,14 @@ rank: 7
 
 ## Development
 
+### Design documents
+
+- [Identity & Access Control](/en/doc/hosting/development/auth_system) — the authorization model: user levels,
+  scopes, tokens, sessions and the `policy()` route guard. Read it before touching anything auth-related.
+
 ### Getting Started
 
-See the [quick installation guide](/fr/doc/hosting/deployment).
+See the [quick installation guide](/en/doc/hosting/deployment).
 
 Use the command: `npm run watch` to enable automatic recompilation.
 

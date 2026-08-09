@@ -49,7 +49,7 @@ main {
   
   &, section, .section{
 
-    >img:not(.fluid), >.media:not(.fluid), .flush {
+    >img:not(.fluid), >.media:not(.fluid), >figure.ecorpus-embed:not(.fluid), .flush {
       margin: 0 -3rem;
       width: calc(100% + 6rem);
       overflow-clip-margin:inherit;
@@ -271,16 +271,28 @@ footer a:hover {
 
 
 .nav-doc {
+  --indent: 10px;
   max-width: $sidebar_width;
   background-color: $darkgrey;
   height: fit-content;
-  // overflow: hidden;
+
+  // thin, trackless scrollbar for when a nav scrolls on its own
+  scrollbar-width: thin;
+  scrollbar-color: $middlegrey transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: $middlegrey;
+    border-radius: 3px;
+  }
 
 
 
   ul{
     // padding: 1rem 1rem 1rem 0;
-    padding: 0;
+    padding: 0 0 1.5rem 0;
     width: 100%;
     list-style: none;
 
@@ -292,7 +304,7 @@ footer a:hover {
       // min-width: 240px;
       width: 100%;
       // max-width: calc(300px - 1.1rem);
-      padding: 0.2rem 0rem 0.2rem 1rem;
+      padding: 0.2rem 0rem 0.2rem var(--indent);
       &.current > a.dropdown-toggle{
         color: $yellow;
       }
@@ -314,7 +326,9 @@ footer a:hover {
         padding: 0.1rem 0rem 0.1rem 0;
       }
       a:first-child{
-        margin-left: -1ch;
+        &.dropdown-toggle{
+          margin-left: calc(-3px - 0.255em);
+        }
       }
     }
   }
@@ -327,8 +341,10 @@ footer a:hover {
   
   &.nav-left{
     grid-area: nav-left;
-    position: relative;
-    padding: 0;
+    position: sticky;
+    top: calc($navbar_height + 0.8rem);
+    max-height: calc(100vh - $navbar_height - 1.6rem);
+    overflow-y: auto;
 
 
     .navbar-toggle{
@@ -342,6 +358,11 @@ footer a:hover {
 
     @media screen and (max-width: #{$sidebar_width + $main_width} ){
       grid-area: main;
+      // back to a plain static anchor for the absolute-positioned toggle
+      position: relative;
+      top: auto;
+      max-height: none;
+      overflow-y: visible;
       width: 0;
       margin: .5rem;
       transition: width 0.35s linear;
@@ -374,6 +395,10 @@ footer a:hover {
     grid-area: nav-right;
     overflow-x: hidden;
     padding-left: .75rem;
+    position: sticky;
+    top: calc($navbar_height + 0.8rem);
+    max-height: calc(100vh - $navbar_height - 1.6rem);
+    overflow-y: auto;
     li{
       text-overflow: ellipsis;
       li{
@@ -589,7 +614,7 @@ main{
 //////////////////////////////
 /// EMBEDS
 //////////////////////////////
-.youtube-video {
+.youtube-video, .ecorpus-facade {
   cursor: pointer;
   position: relative;
   &:before{
@@ -622,7 +647,7 @@ main{
   }
 
   &:hover .play-button{
-    background-color: #f00;
+    background-color: $yellow;
     transform: scale(1.1);
   }
 }
@@ -668,6 +693,50 @@ main{
   }
 
 
+}
+
+.media.ratio .ecorpus_container{
+  position: absolute;
+  inset: 0;
+}
+
+// while the facade is up the iframe is inert (no src yet): keep it
+// click-through and invisible so the poster underneath shows.
+// The loader script removes the class once the viewer has loaded.
+.ecorpus-facade{
+  iframe{
+    opacity: 0;
+    pointer-events: none;
+  }
+  // autoplay facades (and click facades once activated) are not buttons
+  &:not([role="button"]){
+    cursor: default;
+  }
+}
+
+// scene-image-* renders are square, the embed box is not
+.ecorpus_placeholder{
+  object-fit: cover;
+}
+
+figure.ecorpus-embed{
+  margin: 0;
+
+  >figcaption{
+    padding: 0.25rem 1rem;
+    text-align: center;
+    font-size: 75%;
+    font-style: italic;
+    color: lightslategrey;
+
+    a{
+      color: inherit;
+    }
+
+    .ecorpus-intro{
+      margin: 0.25rem 0 0;
+    }
+  }
 }
 
 //////////////////////////////

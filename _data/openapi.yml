@@ -1,23 +1,40 @@
-openapi: '3.1.0'
+openapi: '3.2.0'
 info:
   title: eCorpus
   version: '1.0.0'
   summary: HTTP API for eCorpus
   description: |
     This HTTP API provides all necessary routes to access and edit scenes stored on an eCorpus instance under the `/scenes` path.
-    
+
     Additionally it provides a number of namespaced utilities
     for **users** management (`/users`),
-    **authentication** and ACL edition (`/auth`),
-    changes **history** management (`/history`)
-    or gathering scenes under **collections** (`/tags`).
+    **groups** management (`/groups`),
+    **authentication**, tokens, OAuth2 and ACL edition (`/auth`),
+    changes **history** management (`/history`),
+    gathering scenes under **collections** (`/tags`),
+    background **tasks** management (`/tasks`),
+    public embedding/discovery **services** (`/services`)
+    and instance **administration** (`/admin`).
 
-    It provides some **webDAV** utility routes for the `/scenes` resources 
+    It provides some **webDAV** utility routes for the `/scenes` resources
     but is far from [Class 1](http://www.webdav.org/specs/rfc4918.html#rfc.section.18.1) Compliance:
     Only routes that are necessary for proper [Voyager](https://smithsonian.github.io/dpo-voyager/) support are implemented.
-    WebDAV-specific methods are defined as an extension with a `x-` prefix to prevent breaking openAPI tooling 
+    WebDAV-specific methods (`PROPFIND`, `MKCOL`, `MOVE`) are declared through OpenAPI 3.2's `additionalOperations`.
 
     Other namespaces tends to adhere to a stricter **REST** philosophy where possible.
+
+    # Authentication in a nutshell
+
+    Requests generally authenticate using a **Bearer token** (`Authorization: Bearer ec_…`).
+    Personal tokens can be created from an authenticated user's personnal page (`/ui/user/tokens`), then used like this:
+
+    ```bash
+    curl -XGET -H "Authorization: Bearer ec_xxxxxxxx" "https://<server>/<path>"
+    ```
+
+    See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication)
+    for the complete picture (user levels, tokens and scopes, OAuth2), and the [auth](#auth) section below
+    for the route reference.
   contact:
     name: eCorpus Support
     url: https://github.com/Holusion/eCorpus
@@ -25,131 +42,181 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-    
+
 servers:
   - url: https://ecorpus.holusion.com
 
+security:
+  - cookieSession: []
+  - bearerToken: []
+  - oauth2: []
+
 tags:
-  - name: admin
-    description: Administrative tasks routes
   - name: auth
-    description: Authentication, access control querying and edition routes. 
-  - name: history
+    summary: Login, personal access tokens, OAuth2 and per-scene access control.
     description: |
-      history management utilities for the `/scenes` namespace.
-      Scene names in `/history` directly and uniquely maps to scenes in `/scenes`.
+      Authentication, personal access tokens, OAuth2 authorization server, session management
+      and per-scene access-control edition routes.
+
+      Every request's effective authority is the intersection of three factors: the server-wide
+      **user level** (`none < use < create < manage < admin`), the **scopes** delegated to the
+      presented credential (a token carries a frozen `family:level` scope list; a session carries
+      its user's full authority) and the per-resource **access level**
+      (`none < read < write < admin`). Requests authenticate with a **session cookie**
+      (obtained through `POST /auth/login`) or a **Bearer token** (`Authorization: Bearer ec_…`);
+      HTTP *Basic* authentication only identifies a registered OAuth *client* on the token endpoint
+      (user Basic auth was dropped in v0.3.0 — see the
+      [legacy guide](https://ecorpus.eu/en/doc/hosting/basic_auth) for older instances).
+
+      See the [authentication guide](https://ecorpus.eu/en/doc/hosting/api#authentication) for usage examples
+      or the [design document](https://ecorpus.eu/en/doc/hosting/development/auth_system) for an in-depth explanation of its structure.
   - name: scenes
+    summary: Scenes storage — where all the actual data lives.
     description: |
-      Where all the actual data is stored
+      Where all the actual data is stored.
       API design for the `/scenes/*` makes use of the liberal definition of
       [GET for collections](https://datatracker.ietf.org/doc/html/rfc2518#section-8.4) in the webDAV specification
-      to return well-defined JSON documents for those queries, allowing most use cases to bypass cumbersome PROPFIND queries
-  - name: tags
+      to return well-defined JSON documents for those queries, allowing most use cases to bypass cumbersome PROPFIND queries.
+  - name: history
+    summary: Version history of scenes, with diff and restore utilities.
     description: |
-      collections (tags) management routes.
+      History management utilities for the `/scenes` namespace.
+      Scene names in `/history` directly and uniquely maps to scenes in `/scenes`.
+      The whole namespace requires **write** access to the target scene.
+  - name: tags
+    summary: Collections of scenes, grouped under shared tags.
+    description: |
+      Collections (tags) management routes.
   - name: users
+    summary: User accounts management.
     description: Users management
+  - name: groups
+    summary: User groups bundling members and shared access grants.
+    description: |
+      User groups management. A group bundles users together and can hold per-scene access grants that all its
+      members inherit. Members can read their own groups; managing groups requires the `manage` level
+      (the `groups:admin` scope).
+  - name: tasks
+    summary: Background tasks scheduling, monitoring and artifacts.
+    description: |
+      Background tasks: schedulable, persisted units of server-side work (uploads, archive extraction, scene
+      creation, email sending, cleanup jobs…). Access is gated by the `tasks:*` scope family plus a per-task
+      ACL: a task's owner has `admin` access to it; anyone else derives access from the task's scene.
+  - name: services
+    summary: Public discovery and embedding endpoints (OpenSearch, oEmbed).
+    description: |
+      Public, CORS-enabled discovery/embedding endpoints (OpenSearch description and oEmbed provider).
+  - name: admin
+    summary: Instance administration, reserved to administrators.
+    description: Administrative tasks routes, reserved to instance administrators.
 
 paths:
   /scenes:
     get:
       tags: [scenes]
       operationId: getScenes
+      security:
+        - {}
+        - cookieSession: []
+        - bearerToken: []
+        - oauth2: []
       description: |
-        get a list of scenes with optional search parameters. Similar to PROPFIND but will return JSON.
-        Provides advanced search and pagination semantics
-      parameters:
-      - name: id
-        in: query
-        style: form
-        explode: true
-        schema: {type: array, items: {$ref: "#/components/schemas/Uid"}}
-        description: |
-          Scenes IDs to get. If provided, will return only those scenes, ignoring other query parameters.
-          Mainly useful for zip batch downloads
-      - name: name
-        in: query
-        style: form
-        explode: true
-        schema: {type: array, items: {type: string}}
-        description: |
-          Scene names to get. If provided, will return only those scenes, ignoring other query parameters.
-      - name: match
-        in: query
-        description: |
-          Matches a string against a scene's name, author, authorized users  and document meta.
+        Get a list of scenes with optional search parameters. Similar to PROPFIND but returns JSON.
+        Provides advanced search and pagination semantics.
 
-          See examples for the accepted syntax
-        schema: 
-          type: string
+        Anonymous requests are allowed and see only publicly-accessible scenes.
+        Can also return a `text/plain` list of names or a `application/zip` archive of the matched scenes.
+      parameters:
+        - name: id
+          in: query
+          style: form
+          explode: true
+          schema: {type: array, items: {$ref: "#/components/schemas/Uid"}}
+          description: |
+            Scene IDs to get. If provided (along with or instead of `name`), returns exactly those scenes and
+            ignores every other search/pagination parameter. Mainly useful for zip batch downloads.
+        - name: name
+          in: query
+          style: form
+          explode: true
+          schema: {type: array, items: {type: string}}
+          description: |
+            Scene names to get. If provided, returns exactly those scenes and ignores other search parameters.
+        - name: match
+          in: query
+          description: |
+            Full-text search against a scene's name, author, authorized users and document meta.
+            When present, results are ranked by relevance. See examples for the accepted syntax.
+          schema: {type: string}
           examples:
             simple:
               value: foo
-              description: |
-                Match scenes that contains the string "foo"
+              description: Match scenes that contain the string "foo".
             words:
               value: foo bar
-              description: |
-                Match scenes that contains both words in unrelated places.
+              description: Match scenes that contain both words in unrelated places.
             quoted:
               value: '"foo bar"'
-              description: |
-                Match scenes that contains those words next to each other
-      - name: access
-        in: query
-        style: form
-        explode: true
-        description: |
-          Match only scenes for which the current user have the requested access rights
-        schema:
-          type: array
-          items: { $ref: "#/components/schemas/AccessType"}
-      - name: author
-        in: query
-        description: |
-          Restrict results to scenes that were originally authored by this user (by uid or username)
-          You'd generally want to use `access=admin` instead
-        schema: {type: string } # @fixme Ideally, it should be oneOf string, number
-      - name: limit
-        in: query
-        description: |
-          Limit the number of returned results. A hard maximum of 100 is enforced
-          Ordering is guaranteed to stay stable when `orderBy:ctime` is used
-        schema: {type: number, format: int32, minimum: 1, maximum: 100}
-      - name: offset
-        in: query
-        description: Skip the first *n* results. Use with `limit` to paginate results.
-        schema:  {type: number, format: int32, minimum: 0}
-      - name: orderBy
-        in: query
-        description: Field to use for results sorting
-        schema:
-          type: string
-          enum: ["name", "ctime", "mtime"]
-      - name: orderDirection
-        in: query
-        description: Switch between ascending and descending order
-        schema:
-          type: string
-          enum: ["asc", "desc"]
-      - name: archived
-        in: query
-        description: |
-          Return all scenes, or only archived/non-archived ones.
-          Defaults to false
-        schema: {type: boolean} # @fixme ideally, oneOf boolean|"any"
-      responses: 
+              description: Match scenes that contain those words next to each other.
+        - name: access
+          in: query
+          description: |
+            Return only scenes for which the current user has at least the requested effective access.
+          schema: {$ref: "#/components/schemas/AccessType"}
+        - name: author
+          in: query
+          description: |
+            Restrict results to scenes originally authored by this user (by uid or username).
+            You'd generally want to use `access=admin` instead.
+          schema: {type: string}
+        - name: type
+          in: query
+          description: Restrict results to a given scene type.
+          schema: {type: string, enum: ["html", "voyager"]}
+        - name: limit
+          in: query
+          description: |
+            Limit the number of returned results. Defaults to 10, with a hard maximum of 100.
+          schema: {type: number, format: int32, minimum: 1, maximum: 100}
+        - name: offset
+          in: query
+          description: Skip the first *n* results. Use with `limit` to paginate.
+          schema: {type: number, format: int32, minimum: 0}
+        - name: orderBy
+          in: query
+          description: |
+            Field to sort by. Defaults to `mtime`, or `rank` when a `match` is provided.
+          schema: {type: string, enum: ["name", "ctime", "mtime", "rank"]}
+        - name: orderDirection
+          in: query
+          description: Switch between ascending and descending order.
+          schema: {type: string, enum: ["asc", "desc"]}
+        - name: archived
+          in: query
+          description: |
+            Filter on archival state. Defaults to `false` (only live scenes). Use the special value `any` to return
+            both. Requesting archived scenes requires an authenticated, sufficiently-privileged user.
+          schema: {type: string, enum: ["true", "false", "any"]}
+        - name: format
+          in: query
+          description: |
+            Force the response representation, bypassing `Accept` header negotiation.
+            The plain-text name list is only available through `Accept: text/plain`.
+          schema: {type: string, enum: ["json", "zip"]}
+      responses:
         '200':
           description: |
             A list of scenes matching this query.
 
-            By default, returns a JSON object containing basic metadata for all scenes.
-
-            Can be used to return a ZIP archive of the matched scenes content.
+            By default returns a JSON object with basic metadata for all matched scenes. Can also return a plain-text
+            list of names or a ZIP archive of the matched scenes' content (zip export requires read access).
           headers:
-            Etag: {$ref: "#/components/schemas/Etag"}
-            Last-Modified: {$ref: "#/components/schemas/LastModified"}
-
+            Etag:
+              description: Weak entity tag for the returned resource, usable for cache validation.
+              schema: {$ref: "#/components/schemas/Etag"}
+            Last-Modified:
+              description: Last modification date of the resource.
+              schema: {$ref: "#/components/schemas/LastModified"}
           content:
             application/json:
               schema:
@@ -158,347 +225,1238 @@ paths:
                 properties:
                   scenes:
                     type: array
-                    items:
-                      $ref: "#/components/schemas/Scene"
+                    items: {$ref: "#/components/schemas/Scene"}
             text/plain:
-              schema:
-                type: string
-                example: "foo\nbar\nbaz"
+              schema: {type: string, example: "foo\nbar\nbaz"}
             application/zip:
-              schema:
-                type: string
-                format: binary
-
+              schema: {type: string, format: binary}
+        '304':
+          description: The resource has not changed since the version referenced by the conditional request.
     post:
       tags: [scenes]
       operationId: postScenes
-      description: import an archive of scenes to be extracted into the `scenes/` folder
+      description: |
+        Import an archive of scenes to be extracted into the `scenes/` folder.
+        The credential must carry both the `corpus:write` (create scenes) and `scenes:write` (overwrite scenes)
+        scopes. Any authenticated user may start an import: each scene found in the archive is re-checked as it
+        is processed — `write` access to update an existing scene, `create` level to create a new one.
+
+        eCorpus uses a simplified internal zip decoder guaranteed to handle only data exported from another eCorpus
+        instance. A `Content-Length` header is required (chunked uploads are not supported).
       requestBody:
         required: true
-        description: |
-          A zip file that contains an archived scene hierarchy.
-
-          eCorpus uses a simplified internal zip decoder that is guaranteed to handle only data exported from another eCorpus instance.
-          If you wish to create an archive yourself, you have to ensure your archiver stores only uncompressed data using only supported ZIP features
+        description: A zip file containing an archived scene hierarchy.
         content:
           application/zip:
             schema: {type: string, format: binary}
-
-    x-propfind:
-      tags: [scenes]
-      operationId: propfindScenes
-      description: |
-        list all readable content in `scenes/`. See [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND) to learn more about PROPFIND
-        This is a minimal implementation that just lists contained elements, respecting the [Depth](http://www.webdav.org/specs/rfc4918.html#HEADER_Depth) header.
-        While this is not paginated, expect future changes to implement limits on the results' size.
       responses:
         '200':
-          description: a PROPFIND multistatus response
+          description: The import result, one entry per scene found in the archive.
           content:
-            application/xml: 
-              schema: { $ref: "#/components/schemas/WebDAVMultistatus"}
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/ImportResult"}
+        '400':
+          $ref: "#/components/responses/HTTPError"
+    additionalOperations:
+      PROPFIND:
+        tags: [scenes]
+        operationId: propfindScenes
+        security:
+          - {}
+          - cookieSession: []
+          - bearerToken: []
+        description: |
+          List all readable content in `scenes/`. See [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND).
+          A minimal implementation that lists contained elements, respecting the
+          [Depth](http://www.webdav.org/specs/rfc4918.html#HEADER_Depth) header (defaults to infinite depth).
+        responses:
+          '207':
+            description: A PROPFIND multistatus response.
+            content:
+              application/xml:
+                schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
+
   /scenes/{scene}:
     parameters:
       - $ref: '#/components/parameters/scene'
     get:
       tags: [scenes]
       operationId: getScene
-      description: get a scene's metadata.
+      description: |
+        Get a scene's metadata as JSON, or a ZIP archive of its current files (content-negotiated, or forced with
+        `?format=zip`).
+      parameters:
+        - name: format
+          in: query
+          description: Force the response representation.
+          schema: {type: string, enum: ["json", "zip"]}
       responses:
         '200':
-          description: The requested scene's data
+          description: The requested scene's data.
           headers:
-            Etag: {$ref: "#/components/schemas/Etag"}
-            Last-Modified: {$ref: "#/components/schemas/LastModified"}
+            Etag:
+              description: Entity tag for the returned resource.
+              schema: {$ref: "#/components/schemas/Etag"}
+            Last-Modified:
+              description: Last modification date of the resource.
+              schema: {$ref: "#/components/schemas/LastModified"}
           content:
-            application/json: { $ref: "#/components/schemas/Scene" }
+            application/json: {schema: {$ref: "#/components/schemas/Scene"}}
+            application/zip: {schema: {type: string, format: binary}}
         '404':
-          description: scene not found. It doesn't exist or isn't readable with the current authentication
-
-    x-mkcol:
-      tags: [scenes]
-      operationId: mkScene
-      description: creates a new empty scene. This scene will essentially be invisible until populated
-    x-propfind:
-      tags: [scenes]
-      operationId: propfindScene
-      description: fetch the scene's content
-    delete:
-      tags: [scenes]
-      operationId: deleteScene
-      description: Archives a scene
-      parameters:
-        - name: archive
-          in: query
-          schema: {type: "boolean"}
-          description:
-            Set to false to force-delete scenes (instance administrators only).
-            Otherwise archive it in a way that could be undone by administrators.
-            
-            Defaults to true
-      responses:
-        '204':
-          description: "success"
-        '401':
-          description: |
-            Unauthorized, either due to improper authentication or insufficient access rights.
-            Archiving a scene requires "admin" rights over it, while force-delete requires instance-level administrative rights.
+          description: Scene not found — it doesn't exist or isn't readable with the current authentication.
     post:
       tags: [scenes]
       operationId: postScene
       description: |
-        creates a new scene using attached data.
-
-        When a GLB model is provided as request body, creates a default scene, initialized with this model positionned at (0,0,0).
+        Create a new scene initialized from an uploaded GLB model, positioned at (0,0,0), together with a default
+        `scene.svx.json` document. Requires the `corpus:write` scope and at least `create` level.
+      parameters:
+        - name: language
+          in: query
+          description: Language of the generated default document (a valid scene language).
+          schema: {type: string}
       requestBody:
-        description: "scene initialization data"
+        description: A `.glb` model file.
         required: true
         content:
           model/gltf-binary:
-            schema: 
-              type: string
-              format: binary
-              description: A `.glb` model file
+            schema: {type: string, format: binary}
       responses:
         '201':
-          description: a new scene was created and initialized with a default `scene.svx.json` file
+          description: A new scene was created and initialized with a default `scene.svx.json` document.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StatusMessage"}
+        '400':
+          $ref: "#/components/responses/HTTPError"
         '409':
-          description: a scene with this name already exists
+          description: A scene with this name already exists.
     patch:
       tags: [scenes]
       operationId: patchScene
-      description: Edit scene's metadata
-      requestBody:
-        description: |
-          Scene patch data using a partial object. Check schema for a list of editable fields.
-          
-          Permissions are additive, to reset a user to default permissions, explicitely set his permission to `null`.
+      description: |
+        Edit a scene's metadata. Requires `admin` access over the scene. All changes are applied in one transaction.
 
-          Tags are copied: if a `tags` field is provided, any tag not included will be removed.
+        Permissions are additive; to reset a user or group to default permissions, set its access to `"none"` or `null`.
+        Tags are treated as a full replacement set: any tag not present in a provided `tags` array is removed.
+      requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: []
               properties:
-                name: 
-                  type: string
-                archived:
-                  type: boolean
-                public_access:
-                  type: string
-                  enum: ["none", "read"]
-                default_access:
-                  type: string
-                  enum: ["none", "read", "write"]
+                name: {type: string, description: "Rename the scene."}
+                archived: {type: boolean, description: "Archive (true) or restore (false) the scene."}
+                public_access: {$ref: "#/components/schemas/AccessType"}
+                default_access: {$ref: "#/components/schemas/AccessType"}
                 permissions:
                   type: object
-                  required: []
-                  properties:
-                  additionalProperties:
-                    $ref: "#/components/schemas/AccessType"
-                  description: user ids to change
+                  additionalProperties: {$ref: "#/components/schemas/AccessType"}
+                  description: Map of username to access level.
+                groupPermissions:
+                  type: object
+                  additionalProperties: {$ref: "#/components/schemas/AccessType"}
+                  description: Map of group name to access level.
                 tags:
                   type: array
-                  items:
-                    type: string
+                  items: {type: string}
+      responses:
+        '200':
+          description: The updated scene data.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Scene"}
+    delete:
+      tags: [scenes]
+      operationId: deleteScene
+      description: Archive a scene, or force-delete it (instance administrators only).
+      parameters:
+        - name: archive
+          in: query
+          schema: {type: boolean}
+          description: |
+            Defaults to `true`: archive the scene in a way administrators can undo.
+            Set to `false` to force-delete it permanently — restricted to instance administrators.
+      responses:
+        '204':
+          description: Success.
+        '401':
+          description: The request presented no valid authentication.
+        '403':
+          description: |
+            Insufficient access rights. Archiving requires `admin` rights over the scene;
+            force-delete requires instance-level administrative rights.
+    additionalOperations:
+      MKCOL:
+        tags: [scenes]
+        operationId: mkScene
+        description: |
+          Create a new empty scene. Requires the `corpus:write` scope and at least `create` level.
+          The scene is essentially invisible until populated.
         responses:
-          '200':
-            description: "The updated scene data"
+          '201':
+            description: The empty scene was created.
+          '409':
+            description: A scene with this name already exists.
+      PROPFIND:
+        tags: [scenes]
+        operationId: propfindScene
+        description: Fetch the scene's content tree as a WebDAV multistatus response.
+        responses:
+          '207':
+            description: A PROPFIND multistatus response.
             content:
-              application/json:
-                schema: { $ref: "#/components/schemas/Scene" }
+              application/xml:
+                schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
 
-  /scenes/{scene}/{file:.*}:
+  /scenes/{scene}/{file}:
     parameters:
       - $ref: '#/components/parameters/scene'
       - $ref: '#/components/parameters/file'
     get:
       tags: [scenes]
       operationId: getFile
-      description: get a file in scene
-      content:
-        default:
+      description: |
+        Get a file from a scene. Supports single-range requests through the `Range` header (returning `206`).
+        A request for `scene.svx.json` returns the Voyager document with its `asset.id` injected so clients can
+        reference it for merge-on-`PUT`.
+      responses:
+        '200':
           description: |
-            The file.
-            
-            It's `Content-Type` header should match the expected [MIME](https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types) type.
-          schema: { type: string, format: binary }
-
+            The file. Its `Content-Type` matches the stored MIME type
+            ([common MIME types](https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types)).
+          headers:
+            Etag:
+              description: Weak entity tag for the file.
+              schema: {$ref: "#/components/schemas/Etag"}
+            Last-Modified:
+              description: Last modification date of the file.
+              schema: {$ref: "#/components/schemas/LastModified"}
+          content:
+            '*/*':
+              schema: {type: string, format: binary}
+        '206':
+          description: Partial content, in response to a `Range` request.
+        '304':
+          description: Not modified (conditional request).
+        '416':
+          description: Requested range not satisfiable.
     put:
       tags: [scenes]
       operationId: putFile
-      description: overwrite the file with new content
+      description: |
+        Overwrite a file with new content. Requires `write` access. A `scene.svx.json` upload may be structurally
+        merged against the current server state when the `enable_document_merge` feature is on and the document
+        carries a reference `asset.id`.
       requestBody:
-        description: The file's data
+        description: The file's data.
         content:
           '*/*':
-            schema: {type: string, format: binary }
-    x-copy:
-      tags: [scenes]
-      operationId: copyFile
-      description: copy a file to another location in the same scene
-    x-move:
-      tags: [scenes]
-      operationId: moveFile
-      description: move a file to another location in the same scene
+            schema: {type: string, format: binary}
+          application/si-dpo-3d.document+json:
+            schema: {type: object}
+      responses:
+        '200':
+          description: An existing file was overwritten.
+        '201':
+          description: A new file generation was created.
+        '204':
+          description: A scene document was written directly (no merge).
     delete:
       tags: [scenes]
       operationId: deleteFile
-      description: archives a file. It is still accessible through the history API
-    x-mkcol:
-      tags: [scenes]
-      operationId: mkFolder
-      description: creates a folder in a scene
-    x-propfind:
-      tags: [scenes]
-      operationId: propfindFile
-      description: get a file's properties
+      description: Archive a file (creating a deletion generation). It stays accessible through the history API. Requires `write` access.
+      responses:
+        '204':
+          description: Success.
+    additionalOperations:
+      MOVE:
+        tags: [scenes]
+        operationId: moveFile
+        description: |
+          Move/rename a file within the same scene. Requires `write` access and a `Destination` header pointing under
+          the same scene. Cross-scene moves are rejected. The `Overwrite` header is not supported.
+        responses:
+          '201':
+            description: The file was moved.
+      MKCOL:
+        tags: [scenes]
+        operationId: mkFolder
+        description: Create a folder in a scene. Requires `write` access.
+        responses:
+          '201':
+            description: The folder was created.
+      PROPFIND:
+        tags: [scenes]
+        operationId: propfindFile
+        description: Get a file's (or folder subtree's) WebDAV properties.
+        responses:
+          '207':
+            description: A PROPFIND multistatus response.
+            content:
+              application/xml:
+                schema: {$ref: "#/components/schemas/WebDAVMultistatus"}
+
   /history/{scene}:
     parameters:
       - $ref: '#/components/parameters/scene'
     get:
       tags: [history]
       operationId: getHistory
-      description: get a full history of a scene's modifications
+      description: |
+        Get the full history of a scene's file modifications (every generation of every file). Requires `write`
+        access. The total count is returned in the `X-Total-Count` header.
+      parameters:
+        - name: limit
+          in: query
+          schema: {type: number, format: int32, minimum: 1, maximum: 100}
+          description: Limit the number of returned entries (default 10, max 100).
+        - name: offset
+          in: query
+          schema: {type: number, format: int32, minimum: 0}
+          description: Skip the first *n* entries.
+        - name: orderDirection
+          in: query
+          schema: {type: string, enum: ["asc", "desc"]}
+          description: Ordering by time (default `desc`, newest first).
+      responses:
+        '200':
+          description: The scene's history.
+          headers:
+            X-Total-Count:
+              description: Total number of history entries for this scene.
+              schema: {type: number, format: int32}
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/HistoryEntry"}
+            text/plain:
+              schema: {type: string, example: "scene.svx.json#3\nmodels/foo.glb#1"}
     post:
       tags: [history]
       operationId: postHistory
-      description: edit a scene's history
-  /history/{scene}/files:
+      description: |
+        Restore a scene to a previous point in its history, undoing every change newer than the referenced point.
+        Requires `admin` access over the scene.
+      requestBody:
+        required: true
+        description: The restore point, identified either by name+generation or by a single file id.
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: ["name", "generation"]
+                  properties:
+                    name: {type: string}
+                    generation: {type: number, format: int32}
+                - type: object
+                  required: ["id"]
+                  properties:
+                    id: {$ref: "#/components/schemas/Uid"}
+      responses:
+        '200':
+          description: The scene was rolled back.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: ["code", "message", "changes"]
+                properties:
+                  code: {type: number, format: int32}
+                  message: {type: string}
+                  changes: {type: array, items: {type: string}}
+
+  /history/{scene}/{id}/diff:
     parameters:
       - $ref: '#/components/parameters/scene'
+      - $ref: '#/components/parameters/fileId'
     get:
       tags: [history]
-      operationId: getFileHistory
-      description: list all files in the scenes in their current state
+      operationId: getHistoryDiff
+      description: |
+        Diff the file generation `{id}` against the previous one. For two SVX documents a structured JSON-pointer
+        change summary is produced; otherwise a unified `diff -u`. Requires `write` access.
+      responses:
+        '200':
+          description: The computed diff.
+          content:
+            text/plain:
+              schema: {type: string}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  src: {$ref: "#/components/schemas/HistoryEntry"}
+                  dst: {$ref: "#/components/schemas/HistoryEntry"}
+                  diff: {type: string}
+
+  /history/{scene}/{id}/diff/{from}:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+      - $ref: '#/components/parameters/fileId'
+      - name: from
+        in: path
+        required: true
+        schema: {type: number, format: int32}
+        description: |
+          The comparison base: a positive file **id**, or a negative offset applied to `{id}`'s generation
+          (`-1`, the default when this segment is omitted, means the previous generation).
+    get:
+      tags: [history]
+      operationId: getHistoryDiffFrom
+      description: Same as `/history/{scene}/{id}/diff` but against an explicit base generation/file. Requires `write` access.
+      responses:
+        '200':
+          description: The computed diff.
+          content:
+            text/plain: {schema: {type: string}}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  src: {$ref: "#/components/schemas/HistoryEntry"}
+                  dst: {$ref: "#/components/schemas/HistoryEntry"}
+                  diff: {type: string}
+
+  /history/{scene}/{id}/show/{file}:
+    parameters:
+      - $ref: '#/components/parameters/scene'
+      - $ref: '#/components/parameters/fileId'
+      - $ref: '#/components/parameters/file'
+    get:
+      tags: [history]
+      operationId: getHistoryFile
+      description: |
+        Fetch a file as it existed at the history point `{id}` — the newest generation of `{file}` that is not
+        newer than `{id}` (inclusive: if `{id}` is a generation of `{file}` itself, that very generation is
+        returned). Requires `write` access.
+      responses:
+        '200':
+          description: The historical file bytes, with its stored MIME type.
+          content:
+            '*/*':
+              schema: {type: string, format: binary}
+        '404':
+          description: The file did not exist at that point in history.
+
   /tags:
     get:
       tags: [tags]
       operationId: getTags
-      description: get a list of tags on this server
+      security:
+        - {}
+        - cookieSession: []
+        - bearerToken: []
+      description: Get the list of tags defined on this server, each with the number of scenes carrying it.
+      responses:
+        '200':
+          description: The list of tags.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Tag"}
+    patch:
+      tags: [tags]
+      operationId: patchTags
+      description: |
+        Batch-add or remove tags on scenes. Requires an identified requester (the `corpus:read` baseline — any
+        level, any token); each item is authorized individually against the requester's `write` access on the
+        target scene.
+      requestBody:
+        required: true
+        description: A single operation or an array of operations.
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - {$ref: "#/components/schemas/TagOperation"}
+                - type: array
+                  items: {$ref: "#/components/schemas/TagOperation"}
+      responses:
+        '200':
+          description: The operations were applied.
+
   /tags/{tag}:
     parameters:
       - name: tag
         in: path
         required: true
-        schema: {type: "string"}
-        description: name of a tag
+        schema: {type: string}
+        description: Name of a tag.
     get:
       tags: [tags]
       operationId: getTag
-      description: get all scenes associated with this tag
-  /users:
-    get:
-      tags: [users]
-      operationId: getUsers
-      description: get a list of registered users
+      security:
+        - {}
+        - cookieSession: []
+        - bearerToken: []
+      description: Get all scenes associated with this tag that are visible to the requester.
       responses:
         '200':
-          description: An array of all users registered on this server
+          description: The scenes carrying this tag.
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/User"}
+                items: {$ref: "#/components/schemas/Scene"}
+
+  /users:
+    get:
+      tags: [users]
+      operationId: getUsers
+      description: Get the list of registered users. Requires the `users:read` scope (administrators only — no other level holds it).
+      parameters:
+        - name: limit
+          in: query
+          schema: {type: number, format: int32, minimum: 1, maximum: 100}
+          description: Limit the number of results (1–100).
+        - name: offset
+          in: query
+          schema: {type: number, format: int32, minimum: 0}
+          description: Skip the first *n* results.
+      responses:
+        '200':
+          description: An array of all users registered on this server.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/User"}
         '401':
           $ref: "#/components/responses/HTTPError"
     post:
       tags: [users]
       operationId: postUser
-      description: create a new user
+      description: |
+        Create a new user. Requires the `users:write` scope — mintable, so a provisioning script may run on a
+        token — except when no users exist yet, allowing the first account to be bootstrapped unauthenticated.
+        Creating an **administrator** requires the non-mintable `users:admin` scope (an interactive admin session).
       requestBody:
-        description: the user to create
+        required: true
+        description: The user to create.
         content:
           application/json:
             schema:
               type: object
               required: ["username", "email", "password"]
               properties:
-                username: {type: "string", example: "jdupont" }
-                email: {type: "string", example: "jdupont@example.com" }
-                password: {type: "string", example: "p@ssw0rd" }
-                isAdministrator: {type: "boolean"}
+                username: {type: string, example: "jdupont"}
+                email: {type: string, example: "jdupont@example.com"}
+                password: {type: string, example: "p@ssw0rd", description: "At least 8 characters."}
+                level:
+                  $ref: "#/components/schemas/UserLevel"
+                lang: {type: string, enum: ["en", "fr"], description: "Language of the onboarding email."}
+                send_onboarding: {type: boolean, description: "Send an onboarding email to the new user."}
       responses:
         '201':
-          description: user created successfully
+          description: User created successfully.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
         '400':
           $ref: "#/components/responses/HTTPError"
+        '409':
+          description: A user with this username or email already exists.
+
   /users/{uid}:
     parameters:
-      - name: uid
-        in: path
-        required: true
-        schema: {type: "string", pattern: '^\d+$'}
-        description: unique ID of an user (stays stable through user renames)
+      - $ref: '#/components/parameters/uid'
     delete:
       tags: [users]
       operationId: deleteUser
-      description: delete a user
+      description: Delete a user. Requires the `users:write` scope. A user cannot delete themselves.
+      responses:
+        '204':
+          description: Success.
+        '400':
+          description: Bad request (e.g. attempting self-deletion).
     patch:
       tags: [users]
       operationId: patchUser
-      description: change a user's data
+      description: |
+        Change a user's data. Administrators may edit any account, including its `level` (but cannot demote
+        themselves). A regular user may only edit their own account and cannot change their own `level`.
+        At least one editable field must be provided. Session-only: gated on the non-mintable `account:admin`
+        scope (a patch may rotate a password or email, converting a credential into a session), so no token —
+        even `all`-scoped — can reach it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: {type: string}
+                email: {type: string}
+                password: {type: string, description: "Changing your own password evicts all your other sessions."}
+                level: {$ref: "#/components/schemas/UserLevel"}
+      responses:
+        '200':
+          description: The updated user.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+
+  /users/{uid}/sessions:
+    parameters:
+      - $ref: '#/components/parameters/uid'
+    get:
+      tags: [users]
+      operationId: getUserSessions
+      description: List a user's active sessions. Requires the `users:read` scope.
+      responses:
+        '200':
+          description: The user's sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Session"}
+
+  /users/{uid}/tokens:
+    parameters:
+      - $ref: '#/components/parameters/uid'
+    get:
+      tags: [users]
+      operationId: getUserTokens
+      description: List a user's personal access tokens (metadata only). Requires the `users:read` scope.
+      responses:
+        '200':
+          description: The user's tokens.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Token"}
+
+  /users/{uid}/tokens/{id}:
+    parameters:
+      - $ref: '#/components/parameters/uid'
+      - name: id
+        in: path
+        required: true
+        schema: {type: number, format: int32}
+        description: Token id.
+    delete:
+      tags: [users]
+      operationId: deleteUserToken
+      description: Revoke one of a user's tokens. Requires the `users:write` scope.
+      responses:
+        '204':
+          description: Success.
+
+  /groups:
+    get:
+      tags: [groups]
+      operationId: getGroups
+      description: List all groups (name and id only). Requires the `groups:read` scope (the `manage` level and above).
+      responses:
+        '200':
+          description: The list of groups.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Group"}
+    post:
+      tags: [groups]
+      operationId: postGroup
+      description: Create a group, optionally with an initial member list. Requires the `groups:admin` scope (the `manage` level and above).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["groupName"]
+              properties:
+                groupName: {type: string}
+                members:
+                  type: array
+                  items: {type: string}
+                  description: Usernames (or numeric user ids) of initial members.
+      responses:
+        '201':
+          description: The created group.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Group"}
+        '409':
+          description: A group with this name already exists.
+
+  /groups/{group}:
+    parameters:
+      - $ref: '#/components/parameters/group'
+    get:
+      tags: [groups]
+      operationId: getGroup
+      description: |
+        Get a group with its members and per-scene access grants. Requires `read` access on the group:
+        members can read their own group, `manage`-level users any group.
+      responses:
+        '200':
+          description: The group, including `members` and `scenes`.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Group"}
+        '404':
+          description: No such group.
+    delete:
+      tags: [groups]
+      operationId: deleteGroup
+      description: Delete a group. Requires `admin` access on the group (the `manage` level).
+      responses:
+        '204':
+          description: Success.
+        '404':
+          description: No such group.
+
+  /groups/{group}/{member}:
+    parameters:
+      - $ref: '#/components/parameters/group'
+      - name: member
+        in: path
+        required: true
+        schema: {type: string}
+        description: Username of the member.
+    put:
+      tags: [groups]
+      operationId: addGroupMember
+      description: Add a user to a group (idempotent). Requires `admin` access on the group (the `manage` level).
+      responses:
+        '200':
+          description: The member was added (or was already present).
+        '404':
+          description: No such user or group.
+    delete:
+      tags: [groups]
+      operationId: removeGroupMember
+      description: Remove a user from a group. Requires `admin` access on the group (the `manage` level).
+      responses:
+        '204':
+          description: Success.
+        '404':
+          description: No such membership.
+
+  /auth:
+    get:
+      tags: [auth]
+      operationId: getUser
+      security:
+        - {}
+        - cookieSession: []
+        - bearerToken: []
+        - oauth2: []
+      description: |
+        Get the identity resolved from the current credentials. Called without authentication, returns the default
+        anonymous user (`uid` `0`, level `none`).
+      responses:
+        '200':
+          description: The current user.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+
   /auth/login:
     get:
       tags: [auth]
-      operationId: getAuth
+      operationId: getLogin
+      security:
+        - {}
+        - cookieSession: []
+        - bearerToken: []
       description: |
-        get login data using the current authentication 
+        Get login data for the current authentication. Content-negotiated: JSON returns the current user, HTML
+        renders the login page.
+      parameters:
+        - name: redirect
+          in: query
+          schema: {type: string}
+          description: Same-origin URL to redirect to once logged in (HTML flow).
       responses:
         '200':
-          description: The user's data. If called without authentication, will return a default user.
+          description: The current user (JSON) or the login page (HTML).
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/User" }
+              schema: {$ref: "#/components/schemas/User"}
+            text/html:
+              schema: {type: string}
     post:
       tags: [auth]
-      operationId: postAuth
-      description: log-in to the server
+      operationId: postLogin
+      security:
+        - {}
+      description: |
+        Log in with a username and password, opening a server-side session and setting the `session` cookie.
+        Rate-limited to 10 requests/minute/IP and protected against cross-site (login) CSRF.
       requestBody:
-        description: The authentication data
+        required: true
+        description: The credentials. Accepts JSON or url-encoded form data.
         content:
           application/json:
             schema:
               type: object
               required: ["username", "password"]
               properties:
-                username: {type: "string" }
-                password: {type: "string" }
-
+                username: {type: string}
+                password: {type: string}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: ["username", "password"]
+              properties:
+                username: {type: string}
+                password: {type: string}
+      responses:
+        '200':
+          description: Logged in. Returns the user (JSON) and sets the session cookie.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        '400':
+          $ref: "#/components/responses/HTTPError"
+        '401':
+          $ref: "#/components/responses/HTTPError"
+        '429':
+          description: Too many login attempts.
 
   /auth/login/{username}/link:
     parameters:
       - name: username
         in: path
         required: true
-        schema: {type: "string"}
-        description: human-readable unique name of an user
+        schema: {type: string}
+        description: Human-readable unique name of a user.
     get:
       tags: [auth]
-      operationId: getAuthLink
-      description: get a login link for this user. Usage requires administrator rights
+      operationId: getLoginLink
+      description: |
+        Get a signed magic login link for this user. Session-only: requires the non-mintable `users:admin`
+        scope (an interactive administrator session). Returns the URL as plain text.
+      parameters:
+        - name: redirect
+          in: query
+          schema: {type: string}
+          description: Same-origin URL the link should land on.
+      responses:
+        '200':
+          description: The signed login link.
+          content:
+            text/plain: {schema: {type: string}}
     post:
       tags: [auth]
-      operationId: postAuthLink
-      description: generate and send an email containing an authenticated login link for this user. Rate-limited to 1/minute
+      operationId: sendLoginLink
+      security:
+        - {}
+        - cookieSession: []
+        - bearerToken: []
+      description: |
+        Email a signed login link to the user. Callers holding the `users:write` scope (administrators) are
+        unlimited; other callers are rate-limited to 1 request/minute/IP. Fails if the user has no registered email.
+      responses:
+        '204':
+          description: The email was queued.
+        '400':
+          description: The user has no registered email address.
+
   /auth/logout:
     post:
       tags: [auth]
       operationId: postLogout
-      description: delete this request's credentials
+      security:
+        - {}
+        - cookieSession: []
+      description: Revoke the current server-side session and clear the `session` cookie.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirect: {type: string}
+      responses:
+        '200':
+          description: Logged out.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StatusMessage"}
+
   /auth/payload/{payload}:
     parameters:
       - name: payload
         in: path
         required: true
-        schema: {type: "string"}
-        description: base64-encoded payload data
+        schema: {type: string}
+        description: Signed, base64url-encoded login payload.
     get:
       tags: [auth]
       operationId: getLoginPayload
-      description: provide an authenticated payload to automate the login process
+      security:
+        - {}
+      description: |
+        Consume a signed magic-link payload: open a session for the referenced user and redirect. Used to automate
+        the login process.
+      responses:
+        '302':
+          description: Session opened; redirect to the validated destination.
+        '403':
+          description: The payload has expired.
+        '400':
+          description: The payload is malformed or the user no longer matches.
+
+  /auth/sessions:
+    get:
+      tags: [auth]
+      operationId: getOwnSessions
+      description: List the requester's own active sessions. Requires the `account:read` scope.
+      responses:
+        '200':
+          description: The active sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Session"}
+
+  /auth/sessions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: number, format: int32}
+        description: Session id.
+    delete:
+      tags: [auth]
+      operationId: deleteSession
+      description: |
+        Revoke a session by id. Owner-scoped; administrators may revoke anyone's. Requires the `account:write` scope.
+      responses:
+        '204':
+          description: Success.
+        '404':
+          description: No such session.
+
+  /auth/tokens:
+    get:
+      tags: [auth]
+      operationId: getOwnTokens
+      description: List the requester's personal access tokens (metadata only). Requires the `account:read` scope.
+      responses:
+        '200':
+          description: The tokens.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Token"}
+    post:
+      tags: [auth]
+      operationId: postToken
+      description: |
+        Create a personal access token. Minting requires the non-mintable `account:admin` scope, i.e. an
+        interactive **session** — a token, even `all`-scoped, cannot mint another token. The secret is returned
+        once, in the `token` field, and is never stored server-side.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["name"]
+              properties:
+                name: {type: string}
+                scope:
+                  type: array
+                  items: {$ref: "#/components/schemas/TokenScope"}
+                  description: "Defaults to [\"all\"]."
+                expires: {type: string, format: date-time, description: "Optional expiry date."}
+      responses:
+        '201':
+          description: The created token, including the one-time secret.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/Token"}
+                  - type: object
+                    required: ["token"]
+                    properties:
+                      token: {type: string, example: "ec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+        '400':
+          $ref: "#/components/responses/HTTPError"
+        '403':
+          description: Tokens cannot be used to create other tokens.
+
+  /auth/tokens/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: number, format: int32}
+        description: Token id.
+    delete:
+      tags: [auth]
+      operationId: deleteOwnToken
+      description: Revoke one of the requester's own tokens. Requires the `account:write` scope.
+      responses:
+        '204':
+          description: Success.
+
+  /auth/oauth/grants:
+    get:
+      tags: [auth]
+      operationId: getGrants
+      description: List the OAuth applications the requester has authorized. Requires the `account:read` scope.
+      responses:
+        '200':
+          description: The persisted grants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/OAuthGrant"}
+
+  /auth/oauth/grants/{clientId}:
+    parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema: {type: number, format: int32}
+        description: OAuth client id.
+    delete:
+      tags: [auth]
+      operationId: deleteGrant
+      description: |
+        Withdraw consent for a client and revoke every token that client holds for the requester. Idempotent.
+        Requires the `account:write` scope.
+      responses:
+        '204':
+          description: Success.
+
+  /auth/oauth/authorize:
+    get:
+      tags: [auth]
+      operationId: getAuthorize
+      security:
+        - {}
+        - cookieSession: []
+      description: |
+        OAuth2 authorization endpoint (authorization code + mandatory PKCE). Validates the client and redirect URI,
+        requires a logged-in session, and either issues a code silently (when a covering grant exists) or renders the
+        consent page. Post-validation errors are reported by redirect to `redirect_uri`.
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          schema: {type: string}
+        - name: redirect_uri
+          in: query
+          required: true
+          schema: {type: string}
+          description: Must exactly match a URI registered on the client.
+        - name: response_type
+          in: query
+          required: true
+          schema: {type: string, enum: ["code"]}
+        - name: scope
+          in: query
+          required: true
+          schema: {type: string}
+          description: Space-delimited, non-empty subset of the supported scopes.
+        - name: code_challenge
+          in: query
+          required: true
+          schema: {type: string, pattern: '^[-\w]{43}$'}
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema: {type: string, enum: ["S256"]}
+        - name: state
+          in: query
+          schema: {type: string}
+        - name: prompt
+          in: query
+          schema: {type: string, enum: ["none", "consent"]}
+      responses:
+        '200':
+          description: The consent page (HTML).
+          content:
+            text/html: {schema: {type: string}}
+        '302':
+          description: Redirect back to `redirect_uri` with a `code` (or an `error`), or to the login page.
+        '400':
+          description: Invalid client or redirect URI (reported on eCorpus's own page).
+    post:
+      tags: [auth]
+      operationId: postAuthorize
+      security:
+        - cookieSession: []
+      description: |
+        Submit the consent decision. Requires a logged-in session (a token cannot self-consent). On approval, the
+        grant is persisted (union of approved scopes) and a single-use code is issued by redirect.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                client_id: {type: string}
+                redirect_uri: {type: string}
+                response_type: {type: string}
+                scope: {type: string}
+                code_challenge: {type: string}
+                code_challenge_method: {type: string}
+                state: {type: string}
+                action: {type: string, enum: ["approve", "deny"]}
+      responses:
+        '302':
+          description: Redirect to `redirect_uri` with a `code` (approved) or `error=access_denied` (denied).
+        '401':
+          description: Not session-authenticated.
+
+  /auth/oauth/token:
+    post:
+      tags: [auth]
+      operationId: postOAuthToken
+      security:
+        - {}
+        - clientBasicAuth: []
+      description: |
+        OAuth2 token endpoint. Exchanges a single-use authorization code for a Bearer access token, verifying PKCE
+        (`sha256(code_verifier) == code_challenge`). Confidential clients authenticate with HTTP Basic
+        (`client_secret_basic`) or credentials in the body (`client_secret_post`); public clients present no secret.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: ["grant_type", "code", "redirect_uri", "code_verifier"]
+              properties:
+                grant_type: {type: string, enum: ["authorization_code"]}
+                code: {type: string}
+                redirect_uri: {type: string}
+                code_verifier: {type: string}
+                client_id: {type: string}
+                client_secret: {type: string}
+      responses:
+        '200':
+          description: The issued access token.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: ["access_token", "token_type", "expires_in", "scope"]
+                properties:
+                  access_token: {type: string, example: "ec_xxxxxxxx"}
+                  token_type: {type: string, enum: ["Bearer"]}
+                  expires_in: {type: number, format: int32, example: 2592000}
+                  scope: {type: string}
+        '400':
+          description: "`invalid_request`, `unsupported_grant_type` or `invalid_grant` (bad/expired code or PKCE failure)."
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
+        '401':
+          description: "`invalid_client` (bad client credentials)."
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
+
+  /auth/oauth/revoke:
+    post:
+      tags: [auth]
+      operationId: postRevoke
+      security:
+        - {}
+      description: |
+        OAuth2 token revocation ([RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)). Deletes the token by its
+        secret; possession suffices. Always returns `200`, even for unknown tokens.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: ["token"]
+              properties:
+                token: {type: string}
+      responses:
+        '200':
+          description: Acknowledged (whether or not the token existed).
+
+  /auth/oauth/clients:
+    get:
+      tags: [auth]
+      operationId: getClients
+      description: List registered OAuth clients. Requires the `instance:read` scope.
+      responses:
+        '200':
+          description: The registered clients.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/OAuthClient"}
+    post:
+      tags: [auth]
+      operationId: postClient
+      description: |
+        Register an OAuth client. Session-only: requires the non-mintable `instance:write` scope. Confidential
+        clients (the default) receive a secret, shown once. Redirect URIs must be valid http/https URLs without
+        a fragment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["name", "redirect_uris"]
+              properties:
+                name: {type: string}
+                redirect_uris:
+                  type: array
+                  items: {type: string}
+                confidential: {type: boolean, description: "Defaults to true. Set false for a public (PKCE-only) client."}
+      responses:
+        '201':
+          description: The created client, including the one-time `client_secret` (null for public clients).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/OAuthClient"}
+                  - type: object
+                    properties:
+                      client_secret: {type: ["string", "null"]}
+        '409':
+          description: A client with this name already exists.
+
+  /auth/oauth/clients/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: number, format: int32}
+        description: OAuth client id.
+    delete:
+      tags: [auth]
+      operationId: deleteClient
+      description: |
+        Delete an OAuth client, cascading a revocation of every token minted through it. Session-only: requires
+        the non-mintable `instance:write` scope.
+      responses:
+        '204':
+          description: Success.
 
   /auth/access/{scene}:
     parameters:
@@ -506,81 +1464,435 @@ paths:
     get:
       tags: [auth]
       operationId: getAccess
-      description: get a scene's access rights
+      description: |
+        Get a scene's explicit access grants. Requires the `scenes:read` scope and `read` access on the
+        scene — anonymous readers of a public scene cannot enumerate its users.
       responses:
         '200':
-          description: Access map  defined for this scene
+          description: The access grants defined for this scene (per-user and per-group).
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  type: object
-                  required: ["uid", "username", "access"]
-                  properties:
-                    uid: { $ref: "#/components/schemas/Uid"}
-                    username: {type: string}
-                    access: { $ref: "#/components/schemas/AccessType" }
+                items: {$ref: "#/components/schemas/AccessGrant"}
         '401':
           $ref: "#/components/responses/HTTPError"
     patch:
       tags: [auth]
       operationId: patchAccess
-      description: edit a scene's access rights
-# Administrative data. Might contain server configuration routes in the future
+      description: |
+        Edit a scene's access grants. Requires `admin` access on the scene. Merge-patch semantics: setting an access
+        to `"none"` or `null` removes the grant. Accepts a single grant or an array.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - {$ref: "#/components/schemas/AccessGrantEdit"}
+                - type: array
+                  items: {$ref: "#/components/schemas/AccessGrantEdit"}
+      responses:
+        '204':
+          description: Success.
+
+  /.well-known/oauth-authorization-server:
+    get:
+      tags: [auth]
+      operationId: getOAuthMetadata
+      security:
+        - {}
+      description: |
+        OAuth2 authorization server metadata
+        ([RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414)). Publicly cacheable.
+      responses:
+        '200':
+          description: The authorization server metadata.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthServerMetadata"}
+
+  /tasks:
+    post:
+      tags: [tasks]
+      operationId: postTask
+      description: |
+        Create a background task. Requires the `tasks:write` scope and at least `create` level. A `pending` task
+        runs immediately; an `initializing` task prepares a workspace (e.g. for a resumable upload) without running.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["type"]
+              properties:
+                type: {type: string, description: "A known task handler name."}
+                data: {type: object, additionalProperties: true, description: "Task-type-specific payload."}
+                status: {type: string, enum: ["initializing", "pending"], description: "Defaults to \"pending\"."}
+      responses:
+        '201':
+          description: The created task.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Task"}
+        '400':
+          $ref: "#/components/responses/HTTPError"
+
+  /tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    get:
+      tags: [tasks]
+      operationId: getTask
+      description: |
+        Get a task and its log lines. Accessible to the task owner, to users with `read` access on the task's scene,
+        and to administrators.
+      responses:
+        '200':
+          description: The task and its logs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: ["task", "logs"]
+                properties:
+                  task: {$ref: "#/components/schemas/Task"}
+                  logs:
+                    type: array
+                    items: {$ref: "#/components/schemas/TaskLog"}
+    delete:
+      tags: [tasks]
+      operationId: deleteTask
+      description: |
+        Delete a task and its workspace. Requires `admin` access to the task (owner, scene admin, or instance
+        admin); a token credential must carry the `tasks:admin` scope.
+      responses:
+        '204':
+          description: Success.
+
+  /tasks/{id}/tree:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    get:
+      tags: [tasks]
+      operationId: getTaskTree
+      description: |
+        Get a task with its descendant subtasks nested under `children`, plus a flat, time-ordered log of every task
+        in the tree. Requires `read` access to the root task.
+      responses:
+        '200':
+          description: The task tree and merged logs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: ["task", "logs"]
+                properties:
+                  task: {$ref: "#/components/schemas/TaskNode"}
+                  logs:
+                    type: array
+                    items: {$ref: "#/components/schemas/TaskLog"}
+
+  /tasks/{id}/artifact:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    get:
+      tags: [tasks]
+      operationId: getTaskArtifact
+      description: |
+        Download a finished task's workspace, as a ZIP archive or a JSON file listing. The task must have succeeded.
+        Requires `read` access to the task.
+      responses:
+        '200':
+          description: The task workspace.
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+            application/json:
+              schema:
+                type: object
+                required: ["files"]
+                properties:
+                  files:
+                    type: array
+                    items: {$ref: "#/components/schemas/WorkspaceFile"}
+        '405':
+          description: The task has not succeeded yet.
+        '406':
+          description: Neither `application/zip` nor `application/json` was acceptable.
+    put:
+      tags: [tasks]
+      operationId: putTaskArtifact
+      description: |
+        Upload the payload of a `parseUserUpload` task, in one shot or as resumable chunks (`Content-Range`,
+        GCS-style). The task must be owned by the requester and be in the `initializing` state; ownership grants
+        the required `admin` task access, and a token credential must carry the `tasks:admin` scope. On the
+        final chunk the parse handler runs.
+      requestBody:
+        required: true
+        content:
+          '*/*':
+            schema: {type: string, format: binary}
+      responses:
+        '201':
+          description: Upload complete; the parse task was started.
+        '206':
+          description: Chunk accepted; more data expected. The `Range` header echoes the received range.
+        '400':
+          description: Malformed range, length mismatch, or not an upload task.
+        '411':
+          description: A `Content-Length` header is required.
+        '416':
+          description: Range gap; the `Range` header tells the client where to resume.
+
   /admin/stats:
     get:
       tags: [admin]
       operationId: getAdminStats
       description: |
-        get server usage statistics like CPU or memory usage and Database stats like N° of files, date of last modification, etc...
+        Get server usage statistics (data footprint, process load) and build metadata. Requires the
+        `instance:read` scope (mintable, for monitoring agents).
       responses:
         '200':
-          description: Server statistics
+          description: Server statistics.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ServerStats"}
+            text/plain:
+              schema: {type: string}
+
+  /admin/config:
+    get:
+      tags: [admin]
+      operationId: getAdminConfig
+      description: |
+        Get the full instance configuration. Requires the `instance:read` scope.
+
+        > ⚠️ The JSON form exposes **every** configuration key, including env-only static values such as
+        > `database_uri` (which may embed a database password), `files_dir`, `root_dir`, etc. Handle the response
+        > as sensitive.
+      responses:
+        '200':
+          description: The configuration, keyed by config name.
           content:
             application/json:
               schema:
                 type: object
-                required: ["files", "process"]
-                properties:
-                  files:
-                    type: object
-                    required: ["mtime", "files", "size"]
-                    properties:
-                      mtime: {type: "string", format: "date-time"}
-                      files: {type: "number", format: "int" }
-                      size: {type: "number", format: "int" }
-                  process:
-                    type: object
-                    required: ["cores", "freemem", "load"]
-                    properties:
-                      cores: {type: "number", format: "int"}
-                      freemem: {type: "number", format: "int"}
-                      load: {type: "array", items: { type: "number"} }
+                additionalProperties: {$ref: "#/components/schemas/ConfigEntry"}
+            text/plain:
+              schema: {type: string, description: "dotenv-style KEY=\"value\" lines."}
+    patch:
+      tags: [admin]
+      operationId: patchAdminConfig
+      description: |
+        Update one or more **runtime** configuration values. Session-only: requires the non-mintable
+        `instance:write` scope. Keys locked by an environment variable cannot be changed; static (env-only)
+        keys are always locked.
+      requestBody:
+        required: true
+        description: |
+          A map of config key to new value. Each value may be a bare scalar or an object with a `value` field.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '204':
+          description: The configuration was updated.
+        '400':
+          description: Malformed body, missing value, or unknown key.
+        '403':
+          description: The key is locked (set via an environment variable).
 
-  /admin/mailtest:
+  /admin/mail/test:
     post:
       tags: [admin]
-      operationId: postAdminMailtest
-      description: sends a test email to the currently authenticated user's address.
+      operationId: postAdminMailTest
+      description: |
+        Send a test email. Session-only: requires the non-mintable `instance:write` scope. Defaults to the
+        requesting admin's own address.
+        A `to` address ending in `@example.com` short-circuits: no mail is sent and the rendered HTML is returned.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                to: {type: string, description: "Recipient. Defaults to the current admin's email."}
+      responses:
+        '200':
+          description: |
+            The send result, or (for an `@example.com` recipient) the rendered mail HTML.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      message: {type: string}
+                  - type: object
+                    properties:
+                      messageId: {type: string}
+                      accepted: {type: array, items: {type: string}}
+                      rejected: {type: array, items: {type: string}}
+                      response: {type: string}
+        '400':
+          description: No recipient could be determined.
+
+  /admin/mail/render/{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        schema: {type: string}
+        description: Email template name (under `emails/`), e.g. `test` or `invite`.
+    get:
+      tags: [admin]
+      operationId: getAdminMailRender
+      description: |
+        Render an email template to a standalone HTML preview (no mail is sent). Requires the `instance:read` scope.
+      parameters:
+        - name: username
+          in: query
+          schema: {type: string}
+          description: Recipient display name to inject (defaults to the requester's username).
+      responses:
+        '200':
+          description: The rendered email preview.
+          content:
+            text/html:
+              schema: {type: string}
+
+  /services/opensearch.xml:
+    get:
+      tags: [services]
+      operationId: getOpenSearch
+      security:
+        - {}
+      description: Public OpenSearch 1.1 description document for browser search-engine discovery.
+      responses:
+        '200':
+          description: The OpenSearch description.
+          content:
+            application/opensearchdescription+xml:
+              schema: {type: string}
+        '304':
+          description: Not modified (conditional request).
+
+  /services/oembed:
+    get:
+      tags: [services]
+      operationId: getOEmbed
+      security:
+        - {}
+      description: |
+        Public [oEmbed](https://oembed.com/) provider. Returns an embeddable representation (an iframe) for a public
+        scene or tag page URL.
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema: {type: string}
+          description: The eCorpus scene or tag page URL to embed (must resolve to a publicly-accessible resource).
+        - name: format
+          in: query
+          schema: {type: string, enum: ["json", "xml"]}
+          description: Response format (defaults to `json`).
+        - name: maxwidth
+          in: query
+          schema: {type: number, format: int32}
+          description: Maximum embed width (defaults to 800).
+        - name: maxheight
+          in: query
+          schema: {type: number, format: int32}
+          description: Maximum embed height (defaults to 450).
+      responses:
+        '200':
+          description: The oEmbed response.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OEmbed"}
+            text/xml:
+              schema: {type: string}
+        '400':
+          description: Missing or invalid `url`.
+        '404':
+          description: No public embeddable resource at that URL.
+        '501':
+          description: Unsupported `format`.
 
 components:
+  securitySchemes:
+    cookieSession:
+      type: apiKey
+      in: cookie
+      name: session
+      description: |
+        Browser session cookie, obtained through `POST /auth/login`. Carries only an opaque session id; the identity
+        is resolved server-side on every request. Lasts 31 days with sliding renewal.
+    bearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: ecorpus
+      description: |
+        Personal access token or OAuth-issued access token, sent as `Authorization: Bearer ec_…`. Its scopes
+        cap what it can do.
+    oauth2:
+      type: oauth2
+      description: |
+        OAuth2 authorization-code flow with mandatory PKCE (S256). Access tokens are used as Bearer tokens.
+        Scopes follow a `family:level` pattern: holding a level implies every lower one on the
+        `read ⊂ write ⊂ admin` ladder. The non-mintable scopes (`account:admin`, `users:admin`,
+        `instance:write`) cannot be requested — only an interactive session holds them.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://ecorpus.holusion.com/auth/oauth/authorize
+          tokenUrl: https://ecorpus.holusion.com/auth/oauth/token
+          scopes:
+            all: Every mintable scope (all of the below). Still less than a session — the non-mintable scopes stay out of reach of any token.
+            corpus:read: The identity baseline — "is a recognized user of this instance". Carried implicitly by every credential; requesting it alone yields a pure identity token.
+            corpus:write: Add scenes to the collection (scene creation, archive import).
+            scenes:read: Read scene content, on scenes the per-scene ACL grants.
+            scenes:write: Edit scene content (ACL-gated). Does not include creating scenes — that is `corpus:write`.
+            scenes:admin: Scene administration — rename, archive, permission edits (ACL-gated).
+            tasks:read: Read background tasks and their logs (ACL-gated).
+            tasks:write: Create background tasks.
+            tasks:admin: Delete tasks and upload task payloads (ACL-gated).
+            users:read: List user accounts, their sessions and token metadata.
+            users:write: Provision and delete user accounts, revoke their tokens.
+            groups:read: List groups.
+            groups:write: Reserved for a future per-group role; no route uses it yet.
+            groups:admin: Create and delete groups, edit membership.
+            instance:read: Server statistics and configuration inventory (the monitoring use case).
+            account:read: List one's own sessions, tokens and OAuth grants.
+            account:write: Revoke one's own sessions, tokens and OAuth grants.
+    clientBasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        HTTP Basic authentication of a *confidential OAuth client* (`client_id`:`client_secret`) on the token
+        endpoint. This is the only remaining use of HTTP Basic — it does **not** authenticate a user
+        (user-facing Basic auth was dropped in v0.3.0; see the
+        [v0.2.x legacy guide](https://ecorpus.eu/en/doc/hosting/basic_auth)).
+
   parameters:
     scene:
       name: scene
       in: path
       required: true
-      schema: {type: string }
-      description: unique name of a scene
+      schema: {type: string}
+      description: Unique name of a scene.
       example: foo
     file:
       name: file
       in: path
       required: true
-      schema: {type: "string"}
+      schema: {type: string}
       description: |
-        relative path to a scene's file.
-        Might contain slashs, though openAPI spec won't allow them in test queries
+        Relative path to a scene's file. May contain slashes, though the OpenAPI spec won't allow them in test queries.
       examples:
         folder:
           summary: a file in a nested folder
@@ -591,9 +1903,34 @@ components:
         document:
           summary: a voyager scene document file
           value: scene.svx.json
+    fileId:
+      name: id
+      in: path
+      required: true
+      schema: {type: number, format: int32}
+      description: A file id (a history reference point).
+    uid:
+      name: uid
+      in: path
+      required: true
+      schema: {$ref: "#/components/schemas/Uid"}
+      description: Unique ID of a user (stays stable through user renames).
+    group:
+      name: group
+      in: path
+      required: true
+      schema: {type: string}
+      description: Name of a group.
+    taskId:
+      name: id
+      in: path
+      required: true
+      schema: {type: number, format: int32}
+      description: A task id.
+
   responses:
-    'HTTPError':
-      description: Generic HTTP error response whose content depends on the request's "Accept" header
+    HTTPError:
+      description: Generic HTTP error response whose content depends on the request's `Accept` header.
       content:
         application/json:
           schema:
@@ -601,75 +1938,400 @@ components:
             required: ["code", "message"]
             properties:
               code:
-                description: |
-                  [HTTP Status](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) code
+                description: "[HTTP Status](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) code."
                 type: number
                 format: int32
                 minimum: 100
                 maximum: 599
-              message:
-                type: string
-        text/plain: 
-          schema: 
-            type: "string"
-            example: "Bad Request"
+              message: {type: string}
+        text/plain:
+          schema: {type: string, example: "Bad Request"}
         text/html:
-          schema:
-            type: "string"
+          schema: {type: string}
 
   schemas:
-    Scene: 
+    Scene:
       type: object
-      required: ["ctime", "mtime", "author_id", "author", "id", "access", "public_access", "default_access"]
+      required: ["ctime", "mtime", "author_id", "author", "id", "name", "access", "public_access", "default_access", "tags", "archived"]
       properties:
-        ctime: {type: "string", format: "date-time"}
-        mtime: {type: "string", format: "date-time"}
-        author_id: { $ref: "#/components/schemas/Uid" }
-        author:  {type: "string"}
-        id:  { $ref: "#/components/schemas/Uid"}
-        name: {type: "string"}
-        thumb: {type: "string", desciption: "URI to the scene's thumbnail representation if it exists"}
-        access: {$ref: "#/components/schemas/AccessType" }
-        public_access:  {$ref: "#/components/schemas/AccessType" }
-        default_access:  {$ref: "#/components/schemas/AccessType" }
+        id: {$ref: "#/components/schemas/Uid"}
+        name: {type: string}
+        ctime: {type: string, format: date-time}
+        mtime: {type: string, format: date-time}
+        author_id:
+          oneOf:
+            - {$ref: "#/components/schemas/Uid"}
+            - {type: "null"}
+        author: {type: string}
+        thumb:
+          type: ["string", "null"]
+          description: "URI (in scene lists) or filename (elsewhere) of the scene's thumbnail, if any."
+        tags:
+          type: array
+          items: {type: string}
+        access: {$ref: "#/components/schemas/AccessType"}
+        public_access: {$ref: "#/components/schemas/AccessType"}
+        default_access: {$ref: "#/components/schemas/AccessType"}
+        archived:
+          type: ["string", "null"]
+          format: date-time
+          description: "Archival date, or null when the scene is live."
+        type:
+          type: ["string", "null"]
+          enum: ["html", "voyager", null]
+
+    HistoryEntry:
+      type: object
+      required: ["id", "name", "mime", "generation", "ctime", "author", "author_id", "size"]
+      description: "One generation of one file in a scene's history."
+      properties:
+        id: {$ref: "#/components/schemas/Uid"}
+        name: {type: string}
+        mime: {type: string}
+        generation: {type: number, format: int32}
+        ctime: {type: string, format: date-time}
+        author: {type: string}
+        author_id:
+          oneOf:
+            - {$ref: "#/components/schemas/Uid"}
+            - {type: "null"}
+        size: {type: number, format: int32}
+
+    ImportResult:
+      type: object
+      required: ["name", "action"]
+      properties:
+        name: {type: string}
+        action: {type: string, enum: ["create", "update", "error"]}
+        error:
+          type: object
+          description: Present when `action` is `error`.
 
     User:
       type: object
       required: ["uid", "username", "level"]
+      description: "Public user representation (`User.safe`); never includes the password."
       properties:
         uid: {$ref: "#/components/schemas/Uid"}
-        username: {type: "string", example: "alice" }
-        email: {type: string, example: "alice@example.com" }
-        level: {type: string, enum: ["none", "use", "create", "manage", "admin"]}
-    Uid: 
-      type: "string"
-      pattern: '^\d+$'
-      description:
-        string representation of unique IDs.
-        Applicable for users or scenes, but uids are not expected to be unique across namespaces
-        UIDs are often stringified to prevent rounding errors on large intergers in the javascript engine
-    AccessType:
+        username: {type: string, example: "alice"}
+        email: {type: string, example: "alice@example.com"}
+        level: {$ref: "#/components/schemas/UserLevel"}
+
+    UserLevel:
       type: string
-      enum: ["none", "read", "write", "admin"]
+      enum: ["none", "use", "create", "manage", "admin"]
+      description: |
+        Server-wide user level, ordered `none < use < create < manage < admin`. New accounts default to `create`.
+
+    Group:
+      type: object
+      required: ["groupUid", "groupName"]
+      description: |
+        A user group. List responses carry only `groupUid`/`groupName`; a single-group GET additionally populates
+        `members` and `scenes`.
+      properties:
+        groupUid: {$ref: "#/components/schemas/Uid"}
+        groupName: {type: string}
+        members:
+          type: array
+          items: {type: string}
+          description: Member usernames.
+        scenes:
+          type: array
+          items:
+            type: object
+            required: ["scene", "access"]
+            properties:
+              scene: {type: string}
+              access: {$ref: "#/components/schemas/AccessType"}
+
+    Tag:
+      type: object
+      required: ["name", "size"]
+      properties:
+        name: {type: string}
+        size: {type: number, format: int32, description: "Number of scenes carrying the tag."}
+
+    TagOperation:
+      type: object
+      required: ["name", "action", "scene"]
+      properties:
+        name: {type: string}
+        action: {type: string, enum: ["create", "delete"]}
+        scene:
+          description: Target scene name or id.
+          oneOf:
+            - {type: string}
+            - {$ref: "#/components/schemas/Uid"}
+
+    Session:
+      type: object
+      required: ["id", "uid", "created", "expires", "lastSeen"]
+      properties:
+        id: {type: number, format: int32}
+        uid: {$ref: "#/components/schemas/Uid"}
+        created: {type: string, format: date-time}
+        expires: {type: string, format: date-time}
+        lastSeen: {type: string, format: date-time}
+        userAgent: {type: ["string", "null"]}
+
+    Token:
+      type: object
+      required: ["id", "uid", "name", "scope", "created"]
+      description: "Personal access token metadata. The secret is only ever returned once, on creation."
+      properties:
+        id: {type: number, format: int32}
+        uid: {$ref: "#/components/schemas/Uid"}
+        name: {type: string}
+        scope:
+          type: array
+          items: {$ref: "#/components/schemas/TokenScope"}
+        client: {type: ["string", "null"], description: "Set when the token was issued through an OAuth client."}
+        created: {type: string, format: date-time}
+        expires: {type: ["string", "null"], format: date-time}
+        lastUsed: {type: ["string", "null"], format: date-time}
+
+    TokenScope:
+      type: string
+      enum: ["all", "corpus:read", "corpus:write",
+             "scenes:read", "scenes:write", "scenes:admin",
+             "tasks:read", "tasks:write", "tasks:admin",
+             "users:read", "users:write",
+             "groups:read", "groups:write", "groups:admin",
+             "instance:read",
+             "account:read", "account:write"]
+      description: |
+        A mintable scope, of the form `family:level`: holding a level implies every lower one on the
+        `read ⊂ write ⊂ admin` ladder, and `all` expands to every mintable scope. The non-mintable scopes
+        (`account:admin`, `users:admin`, `instance:write`) can never be put on a token or OAuth grant —
+        only an interactive session holds them.
+
+    OAuthClient:
+      type: object
+      required: ["id", "name", "redirect_uris", "confidential", "created"]
+      properties:
+        id: {type: number, format: int32}
+        name: {type: string}
+        redirect_uris:
+          type: array
+          items: {type: string}
+        confidential: {type: boolean}
+        created: {type: string, format: date-time}
+
+    OAuthGrant:
+      type: object
+      required: ["client_id", "client_name", "scope", "created", "updated"]
+      properties:
+        client_id: {type: number, format: int32}
+        client_name: {type: string}
+        scope:
+          type: array
+          items: {$ref: "#/components/schemas/TokenScope"}
+        created: {type: string, format: date-time}
+        updated: {type: string, format: date-time}
+
+    OAuthError:
+      type: object
+      required: ["error"]
+      properties:
+        error: {type: string, example: "invalid_grant"}
+        error_description: {type: string}
+
+    OAuthServerMetadata:
+      type: object
+      required: ["issuer", "authorization_endpoint", "token_endpoint"]
+      properties:
+        issuer: {type: string}
+        authorization_endpoint: {type: string}
+        token_endpoint: {type: string}
+        revocation_endpoint: {type: string}
+        response_types_supported: {type: array, items: {type: string}}
+        grant_types_supported: {type: array, items: {type: string}}
+        code_challenge_methods_supported: {type: array, items: {type: string}}
+        token_endpoint_auth_methods_supported: {type: array, items: {type: string}}
+        scopes_supported: {type: array, items: {type: string}}
+
+    AccessGrant:
+      description: "An access grant on a scene, for a user or a group."
+      oneOf:
+        - type: object
+          required: ["uid", "username", "access"]
+          properties:
+            uid: {$ref: "#/components/schemas/Uid"}
+            username: {type: string}
+            access: {$ref: "#/components/schemas/AccessType"}
+        - type: object
+          required: ["groupUid", "groupName", "access"]
+          properties:
+            groupUid: {$ref: "#/components/schemas/Uid"}
+            groupName: {type: string}
+            access: {$ref: "#/components/schemas/AccessType"}
+
+    AccessGrantEdit:
+      type: object
+      description: |
+        Grant edit. Identify the target by `username`/`uid` (user grant) or `groupName`/`groupUid` (group grant).
+        An `access` of `"none"` or `null` removes the grant.
+      required: ["access"]
+      properties:
+        username: {type: string}
+        uid: {$ref: "#/components/schemas/Uid"}
+        groupName: {type: string}
+        groupUid: {$ref: "#/components/schemas/Uid"}
+        access: {$ref: "#/components/schemas/AccessType"}
+
+    Task:
+      type: object
+      required: ["task_id", "type", "ctime", "status"]
+      properties:
+        task_id: {type: number, format: int32}
+        scene_id: {type: ["number", "null"], format: int32}
+        user_id: {type: ["number", "null"], format: int32}
+        parent: {type: ["number", "null"], format: int32}
+        after:
+          type: array
+          items: {type: number, format: int32}
+          description: Ids of prerequisite tasks.
+        type: {type: string, description: "Task handler name."}
+        ctime: {type: string, format: date-time}
+        data: {type: object, additionalProperties: true, description: "Task-type-specific payload."}
+        output:
+          type: object
+          additionalProperties: true
+          description: "Handler return value once finished (shape depends on the task type)."
+        status: {$ref: "#/components/schemas/TaskStatus"}
+
+    TaskNode:
+      allOf:
+        - {$ref: "#/components/schemas/Task"}
+        - type: object
+          properties:
+            children:
+              type: array
+              items: {$ref: "#/components/schemas/TaskNode"}
+
+    TaskStatus:
+      type: string
+      enum: ["initializing", "pending", "running", "aborting", "success", "error"]
+
+    TaskLog:
+      type: object
+      required: ["log_id", "task_id", "timestamp", "severity", "message"]
+      properties:
+        log_id: {type: number, format: int32}
+        task_id: {type: number, format: int32}
+        timestamp: {type: string, format: date-time}
+        severity: {type: string, enum: ["trace", "debug", "info", "warn", "error", "fatal"]}
+        message: {type: string}
+
+    WorkspaceFile:
+      type: object
+      required: ["path", "size", "ctime", "mtime"]
+      properties:
+        path: {type: string}
+        size: {type: number, format: int32}
+        ctime: {type: string, format: date-time}
+        mtime: {type: string, format: date-time}
+
+    ServerStats:
+      type: object
+      required: ["usage", "data", "process", "build"]
+      properties:
+        usage:
+          type: object
+          properties:
+            mtime: {type: string, format: date-time}
+        data:
+          type: object
+          required: ["size", "scenes"]
+          properties:
+            size: {type: string, description: "Total deduplicated file size in bytes, as a decimal string."}
+            scenes: {type: number, format: int32}
+        process:
+          type: object
+          required: ["cores", "freemem", "load"]
+          properties:
+            cores: {type: number, format: int32}
+            freemem: {type: number, format: int32}
+            load: {type: array, items: {type: number}}
+        build:
+          type: object
+          required: ["ref", "migration_id"]
+          properties:
+            ref: {type: string}
+            migration_id: {type: string}
+
+    ConfigEntry:
+      type: object
+      required: ["value", "locked", "type", "defaultValue"]
+      properties:
+        value:
+          description: "Current value (typed)."
+          oneOf:
+            - {type: string}
+            - {type: number}
+            - {type: boolean}
+        locked: {type: boolean, description: "True when set/pinned by an environment variable."}
+        type: {type: string, enum: ["text", "color", "checkbox", "number"], description: "HTML input hint."}
+        defaultValue:
+          description: "Default value (typed)."
+          oneOf:
+            - {type: string}
+            - {type: number}
+            - {type: boolean}
+
+    OEmbed:
+      type: object
+      required: ["version", "type", "provider_name", "provider_url", "width", "height", "title", "html"]
+      properties:
+        version: {type: string, enum: ["1.0"]}
+        type: {type: string, enum: ["rich"]}
+        provider_name: {type: string}
+        provider_url: {type: string}
+        width: {type: number, format: int32}
+        height: {type: number, format: int32}
+        title: {type: string}
+        author_name: {type: string}
+        html: {type: string, description: "The embeddable iframe markup."}
+
+    StatusMessage:
+      type: object
+      required: ["code", "message"]
+      properties:
+        code: {type: number, format: int32}
+        message: {type: string}
+
+    Uid:
+      type: integer
+      format: int64
+      description: |
+        Numeric unique id. Applicable to users, scenes or files, but ids are not expected to be unique across
+        namespaces. Represented as a JSON number.
+
+    AccessType:
+      type: ["string", "null"]
+      enum: ["none", "read", "write", "admin", null]
+      description: "A scene access level, ordered `none < read < write < admin`. `null` is equivalent to unset."
+
     Etag:
       description: |
-        unique string describing the resource state, generally used for caching. A base64url sha256 hash sum is generally used but the exact format's stability shouldn't be relied-upon.
+        Unique string describing the resource state, generally used for caching. A base64url sha256 sum is typically
+        used but the exact format's stability shouldn't be relied upon.
       type: string
       examples:
-        weak: 
-          value: "W/oFpbfs6awWPgScobk7dDvUnjEWYnDvqCekDfVnMKAWI"
-          summary: "Weak Etag, calculated upon the resource's identifying data, which could lead to an Etag change while the content hasn't changed"
-        strong: 
-          value: "hohW3ydF34xbzWteINtEmJ69ftqMXcyX3HO5S4hp4lo"
-          summary: Calculated on a resource's content, which is expected to stay stable.
+        - "W/oFpbfs6awWPgScobk7dDvUnjEWYnDvqCekDfVnMKAWI"
+        - "hohW3ydF34xbzWteINtEmJ69ftqMXcyX3HO5S4hp4lo"
+
     LastModified:
-      description: a date's UTC representation
+      description: A date's UTC representation.
       type: string
       format: date-time
+
     WebDAVMultistatus:
       description: |
-        XML document returned for a PROPFIND request as defined in [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND)
-        See [rfc4918#xml.element.definitions](http://www.webdav.org/specs/rfc4918.html#xml.element.definitions) for reference XML schema.
+        XML document returned for a PROPFIND request as defined in
+        [rfc4918](http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND).
+        See [rfc4918#xml.element.definitions](http://www.webdav.org/specs/rfc4918.html#xml.element.definitions).
       type: object
       xml:
         name: "multistatus"
@@ -683,11 +2345,10 @@ components:
         response:
           type: array
           xml: {prefix: "D"}
-          items: { $ref: "#/components/schemas/WebDAVResponse" }
+          items: {$ref: "#/components/schemas/WebDAVResponse"}
 
     WebDAVResponse:
-      description: |
-        Part of a webDAV multistatus XML response object
+      description: Part of a webDAV multistatus XML response object.
       type: object
       required: ["href"]
       properties:
@@ -696,42 +2357,34 @@ components:
           items:
             type: string
             example: https://example.com/foo
-          xml: { prefix: "D"}
-        propstat: { $ref: "#/components/schemas/WebDAVPropstat"}
+          xml: {prefix: "D"}
+        propstat: {$ref: "#/components/schemas/WebDAVPropstat"}
 
     WebDAVPropstat:
-      description: Propstat Object
+      description: Propstat Object.
       type: object
       required: ["status"]
-      xml: { prefix: "D"}
+      xml: {prefix: "D"}
       properties:
         status:
           type: string
-          xml: { prefix: "D"}
+          xml: {prefix: "D"}
           examples:
-            ok:
-              value: HTTP/1.1 200 OK
-              description: successful response
-            forbidden:
-              value: HTTP/1.1 403 Forbidden
-              description: 403 HTTP error
+            - HTTP/1.1 200 OK
+            - HTTP/1.1 403 Forbidden
         prop:
           type: object
-          xml: { prefix: "D" }
+          xml: {prefix: "D"}
           properties:
-            getlastmodified: { $ref: "#/components/schemas/WebDAVDate" }
-            creationdate: { $ref: "#/components/schemas/WebDAVDate" }
+            getlastmodified: {$ref: "#/components/schemas/WebDAVDate"}
+            creationdate: {$ref: "#/components/schemas/WebDAVDate"}
             resourcetype:
-              xml: { prefix: "D" }
+              xml: {prefix: "D"}
               type: object
+
     WebDAVDate:
-      description: a date, formated as GMT iso string
+      description: A date, formatted as a GMT ISO string.
       type: string
       format: date-time
-      xml: { prefix: "D" }
+      xml: {prefix: "D"}
       example: Tue, 28 May 2024 11:59:56 GMT
-
-
-            
-
-
