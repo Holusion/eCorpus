@@ -1,6 +1,6 @@
 
 import { Request, Response } from "express";
-import { getUser, getUserManager, getVfs } from "../../utils/locals.js";
+import { effectiveAccess, getUser, getUserManager, getVfs } from "../../utils/locals.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utils/errors.js";
 
 
@@ -24,11 +24,16 @@ export default async function patchTags(req: Request, res: Response) {
     }
   };
 
+  //Tagging is a per-scene write. A token's scope caps the access level like the
+  //canWrite guard would (the cap applies to the level, never to visibility):
+  //effectiveAccess folds the ACL right with that credential cap.
   await userManager.isolate(async userManager => {
     for (let { name, scene, action } of patch) {
       // action equals "action" OR "delete"
       let rights = await userManager.getAccessRights(scene, requester ? requester.uid: null);
-      if (rights == "write" || rights == "admin" || (requester && requester.level == "admin")) {
+      if (requester && requester.level == "admin") rights = "admin";
+      const effective = effectiveAccess(res, rights);
+      if (effective == "write" || effective == "admin") {
         action == "create" ? await vfs.addTag(scene, name) : await vfs.removeTag(scene, name);
       } else {
         if (rights == "none") {

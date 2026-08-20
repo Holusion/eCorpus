@@ -5,8 +5,8 @@ import path from "path";
 import { once } from "events";
 import yazl from "yazl";
 
-import { AccessType } from "../../auth/UserManager.js";
-import { getVfs, getUser, getHost, getUserManager } from "../../utils/locals.js";
+import { AccessType, toAccessLevel } from "../../auth/UserManager.js";
+import { getVfs, getUser, getHost, getUserManager, hasScope } from "../../utils/locals.js";
 import { wrapFormat } from "../../utils/wrapAsync.js";
 import { compressedMime } from "../../utils/filetypes.js";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
@@ -111,6 +111,14 @@ export default async function getScenes(req :Request, res :Response){
     "text": ()=> res.status(200).send(scenes.map(m=>m.name).join("\n")+"\n"),
 
     "application/zip": async ()=>{
+      //Streaming scene file blobs is a per-scene read. A token whose scope caps
+      //scene access below "read" can't fetch those files one by one (the
+      //per-file routes go through canRead, which applies the same cap), so it
+      //must not receive the whole set in bulk here either. Visibility is left
+      //untouched: the json/text variants still list what the owner sees.
+      if(!hasScope(res, "scenes:read")){
+        throw new UnauthorizedError(`token scope does not allow reading scene content`);
+      }
       res.set("Content-Disposition", `attachment; filename="scenes.zip"`);
       //FIXME : it would be possible to compute content-length ahead of time 
       // but we need to take into account the size of all zip headers

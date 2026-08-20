@@ -1,18 +1,9 @@
 import { Request, Response } from "express";
-import { getUser, getUserManager } from "../../../utils/locals.js";
-import UserManager from "../../../auth/UserManager.js";
-import { isUserAtLeast } from "../../../auth/User.js";
-import { NotFoundError } from "../../../utils/errors.js";
+import { getUserManager } from "../../../utils/locals.js";
 
 export default async function getGroup(req: Request, res: Response) {
-    let userManager: UserManager = getUserManager(req);
-    let user = getUser(req);
+    //The route's policy({perms:"read", on:"group"}) resolved access already:
+    //a member, a manage-level user, or an admin — anyone else got a 404.
     const { group } = req.params;
-    if (user && (isUserAtLeast(user, "manage") || await userManager.isMemberOfGroup(user.uid, group))){
-        let groups = await userManager.getGroup(group);
-        res.status(200).send(groups);
-    } 
-    else {
-        throw new NotFoundError()
-    }
+    res.status(200).send(await getUserManager(req).getGroup(group));
 }

@@ -25,15 +25,18 @@ export function errorHandlerMdw(){
     else log.debug({ err: error }, error.message);
 
     if(code === 401
-    //We try to NOT send the header for browser requests because we prefer the HTML login to the browser's popup
-      //Browser tends to prefer text/html and always send Mozilla/5.0 at the beginning of their user-agent
-      //If someone has customized their headers, they'll get the ugly popup and live with it.
+    //Advertise the token scheme, not Basic: the server no longer accepts
+    //user passwords in an Authorization header (see utils/authenticate.ts),
+    //so a Basic challenge would send clients down a path that always fails.
+    //We still steer browsers to the HTML login rather than the header — they
+    //prefer text/html and start their user-agent with Mozilla/5.0.
+    //If someone has customized their headers, they'll get the challenge and live with it.
       && !(req.get("Accept")?.startsWith("text/html") && req.get("User-Agent")?.startsWith("Mozilla"))
       //Also don't apply it for login route because it doesn't make any sense.
       && req.path !== "/auth/login"
       //&& !req.get("Authorization")
     ){
-      res.set("WWW-Authenticate", "Basic realm=\"authenticated access\"");
+      res.set("WWW-Authenticate", "Bearer realm=\"authenticated access\"");
     }
 
     res.format({

@@ -4,7 +4,7 @@ import { expect } from "chai";
 import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 import { errorHandlerMdw, notFoundHandlerMdw } from "./errorHandler.js";
-import { InternalError } from "./errors.js";
+import { InternalError, UnauthorizedError } from "./errors.js";
 import Templates from "./templates/index.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -60,6 +60,19 @@ describe("errorHandler middleware", function(){
       .expect("Content-Type", "text/html; charset=utf-8")
       .expect(/^<!DOCTYPE html>/)
       .expect(/error-main/);
+    });
+
+    it("advertises the Bearer scheme (not Basic) on 401", async function(){
+      //Basic auth was removed: a Basic challenge would point clients at a
+      //mechanism authenticate.ts now ignores.
+      let app :Express = express();
+      app.get("/protected", ()=>{ throw new UnauthorizedError("nope"); });
+      app.use(errorHandlerMdw());
+
+      const res = await request(app).get("/protected")
+      .set("Accept", "application/json")
+      .expect(401);
+      expect(res.headers).to.have.property("www-authenticate").match(/^Bearer /);
     });
 
     it("handles errors (headers sent)", async function(){

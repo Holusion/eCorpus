@@ -2,15 +2,17 @@
 import cookieSession from "cookie-session";
 import express from "express";
 
-
-import { HTTPError, UnauthorizedError } from "../utils/errors.js";
 import { errorHandlerMdw, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { accessLogMdw, logContextMdw } from "../utils/log/index.js";
 
-import {AppLocals, AppParameters, getHost, getLocals, getUserManager, getVfs} from "../utils/locals.js";
+import {AppLocals, AppParameters, getHost, getVfs} from "../utils/locals.js";
 
-import User from "../auth/User.js";
+import authenticate from "../utils/authenticate.js";
+import csrfProtection from "../utils/csrf.js";
+import securityHeaders from "../utils/headers.js";
+import wrap from "../utils/wrapAsync.js";
 import Templates, { dicts } from "../utils/templates/index.js";
+import { getMetadata } from "./auth/oauth.js";
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
@@ -32,12 +34,25 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   // Access logging (trace level) wraps everything below it.
   app.use(accessLogMdw());
 
+  //Baseline security headers (incl. the Report-Only CSP). Embedding (oembed,
+  ///dist with permissive CORS) forbids frame and cross-origin-isolation
+  //restrictions as site-wide defaults; /auth opts back into frame denial.
+  const isProduction = locals.config.get("node_env") === "production";
+  app.use(securityHeaders({hsts: isProduction, dev: !isProduction}));
+
   app.use(cookieSession({
     name: 'session',
     keys: await locals.userManager.getKeys(),
     // Cookie Options
     maxAge: (app.locals as AppLocals).sessionMaxAge,
-    sameSite: "lax"
+    sameSite: "lax",
+    httpOnly: true,
+    // `secure` is left to the connection rather than pinned to NODE_ENV:
+    // cookie-session marks the cookie Secure when the request is HTTPS, which
+    // honors `trust proxy` (X-Forwarded-Proto). A deployment behind a
+    // TLS-terminating proxy still gets Secure cookies, while plain-HTTP access
+    // (e.g. the dockerised end-to-end run, which talks to the production image
+    // over http://) keeps working instead of dropping the cookie.
   }));
 
   app.use("/", (req, res, next)=>{
@@ -48,39 +63,17 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   })
 
   /**
-   * Does authentication-related work like renewing and expiring session-cookies
+   * Resolves the request's identity (read with `getUser()`) from the session
+   * cookie (server-side sessions) or an Authorization header.
+   * Handles session expiry and sliding renewal.
    */
-  app.use((req, res, next)=>{
-    const {sessionMaxAge} = getLocals(req);
-    const now = Date.now();
-    if(req.session && !req.session.isNew){
-      if(!req.session.expires || req.session.expires < now){
-        req.session = null;
-        return next(new UnauthorizedError(`Session Token expired. Please reauthenticate`));
-      }else if(now < req.session.expires + sessionMaxAge*0.66){
-        req.session.expires = now + sessionMaxAge;
-      }
-    }
-    
-    if(req.session?.uid) return next();
-    
-    let auth = req.get("Authorization");
-    if(!auth) return next()
-    else if(!auth.startsWith("Basic ") ||  auth.length <= "Basic ".length ) return next();
-    let [username, password] = Buffer.from(auth.slice("Basic ".length), "base64").toString("utf-8").split(":");
-    if(!username || !password) return next();
-    getUserManager(req).getUserByNamePassword(username, password).then((user)=>{
-      Object.assign(
-        req.session as any,
-        {expires: now + sessionMaxAge},
-        User.safe(user),
-      );
-      next();
-    }, (e)=>{
-      if((e as HTTPError).code === 404) next();
-      else next(e);
-    });
-  });
+  app.use(authenticate);
+
+  /**
+   * Origin checks for unsafe methods on cookie-authenticated requests.
+   * Bearer-token and anonymous requests are exempt (CSRF-immune).
+   */
+  app.use(csrfProtection);
 
   app.engine('.hbs', templates.middleware);
   app.set('view engine', '.hbs');
@@ -88,6 +81,9 @@ export default async function createServer(locals:AppParameters) :Promise<expres
 
 
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
+
+  //OAuth2 authorization server metadata (RFC8414)
+  app.get("/.well-known/oauth-authorization-server", wrap(getMetadata));
 
   app.get("/robots.txt", (req, res)=>{
     const sitemap = new URL("/sitemap.xml", getHost(req)).toString();

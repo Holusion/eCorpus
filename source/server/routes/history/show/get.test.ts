@@ -32,13 +32,13 @@ describe("GET /history/:scene/:id/show/:name", function(){
     }
     // Probe at the second revision: must return v1 (the version that was "current" when v2 was written).
     let res = await request(this.server).get(`/history/${titleSlug}/${revs[1].id}/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(200);
     expect(res.text).to.equal(`{"id":1}`);
 
     // Probe at the third revision: must return v2.
     res = await request(this.server).get(`/history/${titleSlug}/${revs[2].id}/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(200);
     expect(res.text).to.equal(`{"id":2}`);
   });
@@ -50,7 +50,7 @@ describe("GET /history/:scene/:id/show/:name", function(){
     await vfs.writeFile(dataStream([randomBytes(32)]), {scene: scene_id, user_id: user.uid, name: "models/cube.glb", mime: "model/gltf-binary"});
 
     let res = await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/models/cube.glb`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .buffer(true)
     .parse((res, cb)=>{
       let chunks :Buffer[] = [];
@@ -71,20 +71,20 @@ describe("GET /history/:scene/:id/show/:name", function(){
 
     // Before removal: file must be served.
     let res = await request(this.server).get(`/history/${titleSlug}/${v1.id}/show/articles/a.txt`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(200);
     expect(res.text).to.equal("hello");
 
     // After removal: file is gone at that point in history.
     await request(this.server).get(`/history/${titleSlug}/${after.id}/show/articles/a.txt`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(404);
   });
 
   it("sets cache headers (ETag, Last-Modified, Content-Length, Accept-Ranges)", async function(){
     let ref = await vfs.writeDoc(`{"id":1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     let res = await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(200);
     expect(res.headers).to.have.property("etag").match(/^W\//);
     expect(res.headers).to.have.property("last-modified").that.is.a("string");
@@ -95,13 +95,13 @@ describe("GET /history/:scene/:id/show/:name", function(){
   it("returns 304 on a conditional GET that matches the ETag", async function(){
     let ref = await vfs.writeDoc(`{"id":1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     let first = await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(200);
     let etag = first.headers.etag;
     expect(etag).to.be.a("string");
 
     let res = await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .set("If-None-Match", etag)
     .expect(304);
     expect(res.text || "").to.equal("");
@@ -110,27 +110,27 @@ describe("GET /history/:scene/:id/show/:name", function(){
   it("rejects directory paths with 400", async function(){
     let ref = await vfs.writeFile(dataStream(["hello"]), {scene: scene_id, user_id: user.uid, name: "articles/a.txt", mime: "text/html"});
     await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/articles`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(400);
   });
 
   it("returns 404 for a name that does not exist at the reference point", async function(){
     let ref = await vfs.writeDoc(`{"id":1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/articles/missing.html`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(404);
   });
 
   it("returns 404 for an unknown scene", async function(){
     await request(this.server).get(`/history/does-not-exist/1/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(404);
   });
 
   it("returns 400 for an invalid (non-numeric) reference id", async function(){
     await vfs.writeDoc(`{"id":1}`, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     await request(this.server).get(`/history/${titleSlug}/abc/show/scene.svx.json`)
-    .auth("bob", "12345678")
+    .set("Authorization", await bearer("bob"))
     .expect(400);
   });
 
@@ -149,20 +149,20 @@ describe("GET /history/:scene/:id/show/:name", function(){
 
     it("404s for a read-only user", async function(){
       await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-      .auth("oscar", "12345678")
+      .set("Authorization", await bearer("oscar"))
       .expect(404);
     });
 
     it("succeeds for a write user", async function(){
       await userManager.grant(titleSlug, "oscar", "write");
       await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-      .auth("oscar", "12345678")
+      .set("Authorization", await bearer("oscar"))
       .expect(200);
     });
 
     it("succeeds for an admin", async function(){
       await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-      .auth("alice", "12345678")
+      .set("Authorization", await bearer("alice"))
       .expect(200);
     });
   });

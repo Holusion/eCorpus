@@ -16,7 +16,7 @@ describe("DELETE /groups/:group", function () {
     it("can delete a group as manage", async function () {
         let manage = await userManager.addUser("maelle", "12345678", "manage", "maelle@example.com");
         await request(this.server).delete(`/groups/My Group`)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")
             .expect(204);
         await (expect(userManager.getGroup("My Group")).to.be.rejectedWith("404"));
@@ -25,7 +25,7 @@ describe("DELETE /groups/:group", function () {
     it("can delete a group as admin", async function () {
         let admin = await userManager.addUser("alice", "12345678", "admin");
         await request(this.server).delete(`/groups/My Group`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .expect(204);
         await (expect(userManager.getGroup("My Group")).to.be.rejectedWith("404"));
@@ -34,7 +34,7 @@ describe("DELETE /groups/:group", function () {
     it("can't delete a group as creator", async function () {
         let creator = await userManager.addUser("celia", "12345678", "create", "celia@example.com");
         await request(this.server).delete(`/groups/My Group`)
-            .auth(creator.username, "12345678")
+            .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
             .expect(401);
         await expect(userManager.getGroup("My Group")).to.be.fulfilled;
@@ -43,7 +43,7 @@ describe("DELETE /groups/:group", function () {
     it("can't delete a group as user", async function () {
         let user = await userManager.addUser("ulysse", "12345678", "use", "ulysse@example.com");
         await request(this.server).delete(`/groups/My Group`)
-            .auth(user.username, "12345678")
+            .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
             .expect(401);
         await expect(userManager.getGroup("My Group")).to.be.fulfilled;
@@ -59,7 +59,7 @@ describe("DELETE /groups/:group", function () {
     it("Fail when trying to delete an inexisting group", async function () {
         let admin = await userManager.addUser("alice", "12345678", "admin");
         await request(this.server).delete(`/groups/MyGroup`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")
             .expect(404);
     });

@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-import { UnauthorizedError } from "../../../utils/errors.js";
-import { getLocals, getUser } from "../../../utils/locals.js";
-import { toAccessLevel } from "../../../auth/UserManager.js";
+import { getLocals } from "../../../utils/locals.js";
 import { TaskDefinition, TaskDataPayload, TaskLogEntry } from "../../../tasks/types.js";
 
 export interface TaskResponse<TData extends TaskDataPayload = TaskDataPayload, TReturn = any> {
@@ -11,24 +9,11 @@ export interface TaskResponse<TData extends TaskDataPayload = TaskDataPayload, T
 
 
 export async function getTask(req: Request, res: Response) {
-  const {
-    vfs,
-    taskScheduler,
-    userManager,
-  } = getLocals(req);
-  const requester = getUser(req)!;
+  //Read authorization is enforced by the route's policy({perms:"read", on:"task"}) guard.
+  const { taskScheduler } = getLocals(req);
   const { id: idString } = req.params;
   const id = parseInt(idString);
-  let task = await taskScheduler.getTask(id);
-
-  if (requester.level !== "admin"
-    && task.user_id !== requester.uid
-    && (!task.scene_id
-      || toAccessLevel(await userManager.getAccessRights(task.scene_id, requester.uid)) < toAccessLevel("read")
-    )
-  ) {
-    throw new UnauthorizedError(`Read rights are required to access this task`);
-  }
+  const task = await taskScheduler.getTask(id);
   const logs = await taskScheduler.getLogs(id);
   res.status(200).send({ task, logs });
 }

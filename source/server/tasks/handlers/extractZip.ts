@@ -74,7 +74,11 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
           }
         }catch(e){
           if((e as HTTPError).code != 404) throw e;
-          //404 == Not Found. Check if user can create the scene
+          //404 == Not Found. Check if the user can create the scene: level ≥
+          //create is the account-layer equivalent of corpus:write, which the
+          //route guard already verified on the *credential*. Together with the
+          //ACL ≥ write check above (credential: scenes:write), this detached
+          //task never acts beyond what the token proved at the gate.
           if (isUserAtLeast(requester, "create")) {
             await vfs.createScene(scene, requester.uid);
             result = {name: scene, action: "create"};

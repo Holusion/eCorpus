@@ -28,7 +28,7 @@ describe("PATCH /scenes/:scene", function(){
     it("can rename", async function(){
       await request(this.server).patch("/scenes/foo")
       .set("Content-Type", "application/json")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({name: "foofoo"})
       .expect(200);
     });
@@ -36,7 +36,7 @@ describe("PATCH /scenes/:scene", function(){
     it("forces unique names", async function(){
       await request(this.server).patch("/scenes/foo")
       .set("Content-Type", "application/json")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({name: "bar"})
       .expect(409);
     })
@@ -46,7 +46,7 @@ describe("PATCH /scenes/:scene", function(){
       await userManager.setDefaultAccess("foo", "write");
       await request(this.server).patch("/scenes/foo")
       .set("Content-Type", "application/json")
-      .auth(user.username, "xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .send({name: "foofoo"})
       .expect(401);
     });
@@ -64,7 +64,7 @@ describe("PATCH /scenes/:scene", function(){
     it("add", async function(){
       let r = await request(this.server).patch("/scenes/foo")
       .send({tags: ["foo", "bar"]})
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .expect(200);
 
       expect(r.body).to.have.property("tags").to.deep.equal(["foo", "bar"]);
@@ -73,7 +73,7 @@ describe("PATCH /scenes/:scene", function(){
     it("trims tag names", async function(){
       let r = await request(this.server).patch("/scenes/foo")
       .send({tags: [" foo"]})
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .expect(200);
 
       expect(r.body).to.have.property("tags").to.deep.equal(["foo"])
@@ -81,7 +81,7 @@ describe("PATCH /scenes/:scene", function(){
       //Also trim when comparing with existing tags
       r = await request(this.server).patch("/scenes/foo")
       .send({tags: [" foo"]})
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .expect(200);
       expect(r.body, `existing tag should be compared with the trimmed tag name`).to.have.property("tags").to.deep.equal(["foo"])
     });
@@ -92,14 +92,14 @@ describe("PATCH /scenes/:scene", function(){
       //Through the addition of a hidden empty input field
       let r = await request(this.server).patch("/scenes/foo")
       .send({tags: ["foo", ""]})
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .expect(200);
 
       expect(r.body).to.have.property("tags").to.deep.equal(["foo"]);
 
       //Unset the tag we just made
       r = await request(this.server).patch("/scenes/foo")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({tags: ""})
       .expect(200);
 
@@ -109,7 +109,7 @@ describe("PATCH /scenes/:scene", function(){
 
       //Set it back with two values
       r = await request(this.server).patch("/scenes/foo")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({tags: ["foo", "bar", ""]})
       .expect(200);
 
@@ -117,7 +117,7 @@ describe("PATCH /scenes/:scene", function(){
 
       //An array with only an empty string will probable never get sent but that's still tested
       r = await request(this.server).patch("/scenes/foo")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({tags: [""]})
       .expect(200);
 
@@ -132,7 +132,7 @@ describe("PATCH /scenes/:scene", function(){
 
       let r = await request(this.server).patch("/scenes/foo")
       .send({archived: true})
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .expect(200);
 
       expect(r.body).to.have.property("archived").not.to.be.null;
@@ -142,12 +142,12 @@ describe("PATCH /scenes/:scene", function(){
     it("can restore a scene", async function(){
 
       let r = await request(this.server).patch("/scenes/foo")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({archived: true})
       .expect(200);
 
       r = await request(this.server).patch("/scenes/"+encodeURIComponent(`foo#${ids[0]}`))
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({archived: false})
       .expect(200);
 
@@ -158,12 +158,12 @@ describe("PATCH /scenes/:scene", function(){
     it("can restore a scene with an explicit new name", async function(){
 
       let r = await request(this.server).patch("/scenes/foo")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({archived: true})
       .expect(200);
 
       r = await request(this.server).patch("/scenes/"+encodeURIComponent(`foo#${ids[0]}`))
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({archived: false, name: "some_unique_name"})
       .expect(200);
 
@@ -175,12 +175,12 @@ describe("PATCH /scenes/:scene", function(){
       //Because forms can't really have booleans
 
       let r = await request(this.server).patch("/scenes/foo")
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({archived: true})
       .expect(200);
 
       r = await request(this.server).patch("/scenes/"+encodeURIComponent(`foo#${ids[0]}`))
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({archived: "false"})
       .expect(200);
 
@@ -192,7 +192,7 @@ describe("PATCH /scenes/:scene", function(){
 
   it("can set public access", async function () {
     await request(this.server).patch(`/scenes/foo`)
-    .auth(sceneAdminUser.username, "xxxxxxxx")
+    .set("Authorization", await bearer(sceneAdminUser.username))
     .send({public_access: "none"})
     .expect(200);
 
@@ -200,7 +200,7 @@ describe("PATCH /scenes/:scene", function(){
     expect(scene).to.have.property("public_access", "none");
   
     await request(this.server).patch(`/scenes/foo`)
-    .auth(sceneAdminUser.username, "xxxxxxxx")
+    .set("Authorization", await bearer(sceneAdminUser.username))
     .send({public_access: "read"})
     .expect(200);
     
@@ -212,52 +212,52 @@ describe("PATCH /scenes/:scene", function(){
 
     this.beforeEach(async function(){
         await request(this.server).patch(`/scenes/foo`)
-       .auth(sceneAdminUser.username, "xxxxxxxx")
+       .set("Authorization", await bearer(sceneAdminUser.username))
        .send({default_access: "none", public_access: "none"})
        .expect(200);
     });
 
     it("can set default access to none", async function () {
       await request(this.server).get("/scenes/foo")
-      .auth(user.username, "xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .expect(404);
     })
 
     it("can set default access to read lkzu_xfdjkryd", async function () {
       await request(this.server).patch(`/scenes/foo`)
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({default_access: "read"})
       .expect(200);
       console.log("set to read");
 
       await request(this.server).get("/scenes/foo")
-      .auth(user.username, "xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .expect(200);
 
       await request(this.server).put("/scenes/foo/articles/foo.html")
       .set("Content-Type", "text/plain")
-      .auth(user.username,"xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .expect(401);
 
       await request(this.server).patch("/scenes/foo")
-      .auth(user.username, "xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .send({name: "foofoo"})
       .expect(401);
     })
 
     it("can set default access to write", async function () {
       await request(this.server).patch(`/scenes/foo`)
-      .auth(sceneAdminUser.username, "xxxxxxxx")
+      .set("Authorization", await bearer(sceneAdminUser.username))
       .send({default_access: "write"})
       .expect(200);
 
       await request(this.server).put("/scenes/foo/articles/foo.html")
       .set("Content-Type", "text/plain")
-      .auth(user.username,"xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .expect(201);
 
       await request(this.server).patch("/scenes/foo")
-      .auth(user.username, "xxxxxxxx")
+      .set("Authorization", await bearer(user.username))
       .send({name: "foofoo"})
       .expect(401);
     })

@@ -26,6 +26,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
+      # Relax the login rate limit for the end-to-end run, which logs in many
+      # times from a single container IP. Empty by default so real deployments
+      # started from this compose keep the brute-force limit active.
+      TEST: ${TEST:-}
     healthcheck:
       interval: 1s
       timeout: 5s

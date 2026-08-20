@@ -27,7 +27,7 @@ describe("GET /groups/:group", function () {
 
     it("can get any group as manage", async function () {
         let response = await expect(request(this.server).get(`/groups/My first group`)
-            .auth(manage.username, "12345678")
+            .set("Authorization", await bearer(manage.username))
             .set("Content-Type", "application/json")).to.be.fulfilled;
         let group: Group = response.body;
         expect(group.groupName).to.be.equal(group1.groupName);
@@ -38,7 +38,7 @@ describe("GET /groups/:group", function () {
 
     it("can get any group as admin", async function () {
         let response = await expect(request(this.server).get(`/groups/My first group`)
-            .auth(admin.username, "12345678")
+            .set("Authorization", await bearer(admin.username))
             .set("Content-Type", "application/json")).to.be.fulfilled;
         let group: Group = response.body;
         expect(group.groupName).to.be.equal(group1.groupName);
@@ -49,23 +49,41 @@ describe("GET /groups/:group", function () {
     });
 
 
+    it("can get a group as one of its members", async function () {
+        let response = await request(this.server).get(`/groups/My first group`)
+            .set("Authorization", await bearer(member1.username))
+            .set("Content-Type", "application/json")
+            .expect(200);
+        expect(response.body.groupName).to.be.equal(group1.groupName);
+        expect(response.body.members).to.have.deep.members([member1.username]);
+    });
+
+    it("requires the groups:read credential scope", async function () {
+        //Even for a member: their token must have been delegated groups:read
+        await request(this.server).get(`/groups/My first group`)
+            .set("Authorization", await bearer(member1.username, ["scenes:admin"]))
+            .set("Content-Type", "application/json")
+            .expect(403);
+    });
+
+    //Non-members get existence-hiding 404s, like scenes
     it("can't get a group as use", async function () {
         await request(this.server).get(`/groups/My first group`)
-            .auth(user.username, "12345678")
+            .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
     });
 
     it("can't get a group as create", async function () {
         await request(this.server).get(`/groups/My first group`)
-            .auth(creator.username, "12345678")
+            .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
     });
 
     it("can't get a group as anonymous", async function () {
         await request(this.server).get(`/groups/My first group`)
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
     });
 });

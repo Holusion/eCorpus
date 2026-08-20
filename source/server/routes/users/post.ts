@@ -1,10 +1,10 @@
 
 import { Request, Response } from "express";
 
-import { getHost, getLocals, getTaskScheduler, getUserManager } from "../../utils/locals.js";
+import { getHost, getLocals, getTaskScheduler, getUserManager, hasScope } from "../../utils/locals.js";
 import User, { isUserRole } from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
-import { BadRequestError } from "../../utils/errors.js";
+import { BadRequestError, ForbiddenError } from "../../utils/errors.js";
 import { makeRedirect } from "../auth/login.js";
 import { sendEmail } from "../../tasks/handlers/sendEmail.js";
 import { AcceptedLocales, dicts } from "../../utils/templates/index.js";
@@ -33,6 +33,13 @@ export default async function postUser(req :Request, res :Response){
   if(!password) throw new BadRequestError("password not provided");
   if(!isUserRole(level)) throw new BadRequestError("bad value for user level");
   if(!email) throw new BadRequestError("email not provided");
+  //A users:write token may provision regular users (CSV import scripts…), but
+  //creating an administrator with a known password is session-minting: it needs
+  //the non-mintable users:admin, i.e. an interactive session (or the anonymous
+  //first-user setup, which carries no credential restriction).
+  if(level === "admin" && !hasScope(res, "users:admin")){
+    throw new ForbiddenError("insufficient_scope: users:admin — creating an administrator requires an interactive session");
+  }
   let u = await userManager.addUser(username, password, level, email);
 
   if(isTruthyFlag(send_onboarding)){

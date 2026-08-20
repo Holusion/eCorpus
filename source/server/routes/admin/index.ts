@@ -1,7 +1,7 @@
 
 import { Router } from "express";
 
-import { isAdministrator } from "../../utils/locals.js";
+import { policy } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import handleGetStats from "./stats/index.js";
 import handleMailtest from "./mail/sendtest.js";
@@ -24,11 +24,17 @@ router.use((req, res, next)=>{
 
 
 
-router.get("/stats", isAdministrator, wrap(handleGetStats));
-router.get("/config", isAdministrator, wrap(handleGetConfig));
-router.patch("/config", isAdministrator, bodyParser.json(), wrap(handlePatchConfig));
+//Instance administration (stats, runtime config, mail plumbing) is the
+//`instance` family, held only by admins (through `all`). instance:read is
+//mintable — the monitoring use case: an agent scraping /admin/stats or
+//backing up /admin/config. instance:write is NOT (NON_MINTABLE_SCOPES):
+//rewriting runtime config can redirect smart_host and intercept login-link
+//emails, so config changes require an interactive admin session.
+router.get("/stats", policy({ scope: "instance:read" }), wrap(handleGetStats));
+router.get("/config", policy({ scope: "instance:read" }), wrap(handleGetConfig));
+router.patch("/config", policy({ scope: "instance:write" }), bodyParser.json(), wrap(handlePatchConfig));
 
-router.post("/mail/test", isAdministrator, bodyParser.json(), wrap(handleMailtest));
-router.get("/mail/render/:name", isAdministrator, bodyParser.json(), wrap(handleRenderMail));
+router.post("/mail/test", policy({ scope: "instance:write" }), bodyParser.json(), wrap(handleMailtest));
+router.get("/mail/render/:name", policy({ scope: "instance:read" }), bodyParser.json(), wrap(handleRenderMail));
 
 export default router;

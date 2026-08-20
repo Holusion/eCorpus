@@ -31,7 +31,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   it("can PUT a file into a scene", async function(){
     await request(this.server).put("/scenes/foo/articles/foo.html")
     .set("Content-Type", "text/plain")
-    .auth(user2.username,"12345678")
+    .set("Authorization", await bearer(user2.username))
     .expect(201);
     let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo.html"});
     expect(id).to.be.a("number");
@@ -51,7 +51,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   it("can put an extensionless file with proper headers", async function(){
 
     await request(this.server).put("/scenes/foo/articles/foo")
-    .auth(user.username, "12345678")
+    .set("Authorization", await bearer(user.username))
     .set("Content-Type", "text/html")
     .expect(201);
     let {ctime, mtime, id, ...file} =  await vfs.getFileProps({scene:"foo", name:"articles/foo"});
@@ -79,7 +79,7 @@ describe("PUT /scenes/:scene/:filename(.*)", function(){
   it("can write article data into the database", async function(){
 
     await request(this.server).put("/scenes/foo/articles/foo")
-    .auth(user.username, "12345678")
+    .set("Authorization", await bearer(user.username))
     .set("Content-Type", "text/html")
     .send("<h1>New Article</h1>")
     .expect(201);

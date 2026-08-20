@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { canRead, getHost, canWrite, canAdmin, getSession, getVfs, getUser, isAdministrator, getUserManager, isMemberOrManage, isManage, isEmbed, useTemplateProperties, getTaskScheduler, getLocals, isUser, isCreator } from "../../utils/locals.js";
+import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
@@ -240,7 +240,7 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/groups/:group", isMemberOrManage, wrap(async (req, res)=>{
+routes.get("/groups/:group", policy({ perms: "read", on: "group" }), wrap(async (req, res)=>{
   const host = getHost(req);
   const userManager = getUserManager(req);
   const requester = getUser(req);
@@ -348,6 +348,17 @@ routes.get("/user/groups", wrap(async (req, res)=>{
   });
 }));
 
+routes.get("/user/tokens", wrap(async (req, res)=>{
+  const user = getUser(req);
+  if(user == null || UserRoles.indexOf(user.level) < 1){
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tokens")}`);
+  }
+  res.render("user/tokens", {
+    layout: "user",
+    title: "API Tokens — User",
+  });
+}));
+
 routes.get("/user/archives", wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
@@ -364,7 +375,7 @@ routes.get("/user/archives", wrap(async (req, res)=>{
 
 
 
-routes.use("/design", isManage);
+routes.use("/design", requireLevel("manage"));
 routes.get("/design", (req, res)=>{
   res.render("design/components", {
     layout: "design",
@@ -463,7 +474,7 @@ routes.get("/design/emails", wrap(async (req, res)=>{
 }));
 
 
-routes.use("/admin", isManage);
+routes.use("/admin", requireLevel("manage"));
 routes.get("/admin", (req, res)=>{
   const withStatic = qsToBool(req.query.static) ?? false;
   const withDefaults = !(qsToBool(req.query.changes) ?? false);
@@ -483,7 +494,7 @@ routes.get("/admin", (req, res)=>{
   });
 });
 
-routes.get("/admin/archives", isAdministrator, wrap(async (req, res)=>{
+routes.get("/admin/archives", requireLevel("admin"), wrap(async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
@@ -533,7 +544,22 @@ routes.get("/admin/users", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
+routes.get("/admin/oauth", requireLevel("admin"), wrap(async (req, res)=>{
+  const clients = (await getUserManager(req).getClients()).map(c=>({
+    id: c.id,
+    name: c.name,
+    redirectUris: c.redirectUris,
+    confidential: c.confidential,
+    created: c.created.toISOString().slice(0, 10),
+  }));
+  res.render("admin/oauth", {
+    layout: "admin",
+    title: "OAuth clients — Administration",
+    clients,
+  });
+}));
+
+routes.get("/admin/groups", wrap(async (req, res)=>{
   let groups = await getUserManager(req).getGroups();
   res.render("admin/groups", {
     layout: "admin",
@@ -545,7 +571,7 @@ routes.get("/admin/groups", isManage, wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
+routes.get("/admin/stats", requireLevel("admin"),  wrap(async (req, res)=>{
   const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
@@ -556,7 +582,7 @@ routes.get("/admin/stats", isAdministrator,  wrap(async (req, res)=>{
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template
-routes.use("/scenes/:scene", canRead);
+routes.use("/scenes/:scene", policy({ perms: "read" }));
 
 routes.get("/scenes/:scene", wrap(async (req, res)=>{
   const requester = getUser(req);
@@ -606,7 +632,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/scenes/:scene/tasks", canAdmin, wrap(async (req, res) => {
+routes.get("/scenes/:scene/tasks", policy({ perms: "admin" }), wrap(async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
@@ -674,7 +700,7 @@ routes.get("/scenes/:scene/view", async (req, res) => {
 });
 
 
-routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
+routes.get("/scenes/:scene/edit", policy({ perms: "write" }), (req, res)=>{
   let {scene} = req.params;
   let {mode="Edit"} = req.query;
   let host = getHost(req);
@@ -691,7 +717,7 @@ routes.get("/scenes/:scene/edit", canWrite, (req, res)=>{
   });
 });
 
-routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   let host = getHost(req);
   let {scene:scene_name} = req.params;
@@ -744,7 +770,7 @@ routes.get("/scenes/:scene/history", canWrite, wrap(async (req, res)=>{
   });
 }))
 
-routes.get("/scenes/:scene/settings", canAdmin, wrap(async (req, res) => {
+routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (req, res) => {
   const requester = getUser(req);
   const vfs = getVfs(req);
   const um = getUserManager(req);
@@ -770,7 +796,7 @@ routes.get("/scenes/:scene/settings", canAdmin, wrap(async (req, res) => {
   });
 }));
 
-routes.get("/scenes/:scene/history/:id/view", canWrite, wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history/:id/view", policy({ perms: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   //scene_name is actually already validated through canAdmin
   let {scene:scene_name, id} = req.params;
@@ -829,7 +855,7 @@ routes.get("/user/tasks", wrap(async (req, res) => {
   });
 }));
 
-routes.get("/admin/tasks", isAdministrator, wrap(async (req, res) => {
+routes.get("/admin/tasks", requireLevel("admin"), wrap(async (req, res) => {
   const taskScheduler = getTaskScheduler(req);
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;

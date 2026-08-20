@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import bodyParser from "body-parser";
 
-import { canAdmin, canRead, canWrite, isCreator, isUser } from "../../utils/locals.js";
+import { policy, requireScope } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 
@@ -38,40 +38,41 @@ router.use((req, res, next)=>{
 
 router.get("/", wrap(getScenes));
 router.propfind("/", wrap(handlePropfind));
-// additional checks are used in postScenes to allow people to overrite scenes they have write access on
-router.post("/", isUser, bodyParser.json(), wrap(handlePostScenes));
+//Bulk zip import both creates scenes (corpus:write) and overwrites existing
+//ones (scenes:write): the credential must carry both to start. The *level* is
+//deliberately not gated here (a `use` user can update scenes they have ACL
+//on): extractZip re-checks each scene as it goes — user ACL ≥ write for
+//updates, level ≥ create for creations — so everything the detached task does
+//stays inside what the credential proved at the gate. requireScope also
+//rejects anonymous requests, so no separate identity guard.
+router.post("/", requireScope("corpus:write", "scenes:write"), bodyParser.json(), wrap(handlePostScenes));
 
-//allow POST outside of canRead : overwrite permissions are otherwise checked
-router.post("/:scene", isCreator, wrap(handlePostScene));
+//Creating or overwriting one named scene: create level + corpus:write scope.
+router.post("/:scene", policy({ scope: "corpus:write", perms: null }), wrap(handlePostScene));
+router.mkcol(`/:scene`, policy({ scope: "corpus:write", perms: null }), wrap(handleCreateScene));
 
-//Allow mkcol outside of canRead check
-router.mkcol(`/:scene`, isCreator, wrap(handleCreateScene));
-
-/**
- * Protect everything after this with canRead handler
- */
-router.use("/:scene", canRead);
-
-router.get("/:scene", wrap(handleGetScene));
-router.propfind("/:scene", wrap(handlePropfind));
-router.patch("/:scene", canAdmin,  bodyParser.json(), wrap(handlePatchScene));
-router.delete("/:scene", canAdmin, wrap(handleDeleteScene));
+//Per-leaf policies (were a blanket `router.use("/:scene", canRead)` prefix):
+//each declares its own scene-ACL level, from which the scenes:* scope derives.
+router.get("/:scene", policy({ scope: null, perms: "read" }), wrap(handleGetScene));
+router.propfind("/:scene", policy({ scope: null, perms: "read" }), wrap(handlePropfind));
+router.patch("/:scene", policy({ scope: null, perms: "admin" }), bodyParser.json(), wrap(handlePatchScene));
+router.delete("/:scene", policy({ scope: null, perms: "admin" }), wrap(handleDeleteScene));
 
 
-router.propfind("/:scene/*", wrap(handlePropfind));
+router.propfind("/:scene/*", policy({ scope: null, perms: "read" }), wrap(handlePropfind));
 
-router.get("/:scene/:file(*.svx.json)", wrap(handleGetDocument));
-router.put("/:scene/:file(*.svx.json)", 
-  canWrite,
+router.get("/:scene/:file(*.svx.json)", policy({ scope: null, perms: "read" }), wrap(handleGetDocument));
+router.put("/:scene/:file(*.svx.json)",
+  policy({ scope: null, perms: "write" }),
   bodyParser.json({type:["application/si-dpo-3d.document+json", "application/json"], limit: 4e6}),
   wrap(handlePutDocument)
 );
 
 
-router.get(`/:scene/:name(*)`, wrap(handleGetFile));
-router.put(`/:scene/:name(*)`, canWrite, wrap(handlePutFile));
-router.move(`/:scene/:name(*)`, canWrite, wrap(handleMoveFile));
-router.delete(`/:scene/:name(*)`, canWrite, wrap(handleDeleteFile));
-router.mkcol(`/:scene/:name(*)`, canWrite, wrap(handleCreateFolder));
+router.get(`/:scene/:name(*)`, policy({ scope: null, perms: "read" }), wrap(handleGetFile));
+router.put(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handlePutFile));
+router.move(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handleMoveFile));
+router.delete(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handleDeleteFile));
+router.mkcol(`/:scene/:name(*)`, policy({ scope: null, perms: "write" }), wrap(handleCreateFolder));
 
 export default router;

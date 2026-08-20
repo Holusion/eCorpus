@@ -225,6 +225,8 @@ jobs:
         env:
           ROOT_DIR: "${{ github.workspace}}/build"
           DIST_DIR: "${{ github.workspace}}/build/client"
+          # Lift the login rate limit: the whole suite logs in from one IP.
+          TEST: 1
         run: npm test
 
       - uses: actions/upload-artifact@v6
@@ -254,6 +256,8 @@ jobs:
         # run `docker compose down -v` to reset volumes between runs
         run: |
           export APP_PORT=0
+          # Lift the login rate limit: the whole suite logs in from one IP.
+          export TEST=1
           docker compose up -y \
           --force-recreate \
           --always-recreate-deps \

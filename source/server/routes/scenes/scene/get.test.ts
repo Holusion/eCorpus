@@ -41,8 +41,27 @@ describe("GET /scenes/:scene", function(){
       await userManager.setPublicAccess("foo", "none");
       await userManager.setDefaultAccess("foo", "none");
       await request(this.server).get("/scenes/foo")
-      .auth(adminUser.username, "12345678")
+      .set("Authorization", await bearer(adminUser.username))
       .expect(200);
+    });
+  });
+
+  describe("scope is checked before the ACL (no existence oracle)", function(){
+    it("a tasks:read token gets a uniform 403 whether the scene is readable, private, or absent", async function(){
+      //A token whose scope can't read scenes must not be able to distinguish
+      //an existing/readable scene from a private or absent one: the scope check
+      //runs before any DB/ACL lookup, so all three answer the same 403.
+      const packager = await userManager.addUser("packager", "12345678");
+      const token = await bearer(packager.username, ["tasks:read"]);
+      await userManager.setPublicAccess("foo", "read");         //readable
+      await vfs.createScene("secret", packager.uid);            //private, owned by the token's user
+      await userManager.setPublicAccess("secret", "none");
+      await userManager.setDefaultAccess("secret", "none");
+      for(const name of ["foo", "secret", "ghost"]){            //ghost never existed
+        await request(this.server).get(`/scenes/${name}`)
+          .set("Authorization", token)
+          .expect(403);
+      }
     });
   });
 

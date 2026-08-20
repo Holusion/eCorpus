@@ -27,7 +27,7 @@ describe("PATCH /tags", function () {
   describe("create", function () {
     it("Can create a tag using scene name", async function () {
       await request(this.server).patch("/tags")
-        .auth(sceneAdminUser.username, "xxxxxxxx")
+        .set("Authorization", await bearer(sceneAdminUser.username))
         .set("Content-Type", "application/json")
         .send(JSON.stringify({ name: "myTag", scene: "foo", action: "create" }))
         .expect(200);
@@ -37,7 +37,7 @@ describe("PATCH /tags", function () {
 
     it("Can create a tag using scene id", async function () {
       await request(this.server).patch("/tags")
-        .auth(sceneAdminUser.username, "xxxxxxxx")
+        .set("Authorization", await bearer(sceneAdminUser.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: ids[0], action: "create" })
         .expect(200);
@@ -47,7 +47,7 @@ describe("PATCH /tags", function () {
 
     it("Can create multiple tags", async function () {
       await request(this.server).patch("/tags")
-        .auth(sceneAdminUser.username, "xxxxxxxx")
+        .set("Authorization", await bearer(sceneAdminUser.username))
         .set("Content-Type", "application/json")
         .send([{ name: "myTag", scene: ids[0], action: "create" },
         { name: "myTag", scene: "bar", action: "create" }])
@@ -61,7 +61,7 @@ describe("PATCH /tags", function () {
     it("Writing user can create tag", async function () {
       await userManager.grant(ids[0], user.uid, "write");
       await request(this.server).patch("/tags")
-        .auth(user.username, "xxxxxxxx")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: ids[0], action: "create" })
         .expect(200);
@@ -71,7 +71,7 @@ describe("PATCH /tags", function () {
 
     it("Admin user can create tag", async function () {
       await request(this.server).patch("/tags")
-        .auth(admin.username, "xxxxxxxx")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: ids[0], action: "create" })
         .expect(200);
@@ -90,7 +90,7 @@ describe("PATCH /tags", function () {
 
     it("Fail when scene does not exist", async function () {
       await request(this.server).patch("/tags")
-        .auth(admin.username, "xxxxxxxx")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: "bla_12456434874354578", action: "create" })
         .expect(404);
@@ -99,7 +99,7 @@ describe("PATCH /tags", function () {
     // Requires 
     it("Fail when tag is empty", async function () {
       await request(this.server).patch("/tags")
-        .auth(admin.username, "xxxxxxxx")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ name: "", scene: ids[0], action: "create" })
         .expect(400);
@@ -116,7 +116,7 @@ describe("PATCH /tags", function () {
 
     it("Can delete a tag using scene name", async function () {
       await request(this.server).patch("/tags")
-        .auth(sceneAdminUser.username, "xxxxxxxx")
+        .set("Authorization", await bearer(sceneAdminUser.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: "foo", action: "delete" })
         .expect(200);
@@ -126,7 +126,7 @@ describe("PATCH /tags", function () {
 
     it("Can delete a tag using scene id", async function () {
       await request(this.server).patch("/tags")
-        .auth(sceneAdminUser.username, "xxxxxxxx")
+        .set("Authorization", await bearer(sceneAdminUser.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: ids[0], action: "delete" })
         .expect(200);
@@ -136,7 +136,7 @@ describe("PATCH /tags", function () {
 
     it("Can delete multiple tags", async function () {
       await request(this.server).patch("/tags")
-        .auth(sceneAdminUser.username, "xxxxxxxx")
+        .set("Authorization", await bearer(sceneAdminUser.username))
         .set("Content-Type", "application/json")
         .send([{ name: "myTag", scene: ids[0], action: "delete" },
         { name: "myTag", scene: "bar", action: "delete" }])
@@ -150,7 +150,7 @@ describe("PATCH /tags", function () {
     it("Writing user can delete tag", async function () {
       await userManager.grant(ids[0], user.uid, "write");
       await request(this.server).patch("/tags")
-        .auth(user.username, "xxxxxxxx")
+        .set("Authorization", await bearer(user.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: ids[0], action: "delete" })
         .expect(200);
@@ -160,7 +160,7 @@ describe("PATCH /tags", function () {
 
     it("Admin user can delete tag", async function () {
       await request(this.server).patch("/tags")
-        .auth(admin.username, "xxxxxxxx")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: ids[0], action: "delete" })
         .expect(200);
@@ -179,7 +179,7 @@ describe("PATCH /tags", function () {
 
     it("Fail removing tag when scene does not exist", async function () {
       await request(this.server).patch("/tags")
-        .auth(admin.username, "xxxxxxxx")
+        .set("Authorization", await bearer(admin.username))
         .set("Content-Type", "application/json")
         .send({ name: "myTag", scene: "bla_12456434874354578", action: "delete" })
         .expect(404);

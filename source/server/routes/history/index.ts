@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { canAdmin, canRead, canWrite } from "../../utils/locals.js";
+import { policy } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 
 import bodyParser from "body-parser";
@@ -22,10 +22,10 @@ router.use((req, res, next)=>{
   next();
 });
 
-router.use("/:scene", canWrite);
+router.use("/:scene", policy({ perms: "write" }));
 
 router.get("/:scene", wrap(getSceneHistory));
-router.post("/:scene", canAdmin, bodyParser.json(), wrap(postSceneHistory));
+router.post("/:scene", policy({ perms: "admin" }), bodyParser.json(), wrap(postSceneHistory));
 
 router.get("/:scene/:id/diff", wrap(handleGetDiff));
 router.get("/:scene/:id/diff/:from", wrap(handleGetDiff));

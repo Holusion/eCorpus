@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-import { UnauthorizedError } from "../../../../utils/errors.js";
-import { getLocals, getUser } from "../../../../utils/locals.js";
-import { toAccessLevel } from "../../../../auth/UserManager.js";
+import { getLocals } from "../../../../utils/locals.js";
 import { TaskDataPayload, TaskLogEntry, TaskNode } from "../../../../tasks/types.js";
 
 export interface TaskTreeResponse<TData extends TaskDataPayload = TaskDataPayload, TReturn = any> {
@@ -11,23 +9,11 @@ export interface TaskTreeResponse<TData extends TaskDataPayload = TaskDataPayloa
 
 
 export async function getTaskTree(req: Request, res: Response) {
-  const {
-    taskScheduler,
-    userManager,
-  } = getLocals(req);
-  const requester = getUser(req)!;
-  const { id: idString } = req.params;
-  const id = parseInt(idString);
+  //Read authorization (owner, or read ACL on the task's scene) was resolved
+  //by the route's policy({perms:"read", on:"task"}).
+  const { taskScheduler } = getLocals(req);
+  const id = parseInt(req.params.id);
 
   const { root, logs } = await taskScheduler.getTaskTree(id);
-
-  if (requester.level !== "admin"
-    && root.user_id !== requester.uid
-    && (!root.scene_id
-      || toAccessLevel(await userManager.getAccessRights(root.scene_id, requester.uid)) < toAccessLevel("read")
-    )
-  ) {
-    throw new UnauthorizedError(`Read rights are required to access task trees`);
-  }
   res.status(200).send({ task: root, logs });
 }
