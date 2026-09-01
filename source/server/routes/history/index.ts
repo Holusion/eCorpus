@@ -22,10 +22,10 @@ router.use((req, res, next)=>{
   next();
 });
 
-router.use("/:scene", policy({ perms: "write" }));
+router.use("/:scene", policy({ access: "write" }));
 
 router.get("/:scene", wrap(getSceneHistory));
-router.post("/:scene", policy({ perms: "admin" }), bodyParser.json(), wrap(postSceneHistory));
+router.post("/:scene", policy({ access: "admin" }), bodyParser.json(), wrap(postSceneHistory));
 
 router.get("/:scene/:id/diff", wrap(handleGetDiff));
 router.get("/:scene/:id/diff/:from", wrap(handleGetDiff));

@@ -1,4 +1,4 @@
-import { AccessType, AccessTypes } from "./UserManager.js";
+import { AccessType, fromAccessLevel } from "./UserManager.js";
 
 export default class Group {
     groupUid: number;
@@ -10,7 +10,7 @@ export default class Group {
         this.groupName = group_name;
         this.groupUid = group_id;
         if (scenes) {
-        this.scenes = Object.entries(scenes).map(([s, a], i) => {return {scene: s, access: AccessTypes[a+1]}});
+        this.scenes = Object.entries(scenes).map(([s, a], i) => {return {scene: s, access: fromAccessLevel(a)}});
         }
         if (members) this.members = members;
     }

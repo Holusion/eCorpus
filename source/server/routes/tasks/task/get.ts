@@ -9,7 +9,7 @@ export interface TaskResponse<TData extends TaskDataPayload = TaskDataPayload, T
 
 
 export async function getTask(req: Request, res: Response) {
-  //Read authorization is enforced by the route's policy({perms:"read", on:"task"}) guard.
+  //Read authorization is enforced by the route's policy({access:"read", on:"task"}) guard.
   const { taskScheduler } = getLocals(req);
   const { id: idString } = req.params;
   const id = parseInt(idString);

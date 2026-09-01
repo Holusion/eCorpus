@@ -247,7 +247,14 @@ export default abstract class ScenesVfs extends BaseVfs{
     }
 
 
-    const sortString = (orderBy == "name")? "LOWER(name)": orderBy;
+    //`rank` is projected by the matching_scenes CTE above and exists nowhere else, so
+    //sorting by it without a match asks postgres for a column that isn't there. The UI
+    //reaches this by carrying orderBy=rank over from a search into a query with an empty
+    //`match`: its form resubmits every control it holds, so emptying the search box keeps
+    //the ordering the search had set. Fall back to the same default an unspecified
+    //orderBy would have used rather than failing a page the user only wanted to reset.
+    const sortBy = (orderBy == "rank" && !withMatch)? "mtime" : orderBy;
+    const sortString = (sortBy == "name")? "LOWER(name)": sortBy;
 
     let result = (await this.db.all<{
       id:string,
@@ -348,7 +355,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
   /**
    * Gets the scene, with access property truncated to show only user-visible data.
-   * Use userManager.getPermissions to get the full access map.
+   * Use userManager.getAcl to get the full access map.
    * 
    * `user_id` is not verified in this request. It should be validated beforehand to supply only valid user ids
    */

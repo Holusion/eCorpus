@@ -108,6 +108,24 @@ describe("Web Server Integration", function(){
     });
   });
 
+  describe("/ui/scenes", function(){
+    it("still renders once a search is cleared", async function(){
+      //The scene list form resubmits every control it holds, so emptying the search box
+      //sends the ordering that the search itself had set (orderBy=rank) together with an
+      //empty match. `rank` only exists inside the search CTE, so that combination used
+      //to reach postgres as `column "rank" does not exist` and answer 500. Query string
+      //reproduced verbatim from a production request.
+      await vfs.createScene("public-scene", user.uid);
+      await userManager.setPublicAccess("public-scene", "read");
+
+      const res = await request(this.server)
+        .get("/ui/scenes?orderDirection=desc&orderBy=rank&author=&type=&access=read&limit=25&match=")
+        .expect(200);
+      expect(res.headers["content-type"]).to.match(/^text\/html/);
+      expect(res.text).to.include("public-scene");
+    });
+  });
+
   describe("permissions", function(){
     let scene_id :number;
     this.beforeEach(async function(){

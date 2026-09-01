@@ -7,7 +7,7 @@ import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
 
 /**
  * Resolves the request's identity (read it back with `getUser()`) from, in order:
- *  1. an `Authorization: Bearer ecorpus_…` API token, looked up in the `api_tokens` table;
+ *  1. an `Authorization: Bearer ec_…` API token, looked up in the `api_tokens` table;
  *  2. the session cookie's `sid`, looked up in the `user_sessions` table.
  *
  * Identity (including level) always comes from the database, so revocations,
@@ -28,7 +28,7 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
     //A presented token that doesn't verify is an error: don't fall through to anonymous.
     //The error message never echoes the token itself.
     getUserManager(req).authenticateToken(auth.slice("Bearer ".length).trim()).then(({ user, token }) => {
-      //The credential's frozen scope, expanded to concrete capabilities (plus
+      //The credential's frozen scope, expanded to concrete scopes (plus
       //the implicit corpus:read every credential carries). The account factor
       //(levelScopes) is added by setUser from the live level.
       setUser(res, user, "token", expandCredential(token.scope));

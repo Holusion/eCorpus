@@ -1,5 +1,5 @@
 import { UserRoles, isUserRole } from "../../../auth/User.js";
-import { AccessTypes, isAccessType } from "../../../auth/UserManager.js";
+import { AccessTypes, fromAccessLevel, isAccessType } from "../../../auth/UserManager.js";
 
 /**
  * Handlebars helper: `userLevel`
@@ -40,8 +40,11 @@ export function userLevel(this: any, level: any, required: any, ...args: any[]):
  */
 export function accessLevel(this: any, level: any, required: any, ...args: any[]): boolean {
   const { hash, data } = args.pop();
-  const normalizedLevel = level == null ? "none" : level;
-  if (!isAccessType(normalizedLevel) || required === null || !isAccessType(required)) {
+  //`res.locals.access` (merged into render locals by Express) is a numeric
+  //AccessLevel; scene DTOs carry the wire string. Accept both.
+  const normalizedLevel = typeof level === "number" ? fromAccessLevel(level)
+    : level == null ? "none" : level;
+  if (!isAccessType(normalizedLevel) || normalizedLevel == null || !isAccessType(required) || required == null) {
     console.warn(`accessLevel: invalid value(s): level=${JSON.stringify(level)}, required=${JSON.stringify(required)}, template=${data?.filepath ?? "(unknown)"}`);
     return false;
   }

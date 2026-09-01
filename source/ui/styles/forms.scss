@@ -92,8 +92,14 @@
         text-align: start;
         white-space: normal;
         padding-top: 0;
+        //The label-column width only makes sense beside an input; stacked
+        //above it, it would push past a narrower form
+        min-width: 0;
       }
-      &:has(input[type="checkbox"]){
+      // Single-toggle rows keep their side-by-side [label · checkbox] layout.
+      // Composite controls that merely contain a checkbox (e.g. the token
+      // scope matrix and its "all" toggle) still stack like any other row.
+      &:has(input[type="checkbox"]):not(:has(.scope-slider)){
         flex-direction: row;
         justify-content: space-between;
         > label {
@@ -562,13 +568,13 @@
 }
 
 
-// A vertical list of checkboxes (e.g. token scopes), each a <label> wrapping
-// its checkbox. Sits in the input column of a .form-item next to the group label.
-.token-scope{
-  flex: 1 1 auto;
+// Toggle row filtering a server-rendered list (e.g. token classes on
+// user/tokens.hbs): checkboxes in a GET form that resubmits itself on change.
+.token-filters{
   display: flex;
-  flex-direction: column;
-  gap: .25rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: .5rem 0;
   > label{
     display: flex;
     align-items: center;
@@ -576,6 +582,201 @@
     font-family: var(--font-heading);
     opacity: 0.7;
     cursor: pointer;
+  }
+}
+
+// Scope picker for token minting (user/tokens.hbs): one segmented slider per
+// scope family — a native radio group styled as one connected track. Levels
+// ascend none ⊂ read ⊂ write ⊂ admin: selecting a level fills the track with
+// solid gold from the origin up to that level (the fill IS the granted set);
+// the selected level carries an inset ring. The origin "○" clears the family.
+// Non-mintable levels render as inert hatched slots so columns stay aligned.
+.scope-slider{
+  // Family-name gutter and origin-cell widths, shared by header and lanes.
+  --scope-gutter: 84px;
+  --scope-origin: 20px;
+  --scope-lane-gap: 12px;
+  flex: 1 1 auto; //fill the input column of the parent .form-item
+  align-self: stretch; //…including when the collapsed form-item aligns to baseline
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+
+  .scope-slider-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 4px;
+  }
+  .scope-all{
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: var(--font-heading);
+    opacity: 0.7;
+    cursor: pointer;
+  }
+  .scope-hint{
+    font-size: .7rem;
+    color: var(--color-highlight2);
+  }
+
+  // Column header: no title over the origin — it is self-explanatory ○.
+  .scope-head{
+    display: grid;
+    grid-template-columns: var(--scope-gutter) var(--scope-origin) repeat(3, 1fr);
+    column-gap: 0;
+    margin-left: var(--scope-lane-gap);
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--color-highlight2);
+    > span{ text-align: center; }
+    .scope-head-origin{ grid-column: span 2; }
+  }
+
+  .scope-lane{
+    display: grid;
+    grid-template-columns: var(--scope-gutter) 1fr;
+    align-items: center;
+    gap: var(--scope-lane-gap);
+    padding: 4px 0;
+    margin: 0;
+    border: none;
+
+    legend{
+      float: left; //escape the fieldset's legend slot to become a regular grid item
+      font-family: var(--font-body);
+      font-size: .8rem;
+      color: var(--color-light);
+      opacity: 1;
+      //Neutralize the .form-item legend label-column sizing: here the legend
+      //is a grid cell, not the form's label column
+      min-width: 0;
+      padding: 0;
+    }
+  }
+
+  .scope-track{
+    display: flex;
+    align-items: stretch;
+    height: 30px;
+    background: var(--color-element);
+    border: 1px solid var(--color-highlight2);
+    border-radius: 4px;
+    overflow: hidden;
+
+    input{
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    // Undo the generic .form-item label styling (opacity .7 + heading font):
+    // the gold fill must read at full strength, in the body font.
+    .origin, .seg{
+      opacity: 1;
+      font-family: var(--font-body);
+    }
+
+    .origin{
+      flex: 0 0 var(--scope-origin);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      &::before{
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        border: 2px solid var(--color-highlight2);
+        box-sizing: border-box;
+        transition: border-color .12s, background .12s;
+      }
+      &:hover::before{ border-color: var(--color-light); }
+      &:has(input:checked)::before{
+        background: var(--color-highlight2);
+        border-color: var(--color-light);
+      }
+    }
+
+    .seg{
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      color: var(--color-highlight2);
+      cursor: pointer;
+      user-select: none;
+      border-left: 1px solid color-mix(in srgb, var(--color-highlight2) 45%, transparent);
+      transition: color .12s, background .12s;
+      &:hover{ color: var(--color-light); }
+    }
+
+    // The granted range is one continuous solid fill, origin → selected level…
+    .seg:has(input:checked),
+    .seg:has(~ .seg input:checked){
+      background: var(--color-primary);
+      color: var(--color-dark);
+      font-weight: 600;
+      border-left-color: color-mix(in srgb, var(--color-dark) 22%, transparent);
+    }
+    // …and the selected level is the peak: a subtle dark inset ring.
+    .seg:has(input:checked){
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-dark) 42%, transparent);
+    }
+
+    .seg-missing{
+      cursor: not-allowed;
+      color: color-mix(in srgb, var(--color-highlight2) 65%, transparent);
+      background: repeating-linear-gradient(45deg,
+        transparent, transparent 4px,
+        color-mix(in srgb, var(--color-highlight2) 32%, transparent) 4px,
+        color-mix(in srgb, var(--color-highlight2) 32%, transparent) 5px);
+      &:hover{ color: color-mix(in srgb, var(--color-highlight2) 65%, transparent); }
+    }
+
+    .origin:has(input:focus-visible),
+    .seg:has(input:focus-visible){
+      outline: 1px dotted var(--color-primary);
+      outline-offset: -3px;
+    }
+
+    // "all" mode: the whole board is forced to its maximum and inert
+    &:has(input:disabled){
+      opacity: .55;
+      .origin, .seg{ cursor: not-allowed; }
+    }
+  }
+}
+
+// Phone-sized layouts give the form ~160-215px: tighten the family gutter and
+// abbreviate the level labels to their first letter (r / w / a) — full words
+// no longer fit inside the segments.
+@container (max-width: 300px) {
+  .scope-slider{
+    --scope-gutter: 3.5rem;
+    --scope-origin: 16px;
+    --scope-lane-gap: 6px;
+
+    .scope-lane legend{ font-size: .7rem; }
+    .scope-track .seg-label{
+      font-size: 0; //collapse the full word…
+      &::before{
+        content: attr(data-short); //…and show its abbreviation instead
+        font-size: .75rem;
+      }
+    }
+    .scope-head{
+      display: none; //lanes are self-labelled; the header no longer fits
+    }
   }
 }
 

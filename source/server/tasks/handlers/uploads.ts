@@ -4,7 +4,7 @@ import path from "node:path";
 
 import yauzl, { ZipFile } from "yauzl";
 import { isUserAtLeast } from "../../auth/User.js";
-import { toAccessLevel } from "../../auth/UserManager.js";
+import { AccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
@@ -87,8 +87,8 @@ async function parseUploadedArchive({ task: { task_id, user_id, data: { fileLoca
     let action: "create" | "update" | "error";
     let error: string;
     try {
-      const level = toAccessLevel(await userManager.getAccessRights(scene, user_id));
-      if (level < toAccessLevel("write")) {
+      const level = await userManager.getAccessRights(scene, user_id);
+      if (level < AccessLevel.Write) {
         action = "error";
         error = `User doesn't have write permissions on scene ${scene}`;
       } else {

@@ -6,6 +6,8 @@ import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
+import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
+import { AccessLevel } from "../../auth/UserManager.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
@@ -240,7 +242,7 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/groups/:group", policy({ perms: "read", on: "group" }), wrap(async (req, res)=>{
+routes.get("/groups/:group", policy({ access: "read", on: "group" }), wrap(async (req, res)=>{
   const host = getHost(req);
   const userManager = getUserManager(req);
   const requester = getUser(req);
@@ -348,14 +350,53 @@ routes.get("/user/groups", wrap(async (req, res)=>{
   });
 }));
 
+/**
+ * The scope families offered by the token-mint UI, in display order: every
+ * family with at least one mintable scope. Rungs are derived from
+ * {@link TOKEN_SCOPES}, so non-mintable scopes (`users:admin`,
+ * `account:admin`, `instance:write`) never show up.
+ */
+const TOKEN_UI_FAMILIES = ["corpus", "scenes", "tasks", "users", "groups", "instance", "account"];
+
+/** What a fresh token-mint form starts with: a minimal read-only token */
+const TOKEN_UI_DEFAULT_SCOPES = ["corpus:read", "scenes:read"];
+
 routes.get("/user/tokens", wrap(async (req, res)=>{
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tokens")}`);
   }
+  //Both token classes are shown by default. An unchecked checkbox submits
+  //nothing, so absence alone can't mean "hide": the form carries a hidden
+  //`filter` marker to distinguish a submission from a plain navigation.
+  const filtered = "filter" in req.query;
+  const showPersonal = qsToBool(req.query.personal) ?? !filtered;
+  const showOauth = qsToBool(req.query.oauth) ?? !filtered;
+  const tokens = (await getUserManager(req).getTokens(user.uid))
+    .filter((t)=> t.clientName ? showOauth : showPersonal);
+  //Every family renders all three ladder slots so the columns stay aligned;
+  //non-mintable levels are flagged and drawn as inert hatched slots.
+  const scopeFamilies = TOKEN_UI_FAMILIES.map((family)=>{
+    const rungs = SCOPE_LADDER.map((level)=>{
+      const scope = `${family}:${level}`;
+      return {
+        level,
+        short: level[0],
+        scope,
+        available: TOKEN_SCOPES.includes(scope),
+        checked: TOKEN_UI_DEFAULT_SCOPES.includes(scope),
+      };
+    });
+    //Families with no default selection rest at the "no access" origin
+    return {family, rungs, defaulted: rungs.some((r)=>r.checked)};
+  });
   res.render("user/tokens", {
     layout: "user",
     title: "API Tokens — User",
+    scopeFamilies,
+    tokens,
+    showPersonal,
+    showOauth,
   });
 }));
 
@@ -582,7 +623,7 @@ routes.get("/admin/stats", requireLevel("admin"),  wrap(async (req, res)=>{
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template
-routes.use("/scenes/:scene", policy({ perms: "read" }));
+routes.use("/scenes/:scene", policy({ access: "read" }));
 
 routes.get("/scenes/:scene", wrap(async (req, res)=>{
   const requester = getUser(req);
@@ -592,7 +633,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   let scene = mapScene(req, await vfs.getScene(scene_name, requester? requester.uid: undefined));
 
   let [permissions, meta, serverTags] = await Promise.all([
-    um.getPermissions(scene.id),
+    um.getAcl(scene.id),
     vfs.getSceneMeta(scene_name),
     vfs.getTags(),
   ]);
@@ -632,7 +673,7 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
   });
 }));
 
-routes.get("/scenes/:scene/tasks", policy({ perms: "admin" }), wrap(async (req, res) => {
+routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), wrap(async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
@@ -700,7 +741,7 @@ routes.get("/scenes/:scene/view", async (req, res) => {
 });
 
 
-routes.get("/scenes/:scene/edit", policy({ perms: "write" }), (req, res)=>{
+routes.get("/scenes/:scene/edit", policy({ access: "write" }), (req, res)=>{
   let {scene} = req.params;
   let {mode="Edit"} = req.query;
   let host = getHost(req);
@@ -717,12 +758,12 @@ routes.get("/scenes/:scene/edit", policy({ perms: "write" }), (req, res)=>{
   });
 });
 
-routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history", policy({ access: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   let host = getHost(req);
   let {scene:scene_name} = req.params;
   let scene = mapScene(req, await vfs.getScene(scene_name));
-  const access = res.locals.access as string;
+  const access = res.locals.access as AccessLevel;
 
   const limit = Math.min(100, Math.max(1, qsToInt(req.query.limit) ?? 25));
   const offset = Math.max(0, qsToInt(req.query.offset) ?? 0);
@@ -760,7 +801,7 @@ routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req
     title: `eCorpus: History of ${scene_name}`,
     scene,
     name: scene_name,
-    canAdmin: access === "admin",
+    canAdmin: AccessLevel.Admin <= access,
     days,
     headId,
     pager,
@@ -770,7 +811,7 @@ routes.get("/scenes/:scene/history", policy({ perms: "write" }), wrap(async (req
   });
 }))
 
-routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (req, res) => {
+routes.get("/scenes/:scene/settings", policy({ access: "admin" }), wrap(async (req, res) => {
   const requester = getUser(req);
   const vfs = getVfs(req);
   const um = getUserManager(req);
@@ -778,7 +819,7 @@ routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (re
   const scene = mapScene(req, await vfs.getScene(scene_name, requester?.uid));
 
   const [permissions, serverTags] = await Promise.all([
-    um.getPermissions(scene.id),
+    um.getAcl(scene.id),
     vfs.getTags(),
   ]);
 
@@ -796,7 +837,7 @@ routes.get("/scenes/:scene/settings", policy({ perms: "admin" }), wrap(async (re
   });
 }));
 
-routes.get("/scenes/:scene/history/:id/view", policy({ perms: "write" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history/:id/view", policy({ access: "write" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   //scene_name is actually already validated through canAdmin
   let {scene:scene_name, id} = req.params;

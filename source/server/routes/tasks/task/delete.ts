@@ -6,7 +6,7 @@ import { getLocals } from "../../../utils/locals.js";
 
 export async function deleteTask(req: Request, res: Response){
   //Authorization (owner, or admin ACL on the task's scene — and a 404 for a
-  //missing task) was resolved by the route's policy({perms:"admin", on:"task"}).
+  //missing task) was resolved by the route's policy({access:"admin", on:"task"}).
   const { vfs, taskScheduler } = getLocals(req);
   const id = parseInt(req.params.id);
 

@@ -37,12 +37,13 @@ describe("DELETE /groups/:group/:member", function () {
         expect(group.members).to.not.have.members([member.username]);
     });
 
+    //Requesters without access to the group get existence-hiding 404s, like scenes
     it("can't delete a member of a group as creator", async function () {
         let creator = await userManager.addUser("celia", "12345678", "create", "celia@example.com");
         await request(this.server).delete(`/groups/My Group/melanie`)
             .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         const group = await userManager.getGroup("My Group");
         expect(group.members).to.have.members([member.username]);
     });
@@ -52,7 +53,7 @@ describe("DELETE /groups/:group/:member", function () {
         await request(this.server).delete(`/groups/My Group/melanie`)
             .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         const group = await userManager.getGroup("My Group");
         expect(group.members).to.have.members([member.username]);
     });
@@ -60,9 +61,22 @@ describe("DELETE /groups/:group/:member", function () {
     it("can't create a member of a group as anonmyous", async function () {
         await request(this.server).delete(`/groups/My Group/melanie`)
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         const group = await userManager.getGroup("My Group");
         expect(group.members).to.have.members([member.username]);
+    });
+
+    it("a member can't remove another member without group admin access", async function () {
+        //A mere member may read the group — nothing to hide, so 401 not 404 —
+        //but membership changes are per-group administration
+        let peer = await userManager.addUser("ulysse", "12345678", "use", "ulysse@example.com");
+        await userManager.addMemberToGroup(peer.uid, "My Group");
+        await request(this.server).delete(`/groups/My Group/melanie`)
+            .set("Authorization", await bearer(peer.username))
+            .set("Content-Type", "application/json")
+            .expect(401);
+        const group = await userManager.getGroup("My Group");
+        expect(group.members).to.have.members([member.username, peer.username]);
     });
 
     it("Fail when trying to delete an inexisting member of a group", async function () {

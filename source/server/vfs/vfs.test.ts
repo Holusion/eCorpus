@@ -828,6 +828,25 @@ describe("Vfs", function(){
           it("rejects bad orderDirection key", async function(){
             await expect(vfs.getScenes(0, {orderDirection: "bad" as any})).to.be.rejectedWith("Invalid orderDirection: bad");
           });
+          it("falls back to the default order when sorting by rank without a match", async function(){
+            //`rank` is projected by the search CTE and exists nowhere else. The scene
+            //list form resubmits every control it holds, so clearing the search box
+            //sends the ordering the search had set along with an empty match, which
+            //used to reach postgres as `column "rank" does not exist`.
+            for(let i = 0; i < 3; i++){
+              await vfs.createScene(`${i}_scene`);
+            }
+            const scenes = await expect(vfs.getScenes(0, {orderBy: "rank"})).to.be.fulfilled;
+            expect(scenes.map((s:Scene)=>s.name)).to.have.members(["0_scene", "1_scene", "2_scene"]);
+          });
+
+          it("still orders by rank when a match is provided", async function(){
+            await vfs.createScene("foobar");
+            await vfs.createScene("unrelated");
+            const scenes = await vfs.getScenes(0, {orderBy: "rank", match: "foobar"});
+            expect(scenes.map(s=>s.name)).to.deep.equal(["foobar"]);
+          });
+
           it("can order by name descending", async function(){
             for(let i = 0; i < 10; i++){
               await vfs.createScene(`${i}_scene`);

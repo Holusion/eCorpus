@@ -26,7 +26,7 @@ router.use((req, res, next)=>{
 
 
 
-router.get("/", policy({ scope: "users:read", perms: null }), wrap(async (req, res)=>{
+router.get("/", policy({ scope: "users:read", access: null }), wrap(async (req, res)=>{
   let userManager :UserManager = getUserManager(req);
   //istanbul ignore if
   if(!userManager) throw new Error("Badly configured app : userManager is not defined in app.locals");
@@ -41,7 +41,7 @@ router.get("/", policy({ scope: "users:read", perms: null }), wrap(async (req, r
 //can run on a token — but creating an *administrator* needs the non-mintable
 //users:admin (see postUser). Special case: an empty user table accepts its
 //first user unauthenticated (initial setup).
-const usersWriteGuard = policy({ scope: "users:write", perms: null });
+const usersWriteGuard = policy({ scope: "users:write", access: null });
 function isUsersWriteOrOpen(req: Request, res: Response, next: NextFunction) {
   usersWriteGuard(req, res, (err?: any) => {
     if (!err) return next();
@@ -52,15 +52,15 @@ function isUsersWriteOrOpen(req: Request, res: Response, next: NextFunction) {
   });
 }
 router.post("/", isUsersWriteOrOpen, bodyParser.json(), bodyParser.urlencoded({extended: false}), wrap(postUser));
-router.delete("/:uid", policy({ scope: "users:write", perms: null }), wrap(handleDeleteUser));
+router.delete("/:uid", policy({ scope: "users:write", access: null }), wrap(handleDeleteUser));
 //Self-service profile edits or admin-on-others; the `on:"user"` ACL gates
 //self-or-admin (write = yourself, admin = an administrator). The scope is the
 //non-mintable account:admin: a patch can rotate the password or email — i.e.
 //convert a credential into a session — so no token (even `all`) reaches this,
 //per NON_MINTABLE_SCOPES. handlePatchUser still refines the level-change rules.
-router.patch("/:uid", policy({ scope: "account:admin", perms: "write", on: "user" }), bodyParser.json(), wrap(handlePatchUser));
-router.get("/:uid/sessions", policy({ scope: "users:read", perms: null }), wrap(getUserSessions));
-router.get("/:uid/tokens", policy({ scope: "users:read", perms: null }), wrap(getUserTokens));
-router.delete("/:uid/tokens/:id", policy({ scope: "users:write", perms: null }), wrap(deleteUserToken));
+router.patch("/:uid", policy({ scope: "account:admin", access: "write", on: "user" }), bodyParser.json(), wrap(handlePatchUser));
+router.get("/:uid/sessions", policy({ scope: "users:read", access: null }), wrap(getUserSessions));
+router.get("/:uid/tokens", policy({ scope: "users:read", access: null }), wrap(getUserTokens));
+router.delete("/:uid/tokens/:id", policy({ scope: "users:write", access: null }), wrap(deleteUserToken));
 
 export default router;

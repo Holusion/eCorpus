@@ -95,7 +95,7 @@ describe("OAuth2 authorization server", function(){
           code_verifier: verifier,
         })
         .expect(200);
-      expect(tokenRes.body).to.have.property("access_token").match(/^ecorpus_/);
+      expect(tokenRes.body).to.have.property("access_token").match(/^ec_/);
       expect(tokenRes.body).to.have.property("token_type", "Bearer");
       expect(tokenRes.body).to.have.property("scope", "all");
 
@@ -171,7 +171,7 @@ describe("OAuth2 authorization server", function(){
         "scenes:read", "scenes:write", "scenes:admin",
         "tasks:read", "tasks:write", "tasks:admin",
         "users:read", "users:write",
-        "groups:read", "groups:write",
+        "groups:read", "groups:write", "groups:admin",
         "instance:read",
         "account:read", "account:write",
       ]);
@@ -500,7 +500,7 @@ describe("OAuth2 authorization server", function(){
         client_id: String(pub.id),
         code_verifier: pkce.verifier,
       }).expect(200);
-      expect(res.body).to.have.property("access_token").match(/^ecorpus_/);
+      expect(res.body).to.have.property("access_token").match(/^ec_/);
     });
 
     it("a public client must not present a client secret", async function(){

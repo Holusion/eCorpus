@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 
-import { CONCRETE_SCOPES, expand, expandCredential, formatToken, hashSecret, isValidScope, levelScopes, makeSecret, maxSceneScope, NON_MINTABLE_SCOPES, parseToken, PUBLIC_SCOPES, verifySecret } from "./Token.js";
+import { CONCRETE_SCOPES, expand, expandCredential, formatToken, hashSecret, isValidScope, levelScopes, makeSecret, maxFamilyScope, NON_MINTABLE_SCOPES, parseToken, PUBLIC_SCOPES, verifySecret } from "./Token.js";
 import { isUserAtLeast, UserRoles } from "./User.js";
 
 
@@ -32,13 +32,13 @@ describe("Token", function(){
       expect(parseToken(valid)).to.be.ok;
       for(const bad of [
         "",
-        "ecorpus",
+        "ec",
         valid.slice(1),
         valid.slice(0, -1),
         valid + "a",
-        "other" + valid.slice("ecorpus".length),
+        "other" + valid.slice("ec".length),
         valid.replace("_", "."),
-        `ecorpus_${"!".repeat(43)}`,
+        `ec_${"!".repeat(43)}`,
       ]){
         expect(parseToken(bad), bad).to.be.null;
       }
@@ -78,7 +78,7 @@ describe("Token", function(){
       expect(isValidScope(["scenes:read", "account:admin"])).to.be.false;
     });
 
-    it("maxSceneScope(expand(s)) is the scene-access cap a scope set implies", function(){
+    it("maxFamilyScope(expand(s), f) is the per-resource cap a scope set implies", function(){
       const cases: Array<[string[], "none" | "read" | "write" | "admin"]> = [
         [["all"], "admin"],
         [["scenes:admin"], "admin"],
@@ -93,8 +93,12 @@ describe("Token", function(){
         [[], "none"],
       ];
       for(const [scope, cap] of cases){
-        expect(maxSceneScope(expand(scope)), JSON.stringify(scope)).to.equal(cap);
+        expect(maxFamilyScope(expand(scope), "scenes"), JSON.stringify(scope)).to.equal(cap);
       }
+      //The cap is per-family: the same set reads differently off another ladder
+      expect(maxFamilyScope(expand(["groups:write"]), "groups")).to.equal("write");
+      expect(maxFamilyScope(expand(["groups:admin", "scenes:read"]), "groups")).to.equal("admin");
+      expect(maxFamilyScope(expand(["scenes:admin"]), "groups")).to.equal("none");
     });
 
     it("expand() takes the downward closure of each read<write<admin ladder", function(){
@@ -154,17 +158,19 @@ describe("Token", function(){
     });
 
     it("levelScopes() reproduces the isUserAtLeast decisions the guards used", function(){
-      //Each capability ⟺ the minimum level whose guard granted it.
+      //Each concrete scope ⟺ the minimum level whose guard granted it.
       const table: Array<[string, typeof UserRoles[number]]> = [
         ["corpus:read", "none"],   //the "identified requester" baseline
         ["scenes:read", "none"],   //public read
-        ["scenes:write", "use"],   //canWrite is ACL-gated but the capability exists from `use`
+        ["scenes:write", "use"],   //canWrite is ACL-gated but the scope exists from `use`
         ["scenes:admin", "use"],
         ["tasks:read", "use"],
         ["corpus:write", "create"],
         ["tasks:write", "create"],
         ["tasks:admin", "create"],
+        ["groups:read", "manage"],
         ["groups:write", "manage"],
+        ["groups:admin", "manage"],
         ["users:write", "admin"],
         ["users:admin", "admin"],
         ["instance:write", "admin"],

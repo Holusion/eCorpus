@@ -29,32 +29,49 @@ interface ParsedPassword {
 }
 
 /**
- * Ordered list of permission. 
- * Permissions are always a superset of anything under them so they can be index-compared.
+ * Ordered access levels — the in-memory currency of ACL resolution and every
+ * authorization decision. Comparisons are plain numeric
+ * (`None < Read < Write < Admin`), and the values match the integers stored in
+ * the `*_acl.access_level` / `scenes.public_access` / `scenes.default_access`
+ * columns. The HTTP and template boundary speaks the {@link AccessType} string
+ * instead: parse with {@link toAccessLevel}, serialize with
+ * {@link fromAccessLevel}.
  */
+export enum AccessLevel {
+  None = 0,
+  Read = 1,
+  Write = 2,
+  Admin = 3,
+}
+
+/** Wire form of an {@link AccessLevel}, indexed by it */
 export const AccessTypes = [
-  null,
   "none",
   "read",
   "write",
   "admin"
 ] as const;
 
-export function fromAccessLevel(l:number):AccessType{
-  return AccessTypes[l+1];
-}
-
-export function toAccessLevel(a:AccessType){
-  return Math.max(0, AccessTypes.indexOf(a)-1);
-}
-
-export function isAccessType(type :any) :type is AccessType{
-  return AccessTypes.indexOf(type) !== -1;
-}
-
 export type AccessType = typeof AccessTypes[number];
 
-export type AccessMap = {[id: `${number}`|string]:AccessType};
+export function fromAccessLevel(l: AccessLevel): AccessType{
+  return AccessTypes[l];
+}
+
+/** Parse the wire form. `null` — an ACL patch's "remove this entry" value — parses as None */
+export function toAccessLevel(a: AccessType|null): AccessLevel{
+  return Math.max(0, AccessTypes.indexOf(a as AccessType));
+}
+
+/**
+ * A valid wire value for an access level. `null` is accepted: per RFC7396 it
+ * is how an ACL patch expresses "remove this entry" (see {@link UserManager.grant}).
+ */
+export function isAccessType(type :any) :type is AccessType|null{
+  return type === null || AccessTypes.indexOf(type) !== -1;
+}
+
+export type AccessMap = {[id: `${number}`|string]:AccessType|null};
 
 export interface UserQuery {
   offset?: number;
@@ -469,7 +486,7 @@ export default class UserManager extends DbController {
    * @param user username or user_id to grant access to
    * @param role 
    */
-  async grant(scene :string|number, user :string|number, role :AccessType){
+  async grant(scene :string|number, user :string|number, role :AccessType|null){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number")?`SELECT $1::bigint AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
@@ -509,7 +526,15 @@ export default class UserManager extends DbController {
     }
   }
 
-  async getAccessRights(scene :string | number, uid :number | undefined | null) :Promise<AccessType>{
+  /**
+   * Resolve the requester's {@link AccessLevel} on a scene: the highest of
+   * their `users_acl` row, their groups' `groups_acl` rows, the scene's
+   * `default_access` (if authenticated) and `public_access`; instance admins
+   * resolve to Admin.
+   * @throws {NotFoundError} when the scene doesn't exist — or resolves to None,
+   * so an invisible scene is indistinguishable from an absent one.
+   */
+  async getAccessRights(scene :string | number, uid :number | undefined | null) :Promise<AccessLevel>{
     const res = await this.db.get( typeof uid == "number" ? `
       SELECT max(level) as level
       FROM
@@ -547,18 +572,18 @@ export default class UserManager extends DbController {
       , uid ? [scene, uid] : [scene]
     );
     if(!res || !res.level) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
-    return AccessTypes[res?.level+1];
+    return res.level as AccessLevel;
 
   }
 
   /**
-   * Get all access rights for a scene.
+   * Get a scene's full ACL: every explicit per-user and per-group access entry.
    * Access to this should be externally restricted to users with READ rights over this scene.
-   * 
+   *
    * For this reason, this method is not really made safe: It won't throw a 404 if the requested scene doesn't exist.
    * @see https://www.sqlite.org/json1.html#jeach for json_each documentation
    */
-  async getPermissions(nameOrId: string | number): Promise<({ uid: number, username: string, access: AccessType } | { groupUid: number, groupName: string, access: AccessType })[]> {
+  async getAcl(nameOrId: string | number): Promise<({ uid: number, username: string, access: AccessType } | { groupUid: number, groupName: string, access: AccessType })[]> {
     let key = ((typeof nameOrId == "number") ? "scene_id" : "scene_name");
     let r = await this.db.all<{ uid: string, username: string | null, group_name: string | null, level: number }>(`
       SELECT 
@@ -588,11 +613,11 @@ export default class UserManager extends DbController {
     return r.map(l => (l.username ? {
       uid: parseInt(l.uid),
       username: l.username,
-      access: AccessTypes[l.level + 1]
+      access: fromAccessLevel(l.level)
     } : {
       groupUid: parseInt(l.uid),
       groupName: l.group_name as string,
-      access: AccessTypes[l.level + 1]
+      access: fromAccessLevel(l.level)
     }));
     
   }
@@ -1160,7 +1185,7 @@ export default class UserManager extends DbController {
  * @param user username or user_id to grant access to
  * @param role 
  */
-  async grantGroup(scene: string | number, group: string | number, role: AccessType) {
+  async grantGroup(scene: string | number, group: string | number, role: AccessType|null) {
     if (!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number") ? `SELECT $1::bigint AS scene_id` : `SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let group_id = `(${(typeof group === "number") ? `SELECT $2::bigint AS group_id` : `SELECT group_id FROM groups WHERE group_name = $2`})`;

@@ -10,7 +10,7 @@ describe("DELETE /groups/:group", function () {
 
     this.beforeEach(async function () {
         await resetIntegrationContext(this);
-        userManager.addGroup("My Group")
+        await userManager.addGroup("My Group")
     });
 
     it("can delete a group as manage", async function () {
@@ -31,12 +31,13 @@ describe("DELETE /groups/:group", function () {
         await (expect(userManager.getGroup("My Group")).to.be.rejectedWith("404"));
     });
 
+    //Non-members get existence-hiding 404s, like scenes
     it("can't delete a group as creator", async function () {
         let creator = await userManager.addUser("celia", "12345678", "create", "celia@example.com");
         await request(this.server).delete(`/groups/My Group`)
             .set("Authorization", await bearer(creator.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         await expect(userManager.getGroup("My Group")).to.be.fulfilled;
     });
 
@@ -45,14 +46,36 @@ describe("DELETE /groups/:group", function () {
         await request(this.server).delete(`/groups/My Group`)
             .set("Authorization", await bearer(user.username))
             .set("Content-Type", "application/json")
-            .expect(401);
+            .expect(404);
         await expect(userManager.getGroup("My Group")).to.be.fulfilled;
     });
 
     it("can't create a group as anonmyous", async function () {
         await request(this.server).delete(`/groups/My Group`)
             .set("Content-Type", "application/json")
+            .expect(404);
+        await expect(userManager.getGroup("My Group")).to.be.fulfilled;
+    });
+
+    it("answers 401 to a mere member", async function () {
+        //A member sees the group — nothing to hide — but read < admin
+        let member = await userManager.addUser("melvin", "12345678", "use", "melvin@example.com");
+        await userManager.addMemberToGroup(member.uid, "My Group");
+        await request(this.server).delete(`/groups/My Group`)
+            .set("Authorization", await bearer(member.username))
+            .set("Content-Type", "application/json")
             .expect(401);
+        await expect(userManager.getGroup("My Group")).to.be.fulfilled;
+    });
+
+    it("requires the groups:admin credential scope", async function () {
+        //groups:write is the (future) per-group metadata rung: it must not
+        //delegate whole-group administration
+        let manage = await userManager.addUser("maelle", "12345678", "manage", "maelle@example.com");
+        await request(this.server).delete(`/groups/My Group`)
+            .set("Authorization", await bearer(manage.username, ["groups:write"]))
+            .set("Content-Type", "application/json")
+            .expect(403);
         await expect(userManager.getGroup("My Group")).to.be.fulfilled;
     });
 

@@ -2,8 +2,8 @@
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import { basename, dirname } from "path";
 import User, { isUserAtLeast, SafeUser, UserRole } from "../auth/User.js";
-import { expand, levelScopes, maxSceneScope, PUBLIC_SCOPES } from "../auth/Token.js";
-import UserManager, { AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
+import { expand, levelScopes, maxFamilyScope, PUBLIC_SCOPES } from "../auth/Token.js";
+import UserManager, { AccessLevel, isAccessType, toAccessLevel } from "../auth/UserManager.js";
 import Vfs, { GetFileParams, Scene } from "../vfs/index.js";
 import { BadRequestError, ForbiddenError, HTTPError, InternalError, NotFoundError, UnauthorizedError } from "./errors.js";
 import Templates, { AcceptedLocales, locales } from "./templates/index.js";
@@ -145,7 +145,7 @@ export function requireScope(...names: string[]): RequestHandler {
  * authority (a session, or an `all`-scoped token). Views aggregate content
  * across scope families (the admin panel mixes config, users and groups; the
  * design showcase belongs to no family), so they are gated by *who the user
- * is*, not by a delegated capability. JSON API routes must use {@link policy}
+ * is*, not by a delegated scope. JSON API routes must use {@link policy}
  * instead, which tells a level failure (401) apart from a too-narrow
  * credential (403 `insufficient_scope`) per scope.
  */
@@ -176,16 +176,18 @@ export function either(...handlers: Readonly<RequestHandler[]>): RequestHandler 
   }
 }
 
-/** The resource a {@link policy} `perms` check applies to. */
+/** The resource a {@link policy} `access` check applies to. */
 export type PolicyTarget = "scene" | "task" | "user" | "group";
 
 /**
  * Resolve the requester's access level on the resource named by a
- * {@link PolicyTarget}. One resolver per target, shared signature. A missing
+ * {@link PolicyTarget}. One resolver per target, shared signature, each
+ * reading a fixed route parameter (`:scene`, `:id`, `:uid`, `:group`) — a
+ * route using `access` must declare that exact param name. A missing
  * resource throws {@link NotFoundError} (→ 404), like `taskScheduler.getTask`.
- * This is the single per-target hook; everything else `_perms` does is generic.
+ * This is the single per-target hook; everything else `_access` does is generic.
  */
-type AccessResolver = (req: Request, requester: SafeUser | null) => Promise<AccessType>;
+type AccessResolver = (req: Request, requester: SafeUser | null) => Promise<AccessLevel>;
 
 const RESOLVERS: Record<PolicyTarget, AccessResolver> = {
   scene: (req, requester) => getUserManager(req).getAccessRights(req.params.scene, requester?.uid ?? null),
@@ -193,24 +195,24 @@ const RESOLVERS: Record<PolicyTarget, AccessResolver> = {
   //Anonymous is rejected *before* the task is fetched: getTask's 404 must not
   //become an unauthenticated task-id existence oracle (tasks answer 401).
   task: async (req, requester) => {
-    if (!requester) return "none";
+    if (!requester) return AccessLevel.None;
     const { taskScheduler, userManager } = getLocals(req);
     const task = await taskScheduler.getTask(parseInt(req.params.id, 10));
-    if (task.user_id != null && task.user_id === requester.uid) return "admin";
-    return task.scene_id ? userManager.getAccessRights(task.scene_id, requester.uid) : "none";
+    if (task.user_id != null && task.user_id === requester.uid) return AccessLevel.Admin;
+    return task.scene_id ? userManager.getAccessRights(task.scene_id, requester.uid) : AccessLevel.None;
   },
   //A user account: yourself (write, i.e. edit your profile) or an admin (any).
   user: async (req, requester) =>
-    requester?.level === "admin" ? "admin"
-      : (requester && requester.uid === parseInt(req.params.uid, 10)) ? "write"
-        : "none",
+    requester?.level === "admin" ? AccessLevel.Admin
+      : (requester && requester.uid === parseInt(req.params.uid, 10)) ? AccessLevel.Write
+        : AccessLevel.None,
   //A group: its members may read it; whole-group administration is a level
   //(manage), not a membership role. A future per-group role (owner, moderator…)
   //would slot in here as "write" — extending this resolver, not the scopes.
   group: async (req, requester) => {
-    if (!requester) return "none";
-    if (isUserAtLeast(requester, "manage")) return "admin";
-    return (await getUserManager(req).isMemberOfGroup(requester.uid, req.params.group)) ? "read" : "none";
+    if (!requester) return AccessLevel.None;
+    if (isUserAtLeast(requester, "manage")) return AccessLevel.Admin;
+    return (await getUserManager(req).isMemberOfGroup(requester.uid, req.params.group)) ? AccessLevel.Read : AccessLevel.None;
   },
 };
 
@@ -223,75 +225,89 @@ const RESOLVERS: Record<PolicyTarget, AccessResolver> = {
 function hidesExistence(on: PolicyTarget): boolean { return on === "scene" || on === "group"; }
 
 /**
- * The scope a too-narrow credential lacks for a `perms:min` check on `on` — the
- * pre-ACL 403 — or null when the credential is gated by the explicit `scope`
- * instead (user routes). Scenes and tasks map 1:1 onto their family's ladder.
+ * The scope family whose `read < write < admin` ladder gates a target's
+ * `access` checks 1:1, or null when the credential is gated by an explicit
+ * `scope` option instead (user routes: their access check is identity-shaped —
+ * yourself or an admin — not a point on any scope ladder).
+ */
+const FAMILY: Record<PolicyTarget, string | null> = {
+  scene: "scenes",
+  task: "tasks",
+  group: "groups",
+  user: null,
+};
+
+/**
+ * The scope a too-narrow credential lacks for an `access:min` check on `on` —
+ * the pre-ACL 403 — or null when the target has no scope family.
  */
 function requiredScope(on: PolicyTarget, min: "read" | "write" | "admin"): string | null {
-  switch (on) {
-    case "scene": return `scenes:${min}`;
-    case "task": return `tasks:${min}`;
-    case "user": return null;
-    //groups is a two-rung family: write and admin both require groups:write.
-    case "group": return min === "read" ? "groups:read" : "groups:write";
-  }
+  const family = FAMILY[on];
+  return family && `${family}:${min}`;
 }
 
 /**
- * The cap the credential puts on the resolved access level. Scenes are capped
- * by the token's scene scope ({@link getSceneCap}), keeping `res.locals.access`
- * effective for display; task/user access is uncapped (its scope→ACL mapping
- * isn't 1:1 and the {@link requiredScope} 403 already gates the credential).
+ * The cap the credential puts on the resolved access level: the highest rung
+ * of the target's scope family it holds. By construction ≥ any `min` that
+ * passed the {@link requiredScope} 403, so it never flips a policy decision —
+ * its job is keeping the published `res.locals.access` *effective* (what the
+ * credential may actually exercise, eg. for display). Sessions, anonymous
+ * requests and family-less targets are uncapped.
  */
-function accessCap(on: PolicyTarget, res: Response): number {
-  return toAccessLevel(on === "scene" ? getSceneCap(res) : "admin");
+function accessCap(on: PolicyTarget, res: Response): AccessLevel {
+  const credential = getCredentialScopes(res);
+  const family = FAMILY[on];
+  if (!credential || !family) return AccessLevel.Admin;
+  return toAccessLevel(maxFamilyScope(credential, family));
 }
 
 /**
- * Generic internal permissions check over a {@link PolicyTarget}.
- * Caches the result in `res.locals.access` so a generic check can precede a
- * more specific per-handler one. Admins bypass the ACL; a token's scope may cap
- * the access *level* obtained, never the resource's visibility.
+ * Generic internal access check over a {@link PolicyTarget}.
+ * Caches the result in `res.locals.access` (a numeric {@link AccessLevel} —
+ * compare with plain operators) so a generic check can precede a more specific
+ * per-handler one. Admins bypass the ACL; a token's scope may cap the access
+ * *level* obtained, never the resource's visibility.
  */
-function _perms(on: PolicyTarget, min: AccessType, req: Request, res: Response, next: NextFunction) {
+function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Request, res: Response, next: NextFunction) {
+  if (!isAccessType(min) || min === null) throw new InternalError(`Bad access level : ${min}`);
   const check = toAccessLevel(min);
   const requester = getUser(req);
   const level = requester?.level ?? "create";
-  if (check < 0 || AccessTypes.length <= check) throw new InternalError(`Bad permission level : ${min}`);
 
   res.set("Vary", "Cookie, Authorization");
   const cap = accessCap(on, res);
 
   if (level == "admin") {
-    const access = fromAccessLevel(Math.min(toAccessLevel("admin"), cap));
+    const access = Math.min(AccessLevel.Admin, cap);
     res.locals.access = access;
-    if (check <= toAccessLevel(access)) return next();
-    return next(new UnauthorizedError(`token scope does not allow ${fromAccessLevel(check)} access`));
+    if (check <= access) return next();
+    return next(new UnauthorizedError(`token scope does not allow ${min} access`));
   }
 
-  (res.locals.access ?
-    Promise.resolve(res.locals.access as AccessType) :
+  //AccessLevel.None is 0, hence falsy: the cache check must be a null check.
+  (res.locals.access != null ?
+    Promise.resolve(res.locals.access as AccessLevel) :
     RESOLVERS[on](req, requester)
-  ).then(access => {
-    access = fromAccessLevel(Math.min(toAccessLevel(access), cap));
+  ).then(resolved => {
+    const access = Math.min(resolved, cap);
     res.locals.access = access;
-    const lvl = toAccessLevel(access);
-    if (check <= lvl) {
+    if (check <= access) {
       next();
-    } else if (hidesExistence(on) && (req.method === "GET" || lvl <= toAccessLevel("none"))) {
+    } else if (hidesExistence(on) && (req.method === "GET" || access <= AccessLevel.None)) {
+      //Rewrite Unauthorized to "not found" so we don't leak private data
       next(new NotFoundError(`Can't find the requested resource. It may be private or not exist entirely.`));
     } else {
-      next(new UnauthorizedError(`insufficient rights: ${fromAccessLevel(check)} required`));
+      next(new UnauthorizedError(`insufficient rights: ${min} required`));
     }
   }, next);
 }
 
 /** Resource-ACL level a {@link policy} enforces, or `null` for none. */
-export type PolicyPerms = "read" | "write" | "admin" | null;
+export type PolicyAccess = "read" | "write" | "admin" | null;
 
 export interface PolicyOptions {
   /**
-   * Capability the request's authority must include (401 if the account lacks
+   * Scope the request's authority must include (401 if the account lacks
    * it, 403 `insufficient_scope` if only the credential does). Omit for none.
    * "Any identified requester, whatever its level" is `scope: "corpus:read"` —
    * the baseline every user level holds and every credential carries
@@ -299,8 +315,8 @@ export interface PolicyOptions {
    */
   scope?: string | null;
   /** Resource-ACL level to enforce, or omit for no ACL check. */
-  perms?: PolicyPerms;
-  /** Which resource `perms` applies to (default `"scene"`). */
+  access?: PolicyAccess;
+  /** Which resource `access` applies to (default `"scene"`). */
   on?: PolicyTarget;
 }
 
@@ -309,22 +325,22 @@ export interface PolicyOptions {
  * **user** may do (level, live from the DB), what the **credential** delegated
  * (token scope, frozen), and what the **resource ACL** allows.
  *
- * Checked in order — capability *before* ACL, so a too-narrow credential gets a
+ * Checked in order — scope *before* ACL, so a too-narrow credential gets a
  * uniform 403 instead of an existence oracle:
  *  1. `scope ∉ levelScopes(level)` → **401** (the account can't; matches the old
  *     level guards and the {@link either} fall-through);
  *  2. `scope ∈ level` but `∉ token.scope` → **403 `insufficient_scope`**
  *     (RFC6750 §3.1 — re-mint a broader token);
  *  3. resource ACL too low → 404 (existence-hiding, scenes) or 401, via
- *     {@link _perms} (which caches `res.locals.access`, sets `Vary`, bypasses
+ *     {@link _access} (which caches `res.locals.access`, sets `Vary`, bypasses
  *     for admins).
  *
- * `perms` names the level; `on` names the resource. The scope a `perms` check
- * derives ({@link requiredScope}) is a *credential* cap only — the account is
- * not gated on it, so an anonymous/unprivileged requester still gets _perms'
- * 404 rather than a 401 that would reveal the resource exists.
+ * `access` names the level; `on` names the resource. The scope an `access`
+ * check derives ({@link requiredScope}) is a *credential* cap only — the
+ * account is not gated on it, so an anonymous/unprivileged requester still
+ * gets _access's 404 rather than a 401 that would reveal the resource exists.
  */
-export function policy({ scope = null, perms = null, on = "scene" }: PolicyOptions = {}): RequestHandler {
+export function policy({ scope = null, access = null, on = "scene" }: PolicyOptions = {}): RequestHandler {
   return function policyMdw(req: Request, res: Response, next: NextFunction) {
     res.append("Cache-Control", "private");
     if (scope !== null) {
@@ -332,13 +348,13 @@ export function policy({ scope = null, perms = null, on = "scene" }: PolicyOptio
       const err = insufficientScope(res, scope);
       if (err) return next(err);
     }
-    if (perms !== null) {
-      const name = requiredScope(on, perms);
+    if (access !== null) {
+      const name = requiredScope(on, access);
       if (name) {
         const err = insufficientScope(res, name);
         if (err) return next(err);
       }
-      return _perms(on, perms, req, res, next);
+      return _access(on, access, req, res, next);
     }
     return next();
   };
@@ -382,7 +398,7 @@ export function getAuthMethod(res: Response): AuthMethod | null {
   return (res.locals as AuthLocals).authMethod ?? null;
 }
 
-/** Every mintable capability, i.e. what an `all`-scoped credential expands to. */
+/** Every mintable concrete scope, i.e. what an `all`-scoped credential expands to. */
 const FULL_CREDENTIAL: ReadonlySet<string> = expand(["all"]);
 
 /**
@@ -402,24 +418,13 @@ export function getCredentialScopes(res: Response): ReadonlySet<string> | null {
 }
 
 /**
- * The cap the authenticating credential puts on per-scene access. Sessions and
- * `all`-scoped tokens are not capped. Equivalent to the former
- * `sceneCap(token.scope)`, now read off the effective credential set.
- * Internal to this module ({@link accessCap}/{@link effectiveAccess}).
- */
-function getSceneCap(res: Response): AccessType {
-  const credential = getCredentialScopes(res);
-  return credential ? maxSceneScope(credential) : "admin";
-}
-
-/**
  * The effective per-scene access to advertise for display (eg. the scene edit
  * button in `views/index.ts`): the ACL access the user has, capped by their
- * credential's scene scope. This stays *effective* even though the
- * authorization *decision* is now a conjunction of capability + ACL.
+ * credential's scene scope ({@link accessCap}). This stays *effective* even
+ * though the authorization *decision* is now a conjunction of scope + ACL.
  */
-export function effectiveAccess(res: Response, aclAccess: AccessType): AccessType {
-  return fromAccessLevel(Math.min(toAccessLevel(aclAccess), toAccessLevel(getSceneCap(res))));
+export function effectiveAccess(res: Response, aclAccess: AccessLevel): AccessLevel {
+  return Math.min(aclAccess, accessCap("scene", res));
 }
 
 /**

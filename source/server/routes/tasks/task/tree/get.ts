@@ -10,7 +10,7 @@ export interface TaskTreeResponse<TData extends TaskDataPayload = TaskDataPayloa
 
 export async function getTaskTree(req: Request, res: Response) {
   //Read authorization (owner, or read ACL on the task's scene) was resolved
-  //by the route's policy({perms:"read", on:"task"}).
+  //by the route's policy({access:"read", on:"task"}).
   const { taskScheduler } = getLocals(req);
   const id = parseInt(req.params.id);
 

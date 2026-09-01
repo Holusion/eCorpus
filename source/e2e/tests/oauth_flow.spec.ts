@@ -104,7 +104,7 @@ test("completes the authorization-code + PKCE flow; the issued token works", asy
   const tok = await tokenRes.json();
   expect(tok).toHaveProperty("token_type", "Bearer");
   expect(tok).toHaveProperty("scope", "all");
-  expect(tok.access_token).toMatch(/^ecorpus_/);
+  expect(tok.access_token).toMatch(/^ec_/);
 
   // The Bearer token authenticates an API call as the consenting user.
   const me = await page.request.get("/auth/", {headers: {Authorization: `Bearer ${tok.access_token}`}});

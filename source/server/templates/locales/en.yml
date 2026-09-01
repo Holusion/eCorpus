@@ -7,6 +7,10 @@ labels:
   authorize: Authorize
   deny: Deny
   revoke: Revoke
+  personalTokens: Personal tokens
+  oauthTokens: OAuth tokens
+  noAccess: no access
+  unavailable: not available for this family
   scope: scope
   optional: optional
   scene: Scene
@@ -317,6 +321,10 @@ tooltips:
 leads:
   userTokens: >
     API tokens let third-party services and scripts make authenticated requests on your behalf, without your password. They can be revoked at any time
+  scopeLadder: >
+    Each scope family is a ladder — a level includes every level below it (read < write < admin), so only the highest selected level is recorded
+  scopeHint: ○ = no access · fill = granted · click the selected level to remove it
+  noTokens: No API token
   authorize: is requesting access to your eCorpus account, as
   authorizedApps: >
     Applications you allowed to access your account. As long as you stay signed in, they renew their access automatically without asking again. Revoking an application stops this renewal and invalidates the tokens it holds

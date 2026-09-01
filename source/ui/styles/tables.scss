@@ -94,3 +94,10 @@ table.list-table {
     &:last-child  { margin-bottom: var(--m); }
   }
 }
+// Vertical list of scope strings inside a table cell (one per line), so a
+// multi-scope token doesn't stretch its row horizontally.
+.scope-list{
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

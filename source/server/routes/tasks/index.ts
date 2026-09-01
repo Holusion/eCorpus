@@ -24,10 +24,10 @@ router.post("/", policy({ scope: "tasks:write" }), jsonParser, wrap(createUserTa
 //scene): the `on:"task"` resolver folds in what taskAccess did by hand. The
 //credential scope follows the family ladder: read needs tasks:read, admin
 //(delete/artifact write) needs tasks:admin.
-router.get("/:id(\\d+)", policy({ perms: "read", on: "task" }), wrap(getTask));
-router.get("/:id(\\d+)/tree", policy({ perms: "read", on: "task" }), wrap(getTaskTree));
-router.delete("/:id(\\d+)", policy({ perms: "admin", on: "task" }), wrap(deleteTask));
-router.put("/:id(\\d+)/artifact", policy({ perms: "admin", on: "task" }), wrap(putTaskArtifact));
-router.get("/:id(\\d+)/artifact", policy({ perms: "read", on: "task" }), wrap(getTaskArtifact));
+router.get("/:id(\\d+)", policy({ access: "read", on: "task" }), wrap(getTask));
+router.get("/:id(\\d+)/tree", policy({ access: "read", on: "task" }), wrap(getTaskTree));
+router.delete("/:id(\\d+)", policy({ access: "admin", on: "task" }), wrap(deleteTask));
+router.put("/:id(\\d+)/artifact", policy({ access: "admin", on: "task" }), wrap(putTaskArtifact));
+router.get("/:id(\\d+)/artifact", policy({ access: "read", on: "task" }), wrap(getTaskArtifact));
 
 export default router;
