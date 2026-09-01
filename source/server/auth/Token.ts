@@ -94,7 +94,7 @@ export type Scope = typeof CONCRETE_SCOPES[number];
  * ladder). This single rule is the source of the hierarchy; families do not
  * declare it individually (see {@link expand}).
  */
-const SCOPE_LADDER = ["read", "write", "admin"] as const;
+export const SCOPE_LADDER = ["read", "write", "admin"] as const;
 
 /**
  * Scopes that would let a credential "escalate itself" full authority,
@@ -127,7 +127,7 @@ export const TOKEN_SCOPES: readonly string[] = [
  * anonymous requests hold no credential, so `corpus:read` separates "any
  * identified requester" from "anyone".
  */
-const IMPLICIT_SCOPES: readonly string[] = ["corpus:read"];
+export const IMPLICIT_SCOPES: readonly string[] = ["corpus:read"];
 
 /**
  * {@link expand} for a delegated credential (`token.scope`): adds the

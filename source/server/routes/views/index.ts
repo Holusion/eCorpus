@@ -6,6 +6,7 @@ import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
+import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
 import { AccessLevel } from "../../auth/UserManager.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
@@ -349,14 +350,53 @@ routes.get("/user/groups", wrap(async (req, res)=>{
   });
 }));
 
+/**
+ * The scope families offered by the token-mint UI, in display order: every
+ * family with at least one mintable scope. Rungs are derived from
+ * {@link TOKEN_SCOPES}, so non-mintable scopes (`users:admin`,
+ * `account:admin`, `instance:write`) never show up.
+ */
+const TOKEN_UI_FAMILIES = ["corpus", "scenes", "tasks", "users", "groups", "instance", "account"];
+
+/** What a fresh token-mint form starts with: a minimal read-only token */
+const TOKEN_UI_DEFAULT_SCOPES = ["corpus:read", "scenes:read"];
+
 routes.get("/user/tokens", wrap(async (req, res)=>{
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tokens")}`);
   }
+  //Both token classes are shown by default. An unchecked checkbox submits
+  //nothing, so absence alone can't mean "hide": the form carries a hidden
+  //`filter` marker to distinguish a submission from a plain navigation.
+  const filtered = "filter" in req.query;
+  const showPersonal = qsToBool(req.query.personal) ?? !filtered;
+  const showOauth = qsToBool(req.query.oauth) ?? !filtered;
+  const tokens = (await getUserManager(req).getTokens(user.uid))
+    .filter((t)=> t.clientName ? showOauth : showPersonal);
+  //Every family renders all three ladder slots so the columns stay aligned;
+  //non-mintable levels are flagged and drawn as inert hatched slots.
+  const scopeFamilies = TOKEN_UI_FAMILIES.map((family)=>{
+    const rungs = SCOPE_LADDER.map((level)=>{
+      const scope = `${family}:${level}`;
+      return {
+        level,
+        short: level[0],
+        scope,
+        available: TOKEN_SCOPES.includes(scope),
+        checked: TOKEN_UI_DEFAULT_SCOPES.includes(scope),
+      };
+    });
+    //Families with no default selection rest at the "no access" origin
+    return {family, rungs, defaulted: rungs.some((r)=>r.checked)};
+  });
   res.render("user/tokens", {
     layout: "user",
     title: "API Tokens — User",
+    scopeFamilies,
+    tokens,
+    showPersonal,
+    showOauth,
   });
 }));
 

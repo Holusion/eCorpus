@@ -7,6 +7,10 @@ labels:
   authorize: Autoriser
   deny: Refuser
   revoke: Révoquer
+  personalTokens: Jetons personnels
+  oauthTokens: Jetons OAuth
+  noAccess: aucun accès
+  unavailable: indisponible pour cette famille
   scope: portée
   optional: optionnel
   scene: Scène
@@ -331,6 +335,10 @@ tooltips:
 leads:
   userTokens: >
     Les jetons d'API permettent à des services tiers de faire des requêtes authentifiées en votre nom, sans votre mot de passe. Ils sont révocables à tout moment
+  scopeLadder: >
+    Chaque famille est une échelle — un niveau inclut tous les niveaux inférieurs (read < write < admin).
+  scopeHint: ○ = aucun accès · rempli = accordé · cliquer le niveau sélectionné le retire
+  noTokens: Aucun jeton d'API
   authorize: demande l'accès à votre compte eCorpus, en tant que
   authorizedApps: >
     Applications que vous avez autorisées à accéder à votre compte. Tant que vous restez connecté, elles renouvellent leur accès automatiquement sans redemander. Révoquer une application arrête ce renouvellement et invalide ses jetons

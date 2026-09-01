@@ -29,13 +29,14 @@ test("creates a personal token shown once, usable as Bearer, then revocable", as
 
   await page.goto("/ui/user/tokens");
   await page.locator("#token-name").fill(tokenName);
-  // The "all" scope is selected by default.
+  // Defaults are a minimal read-only selection: opt into "all" explicitly.
+  await page.locator('#token-scope input[value="all"]').check();
   await page.getByRole("button", {name: "buttons.create"}).click();
 
   // The secret is revealed exactly once.
   await expect(page.locator("#token-secret-modal")).toBeVisible();
   const token = (await page.locator("#token-secret-value").innerText()).trim();
-  expect(token).toMatch(/^ecorpus_/);
+  expect(token).toMatch(/^ec_/);
 
   // Close the one-time-secret modal before touching the list: while it is open
   // (showModal) its backdrop intercepts pointer events on the rows behind it.
@@ -65,16 +66,42 @@ test("creates a scope-restricted token via the scope picker", async ({page, uniq
 
   await page.goto("/ui/user/tokens");
   await page.locator("#token-name").fill(tokenName);
-  // Unchecking "all" re-enables the individual scope checkboxes.
-  await page.locator('#token-scope input[value="all"]').uncheck();
-  await page.locator('#token-scope input[value="scenes:read"]').check();
+  // The form defaults to corpus:read + scenes:read. Clear corpus via its
+  // origin "○" so only scenes:read remains. Level radios are visually hidden
+  // inside their segment/origin labels, so click the label.
+  await page.locator('#token-scope label.origin:has(input[name="scope:corpus"])').click();
+  await expect(page.locator('#token-scope input[name="scope:corpus"][value=""]')).toBeChecked();
+  await expect(page.locator('#token-scope input[value="scenes:read"]')).toBeChecked();
+
+  // Double action: re-clicking the selected level toggles just that level
+  // off, stepping down one rung (write → read), and only read falls back to
+  // the "no access" origin.
+  await page.locator('#token-scope label:has(input[value="tasks:write"])').click();
+  await expect(page.locator('#token-scope input[value="tasks:write"]')).toBeChecked();
+  await page.locator('#token-scope label:has(input[value="tasks:write"])').click();
+  await expect(page.locator('#token-scope input[value="tasks:read"]')).toBeChecked();
+  await page.locator('#token-scope label:has(input[value="tasks:read"])').click();
+  await expect(page.locator('#token-scope input[name="scope:tasks"][value=""]')).toBeChecked();
   await page.getByRole("button", {name: "buttons.create"}).click();
 
+  // The list is server-rendered: dismissing the one-time-secret modal reloads
+  // the page, which is when the new token appears.
   await expect(page.locator("#token-secret-modal")).toBeVisible();
+  await page.locator("#close-token-secret").click();
   const row = page.locator("#token-list").getByRole("row", {name: new RegExp(tokenName)});
   await expect(row).toBeVisible();
+  // Each family track submits only its selected level; families left at the
+  // "no access" origin contribute nothing.
   await expect(row).toContainText("scenes:read");
+  await expect(row).not.toContainText("corpus");
   await expect(row).not.toContainText("all");
+
+  // The class toggles filter server-side: hiding personal tokens hides the
+  // row, showing them again brings it back.
+  await page.locator('#token-filters input[name="personal"]').uncheck();
+  await expect(page.locator("#token-list").getByRole("row", {name: new RegExp(tokenName)})).toHaveCount(0);
+  await page.locator('#token-filters input[name="personal"]').check();
+  await expect(page.locator("#token-list").getByRole("row", {name: new RegExp(tokenName)})).toBeVisible();
 });
 
 test("lists an authorized application and revokes its access", async ({page, baseURL, uniqueAccount})=>{
