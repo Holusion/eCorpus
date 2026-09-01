@@ -91,8 +91,16 @@ export async function getEmbed(req: Request, res: Response){
     height: parseInt(maxheight as string),
   }
 
-  const target = new URL(decodeURIComponent(url));
-  const pathname = decodeURIComponent(target.pathname);
+  let pathname :string;
+  try{
+    const target = new URL(decodeURIComponent(url));
+    pathname = decodeURIComponent(target.pathname);
+  }catch(e){
+    //Consumers of this endpoint routinely send values that are over-encoded, relative,
+    //or not URLs at all. Both new URL() and decodeURIComponent() throw on those and an
+    //uncaught throw here would be reported as an internal error.
+    throw new BadRequestError(`Not a valid embed URL: ${url}`);
+  }
   const m = embed_re.exec(pathname);
   if(m?.groups!.scene){
     let scene = await vfs.getScene(m.groups!.scene);

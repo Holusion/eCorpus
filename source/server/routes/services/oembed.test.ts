@@ -105,6 +105,20 @@ describe("GET /services/oembed", function(){
       .expect(400); //Bad Request
     })
 
+    it("400 if the url can't be parsed", async function(){
+      //Crawlers send `url` values that have been percent-encoded several times over.
+      //Whatever is left after decoding isn't a URL, and that used to escape as a 500.
+      await Promise.all([
+        "http%253A%252F%252Flocalhost%252Fui%252Fscenes%252Fpublic-scene%252Fview",
+        "/ui/scenes/public-scene/view",
+        "%E0%A4%A",
+        "not a url at all",
+      ].map(async (target)=>{
+        await request(this.server).get(`/services/oembed?format=json&url=${encodeURIComponent(target)}`)
+        .expect(400);
+      }));
+    });
+
     it("404 if scene does not exist", async function(){
       await request(this.server).get(makeURL("http://localhost/ui/scenes/not-a-scene/view", "xml"))
       .expect(404);
