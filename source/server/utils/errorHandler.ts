@@ -6,11 +6,36 @@ import { createLogger } from "./log/index.js";
 
 const log = createLogger("http");
 
+/**
+ * Whether the client hung up before we could answer it.
+ *
+ * Deliberately keyed on the state of the connection rather than on `error.code`:
+ * node reports an interrupted upload as `ECONNRESET`, but so does a dropped
+ * connection to postgres or to the mail relay, and those *are* server faults that
+ * must keep their 500. What sets a client disconnect apart is that there is no
+ * longer anyone to respond to.
+ *
+ * `res.destroyed` covers both directions — an upload cut off mid-body and a
+ * response the client stopped reading. `req.destroyed && !req.complete` is the
+ * belt-and-braces case of an incoming message torn down before the response
+ * object caught up.
+ */
+function isClientDisconnect(req:Request, res:Response):boolean{
+  return res.destroyed || (req.destroyed && !req.complete);
+}
 
 export function errorHandlerMdw(){
   return function errorHandler(error:HTTPError|Error, req:Request, res:Response, next:NextFunction){
 
     const code = (error instanceof HTTPError )? error.code : 500;
+
+    if (isClientDisconnect(req, res)) {
+      // Checked before `res.headersSent`, which is still false when an upload is
+      // aborted: without this we'd log a routine disconnect as a server fault and
+      // then write a response onto a socket that is already gone.
+      log.debug({ err: error, method: req.method, url: req.originalUrl }, "Client disconnected before a response was sent");
+      return;
+    }
 
     if (res.headersSent) {
       req.socket.destroy();

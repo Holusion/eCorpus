@@ -1,6 +1,7 @@
-import {ClientRequest} from "http"
+import http, {ClientRequest} from "http"
 import {once} from "events";
-import {Readable} from "stream";
+import {AddressInfo} from "node:net";
+import {PassThrough, Readable} from "stream";
 import timers from "node:timers/promises";
 
 import request from "supertest";
@@ -92,45 +93,63 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     .expect("foo\n");
   });
 
-  it.skip("can abort responses", async function(){
-    //This test would be very useful but it has a race condition that makes it unreliable.
-    await vfs.createScene("foo").then((scene_id)=> {userManager.setDefaultAccess(scene_id, "write"); return scene_id});
-    let orig = vfs.getFile;
-    let stream = (Readable.from(["hello", "world", "\n"]) as any).map((s:string)=>new Promise(r=>setTimeout(()=>r(s), 4)));
-    let d = stream.destroy;
-    let calls:Array<Error|undefined> = [];
-    stream.destroy = function(e :Error|undefined){
-      calls.push(e);
-      return d.call(stream, e);
-    }
+  it("destroys the file stream when the client aborts a response", async function(){
+    //Replaces a version of this test that was disabled as flaky. That one raced a
+    //fixed 5ms timer against a stream emitting a chunk every 4ms; here every wait is
+    //on a causal event -- the client holds the first byte, the stream has closed --
+    //so there is no timing to lose.
+    await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id});
+
+    //A stream the test drives by hand, so bytes move only when we say so
+    const stream = new PassThrough();
+    const destroy = stream.destroy.bind(stream);
+    const calls :Array<Error|undefined> = [];
+    stream.destroy = function(e ?:Error){ calls.push(e); return destroy(e); } as any;
+
+    const orig = vfs.getFile;
+    vfs.getFile = (()=>Promise.resolve({
+      id: 1,
+      name: "models/foo.glb",
+      hash: "tbudgBSg-bHWHiHnlteNzN8TUvI80ygS9IULh4rklEw",
+      generation: 1,
+      size: 10,
+      mtime: new Date("2023-04-13T09:03:21.506Z"),
+      ctime: new Date("2023-04-13T09:03:21.506Z"),
+      mime: "model/gltf-binary",
+      author_id: 0,
+      author: "default",
+      stream,
+    })) as any;
+
+    //A real socket of our own, because supertest gives no handle on hanging up
+    const server = http.createServer(this.server);
     try{
-      vfs.getFile = (()=>Promise.resolve({
-        id: 1,
-        name: "models/foo.glb",
-        hash: "tbudgBSg-bHWHiHnlteNzN8TUvI80ygS9IULh4rklEw",
-        generation: 1,
-        size: 10,
-        mtime: new Date("2023-04-13T09:03:21.506Z"),
-        ctime: new Date("2023-04-13T09:03:21.506Z"),
-        mime: "model/gltf-binary",
-        author_id: 0,
-        author: "default",
-        stream,
-      }));
+      server.listen(0);
+      await once(server, "listening");
+      const {port} = server.address() as AddressInfo;
 
-      let test = request(this.server).get("/scenes/foo/models/foo.glb")
-      .buffer(false)
-      .send();
-      setTimeout(()=>(test as any).req.socket.end(), 5);
-      let [err] = await Promise.all([
-        once(stream, "close").catch(e=>e),
-        expect(test).to.be.rejectedWith(/socket hang up/),
-      ]);
+      const req = http.request({port, method: "GET", path: "/scenes/foo/models/foo.glb"});
+      req.on("error", ()=>{}); //The abort surfaces here. Not what we're testing.
+      req.end();
+
+      //Queue the chunk up front rather than after the response arrives: express only
+      //flushes the headers once the handler writes, so waiting for them first would
+      //deadlock against a stream that is waiting for us.
+      stream.write("hello");
+
+      const [res] = await once(req, "response");
+      await once(res, "data"); //The body is provably flowing to the client...
+      req.destroy();           //...so aborting now can only interrupt it mid-stream
+
+      //once() rejects on 'error', and a premature close is precisely what pipeline
+      //destroys the source with, so the rejection is the signal rather than a failure.
+      const err = await once(stream, "close").catch(e=>e);
       expect(err).to.have.property("code", "ERR_STREAM_PREMATURE_CLOSE");
-      expect(calls, "stream.destroy() should be called on aborted requests").to.have.property("length", 1);
-
+      expect(calls, "stream.destroy() should be called on aborted requests").to.have.length(1);
     }finally{
       vfs.getFile = orig;
+      server.closeAllConnections();
+      server.close();
     }
   });
 
