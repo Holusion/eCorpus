@@ -349,7 +349,10 @@ export default abstract class FilesVfs extends BaseVfs{
       let end =  ((typeof props.end  === "number" )? props.end - 1 : undefined);
       let start = props.start;
       if(typeof start === "number" && start < 0){
-        start += r.size;
+        //A negative start is a suffix length. Asking for more bytes than the file holds
+        //selects the whole file rather than resolving to a negative offset, which
+        //createReadStream() would reject.
+        start = Math.max(0, start + r.size);
       }
       handle = (await this.openFile({hash: r.hash!})).createReadStream({
         start,

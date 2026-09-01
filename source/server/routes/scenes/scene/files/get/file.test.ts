@@ -222,6 +222,49 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     .expect(400);
   });
 
+  it("can't get a range that ends before it starts", async function(){
+    //Reversed ranges reach us from real clients. They used to be handed straight to
+    //createReadStream(), which threw a RangeError and got reported as a 500.
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=3-1")).get("/scenes/foo/models/foo.glb")
+    .expect(400);
+  });
+
+  it("Returns BadRequest on a non-numeric range", async function(){
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=abc-def")).get("/scenes/foo/models/foo.glb")
+    .expect(400);
+  });
+
+  it("can't get a range with start after the file end and no end", async function(){
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=20-")).get("/scenes/foo/models/foo.glb")
+    .expect(416)
+    .expect("Content-range", "bytes */4");
+  });
+
+  it("serves the whole file when the suffix is longer than the file", async function(){
+    //RFC 9110 §14.1.2 : a suffix-length larger than the representation selects it entirely
+    let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id});
+    await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    await (await request.agent(this.server).set("Range","bytes=-100")).get("/scenes/foo/models/foo.glb")
+    .expect(206)
+    .expect("Content-range", "bytes 0-3/4")
+    .expect("Content-Length","4")
+    .expect("foo\n");
+  });
+
   it("Returns BadRequest on mutliple ranges", async function(){
     let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id}); 
     await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});

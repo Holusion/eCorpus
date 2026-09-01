@@ -14,26 +14,40 @@ async function handleGetFileRange(req :Request, res :Response){
   if (typeof startRange === "undefined" || typeof endRange === "undefined" || (startRange.length == 0 && endRange.length==0)){
     throw new BadRequestError ("Bad Request : Range with no parameters")
   }
-  let start =  (startRange.length > 0)?  parseInt(startRange): - parseInt(endRange);
-  let end = (endRange.length && startRange.length > 0)? parseInt(endRange) + 1 : undefined;
+  //A suffix range ("bytes=-500") asks for the last N bytes. It travels as a negative
+  //start and gets resolved against the file size once we know it.
+  const isSuffix = startRange.length == 0;
+  let start =  (!isSuffix)?  parseInt(startRange): - parseInt(endRange);
+  let end = (endRange.length && !isSuffix)? parseInt(endRange) + 1 : undefined;
+
+  //Whatever can be ruled out from the header alone is ruled out before opening a stream:
+  //fs.createReadStream() throws a RangeError on a non-numeric or reversed range, and that
+  //would surface as an internal error rather than the client error it is.
+  if(!Number.isInteger(start) || (typeof end === "number" && !Number.isInteger(end))){
+    throw new BadRequestError(`Bad Request : Malformed range "${req.headers["range"]}"`);
+  }
+  if(typeof end === "number" && end <= start){
+    throw new BadRequestError(`Bad Request : Range ends before it starts`);
+  }
+
   let file = await vfs.getFile({scene, name, start, end});
-  end ??= file.size;
-  if(start < 0){
-    start += file.size; 
-  }
-  if (end && end > file.size){
-    res.set("Content-Range", "bytes */" + file.size);
-    if(startRange.length > 0){
-      throw new RangeNotSatisfiableError("Range Not Satisfiable: end after end of file")
-    }else{
-      throw new RangeNotSatisfiableError("Range Not Satisfiable: Suffix-length is bigger than lenght of file")
-    }
-  }
 
   if(!file.stream){
     throw new BadRequestError(`${name} in ${scene} appears to be a directory`);
   }
-  
+
+  end ??= file.size;
+  if(start < 0){
+    //A suffix longer than the file selects the whole file (RFC 9110 §14.1.2)
+    start = Math.max(0, start + file.size);
+  }
+  if (file.size <= start || end > file.size){
+    //An unsatisfiable range still tells the client how long the file actually is
+    file.stream.destroy();
+    res.set("Content-Range", "bytes */" + file.size);
+    throw new RangeNotSatisfiableError(`Range Not Satisfiable: ${(end > file.size)?"end":"start"} after end of file`);
+  }
+
   res.set("Accept-Ranges", "bytes");
   res.set("Content-Length", (end - start).toString());
   res.set("Content-Range", "bytes " + start.toString() + "-" + (end -1).toString() + "/"+ file.size.toString())
