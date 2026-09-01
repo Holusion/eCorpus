@@ -21,7 +21,7 @@
             <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
         {{/each}}
         {{#unless scene.tags}}
-          {{#if (test access "==" "admin")}}
+          {{#if (accessLevel access "admin")}}
             <submit-fragment submit="tags" method="PATCH" action="/scenes/{{encodeURIComponent scene.name}}" encoding="application/json" onsubmit="window.location.reload()">
               <form autocomplete="off" class="form-control tags-list">
                 <label class="form-item add-tag">
