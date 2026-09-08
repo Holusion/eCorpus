@@ -3,7 +3,7 @@ import {execFile} from "node:child_process";
 import {Request, Response} from "express";
 
 import { getVfs } from "../../../utils/locals.js";
-import { BadRequestError } from "../../../utils/errors.js";
+import { BadRequestError, NotFoundError } from "../../../utils/errors.js";
 import { FileProps } from "../../../vfs/types.js";
 import { DELETE_KEY, diffDoc } from "../../../utils/merge/index.js";
 import { fromPointers } from "../../../utils/merge/pointers/index.js";
@@ -23,10 +23,20 @@ export default async function handleGetDiff(req :Request, res :Response){
   if(!Number.isInteger(id)) throw new BadRequestError(`Requested fromId ${idString} is not a valid ID`);
   if(!Number.isInteger(fromIdOrGen)) throw new BadRequestError(`Requested toId ${fromString} is not a valid ID`);
 
-  const dstFile = await vfs.getFileById(id);
+  //`getFileById` looks up a global file id, but this route's rights were
+  //checked against `:scene`. Both sides of the diff must be verified to belong
+  //to it, or a file id from any other scene would be read under this scene's
+  //access level. 404, like any other file the requester may not see.
+  const {id: scene_id} = await vfs.getScene(scene);
+  const inScene = <T extends {scene_id :number}>(file :T, ref :number)=>{
+    if(file.scene_id !== scene_id) throw new NotFoundError(`No file found with id ${ref} in scene ${scene}`);
+    return file;
+  };
+
+  const dstFile = inScene(await vfs.getFileById(id), id);
   let fromFile :FileProps;
   if(0 < fromIdOrGen){
-    fromFile = await vfs.getFileById(fromIdOrGen);
+    fromFile = inScene(await vfs.getFileById(fromIdOrGen), fromIdOrGen);
   }else if(0 < dstFile.generation + fromIdOrGen){
     fromFile = await vfs.getFileProps({
       scene: scene,

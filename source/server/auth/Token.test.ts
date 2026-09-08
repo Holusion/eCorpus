@@ -164,6 +164,7 @@ describe("Token", function(){
         ["scenes:read", "none"],   //public read
         ["scenes:write", "use"],   //canWrite is ACL-gated but the scope exists from `use`
         ["scenes:admin", "use"],
+        ["history:read", "use"],   //identified requesters only; not public
         ["tasks:read", "use"],
         ["corpus:write", "create"],
         ["tasks:write", "create"],

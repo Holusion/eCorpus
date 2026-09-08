@@ -169,6 +169,7 @@ describe("OAuth2 authorization server", function(){
         "all",
         "corpus:read", "corpus:write",
         "scenes:read", "scenes:write", "scenes:admin",
+        "history:read",
         "tasks:read", "tasks:write", "tasks:admin",
         "users:read", "users:write",
         "groups:read", "groups:write", "groups:admin",
