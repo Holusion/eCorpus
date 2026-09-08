@@ -57,6 +57,18 @@ describe("GET /scenes", function(){
     .expect(304);
   });
 
+  it("varies on Accept, including on a 304", async function(){
+    //One tag is served for the json, text and zip variants, so a cache has to key them apart.
+    let r = await request(this.server).get("/scenes")
+    .expect(200);
+    expect(r.headers).to.have.property("vary").that.contains("Accept");
+
+    let fresh = await request(this.server).get("/scenes")
+    .set("If-None-Match", r.headers.etag)
+    .expect(304);
+    expect(fresh.headers, "the 304 is what a cache leans on").to.have.property("vary").that.contains("Accept");
+  });
+
   it("can send a zip file", async function(){
     await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: null});
     let res = await request(this.server).get("/scenes")
