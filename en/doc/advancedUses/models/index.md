@@ -32,7 +32,7 @@ The Blender [GLTF export](https://github.com/KhronosGroup/glTF-Blender-IO){:targ
       <img alt="screenshot of Blender's glTF export popup" src="/assets/img/doc/blender_export_gltf_options.webp"/>
       <figcaption>glTF export popup</figcaption>
     </figure>
-    <p>For advanced use cases, check out the official documentation at <a href="https://docs.blender.org/manual/en/4.0/addons/import_export/scene_gltf2.html" target="_blank">doc.blender.org</a>.</p>
+    <p>For advanced use cases, check out the official documentation at <a href="https://docs.blender.org/manual/en/latest/addons/scene_gltf2.html" target="_blank">doc.blender.org</a>.</p>
       <p>The <b>Binary</b> format (<code>.glb</code>) is recommended.</p>
       <p>It is also possible to choose between <b>Z up</b> and <b>Y up</b> in the <b>Transform</b> menu for the scene's axis orientation.</p>
       <p>Draco compression is supported and will generally speed up loading : faster network transfer and faster object parsing.</p>

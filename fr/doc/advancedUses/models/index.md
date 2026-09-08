@@ -30,7 +30,7 @@ Des modèles au format [USD](https://openusd.org/release/intro.html){:target="_b
       <img alt="capture d'écran des options d'export au format glTF dans blender" src="/assets/img/doc/blender_export_gltf_options.webp"/>
       <figcaption>Les options d'export</figcaption>
     </figure>
-    <p>Retrouvez la documentation complète du plugin sur <a href="https://docs.blender.org/manual/en/4.0/addons/import_export/scene_gltf2.html" target="_blank">doc.blender.org</a>.</p>
+    <p>Retrouvez la documentation complète du plugin sur <a href="https://docs.blender.org/manual/en/latest/addons/scene_gltf2.html" target="_blank">doc.blender.org</a>.</p>
       <p>Le format <b>Binary</b> (<code>.glb</code>) est à privilégier.</p>
       <p>Il est aussi possible de choisir entre <b>Z up</b> et <b>Y up</b> dans le menu <b>Transform</b> pour l'orientation des axes de la scène.</p>
       <p>Pensez à activer la compression, qui permet de réduire la taille du fichier de sortie: cela accélèrera les temps de chargement : Sur certains modèles, la taille compressée peut être jusqu'à deux fois plus petite que la taille originale.</p>
