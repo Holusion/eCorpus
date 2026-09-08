@@ -308,6 +308,30 @@ describe("merge documents", function(){
       expect(zombie, "no node should be rebuilt out of the patch").to.be.undefined;
     });
 
+    it("drops snapshot targets pointing at a node that was removed concurrently", function(){
+      //Voyager cleans up a deleted node's targets on its own, but the other side of a
+      //merge may not have, and a target left dangling used to fail the whole save.
+      const ref = JSON.parse(docString);
+      const victimIdx = (ref.nodes as INode[]).findIndex(n=>typeof n.model === "number");
+      const victim = (ref.nodes as INode[])[victimIdx];
+
+      const current = JSON.parse(JSON.stringify(ref));
+      current.scenes[0].nodes = current.scenes[0].nodes.filter((idx :number)=> idx !== victimIdx);
+
+      const next = JSON.parse(JSON.stringify(ref));
+      next.setups[0].snapshots = {
+        features: ["position"],
+        targets: [`node/${victimIdx}/position`, "scenes/0/setup/reader/enabled"],
+        states: [{id: "aaaaaa", curve: "Linear", duration: 1, threshold: 0.5, values: [[1,2,3], true]}],
+      };
+
+      const result = applyDoc(current, diffDoc(ref, next));
+      const {snapshots} = (result.setups as Required<ISetup>[])[0];
+      expect(snapshots.targets, "the dangling target is gone").to.deep.equal(["scenes/0/setup/reader/enabled"]);
+      expect(snapshots.states[0].values, "its column is gone from every state too").to.deep.equal([true]);
+      expect((result.nodes as INode[]).find(n=>n.id === victim.id)).to.be.undefined;
+    });
+
     it("detects a no-op", function(){
       const current = JSON.parse(docString);
       const next = JSON.parse(docString);
