@@ -11,12 +11,14 @@ export function appendSetup(document :Required<IDocument>, {tours: toursMap, sna
   if(tours.length){
     iSetup.tours = tours.map(({steps, ...t})=>({
       ...t,
-      steps: fromMap(steps),
+      //`apply()` skips patches for removed objects, so a tour reaching this point should
+      //always carry its steps. Default anyway: a half-built tour must not throw here.
+      steps: fromMap(steps ?? {}),
     }));
   }
   
   if(snapshots){
-    const targetStrings = Object.keys(snapshots.targets)
+    const targetStrings = Object.keys(snapshots.targets ?? {})
       .map(k => Object.entries(snapshots.targets[k]).map(([prop, index])=>({value:`${k}/${prop}`, index})))
       .flat()
       .sort((a, b)=>a.index - b.index)
