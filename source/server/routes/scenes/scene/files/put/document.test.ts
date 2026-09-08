@@ -74,11 +74,12 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     //Make our user reference the first doc generation
     sampleDoc.asset.id = firstDocId;
     sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    //205: the stored document is a merge, not what was sent. The client must reload.
     let r = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
     .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
-    .expect(204);
+    .expect(205);
 
     let {ctime, mtime, data:docString, id, ...doc} =  await vfs.getDoc(scene_id);
     const data = JSON.parse(docString);
@@ -144,12 +145,39 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
-    .expect(204);
+    .expect(205);
 
     let {ctime, mtime, data:docString, id, ...doc} =  await vfs.getDoc(scene_id);
     const data = JSON.parse(docString);
     expect(data.models).to.have.length(3);
     expect(data.nodes).to.have.length(6);
+  });
+
+  it("answers 204 when nobody wrote in between", async function(){
+    //Fast-forward: the reference is still the current document, so what gets stored is
+    //exactly what was sent and the client has nothing to reload.
+    sampleDoc.asset.id = firstDocId;
+    sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    const {data} = await vfs.getDoc(scene_id);
+    delete sampleDoc.asset.id; //never stored
+    expect(JSON.parse(data)).to.deep.equal(sampleDoc);
+  });
+
+  it("answers 204 when the document didn't change", async function(){
+    sampleDoc.asset.id = firstDocId;
+    await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    expect((await vfs.getDoc(scene_id)).generation, "no new generation for a no-op").to.equal(1);
   });
 
   it.skip("can't reference a foreign document to diff against", async function(){

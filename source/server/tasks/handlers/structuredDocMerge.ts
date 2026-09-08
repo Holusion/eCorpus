@@ -9,9 +9,11 @@ export interface DocMergeData{
   refId: number;
 }
 /**
- * 
- * @param param0 
- * @returns 204 the merge was fast-forward. 205 if the user should reload content
+ * Applies a document save that carries a reference to the generation it was edited from.
+ * @returns 204 when what was written is exactly what the client sent, either because
+ * nothing changed or because nobody wrote in between. 205 when the document was merged
+ * with someone else's changes, so the client is now holding stale content and should
+ * reload before editing further.
  */
 export async function structuredDocMerge({context: {vfs:_vfs, logger}, task: {scene_id, user_id, data: {refId, docData: newDoc}}}:TaskHandlerParams<DocMergeData>): Promise<204|205> {
   if(typeof scene_id !== "number") throw new InternalError(`Can't perform structured merge with no assigned scene_id`);
@@ -42,18 +44,15 @@ export async function structuredDocMerge({context: {vfs:_vfs, logger}, task: {sc
 
     logger.debug("Diff :", JSON.stringify(docDiff, (key, value)=> value === merge.DELETE_KEY? "*DELETED*":value, 2));
     if(refId == currentDocId){
-      //Simple overwrite
+      //Fast-forward: nobody wrote since the client loaded the document, so what we store
+      //is byte for byte what it sent. Nothing to reload.
       await tr.writeDoc(JSON.stringify(newDoc), {scene:scene_id, user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-      return 205; //Reset Content
+      return 204; //No Content
     }else{
       const mergedDoc = merge.applyDoc(currentDoc, docDiff);
       let s = JSON.stringify(mergedDoc);
       let {id, generation} = await tr.writeDoc(s, {scene: scene_id, user_id: user_id, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
-      if(currentDocGeneration+1 < generation){
-        logger.log(`performed a three point merge from ${currentDocId} to ${id}`);
-        logger.log(`Using diff: ${docDiff}`);
-      }
-      return 204;
+      return 205; //Reset Content: what we stored is not what the client sent
     }
   });
 }
