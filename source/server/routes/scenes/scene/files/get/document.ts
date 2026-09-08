@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { createHash } from "crypto";
 
 import { getVfs } from "../../../../../utils/locals.js";
 
@@ -20,10 +19,11 @@ export default async function handleGetDocument(req :Request, res :Response){
   }
 
   let data = Buffer.from(JSON.stringify(doc), "utf-8");
-  let hash = createHash("sha256").update(data as any).digest("base64url");
 
-
-  res.set("ETag", hash);
+  //The VFS is append-only, so a document id names exactly one version of this resource.
+  //It is embedded in the body we just built, which makes it as precise as a hash of those
+  //bytes, and unlike a hash it is the token `asset.id` round-trips on PUT.
+  res.set("ETag", `"${f.id}"`);
   res.set("Last-Modified", f.mtime.toUTCString());
   if(req.fresh){
     return res.status(304).send("Not Modified");
