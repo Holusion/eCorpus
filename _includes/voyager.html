@@ -21,11 +21,11 @@ Usage :
   button and the heavy iframe viewer is only loaded once the user clicks it,
   so no superfluous data is fetched for uninterested visitors.
 
-  The iframe is part of the markup, inert (data-src, hidden by the
-  .ecorpus-facade styles). The script promotes data-src to src on click (or
-  immediately with autoplay) and reveals the viewer only once it has actually
-  loaded, so the poster survives when the cross-origin viewer never loads
-  (search engines, server down).
+  The iframe is part of the markup, inert (no src, hidden by the
+  .ecorpus-facade styles). The script sets its src on click (or immediately
+  with autoplay) from a URL Jekyll writes into the script itself, and reveals
+  the viewer only once it has actually loaded, so the poster survives when the
+  cross-origin viewer never loads (search engines, server down).
 
 Optional :
   autoplay=true
@@ -105,7 +105,6 @@ Optional :
       {% endif %}
       {% unless autoplay %}<div class="play-button"></div>{% endunless %}
       <iframe
-        data-src="{{itemSrc}}"
         title="{{itemTitle | escape}}"
         credentialless
         referrerpolicy="strict-origin"
@@ -117,6 +116,10 @@ Optional :
         (function(){ //anonymous function to avoid polluting the global space
           var container = document.currentScript.parentNode;
           var iframe = container.querySelector("iframe");
+          //Written by Jekyll at build time rather than read back from a data-
+          //attribute: the URL never makes a round-trip through the DOM, so it
+          //can't be rewritten by anything running on the page before the click.
+          var src = {{itemSrc | jsonify}};
           function load(){
             if(iframe.getAttribute("src")) return;
             iframe.addEventListener("load", function(){
@@ -125,7 +128,7 @@ Optional :
               // is down, "load" never fires and the poster stays visible
               container.classList.remove("ecorpus-facade");
             });
-            iframe.setAttribute("src", iframe.getAttribute("data-src"));
+            iframe.setAttribute("src", src);
             container.removeAttribute("role");
             container.removeAttribute("tabindex");
             container.removeAttribute("aria-label");
