@@ -1,0 +1,10 @@
+apis:
+  ecorpus:
+    root: _data/openapi.yml
+
+extends:
+  - recommended
+
+rules:
+  # Operations are documented through their description; summaries are not required.
+  operation-summary: warn

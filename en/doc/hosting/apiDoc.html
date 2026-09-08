@@ -5,72 +5,66 @@ rank: 5
 
 <link rel="stylesheet" href="/assets/css/apidoc.css">
 
-{% assign api = site.data.openapi | OAPI_dereference %}
+{% comment %} The oapi_* filters dereference internally, so no oapi_dereference is needed. {% endcomment %}
+{% assign api = site.data.openapi %}
+{% assign tags = api | oapi_tags %}
 
 <h1>eCorpus HTTP API</h1>
 
+<p>
+  If you're just getting started with the API, you are probably interested in <a href="#auth">authentication</a> and the <a href="#scenes">Scenes</a> section.
+  The <a href="/en/doc/hosting/api">Using the API</a> guide offers a more task-oriented walkthrough.
+</p>
+<p>
+  For more advanced uses, this API is organized in <a href="#api-sections">sections</a> (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.2.0">OpenAPI language</a>), each under a namespace prefix.
+</p>
 
+<h2 id="introduction">Introduction</h2>
+{{ api.info.description  | markdownify | offset_headers: 2 }}
 
 
 <div class="tag-cloud">
-  <p>If you're just getting started with the API, you are probably interested in the <a href="#scenes">Scenes</a> section.</p>
-  <p>
-    For more advanced uses, this API is organized in sections (<i>tags</i> in <a href="https://spec.openapis.org/oas/v3.1.0">OpenAPI language</a>), each under a namespace prefix :
-  </p>
-  <ul>
-    {% for tag in api.tags %}
-      <li>
-        <a href="#{{tag.name | slugify}}">{{tag.name}}</a>: 
-        <div>{{tag.description | markdownify}}</div>
+
+  <h2 id="api-sections">API Sections</h2>
+
+  <ul class="tag-list">
+    {% for tag in tags %}
+      <li class="tag-content">
+        <a href="#{{tag | oapi_tag_anchor}}" class="tag-header">{{ tag.name }}</a>
+        <div>{{ tag.summary }}</div>
       </li>
     {% endfor %}
+    <li class="tag-content">
+      <a href="#models"  class="tag-header">Models</a>
+      <div>Reusable schemas referenced throughout the operations.</div>
+    </li>
   </ul>
 </div>
-<h2 id="introduction">Introduction</h2>
-{{ api.info.description  | markdownify }}
 
-{% for tag in api.tags %}
-  <h2 id="{{tag.name | slugify}}"><span class="tag-name">{{tag.name}}</span></h2>
+{% for tag in tags %}
+  <h2 id="{{tag | oapi_tag_anchor}}"><span class="tag-name">{{tag.name}}</span></h2>
   <!--Global API Description -->
-  {{tag.description  | markdownify }}
+  {{tag.description  | markdownify | offset_headers: 2 }}
 
-  <!--API Paths-->
-  {% for path in api.paths %}
-
-    {% for operation in path[1] %}
-      <!--skip whatever path property that isn't an operation-->
-      {% if operation[0] == "summary" or operation[0] == "parameters" %}
-        {% continue %}
-      {%endif %}
-      {% unless operation[1].tags contains tag.name %}{% continue %} {% endunless %}
-
-      <!--Rename custom methods operations-->
-      {% assign method =  operation[0] | replace_first: "x-", "" %}
+  <!--API Operations, merged and normalized by the jekyll-openapi gem-->
+  {% assign operations = api | oapi_operations: tag.name %}
+  {% for op in operations %}
 
       <!--Operation title-->
-      <h3 id="{{operation[1].operationId |slugify}}" class="operation-title">
-        <span class="method {{ method }}">
-          {{ method }}
+      <h3 id="{{op | oapi_operation_anchor}}" class="operation-title">
+        <span class="method {{ op.method }}">
+          {{ op.method }}
         </span>
-        {{ path[0] }}
+        {{ op.path }}
       </h3>
 
       <!--Operation description-->
       <div class="operation-description">
-        {{operation[1].description | markdownify }}
+        {{op.operation.description | markdownify | offset_headers: 3 }}
       </div>
       <div class="operation-parameters">
-        <!--Reassign parameters by merging path params and operation params-->
-        {% assign params = ""| split: "" %}
-
-        {% if path[1].parameters %}
-          {% assign params = params | concat: path[1].parameters %}
-        {% endif %}
-        {% if operation[1].parameters %}
-          {% assign params = params | concat: operation[1].parameters %}
-        {% endif %}
-
-        {% assign params = params | OAPI_parameters %}
+        <!--Path and operation parameters, merged and grouped by location-->
+        {% assign params = op.grouped_parameters %}
 
         {% unless params["path"] == empty %}
           <!--Render path parameters-->
@@ -98,29 +92,30 @@ rank: 5
                   <div>{{param.description | markdownify}}</div>
                   {% if param.schema %}
                     <div style="text-align: right;padding-right: 1rem;">
-                      <a href="#" class="dropdown-toggle" data-target="#{{method}}{{ path[0] | replace: '/', '-' }}-{{param.name}}" role="button"></a>
+                      <a href="#" class="dropdown-toggle" data-target="#{{op.method}}{{ op.path | replace: '/', '-' }}-{{param.name}}" role="button"></a>
                     </div>
-                    <div id="{{method}}{{path[0]  | replace: '/', '-'  }}-{{param.name}}" class="collapse" aria-expanded="false">
+                    <div id="{{op.method}}{{op.path  | replace: '/', '-'  }}-{{param.name}}" class="collapse" aria-expanded="false">
                       <div>
                         {% include oapi/schema.html schema=param.schema %}
                       </div>
-                      {% if param.schema.examples %}
+                      {% assign examples = param | oapi_examples %}
+                      {% unless examples == empty %}
                         <h5>Examples</h5>
                         <table class="group-table">
                           <tbody>
-                            {% for example in param.schema.examples %}
+                            {% for example in examples %}
                               <tr>
-                                <td><h6>{{example[0]}}</h6></td>
+                                <td><h6>{{example.name}}</h6></td>
                                 <td>
-                                  <pre><code>{{example[1].value}}</code></pre>
+                                  <pre><code>{{example.value}}</code></pre>
                                 </td>
-                                <td>{{example[1].summary | markdownify}}</td>
+                                <td>{{example.summary | default: example.description | markdownify}}</td>
                               </tr>
                             {% endfor %}
 
                           </tbody>
                         </table>
-                      {% endif %}
+                      {% endunless %}
                     </div>
                   {% endif %}
                 </td>
@@ -130,8 +125,8 @@ rank: 5
         {% endunless %}
       </div>
 
-      {% if operation[1].requestBody %}
-        {% assign body = operation[1].requestBody %}
+      {% if op.operation.requestBody %}
+        {% assign body = op.operation.requestBody %}
         <div class="operation-body">
           <h4>Request Body</h4>
           {% if body.required %}<span class="body-required">required</span>{% endif %}
@@ -148,17 +143,35 @@ rank: 5
           </div>
         </div>
       {% endif %}
-    
-      {% if operation[1].responses %}
+
+      {% if op.operation.responses %}
         <!--Responses-->
         <h4>Responses</h4>
-        {% for response in operation[1].responses %}
+        {% for response in op.operation.responses %}
           <div class="response">
             <div class="response-header">
               <code class="response-code http-{{response[0] | divided_by: 100}}xx">{{response[0]}}</code>
             </div>
             <div class="response-contents">
               <div>{{ response[1].description | markdownify }}</div>
+              {% assign headers = response[1] | oapi_headers %}
+              {% unless headers == empty %}
+                <h5>Headers</h5>
+                <table class="group-table response-headers">
+                  {% for header in headers %}
+                    <tr class="param">
+                      <td class="param-name">
+                        <code>{{header.name}}</code>
+                        {% if header.required %}<span class="required">required</span>{% endif %}
+                      </td>
+                      <td>
+                        <div>{{header.description | markdownify}}</div>
+                        {% if header.schema %}{% include oapi/schema.html schema=header.schema %}{% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </table>
+              {% endunless %}
               {% for content in response[1].content %}
                 <div class="response-content">
                   {% assign content_schema = content[1].schema %}
@@ -173,9 +186,10 @@ rank: 5
           </div>
         {% endfor %}
       {% endif %}
-      
-    {% endfor %}
 
   {% endfor %}
 
 {% endfor %}
+
+<!--Models: reusable component schemas, cross-linked from the operation bodies above-->
+{% include oapi/models.html api=api %}

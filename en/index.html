@@ -31,7 +31,7 @@ description: An introduction to the eCorpus 3D scene management system. Learn ab
     <div class="section">
         <h3>Content Preservation, Mediation, and Dissemination</h3>
     </div>
-    {% include voyager.html embed="encensoir" server="https://ethesaurus.uliege.be" class="h-100" %}
+    {% include voyager.html url="https://ethesaurus.uliege.be/ui/scenes/encensoir/view" title="Censer with the Hebrews in the Fiery Furnace" autoplay=true class="h-100" %}
 </section>
 
 <section>
@@ -155,7 +155,7 @@ description: An introduction to the eCorpus 3D scene management system. Learn ab
     <div class="section">
         <h3>eCorpus Features</h3>
     </div>
-    {% include voyager.html server="https://ecorpus.fr-scv.fr" embed="Lion_Belfort.Sc.130.3" class="h-100 larg100" %}
+    {% include voyager.html url="https://ecorpus.fr-scv.fr/ui/scenes/Lion_Belfort.Sc.130.3/view" title="The Lion of Belfort, Auguste Bartholdi, 1875 (Palais des Beaux-Arts de Lille)" autoplay=true class="h-100 larg100" %}
     <p style="color:lightslategrey;font-size: 75%;"><i>Digitization and mediation work by Art History students from the University of Lille</i></p>
     <div class="section">
         <h4>Comprehensive</h4>
@@ -174,9 +174,12 @@ description: An introduction to the eCorpus 3D scene management system. Learn ab
             The application's architecture works through the deployment of independent instances, with <b>databases that are compatible with each other but entirely separate</b>.
             Most use cases involve entities that already have a content management solution; eCorpus data can be integrated within and searchable from it.
         </p>
-        <h4>Open Source</h4>
+        <h4>Open Source &amp; License</h4>
         <p>
             The development results are released in an Open Source format, ensuring the user is fully in control of their data and environment. Furthermore, the dynamism of an Open Source project is crucial for its success and dissemination. This includes the presence of its documentation on a platform like <a href="https://github.com/Holusion/eCorpus" target="_blank">GitHub</a> and regular development activity by a clearly identified team.
+        </p>
+        <p>
+            The eCorpus software is published under the <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License 2.0</a>. The content of this documentation site is published separately under the <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">CC BY-SA 4.0</a> license.
         </p>
         <h4>Structure</h4>
         <p>
@@ -250,3 +253,5 @@ description: An introduction to the eCorpus 3D scene management system. Learn ab
     <div style="display: flex; justify-content: space-evenly;">
         <a class="button button" href="contact.html">Contact us</a></div>
 </section>
+
+{% include schema_software.html %}

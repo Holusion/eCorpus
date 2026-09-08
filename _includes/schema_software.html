@@ -1,0 +1,22 @@
+{%- assign lang = page.lang | default: "fr" -%}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "eCorpus",
+  "url": {{ "/" | absolute_url | jsonify }},
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Web browser",
+  "inLanguage": {{ lang | jsonify }},
+  "description": {{ page.description | strip_html | jsonify }},
+  "license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "codeRepository": "https://github.com/Holusion/eCorpus",
+  "sameAs": "https://github.com/Holusion/eCorpus",
+  "isAccessibleForFree": true,
+  "author": {
+    "@type": "Organization",
+    "name": "Holusion SAS",
+    "url": "https://holusion.com"
+  }
+}
+</script>
