@@ -71,6 +71,18 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     .expect("foo\n");
   });
 
+  it("sets a strong ETag holding the file's hash", async function(){
+    //Strong so it can be used as an `If-Match` precondition on a write.
+    let scene_id = await vfs.createScene("foo", user.uid);
+    let {hash} = await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    let res = await request(this.server).get("/scenes/foo/models/foo.glb")
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    expect(res.headers).to.have.property("etag", `"${hash}"`);
+  });
+
   it("is case-sensitive", async function(){
     let scene_id = await vfs.createScene("foo").then((scene_id)=> 
       {userManager.setPublicAccess(scene_id, "read");

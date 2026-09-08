@@ -82,7 +82,9 @@ export default async function handleGetFile(req :Request, res :Response){
   res.set("Content-Length", file.size.toString(10));
   res.set("Accept-Ranges", "bytes");
 
-  res.set("ETag", `W/${file.hash}`);
+  //Strong: `hash` is the sha256 of exactly the bytes we are about to send, so it is a
+  //byte-for-byte validator. Marking it weak would also bar it from `If-Match`.
+  res.set("ETag", `"${file.hash}"`);
   res.set("Last-Modified", file.mtime.toUTCString());
   if(req.fresh){
     file.stream.destroy();
