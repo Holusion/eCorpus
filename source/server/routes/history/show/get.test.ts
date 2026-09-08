@@ -142,15 +142,22 @@ describe("GET /history/:scene/:id/show/:name", function(){
       await userManager.setDefaultAccess(titleSlug, "read");
     });
 
-    it("404s for anonymous (no write access)", async function(){
+    //Superseded content follows the listing: identified + scene read access.
+    it("401s for anonymous (no history:read)", async function(){
       await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
-      .expect(404);
+      .expect(401);
     });
 
-    it("404s for a read-only user", async function(){
+    it("succeeds for a read-only user", async function(){
       await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
       .set("Authorization", await bearer("oscar"))
-      .expect(404);
+      .expect(200);
+    });
+
+    it("403s a token without history:read", async function(){
+      await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
+      .set("Authorization", await bearer("oscar", ["scenes:admin"]))
+      .expect(403);
     });
 
     it("succeeds for a write user", async function(){

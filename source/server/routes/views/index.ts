@@ -356,7 +356,7 @@ routes.get("/user/groups", wrap(async (req, res)=>{
  * {@link TOKEN_SCOPES}, so non-mintable scopes (`users:admin`,
  * `account:admin`, `instance:write`) never show up.
  */
-const TOKEN_UI_FAMILIES = ["corpus", "scenes", "tasks", "users", "groups", "instance", "account"];
+const TOKEN_UI_FAMILIES = ["corpus", "scenes", "history", "tasks", "users", "groups", "instance", "account"];
 
 /** What a fresh token-mint form starts with: a minimal read-only token */
 const TOKEN_UI_DEFAULT_SCOPES = ["corpus:read", "scenes:read"];
@@ -758,7 +758,9 @@ routes.get("/scenes/:scene/edit", policy({ access: "write" }), (req, res)=>{
   });
 });
 
-routes.get("/scenes/:scene/history", policy({ access: "write" }), wrap(async (req, res)=>{
+//Both history views follow /history/** exactly: a page the API would refuse
+//(or would refuse to a page's reader) misrepresents the permissions in force.
+routes.get("/scenes/:scene/history", policy({ scope: "history:read", access: "read" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
   let host = getHost(req);
   let {scene:scene_name} = req.params;
@@ -837,9 +839,9 @@ routes.get("/scenes/:scene/settings", policy({ access: "admin" }), wrap(async (r
   });
 }));
 
-routes.get("/scenes/:scene/history/:id/view", policy({ access: "write" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history/:id/view", policy({ scope: "history:read", access: "read" }), wrap(async (req, res)=>{
   let vfs = getVfs(req);
-  //scene_name is actually already validated through canAdmin
+  //scene_name is actually already validated through the policy above
   let {scene:scene_name, id} = req.params;
   let scene = await vfs.getScene(scene_name);
   let thumb = new URL(`/scenes/${encodeURIComponent(scene_name)}/scene-image-thumb.jpg`, getHost(req));

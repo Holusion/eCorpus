@@ -25,7 +25,10 @@
       {{/if}}
       
       <div class="divider"></div>
-      {{#if (accessLevel access "write")}}
+      {{! History needs an identity on top of read access (the history:read
+          scope anonymous doesn't hold), so the link must not show for an
+          anonymous visitor of a public scene — the page would 401. }}
+      {{#if (test user "&&" (accessLevel access "read"))}}
         {{#navLink (join "/ui/scenes/" (encodeURIComponent scene.name) "/history")}}
           <ui-icon name="hierarchy"></ui-icon> {{i18n "buttons.history"}}
         {{/navLink}}

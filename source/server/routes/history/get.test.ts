@@ -107,21 +107,55 @@ describe("GET /history/:scene", function(){
       expect(res.body).to.have.lengthOf(1);
     });
 
-    describe("requires write access", function(){
+    describe("requires history:read over a readable scene", function(){
       this.beforeAll(async function(){
+        await vfs.createScene("public", user.uid);
+        await userManager.setPublicAccess("public", "read");
+        await userManager.setDefaultAccess("public", "read");
         await vfs.createScene("private", user.uid);
-        await userManager.setPublicAccess("private", "read");
-        await userManager.setDefaultAccess("private", "read");
+        await userManager.setPublicAccess("private", "none");
+        await userManager.setDefaultAccess("private", "none");
       });
-      it("(anonymous)", async function(){
-        await request(this.server).get("/history/private")
-        .expect(404);
+
+      //Anonymous holds PUBLIC_SCOPES, which has no history:read, so it is
+      //refused on the scope *before* the ACL is consulted: the contributors of
+      //a publicly readable scene stay unenumerable.
+      it("(anonymous, over a public scene)", async function(){
+        await request(this.server).get("/history/public")
+        .expect(401);
       });
-  
-      it("(user)", async function(){
+
+      //Read access is enough for an identified user — including the read that
+      //default_access hands out without an explicit grant.
+      it("(identified user, read through default_access)", async function(){
+        await request(this.server).get("/history/public")
+        .set("Authorization", await bearer(opponent.username))
+        .expect(200);
+      });
+
+      it("(identified user, no access to the scene)", async function(){
         await request(this.server).get("/history/private")
         .set("Authorization", await bearer(opponent.username))
         .expect(404);
+      });
+
+      //The point of the scope: history is delegable on its own, so an audit
+      //token needs no write scope and stays refused on the write routes.
+      it("(read-only audit token)", async function(){
+        const auth = await bearer(user.username, ["scenes:read", "history:read"]);
+        await request(this.server).get("/history/foo")
+        .set("Authorization", auth)
+        .expect(200);
+        await request(this.server).post("/history/foo")
+        .set("Authorization", auth)
+        .send({id: 1, label: "nope"})
+        .expect(403);
+      });
+
+      it("(token carrying every scene scope but not history:read)", async function(){
+        await request(this.server).get("/history/foo")
+        .set("Authorization", await bearer(user.username, ["scenes:admin"]))
+        .expect(403);
       });
     })
   })

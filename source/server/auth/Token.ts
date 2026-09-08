@@ -67,7 +67,11 @@ export function parseToken(token: string): Buffer | null {
  * asks "is scope S in that set?".
  *
  * Hierarchical families (`read < write < admin`) expand downward: holding
- * `scenes:write` implies `scenes:read` (see {@link expand}).
+ * `scenes:write` implies `scenes:read` (see {@link expand}). A family needs no
+ * more rungs than it uses: `history` has only `read`, because reading a
+ * scene's past is a distinct *delegation* from reading its present (an audit
+ * tool wants one without any write scope), while writing the past — restoring
+ * a version — is a plain scene write and stays on `scenes:admin`.
  *
  * The top level of the `account` and `users` families is escalation-critical
  * (see {@link NON_MINTABLE_SCOPES}): a session holds it but no delegated
@@ -78,6 +82,7 @@ export function parseToken(token: string): Buffer | null {
 export const CONCRETE_SCOPES = [
   "corpus:read", "corpus:write",
   "scenes:read", "scenes:write", "scenes:admin",
+  "history:read",
   "tasks:read", "tasks:write", "tasks:admin",
   "users:read", "users:write", "users:admin",
   "groups:read", "groups:write", "groups:admin",
@@ -206,7 +211,7 @@ export const PUBLIC_SCOPES: ReadonlySet<string> = expand(["scenes:read"]);
  * scene ACL (`access`) still gates *which* scene, so `scenes:admin` at `use`
  * means "may act on scenes they have the ACL for", not "on every scene".
  */
-const USE_SCOPES = ["corpus:read", "scenes:admin", "tasks:read", "account:admin"];
+const USE_SCOPES = ["corpus:read", "scenes:admin", "tasks:read", "account:admin", "history:read"];
 const CREATE_SCOPES = [...USE_SCOPES, "corpus:write", "tasks:admin"];
 const MANAGE_SCOPES = [...CREATE_SCOPES, "groups:admin"];
 const LEVEL_SCOPES: Record<UserRole, readonly string[]> = {
