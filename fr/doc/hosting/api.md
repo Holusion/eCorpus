@@ -30,7 +30,7 @@ inférieurs :
 
 | Niveau | Signification |
 | --- | --- |
-| `none` | Les requêtes anonymes/non authentifiées sont résolues vers un utilisateur synthétique de niveau `none`. |
+| `none` | Niveau de quarantaine : le compte peut se connecter, mais ne détient aucune portée `account:*` — il ne peut donc ni créer ni révoquer ses propres identifiants. L'interface ne l'attribue jamais. Une requête anonyme, elle, n'a aucun compte associé. |
 | `use` | Utilisateur authentifié. Peut consulter les scènes auxquelles il a accès, mais ne peut pas créer de scènes. |
 | `create` | Niveau par défaut d'un compte nouvellement créé. Peut créer des scènes. |
 | `manage` | Peut en plus gérer les groupes. |
@@ -87,14 +87,27 @@ Un utilisateur connecté crée un jeton avec `POST /auth/tokens`, **depuis une s
 jeton ne peut jamais créer un autre jeton, même avec la portée `all`. Vous choisissez un nom, un ensemble de
 *portées* (scopes) et une expiration optionnelle ; le secret `ec_…` n'est renvoyé qu'**une seule fois** et
 n'est jamais stocké côté serveur. Un jeton ne peut jamais faire plus que ce que le niveau actuel de son
-propriétaire permet, et ses portées le restreignent davantage :
+propriétaire permet, et ses portées le restreignent davantage.
+
+Une portée s'écrit `<famille>:<niveau>`, et détenir un niveau implique tous ceux du dessous
+(`read ⊂ write ⊂ admin`) :
 
 | Portée | Autorise |
 | --- | --- |
-| `all` | Autorité complète. La seule portée qui passe les contrôles de niveau et les routes de gestion de compte. |
-| `scenes:read` / `scenes:write` / `scenes:admin` | Plafonne le *niveau* obtenable sur les scènes (la visibilité est inchangée). |
-| `scenes:create` | Création de scènes et import d'archives. |
-| `tasks:read` / `tasks:write` | L'API `/tasks`. |
+| `all` | Toutes les portées *délégables* — un raccourci pour l'ensemble du tableau ci-dessous. |
+| `corpus:read` | La base d'identité, « utilisateur reconnu de cette instance ». Portée par tout jeton, quelles que soient les portées demandées. |
+| `corpus:write` | Ajouter des scènes à la collection (création de scène, import d'archive). |
+| `scenes:read` / `scenes:write` / `scenes:admin` | Plafonne le *niveau* obtenable sur les scènes auxquelles l'ACL donne déjà accès (la visibilité est inchangée). |
+| `tasks:read` / `tasks:write` / `tasks:admin` | L'API `/tasks`. |
+| `users:read` / `users:write` | Administration des *autres* comptes : inventaire, création, révocation de leurs jetons. |
+| `groups:read` / `groups:admin` | Inventaire des groupes et gestion des membres. |
+| `instance:read` | Statistiques et inventaire de la configuration de l'instance (supervision). |
+| `account:read` / `account:write` | Lister et révoquer *ses propres* sessions, jetons et autorisations OAuth. |
+
+Trois portées sont **non délégables** : `account:admin` (créer des identifiants, changer son mot de passe ou son
+adresse e-mail), `users:admin` (liens de connexion, création d'administrateurs) et `instance:write` (réécriture de
+la configuration, registre des clients OAuth). Aucun jeton — pas même de portée `all` — ne les porte : elles
+exigent une session interactive.
 
 Listez et révoquez vos jetons avec `GET`/`DELETE /auth/tokens`. Quiconque détient un jeton peut le révoquer via
 `POST /auth/oauth/revoke`.
@@ -176,7 +189,9 @@ Pour importer une scène ou une collection de scènes exportées d'une instance 
 curl -XPOST https://${HOSTNAME}/scenes --data-binary "@${ZIP_FILE}" -H "Authorization: Bearer ${TOKEN}" | jq .
 ```
 
-Le jeton doit porter la portée `scenes:create` (ou être de portée `all`), et l'import nécessite des droits d'**administrateur** globaux.
+Le jeton doit porter à la fois `corpus:write` et `scenes:write` (ou être de portée `all`). Chaque scène de
+l'archive est ensuite vérifiée individuellement : écraser une scène existante demande un accès `write` sur
+celle-ci, et en créer une nouvelle demande au moins le niveau `create`.
 
 Cette requête retourne une liste des changements effectués qui peut être assez longue. Vous pouvez filtrer les échecs en utilisant `jq .fail` ou si vous n'avez pas `jq` installé, vous pouvez utiliser curl en mode silencieux et inspecter uniquement le status de la réponse : `curl -s --fail -o /dev/null -w "%{http_code}"`.
 

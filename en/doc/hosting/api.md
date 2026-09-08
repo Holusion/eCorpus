@@ -25,7 +25,7 @@ Every account has exactly one level. They are ordered — a higher level include
 
 | Level | Meaning |
 | --- | --- |
-| `none` | Not a real account. Anonymous/unauthenticated requests resolve to a synthetic `none`-level user with `uid` `0`. |
+| `none` | Quarantine level: the account may sign in, but holds no `account:*` scope, so it cannot mint or revoke its own credentials. The interface never assigns it. Anonymous requests carry no account at all. |
 | `use` | Authenticated user. Can consume scenes they are granted access to, but cannot create scenes. |
 | `create` | Default level of a newly-created account. Can create scenes. |
 | `manage` | Can additionally manage groups. |
@@ -78,14 +78,26 @@ curl -b cookies.txt -XGET https://ecorpus.holusion.com/[...]
 A logged-in user mints a token with `POST /auth/tokens`, **from an interactive session only** — a token can
 never create another token, even an `all`-scoped one. You choose a name, a set of *scopes* and an optional
 expiry; the `ec_…` secret is returned **once** and never stored server-side. A token can never do more
-than its owner's current level allows, and its scopes further cap it:
+than its owner's current level allows, and its scopes further cap it.
+
+A scope is written `<family>:<level>`, and holding a level implies every lower one
+(`read ⊂ write ⊂ admin`):
 
 | Scope | Grants |
 | --- | --- |
-| `all` | Full authority. The only scope that passes level-based guards and account-management routes. |
-| `scenes:read` / `scenes:write` / `scenes:admin` | Caps the *level* obtainable on scenes (visibility is unchanged). |
-| `scenes:create` | Scene creation and archive import. |
-| `tasks:read` / `tasks:write` | The `/tasks` API. |
+| `all` | Every *mintable* scope — shorthand for the whole table below. |
+| `corpus:read` | The identity baseline, "a recognized user of this instance". Carried by every token whatever it was minted with. |
+| `corpus:write` | Add scenes to the collection (scene creation, archive import). |
+| `scenes:read` / `scenes:write` / `scenes:admin` | Caps the *level* obtainable on the scenes the ACL already grants (visibility is unchanged). |
+| `tasks:read` / `tasks:write` / `tasks:admin` | The `/tasks` API. |
+| `users:read` / `users:write` | Administration of *other* accounts: inventory, provisioning, revoking their tokens. |
+| `groups:read` / `groups:admin` | Group inventory and membership. |
+| `instance:read` | Instance statistics and configuration inventory (the monitoring use case). |
+| `account:read` / `account:write` | List and revoke your *own* sessions, tokens and OAuth grants. |
+
+Three scopes are **non-mintable**: `account:admin` (minting credentials, changing your own password or email),
+`users:admin` (login links, creating administrators) and `instance:write` (configuration rewrite, OAuth client
+registry). No token — not even an `all`-scoped one — ever carries them; they require an interactive session.
 
 List and revoke your tokens with `GET`/`DELETE /auth/tokens`. Anyone holding a token can revoke it through
 `POST /auth/oauth/revoke`.
@@ -173,7 +185,9 @@ Import zip scene or collection of scenes from a eCorpus instance.
 curl -XPOST https://${HOSTNAME}/scenes --data-binary "@${ZIP_FILE}" -H "Authorization: Bearer ${TOKEN}" | jq .
 ```
 
-The token must carry the `scenes:create` scope (or be `all`-scoped), and importing requires global **admin** rights.
+The token must carry both `corpus:write` and `scenes:write` (or be `all`-scoped). Each scene in the archive is
+then checked individually: overwriting an existing scene needs `write` access on it, and creating a new one needs
+at least the `create` level.
 
 The request returns a (potentially very large) JSON object describing the result. You can filter only failure by running `jq .fail` or if you don't have `jq` installed you can skip it and use the `curl -s --fail -o /dev/null -w "%{http_code}"`.
 
