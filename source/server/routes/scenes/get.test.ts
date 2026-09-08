@@ -45,6 +45,18 @@ describe("GET /scenes", function(){
     expect(r.body).to.have.property("scenes").to.have.property("length", 2);
   });
   
+  it("advertises its list ETag as weak", async function(){
+    //It digests names and mtimes rather than the body, and the same tag is served for the
+    //json, text and zip representations, so it must not claim to validate bytes.
+    let r = await request(this.server).get("/scenes")
+    .expect(200);
+    expect(r.headers).to.have.property("etag").match(/^W\/"[\w-]+"$/);
+
+    await request(this.server).get("/scenes")
+    .set("If-None-Match", r.headers.etag)
+    .expect(304);
+  });
+
   it("can send a zip file", async function(){
     await vfs.writeDoc(`{"hello": "world"}`, {scene: "foo", name: "scene.svx.json", user_id: null});
     let res = await request(this.server).get("/scenes")
