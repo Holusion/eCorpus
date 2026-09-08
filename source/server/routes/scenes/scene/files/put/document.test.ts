@@ -153,6 +153,29 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     expect(data.nodes).to.have.length(6);
   });
 
+  it("records the merge, with its diff, in the task log", async function(){
+    //The one thing worth knowing after the fact. It used to sit behind a condition
+    //`writeDoc` can never satisfy, so no merge has ever been logged.
+    let currentDoc = JSON.parse(sampleDocString);
+    currentDoc.models[0].annotations = [{id: uid(), title:"Annotation"}];
+    await vfs.writeDoc(JSON.stringify(currentDoc), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+    sampleDoc.asset.id = firstDocId;
+    sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(205);
+
+    const logs = await vfs._db.all<{severity :string, message :string}>(
+      `SELECT severity, message FROM tasks_logs ORDER BY log_id`
+    );
+    const messages = logs.filter(l=>l.severity === "info").map(l=>l.message);
+    expect(messages.join("\n"), "the merge itself").to.match(/three-way merge: rebased #\d+ onto #\d+/);
+    expect(messages.join("\n"), "and what it applied").to.contain('"Titre 1"');
+  });
+
   it("answers 204 when nobody wrote in between", async function(){
     //Fast-forward: the reference is still the current document, so what gets stored is
     //exactly what was sent and the client has nothing to reload.
