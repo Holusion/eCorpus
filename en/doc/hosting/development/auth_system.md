@@ -4,7 +4,7 @@ title: Identity, Access Control
 # eCorpus authentication & authorization system
 
 This document explains the authorization model of the eCorpus server: the
-concepts and their names, the scope conventions, the token/OAuth machinery, and how to actually use it with the [`policy()`](http://localhost:4000/en/doc/hosting/development/auth_system#guarding-a-route) middleware.
+concepts and their names, the scope conventions, the token/OAuth machinery, and how to actually use it with the [`policy()`](#guarding-a-route) middleware.
 
 For an actual guide on how to use the authentication API, the [Using the API guide](/en/doc/hosting/api#authentication) or the [API reference](/en/doc/hosting/apiDoc#auth) are better starting points; this page is aimed at peaople trying to understand the implementation details.
 
@@ -23,7 +23,7 @@ Every request's **effective authority** is the *intersection of three factors*:
 3. **the resource ACL** — what this **user** may do **on** *this particular resource*
    (per-scene access rows, task ownership, group membership…).
 
-A route passes only when all applicable factors allow it. [`policy()`](http://localhost:4000/en/doc/hosting/development/auth_system#guarding-a-route) is the single middleware that evaluates this conjunction.
+A route passes only when all applicable factors allow it. [`policy()`](#guarding-a-route) is the single middleware that evaluates this conjunction.
 
 ---
 
@@ -59,7 +59,7 @@ concrete ones. Scopes appear in three roles:
   *account* half (or by the ACL), never by the credential half;
 - **effective scopes** — conceptually `account ∩ credential`; guards check the
   two halves separately because the failure modes differ (401 vs 403, see
-  [Guarding a route](#guarding-a-route-policy)).
+  [Guarding a route](#guarding-a-route)).
 
 **Cap** (as in `accessCap`) means *ceiling*, nothing else: the highest rung of
 a family a credential holds caps the access level a token may exercise on a
