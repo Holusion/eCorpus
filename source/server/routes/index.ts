@@ -14,6 +14,17 @@ import wrap from "../utils/wrapAsync.js";
 import Templates, { dicts } from "../utils/templates/index.js";
 import { getMetadata } from "./auth/oauth.js";
 
+import viewsRoutes from "./views/index.js";
+import adminRoutes from "./admin/index.js";
+import authRoutes from "./auth/index.js";
+import historyRoutes from "./history/index.js";
+import scenesRoutes from "./scenes/index.js";
+import usersRoutes from "./users/index.js";
+import tagsRoutes from "./tags/index.js";
+import groupsRoutes from "./groups/index.js";
+import servicesRoutes from "./services/index.js";
+import tasksRoutes from "./tasks/index.js";
+
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
   const templates = new Templates({dir: locals.config.get("templates_dir"), cache: locals.config.get("node_env") == "production"});
@@ -206,18 +217,18 @@ Sitemap: ${sitemap}
   // static file server
   app.use("/dist", express.static(locals.config.get("dist_dir")));
 
-  app.use("/ui", (await import("./views/index.js")).default);
+  app.use("/ui", viewsRoutes);
 
   //Privilege-protected routes
-  app.use("/admin", (await import("./admin/index.js")).default);
-  app.use("/auth", (await import("./auth/index.js")).default);
-  app.use("/history", (await import("./history/index.js")).default);
-  app.use("/scenes", (await import("./scenes/index.js")).default);
-  app.use("/users", (await import("./users/index.js")).default);
-  app.use("/tags", (await import("./tags/index.js")).default);
-  app.use("/groups", (await import("./groups/index.js")).default);
-  app.use("/services", (await import("./services/index.js")).default);
-  app.use("/tasks", (await import("./tasks/index.js")).default);
+  app.use("/admin", adminRoutes);
+  app.use("/auth", authRoutes);
+  app.use("/history", historyRoutes);
+  app.use("/scenes", scenesRoutes);
+  app.use("/users", usersRoutes);
+  app.use("/tags", tagsRoutes);
+  app.use("/groups", groupsRoutes);
+  app.use("/services", servicesRoutes);
+  app.use("/tasks", tasksRoutes);
 
   // error handling
   //404: Not Found handler This should be last as it will match everything
