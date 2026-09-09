@@ -74,11 +74,12 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     //Make our user reference the first doc generation
     sampleDoc.asset.id = firstDocId;
     sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    //205: the stored document is a merge, not what was sent. The client must reload.
     let r = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
     .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
-    .expect(204);
+    .expect(205);
 
     let {ctime, mtime, data:docString, id, ...doc} =  await vfs.getDoc(scene_id);
     const data = JSON.parse(docString);
@@ -144,12 +145,123 @@ describe("PUT /scenes/:scene/scene.svx.json", function(){
     .set("Authorization", await bearer("bob"))
     .set("Content-Type", "application/si-dpo-3d.document+json")
     .send(sampleDoc)
-    .expect(204);
+    .expect(205);
 
     let {ctime, mtime, data:docString, id, ...doc} =  await vfs.getDoc(scene_id);
     const data = JSON.parse(docString);
     expect(data.models).to.have.length(3);
     expect(data.nodes).to.have.length(6);
+  });
+
+  it("records the merge, with its diff, in the task log", async function(){
+    //The one thing worth knowing after the fact. It used to sit behind a condition
+    //`writeDoc` can never satisfy, so no merge has ever been logged.
+    let currentDoc = JSON.parse(sampleDocString);
+    currentDoc.models[0].annotations = [{id: uid(), title:"Annotation"}];
+    await vfs.writeDoc(JSON.stringify(currentDoc), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+    sampleDoc.asset.id = firstDocId;
+    sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(205);
+
+    const logs = await vfs._db.all<{severity :string, message :string}>(
+      `SELECT severity, message FROM tasks_logs ORDER BY log_id`
+    );
+    const messages = logs.filter(l=>l.severity === "info").map(l=>l.message);
+    expect(messages.join("\n"), "the merge itself").to.match(/three-way merge: rebased #\d+ onto #\d+/);
+    expect(messages.join("\n"), "and what it applied").to.contain('"Titre 1"');
+  });
+
+  it("answers 204 when nobody wrote in between", async function(){
+    //Fast-forward: the reference is still the current document, so what gets stored is
+    //exactly what was sent and the client has nothing to reload.
+    sampleDoc.asset.id = firstDocId;
+    sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    const {data} = await vfs.getDoc(scene_id);
+    delete sampleDoc.asset.id; //never stored
+    expect(JSON.parse(data)).to.deep.equal(sampleDoc);
+  });
+
+  it("answers 204 when the document didn't change", async function(){
+    sampleDoc.asset.id = firstDocId;
+    await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    expect((await vfs.getDoc(scene_id)).generation, "no new generation for a no-op").to.equal(1);
+  });
+
+  it("sets an ETag naming the document it wrote", async function(){
+    //No reference id: the plain overwrite path, which merge-disabled instances always take.
+    sampleDoc.asset.copyright = "Something Else";
+    const res = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    const {id} = await vfs.getDoc(scene_id);
+    expect(id).to.not.equal(firstDocId);
+    expect(res.headers).to.have.property("etag", `"${id}"`);
+  });
+
+  it("sets an ETag on a fast-forward", async function(){
+    sampleDoc.asset.id = firstDocId;
+    sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    const res = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    const {id} = await vfs.getDoc(scene_id);
+    expect(res.headers).to.have.property("etag", `"${id}"`);
+  });
+
+  it("sets an ETag on a no-op, naming the document that is still current", async function(){
+    sampleDoc.asset.id = firstDocId;
+    const res = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(204);
+
+    expect(res.headers).to.have.property("etag", `"${firstDocId}"`);
+  });
+
+  it("sets an ETag on a merge, naming the merged document", async function(){
+    //This is what the client has to reload from, so it must be the same token a GET reports.
+    let currentDoc = JSON.parse(sampleDocString);
+    currentDoc.models[0].annotations = [{id: uid(), title:"Annotation"}];
+    await vfs.writeDoc(JSON.stringify(currentDoc), {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+    sampleDoc.asset.id = firstDocId;
+    sampleDoc.metas[0].collection.titles["FR"] = "Titre 1";
+    const res = await request(this.server).put(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("Content-Type", "application/si-dpo-3d.document+json")
+    .send(sampleDoc)
+    .expect(205);
+
+    const get = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    expect(res.headers.etag, "PUT and GET must agree").to.equal(get.headers.etag);
+    expect(JSON.parse(get.text).asset.id, "and match what the body carries")
+      .to.equal(parseInt(JSON.parse(res.headers.etag)));
   });
 
   it.skip("can't reference a foreign document to diff against", async function(){

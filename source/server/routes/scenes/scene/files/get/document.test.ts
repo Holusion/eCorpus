@@ -49,4 +49,39 @@ describe("GET /scenes/:scene/scene.svx.json", function(){
     expect(JSON.parse(res.text)).to.have.property("asset").to.have.property("id", id);
   });
 
+  it("sets the document id as the ETag", async function(){
+    let {id} = await vfs.getDoc(titleSlug);
+    let res = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    expect(res.headers).to.have.property("etag", `"${id}"`);
+  });
+
+  it("changes the ETag when a new generation is written", async function(){
+    let first = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    await vfs.writeDoc(sampleDocString, {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+
+    let second = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    //Same bytes on disk, but a new generation the client must be able to tell apart
+    expect(second.headers.etag).to.not.equal(first.headers.etag);
+  });
+
+  it("returns 304 on a conditional GET that matches the ETag", async function(){
+    let first = await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    await request(this.server).get(`/scenes/${titleSlug}/scene.svx.json`)
+    .set("Authorization", await bearer("bob"))
+    .set("If-None-Match", first.headers.etag)
+    .expect(304);
+  });
+
 });

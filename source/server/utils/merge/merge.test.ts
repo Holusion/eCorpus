@@ -243,6 +243,95 @@ describe("merge documents", function(){
       }]);
     })
     
+    it("skips a patch for an object that was removed concurrently", function(){
+      //A tour is removed in `current` while we edit one of its steps.
+      //Applying our patch would rebuild a tour holding nothing but the edited field.
+      const ref = JSON.parse(docString);
+      ref.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "titles": {"EN": "Tour"},
+        "steps": [
+          {"id": "gLi0xz", "titles": {"EN": "New Step #0"}},
+          {"id": "bdh7ob", "titles": {"EN": "New Step #1"}},
+        ]
+      }];
+
+      const current = JSON.parse(JSON.stringify(ref));
+      current.setups[0].tours = [];
+
+      const next = JSON.parse(JSON.stringify(ref));
+      next.setups[0].tours[0].titles = {"EN": "Edited by me"};
+
+      const result = applyDoc(current, diffDoc(ref, next));
+      expect(result.setups).to.have.length(1);
+      expect((result.setups as any)[0].tours, "the removal wins over a partial patch").to.be.undefined;
+    });
+
+    it("still inserts a whole new object into a collection it left", function(){
+      //The counterpart of the test above: the tour is new in `next`, so the diff carries
+      //it whole and it must be adopted even though `current` has no tours at all.
+      const ref = JSON.parse(docString);
+      ref.setups[0].tours = [];
+
+      const current = JSON.parse(JSON.stringify(ref));
+
+      const next = JSON.parse(JSON.stringify(ref));
+      next.setups[0].tours = [{
+        "id": "fxQkZ9rUwNAU",
+        "titles": {"EN": "Brand new tour"},
+        "steps": [{"id": "gLi0xz", "titles": {"EN": "New Step #0"}}]
+      }];
+      //`diffDoc` stamps SOURCE_INDEX onto the documents it reads, so keep a clean copy
+      const expected = JSON.parse(JSON.stringify(next.setups[0].tours));
+
+      const result = applyDoc(current, diffDoc(ref, next));
+      expect((result.setups as any)[0].tours).to.deep.equal(expected);
+    });
+
+    it("skips a patch for a node that was removed concurrently", function(){
+      const ref = JSON.parse(docString);
+      //Snapshots reference nodes by index; removing a targeted node is covered separately
+      //in the snapshot tests. Keep this one about the node patch itself.
+      delete ref.setups[0].snapshots;
+      const victim = (ref.nodes as INode[]).find(n=>typeof n.model === "number")!;
+
+      const current = JSON.parse(JSON.stringify(ref));
+      current.scenes[0].nodes = current.scenes[0].nodes.filter(
+        (idx :number)=> current.nodes[idx].id !== victim.id
+      );
+
+      const next = JSON.parse(JSON.stringify(ref));
+      (next.nodes as INode[]).find(n=>n.id === victim.id)!.name = "Renamed by me";
+
+      const result = applyDoc(current, diffDoc(ref, next));
+      const zombie = (result.nodes as INode[]).find(n=>n.id === victim.id || n.name === "Renamed by me");
+      expect(zombie, "no node should be rebuilt out of the patch").to.be.undefined;
+    });
+
+    it("drops snapshot targets pointing at a node that was removed concurrently", function(){
+      //Voyager cleans up a deleted node's targets on its own, but the other side of a
+      //merge may not have, and a target left dangling used to fail the whole save.
+      const ref = JSON.parse(docString);
+      const victimIdx = (ref.nodes as INode[]).findIndex(n=>typeof n.model === "number");
+      const victim = (ref.nodes as INode[])[victimIdx];
+
+      const current = JSON.parse(JSON.stringify(ref));
+      current.scenes[0].nodes = current.scenes[0].nodes.filter((idx :number)=> idx !== victimIdx);
+
+      const next = JSON.parse(JSON.stringify(ref));
+      next.setups[0].snapshots = {
+        features: ["position"],
+        targets: [`node/${victimIdx}/position`, "scenes/0/setup/reader/enabled"],
+        states: [{id: "aaaaaa", curve: "Linear", duration: 1, threshold: 0.5, values: [[1,2,3], true]}],
+      };
+
+      const result = applyDoc(current, diffDoc(ref, next));
+      const {snapshots} = (result.setups as Required<ISetup>[])[0];
+      expect(snapshots.targets, "the dangling target is gone").to.deep.equal(["scenes/0/setup/reader/enabled"]);
+      expect(snapshots.states[0].values, "its column is gone from every state too").to.deep.equal([true]);
+      expect((result.nodes as INode[]).find(n=>n.id === victim.id)).to.be.undefined;
+    });
+
     it("detects a no-op", function(){
       const current = JSON.parse(docString);
       const next = JSON.parse(docString);

@@ -6,8 +6,8 @@
     "type": "module",
     "scripts": {
         "start": "node ./dist/index.js",
-        "test": "NODE_NO_WARNINGS=1 LOG_LEVEL=silent mocha",
-        "test-watch": "NODE_NO_WARNINGS=1 LOG_LEVEL=silent mocha --parallel --watch --reporter min",
+        "test": "TEST=1 MAIL_FAKE=1 NODE_NO_WARNINGS=1 LOG_LEVEL=silent mocha",
+        "test-watch": "TEST=1 MAIL_FAKE=1 NODE_NO_WARNINGS=1 LOG_LEVEL=silent mocha --parallel --watch --reporter min",
         "build": "tsc -b .",
         "watch": "tsc -b . --watch"
     },

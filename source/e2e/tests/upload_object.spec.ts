@@ -41,7 +41,7 @@ test("uploads and rename a glb", async ({ page, request }) => {
 
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
-  expect(res.headers()).toHaveProperty("etag", "W/4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs");
+  expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });
 
 test("uploads and rename a glb (force FR)", async ({ page, request }) => {
@@ -80,7 +80,7 @@ test("uploads and rename a glb (force FR)", async ({ page, request }) => {
 
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
-  expect(res.headers()).toHaveProperty("etag", "W/4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs");
+  expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });
 
 
@@ -148,7 +148,7 @@ test("upload many glb", async ({ page, request }) => {
   for (let file of files) {
     res = await request.get(`/scenes/${name}/${file.name}`);
     await expect(res).toBeOK();
-    expect(res.headers()).toHaveProperty("etag", "W/4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs");
+    expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
   }
 
 });
@@ -206,7 +206,7 @@ test("uploads an obj with mtl and texture", async ({ page, request }) => {
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
   // It may change without it being a problem. Check the actual file if necessary.
-  expect(res.headers()).toHaveProperty("etag", "W/yhH03TGHdkBQgKlzJcPpDFD9XdQk9Wq_vBxCzThegYY");
+  expect(res.headers()).toHaveProperty("etag", '"yhH03TGHdkBQgKlzJcPpDFD9XdQk9Wq_vBxCzThegYY"');
 });
 
 
@@ -248,5 +248,5 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   const headers = res.headers();
   //We check the etag is different from what we'd have if we didn't request optimization
   expect(headers).toHaveProperty("etag");
-  expect(headers).not.toEqual("W/4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs");
+  expect(headers).not.toEqual('"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });

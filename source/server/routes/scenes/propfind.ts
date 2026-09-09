@@ -129,7 +129,7 @@ class Element{
         "elements": [
           {
             "type": "text",
-             "text": `W/${props.hash}`
+             "text": `"${props.hash}"`
           }
         ]
       })

@@ -11,14 +11,22 @@ import { AppLocals } from "./utils/locals.js";
 import { randomBytes } from "node:crypto";
 import { debuglog } from "node:util";
 import Vfs from "./vfs/index.js";
+//Imported for its side effect as much as for `createService`: ts-node compiles
+//the whole server here, while mocha is still loading files. Left to the first
+//hook that needs it (this used to be an `await import()` inside
+//createIntegrationContext) it costs seconds, overruns mocha's 2s hook timeout,
+//and `--grep` decides which hook pays - which is why filtered runs were the
+//ones that failed. An actual createService() is ~75ms.
+import createService from "./create.js";
 sourceMaps.install();
 
 chai.use(chaiAsPromised);
 
-process.env["TEST"] ??= "true";
-// Force every test run to use the in-memory nodemailer json transport so no
-// SMTP connection is ever attempted from a test.
-process.env["MAIL_FAKE"] ??= "true";
+//Set by the `test` npm scripts, not from here: these are read by modules that
+//static imports have already evaluated by the time this body runs
+for(const name of ["TEST", "MAIL_FAKE"]){
+  if(!process.env[name]) throw new Error(`${name} is not set. Run the suite through \`npm test\`, or pass TEST=1 MAIL_FAKE=1 if calling mocha yourself.`);
+}
 
 const debug = debuglog("pg:debug");
 
@@ -125,7 +133,29 @@ global.dropDb = async function(uri: string){
 }
 
 global.createIntegrationContext = async function(c :Mocha.Context, config_override :Record<string, string>={}){
-  let {default:createService} = await import("./create.js");
+  registerContextCleanup(c);
+  const pending = c.pending_services = openIntegrationContext(c, config_override);
+
+  const services = await pending;
+  if(c.pending_services !== pending){
+    //Cleanup adopted us while we were starting, and has closed `services`
+    //along with everything else. Mocha ignores a runnable that settles after
+    //its timeout, so this throw only keeps us from handing out a dead service.
+    throw new Error("Integration context was torn down before it finished starting");
+  }
+  c.services = services;
+  c.server = services.app;
+  currentLocals = c.server.locals;
+  return c.server.locals;
+}
+
+/**
+ * The actual creation, kept apart so {@link createIntegrationContext} can
+ * publish its promise before doing anything that can be interrupted.
+ * Everything it allocates is written to the context as it goes, so cleanup
+ * finds it whether or not this ran to completion.
+ */
+async function openIntegrationContext(c :Mocha.Context, config_override :Record<string, string>){
   let titleSlug = "t_"+ (c.currentTest?.title || c.test?.parent?.fullTitle() || `eCorpus_integration`).replace(/[^\w]/g, "_").substring(0, 58) +"_"+randomBytes(4).toString("hex");
   c.db_uri = await getUniqueDb(titleSlug);
   c.dir = await fs.mkdtemp(path.join(tmpdir(), titleSlug));
@@ -138,25 +168,51 @@ global.createIntegrationContext = async function(c :Mocha.Context, config_overri
     //Options we might want to customize
     config_override
   );
-  c.services = await createService( c.config_env );
-  c.server = c.services.app;
-  currentLocals = c.server.locals;
+  return await createService( c.config_env );
+}
+
+/**
+ * Attach the teardown hook for a suite's integration context, once per suite:
+ * `afterEach` when the context is built per-test, `afterAll` otherwise.
+ */
+function registerContextCleanup(c :Mocha.Context){
   const suite = c.test?.parent as any;
-  if(suite?._beforeEach?.includes(c.test)){
-    suite.afterEach(async function(this: Mocha.Context){ await cleanIntegrationContext(this); });
-  } else {
-    suite?.afterAll(async function(this: Mocha.Context){ await cleanIntegrationContext(this); });
-  }
-  return c.server.locals;
+  if(!suite || suite._integration_cleanup) return;
+  suite._integration_cleanup = true;
+  //Not `cleanIntegrationContext` itself: mocha reads a hook's arity and would
+  //hand a one-argument function a `done` callback.
+  const cleanup = async function(this: Mocha.Context){
+    await cleanIntegrationContext(this);
+  };
+  if(suite._beforeEach?.includes(c.test)) suite.afterEach(cleanup);
+  else suite.afterAll(cleanup);
 }
 
 
 async function cleanIntegrationContext (c :Mocha.Context){
-  if(!c.services) return debug(`No integration context (double close?): ${c.currentTest?.title?? "anonymous"}`);
+  const pending = c.pending_services;
+  if(pending){
+    //Adopt a creation that is still running. It can't be cancelled halfway -
+    //it is taking a database connection and the Config singleton - so wait for
+    //it to finish, then close it like any other context.
+    delete c.pending_services;
+    c.services = await pending.catch((e :any)=>{
+      debug(`Integration context failed to start: ${e.message}`);
+      return undefined;
+    });
+  }else if(!c.services){
+    return debug(`No integration context (double close?): ${c.currentTest?.title?? "anonymous"}`);
+  }
   await c.services?.close();
-  await dropDb(c.db_uri);
-  if(c.dir) await fs.rm(c.dir, {recursive: true});
   delete c.services;
+  if(c.db_uri){
+    await dropDb(c.db_uri);
+    delete c.db_uri;
+  }
+  if(c.dir){
+    await fs.rm(c.dir, {recursive: true});
+    delete c.dir;
+  }
 }
 
 global.resetIntegrationContext = async function(c :Mocha.Context){

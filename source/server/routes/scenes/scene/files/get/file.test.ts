@@ -71,6 +71,18 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
     .expect("foo\n");
   });
 
+  it("sets a strong ETag holding the file's hash", async function(){
+    //Strong so it can be used as an `If-Match` precondition on a write.
+    let scene_id = await vfs.createScene("foo", user.uid);
+    let {hash} = await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+    let res = await request(this.server).get("/scenes/foo/models/foo.glb")
+    .set("Authorization", await bearer("bob"))
+    .expect(200);
+
+    expect(res.headers).to.have.property("etag", `"${hash}"`);
+  });
+
   it("is case-sensitive", async function(){
     let scene_id = await vfs.createScene("foo").then((scene_id)=> 
       {userManager.setPublicAccess(scene_id, "read");
@@ -291,6 +303,70 @@ describe("GET /scenes/:scene/:filename(.*)", function(){
 
     await (await request.agent(this.server).set("Range","bytes=20-100, 200-300")).get("/scenes/foo/models/foo.glb")
     .expect(400);
+  });
+
+  describe("range validators", function(){
+
+    /** A public scene holding "foo\n" at models/foo.glb */
+    async function makeFile(){
+      let scene_id = await vfs.createScene("foo").then((scene_id)=> {userManager.setPublicAccess(scene_id, "read"); return scene_id});
+      await vfs.writeDoc("{}", {scene: scene_id, user_id: user.uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+      return await vfs.writeFile(dataStream(), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+    }
+
+    it("carries the same validators as a full response", async function(){
+      const {hash} = await makeFile();
+
+      const res = await (await request.agent(this.server).set("Range","bytes=1-2")).get("/scenes/foo/models/foo.glb")
+      .expect(206);
+
+      expect(res.headers).to.have.property("etag", `"${hash}"`);
+      expect(res.headers).to.have.property("last-modified").that.is.a("string");
+      expect(res.headers).to.have.property("content-type", "model/gltf-binary");
+    });
+
+    it("serves the range when If-Range still matches", async function(){
+      const {hash} = await makeFile();
+
+      await (await request.agent(this.server).set("Range","bytes=1-2").set("If-Range", `"${hash}"`))
+      .get("/scenes/foo/models/foo.glb")
+      .expect(206)
+      .expect("oo");
+    });
+
+    it("serves the whole file when If-Range no longer matches", async function(){
+      const {hash} = await makeFile();
+      await vfs.writeFile(Readable.from(["bar\n"]), {scene: "foo", mime:"model/gltf-binary", name: "models/foo.glb", user_id: user.uid});
+
+      //Splicing a range of "bar" onto a half-downloaded "foo" is exactly what If-Range exists
+      //to prevent, so the stale validator must cost the client its range, not its integrity.
+      const res = await (await request.agent(this.server).set("Range","bytes=1-2").set("If-Range", `"${hash}"`))
+      .get("/scenes/foo/models/foo.glb")
+      .expect(200);
+
+      expect(res.text).to.equal("bar\n");
+      expect(res.headers).to.not.have.property("content-range");
+    });
+
+    it("serves the range when If-Range holds the current Last-Modified", async function(){
+      await makeFile();
+      const full = await request(this.server).get("/scenes/foo/models/foo.glb").expect(200);
+
+      await (await request.agent(this.server).set("Range","bytes=1-2").set("If-Range", full.headers["last-modified"]))
+      .get("/scenes/foo/models/foo.glb")
+      .expect(206)
+      .expect("oo");
+    });
+
+    it("refuses a weak If-Range tag", async function(){
+      //Strong comparison only: a weak validator says nothing about the bytes being stitched.
+      const {hash} = await makeFile();
+
+      await (await request.agent(this.server).set("Range","bytes=1-2").set("If-Range", `W/"${hash}"`))
+      .get("/scenes/foo/models/foo.glb")
+      .expect(200)
+      .expect("foo\n");
+    });
   });
 
 });
