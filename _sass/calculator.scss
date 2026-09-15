@@ -1,0 +1,255 @@
+@use "variables" as *;
+
+.calculator {
+  .calc-step {
+    margin: 1rem 0;
+  }
+
+  .calc-step-body {
+    padding: 0.5rem 0 0.5rem 1.5rem;
+  }
+
+  .calc-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .calc-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid $middlegrey;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:has(input:checked) {
+      border-color: $yellow;
+    }
+
+    &:has(input:user-invalid) {
+      border-color: $orange;
+    }
+  }
+
+  .calc-option-illustration {
+    position: relative;
+    display: block;
+    width: 120px;
+    aspect-ratio: 1;
+  }
+
+  .calc-option-choice {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    input {
+      margin: 0;
+      accent-color: $yellow;
+    }
+  }
+
+  .calc-vres-slider {
+    max-width: 32rem;
+  }
+
+  .calc-vres-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.3rem;
+
+    .calc-vres-density {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: $middlegrey;
+    }
+  }
+
+  #calc-vres-level {
+    width: 100%;
+    accent-color: $yellow;
+  }
+
+  .calc-vres-examples {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .calc-vres-example {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: $middlegrey;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .calc-vres-illustration {
+    position: relative;
+    display: block;
+    width: 50%;
+    max-width: 256px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+  }
+
+  .calc-vres-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .calc-vres-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    background-color: $backgroundColor;
+    border: 1px dashed $middlegrey;
+    border-radius: 4px;
+    padding: 10%;
+    box-sizing: border-box;
+
+    &[hidden] {
+      display: none;
+    }
+
+    svg {
+      width: 40%;
+      height: 40%;
+      fill: $middlegrey;
+    }
+
+    code {
+      font-size: 0.65rem;
+      color: $middlegrey;
+      word-break: break-all;
+    }
+  }
+
+  .calc-cx-slider {
+    max-width: 32rem;
+    margin-top: 1.5rem;
+  }
+
+  .calc-cx-slider-header {
+    margin-bottom: 0.3rem;
+  }
+
+  #calc-cx-level {
+    width: 100%;
+    accent-color: $yellow;
+  }
+
+  .calc-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+
+    &[hidden] {
+      display: none;
+    }
+
+    label {
+      min-width: 12rem;
+    }
+
+    input, select {
+      padding: 0.3rem 0.5rem;
+      border: 1px solid $middlegrey;
+      border-radius: 4px;
+      font: inherit;
+
+      &:user-invalid {
+        border-color: $orange;
+      }
+    }
+  }
+
+  .calc-result {
+    background-color: $backgroundColor;
+    border-radius: 4px;
+    padding: 1rem 1.5rem;
+  }
+
+  .calc-options-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+
+    .calc-field {
+      margin: 0;
+    }
+  }
+
+  .calc-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+
+    input {
+      margin: 0;
+      accent-color: $yellow;
+    }
+  }
+
+  .calc-result-hint {
+    color: $middlegrey;
+    font-style: italic;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .calc-output {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.3rem 1rem;
+    margin: 0;
+
+    dt {
+      font-weight: 600;
+    }
+
+    dd {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    &.is-disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+
+  .calc-reset {
+    margin-top: 1.5rem;
+  }
+}
