@@ -1,0 +1,148 @@
+---
+title: "Principes du calculateur"
+description: "Le modèle mathématique dertrière le calculateur de"
+---
+<style>
+  figure.formula {
+    text-align: center;
+
+    math {
+      display: block;
+    }
+  }
+</style>
+
+<h3>Estimation de la surface</h3>
+<p>
+  Les calculs présentés sur cette page reposent avant tout sur une estimation de l'aire du solide étudié.
+  Partant d'une primitive (sphère, pavé, plan) et de sa taille, on en calcule une <b>aire brute</b> ;
+  qui sera ensuite affinée.
+</p>
+
+<figure class="formula">
+  <math>
+    <mrow>
+      <mi title="Surface estimée">S</mi>
+      <mo>=</mo>
+      <mi>π</mi>
+      <msup><mi>d</mi><mn>2</mn></msup>
+    </mrow>
+  </math>
+  <figcaption>calcul de la surface d'une sphère</figcaption>
+</figure>
+
+<h3>Estimation du nombre de texels</h3>
+
+<h4>Packing & Padding</h4>
+
+<p>L'agencement des <i>UV islands</i> laisse nécessairement des espaces impossibles à combler. On ajoute en outre un <i>padding</i> entre chaque <i>île</i>.</p>
+<p>En conséquence, l'efficacité réelle d'occupation des textures (ratio de texels utilisés) peut varier. On observe généralement des taux allant de 50% à 70%.</p>
+
+<p>Ce facteur est matérialisé par une constante d'efficacité fixée arbitrairement à 60%.</p>
+
+<p>La taille recommandée est arrondie au multiple de 4 le plus proche. Arrondir à une puissance de 2 n'est généralement pas nécessaire.</p>
+
+<h3>Estimation du nombre de polygones</h3>
+
+<p>
+  Le nombre de faces est dérivé du nombre de texels plutôt que calculé indépendamment : les deux grandeurs sont
+  intrinsèquement liées, puisqu'une géométrie plus fine que la texture qui la recouvre n'apporte aucun détail
+  visuel supplémentaire.
+</p>
+
+<figure class="formula">
+  <math>
+    <mrow>
+      <msub><mi>N</mi><mi>face</mi></msub>
+      <mo>=</mo>
+      <mfrac><mrow><msub><mi>N</mi><mi>texel</mi></msub><mo>·</mo><mi>ρ</mi></mrow><mi>η</mi></mfrac>
+    </mrow>
+  </math>
+  <figcaption>nombre de faces à partir du nombre de texels utiles, d'un ratio faces/texel ρ et d'un facteur de reprise par la carte de normales η</figcaption>
+</figure>
+
+<p>Le nombre de sommets s'en déduit par la formule d'Euler pour un maillage triangulé fermé, où arêtes et faces sont liées par <math><mrow><mi>E</mi><mo>=</mo><mfrac><mn>3</mn><mn>2</mn></mfrac><msub><mi>N</mi><mi>face</mi></msub></mrow></math> :</p>
+
+<figure class="formula">
+  <math>
+    <mrow>
+      <msub><mi>N</mi><mi>sommet</mi></msub>
+      <mo>≈</mo>
+      <mfrac><msub><mi>N</mi><mi>face</mi></msub><mn>2</mn></mfrac>
+    </mrow>
+  </math>
+</figure>
+
+<h4>Ratio faces/texel (ρ)</h4>
+
+<p>
+  On sait qu'un nombre de faces trop important n'apporte plus de détail visuel une fois la densité géométrique
+  supérieure à la densité de texels : <b>1 face par texel est une limite haute absolue</b>. En pratique, une valeur
+  bien plus basse suffit, et dépend de la régularité de la surface : une forme lisse se contente de beaucoup moins
+  d'une face par texel, une forme très travaillée en réclame davantage.
+</p>
+
+<p>
+  Ce ratio est calculé à partir du facteur de complexité choisi (curseur « irrégularité de la surface »), avec une
+  variation en <math><msqrt><mi>facteur</mi></msqrt></math> autour d'une valeur de référence de 0,1 face/texel pour une sphère à complexité
+  « typique ». Cela donne des bornes d'environ 0,05 (très lisse) à 0,2 (très intriquée) pour cette forme de référence.
+</p>
+
+<p>
+  Les primitives à arêtes vives (un pavé, par exemple) ont besoin de relativement plus de faces par texel qu'une
+  sphère à complexité égale, pour bien résoudre leurs arêtes. Ce facteur de forme est le même <math><mi>α</mi></math> que celui
+  utilisé pour l'estimation de la surface, rapporté à celui de la sphère (α = 0,5) :
+</p>
+
+<figure class="formula">
+  <math>
+    <mrow>
+      <mi>ρ</mi>
+      <mo>=</mo>
+      <mtext>min</mtext>
+      <mfenced>
+        <mrow>
+          <mfrac>
+            <mrow><mn>0.1</mn><mo>·</mo><msub><mi>α</mi><mi>sphère</mi></msub></mrow>
+            <mrow><msub><mi>α</mi><mi>forme</mi></msub><mo>·</mo><msqrt><mi>facteur</mi></msqrt></mrow>
+          </mfrac>
+          <mo>,</mo>
+          <mn>1</mn>
+        </mrow>
+      </mfenced>
+    </mrow>
+  </math>
+</figure>
+
+<h4>Reprise par la carte de normales (η)</h4>
+
+<p>
+  À résolution de texture égale entre carte diffuse et carte de normales (1:1), la carte de normales peut se
+  substituer à une partie du relief que la géométrie aurait dû porter, réduisant d'autant le nombre de sommets
+  nécessaires. Cette reprise est elle aussi modulée par la complexité : une surface lisse n'a pas ou peu de
+  contours, d'auto-occlusion ou de parallaxe que la carte de normales ne saurait approximer, elle profite donc
+  pleinement de la substitution ; une surface très intriquée conserve des discontinuités de silhouette qu'une
+  carte de normales ne peut pas simuler, et bénéficie donc de bien moins de reprise.
+</p>
+
+<figure class="formula">
+  <math>
+    <mrow>
+      <mi>η</mi>
+      <mo>=</mo>
+      <mn>2</mn>
+      <mo>·</mo>
+      <msqrt><mi>facteur</mi></msqrt>
+    </mrow>
+  </math>
+  <figcaption>η = 1 lorsque la carte de normales n'est pas générée</figcaption>
+</figure>
+
+<p><b>⚠</b>Une densité visuelle uniforme n'est pas toujours souhaitable sur l'ensemble d'une scène. Par exemple, si on considère un premier plan (sujet) et un arrière plan (environnement); il est raisonnable d'envisager une densité largement supérieure pour le premier. Cette hétérogénéité n'est pas gérée par les logiciels de photogrammétrie. Considérer alors l'export de plusieurs éléments séparés ou la retouche manuelle du modèle exporté.</p>
+
+
+
+<h3>Limites du modèle</h3>
+<ul>
+  <li>La reprise par la carte de normales ne tient pas compte des contours, de l'auto-occlusion et de la parallaxe, qu'elle ne peut par nature pas approximer — le facteur η ci-dessus n'en est qu'une approximation grossière.</li>
+</ul>
