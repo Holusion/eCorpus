@@ -78,7 +78,7 @@ Le resultat devrait s'approcher de celui-ci :
 Remplacer le SVX existant en utilisant l'API.
 
 ```bash
-curl -L -XPUT  -u "${USERNAME}:${PASSWORD}"  -H "Content-Type: application/json" --data-binary @scene.svx.json https://${HOSTNAME}/scenes/${NAME}/scene.svx.json
+curl -L -XPUT -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" --data-binary @scene.svx.json https://${HOSTNAME}/scenes/${NAME}/scene.svx.json
 ```
 
 #### Générer le USDZ
@@ -97,7 +97,7 @@ Recommandation de qualité :
 Importer le modèle avec l'API.
 
 ```bash
-curl -L -XPUT -u "${USERNAME}:${PASSWORD}" --data-binary @${FILENAME}.usdz https://${HOSTNAME}/scenes/${NAME}/${FILENAME}.usdz
+curl -L -XPUT -H "Authorization: Bearer ${TOKEN}" --data-binary @${FILENAME}.usdz https://${HOSTNAME}/scenes/${NAME}/${FILENAME}.usdz
 ```
 
 La scène proposera maintenant un option AR pour les mobiles iOS ayant accès à l'ARKit.
@@ -180,7 +180,7 @@ Cette opération rajoutera une dérivative dans le SVX sous cette forme:
 Remplacer le SVX existant en utilisant l'API.
 
 ```bash
-curl -L -XPUT  -u "${USERNAME}:${PASSWORD}"  -H "Content-Type: application/json" --data-binary @scene.svx.json https://${HOSTNAME}/scenes/${NAME}/scene.svx.json
+curl -L -XPUT -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" --data-binary @scene.svx.json https://${HOSTNAME}/scenes/${NAME}/scene.svx.json
 ```
 
 #### Générer le GLB
@@ -197,7 +197,7 @@ Recommandation de qualité :
 Importer le modèle avec l'API.
 
 ```bash
-curl -L -XPUT -u "${USERNAME}:${PASSWORD}" --data-binary @${FILENAME}.usdz https://${HOSTNAME}/scenes/${NAME}/${FILENAME}.usdz
+curl -L -XPUT -H "Authorization: Bearer ${TOKEN}" --data-binary @${FILENAME}.usdz https://${HOSTNAME}/scenes/${NAME}/${FILENAME}.usdz
 ```
 
 La scène proposera maintenant un option AR pour les mobiles Android ayant un navigateur compatible.

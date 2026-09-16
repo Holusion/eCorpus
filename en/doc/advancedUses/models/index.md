@@ -53,7 +53,7 @@ Recommended sizes (faces and map size):
 Either import as a new scene or, to update an existing scene's model : 
 
 ```sh
-curl -XPUT -u <username>:<password> -d @</path/.to/file.glb> https://ecorpus.holusion.com/scenes/<scene-name>/models/<filename.glb>
+curl -XPUT -H "Authorization: Bearer <token>" -d @</path/.to/file.glb> https://ecorpus.holusion.com/scenes/<scene-name>/models/<filename.glb>
 ```
 Then configure the model's derivatives (ref needed).
 

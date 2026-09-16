@@ -45,6 +45,7 @@ La mise en surbrillance d'une zone d'interêt est une fonctionnalité expérimen
 
  - Une scène 3D avec un modèle, correctement configurée sur votre instance eCorpus.
  - Une texture correspondant à l'*UV mapping* de votre modèle, au format PNG (canal alpha requis).
+ - Un [jeton d'accès (bearer token)](../hosting/api#authentification) avec un accès en écriture sur la scène.
 
 Pour l'exemple, on utilisera ce modèle très simple de [cube](/assets/fixtures/cube.glb) et cette [texture](/assets/fixtures/highlight.png){:target="_blank"}.
 
@@ -86,14 +87,14 @@ Editez le fichier obtenu, pour ajouter dans la section `models[0]` les propriét
 Envoyez la scène modifiée avec :
 
 ```bash
-curl -L -XPUT -u "<username>:<password>" -H "Content-Type: application/json" --data-binary @scene.svx.json http://ecorpus.holusion.com/scenes/cube/scene.svx.json
+curl -L -XPUT -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data-binary @scene.svx.json http://ecorpus.holusion.com/scenes/cube/scene.svx.json
 ```
 
 Pensez à envoyer aussi la texture `highlight.png` dans le dossier `images` de votre scène :
 
 ```bash
-curl -L -XMKCOL -u "<username>:<password>" http://ecorpus.holusion.com/scenes/cube/images
-curl -L -XPUT -u "<username>:<password>" -H "Content-Type: image/png" --data-binary @highlight.png http://ecorpus.holusion.com/scenes/cube/images/highlight.png
+curl -L -XMKCOL -H "Authorization: Bearer <token>" http://ecorpus.holusion.com/scenes/cube/images
+curl -L -XPUT -H "Authorization: Bearer <token>" -H "Content-Type: image/png" --data-binary @highlight.png http://ecorpus.holusion.com/scenes/cube/images/highlight.png
 ```
 
 

@@ -48,6 +48,7 @@ Highlighting an area of interest is an experimental feature provided by DPO-Voya
 
 - A 3D scene with a model, correctly configured on your eCorpus instance.
  - A texture corresponding to the *UV mapping* of your model, in PNG format (alpha channel required).
+ - A [bearer token](../hosting/api#authentication) with write access to the scene.
 
 For the example, we'll use this very simple model of [cube](/assets/fixtures/cube.glb) and this [texture](/assets/fixtures/highlight.png){:target="_blank"}.
 
@@ -89,14 +90,14 @@ Edit the resulting file to add the following properties to the `models[0]` secti
 Send the modified scene with :
 
 ```bash
-curl -L -XPUT -u "<username>:<password>" -H "Content-Type: application/json" --data-binary @scene.svx.json http://ecorpus.holusion.com/scenes/cube/scene.svx.json
+curl -L -XPUT -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data-binary @scene.svx.json http://ecorpus.holusion.com/scenes/cube/scene.svx.json
 ```
 
 Remember to also send the `highlight.png` texture in the `images` folder of your scene:
 
 ```bash
-curl -L -XMKCOL -u "<username>:<password>" http://ecorpus.holusion.com/scenes/cube/images
-curl -L -XPUT -u "<username>:<password>" -H "Content-Type: image/png" --data-binary @highlight.png http://ecorpus.holusion.com/scenes/cube/images/highlight.png
+curl -L -XMKCOL -H "Authorization: Bearer <token>" http://ecorpus.holusion.com/scenes/cube/images
+curl -L -XPUT -H "Authorization: Bearer <token>" -H "Content-Type: image/png" --data-binary @highlight.png http://ecorpus.holusion.com/scenes/cube/images/highlight.png
 ```
 
 
