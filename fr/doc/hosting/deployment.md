@@ -149,11 +149,18 @@ eCorpus peut être exécuté en dehors d'un conteneur si les utilitaires nécess
 
 ### Configuration de la base de données
 
-Une base de données PostgreSQL (`>= 15`) est nécessaire. La connexion à la base de données doit être configurée via la variable d'environnement `DATABASE_URI`, 
+Une base de données PostgreSQL (`>= 15`) est nécessaire. La connexion à la base de données doit être configurée via la variable d'environnement `DATABASE_URI`.
 
-Alternativement, l'ensemble `PGHOST`, `PGPORT`, `PGUSER` (par défaut `$USER`), `PGDATABASE` (par défaut `$USER`) et `PGPASSWORD` (par défaut vide) peut être utilisé.
+Sur debian ou ubuntu:
+```bash
+apt install postgresql postgresql-client
+su postgres -c "createuser $myuser"
+su postgres -c "createdb -O $myuser ecorpus"
+```
 
-La viariable DATABASE_URI peut inclure toutes les options de connexion à la base de données :
+
+> Alternativement, utiliser la variable d'environnement [DATABASE_URI](./configuration#DATABASE_URI) ou l'ensemble `PGHOST`, `PGPORT`, `PGUSER` (par défaut `$USER`), `PGDATABASE` (par défaut `$USER`) et `PGPASSWORD` (par défaut vide).
+
 
 ```
 postgresql://user:password@localhost:5432/mydatabase
@@ -184,6 +191,8 @@ Description=Ecorpus instance
 After=network.target
 
 [Service]
+Environment=NODE_ENV=production
+Environment=PGDATABASE=ecorpus
 WorkingDirectory=/path/to/eCorpus
 ExecStart=npm start
 

@@ -9,7 +9,7 @@ rank: 2
 
 Une petite instance d'eCorpus peut fonctionner sur à peu près n'importe quel appareil.
 
-Toutes les opérations de stockage et de base de données se déroulent sur disque (voir [sqlite](https://www.sqlite.org/about.html){:target="_blank"}) ; un support de stockage local rapide, fiable et durable est donc **nécessaire**.
+Les fichiers objets sont stockés sur disque et les métadonnées dans une base de données [PostgreSQL](https://www.postgresql.org/){:target="_blank"} ; un support de stockage local rapide, fiable et durable est donc **nécessaire**.
 
 #### Exigences matérielles
 
@@ -25,16 +25,14 @@ Il a été vérifié qu'il fonctionnait sur des systèmes aussi petits que 1 Go 
 
 #### Exigences logicielles
 
- - [Nodejs](https://nodejs.org/){:target="_blank"} v16 (LTS) ou supérieure.
- - Le système sous-jacent doit supporter [shared memory](https://en.wikipedia.org/wiki/Shared_memory){:target="_blank"} (pour le [WAL Log](https://sqlite.org/wal.html){:target="_blank"} de sqlite) - n'importe quel système d'exploitation moderne devrait convenir.
+ - [Nodejs](https://nodejs.org/){:target="_blank"} v18 (LTS) ou supérieure (v20+ pour compiler depuis les sources).
+ - Un serveur [PostgreSQL](https://www.postgresql.org/){:target="_blank"} (local ou distant). Le `docker-compose.yml` fourni utilise PostgreSQL 17.
 
-une chaîne d'outils pour compiler les addons nodejs natifs peut être nécessaire si [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases){:target="_blank"} ne fournit pas de module préconstruit fonctionnel pour votre plateforme.
-
-Vous pouvez également utiliser [Docker](https://www.docker.com/){:target="_blank"}.
+Vous pouvez également utiliser [Docker](https://www.docker.com/){:target="_blank"}, qui fournit les deux via un simple `docker compose up`.
 
 ### Optimisation de la production
 
-Mettre la base de données en mode WAL avec `PRAGMA journal_mode = WAL` peut grandement accélérer les opérations. L'optimisation de la mémoire en utilisant `PRAGMA soft_heap_limit` peut aider.
+Ajuster le serveur PostgreSQL à votre charge (`shared_buffers`, `work_mem`, limites de connexions, etc.) - les réglages par défaut de la plupart des distributions sont conservateurs au-delà d'un usage léger.
 
 S'assurer que le système de fichiers est capable de gérer un grand nombre de fichiers dans un seul répertoire peut être important. Utilisez `tune2fs` pour activer **dir_index** pour les systèmes de fichiers **ext[234]**.
 
@@ -42,6 +40,6 @@ L'en-tête `Cache-Control` est très restrictif par défaut pour permettre un co
 
 ### Limites
 
-eCorpus sur sqlite est tout à fait capable de gérer quelques milliers d'objets avec un certain niveau de concurrence, pour un site web public de taille moyenne.
+eCorpus sur PostgreSQL est tout à fait capable de gérer quelques milliers d'objets avec un certain niveau de concurrence, pour un site web public de taille moyenne.
 
 Pour tout ce qui est beaucoup plus important, il est recommandé de passer à un autre moteur de base de données ou d'utiliser un système conçu pour l'échelle comme [dpo-pakrat](https://github.com/Smithsonian/dpo-packrat){:target="_blank"}.

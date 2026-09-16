@@ -9,7 +9,7 @@ rank: 2
 
 A small eCorpus instance can run on approximately any device.
 
-All storage and database operations happens on Disk (see [sqlite](https://www.sqlite.org/about.html){:target="_blank"}) so a fast reliable and durable local storage medium is **required**.
+Object files are stored on disk and metadata is stored in a [PostgreSQL](https://www.postgresql.org/){:target="_blank"} database, so a fast, reliable and durable local storage medium is **required**.
 
 #### Hardware requirements
 
@@ -25,16 +25,14 @@ It has been verified to work on systems as small as 1GB RAM and 1 vCPU with a sm
 
 #### Software requirements:
 
- - [nodejs](https://nodejs.org/){:target="_blank"} v16 (LTS) or greater
- - the underlying system should have [shared memory](https://en.wikipedia.org/wiki/Shared_memory){:target="_blank"} support (for sqlite's [WAL Log](https://sqlite.org/wal.html){:target="_blank"}) - any modern OS should be OK.
+ - [nodejs](https://nodejs.org/){:target="_blank"} v18 (LTS) or greater (v20+ if building from source)
+ - a [PostgreSQL](https://www.postgresql.org/){:target="_blank"} server (local or remote). The provided `docker-compose.yml` uses PostgreSQL 17.
 
-a toolchain to compile native nodejs addons might be required if [node-sqlite3](https://github.com/TryGhost/node-sqlite3/releases){:target="_blank"} doesn't provide a working prebuilt module for your platform.
-
-Alternatively, use [Docker](https://www.docker.com/){:target="_blank"}.
+Alternatively, use [Docker](https://www.docker.com/){:target="_blank"}, which bundles both in a single `docker compose up`.
 
 ### Production optimization
 
-Set the database to WAL mode with `PRAGMA journal_mode = WAL` can greatly speed up operations. Memory tuning using `PRAGMA soft_heap_limit` could help.
+Tune the PostgreSQL server for your workload (`shared_buffers`, `work_mem`, connection limits, etc.) - the defaults of most distributions are conservative for anything beyond light use.
 
 Ensuring the file system is able to handle a lot of files in a single directory may be important. Use `tune2fs` to enable **dir_index** for **ext[234]** file systems.
 
@@ -42,6 +40,6 @@ The `Cache-Control` header is very restrictive by default to allow fine-grained 
 
 ### Limitations
 
-eCorpus over sqlite is well capable of handling a few thousands of objects with some level of concurrency, serving a medium sized public-facing website.
+eCorpus over PostgreSQL is well capable of handling a few thousands of objects with some level of concurrency, serving a medium sized public-facing website.
 
 For anything substantially larger, switching to another database engine or using a system designed for scale like [dpo-pakrat](https://github.com/Smithsonian/dpo-packrat){:target="_blank"} would be recommended.
