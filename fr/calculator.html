@@ -1,0 +1,211 @@
+---
+title: "Calculateur de paramètres d'export"
+description: "Décrivez votre modèle pour obtenir des réglages d'export recommandés pour votre logiciel de photogrammétrie."
+scripts:
+  - /assets/js/calculator.js
+---
+
+<form class="section calculator" style="margin-top: 2rem;" data-locale="fr-FR" novalidate>
+  <h1>Calculateur de paramètres d'export</h1>
+  <p class="baseline">Décrivez votre modèle pour obtenir des réglages d'export recommandés.</p>
+  <h2>Paramètres</h2>
+  <div class="calc-step">
+    <h3>Forme</h3>
+    <div class="calc-step-body">
+      <div class="calc-options">
+        <label class="calc-option">
+          <span class="calc-option-illustration">
+            <img class="calc-vres-image" src="/assets/img/resolution/sphere.webp" alt="">
+            <span class="calc-vres-placeholder" hidden>
+              <svg><use href="#icon-vres-placeholder"></use></svg>
+              <code></code>
+            </span>
+          </span>
+          <span class="calc-option-choice">
+            <input type="radio" name="calc-shape" value="sphere" required>
+            Sphère
+          </span>
+        </label>
+        <label class="calc-option">
+          <span class="calc-option-illustration">
+            <img class="calc-vres-image" src="/assets/img/resolution/cube.webp" alt="">
+            <span class="calc-vres-placeholder" hidden>
+              <svg><use href="#icon-vres-placeholder"></use></svg>
+              <code></code>
+            </span>
+          </span>
+          <span class="calc-option-choice">
+            <input type="radio" name="calc-shape" value="cube" required>
+            Pavé
+          </span>
+        </label>
+        <label class="calc-option">
+          <span class="calc-option-illustration">
+            <img class="calc-vres-image" src="/assets/img/resolution/plane.webp" alt="">
+            <span class="calc-vres-placeholder" hidden>
+              <svg><use href="#icon-vres-placeholder"></use></svg>
+              <code></code>
+            </span>
+          </span>
+          <span class="calc-option-choice">
+            <input type="radio" name="calc-shape" value="plane" required>
+            Plan
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="calc-step">
+    <h3>Taille</h3>
+    <div class="calc-step-body">
+      <div class="calc-field">
+        <label for="calc-unit">Unité</label>
+        <select id="calc-unit">
+          <option value="0.001" data-label="mm">millimètres (mm)</option>
+          <option value="0.01" data-label="cm">centimètres (cm)</option>
+          <option value="1" data-label="m" selected>mètres (m)</option>
+        </select>
+      </div>
+      <div class="calc-size-fields" data-positive-message="La taille doit être supérieure à 0.">
+        <div class="calc-field" data-shape="sphere" hidden>
+          <label for="calc-diameter">Diamètre</label>
+          <input type="number" id="calc-diameter" min="0" step="any">
+        </div>
+        <div class="calc-field" data-shape="cube" hidden>
+          <label for="calc-cube-length">Longueur</label>
+          <input type="number" id="calc-cube-length" min="0" step="any">
+        </div>
+        <div class="calc-field" data-shape="cube" hidden>
+          <label for="calc-cube-width">Largeur</label>
+          <input type="number" id="calc-cube-width" min="0" step="any">
+        </div>
+        <div class="calc-field" data-shape="cube" hidden>
+          <label for="calc-cube-height">Hauteur</label>
+          <input type="number" id="calc-cube-height" min="0" step="any">
+        </div>
+        <div class="calc-field" data-shape="plane" hidden>
+          <label for="calc-width">Largeur</label>
+          <input type="number" id="calc-width" min="0" step="any">
+        </div>
+        <div class="calc-field" data-shape="plane" hidden>
+          <label for="calc-height">Hauteur</label>
+          <input type="number" id="calc-height" min="0" step="any">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="calc-step">
+    <h3>Résolution visuelle</h3>
+    <div class="calc-step-body">
+      <p style="color:grey">À quel niveau de détail voulez-vous que le modèle reste net ? Plus le niveau est élevé, plus la texture et le maillage recommandés seront lourds.</p>
+
+      <svg style="display:none" aria-hidden="true">
+        <symbol id="icon-vres-placeholder" viewBox="0 -960 960 960">
+          <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z" />
+        </symbol>
+      </svg>
+
+      <div class="calc-vres-slider">
+        <div class="calc-vres-slider-header">
+          <strong id="calc-vres-level-label"></strong>
+          <span class="calc-vres-density" id="calc-vres-level-density" data-template="{value} texels/{unit}²"></span>
+        </div>
+
+        <input type="range" id="calc-vres-level" min="0" max="6" step="1" value="0" list="calc-vres-ticks" aria-describedby="calc-vres-level-label">
+        <datalist id="calc-vres-ticks">
+          <option value="0" data-label="Grossière" data-density-m="1" data-font-label="40 pt" data-object-label="5 mm" data-text-title="Gros titres" data-object-title="Briques, grosses vis"></option>
+          <option value="1" data-label="Basse" data-density-m="2" data-font-label="20 pt" data-object-label="2,5 mm" data-text-title="Sous-titres" data-object-title="Boutons, petites pièces"></option>
+          <option value="2" data-label="Moyenne" data-density-m="4" data-font-label="10 pt" data-object-label="1,25 mm" data-text-title="Texte courant" data-object-title="Gravure d'une pièce de monnaie"></option>
+          <option value="3" data-label="Fine" data-density-m="8" data-font-label="5 pt" data-object-label="0,6 mm" data-text-title="Notes de bas de page" data-object-title="Grain du bois, fils d'un tissu"></option>
+          <option value="4" data-label="Très fine" data-density-m="16" data-font-label="2,5 pt" data-object-label="0,3 mm" data-text-title="Texte imprimé fin" data-object-title="Pores de la peau, fibres textiles"></option>
+          <option value="5" data-label="Ultra fine" data-density-m="32" data-font-label="1,25 pt" data-object-label="0,16 mm" data-text-title="Trame d'impression" data-object-title="Stries d'une empreinte digitale"></option>
+          <option value="6" data-label="Microscopique" data-density-m="64" data-font-label="0,6 pt" data-object-label="0,08 mm" data-text-title="Limite de résolution à l'œil nu" data-object-title="Diamètre d'un cheveu"></option>
+        </datalist>
+
+        <div class="calc-vres-examples">
+          <div class="calc-vres-example" id="calc-vres-example-text">
+            <span class="calc-vres-illustration">
+              <img class="calc-vres-image" src="/assets/img/resolution/text-1m.webp" alt="">
+              <span class="calc-vres-placeholder" hidden>
+                <svg><use href="#icon-vres-placeholder"></use></svg>
+                <code></code>
+              </span>
+            </span>
+            <p>Texte ≥ <strong id="calc-vres-text-value"></strong></p>
+          </div>
+          <div class="calc-vres-example" id="calc-vres-example-object">
+            <span class="calc-vres-illustration">
+              <img class="calc-vres-image" src="/assets/img/resolution/object-1m.webp" alt="">
+              <span class="calc-vres-placeholder" hidden>
+                <svg><use href="#icon-vres-placeholder"></use></svg>
+                <code></code>
+              </span>
+            </span>
+            <p>Détails ≥ <strong id="calc-vres-object-value"></strong></p>
+          </div>
+        </div>
+      </div>
+
+      <p style="color:grey">A quel point la surface de l'objet réel est-elle irrégulière ? Une forme lisse a besoin de moins de sommets ; une forme très travaillée en a besoin de plus.</p>
+
+      <div class="calc-cx-slider">
+        <div class="calc-cx-slider-header">
+          <strong id="calc-cx-level-label"></strong>
+        </div>
+
+        <input type="range" id="calc-cx-level" min="0" max="4" step="1" value="2" list="calc-cx-ticks" aria-describedby="calc-cx-level-label">
+        <datalist id="calc-cx-ticks">
+          <option value="0" data-label="Très lisse" data-factor="4" data-description="Formes simples, sans relief marqué (une bille, un lingot)."></option>
+          <option value="1" data-label="Lisse" data-factor="2" data-description="Quelques reliefs doux (une gourde, un galet)."></option>
+          <option value="2" data-label="Typique" data-factor="1" data-description="Reliefs et détails modérés (un vase sculpté, un outil)."></option>
+          <option value="3" data-label="Détaillée" data-factor="0.5" data-description="Nombreux reliefs fins (une statuette ouvragée)."></option>
+          <option value="4" data-label="Très intriquée" data-factor="0.25" data-description="Formes complexes et ajourées (une dentelle de pierre, un bijou filigrané)."></option>
+        </datalist>
+
+        <div class="calc-vres-examples">
+          <div class="calc-vres-example" id="calc-cx-example">
+            <span class="calc-vres-illustration">
+              <img class="calc-vres-image" src="/assets/img/resolution/cx-3.webp" alt="">
+              <span class="calc-vres-placeholder" hidden>
+                <svg><use href="#icon-vres-placeholder"></use></svg>
+                <code></code>
+              </span>
+            </span>
+            <p id="calc-cx-level-description"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-options-row">
+        <label class="calc-toggle">
+          <input type="checkbox" id="calc-normal-map-toggle" checked>
+          Générer une carte de normales
+        </label>
+      </div>
+      <div class="calc-options-row">
+        <div class="calc-field">
+          <label for="calc-model-count">Nombre de modèles</label>
+          <input type="number" id="calc-model-count" min="1" step="1" value="1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="calc-step calc-result">
+    <h2>Résultat</h2>
+    <div class="calc-step-body">
+      <p class="calc-result-hint" id="calc-result-hint">Complétez les champs ci-dessus pour afficher un résultat.</p>
+
+      <dl class="calc-output">
+        <dt>Résolution de texture recommandée</dt>
+        <dd id="calc-out-texture" data-template="{value} x {value} pixels" data-placeholder="—">—</dd>
+        <dt>Nombre de sommets recommandé</dt>
+        <dd id="calc-out-vertices" data-template="{value} sommets" data-placeholder="—">—</dd>
+      </dl>
+    </div>
+  </div>
+
+  <button type="reset" class="calc-reset" id="calc-reset">Réinitialiser</button>
+</form>
