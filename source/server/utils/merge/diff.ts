@@ -1,4 +1,4 @@
-import {Diff, DELETE_KEY, SOURCE_INDEX, withIndex} from "./pointers/types.js";
+import {Diff, DELETE_KEY, markPatch, SOURCE_INDEX, withIndex} from "./pointers/types.js";
 
 /**
  * Computes a diff between two objects.
@@ -53,6 +53,9 @@ export default function diff<T extends Record<string, any>&{[SOURCE_INDEX]?:numb
     if(Object.keys(d).length || typeof (d as any)[SOURCE_INDEX] !== "undefined"){
       //console.log("Diffing", key, from[key], to[key]);
       r[key] = d;
+      //`d` only describes what changed. Flag it so `apply()` doesn't mistake it for a
+      //whole value and rebuild a fragment of an object that got deleted meanwhile.
+      markPatch(r, key as string);
     }
   }
   return r;

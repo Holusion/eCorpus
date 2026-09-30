@@ -86,7 +86,7 @@ describe("GET /history/:scene/:id/show/:name", function(){
     let res = await request(this.server).get(`/history/${titleSlug}/${ref.id}/show/scene.svx.json`)
     .set("Authorization", await bearer("bob"))
     .expect(200);
-    expect(res.headers).to.have.property("etag").match(/^W\//);
+    expect(res.headers).to.have.property("etag").match(/^"[\w-]+"$/);
     expect(res.headers).to.have.property("last-modified").that.is.a("string");
     expect(res.headers).to.have.property("accept-ranges", "bytes");
     expect(res.headers).to.have.property("content-length", Buffer.byteLength(`{"id":1}`).toString(10));

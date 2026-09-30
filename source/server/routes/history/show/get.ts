@@ -20,7 +20,7 @@ export async function handleShowFile(req: Request, res: Response){
   res.set("Content-Length", file.size.toString(10));
   res.set("Accept-Ranges", "bytes");
 
-  res.set("ETag", `W/${file.hash}`);
+  res.set("ETag", `"${file.hash}"`);
   res.set("Last-Modified", file.mtime.toUTCString());
   if(req.fresh){
     rs.destroy();

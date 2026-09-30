@@ -10,6 +10,11 @@ const debug = debuglog("http:body");
  * Special handler for svx files to disallow the upload of invalid JSON.
  * @todo Should check against the official json schema using ajv
  * If the user provides a reference document ID and the document has been updated since, a diff is performed to try to merge the changes.
+ *
+ * Every success carries an `ETag` naming the document that is current for the scene once
+ * the write is done — the same token `GET scene.svx.json` reports and the client echoes
+ * back as `asset.id`. On 204 that is all the client needs to keep editing without
+ * re-reading the document; on 205 it names the merged document it has to load.
  */
 export default async function handlePutDocument(req :Request, res :Response){
   const {config, taskScheduler, vfs} = getLocals(req);
@@ -24,12 +29,13 @@ export default async function handlePutDocument(req :Request, res :Response){
     throw new BadRequestError(`Invalid json document`);
   }
   if(!refId || !config.get("enable_document_merge")){
-    await getVfs(req).writeDoc(JSON.stringify(newDoc), {scene: sceneName, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    const {id} = await getVfs(req).writeDoc(JSON.stringify(newDoc), {scene: sceneName, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
+    res.set("ETag", `"${id}"`);
     return res.status(204).send();
   }
   let {id: scene_id} = await vfs.getScene(sceneName);
   //Run the merge in a task so we get more logs when necessary
-  let code = await taskScheduler.run({
+  let {code, id} = await taskScheduler.run({
     immediate: true,
     scene_id,
     user_id: uid,
@@ -39,6 +45,7 @@ export default async function handlePutDocument(req :Request, res :Response){
     },
     handler: structuredDocMerge,
   });
-  
+
+  res.set("ETag", `"${id}"`);
   res.status(code).send();
 };

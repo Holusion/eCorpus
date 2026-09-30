@@ -70,9 +70,13 @@ export default async function createService(env = process.env) :Promise<Services
     taskScheduler,
     db,
     async close(){
-      await taskScheduler.close();
-      await vfs.close();
-      Config.close();
+      try{
+        await taskScheduler.close();
+        await vfs.close();
+      }finally{
+        //Always release the singleton
+        Config.close();
+      }
     }
   };
 }

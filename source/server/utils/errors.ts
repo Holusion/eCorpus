@@ -47,6 +47,12 @@ export class LengthRequiredError extends HTTPError{
   }
 }
 
+export class PreconditionFailedError extends HTTPError {
+  constructor(reason :string="Precondition Failed"){
+    super(412, reason);
+  }
+}
+
 export class RangeNotSatisfiableError extends HTTPError {
   constructor(reason :string="Range Not Satisfiable"){
     super(416, reason);

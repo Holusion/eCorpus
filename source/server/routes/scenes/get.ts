@@ -99,7 +99,13 @@ export default async function getScenes(req :Request, res :Response){
   }
 
   res.set("Cache-Control", "must-revalidate, private");
-  res.set("ETag", "W/"+eTag.digest("base64url"));
+  //One tag covers the json, text and zip representations picked below, so a cache must key
+  //them apart on its own. `res.format()` adds this too, but only once it runs — the 304
+  //returns before that, and it is the response a cache leans on hardest.
+  res.vary("Accept");
+  //Weak, and correctly so: this digests scene names and mtimes rather than the body, and
+  //the same tag covers the json, text and zip representations picked below.
+  res.set("ETag", `W/"${eTag.digest("base64url")}"`);
   res.set("Last-Modified", new Date(lastModified).toUTCString());
   if( req.fresh){
     return res.status(304).send("Not Modified");

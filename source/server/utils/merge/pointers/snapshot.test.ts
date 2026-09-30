@@ -33,10 +33,23 @@ describe("mapTarget()", function(){
   });
 
 
-  it("throws an error if node is missing", function(){
-    expect(()=>mapTarget("light/1/position", [
+  it("returns undefined if node is missing", function(){
+    expect(mapTarget("light/1/position", [
       {id: "foo", name: "node1", light: {[SOURCE_INDEX]: 0} as any},
-    ])).to.throw('does not point to a valid light index');
+    ])).to.be.undefined;
+  });
+
+  it("falls back to the node index when the node has no id", function(){
+    //Documents made before nodes had ids. Interpolating `undefined` here used to make the
+    //target unresolvable, failing every merge on the scene.
+    expect(mapTarget("node/1/position", [
+      {name: "node1"},
+      {name: "node2"},
+    ])).to.equal("node/#1/position");
+    expect(mapTarget("model/0/visible", [
+      {name: "node1"},
+      {name: "node2", model: {[SOURCE_INDEX]: 0} as any},
+    ])).to.equal("model/#1/visible");
   });
 });
 
@@ -75,16 +88,23 @@ describe("unmapTarget()", function(){
   });
 
 
-  it("throws an error if node is missing", function(){
-    expect(()=>unmapTarget("light/bar/position", [
+  it("returns undefined if node is missing", function(){
+    expect(unmapTarget("light/bar/position", [
       {id: "foo", name: "node1", light: 0},
-    ])).to.throw('can\'t find node with id : bar');
+    ])).to.be.undefined;
   });
 
-  it("throws an error if node has a bad type", function(){
-    expect(()=>unmapTarget("light/bar/position", [
+  it("returns undefined if node has a bad type", function(){
+    expect(unmapTarget("light/bar/position", [
       {id: "foo", name: "node1", light: 0},
       {id: "bar", name: "node2", model: 0},
-    ])).to.throw('does not point to a valid light reference');
+    ])).to.be.undefined;
+  });
+
+  it("round-trips a node that has no id", function(){
+    expect(unmapTarget("node/#1/position", [
+      {name: "node1"},
+      {name: "node2"},
+    ])).to.equal("node/1/position");
   });
 });

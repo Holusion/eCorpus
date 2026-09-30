@@ -37,6 +37,45 @@ export function withIndex<T extends {}>(obj :T, index: number):Indexed<T>{
  */
 export const DELETE_KEY = Symbol("_DELETE_KEY");
 
+/**
+ * Special symbol holding, on a diff object, the set of keys whose value is a *partial
+ * patch* of an object that existed on both sides.
+ *
+ * `diff()` emits two very different things under an object-valued key:
+ *  - the complete value, when the key is new in `to`. Applying it is an insertion.
+ *  - a recursive patch, when the key exists on both sides. It only carries what changed.
+ *
+ * They are indistinguishable by shape, and `apply()` must not treat them alike when the
+ * target no longer has the key: adopting a whole value is still an insertion, but
+ * applying a patch would rebuild a fragment of an object somebody else deleted in the
+ * meantime — a tour with no steps, a node with no model.
+ *
+ * Only `diff()` sets this. A hand-written diff carries no marks, so `apply()` keeps its
+ * plain "deep assign" behaviour for every other caller.
+ *
+ * It's a Symbol so it never shows up in `Object.keys()`, `Object.getOwnPropertyNames()`
+ * or `JSON.stringify()`, and non-enumerable so it survives neither spread nor a deep
+ * equality comparison.
+ * @see markPatch
+ * @see isPatch
+ */
+export const PATCHED_KEYS = Symbol("_PATCHED_KEYS");
+
+/** Record, on a diff object, that `key` holds a partial patch rather than a whole value */
+export function markPatch(diff :Record<string, any>, key :string){
+  let keys :Set<string>|undefined = (diff as any)[PATCHED_KEYS];
+  if(!keys){
+    keys = new Set<string>();
+    Object.defineProperty(diff, PATCHED_KEYS, {configurable: true, enumerable: false, value: keys});
+  }
+  keys.add(key);
+}
+
+/** True if `key` holds a partial patch emitted by `diff()` */
+export function isPatch(diff :Record<string, any>, key :string) :boolean{
+  return !!(diff as any)[PATCHED_KEYS]?.has(key);
+}
+
 
 export type Diff<T extends Record<string, any>> = {
   [K in keyof T]?: 
