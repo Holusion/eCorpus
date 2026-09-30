@@ -72,4 +72,33 @@ describe("GET /history/:scene/:id/diff", function(){
     });
 
   })
+
+  describe("cross-scene references", function(){
+    let foreign_id :number, foreign_file :{id:number};
+    this.beforeAll(async function(){
+      //A same-named file in `foo`, so the generation-relative fallback *can*
+      //resolve: without the scene check the handler happily diffs across scenes.
+      await vfs.writeFile(dataStream(["local\n"]), {scene: scene_id, name:"hello.txt", user_id: user.uid, mime: "text/plain"});
+      foreign_id = await vfs.createScene("bar", opponent.uid);
+      await userManager.setPublicAccess("bar", "none");
+      await userManager.setDefaultAccess("bar", "none");
+      await vfs.writeFile(dataStream(["secret\n"]), {scene: foreign_id, name:"hello.txt", user_id: opponent.uid, mime: "text/plain"});
+      foreign_file = await vfs.writeFile(dataStream(["secret v2\n"]), {scene: foreign_id, name:"hello.txt", user_id: opponent.uid, mime: "text/plain"});
+    });
+
+    it("won't diff a file belonging to another scene", async function(){
+      await request(this.server).get(`/history/foo/${foreign_file.id}/diff`)
+      .set("Authorization", await bearer(user.username))
+      .set("Accept", "text/plain")
+      .expect(404);
+    });
+
+    it("won't diff *from* a file belonging to another scene", async function(){
+      let ref = await vfs.writeFile(dataStream(["Hello again\n"]), {scene: scene_id, name:"hello.txt", user_id: user.uid, mime: "text/plain"});
+      await request(this.server).get(`/history/foo/${ref.id}/diff/${foreign_file.id}`)
+      .set("Authorization", await bearer(user.username))
+      .set("Accept", "text/plain")
+      .expect(404);
+    });
+  });
 });

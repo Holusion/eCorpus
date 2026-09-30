@@ -22,14 +22,26 @@ router.use((req, res, next)=>{
   next();
 });
 
-router.use("/:scene", policy({ access: "write" }));
+/** Reading a scene's past: its own delegation (`history:read`) on top of plain
+ * scene read access. The scope is what makes an audit token possible — the ACL
+ * level a route declares also demands the matching `scenes:<level>` from the
+ * credential, so while these sat at `access: "write"` no token could read
+ * history without also being able to write scenes.
+ *
+ * `history:read` is not in `PUBLIC_SCOPES`, so anonymous is refused before the
+ * ACL is consulted: a public scene's contributors stay unenumerable. Every
+ * authenticated user from `use` up holds it, so the ACL alone decides which
+ * scenes — including whatever `default_access` hands out.
+ */
+const readHistory = policy({ scope: "history:read", access: "read" });
 
-router.get("/:scene", wrap(getSceneHistory));
+router.get("/:scene", readHistory, wrap(getSceneHistory));
+//Restoring a version is a scene write, not a history one.
 router.post("/:scene", policy({ access: "admin" }), bodyParser.json(), wrap(postSceneHistory));
 
-router.get("/:scene/:id/diff", wrap(handleGetDiff));
-router.get("/:scene/:id/diff/:from", wrap(handleGetDiff));
+router.get("/:scene/:id/diff", readHistory, wrap(handleGetDiff));
+router.get("/:scene/:id/diff/:from", readHistory, wrap(handleGetDiff));
 
-router.get("/:scene/:id/show/:name(*)", wrap(handleShowFile));
+router.get("/:scene/:id/show/:name(*)", readHistory, wrap(handleShowFile));
 
 export default router;
