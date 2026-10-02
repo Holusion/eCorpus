@@ -5,16 +5,16 @@ layout: page
 <a href="/en/collections/index.html">Back to Collections page</a>
 
 <section class="section">
-    <h2 class="text-white my-5" style="font-size: 3rem">Collection of artworks scanned by IRHiS students</h2>
+    <h2 class="text-white my-5" style="font-size: 3rem">Collection of artworks scanned by students of the University of Lille</h2>
 </section>
-<section class="section" id="IRHiS">
+<section class="section" id="uLille">
     <h2>
         Digitized artworks from the Palais des Beaux-Arts de Lille
     </h2>
-    <p>Collection assembled by the <a href="/en/about">IRHiS</a> laboratory (Institut de Recherches historiques du Septentrion, University of Lille).</p>
+    <p>Collection assembled by students of the <a href="https://humanites.univ-lille.fr/">Faculty of Humanities of the University of Lille</a>, as part of a heritage digitization course.</p>
     <div style="display:flex; flex-direction: column;gap: 5px;">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "uLille" %}
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="list-group-item" style="display: flex;">
