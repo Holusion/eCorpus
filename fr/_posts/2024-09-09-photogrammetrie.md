@@ -1,13 +1,13 @@
 ---
-title: eCorpus entre les mains des étudiants de l’IRHiS
+title: eCorpus entre les mains des étudiants de l’université de Lille
 tags: [education]
 ---
 
-eCorpus démontre de nouveau son intérêt pédagogique, cette fois-ci au sein de la Faculté des Humanités de Lille et  l’Institut de Recherche Historique du Septentrion (IRHiS). Une campagne de valorisation a été lancée en collaboration avec l’institut de recherche, la société Holusion, et le palais des Beaux-Arts à Lille. A travers cette initiative, des étudiants de L3 ont pu numériser eux-mêmes des œuvres du musée, à l’aide d’iPads et de logiciel de photogrammétrie.
+eCorpus démontre de nouveau son intérêt pédagogique, cette fois-ci au sein de la Faculté des Humanités de l’université de Lille. Une campagne de valorisation a été lancée en collaboration avec la faculté et le laboratoire IRHiS, la société Holusion, et le palais des Beaux-Arts à Lille. A travers cette initiative, des étudiants de L3 ont pu numériser eux-mêmes des œuvres du musée, à l’aide d’iPads et de logiciel de photogrammétrie.
 
 
 <img style="object-position: 70% 0;" src="/assets/img/about/numerisation-PBA.jpg" class="fluid"
-    alt="Utilisation d'une tablette pour la nummérisation du Prince Impérial par un étudiant de l'IRHiS">
+    alt="Utilisation d'une tablette pour la nummérisation du Prince Impérial par un étudiant de l'université de Lille">
 
 
 
@@ -24,7 +24,7 @@ eCorpus démontre de nouveau son intérêt pédagogique, cette fois-ci au sein d
         </p>
         <h4>Mai 2024</h4>
         <p>
-            Lors de son stage dans la société Holusion, Manon, alors étudiante en L3 à l’IRHiS a pu reprendre les projets de ses camarades afin de les approfondir et les valoriser, tout en faisant attention à respecter la base de leur travail. Pour approfondir ses connaissances, Manon a également appris l’utilisation du logiciel de photogrammétrie Reality Capture, en prenant pour sujet le Monument aux Martyrs de Roubaix. La découverte du logiciel de modélisation 3D Blender lui a aussi été utile pour “nettoyer” les modélisations de leurs imperfections éventuelles, causées par de mauvaises interprétations photogrammétriques. 
+            Lors de son stage dans la société Holusion, Manon, alors étudiante en L3 à l’université de Lille a pu reprendre les projets de ses camarades afin de les approfondir et les valoriser, tout en faisant attention à respecter la base de leur travail. Pour approfondir ses connaissances, Manon a également appris l’utilisation du logiciel de photogrammétrie Reality Capture, en prenant pour sujet le Monument aux Martyrs de Roubaix. La découverte du logiciel de modélisation 3D Blender lui a aussi été utile pour “nettoyer” les modélisations de leurs imperfections éventuelles, causées par de mauvaises interprétations photogrammétriques. 
 Ce stage a aussi permis, entre autres, <b>la préparation de futurs enseignements à distance qui seront dispensés par l’IRHiS, via eCorpus</b>.
 
         </p>
@@ -49,7 +49,7 @@ Ce stage a aussi permis, entre autres, <b>la préparation de futurs enseignement
         En effet, l’impossibilité d'accéder à certaines œuvres et pièces de musée se révèlent être un vrai frein concernant l’apprentissage à distance, notamment dans les cursus d'Histoire de l’Art et de la recherche archéologique. Nous pouvons donc voir un double effet bénéfique découlant de cette opération: des étudiant apprennent la photogrammétrie en plus d’en apprendre plus sur les sujets numérisés, permettant de ce fait l'accessibilité de ces-derniers à leurs compères à distances, qui pourront, à leur tour, utiliser les photos prisent pour s’essayer à la photogrammétrie. Cette situation dite “gagnante-gagnante” permet de gommer un peu plus la différence de traitement éventuelle entre deux élèves n’ayant pas accès aux mêmes ressources, en plus de resserrer les liens entre jeunes d’une même promotion, leur donnant, au passage, <b>un exemple concret de valorisation pour leur travail</b>.
     </p>
     <p>
-    <i>Nous remercions le Palais des Beaux-Arts de Lille pour avoir ouvert ses portes aux étudiants de l'IRHiS et de leur avoir offert l'opportunité de nummériser les oeuvres exposées. Nous remercions également Mathieu Beaud et Thibault Guillaumont pour leur implications dans le projet et leur enseignements dispensés durant cet évènement.</i>
+    <i>Nous remercions le Palais des Beaux-Arts de Lille pour avoir ouvert ses portes aux étudiants de l’université de Lille et de leur avoir offert l'opportunité de nummériser les oeuvres exposées. Nous remercions également Mathieu Beaud et Thibault Guillaumont pour leur implications dans le projet et leur enseignements dispensés durant cet évènement.</i>
     </p>
     <h4>En conclusion</h4>
       <p>

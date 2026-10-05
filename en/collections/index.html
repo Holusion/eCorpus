@@ -24,15 +24,15 @@ layout: page
 </div>
 </section>
 
-<section class="section" id="IRHiS">
-    <h2>
+<section class="section" id="uLille">
+    <h2><a href="/en/collections/uLille/index.html">
         Digitized artworks from the Palais des Beaux-Arts de Lille
-    </h2>
-    <p>Collection assembled by the <a href="/en/about">IRHiS</a> laboratory (Institut de Recherches historiques du Septentrion, University of Lille).</p>
-    <p>These objects were scanned by students of the Master in Art History at IRHiS, introducing them to photogrammetry and Scaniverse.</p>
+    </a></h2>
+    <p>Collection assembled by students of the <a href="https://humanites.univ-lille.fr/">Faculty of Humanities of the University of Lille</a> from the artworks of the Palais des Beaux-Arts de Lille.</p>
+    <p>These objects were scanned by students of the Bachelor in Art History, as part of a Faculty of Humanities course, introducing them to photogrammetry and Scaniverse.</p>
     <div class="tile-carousel">
         {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "IRHiS" %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "uLille" %}
             {% continue %}
             {% endif %}
             <a href="{{p.url}}" class="tile-item">

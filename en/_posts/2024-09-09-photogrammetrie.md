@@ -1,13 +1,13 @@
 ---
-title: eCorpus in the Hands of IRHiS Students
+title: eCorpus in the Hands of University of Lille Students
 tags: [education]
 ---
 
-eCorpus demonstrates its educational value once again, this time within the Faculty of Humanities in Lille and the Institute of Historical Research of the North (IRHiS). A promotion campaign was launched in collaboration with the research institute, the company Holusion, and the Palais des Beaux-Arts in Lille. Through this initiative, third-year undergraduate students were able to digitize museum artworks themselves using iPads and photogrammetry software.
+eCorpus demonstrates its educational value once again, this time within the Faculty of Humanities of the University of Lille. A promotion campaign was launched in collaboration with the faculty and the IRHiS laboratory, the company Holusion, and the Palais des Beaux-Arts in Lille. Through this initiative, third-year undergraduate students were able to digitize museum artworks themselves using iPads and photogrammetry software.
 
 
 <img style="object-position: 70% 0;" src="/assets/img/about/numerisation-PBA.jpg" class="fluid"
-    alt="Use of a tablet for digitizing the Prince Imperial by an IRHiS student">
+    alt="Use of a tablet for digitizing the Prince Imperial by a University of Lille student">
 
 
 
@@ -24,7 +24,7 @@ eCorpus demonstrates its educational value once again, this time within the Facu
         </p>
         <h4>May 2024</h4>
         <p>
-            During her internship at Holusion, Manon, then a third-year student at IRHiS, was able to take over her classmates’ projects to deepen and enhance them, while carefully respecting the foundation of their work. To further her knowledge, Manon also learned to use the photogrammetry software Reality Capture, using the Monument aux Martyrs de Roubaix as her subject. Discovering the 3D modeling software Blender was also helpful for her to “clean up” the models from any imperfections caused by inaccurate photogrammetric interpretations.  
+            During her internship at Holusion, Manon, then a third-year student at the University of Lille, was able to take over her classmates’ projects to deepen and enhance them, while carefully respecting the foundation of their work. To further her knowledge, Manon also learned to use the photogrammetry software Reality Capture, using the Monument aux Martyrs de Roubaix as her subject. Discovering the 3D modeling software Blender was also helpful for her to “clean up” the models from any imperfections caused by inaccurate photogrammetric interpretations.  
 This internship also enabled, among other things, <b>the preparation of future remote teaching courses to be offered by IRHiS via eCorpus</b>.
         </p>
     </div>
@@ -48,7 +48,7 @@ This internship also enabled, among other things, <b>the preparation of future r
         Indeed, the inability to access certain artworks and museum pieces proves to be a real obstacle for remote learning, especially in Art History and archaeological research programs. We can therefore see a double beneficial effect arising from this initiative: students learn photogrammetry while also gaining deeper knowledge about the digitized subjects, thereby making these accessible to their peers remotely, who can, in turn, use the photos taken to try photogrammetry themselves. This so-called “win-win” situation helps to reduce the disparity between students who do not have access to the same resources, while also strengthening the bonds among students of the same cohort, giving them, in the process, <b>a concrete example of how to showcase their work</b>.
     </p>
     <p>
-    <i>We thank the Palais des Beaux-Arts de Lille for opening its doors to IRHiS students and for giving them the opportunity to digitize the exhibited artworks. We also thank Mathieu Beaud and Thibault Guillaumont for their involvement in the project and the instruction they provided during this event.</i>
+    <i>We thank the Palais des Beaux-Arts de Lille for opening its doors to University of Lille students and for giving them the opportunity to digitize the exhibited artworks. We also thank Mathieu Beaud and Thibault Guillaumont for their involvement in the project and the instruction they provided during this event.</i>
     </p>
     <h4>In conclusion</h4>
       <p>
