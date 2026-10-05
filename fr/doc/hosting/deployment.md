@@ -159,7 +159,7 @@ su postgres -c "createdb -O $myuser ecorpus"
 ```
 
 
-> Alternativement, utiliser la variable d'environnement [DATABASE_URI](./configuration#DATABASE_URI) ou l'ensemble `PGHOST`, `PGPORT`, `PGUSER` (par défaut `$USER`), `PGDATABASE` (par défaut `$USER`) et `PGPASSWORD` (par défaut vide).
+> Alternativement, utiliser la variable d'environnement [DATABASE_URI](./configuration#database_uri) ou l'ensemble `PGHOST`, `PGPORT`, `PGUSER` (par défaut `$USER`), `PGDATABASE` (par défaut `$USER`) et `PGPASSWORD` (par défaut vide).
 
 
 ```
