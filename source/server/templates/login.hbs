@@ -6,7 +6,7 @@
         <h2>{{ i18n "nav.login" }}</h2>
 
         <form id="userlogin" class="form-control" name="{{i18n "labels.signin"}}" method="POST"
-          action="/auth/login?redirect={{#if redirect}}{{encodeURI redirect}}{{else}}{{encodeURI location}}{{/if}}"
+          action="/auth/login?redirect={{#if redirect}}{{encodeURIComponent redirect}}{{else}}{{encodeURIComponent location}}{{/if}}"
           enctype="application/x-www-form-urlencoded"
           autocomplete="on" autocapitalize="none"
         >

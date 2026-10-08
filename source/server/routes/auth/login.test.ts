@@ -223,6 +223,45 @@ describe("/auth/login", function(){
     .expect(400);
   });
 
+  describe("redirect with a query string", function(){
+    //Shaped like an OAuth authorize request, which carries all its parameters in the query
+    const target = "/auth/oauth/authorize?response_type=code&client_id=1&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=xyz";
+
+    it("keeps it through the login form", async function(){
+      //The form's redirect is absolute: keep one host across requests, like a browser would
+      const host = "ecorpus.example.com";
+      let res = await request(this.server).get(`/auth/login?redirect=${encodeURIComponent(target)}`)
+      .set("Host", host)
+      .set("Accept", "text/html")
+      .expect(200);
+      let m = /id="userlogin"[^>]*action="([^"]*)"/.exec(res.text);
+      expect(m, `login form not found in page`).to.be.ok;
+      //Unescape HTML entities the way a browser would before submitting the form
+      const action = m![1].replace(/&#x3D;/g, "=").replace(/&amp;/g, "&");
+
+      res = await request(this.server).post(action)
+      .set("Host", host)
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .send(`username=${user.username}&password=12345678`)
+      .expect(302);
+      expect(res.headers["location"]).to.equal(`http://${host}${target}`);
+    });
+
+    it("keeps it when already logged in", async function(){
+      let agent = request.agent(this.server);
+      await agent.post("/auth/login")
+      .send({username: user.username, password: "12345678"})
+      .set("Content-Type", "application/json")
+      .set("Accept", "")
+      .expect(200);
+
+      await agent.get(`/auth/login?redirect=${encodeURIComponent(target)}`)
+      .set("Accept", "text/html")
+      .expect(302)
+      .expect("Location", target);
+    });
+  });
+
   it("accepts application/x-www-form-urlencoded data", async function(){
     let agent = request.agent(this.server);
     await agent.post("/auth/login")

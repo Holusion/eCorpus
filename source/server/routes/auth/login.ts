@@ -81,7 +81,8 @@ export async function getLogin(req :Request, res:Response){
       res.status(200).send(User.safe(requester ?? {}));
     },
     "text/html": ()=>{
-      if(requester && requester.level !== "none") return res.redirect(302, redirect ?redirect.pathname: "/ui/");
+      //Keep the query string: OAuth's authorize endpoint carries all its parameters there
+      if(requester && requester.level !== "none") return res.redirect(302, redirect ? redirect.pathname + redirect.search : "/ui/");
       useTemplateProperties(req, res, ()=>{
         res.render("login", {
           title: "Login",
