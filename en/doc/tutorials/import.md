@@ -27,6 +27,8 @@ eCorpus is **open-source software** designed to preserve, annotate, and share 3D
     * [Basic Controls](#basic-controls)
     * [Create a Thumbnail Image](#create-a-thumbnail-picture)
     * [Auto-Center Your Model](#center-your-model-automatically)
+* [Sharing Your eCorpus Scene Easily](#sharing-your-ecorpus-scene-easily)
+    * [Displaying the Scene on a Web Page](#displaying-the-scene-on-a-web-page)
 * [Learn More](#learn-more)
 
 ## Preparing an eCorpus Scene
@@ -246,6 +248,32 @@ Auto-recentering may not be enough to resolve placement issues. To reposition yo
 An advanced tutorial on editing your object's pivot point will soon be available on the platform.
 
 
+
+
+## Sharing Your eCorpus Scene Easily
+
+Once your scene has been created and configured to your liking, you can share it. Several options are available:
+
+#### Sharing the Viewer Link
+
+The first solution is also the simplest: go to the viewer of your eCorpus scene (the **"View"** button) and copy the link, to share it afterwards on social media posts (such as LinkedIn).
+
+**Be careful: for the scene to be visible to unidentified members of the public, make sure to set "Read" in the access rights labelled "Public Access" of the scene in question**
+
+#### Displaying the Scene on a Web Page
+
+This solution allows an eCorpus scene to be displayed on a web page. Every eCorpus scene has a **Share** icon, located on the left of the Explorer, which allows you to copy an "Iframe" code.
+[You will find the list of Explorer icons here](#to-explore-your-scene)
+
+Simply copy this code and paste it into your page's code, at the desired location.
+
+**Be careful: for the scene to be visible to unidentified members of the public, make sure to set "Read" in the access rights labelled "Public Access" of the scene in question**
+
+#### Sharing the Scene with Your Colleagues with Administration Rights
+
+If they have an account on your eCorpus database, it is perfectly possible to share your scene with your colleagues for read-only access. You simply need to change the **access rights** of your scene by adding the username of the person concerned, as [shown in this section](#manage-scene-permissions).
+
+The scene will then appear in that user's list.
 
 
 ## Learn More
