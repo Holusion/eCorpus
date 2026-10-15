@@ -1,19 +1,14 @@
 import { NodeIO } from '@gltf-transform/core';
-import { EXTMeshoptCompression, KHRDracoMeshCompression, KHRMeshQuantization, KHRTextureBasisu, EXTTextureWebP } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import draco3d from 'draco3dgltf';
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
 
 await MeshoptEncoder.ready;
 export const io = new NodeIO()
-  .registerExtensions([
-    KHRDracoMeshCompression,
-    KHRMeshQuantization,
-    EXTMeshoptCompression,
-    KHRTextureBasisu,
-    EXTTextureWebP,
-  ])
+  .registerExtensions(ALL_EXTENSIONS)
   .registerDependencies({
       'draco3d.decoder': await draco3d.createDecoderModule(),
-      'meshopt.decoder': MeshoptDecoder, 
+      'meshopt.decoder': MeshoptDecoder,
       'meshopt.encoder': MeshoptEncoder,
   });
+
