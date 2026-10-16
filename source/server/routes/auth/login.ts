@@ -1,3 +1,4 @@
+import { errorPayload, localizeError } from "../../utils/messages/request.js";
 import { createHmac } from "crypto";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import User, { SafeUser } from "../../auth/User.js";
@@ -27,19 +28,21 @@ export async function postLogin(req :Request, res :Response){
       e = new UnauthorizedError(`Username not found`);
     }
     const code :number = e.code ?? 500;
-    const rawMessage = (e instanceof HTTPError)? e.message.slice(6): e.message;
+    const rawMessage = (e instanceof HTTPError) ? localizeError(req, e, "html").slice(6) : e.message;
+    res.vary("Accept-Language");
     res.status(code);
     res.format({
       "application/json": ()=> {
-        res.send({ code, message: `${e.name}: ${e.message}` });
+        res.send(errorPayload(req, e, code));
       },
       "text/html": ()=>{
         res.render("login", {
           error: rawMessage,
+          errorLocalized: !!e.messageCode,
         });
       },
       "text/plain": ()=>{
-        res.send(e.message);
+        res.send(localizeError(req, e, "text"));
       },
     });
     return; //Stop here.

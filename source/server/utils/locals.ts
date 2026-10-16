@@ -1,3 +1,4 @@
+import { messageLanguage } from "./messages/request.js";
 
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
 import { basename, dirname } from "path";
@@ -535,7 +536,7 @@ export function useTemplateProperties(req: Request, res: Response, next?: NextFu
   const { config } = getLocals(req);
   const user = getUser(req);
   const { search } = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
+  const lang = messageLanguage(req, "html");
   Object.assign(res.locals, {
     lang,
     languages: uiLanguages.map(l => {

@@ -40,7 +40,7 @@
 
           <div id="login-form-error">
             {{#if error}}
-            <span class="text-error" role="alert">{{i18n (join "errors" error separator=".")}}</span>
+            <span class="text-error" role="alert">{{#if errorLocalized}}{{error}}{{else}}{{i18n (join "errors" error separator=".")}}{{/if}}</span>
             {{/if}}
           </div>
 
