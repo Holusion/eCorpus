@@ -8,12 +8,13 @@ import { AccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
-import { localize } from "../../utils/i18n.js";
+import { localize, LocalizedOutput } from "../../utils/i18n.js";
 import { toGlb } from "./toGlb.js";
 import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
 import { optimizeGlb } from "./optimizeGlb.js";
 import { inspectGlb } from "./inspectGlb.js";
 import { BoundingBox } from "../../utils/gltf/inspect.js";
+import { localizeModelWarnings } from "../../utils/gltf/warnings.js";
 import { createDocumentFromFiles, DocumentModel } from "./createDocumentFromFiles.js";
 import { isSceneLanguage } from "../../utils/languages.js";
 
@@ -40,7 +41,7 @@ export interface UploadedArchive extends UploadedFile {
   scenes: ImportSceneResult[];
 }
 
-export interface UploadedBinaryModel extends UploadedFile {
+export interface UploadedBinaryModel extends UploadedFile, Required<LocalizedOutput> {
   mime: "model/gltf-binary";
   isModel: boolean;
   name?: string;
@@ -140,6 +141,7 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
     bounds: meta.bounds,
     imageSize: meta.imageSize,
     numFaces: meta.numFaces,
+    ...localizeModelWarnings(meta.warnings),
     byteSize: stats.size,
   }
 }

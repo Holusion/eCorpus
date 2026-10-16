@@ -123,6 +123,30 @@ describe("PUT /tasks/:id/artifact", function(){
     });
   });
 
+  it("forwards glTF inspection warnings to the completed upload task", async function(){
+    const data = await fs.readFile(path.join(fixturesDir, "cube_textured.glb"));
+    const { body: upload } = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("alice"))
+      .send({ type: "parseUserUpload", status: "initializing", data: { filename: "textured.glb", size: data.length } })
+      .expect(201);
+    await request(this.server).put(`/tasks/${upload.task_id}/artifact`)
+      .set("Authorization", await bearer("alice"))
+      .send(data).expect(201);
+    const { body } = await request(this.server).get(`/tasks/${upload.task_id}`)
+      .set("Authorization", await bearer("alice"))
+      .set("Accept-Language", "fr")
+      .expect(200);
+    expect(body.task.status).to.equal("success");
+    expect(body.task.output.mime).to.equal("model/gltf-binary");
+    expect(body.task).not.to.have.property("warnings");
+    expect(body.task.output.warnings).to.deep.equal([
+      { key: "modelWarnings.png-images", params: {}, message: "Cet objet contient des images PNG" },
+    ]);
+    expect(body.task.output.messages).to.deep.equal([
+      { key: "modelWarnings.recommend-optimize", params: {}, message: "Cochez la case « Optimiser » avant de créer la scène." },
+    ]);
+  });
+
   it("rejects out-of-order bytes", async function(){
     const data = randomBytes(6);
     const res = await request(this.server).put(`/tasks/${task}/artifact`)
