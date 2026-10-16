@@ -8,7 +8,7 @@ import { AccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
-import { localize } from "../../utils/i18n.js";
+import { localize, LocalizedOutput } from "../../utils/i18n.js";
 import { toGlb } from "./toGlb.js";
 import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
 import { optimizeGlb } from "./optimizeGlb.js";
@@ -40,7 +40,7 @@ export interface UploadedArchive extends UploadedFile {
   scenes: ImportSceneResult[];
 }
 
-export interface UploadedBinaryModel extends UploadedFile {
+export interface UploadedBinaryModel extends UploadedFile, Required<LocalizedOutput> {
   mime: "model/gltf-binary";
   isModel: boolean;
   name?: string;
@@ -140,6 +140,8 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
     bounds: meta.bounds,
     imageSize: meta.imageSize,
     numFaces: meta.numFaces,
+    warnings: meta.warnings,
+    messages: meta.messages,
     byteSize: stats.size,
   }
 }
