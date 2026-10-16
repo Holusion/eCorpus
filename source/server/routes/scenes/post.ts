@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { createWriteStream } from "fs";
 import path from "path";
 import { Request, Response } from "express";
@@ -20,14 +21,14 @@ interface ImportResults {
 
 export async function postRawZipfile(req: Request, res: Response) {
   const requester = getUser(req);
-  if (requester === null) { throw new UnauthorizedError("No identified user") }
+  if (requester === null) { throw new UnauthorizedError(apiMessage("errors.no-identified-user")) }
   let userManager = getUserManager(req);
   let taskScheduler = getTaskScheduler(req);
 
   let filename = getFilename(req.headers) as string;
-  if (!filename) throw new BadRequestError(`Can't detect file type from Content-Disposition or Content-Type headers`);
+  if (!filename) throw new BadRequestError(apiMessage("errors.can-t-detect-file-type-from-content-disposition-or-content-type-headers"));
   let size = parseInt(req.headers["content-length"]!);
-  if (!size || !Number.isInteger(size)) throw new BadRequestError(`Chunked encoding not supported for this request. Use upload tasks to transfer large files`);
+  if (!size || !Number.isInteger(size)) throw new BadRequestError(apiMessage("errors.chunked-encoding-not-supported-for-this-request-use-upload-tasks-to-transfer-large-fi"));
 
   const output = await taskScheduler.run<undefined>({
     scene_id: null,
@@ -60,10 +61,10 @@ export async function postRawZipfile(req: Request, res: Response) {
 
 export default async function postScenes(req: Request, res: Response) {
   const requester = getUser(req);
-  if (requester === null) { throw new UnauthorizedError("No identified user") }
+  if (requester === null) { throw new UnauthorizedError(apiMessage("errors.no-identified-user")) }
 
   if (req.is("multipart") || req.is("application/x-www-form-urlencoded")) {
-    throw new BadRequestError(`Form data is not supported on this route. Provide a raw Zip attachment`);
+    throw new BadRequestError(apiMessage("errors.form-data-is-not-supported-on-this-route-provide-a-raw-zip-attachment"));
   }
 
   return await postRawZipfile(req, res);

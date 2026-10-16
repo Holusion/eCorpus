@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 import { BadRequestError, HTTPError, NotFoundError } from "../utils/errors.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { serializeTaskError } from "./errors.js";
@@ -37,7 +38,7 @@ export class TaskManager{
   public async setTaskStatus(id: number, status:Omit<TaskStatus, "success"|"error">): Promise<void>{
     log_status.debug({ task_id: id, status }, `Set task #${id} to status ${status}`);
     let r = await this.db.run(`UPDATE tasks SET status = $2 WHERE task_id = $1`, [id, status]);
-    if(!r.changes) throw new NotFoundError(`No task found with id ${id}`);
+    if(!r.changes) throw new NotFoundError(apiMessage("errors.no-task-found-with-id", { value1: String(id) }));
   }
 
   /**
@@ -51,7 +52,7 @@ export class TaskManager{
     const r = await this.db.run(`UPDATE tasks SET status = 'running' WHERE task_id = $1 AND status IN ('initializing', 'pending')`, [id]);
     if(!r.changes){
       const t = await this.getTask(id); //will throw NotFoundError if task doesn't exist
-      throw new BadRequestError(`Can't take task #${id} with status ${t.status}`);
+      throw new BadRequestError(apiMessage("errors.can-t-take-task-with-status", { value1: String(id), value2: String(t.status) }));
     }
   }
 
@@ -66,7 +67,7 @@ export class TaskManager{
 
     const result = await this.db.run(`UPDATE tasks SET status = 'success', output = $2 WHERE task_id = $1`, [id, JSON.stringify(output)]);
     if(!result.changes){
-      throw new NotFoundError(`No task found with id ${id}`);
+      throw new NotFoundError(apiMessage("errors.no-task-found-with-id", { value1: String(id) }));
     }
   }
 
@@ -82,7 +83,7 @@ export class TaskManager{
       const result = await this.db.run(`UPDATE tasks SET status = 'error', output = $2 WHERE task_id = $1`, [id, serialized]);
 
       if(!result.changes){
-        throw new NotFoundError(`No task found with id ${id}`);
+        throw new NotFoundError(apiMessage("errors.no-task-found-with-id", { value1: String(id) }));
       }
     }catch(e:any){
       log_status.error({ task_id: id, err: e }, "While trying to set task status");
@@ -135,7 +136,7 @@ export class TaskManager{
       WHERE task_id = $1
       LIMIT 1
     `, [id]);
-    if(!task.length) throw new NotFoundError(`No task found with id ${id}`);
+    if(!task.length) throw new NotFoundError(apiMessage("errors.no-task-found-with-id", { value1: String(id) }));
     return task[0];
   }
 
@@ -234,7 +235,7 @@ export class TaskManager{
     `, [id, level]);
 
     if (!rows.length) {
-      throw new NotFoundError(`No task found with id ${id}`);
+      throw new NotFoundError(apiMessage("errors.no-task-found-with-id", { value1: String(id) }));
     }
 
     // --- assemble tasks (deduplicate by task_id) and logs (deduplicate by log_id) ---
@@ -310,9 +311,9 @@ export class TaskManager{
   public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
-    if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
-    if (limit > 100) throw new BadRequestError(`When provided, limit must be <= 100`);
-    if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a non-negative integer`);
+    if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-a-positive-integer"));
+    if (limit > 100) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-100"));
+    if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0) throw new BadRequestError(apiMessage("errors.when-provided-offset-must-be-a-non-negative-integer"));
 
     const where: string[] = [];
     const params: any[] = [];
@@ -387,8 +388,8 @@ export class TaskManager{
     `, [id, scene_id]);
     if (!r.changes) {
       const t = await this.getTask(id); // throws NotFoundError if missing
-      if (t.scene_id !== null) throw new BadRequestError(`Task #${id} already has scene_id ${t.scene_id}`);
-      throw new BadRequestError(`Task #${id} cannot be assigned a scene because its parent already has one`);
+      if (t.scene_id !== null) throw new BadRequestError(apiMessage("errors.task-already-has-scene-id", { value1: String(id), value2: String(t.scene_id) }));
+      throw new BadRequestError(apiMessage("errors.task-cannot-be-assigned-a-scene-because-its-parent-already-has-one", { value1: String(id) }));
     }
   }
 
@@ -410,7 +411,7 @@ export class TaskManager{
    * @throws {Error}           when the referenced parent task does not exist (FK violation)
    */
   public async setTaskParent(id: number, parent: number): Promise<void> {
-    if (parent === id) throw new BadRequestError(`Task #${id} cannot be its own parent`);
+    if (parent === id) throw new BadRequestError(apiMessage("errors.task-cannot-be-its-own-parent", { value1: String(id) }));
     const r = await this.db.run(`
       WITH RECURSIVE ancestors AS (
         SELECT task_id, parent FROM tasks WHERE task_id = $2
@@ -427,8 +428,8 @@ export class TaskManager{
     `, [id, parent]);
     if (!r.changes) {
       const t = await this.getTask(id); // throws NotFoundError if missing
-      if (t.parent !== null) throw new BadRequestError(`Task #${id} already has parent ${t.parent}`);
-      throw new BadRequestError(`Setting parent #${parent} on task #${id} would create a cycle`);
+      if (t.parent !== null) throw new BadRequestError(apiMessage("errors.task-already-has-parent", { value1: String(id), value2: String(t.parent) }));
+      throw new BadRequestError(apiMessage("errors.setting-parent-on-task-would-create-a-cycle", { value1: String(parent), value2: String(id) }));
     }
   }
 

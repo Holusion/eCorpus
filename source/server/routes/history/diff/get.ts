@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 import {execFile} from "node:child_process";
 
 import {Request, Response} from "express";
@@ -20,8 +21,8 @@ export default async function handleGetDiff(req :Request, res :Response){
   const {scene, id:idString, from:fromString="-1"} = req.params;
   const id = parseInt(idString);
   const fromIdOrGen = parseInt(fromString);
-  if(!Number.isInteger(id)) throw new BadRequestError(`Requested fromId ${idString} is not a valid ID`);
-  if(!Number.isInteger(fromIdOrGen)) throw new BadRequestError(`Requested toId ${fromString} is not a valid ID`);
+  if(!Number.isInteger(id)) throw new BadRequestError(apiMessage("errors.requested-fromid-is-not-a-valid-id", { value1: String(idString) }));
+  if(!Number.isInteger(fromIdOrGen)) throw new BadRequestError(apiMessage("errors.requested-toid-is-not-a-valid-id", { value1: String(fromString) }));
 
   //`getFileById` looks up a global file id, but this route's rights were
   //checked against `:scene`. Both sides of the diff must be verified to belong
@@ -29,7 +30,7 @@ export default async function handleGetDiff(req :Request, res :Response){
   //access level. 404, like any other file the requester may not see.
   const {id: scene_id} = await vfs.getScene(scene);
   const inScene = <T extends {scene_id :number}>(file :T, ref :number)=>{
-    if(file.scene_id !== scene_id) throw new NotFoundError(`No file found with id ${ref} in scene ${scene}`);
+    if(file.scene_id !== scene_id) throw new NotFoundError(apiMessage("errors.no-file-found-with-id-in-scene", { value1: String(ref), value2: String(scene) }));
     return file;
   };
 

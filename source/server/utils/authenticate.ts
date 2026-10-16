@@ -1,3 +1,4 @@
+import { apiMessage } from "./messages/index.js";
 
 import { NextFunction, Request, RequestHandler, Response } from "express";
 
@@ -43,7 +44,7 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
       if (expires.valueOf() < now) {
         req.session = null;
         await userManager.removeSession(sessionId).catch(() => {});
-        throw new UnauthorizedError(`Session Token expired. Please reauthenticate`);
+        throw new UnauthorizedError(apiMessage("errors.session-token-expired-please-reauthenticate"));
       }
       if (expires.valueOf() < now + sessionMaxAge * 0.66) {
         //Sliding renewal: less than 66% of the session's lifetime remains.
@@ -69,7 +70,7 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
     //Cookie from before the server-side sessions migration (identity payload, no sid):
     //force a re-authentication.
     req.session = null;
-    return next(new UnauthorizedError(`Session Token expired. Please reauthenticate`));
+    return next(new UnauthorizedError(apiMessage("errors.session-token-expired-please-reauthenticate")));
   }
 
   next();

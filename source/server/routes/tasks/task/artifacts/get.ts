@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../../utils/messages/index.js";
 import { Request, Response } from "express";
 import { getVfs, getTaskScheduler } from "../../../../utils/locals.js";
 import { MethodNotAllowedError } from "../../../../utils/errors.js";
@@ -45,7 +46,7 @@ export async function getTaskArtifact(req: Request, res: Response){
   const id = parseInt(idString);
   const task = await taskScheduler.getTask(id);
   if(task.status != 'success'){
-    throw new MethodNotAllowedError(`Task status is ${task.status}. GET is only allowed on tasks that have status = "success"`);
+    throw new MethodNotAllowedError(apiMessage("errors.task-status-is-get-is-only-allowed-on-tasks-that-have-status-success", { value1: String(task.status) }));
   }
 
   const workspaceDir = vfs.getTaskWorkspace(id);

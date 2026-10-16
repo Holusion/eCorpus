@@ -1,3 +1,4 @@
+import { apiMessage } from "./messages/index.js";
 /**
  * Query string utilities
  */
@@ -17,7 +18,7 @@ export function qsToBool(v:QsValue) :boolean|undefined{
   }
   if(typeof v === "undefined") return undefined;
   if(typeof v === "object"){
-    throw new BadRequestError(`Can't cast object value to boolean`);
+    throw new BadRequestError(apiMessage("errors.can-t-cast-object-value-to-boolean"));
   }
   if(v === "0" || v === "false" || v === "no") return false;
   if(v === "" || v === "true" || v === "1" || v === "yes") return true;
@@ -29,10 +30,10 @@ export function qsToInt(v:QsValue) :number|undefined{
     v = v.pop();
   }
   if(typeof v === "object"){
-    throw new BadRequestError(`Can't cast object value to boolean`);
+    throw new BadRequestError(apiMessage("errors.can-t-cast-object-value-to-boolean"));
   }
   if(typeof v === "undefined" || v === "") return undefined;
   let r = parseInt(v);
-  if(!Number.isInteger(r)) throw new BadRequestError(`Not a valid integer : ${v}`);
+  if(!Number.isInteger(r)) throw new BadRequestError(apiMessage("errors.not-a-valid-integer", { value1: String(v) }));
   return r;
 }

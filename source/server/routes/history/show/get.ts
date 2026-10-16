@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 import { Request, Response } from "express";
 import { getVfs } from "../../../utils/locals.js";
 import { BadRequestError, NotFoundError } from "../../../utils/errors.js";
@@ -10,11 +11,11 @@ export async function handleShowFile(req: Request, res: Response){
   let vfs = getVfs(req);
   let {scene: sceneName, id, name} = req.params;
   let ref = parseInt(id);
-  if(!Number.isFinite(ref) || ref <= 0) throw new BadRequestError(`Invalid reference id: ${id}`);
+  if(!Number.isFinite(ref) || ref <= 0) throw new BadRequestError(apiMessage("errors.invalid-reference-id", { value1: String(id) }));
   let scene = await vfs.getScene(sceneName);
   let file = await vfs.getFileBefore({scene: scene.id, name, before: ref});
-  if(!file.hash && !file.data) throw new NotFoundError(`${sceneName}/${ name } does not exist at this reference point`);
-  if(file.hash === "directory") throw new BadRequestError(`${sceneName}/${name} appears to be a directory`);
+  if(!file.hash && !file.data) throw new NotFoundError(apiMessage("errors.does-not-exist-at-this-reference-point", { value1: String(sceneName), value2: String(name) }));
+  if(file.hash === "directory") throw new BadRequestError(apiMessage("errors.appears-to-be-a-directory", { value1: String(sceneName), value2: String(name) }));
   let rs = file.data? Readable.from([Buffer.from(file.data)]): (await vfs.openFile({hash: file.hash!})).createReadStream({ });
   
   res.set("Content-Length", file.size.toString(10));

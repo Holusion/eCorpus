@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 import {escapeLiteral} from "pg";
 import { AccessMap, AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import staticConfig from "../utils/config.js";
@@ -45,7 +46,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           if(e.constraint == "scenes_pkey"){
             continue;
           }else if(e.constraint == "scenes_scene_name_key"){
-            throw new ConflictError(`A scene named ${name} already exists`);
+            throw new ConflictError(apiMessage("errors.a-scene-named-already-exists", { value1: String(name) }));
           }else{
             throw e;
           }
@@ -54,7 +55,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         }
       }
     }
-    throw new ConflictError(`Unable to find a free id`);
+    throw new ConflictError(apiMessage("errors.unable-to-find-a-free-id"));
   }
   /**
    * WARNING: should not be used in normal operations
@@ -63,7 +64,7 @@ export default abstract class ScenesVfs extends BaseVfs{
    */
   async removeScene(scene:number|string){
     let r = await this.db.run(`DELETE FROM scenes WHERE ${typeof scene ==="number"? "scene_id": "scene_name"} = $1`, [scene]);
-    if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
+    if(!r?.changes) throw new NotFoundError(apiMessage("errors.no-scene-found-matching", { value1: String(scene) }));
   }
   /**
    * Archive a scene. Simply flips the "archived" boolean
@@ -80,7 +81,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         ${typeof scene ==="number"? `AND position(('#' || CAST(scene_id AS TEXT) ) IN scene_name) = 0`:""}
         AND archived IS NULL
     `, [ scene.toString(10) ]);
-    if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
+    if(!r?.changes) throw new NotFoundError(apiMessage("errors.no-scene-found-matching", { value1: String(scene) }));
   }
 
 
@@ -100,7 +101,7 @@ export default abstract class ScenesVfs extends BaseVfs{
         ${typeof scene ==="number"? "scene_id": "scene_name"} = $1
         AND archived IS NOT NULL
     `, args);
-    if(!r?.changes) throw new NotFoundError(`No scene found matching : ${scene}`);
+    if(!r?.changes) throw new NotFoundError(apiMessage("errors.no-scene-found-matching", { value1: String(scene) }));
   }
 
   async renameScene(scene_id :number, nextName :string){
@@ -109,7 +110,7 @@ export default abstract class ScenesVfs extends BaseVfs{
       SET scene_name = $2
       WHERE scene_id = $1
     `, [scene_id, nextName ]);
-    if(!r?.changes) throw new NotFoundError(`no scene found with id: ${scene_id}`);
+    if(!r?.changes) throw new NotFoundError(apiMessage("errors.no-scene-found-with-id", { value1: String(scene_id) }));
   }
 
   static _fragGroupAccess(user_id :number){
@@ -131,33 +132,33 @@ export default abstract class ScenesVfs extends BaseVfs{
   static _validateSceneQuery(q :Readonly<SceneQuery|any>):SceneQuery{
     //Check various parameters compliance
     if (typeof q.access !== "undefined" && (typeof q.access !== "string" || ["read", "write", "admin", "none"].indexOf(q.access.toLowerCase()) === -1)){
-      throw new BadRequestError(`Invalid access type requested : ${q.access}`);
+      throw new BadRequestError(apiMessage("errors.invalid-access-type-requested", { value1: String(q.access) }));
     }
     if(typeof q.author !== "undefined" &&  typeof q.author != "string"){
-      throw new BadRequestError(`Invalid author filter request: ${q.author}`);
+      throw new BadRequestError(apiMessage("errors.invalid-author-filter-request", { value1: String(q.author) }));
     }
 
     if(typeof q.limit !== "undefined"){
-      if(typeof q.limit !="number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(`When provided, limit must be an integer`);
-      if(q.limit <= 0) throw new BadRequestError(`When provided, limit must be >0`);
-      if(100 < q.limit) throw new BadRequestError(`When provided, limit must be <= 100`);
+      if(typeof q.limit !="number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-an-integer"));
+      if(q.limit <= 0) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-0"));
+      if(100 < q.limit) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-100"));
     }
     if(typeof q.offset !== "undefined"){
-      if(typeof q.offset !="number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(`When provided, offset must be an integer`);
-      if(q.offset < 0) throw new BadRequestError(`When provided, limit must be >= 0`);
+      if(typeof q.offset !="number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(apiMessage("errors.when-provided-offset-must-be-an-integer"));
+      if(q.offset < 0) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-0-cdb6c9"));
     }
     
     if(typeof q.orderDirection !== "undefined" && (typeof q.orderDirection !== "string" || ["asc", "desc"].indexOf(q.orderDirection.toLowerCase()) === -1)){
-      throw new BadRequestError(`Invalid orderDirection: ${q.orderDirection}`);
+      throw new BadRequestError(apiMessage("errors.invalid-orderdirection", { value1: String(q.orderDirection) }));
     }
     if(typeof q.orderBy !== "undefined" && (typeof q.orderBy !== "string" || ["ctime", "mtime", "name", "rank"].indexOf(q.orderBy.toLowerCase()) === -1)){
-      throw new BadRequestError(`Invalid orderBy: ${q.orderBy}`);
+      throw new BadRequestError(apiMessage("errors.invalid-orderby", { value1: String(q.orderBy) }));
     }
     if(typeof q.archived !== "undefined" && typeof q.archived != "boolean"){
-      throw new BadRequestError(`Invalid archived query: ${typeof q.archived}`);
+      throw new BadRequestError(apiMessage("errors.invalid-archived-query", { value1: String(typeof q.archived) }));
     }
     if(typeof q.type !== "undefined" && (q.type !== "html" && q.type !== "voyager")){
-      throw new BadRequestError(`Invalid type filter: ${q.type}`);
+      throw new BadRequestError(apiMessage("errors.invalid-type-filter", { value1: String(q.type) }));
     }
     return q;
   }
@@ -206,7 +207,7 @@ export default abstract class ScenesVfs extends BaseVfs{
 
     if(typeof archived === "boolean"){
       if (archived && typeof user_id != "number"){
-        throw new UnauthorizedError("Accessing archived scenes requires being authenticated")
+        throw new UnauthorizedError(apiMessage("errors.accessing-archived-scenes-requires-being-authenticated"))
       }
       whereClause +=` AND archived ${archived?"IS NOT":"IS"} NULL`;
     }
@@ -415,7 +416,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     )
     `, args);
 
-    if(!scene_stored) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+    if(!scene_stored) throw new NotFoundError(apiMessage("errors.no-scene-found-with-647c7d", { value1: String(key), value2: String(nameOrId) }));
 
     const scene :Omit<Scene, "tags"|"mtime"> = {
       ...scene_stored,

@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 import fs from "fs/promises";
 import crypto, { randomBytes } from "crypto";
 import path from "path";
@@ -293,7 +294,7 @@ export default class UserManager extends DbController {
    */
   async getUserById(user_id: number) :Promise<User>{
     let u = await this.db.all<StoredUser>(`SELECT * FROM users WHERE user_id = $1 LIMIT 1`, [ user_id ]);
-    if(!u.length) throw new NotFoundError(`no user with user_id ${user_id}`);
+    if(!u.length) throw new NotFoundError(apiMessage("errors.no-user-with-user-id", { value1: String(user_id) }));
     return UserManager.deserialize(u[0]);
   }
 
@@ -303,9 +304,9 @@ export default class UserManager extends DbController {
    * @throws {NotFoundError} is username is not found
    */
   async getUserByName(username : string) :Promise<User>{
-    if(!UserManager.isValidUserName(username) && username.indexOf("@")== -1) throw new BadRequestError(`Invalid user name`);
+    if(!UserManager.isValidUserName(username) && username.indexOf("@")== -1) throw new BadRequestError(apiMessage("errors.invalid-user-name"));
     let u = (await this.db.all<StoredUser>(`SELECT * FROM users WHERE username = $1 OR email = $1`, [ username ]))[0];
-    if(!u) throw new NotFoundError(`no user with username ${username}`);
+    if(!u) throw new NotFoundError(apiMessage("errors.no-user-with-username", { value1: String(username) }));
     return UserManager.deserialize(u);
   }
   
@@ -315,16 +316,16 @@ export default class UserManager extends DbController {
    */
   static _validateUserQuery(q :Readonly<UserQuery|any>) :UserQuery{
     if(typeof q.limit !== "undefined"){
-      if(typeof q.limit != "number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(`When provided, limit must be an integer`);
-      if(q.limit <= 0) throw new BadRequestError(`When provided, limit must be >0`);
-      if(100 < q.limit) throw new BadRequestError(`When provided, limit must be <= 100`);
+      if(typeof q.limit != "number" || Number.isNaN(q.limit) || !Number.isInteger(q.limit)) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-an-integer"));
+      if(q.limit <= 0) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-0"));
+      if(100 < q.limit) throw new BadRequestError(apiMessage("errors.when-provided-limit-must-be-100"));
     }
     if(typeof q.offset !== "undefined"){
-      if(typeof q.offset != "number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(`When provided, offset must be an integer`);
-      if(q.offset < 0) throw new BadRequestError(`When provided, offset must be >= 0`);
+      if(typeof q.offset != "number" || Number.isNaN(q.offset) || !Number.isInteger(q.offset)) throw new BadRequestError(apiMessage("errors.when-provided-offset-must-be-an-integer"));
+      if(q.offset < 0) throw new BadRequestError(apiMessage("errors.when-provided-offset-must-be-0"));
     }
     if(typeof q.match !== "undefined" && typeof q.match !== "string"){
-      throw new BadRequestError(`When provided, match must be a string`);
+      throw new BadRequestError(apiMessage("errors.when-provided-match-must-be-a-string"));
     }
     return q;
   }
@@ -376,7 +377,7 @@ export default class UserManager extends DbController {
       FROM users
       WHERE user_id NOT IN (0, 1)
       ${matchClause}`, args))[0];
-    if(!r) throw new InternalError(`Bad db configuration : can't get user count`);
+    if(!r) throw new InternalError(apiMessage("errors.bad-db-configuration-can-t-get-user-count"));
     return typeof r.count === "string" ? parseInt(r.count, 10) : r.count;
   }
   /**
@@ -388,9 +389,9 @@ export default class UserManager extends DbController {
    */
   async getUserByNamePassword(name : string, password : string) :Promise<User>{
     let u = await this.getUserByName(name);
-    if(!u?.password) throw new UnauthorizedError("Username not found");
+    if(!u?.password) throw new UnauthorizedError(apiMessage("errors.username-not-found"));
     if(!await UserManager.verifyPassword(password, u.password)){
-      throw new UnauthorizedError("Bad password");
+      throw new UnauthorizedError(apiMessage("errors.bad-password"));
     }else{
       return u;
     }
@@ -420,8 +421,8 @@ export default class UserManager extends DbController {
         break;
       }catch(e:any){
         if(e.code == errors.unique_violation && e.constraint === "users_user_id_key") continue;
-        if(e.code == errors.unique_violation && e.constraint === "users_username_key") throw new ConflictError(`username ${username} already exists`);
-        if(e.code == errors.unique_violation && e.constraint === "users_email_key") throw new ConflictError(`email ${email} already exists`);
+        if(e.code == errors.unique_violation && e.constraint === "users_username_key") throw new ConflictError(apiMessage("errors.username-already-exists", { value1: String(username) }));
+        if(e.code == errors.unique_violation && e.constraint === "users_email_key") throw new ConflictError(apiMessage("errors.email-already-exists", { value1: String(email) }));
         else throw e;
       }
     }
@@ -439,7 +440,7 @@ export default class UserManager extends DbController {
       if (key != "level") {
         let validator = UserManager.isValid[key];
         if(typeof validator === "function" && !validator(value)){
-          throw new BadRequestError(`Bad value for ${key}: ${value}`);
+          throw new BadRequestError(apiMessage("errors.bad-value-for", { value1: String(key), value2: String(value) }));
         }
       }
       values.push( key + ` = $${params.length+1}`);
@@ -453,7 +454,7 @@ export default class UserManager extends DbController {
       }
     }
     if(values.length === 0){
-      throw new BadRequestError(`Provide at least one valid value to change`);
+      throw new BadRequestError(apiMessage("errors.provide-at-least-one-valid-value-to-change"));
     }
     let r = await this.db.get<StoredUser>(`
       UPDATE users 
@@ -461,7 +462,7 @@ export default class UserManager extends DbController {
       WHERE user_id = $1
       RETURNING *
     `, params);
-    if(!r) throw new NotFoundError(`Can't find user with uid : ${uid}`);
+    if(!r) throw new NotFoundError(apiMessage("errors.can-t-find-user-with-uid", { value1: String(uid) }));
     if(typeof u.password !== "undefined"){
       //A password change evicts every active session for this user (OWASP ASVS V3).
       //The route handler may mint a fresh session for the requester afterwards.
@@ -472,7 +473,7 @@ export default class UserManager extends DbController {
 
   async removeUser(uid :number){
     let r = await this.db.run(`DELETE FROM users WHERE user_id = $1`, [ uid.toString(10) ]);
-    if(!r || !r.changes) throw new NotFoundError(`No user to delete with uid ${uid}`);
+    if(!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-user-to-delete-with-uid", { value1: String(uid) }));
   }
 
   /**
@@ -487,7 +488,7 @@ export default class UserManager extends DbController {
    * @param role 
    */
   async grant(scene :string|number, user :string|number, role :AccessType|null){
-    if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
+    if(!isAccessType(role)) throw new BadRequestError(apiMessage("errors.bad-access-type-requested", { value1: String(role) }));
     let scene_id = `(${(typeof scene === "number")?`SELECT $1::bigint AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
     let level = toAccessLevel(role);
@@ -504,11 +505,11 @@ export default class UserManager extends DbController {
         ]);
       }catch(e:any){
         if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_user_id"){
-          throw new NotFoundError( (typeof user === "number")? `User ID can't be null` : `Invalid username ${user}`);
+          throw new NotFoundError( (typeof user === "number") ? apiMessage("errors.user-id-null") : apiMessage("errors.invalid-username", { user: String(user) }));
         }else if(e.code === errors.foreign_key_violation && e.table === "users_acl" && e.constraint === 'users_acl_fk_user_id_fkey'){
-          throw new NotFoundError(`Invalid user ID ${user}`);
+          throw new NotFoundError(apiMessage("errors.invalid-user-id", { value1: String(user) }));
         }else if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_scene_id"){
-          throw new NotFoundError(`Scene ${scene} does not exist`);
+          throw new NotFoundError(apiMessage("errors.scene-does-not-exist", { value1: String(scene) }));
         }
         throw e;
       }
@@ -521,7 +522,7 @@ export default class UserManager extends DbController {
         user,
       ]);
       if(!r || !r.changes){
-        throw new NotFoundError(`Can't find matching user or scene`);
+        throw new NotFoundError(apiMessage("errors.can-t-find-matching-user-or-scene"));
       }
     }
   }
@@ -571,7 +572,7 @@ export default class UserManager extends DbController {
         "scene_id = $1" : "scene_name = $1" }`
       , uid ? [scene, uid] : [scene]
     );
-    if(!res || !res.level) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
+    if(!res || !res.level) throw new NotFoundError(apiMessage("errors.no-scene-with", { value1: String(typeof scene ==="number"? `id ${scene}`: `name ${scene}`) }));
     return res.level as AccessLevel;
 
   }
@@ -625,7 +626,7 @@ export default class UserManager extends DbController {
   async setPublicAccess(scene: string | number, role: "none" | "read"): Promise<void> {
     let is_id = typeof scene === "number";
     let level = toAccessLevel(role)
-    if(level < 0 || 1 < level) throw new BadRequestError(`Can't set scene public access to ${role}`)
+    if(level < 0 || 1 < level) throw new BadRequestError(apiMessage("errors.can-t-set-scene-public-access-to", { value1: String(role) }))
     let r = await this.db.run(`
       UPDATE scenes
       SET public_access = $2
@@ -634,7 +635,7 @@ export default class UserManager extends DbController {
         scene,
         level,
       ]);    
-    if(r?.changes != 1) throw new NotFoundError(`No scene found with ${(is_id)?"scene_id":"scene_name"} = ${scene}`);
+    if(r?.changes != 1) throw new NotFoundError(apiMessage("errors.no-scene-found-with", { value1: String((is_id)?"scene_id":"scene_name"), value2: String(scene) }));
 
   }
 
@@ -649,11 +650,11 @@ export default class UserManager extends DbController {
           scene,
           toAccessLevel(role),
         ]);
-      if(r?.changes != 1) throw new NotFoundError(`No scene found with ${is_id?"scene_id":"scene_name"} = ${scene}`);
+      if(r?.changes != 1) throw new NotFoundError(apiMessage("errors.no-scene-found-with", { value1: String(is_id?"scene_id":"scene_name"), value2: String(scene) }));
 
     }catch(e: any){
       if(e.code == errors.check_violation && e.constraint == "default_access_allowed_values"){
-        throw new BadRequestError(`Invalid value for scene default access : ${role}`);
+        throw new BadRequestError(apiMessage("errors.invalid-value-for-scene-default-access", { value1: String(role) }));
       }
       throw e;
     }
@@ -676,7 +677,7 @@ export default class UserManager extends DbController {
       userAgent ?? null,
     ]);
     //istanbul ignore if
-    if(!r) throw new InternalError(`Failed to create a session for user ${uid}`);
+    if(!r) throw new InternalError(apiMessage("errors.failed-to-create-a-session-for-user", { value1: String(uid) }));
     return {sid, session: deserializeSession(r)};
   }
 
@@ -694,7 +695,7 @@ export default class UserManager extends DbController {
       INNER JOIN users AS u ON u.user_id = s.fk_user_id
       WHERE s.sid_hash = $1
     `, [hashSid(sid)]);
-    if(!r) throw new UnauthorizedError(`Invalid session`);
+    if(!r) throw new UnauthorizedError(apiMessage("errors.invalid-session"));
     return {
       user: User.safe(UserManager.deserialize({...r, password: undefined})),
       sessionId: deserializeSession(r).id,
@@ -737,7 +738,7 @@ export default class UserManager extends DbController {
       DELETE FROM user_sessions
       WHERE session_id = $1 ${typeof uid === "number" ? "AND fk_user_id = $2" : ""}
     `, args);
-    if(!r || !r.changes) throw new NotFoundError(`No session to delete with id ${sessionId}`);
+    if(!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-session-to-delete-with-id", { value1: String(sessionId) }));
   }
 
   /**
@@ -767,8 +768,8 @@ export default class UserManager extends DbController {
     clientId?: number | null,
     expires?: Date | null,
   }): Promise<{token: string, meta: ApiToken}>{
-    if(typeof name !== "string" || name.length == 0) throw new BadRequestError(`A token name is required`);
-    if(!isValidScope(scope)) throw new BadRequestError(`Invalid token scope : ${JSON.stringify(scope)}`);
+    if(typeof name !== "string" || name.length == 0) throw new BadRequestError(apiMessage("errors.a-token-name-is-required"));
+    if(!isValidScope(scope)) throw new BadRequestError(apiMessage("errors.invalid-token-scope", { value1: String(JSON.stringify(scope)) }));
     const secret = makeSecret();
     let r = await this.db.get<StoredToken>(`
       INSERT INTO api_tokens (fk_user_id, fk_client_id, name, hash, scope, expires_at)
@@ -783,7 +784,7 @@ export default class UserManager extends DbController {
       expires,
     ]);
     //istanbul ignore if
-    if(!r) throw new InternalError(`Failed to create a token for user ${uid}`);
+    if(!r) throw new InternalError(apiMessage("errors.failed-to-create-a-token-for-user", { value1: String(uid) }));
     return {token: formatToken(secret), meta: deserializeToken(r)};
   }
 
@@ -795,7 +796,7 @@ export default class UserManager extends DbController {
    */
   async authenticateToken(token: string): Promise<{user: SafeUser, token: ApiToken}>{
     const secret = parseToken(token);
-    if(!secret) throw new UnauthorizedError(`Invalid authorization token`);
+    if(!secret) throw new UnauthorizedError(apiMessage("errors.invalid-authorization-token"));
     //The secret is 256 bits of entropy, so an exact sha256(secret) match (a
     //unique index) IS the verification: no id is transmitted, and no separate
     //constant-time compare is needed.
@@ -807,10 +808,10 @@ export default class UserManager extends DbController {
       WHERE t.hash = $1
     `, [hash]);
     if(!r){
-      throw new UnauthorizedError(`Invalid authorization token`);
+      throw new UnauthorizedError(apiMessage("errors.invalid-authorization-token"));
     }
     if(r.expires_at && r.expires_at.valueOf() < Date.now()){
-      throw new UnauthorizedError(`Token expired`);
+      throw new UnauthorizedError(apiMessage("errors.token-expired"));
     }
     //Throttled usage tracking: at most one write per 5 minutes per token
     await this.db.run(`
@@ -849,7 +850,7 @@ export default class UserManager extends DbController {
       DELETE FROM api_tokens
       WHERE token_id = $1 ${typeof uid === "number" ? "AND fk_user_id = $2" : ""}
     `, args);
-    if(!r || !r.changes) throw new NotFoundError(`No token to delete with id ${tokenId}`);
+    if(!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-token-to-delete-with-id", { value1: String(tokenId) }));
   }
 
   /**
@@ -872,19 +873,19 @@ export default class UserManager extends DbController {
     createdBy?: number | null,
     confidential?: boolean,
   } = {}): Promise<{client: OAuthClient, secret: string | null}>{
-    if(typeof name !== "string" || name.length == 0) throw new BadRequestError(`A client name is required`);
+    if(typeof name !== "string" || name.length == 0) throw new BadRequestError(apiMessage("errors.a-client-name-is-required"));
     if(!Array.isArray(redirectUris) || redirectUris.length == 0){
-      throw new BadRequestError(`At least one redirect URI is required`);
+      throw new BadRequestError(apiMessage("errors.at-least-one-redirect-uri-is-required"));
     }
     for(const uri of redirectUris){
       let u;
       try{
         u = new URL(uri);
       }catch(e){
-        throw new BadRequestError(`Invalid redirect URI : ${uri}`);
+        throw new BadRequestError(apiMessage("errors.invalid-redirect-uri", { value1: String(uri) }));
       }
-      if(u.protocol !== "https:" && u.protocol !== "http:") throw new BadRequestError(`Invalid redirect URI scheme : ${uri}`);
-      if(u.hash) throw new BadRequestError(`Redirect URIs must not have a fragment : ${uri}`);
+      if(u.protocol !== "https:" && u.protocol !== "http:") throw new BadRequestError(apiMessage("errors.invalid-redirect-uri-scheme", { value1: String(uri) }));
+      if(u.hash) throw new BadRequestError(apiMessage("errors.redirect-uris-must-not-have-a-fragment", { value1: String(uri) }));
     }
     const secret = confidential ? makeSecret() : null;
     let r;
@@ -900,11 +901,11 @@ export default class UserManager extends DbController {
         createdBy == null ? null : createdBy.toString(10),
       ]);
     }catch(e: any){
-      if(e.code == errors.unique_violation && e.constraint === "oauth_clients_name_key") throw new ConflictError(`A client named ${name} already exists`);
+      if(e.code == errors.unique_violation && e.constraint === "oauth_clients_name_key") throw new ConflictError(apiMessage("errors.a-client-named-already-exists", { value1: String(name) }));
       throw e;
     }
     //istanbul ignore if
-    if(!r) throw new InternalError(`Failed to create client ${name}`);
+    if(!r) throw new InternalError(apiMessage("errors.failed-to-create-client", { value1: String(name) }));
     return {client: deserializeClient(r), secret: secret ? secret.toString("base64url") : null};
   }
 
@@ -913,7 +914,7 @@ export default class UserManager extends DbController {
    */
   async getClient(clientId: number): Promise<OAuthClient>{
     let r = await this.db.get<StoredClient>(`SELECT * FROM oauth_clients WHERE client_id = $1`, [clientId.toString(10)]);
-    if(!r) throw new NotFoundError(`No client with id ${clientId}`);
+    if(!r) throw new NotFoundError(apiMessage("errors.no-client-with-id", { value1: String(clientId) }));
     return deserializeClient(r);
   }
 
@@ -927,7 +928,7 @@ export default class UserManager extends DbController {
    */
   async removeClient(clientId: number): Promise<void>{
     let r = await this.db.run(`DELETE FROM oauth_clients WHERE client_id = $1`, [clientId.toString(10)]);
-    if(!r || !r.changes) throw new NotFoundError(`No client to delete with id ${clientId}`);
+    if(!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-client-to-delete-with-id", { value1: String(clientId) }));
   }
 
   /**
@@ -937,13 +938,13 @@ export default class UserManager extends DbController {
    */
   async authenticateClient(clientId: number, secret?: string | null): Promise<OAuthClient>{
     let r = await this.db.get<StoredClient>(`SELECT * FROM oauth_clients WHERE client_id = $1`, [clientId.toString(10)]);
-    if(!r) throw new UnauthorizedError(`Unknown client`);
+    if(!r) throw new UnauthorizedError(apiMessage("errors.unknown-client"));
     if(r.secret_hash){
       if(!secret || !verifySecret(Buffer.from(secret, "base64url"), r.secret_hash)){
-        throw new UnauthorizedError(`Bad client credentials`);
+        throw new UnauthorizedError(apiMessage("errors.bad-client-credentials"));
       }
     }else if(secret){
-      throw new UnauthorizedError(`Bad client credentials`);
+      throw new UnauthorizedError(apiMessage("errors.bad-client-credentials"));
     }
     return deserializeClient(r);
   }
@@ -1083,7 +1084,7 @@ export default class UserManager extends DbController {
       groupName
     ]))[0]);
     }catch(e:any){
-      if (e.code == errors.unique_violation && e.constraint === "groups_group_name_key")throw new ConflictError(`A group named ${groupName} already exists`)
+      if (e.code == errors.unique_violation && e.constraint === "groups_group_name_key")throw new ConflictError(apiMessage("errors.a-group-named-already-exists", { value1: String(groupName) }))
       else throw e;
     }
   }
@@ -1091,7 +1092,7 @@ export default class UserManager extends DbController {
   async removeGroup(group: number | string) {
     let group_id = `(${(typeof group === "number") ? `SELECT $1::bigint AS group_id` : `SELECT group_id FROM groups WHERE group_name = $1`})`;
     let r = await this.db.run(`DELETE FROM groups WHERE group_id = ${group_id}`, [group]);
-    if (!r || !r.changes) throw new NotFoundError(`No group ${group} to delete`);
+    if (!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-group-to-delete", { value1: String(group) }));
   }
 
   async getGroup(groupName: string): Promise<Group> {
@@ -1108,7 +1109,7 @@ export default class UserManager extends DbController {
         LEFT JOIN users ON groups_membership.fk_user_id = user_id
         WHERE group_name = $1
         GROUP BY group_name, group_id`, [groupName]));
-    if (!bdd_group) throw new NotFoundError(`no group named ${groupName}`);
+    if (!bdd_group) throw new NotFoundError(apiMessage("errors.no-group-named", { value1: String(groupName) }));
     return new Group(bdd_group);
   }
 
@@ -1134,14 +1135,14 @@ export default class UserManager extends DbController {
         INSERT INTO groups_membership (fk_group_id, fk_user_id)
         SELECT ${group_id}, ${user_id}`,
         [group, user]);
-      if (!r || !r.changes) throw new NotFoundError(`No user ${user} to add `);
+      if (!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-user-to-add", { value1: String(user) }));
     }
     catch (e: any) {
       if (e.code == errors.not_null_violation && ((e.column == "fk_group_id") || (e.column == "fk_user_id"))) {
         if (e.column == "fk_user_id") {
-          throw new NotFoundError("User " + user.toString() + " not found")
+          throw new NotFoundError(apiMessage("errors.user-not-found", { user: user.toString() }))
         } else {
-          throw new NotFoundError("Group " + group.toString() + " not found")
+          throw new NotFoundError(apiMessage("errors.group-not-found", { group: group.toString() }))
         }
       }
       else if (e.code != errors.unique_violation) {
@@ -1157,7 +1158,7 @@ export default class UserManager extends DbController {
     let r = await this.db.run(`
       DELETE FROM groups_membership 
       WHERE fk_user_id = ${user_id} AND fk_group_id = ${group_id}`, [group, user]);
-    if (!r || !r.changes) throw new NotFoundError(`No member ${user} to delete from group ${group}`);
+    if (!r || !r.changes) throw new NotFoundError(apiMessage("errors.no-member-to-delete-from-group", { value1: String(user), value2: String(group) }));
   }
 
   /* This returns false is the group or user does not exist.
@@ -1186,7 +1187,7 @@ export default class UserManager extends DbController {
  * @param role 
  */
   async grantGroup(scene: string | number, group: string | number, role: AccessType|null) {
-    if (!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
+    if (!isAccessType(role)) throw new BadRequestError(apiMessage("errors.bad-access-type-requested", { value1: String(role) }));
     let scene_id = `(${(typeof scene === "number") ? `SELECT $1::bigint AS scene_id` : `SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let group_id = `(${(typeof group === "number") ? `SELECT $2::bigint AS group_id` : `SELECT group_id FROM groups WHERE group_name = $2`})`;
     let level = toAccessLevel(role);
@@ -1203,11 +1204,11 @@ export default class UserManager extends DbController {
         ]);
       } catch (e: any) {
         if (e.code === errors.not_null_violation && e.table === "groups_acl" && e.column === "fk_group_id") {
-          throw new NotFoundError(`Group ID can't be null`);
+          throw new NotFoundError(apiMessage("errors.group-id-can-t-be-null"));
         } else if (e.code === errors.foreign_key_violation && e.table === "groups_acl" && e.constraint === 'users_acl_fk_group_id_fkey') {
-          throw new NotFoundError(`Invalid group ID ${group}`);
+          throw new NotFoundError(apiMessage("errors.invalid-group-id", { value1: String(group) }));
         } else if (e.code === errors.not_null_violation && e.table === "groups_acl" && e.column === "fk_scene_id") {
-          throw new NotFoundError(`Scene ${scene} does not exist`);
+          throw new NotFoundError(apiMessage("errors.scene-does-not-exist", { value1: String(scene) }));
         }
         throw e;
       }
@@ -1220,7 +1221,7 @@ export default class UserManager extends DbController {
         group,
       ]);
       if (!r || !r.changes) {
-        throw new NotFoundError(`Can't find matching group or scene`);
+        throw new NotFoundError(apiMessage("errors.can-t-find-matching-group-or-scene"));
       }
     }
   }

@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 import { isatty } from "node:tty";
 import { NotFoundError } from "../utils/errors.js";
 import BaseVfs from "./Base.js";
@@ -46,10 +47,10 @@ export default abstract class TagsVfs extends BaseVfs{
         tag,
         scene
       ]);
-      if(!r.changes) throw new NotFoundError(`Can't find scene matching ${scene}`);
+      if(!r.changes) throw new NotFoundError(apiMessage("errors.can-t-find-scene-matching", { value1: String(scene) }));
     }catch(e:any){
       if(e.code == errors.foreign_key_violation){
-        throw new NotFoundError(`Can't find scene matching ${scene}`);
+        throw new NotFoundError(apiMessage("errors.can-t-find-scene-matching", { value1: String(scene) }));
       }else if(e.code == errors.unique_violation){
         return false;
       }

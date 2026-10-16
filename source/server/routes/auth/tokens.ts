@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Request, Response } from "express";
 
 import { ApiToken } from "../../auth/Token.js";
@@ -39,7 +40,7 @@ export async function postToken(req: Request, res: Response){
   let expiresDate: Date | null = null;
   if(expires != null){
     expiresDate = new Date(expires);
-    if(Number.isNaN(expiresDate.valueOf())) throw new BadRequestError(`Invalid expires date: ${expires}`);
+    if(Number.isNaN(expiresDate.valueOf())) throw new BadRequestError(apiMessage("errors.invalid-expires-date", { value1: String(expires) }));
   }
   const {token, meta} = await getUserManager(req).createToken(requester.uid, {
     name,
@@ -55,7 +56,7 @@ export async function postToken(req: Request, res: Response){
 export async function deleteOwnToken(req: Request, res: Response){
   const requester = getUser(req)!;
   const id = parseInt(req.params.id, 10);
-  if(Number.isNaN(id)) throw new BadRequestError(`Invalid token id: ${req.params.id}`);
+  if(Number.isNaN(id)) throw new BadRequestError(apiMessage("errors.invalid-token-id", { value1: String(req.params.id) }));
   await getUserManager(req).removeToken(id, requester.uid);
   res.status(204).send();
 }
@@ -65,7 +66,7 @@ export async function deleteOwnToken(req: Request, res: Response){
  */
 export async function getUserTokens(req: Request, res: Response){
   const uid = parseInt(req.params.uid, 10);
-  if(Number.isNaN(uid)) throw new BadRequestError(`Invalid uid: ${req.params.uid}`);
+  if(Number.isNaN(uid)) throw new BadRequestError(apiMessage("errors.invalid-uid", { value1: String(req.params.uid) }));
   const tokens = await getUserManager(req).getTokens(uid);
   res.status(200).send(tokens.map(serializeToken));
 }
@@ -76,7 +77,7 @@ export async function getUserTokens(req: Request, res: Response){
 export async function deleteUserToken(req: Request, res: Response){
   const uid = parseInt(req.params.uid, 10);
   const id = parseInt(req.params.id, 10);
-  if(Number.isNaN(uid) || Number.isNaN(id)) throw new BadRequestError(`Invalid token reference`);
+  if(Number.isNaN(uid) || Number.isNaN(id)) throw new BadRequestError(apiMessage("errors.invalid-token-reference"));
   await getUserManager(req).removeToken(id, uid);
   res.status(204).send();
 }

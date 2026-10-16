@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { createHash } from "crypto";
 import { Request, Response } from "express";
 
@@ -25,15 +26,15 @@ import { getHost, getUser, getUserManager, hasScope, useTemplateProperties } fro
  */
 async function validateClient(req: Request, client_id: any, redirect_uri: any): Promise<{client: OAuthClient, redirectUri: string}>{
   const id = parseInt(client_id, 10);
-  if(typeof client_id !== "string" || Number.isNaN(id)) throw new BadRequestError(`Invalid client_id`);
+  if(typeof client_id !== "string" || Number.isNaN(id)) throw new BadRequestError(apiMessage("errors.invalid-client-id"));
   let client;
   try{
     client = await getUserManager(req).getClient(id);
   }catch(e){
-    throw new BadRequestError(`Unknown client_id`);
+    throw new BadRequestError(apiMessage("errors.unknown-client-id"));
   }
   if(typeof redirect_uri !== "string" || client.redirectUris.indexOf(redirect_uri) === -1){
-    throw new BadRequestError(`redirect_uri does not match any registered URI for this client`);
+    throw new BadRequestError(apiMessage("errors.redirect-uri-does-not-match-any-registered-uri-for-this-client"));
   }
   return {client, redirectUri: redirect_uri};
 }
@@ -177,7 +178,7 @@ export async function postAuthorize(req: Request, res: Response){
 
   const user = getUser(req);
   if(!user || user.level === "none" || !hasScope(res, "account:admin")){
-    throw new UnauthorizedError(`Consent requires an authenticated session`);
+    throw new UnauthorizedError(apiMessage("errors.consent-requires-an-authenticated-session"));
   }
 
   const scope = validateGrantParams(res, redirectUri, req.body);
@@ -225,7 +226,7 @@ export async function getGrants(req: Request, res: Response){
  */
 export async function deleteGrant(req: Request, res: Response){
   const clientId = parseInt(req.params.clientId, 10);
-  if(Number.isNaN(clientId)) throw new BadRequestError(`Invalid client id: ${req.params.clientId}`);
+  if(Number.isNaN(clientId)) throw new BadRequestError(apiMessage("errors.invalid-client-id-310d1c", { value1: String(req.params.clientId) }));
   const user = getUser(req)!;
   await getUserManager(req).removeGrant(user.uid, clientId);
   res.status(204).send();
@@ -387,7 +388,7 @@ export async function postClient(req: Request, res: Response){
  */
 export async function deleteClient(req: Request, res: Response){
   const id = parseInt(req.params.id, 10);
-  if(Number.isNaN(id)) throw new BadRequestError(`Invalid client id: ${req.params.id}`);
+  if(Number.isNaN(id)) throw new BadRequestError(apiMessage("errors.invalid-client-id-310d1c", { value1: String(req.params.id) }));
   await getUserManager(req).removeClient(id);
   res.status(204).send();
 }

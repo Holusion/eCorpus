@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 
 import {Database, DbController} from "./helpers/db.js";
 import path from "path";
@@ -43,7 +44,7 @@ export default abstract class BaseVfs extends DbController{
     }else if(f.hash){
       return path.join(this.objectsDir, f.hash)
     }else{
-      throw new NotFoundError(`No file matching ${f}`);
+      throw new NotFoundError(apiMessage("errors.no-file-matching", { value1: String(f) }));
     }
   }
 

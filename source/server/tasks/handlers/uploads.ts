@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { once } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -119,7 +120,7 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
   logger.debug("Check mime type of " + fileLocation);
   const mime = await readMagicBytes(filepath);
   if (mime !== "model/gltf-binary") {
-    throw new InternalError("This does not look like a GLB file");
+    throw new InternalError(apiMessage("errors.this-does-not-look-like-a-glb-file"));
   }
   const meta = await tasks.run({
     handler: inspectGlb,
@@ -206,24 +207,24 @@ export interface ProcessUploadedFilesParams {
  * The file(s) are expected to come from previous tasks
  */
 export async function createSceneFromFiles({ context: { tasks, vfs, logger }, task: { user_id, task_id, data: { tasks: source_ids, name, language, options } } }: TaskHandlerParams<ProcessUploadedFilesParams>): Promise<number> {
-  if (!user_id) throw new InternalError(`Can't create an anonymous scene. Provide a user`);
-  if (!name) throw new BadRequestError(`Can't create a scene without a name`);
-  if (!language) throw new BadRequestError(`Default language is required for scene creation`);
-  if (!isSceneLanguage(language)) throw new BadRequestError(`Unsupported scene language ${language}`);
-  if (!source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
+  if (!user_id) throw new InternalError(apiMessage("errors.can-t-create-an-anonymous-scene-provide-a-user"));
+  if (!name) throw new BadRequestError(apiMessage("errors.can-t-create-a-scene-without-a-name"));
+  if (!language) throw new BadRequestError(apiMessage("errors.default-language-is-required-for-scene-creation"));
+  if (!isSceneLanguage(language)) throw new BadRequestError(apiMessage("errors.unsupported-scene-language", { value1: String(language) }));
+  if (!source_ids.length) throw new BadRequestError(apiMessage("errors.this-task-requires-at-least-one-source-file"));
 
   for (const task_id of source_ids) {
-    if (!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
+    if (!Number.isInteger(task_id)) throw new BadRequestError(apiMessage("errors.invalid-source-task-id", { value1: String(task_id) }));
   }
   const source_tasks = await Promise.all(source_ids.map(id => tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
   const failed_tasks = source_tasks.filter(t => t.status !== "success");
   const invalid_outputs = source_tasks.filter(t => !isUploadedFile(t.output));
-  if (failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length ? "s" : ""} #${failed_tasks.map(t => t.task_id).join(", #")} has not completed successfully`);
+  if (failed_tasks.length) throw new BadRequestError(apiMessage("errors.source-task-has-not-completed-successfully-dff453", { value1: String(1 < failed_tasks.length ? "s" : ""), value2: String(failed_tasks.map(t => t.task_id).join(", #")) }));
   if (invalid_outputs.length) {
     for (let t of invalid_outputs) {
       logger.log(`Task ${t.type}#${t.task_id} can't be used as a scene source: Output is ${JSON.stringify(t.output)}`);
     }
-    throw new BadRequestError(`Source task${1 < invalid_outputs.length ? "s" : ""} ${invalid_outputs.map(t => `${t.type}#${t.task_id}`).join(", ")} did not output a file`);
+    throw new BadRequestError(apiMessage("errors.source-task-did-not-output-a-file", { value1: String(1 < invalid_outputs.length ? "s" : ""), value2: String(invalid_outputs.map(t => `${t.type}#${t.task_id}`).join(", ")) }));
   }
   //If some source models are present, copy all files to the task's workspace
   //So they are locally available for references
@@ -325,7 +326,7 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
     } else {
       logger.debug("Copy source file %s (%s)", filepath, source.mime);
       const file = await vfs.copyFile(filepath, { scene: scene_id, name: filename, user_id, mime: source.mime });
-      if (!file.hash) throw new BadRequestError(`File ${source.filepath} is empty`);
+      if (!file.hash) throw new BadRequestError(apiMessage("errors.file-is-empty", { value1: String(source.filepath) }));
     }
   }
 

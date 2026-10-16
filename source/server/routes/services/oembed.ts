@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Request, Response } from "express";
 import {js2xml} from "xml-js";
 import { BadRequestError, NotFoundError } from "../../utils/errors.js";
@@ -84,7 +85,7 @@ export async function getEmbed(req: Request, res: Response){
   let vfs = getVfs(req);
   const {format='json', url, maxwidth='800', maxheight='450'} = req.query;
   if(format !== "json" && format !== "xml") return res.status(501).send("Not Implemented");
-  if(!url || typeof url !== "string") throw new BadRequestError(`No embed URL query provided`);
+  if(!url || typeof url !== "string") throw new BadRequestError(apiMessage("errors.no-embed-url-query-provided"));
 
   const opts :CommonEmbedParams = {
     width: parseInt(maxwidth as string),
@@ -99,13 +100,13 @@ export async function getEmbed(req: Request, res: Response){
     //Consumers of this endpoint routinely send values that are over-encoded, relative,
     //or not URLs at all. Both new URL() and decodeURIComponent() throw on those and an
     //uncaught throw here would be reported as an internal error.
-    throw new BadRequestError(`Not a valid embed URL: ${url}`);
+    throw new BadRequestError(apiMessage("errors.not-a-valid-embed-url", { value1: String(url) }));
   }
   const m = embed_re.exec(pathname);
   if(m?.groups!.scene){
     let scene = await vfs.getScene(m.groups!.scene);
     if(scene.public_access =="none"){
-      throw new NotFoundError(`No public embeddable resource at ${url}`);
+      throw new NotFoundError(apiMessage("errors.no-public-embeddable-resource-at", { value1: String(url) }));
     }
     let meta =  await vfs.getSceneMeta(scene.name);
     Object.assign(opts, {
@@ -115,7 +116,7 @@ export async function getEmbed(req: Request, res: Response){
     });
   }else if(m?.groups!.tag){
     let tag = await vfs.getTag(m.groups.tag, null);
-    if(!tag.length) throw new NotFoundError(`No tag found with name ${m.groups.tag}`);
+    if(!tag.length) throw new NotFoundError(apiMessage("errors.no-tag-found-with-name", { value1: String(m.groups.tag) }));
     Object.assign(opts, {
       url: new URL(`/ui/tags/${encodeURIComponent(m.groups.tag)}`, getHost(req)).toString(),
       title: m.groups.tag,
@@ -125,6 +126,6 @@ export async function getEmbed(req: Request, res: Response){
   if(isEmbedParams(opts)){
     return res.set("Content-Type", format === "json"?"application/json":"text/xml"+"; charset=utf-8").status(200).send(format == "json"? asJSON(opts): asXML(opts));  
   }else{
-    throw new NotFoundError(`No public embeddable resource at ${url}`);
+    throw new NotFoundError(apiMessage("errors.no-public-embeddable-resource-at", { value1: String(url) }));
   }
 }

@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../../../utils/messages/index.js";
 import { Request, Response } from "express";
 
 import { PreconditionFailedError } from "../../../../../utils/errors.js";
@@ -49,7 +50,7 @@ export default async function handlePutFile(req :Request, res :Response){
         //Tell the client what it would have had to match, so it can fetch that version
         //and show the user what changed rather than just refusing the save.
         if(current?.hash) res.set("ETag", `"${current.hash}"`);
-        throw new PreconditionFailedError(`${name} in ${scene} has changed since it was read`);
+        throw new PreconditionFailedError(apiMessage("errors.in-has-changed-since-it-was-read", { value1: String(name), value2: String(scene) }));
       }
       return await write(tr);
     });

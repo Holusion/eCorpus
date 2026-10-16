@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
 import { getUser, useTemplateProperties } from "./locals.js";
-import { locales } from "./templates/index.js";
+import { apiMessage } from "./messages/index.js";
+import { errorPayload, localizeError, localizeMessage, messageLanguage } from "./messages/request.js";
 import { createLogger } from "./log/index.js";
 
 const log = createLogger("http");
@@ -64,22 +65,23 @@ export function errorHandlerMdw(){
       res.set("WWW-Authenticate", "Bearer realm=\"authenticated access\"");
     }
 
+    res.vary("Accept-Language");
     res.format({
       "application/json": ()=> {
-        res.status(code).send({ code, message: `${error.name}: ${error.message}` })
+        res.status(code).send(errorPayload(req, error, code))
       },
       "text/html": ()=>{
         // send error page
         useTemplateProperties(req, res, ()=>{
           res.status(code).render("error", { 
-            error,
+            error: { ...error, code, stack: error.stack, message: localizeError(req, error, "html") },
           });
         });
       },
       "text/plain": ()=>{
-        res.status(code).send(error.message);
+        res.status(code).send(localizeError(req, error, "text"));
       },
-      default: ()=> res.status(code).set("Content-Type", "text/plain; charset=utf-8").send(error.message),
+      default: ()=> res.status(code).set("Content-Type", "text/plain; charset=utf-8").send(localizeError(req, error, "text")),
     });
   }
 }
@@ -90,21 +92,23 @@ export function notFoundHandlerMdw(){
     //We don't just throw an error to be able to differentiate between
     //internally-thrown 404 and routes that doesn't exist in logs
     const error = { code:404, message: `Not Found`, reason: `No route was defined that could match "${req.method} ${req.originalUrl}"`}
+    const message = apiMessage("http.not-found");
+    res.vary("Accept-Language");
     res.format({
       "application/json": ()=> {
-        res.status(404).send(error)
+        res.status(404).send({ ...error, ...localizeMessage(req, message) })
       },
       "text/html": ()=>{
         res.status(404).render("error", { 
-          error,
-          lang: req.acceptsLanguages(locales),
+          error: { ...error, ...localizeMessage(req, message, "html") },
+          lang: messageLanguage(req, "html"),
           user: getUser(req),
         });
       },
       "text/plain": ()=>{
-        res.status(404).send(error.message);
+        res.status(404).send(localizeMessage(req, message, "text").message);
       },
-      default: ()=> res.status(404).set("Content-Type", "text/plain; charset=utf-8").send(error.message),
+      default: ()=> res.status(404).set("Content-Type", "text/plain; charset=utf-8").send(localizeMessage(req, message, "text").message),
     });
   }
 }

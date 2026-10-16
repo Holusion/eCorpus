@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 
 import { Request, Response } from "express";
 
@@ -29,16 +30,16 @@ function isTruthyFlag(value: any): boolean {
 export default async function postUser(req :Request, res :Response){
   let userManager :UserManager = getUserManager(req);
   let {username, password, email, level = "create", lang, send_onboarding} = req.body;
-  if(!username) throw new BadRequestError("username not provided");
-  if(!password) throw new BadRequestError("password not provided");
-  if(!isUserRole(level)) throw new BadRequestError("bad value for user level");
-  if(!email) throw new BadRequestError("email not provided");
+  if(!username) throw new BadRequestError(apiMessage("errors.username-not-provided-2a0765"));
+  if(!password) throw new BadRequestError(apiMessage("errors.password-not-provided-7723ed"));
+  if(!isUserRole(level)) throw new BadRequestError(apiMessage("errors.bad-value-for-user-level"));
+  if(!email) throw new BadRequestError(apiMessage("errors.email-not-provided"));
   //A users:write token may provision regular users (CSV import scripts…), but
   //creating an administrator with a known password is session-minting: it needs
   //the non-mintable users:admin, i.e. an interactive session (or the anonymous
   //first-user setup, which carries no credential restriction).
   if(level === "admin" && !hasScope(res, "users:admin")){
-    throw new ForbiddenError("insufficient_scope: users:admin — creating an administrator requires an interactive session");
+    throw new ForbiddenError(apiMessage("errors.insufficient-scope-users-admin-creating-an-administrator-requires-an-interactive-sess"));
   }
   let u = await userManager.addUser(username, password, level, email);
 

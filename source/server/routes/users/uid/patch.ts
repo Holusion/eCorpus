@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 import { Request, Response } from "express";
 
 import { getAuthMethod, getLocals, getUser, getUserManager } from "../../../utils/locals.js";
@@ -24,9 +25,9 @@ export async function handlePatchUser(req:Request, res :Response){
   //finer level-change rule, which a single ACL level can't express:
   //only admins change levels, and an admin can't demote themselves.
   if(!isAdmin && typeof update.level !== "undefined" && update.level !== level){
-    throw new UnauthorizedError(`Only administrators can change user levels`);
+    throw new UnauthorizedError(apiMessage("errors.only-administrators-can-change-user-levels"));
   }else if(isAdmin && isTargetUid && typeof update.level !== "undefined" && update.level !== level){
-    throw new UnauthorizedError(`Administrators can't demote themselves`);
+    throw new UnauthorizedError(apiMessage("errors.administrators-can-t-demote-themselves"));
   }
 
   let u = await userManager.patchUser(targetUid, update);

@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../../../utils/messages/index.js";
 import {debuglog} from 'util';
 import { Request, Response } from "express";
 
@@ -26,7 +27,7 @@ export default async function handlePutDocument(req :Request, res :Response){
 
   if(typeof newDoc !== "object"|| !Object.keys(newDoc).length){
     debug("Bad JSON body:", JSON.stringify(newDoc, null, 2));
-    throw new BadRequestError(`Invalid json document`);
+    throw new BadRequestError(apiMessage("errors.invalid-json-document"));
   }
   if(!refId || !config.get("enable_document_merge")){
     const {id} = await getVfs(req).writeDoc(JSON.stringify(newDoc), {scene: sceneName, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});

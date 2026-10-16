@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 
 import { Request, Response } from "express";
 import { AccessLevel } from "../../auth/UserManager.js";
@@ -19,9 +20,9 @@ export default async function patchTags(req: Request, res: Response) {
   const vfs = getVfs(req);
   //  request validation :
   for (let { name, action } of patch) {
-    if (name.length < 1) { throw new BadRequestError("tag name should not be empty") }
+    if (name.length < 1) { throw new BadRequestError(apiMessage("errors.tag-name-should-not-be-empty")) }
     if (action != "delete" && action != "create") {
-      throw new BadRequestError("Bad action request");
+      throw new BadRequestError(apiMessage("errors.bad-action-request"));
     }
   };
 
@@ -38,9 +39,9 @@ export default async function patchTags(req: Request, res: Response) {
         action == "create" ? await vfs.addTag(scene, name) : await vfs.removeTag(scene, name);
       } else {
         if (rights == AccessLevel.None) {
-          throw new NotFoundError(`Scene ${typeof (scene) == "number" ? `${scene} id` : `named ${scene}`} was not found`);
+          throw new NotFoundError(apiMessage("errors.scene-was-not-found", { value1: String(typeof (scene) == "number" ? `${scene} id` : `named ${scene}`) }));
         } else {
-          throw new ForbiddenError(`Insufficient rights on scene ${typeof (scene) == "number" ? `${scene} id` : `named ${scene}`}`);
+          throw new ForbiddenError(apiMessage("errors.insufficient-rights-on-scene", { value1: String(typeof (scene) == "number" ? `${scene} id` : `named ${scene}`) }));
         }
 
       }

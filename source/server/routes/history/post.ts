@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Request, Response } from "express";
 
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
@@ -18,13 +19,13 @@ export async function postSceneHistory(req :Request, res :Response){
   // Keep in mind history is in reverse-natural order, with newest files coming first.
   // This makes everything "backward" from natural order
   let requesterId = getUserId(req);
-  if (requesterId == null) { throw new UnauthorizedError("History restoration requires an identified user")}
+  if (requesterId == null) { throw new UnauthorizedError(apiMessage("errors.history-restoration-requires-an-identified-user"))}
   let {scene:sceneName} = req.params;
   let {name, generation, id } = req.body;
   /**keep a reference to the name and generation of the files that are to be undone */
   let files :Map<string, number> = new Map();
   if(!(typeof name === "string" && typeof generation === "number") && typeof id !== "number"){
-    throw new BadRequestError(`History restoration requires either "name" and "generation" or "id" to be set`);
+    throw new BadRequestError(apiMessage("errors.history-restoration-requires-either-name-and-generation-or-id-to-be-set"));
   }
 
   await getVfs(req).isolate(async (vfs)=>{
@@ -42,7 +43,7 @@ export async function postSceneHistory(req :Request, res :Response){
       }
       if(historySlice.length < 100) break;
     }
-    if(index === -1) throw new BadRequestError(`No file found in ${sceneName} matching ${typeof id =="number"? "id:"+id: (name+"#"+generation)}`);
+    if(index === -1) throw new BadRequestError(apiMessage("errors.no-file-found-in-matching", { value1: String(sceneName), value2: String(typeof id =="number"? "id:"+id: (name+"#"+generation)) }));
 
     for (let [name, generation] of files.entries()){
       let prev =( (1 < generation)? (await vfs.getFileProps({scene: scene.id, name, generation: generation - 1, archive: true}, true)): null);
@@ -64,7 +65,7 @@ export async function postSceneHistory(req :Request, res :Response){
           mime: prev.mime,
         });
       }else if(name==="scene.svx.json"){
-        throw new BadRequestError("Can't delete a scene's document");
+        throw new BadRequestError(apiMessage("errors.can-t-delete-a-scene-s-document"));
       }else{
         await vfs.createFile({
           scene: scene.id,

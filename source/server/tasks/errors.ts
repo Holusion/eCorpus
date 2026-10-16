@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 
 import { HTTPError } from "../utils/errors.js";
 
@@ -20,7 +21,7 @@ export class TaskTimeoutError extends Error {
  */
 export function parseTaskError(output: any) :Error|HTTPError{
   if(typeof output === "string" && output.length) return new Error(output);
-  let err :any = (output?.name == "HTTPError" && typeof output.code === "number")?new HTTPError(output.code, "Unknown task error"):new Error("Unknown task error");
+  let err :any = (output?.name == "HTTPError" && typeof output.code === "number")?new HTTPError(output.code, apiMessage("errors.unknown-task-error")):new Error("Unknown task error");
   if(! output || typeof output !== "object") return err;
   for(let key in output){
     err[key] = output[key];

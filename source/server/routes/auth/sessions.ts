@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Request, Response } from "express";
 
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
@@ -30,7 +31,7 @@ export async function getOwnSessions(req: Request, res: Response){
  */
 export async function getUserSessions(req: Request, res: Response){
   const uid = parseInt(req.params.uid, 10);
-  if(Number.isNaN(uid)) throw new BadRequestError(`Invalid uid: ${req.params.uid}`);
+  if(Number.isNaN(uid)) throw new BadRequestError(apiMessage("errors.invalid-uid", { value1: String(req.params.uid) }));
   const sessions = await getUserManager(req).getSessions(uid);
   res.status(200).send(sessions.map(serializeSession));
 }
@@ -42,7 +43,7 @@ export async function deleteSession(req: Request, res: Response){
   const requester = getUser(req);
   if(!requester?.uid) throw new UnauthorizedError();
   const id = parseInt(req.params.id, 10);
-  if(Number.isNaN(id)) throw new BadRequestError(`Invalid session id: ${req.params.id}`);
+  if(Number.isNaN(id)) throw new BadRequestError(apiMessage("errors.invalid-session-id", { value1: String(req.params.id) }));
   await getUserManager(req).removeSession(id, requester.level === "admin" ? undefined : requester.uid);
   res.status(204).send();
 }

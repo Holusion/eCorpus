@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 
 import { createHash } from "crypto";
 import { Request, Response } from "express";
@@ -58,11 +59,11 @@ export default async function getScenes(req :Request, res :Response){
   }
 
   if(u && UserRoles.indexOf(u.level) < 1 && qsToBool(archived)){
-    throw new UnauthorizedError(`Access to archived content requires authentication`);
+    throw new UnauthorizedError(apiMessage("errors.access-to-archived-content-requires-authentication"));
   }
   let author_id :number|undefined; 
   if(author){
-    if(typeof author != "string") throw new BadRequestError(`Author must be a number (user id) or string (username)`);
+    if(typeof author != "string") throw new BadRequestError(apiMessage("errors.author-must-be-a-number-user-id-or-string-username"));
     author_id = parseInt(author);
     if(!Number.isInteger(author_id)){
       author_id = (await getUserManager(req).getUserByName(author)).uid;
@@ -123,7 +124,7 @@ export default async function getScenes(req :Request, res :Response){
       //must not receive the whole set in bulk here either. Visibility is left
       //untouched: the json/text variants still list what the owner sees.
       if(!hasScope(res, "scenes:read")){
-        throw new UnauthorizedError(`token scope does not allow reading scene content`);
+        throw new UnauthorizedError(apiMessage("errors.token-scope-does-not-allow-reading-scene-content"));
       }
       res.set("Content-Disposition", `attachment; filename="scenes.zip"`);
       //FIXME : it would be possible to compute content-length ahead of time 

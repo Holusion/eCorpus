@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 import { Request, Response } from "express";
 
 import { getUserId, getLocals } from "../../../utils/locals.js";
@@ -20,14 +21,14 @@ export default async function postScene(req: Request, res: Response) {
   let { scene } = req.params;
   const { language: queryLanguage } = req.query;
   if (req.is("multipart") || req.is("application/x-www-form-urlencoded")) {
-    throw new BadRequestError(`${req.get("Content-Type")} content is not supported on this route. Provide a raw Zip attachment`);
+    throw new BadRequestError(apiMessage("errors.content-is-not-supported-on-this-route-provide-a-raw-zip-attachment", { value1: String(req.get("Content-Type")) }));
   }
   if (queryLanguage && (typeof queryLanguage !== "string" || !isSceneLanguage(queryLanguage.toUpperCase()))) {
-    throw new BadRequestError(`Invalid scene language requested: ${queryLanguage}`)
+    throw new BadRequestError(apiMessage("errors.invalid-scene-language-requested", { value1: String(queryLanguage) }))
   }
   const language = queryLanguage?.toUpperCase() as SceneLanguage | undefined;
   if (!user_id) {
-    throw new UnauthorizedError("Requires authenticated user");
+    throw new UnauthorizedError(apiMessage("errors.requires-authenticated-user"));
   }
 
   let scene_id = await vfs.createScene(scene, user_id);
@@ -42,7 +43,7 @@ export default async function postScene(req: Request, res: Response) {
     handler: async function postsSceneHandler({ context: { logger, vfs } }) {
       logger.debug("Draining the HTTP request into scene space");
       let f = await vfs.writeFile(req, { user_id, scene: scene, mime: "model/gltf-binary", name: `${scene}.glb` });
-      if (f.size == 0 || !f.hash) throw new BadRequestError(`Body was empty. Can't create a scene.`);
+      if (f.size == 0 || !f.hash) throw new BadRequestError(apiMessage("errors.body-was-empty-can-t-create-a-scene"));
       logger.debug("Parse the created file");
       const meta = await taskScheduler.run({
         immediate: true,

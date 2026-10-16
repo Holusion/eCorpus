@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Router, Request, Response, NextFunction } from "express";
 import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
@@ -103,7 +104,7 @@ routes.get("/upload", wrap(async (req, res)=>{
   //Maybe we shouldn't fail on bad parameters and redirect to a blank page or just ignore them
   const ids = [task].flat().filter(t=>typeof t === "string").map(t=>parseInt(t as string));
   if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
-    throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
+    throw new BadRequestError(apiMessage("errors.invalid-list-of-tasks", { value1: String(ids.join(", ")) }));
   }
   log.trace({ task_ids: ids }, "Render previous upload tasks");
   type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
@@ -173,9 +174,9 @@ routes.get("/tags", wrap(async (req, res)=>{
   const limit = limitString? parseInt(limitString as any): 12;
   const offset = offsetString? parseInt(offsetString as any): 0;
 
-  if(match && typeof match !== "string") throw new BadRequestError("Unsupported match parameter");
-  if(!Number.isInteger(limit) || limit < 1 || 100 < limit) throw new BadRequestError(`invalid limit parameter : ${limitString}`);
-  if(!Number.isInteger(offset) || offset < 0) throw new BadRequestError(`invalid offset parameter : ${offsetString}`);
+  if(match && typeof match !== "string") throw new BadRequestError(apiMessage("errors.unsupported-match-parameter"));
+  if(!Number.isInteger(limit) || limit < 1 || 100 < limit) throw new BadRequestError(apiMessage("errors.invalid-limit-parameter", { value1: String(limitString) }));
+  if(!Number.isInteger(offset) || offset < 0) throw new BadRequestError(apiMessage("errors.invalid-offset-parameter", { value1: String(offsetString) }));
 
 
 
@@ -684,13 +685,13 @@ routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), wrap(async (req,
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
-  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(apiMessage("errors.invalid-status-requested", { value1: String(rawStatus) }));
   const rootOnly = qsToBool(req.query.rootOnly) ?? true;
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
   if (rawType) {
-    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    if (rawType.length > 200) throw new BadRequestError(apiMessage("errors.type-parameter-too-long"));
     type = rawType;
   }
 
@@ -880,13 +881,13 @@ routes.get("/user/tasks", wrap(async (req, res) => {
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
-  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(apiMessage("errors.invalid-status-requested", { value1: String(rawStatus) }));
   const rootOnly = qsToBool(req.query.rootOnly) ?? true;
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
   if (rawType) {
-    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    if (rawType.length > 200) throw new BadRequestError(apiMessage("errors.type-parameter-too-long"));
     type = rawType;
   }
   const tasks = await taskScheduler.getTasks({ user_id: user.uid, type, status, rootOnly, limit, offset });
@@ -904,13 +905,13 @@ routes.get("/admin/tasks", requireLevel("admin"), wrap(async (req, res) => {
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
-  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(apiMessage("errors.invalid-status-requested", { value1: String(rawStatus) }));
   const rootOnly = qsToBool(req.query.rootOnly) ?? true;
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
   if (rawType) {
-    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    if (rawType.length > 200) throw new BadRequestError(apiMessage("errors.type-parameter-too-long"));
     type = rawType;
   }
   const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly, limit, offset });
