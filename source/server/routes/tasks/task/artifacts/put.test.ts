@@ -5,6 +5,8 @@ import UserManager from "../../../../auth/UserManager.js";
 import Vfs from "../../../../vfs/index.js";
 import { randomBytes, randomInt } from "node:crypto";
 import { fixturesDir } from "../../../../__test_fixtures/fixtures.js";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 
 
@@ -119,6 +121,23 @@ describe("PUT /tasks/:id/artifact", function(){
       isModel: false,
       mime: "application/octet-stream",
     });
+  });
+
+  it("forwards glTF inspection warnings to the completed upload task", async function(){
+    const data = await readFile(path.join(fixturesDir, "cube_textured.glb"));
+    const { body: upload } = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("alice"))
+      .send({ type: "parseUserUpload", status: "initializing", data: { filename: "textured.glb", size: data.length } })
+      .expect(201);
+    await request(this.server).put(`/tasks/${upload.task_id}/artifact`)
+      .set("Authorization", await bearer("alice"))
+      .send(data).expect(201);
+    const { body } = await request(this.server).get(`/tasks/${upload.task_id}`)
+      .set("Authorization", await bearer("alice")).expect(200);
+    expect(body.task.status).to.equal("success");
+    expect(body.task.output.mime).to.equal("model/gltf-binary");
+    expect(body.task).not.to.have.property("warnings");
+    expect(body.task.output.warnings).to.deep.equal(["png-images"]);
   });
 
   it("rejects out-of-order bytes", async function(){

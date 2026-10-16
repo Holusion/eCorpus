@@ -13,6 +13,7 @@ import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.
 import { optimizeGlb } from "./optimizeGlb.js";
 import { inspectGlb } from "./inspectGlb.js";
 import { BoundingBox } from "../../utils/gltf/inspect.js";
+import type { ModelWarning } from "../../utils/gltf/warnings.js";
 import { createDocumentFromFiles, DocumentModel } from "./createDocumentFromFiles.js";
 import { isSceneLanguage } from "../../utils/languages.js";
 
@@ -47,6 +48,7 @@ export interface UploadedBinaryModel extends UploadedFile {
   numFaces: number;
   imageSize: number;
   bounds: BoundingBox | null;
+  warnings: ModelWarning[];
 }
 
 export interface UploadedUsdModel extends UploadedFile {
@@ -137,6 +139,7 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
     bounds: meta.bounds,
     imageSize: meta.imageSize,
     numFaces: meta.numFaces,
+    warnings: meta.warnings,
     byteSize: stats.size,
   }
 }

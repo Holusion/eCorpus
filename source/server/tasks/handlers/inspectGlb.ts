@@ -1,5 +1,6 @@
 
 import type { FileArtifact, TaskHandlerParams } from '../types.js';
+import { getModelWarnings } from '../../utils/gltf/warnings.js';
 
 
 
@@ -21,6 +22,6 @@ export async function inspectGlb({context: {vfs, logger}, task: {data: {fileLoca
     delete jsonDoc.json.extensionsRequired;
     return await io.readJSON(jsonDoc);
   }); // → Document
-  return inspectDocument(document);
+  return { ...inspectDocument(document), warnings: getModelWarnings(document) };
 }
 
