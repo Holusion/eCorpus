@@ -1,0 +1,12 @@
+{{#if warnings.length}}
+<div class="upload-warnings" role="status">
+  <ul>
+    {{#each warnings}}
+      <li>{{#if key}}{{i18n key}}{{else}}{{code}}{{/if}}</li>
+    {{/each}}
+  </ul>
+  {{#each recommendations}}
+    <p>{{i18n this}}</p>
+  {{/each}}
+</div>
+{{/if}}

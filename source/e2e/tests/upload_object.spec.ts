@@ -3,11 +3,95 @@ import { randomUUID } from "node:crypto";
 
 import { test, expect } from '../fixtures.js';
 import { readFile } from "node:fs/promises";
+import type { Page } from "@playwright/test";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 //Authenticated as admin
 test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+
+/** Supply findings independently of the model-analysis checks covered by unit tests. */
+async function mockUploadWarnings(page: Page, warnings: string[]) {
+  await page.route(/\/tasks\/\d+$/, async route => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch();
+    const body = await response.json();
+    body.task.output.warnings = warnings;
+    await route.fulfill({ response, json: body });
+  });
+}
+
+test("shows a model report with localized warnings and recommendations", async ({ page }) => {
+  const warnings = ["png-images", "large-textures", "large-combined-diffuse-maps"];
+  await mockUploadWarnings(page, [...warnings, "future-model-warning"]);
+  await page.goto("/ui/upload");
+  await page.locator('input[type="file"]').setInputFiles(path.join(fixtures, "cube.glb"));
+  const report = page.getByRole("status");
+  await expect(report.getByRole("listitem")).toHaveCount(4);
+  for (const code of warnings) {
+    await expect(report.getByText(`modelWarnings.${code}`, { exact: true })).toBeVisible();
+  }
+  await expect(report.getByText("future-model-warning", { exact: true })).toBeVisible();
+  await expect(report).toBeVisible();
+  await expect(report.getByText("modelWarnings.recommend-optimize", { exact: true }).first()).toBeVisible();
+  await expect(report.getByText("modelWarnings.recommend-reexport", { exact: true })).toBeVisible();
+  await page.getByTitle("remove upload").click();
+  await expect(report).toHaveCount(0);
+});
+
+test("model report stays attached to each source file", async ({ page }) => {
+  await mockUploadWarnings(page, ["png-images"]);
+  await page.goto("/ui/upload");
+  const buffer = await readFile(path.join(fixtures, "cube.glb"));
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "first.glb", mimeType: "model/gltf-binary", buffer },
+    { name: "second.glb", mimeType: "model/gltf-binary", buffer },
+  ]);
+  const first = page.locator(".upload-line").filter({ hasText: "first.glb" });
+  const second = page.locator(".upload-line").filter({ hasText: "second.glb" });
+  for (const upload of [first, second]) {
+    const report = upload.getByRole("status");
+    await expect(report.getByText("modelWarnings.png-images", { exact: true })).toBeVisible();
+    await expect(report.getByText("modelWarnings.recommend-optimize", { exact: true })).toBeVisible();
+  }
+  await first.getByTitle("remove upload").click();
+  await expect(first).toHaveCount(0);
+  await expect(second.getByRole("status")).toBeVisible();
+});
+
+test("model report recommends re-exporting without optimization for combined diffuse size", async ({ page }) => {
+  await mockUploadWarnings(page, ["large-combined-diffuse-maps"]);
+  await page.goto("/ui/upload");
+  await page.locator('input[type="file"]').setInputFiles(path.join(fixtures, "cube.glb"));
+  const report = page.getByRole("status");
+  await expect(report.getByText("modelWarnings.recommend-reexport", { exact: true })).toBeVisible();
+  await expect(report.getByText("modelWarnings.recommend-optimize", { exact: true })).toHaveCount(0);
+  await expect(report.getByRole("button")).toHaveCount(0);
+});
+
+test("model report applies localization for English and French requests", async ({ browser, baseURL }) => {
+  const messages: string[] = [];
+  for (const locale of ["en", "fr"]) {
+    const context = await browser.newContext({ locale, baseURL, storageState: 'playwright/.auth/user.json' });
+    try {
+      const page = await context.newPage();
+      await mockUploadWarnings(page, ["png-images"]);
+      await page.goto("/ui/upload");
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      await page.locator('input[type="file"]').setInputFiles(path.join(fixtures, "cube.glb"));
+      const warning = page.getByRole("status").getByRole("listitem");
+      await expect(warning).toBeVisible();
+      await expect(warning).toHaveText(/\S/);
+      await expect(warning).not.toHaveText(/^(?:modelWarnings\.)?png-images$/);
+      await expect(warning).not.toContainText("modelWarnings.");
+      messages.push((await warning.innerText()).trim());
+    } finally {
+      await context.close();
+    }
+  }
+  // A missing French translation falling back to English must also fail.
+  expect(messages[1]).not.toEqual(messages[0]);
+});
 
 test("uploads and rename a glb", async ({ page, request }) => {
   await page.goto("/ui/upload");

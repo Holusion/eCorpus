@@ -19,6 +19,9 @@ export interface UploadOperation{
   /** When the file is an archive we will store the list of files it contains here */
   files?:string[];
   scenes?: SceneUploadResult[];
+  warnings?: string[];
+  /** Localized HTML rendered by the upload report view. */
+  report?: string;
   //An array to be able to show a list of imported scenes in case of zip uploads
   error ?:{code?:number, name?: string, message:string};
   done :boolean;
@@ -31,6 +34,8 @@ export interface UploadOperation{
 }
 
 export interface ParsedUploadTaskOutput{
+  warnings?: string[],
+  report?: string,
   mime: string,
   scenes?: SceneUploadResult[],
   files?: string[],
@@ -206,7 +211,15 @@ export class Uploader implements ReactiveController{
       throw new Error("Invalid response body");
     }
 
-    return body.task.output;
+    const output: ParsedUploadTaskOutput = body.task.output;
+    if (output.warnings?.length) {
+      const url = new URL("/ui/upload/report", window.location.href);
+      for (const code of output.warnings) url.searchParams.append("warnings", code);
+      const report = await fetch(url, { signal: task.signal });
+      await HttpError.okOrThrow(report);
+      return { ...output, report: await report.text() };
+    }
+    return output;
   }
 
   

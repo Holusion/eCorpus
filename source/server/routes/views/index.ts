@@ -12,6 +12,7 @@ import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
+import { renderUploadReport } from "./uploadReport.js";
 
 
 const log = createLogger("http:views");
@@ -86,6 +87,8 @@ routes.get("/", wrap(async (req, res)=>{
 
 
 
+
+routes.get("/upload/report", requireLevel("create"), wrap(renderUploadReport));
 
 routes.get("/upload", wrap(async (req, res)=>{
   const {templates}= getLocals(req);

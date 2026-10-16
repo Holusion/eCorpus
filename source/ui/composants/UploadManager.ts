@@ -1,5 +1,6 @@
 import { css, html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 
 import Notification from "./Notification";
 import { formatBytes, binaryUnit } from "./Size";
@@ -251,10 +252,11 @@ export default class UploadManager extends LitElement{
     return html`
     <li id="upload-${u.filename.replace(/[^-_a-z0-9]/g,"_")}" class="upload-line upload-${state}">
       <span class="upload-state">${stateText}</span>
-      <span class="upload-filename">
+      <div class="upload-filename">
         ${filetype}
         ${u.filename}
-      </span>
+        ${unsafeHTML(u.report)}
+      </div>
       <span class="upload-progress">${progress}</span>
       <span class="upload-action action-cancel" title="${u.done?"remove":"abort"} upload" @click=${onActionClick}>🗙</span>
     </li>
@@ -355,6 +357,15 @@ export default class UploadManager extends LitElement{
   }
 
   static styles = [css`
+    .upload-warnings {
+      margin: .5rem 0;
+      padding: .5rem .75rem;
+      border-inline-start: 3px solid var(--color-warning, #b87800);
+      font-size: .9rem;
+      ul { margin: 0; padding-inline-start: 1.25rem; }
+      p { margin: .5rem 0; }
+      button { cursor: pointer; }
+    }
     .dropzone{
       display: block;
       max-width: 100%;
@@ -442,6 +453,9 @@ export default class UploadManager extends LitElement{
           width: 24px;
         }
         
+        .upload-progress{
+          white-space: nowrap;
+        }
 
         .upload-action{
 
