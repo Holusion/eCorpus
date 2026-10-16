@@ -1,3 +1,4 @@
+import { apiMessage } from "../utils/messages/index.js";
 import { constants, promises as fs } from "fs";
 import { createHash } from "crypto";
 import path from "path";
@@ -201,7 +202,7 @@ export default abstract class FilesVfs extends BaseVfs{
         fileParams.size,
         params.user_id || null,
       ]);
-      if(!r.length) throw new NotFoundError(`Can't find a scene ${typeof params.scene === "number"?"with id": "named"} ${params.scene}`);
+      if(!r.length) throw new NotFoundError(apiMessage("errors.can-t-find-a-scene", { value1: String(typeof params.scene === "number"?"with id": "named"), value2: String(params.scene) }));
 
       let {id: newfile_id, generation, ctime} = r[0];
       
@@ -209,7 +210,7 @@ export default abstract class FilesVfs extends BaseVfs{
         fileParams = await theFile({id: newfile_id, tr});
         if(fileParams?.hash || fileParams?.size){
           let setHash = await tr.run(`UPDATE files SET hash = $1, size = $2 WHERE file_id = $3`, [fileParams.hash, fileParams.size, newfile_id]);
-          if(setHash.changes != 1) throw new InternalError(`Failed to update file hash`);
+          if(setHash.changes != 1) throw new InternalError(apiMessage("errors.failed-to-update-file-hash"));
         }
       }
 
@@ -266,7 +267,7 @@ export default abstract class FilesVfs extends BaseVfs{
       FROM files
       WHERE file_id = $1
     `, [ id ]);
-    if(!r || !r.ctime) throw new NotFoundError(`No file found with id : ${id}`);
+    if(!r || !r.ctime) throw new NotFoundError(apiMessage("errors.no-file-found-with-id", { value1: String(id) }));
     return r;
   }
 
@@ -302,7 +303,7 @@ export default abstract class FilesVfs extends BaseVfs{
       `}
       ${lock?"FOR UPDATE OF files":""}
     `, args);
-    if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(`${path.join(scene.toString(), name)}${archive?" incl. archives":""}`);
+    if(!r || !r.ctime || (!r.hash && !archive)) throw new NotFoundError(apiMessage("errors.message", { value1: String(path.join(scene.toString(), name)), value2: String(archive?" incl. archives":"") }));
     return r;
   }
 
@@ -328,7 +329,7 @@ export default abstract class FilesVfs extends BaseVfs{
       name,
       before
     ]);
-    if(!r || !r.ctime || (!r.hash)) throw new NotFoundError(`${path.join(scene.toString(), name)}`);
+    if(!r || !r.ctime || (!r.hash)) throw new NotFoundError(apiMessage("errors.message-3f43a2", { value1: String(path.join(scene.toString(), name)) }));
     return r;
   }
 
@@ -370,7 +371,7 @@ export default abstract class FilesVfs extends BaseVfs{
    */
   async getDoc(scene :string|number, lock=false) :Promise<DocProps>{
     let r = await this.getFileProps({scene, name: "scene.svx.json", lock}, true);
-    if(!r.data)  throw new BadRequestError(`Not a valid document: ${ r.name }`);
+    if(!r.data)  throw new BadRequestError(apiMessage("errors.not-a-valid-document", { value1: String(r.name) }));
     
     return r as DocProps;
   }
@@ -429,7 +430,7 @@ export default abstract class FilesVfs extends BaseVfs{
       //Check if file does exist
       let prev = await tr.getFileProps({...params, archive: true});
       if(!prev.hash){
-        throw new ConflictError(`File ${path.join(params.scene.toString(), params.name)} is already deleted`);
+        throw new ConflictError(apiMessage("errors.file-is-already-deleted", { value1: String(path.join(params.scene.toString(), params.name)) }));
       }
       let f = await tr.createFile(params, {hash: null, size: 0});
       return f.id;
@@ -442,7 +443,7 @@ export default abstract class FilesVfs extends BaseVfs{
       let scene_id :number = ((typeof props.scene === "string")?
         await tr.db.get<{scene_id:number}>(`SELECT scene_id FROM scenes WHERE scene_name = $1`, [ props.scene ])
           .then(r=>{
-            if(!r) throw new NotFoundError(`No scene with id ${props.scene}`);
+            if(!r) throw new NotFoundError(apiMessage("errors.no-scene-with-id", { value1: String(props.scene) }));
             return r.scene_id;
           })
         : props.scene
@@ -457,7 +458,7 @@ export default abstract class FilesVfs extends BaseVfs{
         throw e;
       });
       if(destFile.hash){
-        throw new ConflictError(`A file named ${nextName} already exists in scene ${scene_id}`);
+        throw new ConflictError(apiMessage("errors.a-file-named-already-exists-in-scene", { value1: String(nextName), value2: String(scene_id) }));
       }
 
       await tr.createFile(props, {hash: null, size: 0});
@@ -501,12 +502,12 @@ export default abstract class FilesVfs extends BaseVfs{
   }
 
   async createFolder({scene, name, user_id} :WriteDirParams){
-    if(name.startsWith("/")) throw new BadRequestError("Folders must be relative to the scene root");
-    if(name.endsWith("/")) throw new BadRequestError("Folder names must not end with a slash");
+    if(name.startsWith("/")) throw new BadRequestError(apiMessage("errors.folders-must-be-relative-to-the-scene-root"));
+    if(name.endsWith("/")) throw new BadRequestError(apiMessage("errors.folder-names-must-not-end-with-a-slash"));
     return await this.isolate(async tr =>{
       try{
         await tr.getFileProps({scene, name});
-        throw new ConflictError(`Folder ${name} already exists in scene ${ scene}`);
+        throw new ConflictError(apiMessage("errors.folder-already-exists-in-scene", { value1: String(name), value2: String(scene) }));
       }catch(e){
         if((e as any).code != 404) throw e;
       }

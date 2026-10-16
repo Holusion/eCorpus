@@ -323,6 +323,8 @@ describe("POST /scenes", function(){
         expect(res.body).to.deep.equal({
         code: 401,
         message: `Error: [401] User doesn't have write permissions on scene "foo"`,
+        messageCode: "errors.user-doesn-t-have-write-permissions-on-scene",
+        messageParams: { value1: "foo" },
       });
 
       await expect(vfs.getScene("foo")).to.be.rejectedWith(NotFoundError);

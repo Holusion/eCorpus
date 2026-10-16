@@ -1,3 +1,4 @@
+import { apiMessage } from "./messages/index.js";
 import { messageLanguage } from "./messages/request.js";
 
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
@@ -106,13 +107,13 @@ export function canonical(req: Request, ref?: string): URL {
 export function getUserManager(req: Request): UserManager {
   let userManager: UserManager = getLocals(req).userManager;
   //istanbul ignore if
-  if (!userManager) throw new InternalError("Badly configured app : userManager is not defined in app.locals");
+  if (!userManager) throw new InternalError(apiMessage("errors.badly-configured-app-usermanager-is-not-defined-in-app-locals"));
   return userManager
 }
 
 export function getFileDir(req: Request): string {
   let fileDir = getLocals(req).fileDir;
-  if (!fileDir) throw new InternalError("Badly configured app : fileDir is not a valid string");
+  if (!fileDir) throw new InternalError(apiMessage("errors.badly-configured-app-filedir-is-not-a-valid-string"));
   return fileDir;
 }
 
@@ -132,7 +133,7 @@ export function requireScope(...names: string[]): RequestHandler {
     if (!names.every(n => hasScope(res, n))) {
       //Authenticated, but the credential wasn't delegated this scope.
       res.set("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${names.join(" ")}"`);
-      return next(new ForbiddenError(`insufficient_scope: ${names.join(" ")}`));
+      return next(new ForbiddenError(apiMessage("errors.insufficient-scope", { value1: String(names.join(" ")) })));
     }
     next();
   };
@@ -270,7 +271,7 @@ function accessCap(on: PolicyTarget, res: Response): AccessLevel {
  * *level* obtained, never the resource's visibility.
  */
 function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Request, res: Response, next: NextFunction) {
-  if (!isAccessType(min) || min === null) throw new InternalError(`Bad access level : ${min}`);
+  if (!isAccessType(min) || min === null) throw new InternalError(apiMessage("errors.bad-access-level", { value1: String(min) }));
   const check = toAccessLevel(min);
   const requester = getUser(req);
   const level = requester?.level ?? "create";
@@ -282,7 +283,7 @@ function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Reques
     const access = Math.min(AccessLevel.Admin, cap);
     res.locals.access = access;
     if (check <= access) return next();
-    return next(new UnauthorizedError(`token scope does not allow ${min} access`));
+    return next(new UnauthorizedError(apiMessage("errors.token-scope-does-not-allow-access", { value1: String(min) })));
   }
 
   //AccessLevel.None is 0, hence falsy: the cache check must be a null check.
@@ -296,9 +297,9 @@ function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Reques
       next();
     } else if (hidesExistence(on) && (req.method === "GET" || access <= AccessLevel.None)) {
       //Rewrite Unauthorized to "not found" so we don't leak private data
-      next(new NotFoundError(`Can't find the requested resource. It may be private or not exist entirely.`));
+      next(new NotFoundError(apiMessage("errors.can-t-find-the-requested-resource-it-may-be-private-or-not-exist-entirely")));
     } else {
-      next(new UnauthorizedError(`insufficient rights: ${min} required`));
+      next(new UnauthorizedError(apiMessage("errors.insufficient-rights-required", { value1: String(min) })));
     }
   }, next);
 }
@@ -369,7 +370,7 @@ function insufficientScope(res: Response, scope: string): HTTPError | null {
   const credential = getCredentialScopes(res);
   if (credential && !credential.has(scope)) {
     res.set("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${scope}"`);
-    return new ForbiddenError(`insufficient_scope: ${scope}`);
+    return new ForbiddenError(apiMessage("errors.insufficient-scope", { value1: String(scope) }));
   }
   return null;
 }
@@ -470,8 +471,8 @@ export function getUserId(req: Request) {
 
 export function getFileParams(req: Request): GetFileParams {
   let { scene, name } = req.params;
-  if (!scene) throw new BadRequestError(`Scene parameter not provided`);
-  if (!name) throw new BadRequestError(`File parameter not provided`);
+  if (!scene) throw new BadRequestError(apiMessage("errors.scene-parameter-not-provided"));
+  if (!name) throw new BadRequestError(apiMessage("errors.file-parameter-not-provided"));
 
   return { scene, name };
 }
@@ -479,14 +480,14 @@ export function getFileParams(req: Request): GetFileParams {
 export function getVfs(req: Request) {
   let vfs: Vfs = getLocals(req).vfs;
   //istanbul ignore if
-  if (!vfs) throw new InternalError("Badly configured app : vfs is not defined in app.locals");
+  if (!vfs) throw new InternalError(apiMessage("errors.badly-configured-app-vfs-is-not-defined-in-app-locals"));
   return vfs;
 }
 
 
 export function getTaskScheduler(req: Request) {
   const scheduler = getLocals(req).taskScheduler;
-  if (!scheduler) throw new InternalError("Badly configured app: task scheduler is not defined in app.locals");
+  if (!scheduler) throw new InternalError(apiMessage("errors.badly-configured-app-task-scheduler-is-not-defined-in-app-locals"));
   return scheduler;
 }
 
@@ -509,10 +510,10 @@ export function validateRedirect(req: Request, redirect: string | any): URL {
   let host = getHost(req);
   try {
     let target = new URL(redirect, host);
-    if (target.origin !== host.origin) throw new BadRequestError(`Redirect origin mismatch`);
+    if (target.origin !== host.origin) throw new BadRequestError(apiMessage("errors.redirect-origin-mismatch"));
     return target;
   } catch (e) {
-    throw new BadRequestError(`Bad Redirect parameter`);
+    throw new BadRequestError(apiMessage("errors.bad-redirect-parameter"));
   }
 
 }

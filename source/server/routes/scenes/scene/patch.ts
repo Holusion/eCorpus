@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 
 import { BadRequestError, ConflictError } from "../../../utils/errors.js";
 import { getUserId, getUserManager, getVfs } from "../../../utils/locals.js";
@@ -17,7 +18,7 @@ export default async function patchScene(req :Request, res :Response){
   let {scene: sceneName} = req.params;
   let {name, permissions, groupPermissions, tags, archived, public_access, default_access, ...remainings} = req.body;
   if (Object.keys(remainings).length!=0){
-    throw new BadRequestError("Unknowns keys: " + Object.keys(remainings).toString() );
+    throw new BadRequestError(apiMessage("errors.unknown-keys", { keys: Object.keys(remainings).toString() }) );
   }
   //Ensure all or none of the changes are comitted
   let result = await getVfs(req).isolate(async (vfs)=>{
@@ -33,7 +34,7 @@ export default async function patchScene(req :Request, res :Response){
         await vfs.renameScene(scene.id, name);
       }catch(e:any){
         if(e.code == errors.unique_violation && e.constraint == "scenes_scene_name_key"){
-          throw new ConflictError(`A scene named ${name} already exists`);
+          throw new ConflictError(apiMessage("errors.a-scene-named-already-exists", { value1: String(name) }));
         }else{
           throw e;
         }

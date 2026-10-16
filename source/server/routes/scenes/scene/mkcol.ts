@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 import { Request, Response } from "express";
 import { getFileParams, getUserId, getVfs } from "../../../utils/locals.js";
 import { normalize } from "path";
@@ -9,7 +10,7 @@ export default async function handleCreateScene(req :Request, res :Response){
   let requester = getUserId(req);
   let {scene} = req.params;
   if(!requester){
-    throw new BadRequestError(`Requires an authenticated user`);
+    throw new BadRequestError(apiMessage("errors.requires-an-authenticated-user"));
   }
   await vfs.createScene(scene, requester);
   return res.status(201).send("Created");

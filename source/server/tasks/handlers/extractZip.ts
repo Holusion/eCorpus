@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Readable } from "node:stream";
 import { once } from "node:events";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
@@ -69,7 +70,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
             logger.log(`Scene ${scene} will be updated`);
           }else{
             logger.warn(`Scene ${scene} can't be updated: User only has access level "${fromAccessLevel(rights)}"`);
-            result = {name: scene, action: "error", error: new UnauthorizedError(`User doesn't have write permissions on scene "${scene}"`)};
+            result = {name: scene, action: "error", error: new UnauthorizedError(apiMessage("errors.user-doesn-t-have-write-permissions-on-scene", { value1: String(scene) }))};
             has_errors = true;
           }
         }catch(e){
@@ -84,7 +85,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
             result = {name: scene, action: "create"};
             logger.log(`Scene ${scene} will be created`);
           }else{
-            result = {name: scene, action: "error", error: new UnauthorizedError(`User doesn't have write permissions on scene "${scene}"`)};
+            result = {name: scene, action: "error", error: new UnauthorizedError(apiMessage("errors.user-doesn-t-have-write-permissions-on-scene", { value1: String(scene) }))};
             has_errors = true;
           }
         }
@@ -169,10 +170,10 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
         let unauthorized = errors.filter(r=>r.error instanceof UnauthorizedError);
         if(unauthorized.length === errors.length){
           throw new  UnauthorizedError(
-            `Multiple unauthorized scenes : ${errors.map(r=>r.name).join(",")}`
+            apiMessage("errors.multiple-unauthorized-scenes", { value1: String(errors.map(r=>r.name).join(",")) })
           );
         } else {
-          throw new InternalError(`Mixed errors : ${errors.map(r=>r.error.message).join(", ")}`)
+          throw new InternalError(apiMessage("errors.mixed-errors", { value1: String(errors.map(r=>r.error.message).join(", ")) }))
         }
       }
     }else{
@@ -195,16 +196,16 @@ export function isUploadedArchive(t: UploadedFile): t is UploadedArchive {
 }
 
 export async function extractScenesArchives({ context: { tasks, logger }, task: { data: { tasks: source_ids } } }: TaskHandlerParams<{ tasks: number[]; }>): Promise<ImportSuccessResult[]> {
-  if (!source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
+  if (!source_ids.length) throw new BadRequestError(apiMessage("errors.this-task-requires-at-least-one-source-file"));
 
   for (const task_id of source_ids) {
-    if (!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
+    if (!Number.isInteger(task_id)) throw new BadRequestError(apiMessage("errors.invalid-source-task-id", { value1: String(task_id) }));
   }
   const source_tasks = await Promise.all(source_ids.map(id => tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
   const failed_tasks = source_tasks.filter(t => t.status !== "success");
   const invalid_outputs = source_tasks.filter(t => !isUploadedArchive(t.output));
-  if (failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length ? "s" : ""} ${failed_tasks.map(t => t.task_id).join(", ")} has not completed successfully`);
-  if (invalid_outputs.length) throw new BadRequestError(`Source task${1 < invalid_outputs.length ? "s" : ""} ${invalid_outputs.map(t => t.task_id).join(", ")} did not output a zip file`);
+  if (failed_tasks.length) throw new BadRequestError(apiMessage("errors.source-task-has-not-completed-successfully", { value1: String(1 < failed_tasks.length ? "s" : ""), value2: String(failed_tasks.map(t => t.task_id).join(", ")) }));
+  if (invalid_outputs.length) throw new BadRequestError(apiMessage("errors.source-task-did-not-output-a-zip-file", { value1: String(1 < invalid_outputs.length ? "s" : ""), value2: String(invalid_outputs.map(t => t.task_id).join(", ")) }));
 
   const archives = source_tasks.map(t => t.output as UploadedArchive);
   // Unfortunately here it's possible to have partial failures if we have more than one file.

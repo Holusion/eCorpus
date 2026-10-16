@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../../../utils/messages/index.js";
 import {pipeline} from "node:stream/promises";
 
 import { Request, Response } from "express";
@@ -25,10 +26,10 @@ async function handleGetFileRange(req :Request, res :Response){
   const {scene, name} = getFileParams(req);
   let [startRange, endRange, ...rest] =  req.headers["range"]!.slice(6).split("-");
   if (rest.length){
-    throw new BadRequestError(`Bad Request : Multiple ranges are not supported`);
+    throw new BadRequestError(apiMessage("errors.bad-request-multiple-ranges-are-not-supported"));
   }
   if (typeof startRange === "undefined" || typeof endRange === "undefined" || (startRange.length == 0 && endRange.length==0)){
-    throw new BadRequestError ("Bad Request : Range with no parameters")
+    throw new BadRequestError (apiMessage("errors.bad-request-range-with-no-parameters"))
   }
   //A suffix range ("bytes=-500") asks for the last N bytes. It travels as a negative
   //start and gets resolved against the file size once we know it.
@@ -40,16 +41,16 @@ async function handleGetFileRange(req :Request, res :Response){
   //fs.createReadStream() throws a RangeError on a non-numeric or reversed range, and that
   //would surface as an internal error rather than the client error it is.
   if(!Number.isInteger(start) || (typeof end === "number" && !Number.isInteger(end))){
-    throw new BadRequestError(`Bad Request : Malformed range "${req.headers["range"]}"`);
+    throw new BadRequestError(apiMessage("errors.bad-request-malformed-range", { value1: String(req.headers["range"]) }));
   }
   if(typeof end === "number" && end <= start){
-    throw new BadRequestError(`Bad Request : Range ends before it starts`);
+    throw new BadRequestError(apiMessage("errors.bad-request-range-ends-before-it-starts"));
   }
 
   let file = await vfs.getFile({scene, name, start, end});
 
   if(!file.stream){
-    throw new BadRequestError(`${name} in ${scene} appears to be a directory`);
+    throw new BadRequestError(apiMessage("errors.in-appears-to-be-a-directory", { value1: String(name), value2: String(scene) }));
   }
 
   const ifRange = req.get("If-Range");
@@ -69,7 +70,7 @@ async function handleGetFileRange(req :Request, res :Response){
     //An unsatisfiable range still tells the client how long the file actually is
     file.stream.destroy();
     res.set("Content-Range", "bytes */" + file.size);
-    throw new RangeNotSatisfiableError(`Range Not Satisfiable: ${(end > file.size)?"end":"start"} after end of file`);
+    throw new RangeNotSatisfiableError(apiMessage("errors.range-not-satisfiable-after-end-of-file", { value1: String((end > file.size)?"end":"start") }));
   }
 
   res.set("Accept-Ranges", "bytes");
@@ -100,7 +101,7 @@ async function sendWholeFile(req :Request, res :Response){
 
   const file = await vfs.getFile({ scene, name });
   if(!file.stream){
-    throw new BadRequestError(`${name} in ${scene} appears to be a directory`);
+    throw new BadRequestError(apiMessage("errors.in-appears-to-be-a-directory", { value1: String(name), value2: String(scene) }));
   }
 
   res.set("Content-Length", file.size.toString(10));

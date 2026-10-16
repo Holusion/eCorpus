@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 import { Request, Response } from "express";
 import { getLocals, getTaskScheduler, getUser, useTemplateProperties  } from "../../../utils/locals.js";
 import { BadRequestError } from "../../../utils/errors.js";
@@ -16,7 +17,7 @@ export default async function handleMailtest(req :Request, res :Response){
     if(user.email){
       to = user.email
     }else{
-      throw new BadRequestError("No email address found for user "+ user.username);
+      throw new BadRequestError(apiMessage("errors.user-email-missing", { user: user.username }));
     }
   }
 

@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 
 import { BadRequestError, InternalError } from "../../utils/errors.js";
 import * as merge from "../../utils/merge/index.js";
@@ -32,8 +33,8 @@ function stringifyDiff(diff :unknown, indent ?:number) :string{
  * @see DocMergeResult for what the outcome means to the client.
  */
 export async function structuredDocMerge({context: {vfs:_vfs, logger}, task: {scene_id, user_id, data: {refId, docData: newDoc}}}:TaskHandlerParams<DocMergeData>): Promise<DocMergeResult> {
-  if(typeof scene_id !== "number") throw new InternalError(`Can't perform structured merge with no assigned scene_id`);
-  if(typeof user_id !== "number") throw new InternalError(`Can't perform structured merge with no assigned user_id`);
+  if(typeof scene_id !== "number") throw new InternalError(apiMessage("errors.can-t-perform-structured-merge-with-no-assigned-scene-id"));
+  if(typeof user_id !== "number") throw new InternalError(apiMessage("errors.can-t-perform-structured-merge-with-no-assigned-user-id"));
   return await _vfs.isolate(async function applyStructuredMerge(tr):Promise<DocMergeResult>{
     // perform a diff of the document with the reference one
     const {data: currentDocString, id: currentDocId, generation: currentDocGeneration} = await tr.getDoc(scene_id, true);
@@ -43,11 +44,11 @@ export async function structuredDocMerge({context: {vfs:_vfs, logger}, task: {sc
       refDocString = currentDocString;
     }else{
       const refDoc = await tr.getFileById(refId);
-      if(refDoc.scene_id !== scene_id) throw new BadRequestError(`Document's reference ID is not in this scene`);
+      if(refDoc.scene_id !== scene_id) throw new BadRequestError(apiMessage("errors.document-s-reference-id-is-not-in-this-scene"));
       refDocString = refDoc.data!;
     }
 
-    if(!refDocString) throw new BadRequestError(`Referenced document is not valid`);
+    if(!refDocString) throw new BadRequestError(apiMessage("errors.referenced-document-is-not-valid"));
     const refDoc = JSON.parse(refDocString);
 
     const docDiff = merge.diffDoc(refDoc, newDoc);

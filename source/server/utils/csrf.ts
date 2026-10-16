@@ -1,3 +1,4 @@
+import { apiMessage } from "./messages/index.js";
 
 import { NextFunction, Request, Response } from "express";
 
@@ -56,7 +57,7 @@ function isCrossOrigin(req: Request): boolean {
 export default function csrfProtection(req: Request, res: Response, next: NextFunction) {
   if (SAFE_METHODS.has(req.method)) return next();
   if (getAuthMethod(res) !== "session") return next();
-  if (isCrossOrigin(req)) return next(new ForbiddenError(`Cross-origin request rejected`));
+  if (isCrossOrigin(req)) return next(new ForbiddenError(apiMessage("errors.cross-origin-request-rejected")));
   next();
 }
 
@@ -74,6 +75,6 @@ export default function csrfProtection(req: Request, res: Response, next: NextFu
  */
 export function csrfProtectAnonymous(req: Request, res: Response, next: NextFunction) {
   if (SAFE_METHODS.has(req.method)) return next();
-  if (isCrossOrigin(req)) return next(new ForbiddenError(`Cross-origin request rejected`));
+  if (isCrossOrigin(req)) return next(new ForbiddenError(apiMessage("errors.cross-origin-request-rejected")));
   next();
 }

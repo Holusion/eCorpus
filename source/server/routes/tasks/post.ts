@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { Request, Response } from "express";
 import { getTaskScheduler, getUser, getVfs } from "../../utils/locals.js";
 import { BadRequestError } from "../../utils/errors.js";
@@ -18,11 +19,11 @@ export async function createUserTask(req: Request, res: Response){
   const requester = getUser(req)!;
   let {type, data, status = "pending"} = req.body;
   if(!type || typeof type !=="string"){
-    throw new BadRequestError(`No task type provided`);
+    throw new BadRequestError(apiMessage("errors.no-task-type-provided"));
   }else if(!isUserTaskType(type) ){
-    throw new BadRequestError(`Unsupported task type: ${type}`);
+    throw new BadRequestError(apiMessage("tasks.unsupported-type", { type: String(type) }));
   }else if(["initializing", "pending"].indexOf(status)=== -1){
-    throw new BadRequestError(`Invalid task status: ${status}`);
+    throw new BadRequestError(apiMessage("errors.invalid-task-status", { value1: String(status) }));
   }
   //We perform **NO** data validation here, which might be a security hole
   //especially if task handlers can't be relied-upon to check their own data

@@ -1,3 +1,4 @@
+import { apiMessage } from "../../../utils/messages/index.js";
 
 import { UnauthorizedError } from "../../../utils/errors.js";
 import { getFileParams, getUser, getUserId, getUserManager, getVfs } from "../../../utils/locals.js";
@@ -12,7 +13,7 @@ export default async function handleDeleteScene(req :Request, res :Response){
   if(user && user.level == "admin" && !archive ){
     await vfs.removeScene(req.params.scene);
   }else if(!archive){
-    throw new UnauthorizedError(`force-delete requires instance-level admin rights`);
+    throw new UnauthorizedError(apiMessage("errors.force-delete-requires-instance-level-admin-rights"));
   }else{
     await vfs.archiveScene(req.params.scene);
   }

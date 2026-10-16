@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import { errorPayload, localizeError } from "../../utils/messages/request.js";
 import { createHmac } from "crypto";
 import { NextFunction, Request, RequestHandler, Response } from "express";
@@ -16,16 +17,16 @@ export async function postLogin(req :Request, res :Response){
   let {redirect} = req.query;
   let {username, password} = req.body;
 
-  if(!username) throw new BadRequestError("Username not provided");
-  else if(typeof username !="string") throw new BadRequestError("Bad username format");
-  if(!password) throw new BadRequestError("Password not provided");
-  else if(typeof password !="string") throw new BadRequestError("Bad password format");
+  if(!username) throw new BadRequestError(apiMessage("errors.username-not-provided"));
+  else if(typeof username !="string") throw new BadRequestError(apiMessage("errors.bad-username-format"));
+  if(!password) throw new BadRequestError(apiMessage("errors.password-not-provided"));
+  else if(typeof password !="string") throw new BadRequestError(apiMessage("errors.bad-password-format"));
   let user: User;
   try{
     user = await userManager.getUserByNamePassword(username, password);
   }catch(e: any){
     if(e instanceof NotFoundError){ //cast NotFound as Unauthorized
-      e = new UnauthorizedError(`Username not found`);
+      e = new UnauthorizedError(apiMessage("errors.username-not-found"));
     }
     const code :number = e.code ?? 500;
     const rawMessage = (e instanceof HTTPError) ? localizeError(req, e, "html").slice(6) : e.message;
@@ -113,15 +114,15 @@ export async function getLoginPayload(req: Request, res: Response){
   const redirect = validateRedirect(req, params.redirect ?? "/ui/");
 
   //Verify data is valid. First, expiration date
-  if(!params.expires || !Number.isInteger(params.expires)) throw new BadRequestError("Bad token payload");
-  else if(params.expires < Date.now()) throw new ForbiddenError("Token expired");
+  if(!params.expires || !Number.isInteger(params.expires)) throw new BadRequestError(apiMessage("errors.bad-token-payload"));
+  else if(params.expires < Date.now()) throw new ForbiddenError(apiMessage("errors.token-expired"));
   //Then verify the user has not been deleted or renamed
   let user;
   try{
     user = await userManager.getUserByName(params.username);
     if(user.uid != params.uid) throw new Error("uid mismatch");
   }catch(e){
-    throw new BadRequestError(`Failed to parse login payload`);
+    throw new BadRequestError(apiMessage("errors.failed-to-parse-login-payload"));
   }
 
   //Open a server-side session: the cookie only carries the opaque sid
@@ -162,16 +163,16 @@ export function makeRedirect(key:string, {user, expiresIn, redirect}:{user:Pick<
 export function parseLoginPayload(keys: string[], payload: string) :LoginParams{
   const parts = payload.split(".");
   if(parts.length != 2){
-    throw new BadRequestError(`Bad login links parameters`);
+    throw new BadRequestError(apiMessage("errors.bad-login-links-parameters"));
   }
   const [sig, data] = parts;
   if(!data || !sig){
-    throw new BadRequestError(`Bad login links parameters`);
+    throw new BadRequestError(apiMessage("errors.bad-login-links-parameters"));
   }
   if(!keys.some((key)=>{
     return createHmac("sha512", key).update(data).digest("base64url") === sig;
   })){
-    throw new ForbiddenError("payload doesn't match signature");
+    throw new ForbiddenError(apiMessage("errors.payload-doesn-t-match-signature"));
   }
   return JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));
 }
@@ -213,7 +214,7 @@ export async function sendLoginLink(req :Request, res :Response){
 
   let user = await userManager.getUserByName(username);
   if(!user.email){
-    throw new BadRequestError(`Requested user has no registered email`);
+    throw new BadRequestError(apiMessage("errors.requested-user-has-no-registered-email"));
   }
   let key = (await userManager.getKeys())[0];
   let link = makeRedirect(

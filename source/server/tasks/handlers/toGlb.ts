@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import obj2gltf from "obj2gltf";
@@ -15,7 +16,7 @@ export async function toGlb({context: {tasks, vfs, logger}, task:{task_id, data:
       data: {fileLocation},
     });
   }else{
-    throw new BadRequestError(`Unsupported file extension: ${ext}`);
+    throw new BadRequestError(apiMessage("errors.unsupported-file-extension", { value1: String(ext) }));
   }
 }
 

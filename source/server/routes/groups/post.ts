@@ -1,3 +1,4 @@
+import { apiMessage } from "../../utils/messages/index.js";
 
 import { Request, Response } from "express";
 
@@ -12,7 +13,7 @@ import Group from "../../auth/Group.js";
 export default async function postGroups(req: Request, res: Response) {
   let userManager: UserManager = getUserManager(req);
   let { groupName, members } = req.body;
-  if (!groupName) throw new BadRequestError("name not provided");
+  if (!groupName) throw new BadRequestError(apiMessage("errors.name-not-provided"));
   let group: Group;
   if (!members) {
     group = await userManager.addGroup(groupName);
