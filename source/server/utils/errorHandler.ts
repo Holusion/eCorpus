@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
 import { getLanguage, getUser, useTemplateProperties } from "./locals.js";
 import { createLogger } from "./log/index.js";
+import { Localized } from "./i18n.js";
 
 const log = createLogger("http");
 
@@ -21,6 +22,18 @@ const log = createLogger("http");
  */
 function isClientDisconnect(req:Request, res:Response):boolean{
   return res.destroyed || (req.destroyed && !req.complete);
+}
+
+/**
+ * Translates a {@link localize}d error's message to the language pages would be rendered in.
+ * Other errors keep their (english) message
+ */
+function localizedMessage(error:HTTPError|Error, req:Request, res:Response):string{
+  if(!(error instanceof HTTPError && error.i18n)) return error.message;
+  res.vary("Accept-Language");
+  const lng = getLanguage(req);
+  res.set("Content-Language", lng);
+  return `[${error.code}] ${new Localized(error.i18n.key, error.i18n.params).translate(lng)}`;
 }
 
 export function errorHandlerMdw(){
@@ -63,22 +76,24 @@ export function errorHandlerMdw(){
       res.set("WWW-Authenticate", "Bearer realm=\"authenticated access\"");
     }
 
+    const message = localizedMessage(error, req, res);
     res.format({
       "application/json": ()=> {
-        res.status(code).send({ code, message: `${error.name}: ${error.message}` })
+        res.status(code).send({ code, message: `${error.name}: ${message}` })
       },
       "text/html": ()=>{
         // send error page
         useTemplateProperties(req, res, ()=>{
           res.status(code).render("error", { 
-            error,
+            // message and stack are not enumerable
+            error: { ...error, message, stack: error.stack },
           });
         });
       },
       "text/plain": ()=>{
-        res.status(code).send(error.message);
+        res.status(code).send(message);
       },
-      default: ()=> res.status(code).set("Content-Type", "text/plain; charset=utf-8").send(error.message),
+      default: ()=> res.status(code).set("Content-Type", "text/plain; charset=utf-8").send(message),
     });
   }
 }

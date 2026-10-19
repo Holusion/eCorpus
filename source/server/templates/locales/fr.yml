@@ -450,3 +450,6 @@ errors:
   "Password not provided": Mot de passe non fourni
   "Bad password": Mot de passe invalide
   "Username not found": Nom d'utilisateur invalide
+  upload:
+    notGlb: "{{filename}} ne semble pas être un fichier GLB"
+    invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"
