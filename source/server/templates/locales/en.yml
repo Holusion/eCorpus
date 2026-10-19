@@ -434,3 +434,6 @@ errors:
   "Username not found": Invalid Username
   "requireCreate": "{{what}} requires \"create\" rights"
   "requireUser": "Authentication is required for {{what}}"
+  upload:
+    notGlb: "{{filename}} does not look like a GLB file"
+    invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"

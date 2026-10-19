@@ -5,6 +5,8 @@ import UserManager from "../../../../auth/UserManager.js";
 import Vfs from "../../../../vfs/index.js";
 import { randomBytes, randomInt } from "node:crypto";
 import { fixturesDir } from "../../../../__test_fixtures/fixtures.js";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 
 
@@ -130,5 +132,36 @@ describe("PUT /tasks/:id/artifact", function(){
       .send(data)
       .expect(416);
     expect(res.body).to.have.property("message", `Error: [416] Missing bytes 0-10`);
+  });
+
+  describe("localized parse errors", function(){
+    /** Creates an upload task for a `.glb` file and uploads `data` in one go */
+    async function uploadGlb(ctx: Mocha.Context, data: Buffer, lang?: string){
+      const glbname = randomBytes(4).toString("hex")+".glb";
+      const {body: {task_id}} = await request(ctx.server).post(`/tasks`)
+      .set("Authorization", await bearer("alice"))
+      .send({ type: "parseUserUpload", data: {filename: glbname, size: data.length}, status: "initializing" })
+      .expect(201);
+      const req = request(ctx.server).put(`/tasks/${task_id}/artifact`)
+      .set("Authorization", await bearer("alice"));
+      if(lang) req.set("Accept-Language", lang);
+      return {glbname, res: await req.send(data).expect(500)};
+    }
+
+    it("reports a non-GLB file in english by default", async function(){
+      const {glbname, res} = await uploadGlb(this, randomBytes(64));
+      expect(res.body).to.have.property("message", `Error: [500] ${glbname} does not look like a GLB file`);
+    });
+
+    it("reports a non-GLB file in the requested language", async function(){
+      const {glbname, res} = await uploadGlb(this, randomBytes(64), "fr");
+      expect(res.body).to.have.property("message", `Error: [500] ${glbname} ne semble pas être un fichier GLB`);
+    });
+
+    it("reports a corrupted GLB file in the requested language", async function(){
+      const cube = await fs.readFile(path.join(fixturesDir, "cube.glb"));
+      const {glbname, res} = await uploadGlb(this, cube.subarray(0, cube.length / 2), "fr");
+      expect(res.body).to.have.property("message").match(new RegExp(`^Error: \\[500\\] ${glbname} n'a pas pu être lu comme un modèle 3D : .+`));
+    });
   });
 })
