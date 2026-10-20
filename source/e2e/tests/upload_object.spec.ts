@@ -9,6 +9,58 @@ const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 //Authenticated as admin
 test.use({ storageState: 'playwright/.auth/user.json', cimode: true });
 
+test("shows a model report with localized warnings and recommendations", async ({ page }) => {
+  await page.goto("/ui/upload");
+  await page.locator('input[type="file"]').setInputFiles(path.join(fixtures, "cube_textured.glb"));
+  const report = page.getByRole("status");
+  await expect(report.getByRole("listitem")).toHaveText(["modelWarnings.png-images"]);
+  await expect(report.getByText("modelWarnings.recommend-optimize", { exact: true })).toBeVisible();
+  await page.getByTitle("remove upload").click();
+  await expect(report).toHaveCount(0);
+});
+
+test("model report stays attached to each source file", async ({ page }) => {
+  await page.goto("/ui/upload");
+  const buffer = await readFile(path.join(fixtures, "cube_textured.glb"));
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "first.glb", mimeType: "model/gltf-binary", buffer },
+    { name: "second.glb", mimeType: "model/gltf-binary", buffer },
+  ]);
+  const first = page.locator(".upload-line").filter({ hasText: "first.glb" });
+  const second = page.locator(".upload-line").filter({ hasText: "second.glb" });
+  for (const upload of [first, second]) {
+    const report = upload.getByRole("status");
+    await expect(report.getByText("modelWarnings.png-images", { exact: true })).toBeVisible();
+    await expect(report.getByText("modelWarnings.recommend-optimize", { exact: true })).toBeVisible();
+  }
+  await first.getByTitle("remove upload").click();
+  await expect(first).toHaveCount(0);
+  await expect(second.getByRole("status")).toBeVisible();
+});
+
+test("model report applies localization for English and French requests", async ({ browser, baseURL }) => {
+  const messages: string[] = [];
+  for (const locale of ["en", "fr"]) {
+    // Contexts inherit the "cimode" headers from test.use()
+    const context = await browser.newContext({ locale, baseURL, extraHTTPHeaders: {}, storageState: 'playwright/.auth/user.json' });
+    try {
+      const page = await context.newPage();
+      await page.goto("/ui/upload");
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      await page.locator('input[type="file"]').setInputFiles(path.join(fixtures, "cube_textured.glb"));
+      const warning = page.getByRole("status").getByRole("listitem");
+      await expect(warning).toBeVisible();
+      await expect(warning).toHaveText(/\S/);
+      await expect(warning).not.toContainText("modelWarnings.");
+      messages.push((await warning.innerText()).trim());
+    } finally {
+      await context.close();
+    }
+  }
+  // A missing French translation falling back to English must also fail.
+  expect(messages[1]).not.toEqual(messages[0]);
+});
+
 test("uploads and rename a glb", async ({ page, request }) => {
   await page.goto("/ui/upload");
   //We are forced to use the rename otherwise we'd have a name collision
