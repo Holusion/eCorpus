@@ -527,15 +527,31 @@ export function isEmbed(req: Request): boolean {
 }
 
 /**
+ * Supported language from the `Accept-Language` header, if any.
+ * Checks for the header's presence because `acceptsLanguages()` would otherwise return our first locale
+ */
+export function getAcceptedLanguage(req: Request): AcceptedLocales | undefined {
+  if (!req.get("Accept-Language")) return undefined;
+  return (req.acceptsLanguages(locales) || undefined) as AcceptedLocales | undefined;
+}
+
+/**
+ * Language to respond in: the session's (forced with `?lang=`),
+ * else a supported `Accept-Language`, else the instance's `default_language`.
+ */
+export function getLanguage(req: Request): AcceptedLocales {
+  return getSession(req)?.lang ?? getAcceptedLanguage(req) ?? getLocals(req).config.get("default_language");
+}
+
+/**
  * Common properties for template rendering.
  * All props required for navbar/footer rendering should be set here
  */
 export function useTemplateProperties(req: Request, res: Response, next?: NextFunction) {
-  const session = getSession(req);
   const { config } = getLocals(req);
   const user = getUser(req);
   const { search } = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
+  const lang = getLanguage(req);
   Object.assign(res.locals, {
     lang,
     languages: uiLanguages.map(l => {

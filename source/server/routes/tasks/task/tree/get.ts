@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { getLocals } from "../../../../utils/locals.js";
 import { TaskDataPayload, TaskLogEntry, TaskNode } from "../../../../tasks/types.js";
+import { translateTask } from "../get.js";
 
 export interface TaskTreeResponse<TData extends TaskDataPayload = TaskDataPayload, TReturn = any> {
   task: TaskNode<TData, TReturn>;
@@ -15,5 +16,5 @@ export async function getTaskTree(req: Request, res: Response) {
   const id = parseInt(req.params.id);
 
   const { root, logs } = await taskScheduler.getTaskTree(id);
-  res.status(200).send({ task: root, logs });
+  res.status(200).send({ task: translateTask(req, res, root), logs });
 }
