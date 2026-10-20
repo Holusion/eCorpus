@@ -4,6 +4,8 @@ import User from "../../../auth/User.js";
 import UserManager from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 import { TaskScheduler } from "../../../tasks/scheduler.js";
+import { localize } from "../../../utils/i18n.js";
+import { BadRequestError } from "../../../utils/errors.js";
 
 
 describe("GET /tasks/:id", function(){
@@ -50,6 +52,46 @@ describe("GET /tasks/:id", function(){
     await request(this.server).get(`/tasks/999999`)
     .set("Authorization", await bearer("bob"))
     .expect(404);
+  });
+
+  describe("localized outputs", function(){
+    const notGlb = () => localize("errors.upload.notGlb", { filename: "foo.glb" });
+
+    it("translates warnings and messages to the client's language", async function(){
+      const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
+      await taskScheduler.releaseTask(task.task_id, { scenes: [], warnings: [notGlb().toData()] });
+      const {body} = await request(this.server).get(`/tasks/${task.task_id}`)
+      .set("Authorization", await bearer("bob"))
+      .set("Accept-Language", "fr")
+      .expect(200)
+      .expect("Content-Language", "fr");
+      expect(body.task.output).to.deep.equal({
+        scenes: [],
+        warnings: [{ key: "errors.upload.notGlb", params: { filename: "foo.glb" }, message: "foo.glb ne semble pas être un fichier GLB" }],
+      });
+    });
+
+    it("translates errors of failed tasks", async function(){
+      const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
+      await taskScheduler.errorTask(task.task_id, new BadRequestError(notGlb()));
+      const {body} = await request(this.server).get(`/tasks/${task.task_id}`)
+      .set("Authorization", await bearer("bob"))
+      .set("Accept-Language", "fr")
+      .expect(200);
+      expect(body.task.output).to.have.property("message", "[400] foo.glb ne semble pas être un fichier GLB");
+    });
+
+    it("leaves other outputs untouched", async function(){
+      const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
+      await taskScheduler.releaseTask(task.task_id, { scenes: ["foo"] });
+      const res = await request(this.server).get(`/tasks/${task.task_id}`)
+      .set("Authorization", await bearer("bob"))
+      .set("Accept-Language", "fr")
+      .expect(200);
+      expect(res.headers).not.to.have.property("content-language");
+      expect(res.body.task.output).to.deep.equal({ scenes: ["foo"] });
+    });
+
   });
 
   describe("permissions", function(){

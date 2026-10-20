@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
+import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals, getLanguage } from "../../utils/locals.js";
 import wrap from "../../utils/wrapAsync.js";
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
@@ -12,6 +12,7 @@ import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
+import { translateErrorMessage } from "../../utils/i18n.js";
 
 
 const log = createLogger("http:views");
@@ -132,7 +133,8 @@ routes.get("/upload", wrap(async (req, res)=>{
     }
     if(task.status !== "success"){
       console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
-      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${task.output?.message? " "+task.output.message: ""}`, action: "error", task_id: task.task_id});
+      const message = typeof task.output?.message === "string" ? " "+translateErrorMessage(task.output, getLanguage(req)) : "";
+      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${message}`, action: "error", task_id: task.task_id});
     }else if(task.type === "createSceneFromFiles"){
       if(typeof task.output !== "number"){
         console.warn("Unexpected output for %s :", task.type, task.output);
