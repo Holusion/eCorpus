@@ -1,12 +1,12 @@
-import { Localized } from "./i18n.js";
+import { Localized, LocalizedData } from "./i18n.js";
 
 
 export class HTTPError extends Error{
   /** Set when the message was {@link localize}d. Kept as plain data so it survives task output serialization */
-  i18n?: { key: string, params: Record<string, unknown> };
+  i18n?: LocalizedData;
   constructor(public code :number, message :string|Localized){
     super(`[${code}] ${message}`);
-    if(message instanceof Localized) this.i18n = { key: message.key, params: message.params };
+    if(message instanceof Localized) this.i18n = message.toData();
   }
 }
 
