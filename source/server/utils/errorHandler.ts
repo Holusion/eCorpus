@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
 import { getLanguage, getUser, useTemplateProperties } from "./locals.js";
 import { createLogger } from "./log/index.js";
-import { Localized } from "./i18n.js";
+import { translateErrorMessage } from "./i18n.js";
 
 const log = createLogger("http");
 
@@ -33,7 +33,7 @@ function localizedMessage(error:HTTPError|Error, req:Request, res:Response):stri
   res.vary("Accept-Language");
   const lng = getLanguage(req);
   res.set("Content-Language", lng);
-  return `[${error.code}] ${new Localized(error.i18n.key, error.i18n.params).translate(lng)}`;
+  return translateErrorMessage(error, lng);
 }
 
 export function errorHandlerMdw(){
