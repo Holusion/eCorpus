@@ -4,6 +4,13 @@ import Notification from "../composants/Notification";
 
 export type SceneUploadResult = {name: string, action: "create"|"update"|"error"}
 
+/** Localized entry of an upload result. `message` is set by the server when it has a translation */
+export interface UploadMessage{
+  key: string;
+  params?: Record<string, unknown>;
+  message?: string;
+}
+
 
 // That's still way above nginx's 1mb default
 const CHUNK_SIZE = 25_000_000;
@@ -19,6 +26,8 @@ export interface UploadOperation{
   /** When the file is an archive we will store the list of files it contains here */
   files?:string[];
   scenes?: SceneUploadResult[];
+  warnings?: UploadMessage[];
+  messages?: UploadMessage[];
   //An array to be able to show a list of imported scenes in case of zip uploads
   error ?:{code?:number, name?: string, message:string};
   done :boolean;
@@ -31,6 +40,8 @@ export interface UploadOperation{
 }
 
 export interface ParsedUploadTaskOutput{
+  warnings?: UploadMessage[],
+  messages?: UploadMessage[],
   mime: string,
   scenes?: SceneUploadResult[],
   files?: string[],
