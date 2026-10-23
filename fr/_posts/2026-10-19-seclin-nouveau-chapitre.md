@@ -95,52 +95,10 @@ scene: "Seclin_PinceAEncens"
     </div>
 </section>
 
-<section class="section">
-    <div class="section">
-        <h2>Reproduire l'opération dans votre commune</h2>
-        <p>
-            L'opération se transpose à d'autres collectivités, à condition de partir des résultats de fouille et d'associer dès le départ les services qui produisent et conservent les données. Les étapes ci-dessous résument la démarche suivie à Seclin.
-        </p>
 
-        <h3>1. Partir du rapport de fouille</h3>
-        <p>
-            Le rapport archéologique fournit la trame scientifique du projet : chronologie, plans, hypothèses. C'est lui qui distingue ce qui est établi de ce qui est restitué, et qui permet ensuite d'écrire des contenus justes pour le public.
-        </p>
-
-        <h3>2. Documenter avant de numériser</h3>
-        <p>
-            Un modèle 3D ne vaut que par les informations qui l'accompagnent. Inventaire, datation, dimensions, lieu et année de découverte, description : ces métadonnées constituent la valeur d'usage de la collection numérique, pour la recherche comme pour la médiation.
-        </p>
-
-        <h3>3. Numériser en prévoyant le post-traitement</h3>
-        <p>
-            La photogrammétrie convient aussi bien au bâti qu'au mobilier. La prise de vue est rapide, mais le nettoyage des maillages et la mise à l'échelle demandent du temps : cette étape doit être budgétée dès le départ, comme le contrôle des modèles par les archéologues.
-        </p>
-
-        <h3>4. Héberger et annoter dans un outil pérenne</h3>
-        <p>
-            Les scènes sont stockées dans eCorpus, qui gère les descriptions, les annotations et les illustrations, et permet de les publier sur le web. Un outil ouvert et documenté évite de dépendre d'un prestataire unique pour la maintenance et la reprise des données.
-        </p>
-
-        <h3>5. Concevoir la médiation avant l'application</h3>
-        <p>
-            Le choix des scènes, le nombre d'étapes d'un parcours et le niveau de langage se décident avant le développement. À Seclin, l'application repose sur deux entrées seulement, l'histoire de la ville et les fouilles de 2024, ce qui la rend lisible en quelques minutes par un visiteur de passage.
-        </p>
-
-        <h3>6. Installer, former, évaluer</h3>
-        <p>
-            Une borne tactile suppose un lieu, une alimentation, un accès réseau et un entretien. Elle suppose aussi une équipe formée pour l'allumer, la dépanner et l'expliquer. Les premiers retours d'usage permettront d'ajuster les contenus et l'ergonomie.
-        </p>
-
-        <h3>Points de vigilance</h3>
-        <p>
-            Trois sujets reviennent dans ce type de projet : les droits et crédits des images et des modèles, qui doivent être explicités dans chaque fiche ; la distinction claire entre vestige documenté et restitution ; enfin la maintenance, souvent oubliée au moment du financement. À Seclin, l'opération a bénéficié du soutien de la DRAC Hauts-de-France dans le cadre de l'appel à projets ADNI, un levier à identifier en amont pour les collectivités qui souhaitent se lancer.
-        </p>
-    </div>
-</section>
 
 <section class="section">
-    <div class="section">
+    <div>
         <p>
             Vous portez un projet de valorisation numérique d'un fonds archéologique ou d'une collection de proximité ? <a href="/fr/contact.html">Écrivez-nous</a> pour étudier ensemble le format le plus adapté.
         </p>
