@@ -1,0 +1,55 @@
+---
+title: "Gallery"
+layout: page
+---
+<a href="/en/collections/index.html">Back to the Collections page</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 3rem">The virtual museum of Fillière</h2>
+</section>
+
+<section class="section" id="filliere">
+    <h2>The heritage collections of Fillière</h2>
+    <p>Fillière is a new municipality in Haute-Savoie, formed in 2017 from the merger of Aviernoz, Évires, Les Ollières, Saint-Martin-Bellevue and Thorens-Glières. Its movable heritage is spread across the five churches of the area: fifteen objects are protected as Historic Monuments, four of them classified and eleven listed.</p>
+    <p>To bring them to public attention, the municipality launched a virtual museum. A survey carried out in 2024 first assessed the condition of each object; digitisation followed in August 2025. The museum takes the form of an application running on a touch tablet, which travels between the five villages for workshops, events, school visits and library sessions, always accompanied by a cultural mediator.</p>
+    <p>This page presents the objects already digitised and documented, with their descriptive record and their 3D model viewable directly in the browser.</p>
+</section>
+
+<section class="section" id="collections-filliere">
+    <h2>Three groups, one local story</h2>
+    <p>The municipality's collections bring together more than a hundred objects in three groups. The art and sculpture group covers the protected church furniture, Savoyard ceramics, glass from the royal glassworks of Usillon, two sculptures by Terard and an archaeological sherd.</p>
+    <p>The paintings and graphic arts collection includes some twenty paintings by Yves Mairot and two watercolours by Sylwia Avola, two contemporary artists based in the region.</p>
+    <p>The photographs bring together postcards from the Robert Langlet collection, rephotographs by Garry Pycroft and a cyanotype by Patrice Federgrün: three ways of diverting the photographic technique to produce new forms.</p>
+</section>
+
+<section class="section" id="numerisation-filliere">
+    <h2>From object to 3D model</h2>
+    <p>The objects were digitised by photogrammetry and, for some of them, with a structured-light scanner. Photogrammetry captures colour and texture from a series of photographs; structured light reconstructs shape from the deformation of a light grid projected onto the object.</p>
+    <p>Flat items, paintings, photographs and postcards, were photographed in high definition, with colour and perspective correction. The digitised files then join a database to which the explanatory content is added: texts, images, videos. These data are also made available to research laboratories.</p>
+</section>
+
+<section class="section" id="objets-filliere">
+    <h2>The fifteen protected objects</h2>
+    <p>Each object comes with its full record and its 3D model. Where one exists, the record links to the Palissy database of the French Ministry of Culture.</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "FIL" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="section">
+    <h2>A project you would like to reproduce?</h2>
+    <p>Are you a municipality, a museum or a heritage service looking to showcase protected objects spread across an area? <a href="/en/contact.html">Get in touch</a> to work out the most suitable format together, from digitisation to mediation.</p>
+</section>
+
+<a href="/en/collections/index.html">Back to the Collections page</a>
