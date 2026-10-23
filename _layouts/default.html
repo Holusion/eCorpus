@@ -38,6 +38,9 @@
   {%- assign alt_url = page.url | replace_first: "/en/", "/fr/" -%}
   {%- endif -%}
   {%- assign alt = site.pages | where:"url", alt_url | first -%}
+  {%- unless alt -%}
+  {%- assign alt = site.posts | where:"url", alt_url | first -%}
+  {%- endunless -%}
   <meta property="og:locale" content="{{page.lang}}" />
   {%- if alt -%}
   <meta rel="alternate" hreflang="{{ page.lang }}" href="{{ page.url | absolute_url }}" />
