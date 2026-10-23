@@ -1,82 +1,148 @@
 ---
-title: "The Archaeological Service of Seclin presents its excavations at “Nouveau Chapitre”"
+title: "Seclin's Archaeological Service presents its excavations at the Nouveau Chapitre"
 tags: [education]
-excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. The 2024 excavations carried out by the city's archaeological service enter a new performance venue, with an eCorpus touch terminal."
+excerpt: "Preventive excavation, 3D digitisation and a touch terminal: how the City of Seclin brings almost 1,500 years of history within reach of its visitors."
+server: "https://ecorpus.fr-scv.fr"
+scene: "Seclin_PinceAEncens"
 ---
 
 <p>
-<b>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</b> Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+<b>To mark the opening of Seclin's new performance venue in northern France, named “Nouveau Chapitre”, a 3D mediation application reveals the city's history to visitors.</b> A look back at a project combining preventive excavation, digitisation and mediation, and at what it takes for another local authority to reproduce it.
 </p>
 
-<!-- Illustration to be added: /assets/img/post/seclin_nouveau_chapitre.jpg -->
+<div class="center">
+   <img class="fluid" alt="Home screen of the “Le Nouveau Chapitre, scène vivante de Seclin” application, with the entries “Remonter le temps” and “Comprendre les fouilles archéologiques”"
+     src="/assets/img/post/nouveau_chapitre.jpg">
+</div>
 
 <section class="section">
     <div class="section">
-        <h2>The Archaeological Service of Seclin and the 2024 Excavations</h2>
-        <!-- To be completed: short presentation of the service (status, missions, team), context of the 2024 excavations (location, prescription, areas, periods concerned) -->
+        <h2>A preventive excavation in the heart of the canonical quarter</h2>
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            In 2024, construction work on the new performance venue led to a preventive archaeological excavation. The site lies in the canonical quarter of the Saint-Piat collegiate church, one of the oldest religious buildings in northern France, built over a sanctuary founded in the 7th century.
         </p>
         <p>
-            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            Earlier excavations in this quarter and in the streets adjoining the collegiate church had already yielded remains: Early Christian burials dating from Late Antiquity and traces of medieval building sites. Buried heritage was therefore expected, which made it possible to organise the intervention before construction began.
         </p>
         <p>
-            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+            The excavation was carried out by the City's own archaeological service, part of the municipal teams. This arrangement, in which the local authority studies its own subsurface, made the rest of the project easier: the scientific results, the finds and the mediation questions stayed in the same hands, from the field through to the application.
         </p>
     </div>
 </section>
 
 <section class="section">
     <div class="section">
-        <h2>The Octagonal Building Unearthed and the Project to Bring Seclin's History to Life</h2>
-        <!-- To be completed: description of the octagonal building (dating, function, construction techniques, comparisons), state of research, intention behind the outreach project led by the city -->
+        <h2>An unexpected octagonal pavilion</h2>
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
+            The excavation revealed the foundations of an unexpected building: a large octagonal structure arranged around a central rainwater basin, in what must have been the gardens of the provost of the collegiate church.
         </p>
         <p>
-            Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
+            The finds confirm the prestige of the site. A finely worked copper-alloy incense tongs bearing the Gothic inscription DONA NOBIS PACEM was unearthed in 2024 on rue Jean-Jaurès, near the monumental fountain. Dated to the 16th century, it was used to handle the burning embers needed to burn incense.
         </p>
         <p>
-            Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur.
+            The whole is attributed to Jean II de Carondelet, a churchman, governor and diplomat at the court of Charles V, appointed provost of the Saint-Piat collegiate church. His provostship, between 1520 and 1545, places Seclin within the networks of the Flemish Renaissance, when the city belonged to the Burgundian Netherlands, still within the sphere of the Holy Roman Empire.
+        </p>
+        <p>
+            Like any reconstruction, the pavilion remains a working hypothesis, built from the foundations, the basin and the finds, and not a building documented in elevation. For this reason, the application separates the tour devoted to the excavations from the one presenting the reconstruction.
+        </p>
+    </div>
+    <div class="center">
+        <img class="fluid" alt="3D reconstruction of the Renaissance octagonal pavilion, with its central basin and a human silhouette for scale"
+             src="/assets/img/post/pavillon.jpg">
+    </div>
+</section>
+
+<section class="section">
+    <div class="section">
+        <h2>From excavation to 3D collection</h2>
+        <p>
+            To showcase the excavation and the discoveries, the City wanted a 3D application for viewing the scans of the excavation site and the reconstruction hypotheses for the building.
+        </p>
+        <p>
+            The project relies on eCorpus for storing and annotating the 3D scenes. Each scene can carry descriptions, annotations and illustrations, viewable in a browser without installing any software.
+        </p>
+        <p>
+            At the same time, the archaeological material kept in the reserves was digitised by photogrammetry. These models enrich the city's digital catalogue, which brings together monuments, objects from the excavations and study documents: a panorama of almost 1,500 years of history.
+        </p>
+        <p>
+            Each scene can be viewed independently on the 3D collections website:
+        </p>
+        <p>
+            <a href="/en/collections/seclin/index.html">Discover the digital collection of the archaeological holdings of the city of Seclin</a>
+        </p>
+
+    {% capture scene_url %}{{page.server}}/ui/scenes/{{page.scene}}/view{% endcapture %}
+    {% include voyager.html url=scene_url title="Incense tongs attributed to Jean II de Carondelet" class="h-100 larg100" %}
+   </div>
+</section>
+
+<section class="section">
+    <div class="section">
+        <h2>A touch terminal for mediation</h2>
+        <p>
+            To make the 3D content accessible to visitors of the performance venue, the scenes were orchestrated into an application with simplified navigation and an interface designed for younger audiences.
+        </p>
+        <p>
+            The application is divided into two tours. The first, “Remonter le temps” (Travel back in time), tells the city's history through excavation reports, digitised monuments and objects kept in the reserves. The second, “Comprendre les fouilles archéologiques” (Understanding the excavations), details the 2024 campaign and the reconstruction hypothesis for the octagonal pavilion, with access to the foundations and the building elements.
+        </p>
+        <p>
+            The installation opened in the Nouveau Chapitre venue in 2026. The project receives support from the DRAC Hauts-de-France as part of the ADNI call for projects.
+        </p>
+    </div>
+    <div class="center">
+        <img class="fluid" alt="Photogrammetric 3D model of Seclin's Gothic collegiate church in the mediation application"
+             src="/assets/img/post/seclin.jpg">
+    </div>
+</section>
+
+<section class="section">
+    <div class="section">
+        <h2>Reproducing the project in your own city</h2>
+        <p>
+            The project can be transposed to other local authorities, provided it starts from the excavation results and involves, from the outset, the services that produce and curate the data. The steps below summarise the approach taken in Seclin.
+        </p>
+
+        <h3>1. Start from the excavation report</h3>
+        <p>
+            The archaeological report provides the scientific framework: chronology, plans, hypotheses. It is what separates established fact from reconstruction, and what later makes it possible to write accurate content for the public.
+        </p>
+
+        <h3>2. Document before digitising</h3>
+        <p>
+            A 3D model is only as good as the information that comes with it. Inventory number, dating, dimensions, place and year of discovery, description: these metadata are what make a digital collection useful, both for research and for mediation.
+        </p>
+
+        <h3>3. Digitise, and budget the post-processing</h3>
+        <p>
+            Photogrammetry works for buildings as well as for objects. Capture is quick, but cleaning the meshes and scaling them takes time: this step must be budgeted from the start, along with review of the models by archaeologists.
+        </p>
+
+        <h3>4. Host and annotate in a durable tool</h3>
+        <p>
+            The scenes are stored in eCorpus, which handles descriptions, annotations and illustrations and publishes them on the web. An open, documented tool avoids depending on a single provider for maintenance and for taking the data back.
+        </p>
+
+        <h3>5. Design the mediation before the application</h3>
+        <p>
+            The choice of scenes, the number of steps in a tour and the level of language are decided before development. In Seclin, the application has only two entries, the city's history and the 2024 excavations, which makes it readable within minutes by a passing visitor.
+        </p>
+
+        <h3>6. Install, train, evaluate</h3>
+        <p>
+            A touch terminal needs a location, a power supply, network access and maintenance. It also needs a team trained to switch it on, troubleshoot it and explain it. Early user feedback will make it possible to adjust the content and the interface.
+        </p>
+
+        <h3>Points to watch</h3>
+        <p>
+            Three issues come up repeatedly in this kind of project: the rights and credits for images and models, which must be stated in every record; a clear distinction between documented remains and reconstruction; and maintenance, which is often overlooked when funding is secured. In Seclin, the project received support from the DRAC Hauts-de-France under the ADNI call for projects, a lever worth identifying early by local authorities wishing to get started.
         </p>
     </div>
 </section>
 
 <section class="section">
     <div class="section">
-        <h2>3D Digitization, a Bridge Between Archaeological Finds and Mediation Application</h2>
-        <!-- To be completed: digitization protocol (photogrammetry, equipment, post-processing time), selection of objects, semantic enrichment of eCorpus scenes, purpose of the models (archiving, research, mediation) -->
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur.
-        </p>
-        <p>
-            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.
-        </p>
-        <p>
-            Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.
-        </p>
-        <p>
-            <a href="../../../collections/seclin/index.html">Discover the digital collection of the archaeological holdings of the city of Seclin</a>
-        </p>
-        <!-- 3D scene to be integrated, for example:
-        {% capture scene_url %}https://ecorpus.fr-scv.fr/ui/scenes/Seclin_Gobelet/view{% endcapture %}
-        {% include voyager.html url=scene_url title="Grey ware ceramic goblet" class="h-100 larg100" %}
-        -->
-    </div>
-</section>
-
-<section class="section">
-    <div class="section">
-        <h2>A Touch Terminal for Mediation in the Performance Venue in 2026</h2>
-        <!-- To be completed: description of the installation (terminal, touch table, proposed tour), choice of scenes and content, mediation with audiences, first user feedback -->
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.
-        </p>
-        <p>
-            Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.
-        </p>
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+            Are you planning a digital project around an archaeological collection or a local heritage collection? <a href="/en/contact.html">Get in touch</a> to discuss the most suitable format together.
         </p>
     </div>
 </section>
