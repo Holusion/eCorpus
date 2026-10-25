@@ -1,6 +1,6 @@
 ---
 title: "Galerie"
-layout: page
+layout: gallery
 ---
 
 <section class="section">
@@ -25,9 +25,8 @@ layout: page
 </section>
 
 <section class="section" id="uLille">
-    <h2><a href="/fr/collections/uLille/index.html">
-        Œuvres numérisées du Palais des Beaux-Arts de Lille
-    </a></h2>
+        <h2><a href="/fr/collections/uLille/index.html">Palais des Beaux-Arts de Lille</a></h2>
+    <p class="section-subtitle">Œuvres numérisées</p>
     <p>Collection assemblée par des étudiants de la <a href="https://humanites.univ-lille.fr/">faculté des humanités de l'Université de Lille</a> à partir des oeuvres du Palais des Beaux-Arts de Lille.</p>
     <p>Ces objets ont été numérisés par des étudiants de la licence en Histoire des Arts, dans le cadre d'un cours de la faculté des humanités, afin de leur faire découvrir la photogrammétrie et le logiciel Scaniverse.</p>
     <div class="tile-carousel">
@@ -44,9 +43,8 @@ layout: page
 </section>
 
 <section class="section" id="NotreDamedeParis">
-    <h2><a href="/fr/collections/notredamedeparis/index.html">
-        Elèments numérisés de Notre-Dame de Paris
-    </a></h2>
+        <h2><a href="/fr/collections/notredamedeparis/index.html">Notre-Dame de Paris</a></h2>
+    <p class="section-subtitle">Éléments numérisés</p>
     <p>Collection assemblée dans le cadre des travaux de restauration 2018 et de l'exposition <a href="/fr/2024/05/06/suad.html">Notre-Dame de Paris</a> à la Sorbonne Université Abu Dhabi en 2024.</p>
     <p>Les numérisations ont été réalisées par Plémo 3D.</p>
     <div class="tile-carousel">
@@ -63,9 +61,8 @@ layout: page
 </section>
 
 <section class="section" id="NotreDameEnVaux">
-    <h2><a href="/fr/collections/notredameenvaux/index.html">
-        Elèments numérisés du musée du cloitre de Notre-Dame en Vaux
-    </a></h2>
+        <h2><a href="/fr/collections/notredameenvaux/index.html">Notre-Dame-en-Vaux</a></h2>
+    <p class="section-subtitle">Éléments numérisés du musée du cloître</p>
     <p>Collection assemblée pour le <a href="../2025/04/05/collectionchalons.html">musée du Cloître de Notre Dame en Vaux</a> à Châlons en Champagne pour sa réouverture de 2025.</p>
     <p>Les numérisations ont été réalisées par Digitage, tandis que les reconstitutions des oeuvres lacunaires ont été assurées par <a href="https://holusion.com">Holusion</a>.</p>
     <div class="tile-carousel">
@@ -82,9 +79,8 @@ layout: page
 </section>
 
 <section class="section" id="Medicis">
-    <h2><a href="/fr/collections/medicis/index.html">
-        Chef-d'oeuvres des lycées des Hauts-de-France pour la Résidence Pro 2026 à la Villa Médicis
-    </a></h2>
+        <h2><a href="/fr/collections/medicis/index.html">Lycées des Hauts-de-France</a></h2>
+    <p class="section-subtitle">Chef-d'œuvre de la Résidence Pro 2026 à la Villa Médicis</p>
     <p>Collection des réalisation des 9 établissements participants et des compagnons du devoir dans le cadre d'un projet Erasmus+ impliquant 250 élèves et 50 accompagnateurs.</p>
     <p>Les numérisations ont été faites, pour la majeure partie, par des étudiants via le logiciel Scaniverse. A l'exception des modèles de ferroneries d'art, trop complexes pour un étudiant, dont la numérisation a été assurée par <a href="https://holusion.com">Holusion</a> en photogrammétrie.</p>
     <div class="tile-carousel">
@@ -156,9 +152,8 @@ layout: page
 </section>
 
 <section class="section" id="seclin">
-    <h2><a href="/fr/collections/seclin/index.html">
-        Fond archéologique de la ville de Seclin
-    </a></h2>
+        <h2><a href="/fr/collections/seclin/index.html">Seclin</a></h2>
+    <p class="section-subtitle">Fond archéologique de la ville</p>
     <p>Numérisations 3D du patrimoine archéologique et architectural de la ville de Seclin (Nord).</p>
     <div class="tile-carousel">
         {% for p in site.pages %}
@@ -174,43 +169,16 @@ layout: page
 </section>
 
 <section class="section" id="filliere">
-    <h2><a href="/fr/collections/filliere/index.html">
-        Musée virtuel de Fillière (Haute-Savoie)
-    </a></h2>
+        <h2><a href="/fr/collections/filliere/index.html">Fillière</a></h2>
+    <p class="section-subtitle">Musée virtuel de la commune, Haute-Savoie</p>
     <p>Objets mobiliers protégés au titre des Monuments historiques, numérisés en 3D pour le musée virtuel de la commune de Fillière, en Haute-Savoie.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "FIL" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
-            </a>
-        {% endfor %}
-    </div>
-</div>
-</section>
-
-<section class="section" >
-    <h2 id="filliere">
-        Elèments numérisés pour la Commune de Fillière
-    </h2>
-    <p>Collection assemblée pour la Commune de Fillière en Haute-Savoie.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
-        {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "FIL" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>

@@ -47,6 +47,12 @@ main {
     scroll-margin-top: calc($navbar_height + 0.8rem);
   }
 
+  // Sections linked from a sidebar nav (collections gallery) need the same
+  // offset as headings so the anchor target is not hidden by the navbar.
+  section[id] {
+    scroll-margin-top: calc($navbar_height + 0.8rem);
+  }
+
   
   &, section, .section{
 
@@ -347,6 +353,18 @@ footer a:hover {
     max-height: calc(100vh - $navbar_height - 1.6rem);
     overflow-y: auto;
 
+    // Section nav (collections gallery): section titles are long, they must wrap
+    // instead of widening the whole grid column.
+    .section-nav a.list-group-leaf{
+      white-space: normal;
+      line-height: 1.25em;
+      padding: 0.15rem 0.5rem 0.15rem 0;
+
+      &:hover{
+        color: $yellow;
+      }
+    }
+
 
     .navbar-toggle{
       display: none;
@@ -486,6 +504,16 @@ h5{
   font-style: italic;
   text-align: center;
   margin: 1rem auto;
+}
+
+// Subtitle under a collection heading (collections gallery): the long title
+// moves here so the h2 stays short enough for the left sidebar navigation.
+.section-subtitle{
+  font-family: $serifFont;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: $middlegrey;
+  margin: 0.4rem 0 1rem 1.5rem;
 }
 
 //////////////////////////////

@@ -1,6 +1,6 @@
 ---
 title: "Gallery"
-layout: page
+layout: gallery
 ---
 
 <section class="section">
@@ -25,9 +25,8 @@ layout: page
 </section>
 
 <section class="section" id="uLille">
-    <h2><a href="/en/collections/uLille/index.html">
-        Digitized artworks from the Palais des Beaux-Arts de Lille
-    </a></h2>
+        <h2><a href="/en/collections/uLille/index.html">Palais des Beaux-Arts de Lille</a></h2>
+    <p class="section-subtitle">Digitized artworks</p>
     <p>Collection assembled by students of the <a href="https://humanites.univ-lille.fr/">Faculty of Humanities of the University of Lille</a> from the artworks of the Palais des Beaux-Arts de Lille.</p>
     <p>These objects were scanned by students of the Bachelor in Art History, as part of a Faculty of Humanities course, introducing them to photogrammetry and Scaniverse.</p>
     <div class="tile-carousel">
@@ -44,9 +43,8 @@ layout: page
 </section>
 
 <section class="section" id="NotreDamedeParis">
-    <h2><a href="/en/collections/notredamedeparis/index.html">
-        Digitized elements of Notre-Dame de Paris
-    </a></h2>
+        <h2><a href="/en/collections/notredamedeparis/index.html">Notre-Dame de Paris</a></h2>
+    <p class="section-subtitle">Digitized elements</p>
     <p>Collection assembled as part of the restoration work and the exhibition <a href="/en/2024/05/06/suad.html">Notre-Dame de Paris</a> at Sorbonne Abu Dhabi University.</p>
     <p>Scans were produced by Plémo 3D.</p>
     <div class="tile-carousel">
@@ -63,9 +61,8 @@ layout: page
 </section>
 
 <section class="section" id="NotreDameEnVaux">
-    <h2><a href="/en/collections/notredameenvaux/index.html">
-        Digitalized elements from the Cloister Museum of Notre-Dame-en-Vaux
-    </a></h2>
+        <h2><a href="/en/collections/notredameenvaux/index.html">Notre-Dame-en-Vaux</a></h2>
+    <p class="section-subtitle">Digitized elements from the Cloister Museum</p>
     <p>Collection assembled for the <a href="../2025/04/05/collectionchalons.html">Cloister Museum of Notre-Dame-en-Vaux</a> in Châlons-en-Champagne for its 2025 reopening.</p>
     <p>Scans were produced by Digitage while reconstructions of missing parts were done by <a href="https://holusion.com">Holusion</a>.</p>
     <div class="tile-carousel">
@@ -82,9 +79,8 @@ layout: page
 </section>
 
 <section class="section" id="Medicis">
-    <h2><a href="/en/collections/medicis/index.html">
-        Masterpieces from Hauts-de-France high schools — Résidence Pro 2026 at the Villa Medici
-    </a></h2>
+        <h2><a href="/en/collections/medicis/index.html">Hauts-de-France high schools</a></h2>
+    <p class="section-subtitle">Masterpieces for the Résidence Pro 2026 at the Villa Medici</p>
     <p>Collection of works from 9 participating schools and the Compagnons du Devoir, part of an Erasmus+ project involving 250 students and 50 supervisors.</p>
     <p>Most scans were done by students using Scaniverse. Art metalwork, too complex for students, was scanned by <a href="https://holusion.com">Holusion</a> using photogrammetry.</p>
     <div class="tile-carousel">
@@ -94,6 +90,7 @@ layout: page
             {% endif %}
             <a href="{{p.url}}" class="tile-item">
                 <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+            </a>
         {% endfor %}
     </div>
 </div>
@@ -101,21 +98,16 @@ layout: page
 
 
 <section class="section" id="filliere">
-    <h2><a href="/en/collections/filliere/index.html">
-        Virtual museum of Fillière (Haute-Savoie)
-    </a></h2>
+        <h2><a href="/en/collections/filliere/index.html">Fillière</a></h2>
+    <p class="section-subtitle">Virtual museum of the municipality, Haute-Savoie</p>
     <p>Movable objects protected as Historic Monuments, digitised in 3D for the virtual museum of the municipality of Fillière, in Haute-Savoie.</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
+    <div class="tile-carousel">
         {% for p in site.pages %}
             {%if p.layout != "item" or p.lang != page.lang or p.collection != "FIL" %}
             {% continue %}
             {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
+            <a href="{{p.url}}" class="tile-item">
+                <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
             </a>
         {% endfor %}
     </div>
@@ -135,26 +127,6 @@ layout: page
             {% endif %}
             <a href="{{p.url}}" class="tile-item">
                 <img src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-       {% endfor %}
-    </div>
-</div>
-</section>
-<section class="section">
-    <h2 id="filliere">
-        Digitalized elements from Fillière in Haute-Savoie
-    </h2>
-    <p>Collection Assembled for the District of Fillière in Haute-Savoie, France</p>
-    <div style="display:flex; flex-direction: column;gap: 5px;">
-        {% for p in site.pages %}
-            {%if p.layout != "item" or p.lang != page.lang or p.collection != "FIL" %}
-            {% continue %}
-            {% endif %}
-            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
-                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
-                <div style="padding-left: 5px;">
-                    <h4>{{ p.title }}</h4>
-                    <p>{{ p.abstract }}</p> 
-                </div>
             </a>
         {% endfor %}
     </div>
@@ -198,9 +170,8 @@ layout: page
 </section>
 
 <section class="section" id="seclin">
-    <h2><a href="/en/collections/seclin/index.html">
-        Archaeological collection of the city of Seclin
-    </a></h2>
+        <h2><a href="/en/collections/seclin/index.html">Seclin</a></h2>
+    <p class="section-subtitle">Archaeological collection of the city</p>
     <p>3D digitizations of the archaeological and architectural heritage of the city of Seclin (Nord).</p>
     <div class="tile-carousel">
         {% for p in site.pages %}
