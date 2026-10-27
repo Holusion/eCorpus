@@ -47,6 +47,12 @@ main {
     scroll-margin-top: calc($navbar_height + 0.8rem);
   }
 
+  // Sections linked from a sidebar nav (collections gallery) need the same
+  // offset as headings so the anchor target is not hidden by the navbar.
+  section[id] {
+    scroll-margin-top: calc($navbar_height + 0.8rem);
+  }
+
   
   &, section, .section{
 
@@ -347,6 +353,26 @@ footer a:hover {
     max-height: calc(100vh - $navbar_height - 1.6rem);
     overflow-y: auto;
 
+    // Section nav (collections gallery): section titles are long, they must wrap
+    // instead of widening the whole grid column.
+    .section-nav a.list-group-leaf{
+      white-space: normal;
+      line-height: 1.25em;
+      padding: 0.15rem 0.5rem 0.15rem 0;
+
+      &:hover{
+        color: $yellow;
+      }
+    }
+
+    // The section currently in view gets a yellow background (see
+    // ".list-group-item.current"): its label must stay dark when hovered,
+    // otherwise it becomes yellow on yellow and disappears.
+    .section-nav li.current a.list-group-leaf,
+    .section-nav li.current a.list-group-leaf:hover{
+      color: $bodyColor;
+    }
+
 
     .navbar-toggle{
       display: none;
@@ -486,6 +512,16 @@ h5{
   font-style: italic;
   text-align: center;
   margin: 1rem auto;
+}
+
+// Subtitle under a collection heading (collections gallery): the long title
+// moves here so the h2 stays short enough for the left sidebar navigation.
+.section-subtitle{
+  font-family: $serifFont;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: $middlegrey;
+  margin: 0.4rem 0 1rem 1.5rem;
 }
 
 //////////////////////////////
@@ -1012,6 +1048,31 @@ div > ul > li:has(> .voyager-btn:first-child){
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     scroll-snap-align: start;
 
+    // Object title, revealed over the image on hover / keyboard focus.
+    // The dark gradient guarantees contrast whatever the thumbnail.
+    .tile-title {
+      position: absolute;
+      inset: auto 0 0 0;
+      padding: 0.35rem 0.5rem 0.45rem 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: #fff;
+      text-align: left;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+      // A nearly opaque band (never fully transparent) keeps the caption
+      // readable even on very light thumbnails.
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.72));
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      pointer-events: none;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
     img {
       width: 100%;
       height: 100%;
@@ -1028,6 +1089,12 @@ div > ul > li:has(> .voyager-btn:first-child){
       img {
         filter: none;
       }
+    }
+
+    &:hover .tile-title,
+    &:focus-visible .tile-title {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 

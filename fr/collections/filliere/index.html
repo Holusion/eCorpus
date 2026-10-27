@@ -1,0 +1,55 @@
+---
+title: "Galerie"
+layout: page
+---
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
+
+<section class="section">
+    <h2 class="text-white my-5" style="font-size: 3rem">Musée virtuel de Fillière</h2>
+</section>
+
+<section class="section" id="filliere">
+    <h2>Les collections patrimoniales de Fillière</h2>
+    <p>Fillière est une commune nouvelle de Haute-Savoie, née en 2017 du regroupement d'Aviernoz, d'Évires, des Ollières, de Saint-Martin-Bellevue et de Thorens-Glières. Son patrimoine mobilier est dispersé dans les cinq églises du territoire : quinze objets y sont protégés au titre des Monuments historiques, dont quatre classés et onze inscrits.</p>
+    <p>Pour les faire connaître, la commune a lancé un musée virtuel. Une expertise menée en 2024 a d'abord établi l'état de conservation de chaque objet ; les numérisations ont suivi en août 2025. Le musée prend la forme d'une application consultable sur tablette tactile, qui circule dans les cinq villages à l'occasion d'ateliers, d'événements, d'interventions scolaires et de rendez-vous en bibliothèque, toujours accompagnée d'un médiateur culturel.</p>
+    <p>Cette page présente les objets déjà numérisés et documentés, avec leur fiche descriptive et leur modèle 3D consultable directement dans le navigateur.</p>
+</section>
+
+<section class="section" id="collections-filliere">
+    <h2>Trois ensembles, une même histoire locale</h2>
+    <p>Les collections de la commune rassemblent plus d'une centaine d'objets, répartis en trois ensembles. Les objets d'art et de sculpture réunissent le mobilier d'église protégé, des céramiques savoyardes, des verres de la verrerie royale d'Usillon, deux sculptures de Terard et un tesson archéologique.</p>
+    <p>La collection de peintures et d'arts graphiques compte une vingtaine de tableaux d'Yves Mairot et deux aquarelles de Sylwia Avola, deux artistes contemporains installés dans la région.</p>
+    <p>Les photographies enfin rassemblent des cartes postales issues de la collection de Robert Langlet, des rephotographies de Garry Pycroft et un cyanotype de Patrice Federgrün : autant de manières de détourner la technique photographique pour produire de nouvelles formes.</p>
+</section>
+
+<section class="section" id="numerisation-filliere">
+    <h2>De l'objet au modèle 3D</h2>
+    <p>Les objets ont été numérisés par photogrammétrie et, pour certains, au scanner à lumière structurée. La photogrammétrie restitue la couleur et la texture à partir d'une série de prises de vues ; la lumière structurée reconstruit la forme par la déformation d'un quadrillage lumineux projeté sur l'objet.</p>
+    <p>Les pièces plates, tableaux, photographies et cartes postales, ont été photographiées en haute définition, avec correction de la colorimétrie et des perspectives. Les numérisations rejoignent ensuite une base de données à laquelle s'ajoutent les contenus explicatifs : textes, images, vidéos. Ces données sont également mises à disposition des laboratoires de recherche.</p>
+</section>
+
+<section class="section" id="objets-filliere">
+    <h2>Les quinze objets protégés</h2>
+    <p>Chaque objet est présenté avec sa notice complète et son modèle 3D. Les fiches renvoient, quand elle existe, à la notice Palissy du ministère de la Culture.</p>
+    <div style="display:flex; flex-direction: column;gap: 5px;">
+        {% for p in site.pages %}
+            {%if p.layout != "item" or p.lang != page.lang or p.collection != "FIL" %}
+            {% continue %}
+            {% endif %}
+            <a href="{{p.url}}" class="list-group-item" style="display: flex;">
+                <img style="aspect-ratio:1; flex: 0 0 128px; height: 128px;" src="{{p.server}}/scenes/{{p.scene}}/scene-image-thumb.jpg" alt="{{p.title}}">
+                <div style="padding-left: 5px;">
+                    <h4>{{ p.title }}</h4>
+                    <p>{{ p.abstract }}</p>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="section">
+    <h2>Un projet à transposer ?</h2>
+    <p>Vous êtes une commune, un musée ou un service patrimoine et vous souhaitez valoriser des objets protégés dispersés sur un territoire ? <a href="/fr/contact.html">Écrivez-nous</a> pour étudier ensemble le format le plus adapté, de la numérisation à la médiation.</p>
+</section>
+
+<a href="/fr/collections/index.html">Retour à la page Collections</a>
