@@ -17,7 +17,7 @@ import Templates from "./templates/index.js";
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const templatesDir = path.resolve(thisDir, "../templates");
 
-const mockConfig = { get: (_key: any) => "" } as any;
+const mockConfig = { get: (key: any) => key === "default_language" ? "en" : "" } as any;
 
 describe("errorHandler middleware", function(){
     let app :Express;
