@@ -5,7 +5,7 @@ import express from "express";
 import { errorHandlerMdw, notFoundHandlerMdw } from "../utils/errorHandler.js";
 import { accessLogMdw, logContextMdw } from "../utils/log/index.js";
 
-import {AppLocals, AppParameters, getHost, getVfs} from "../utils/locals.js";
+import {AppLocals, AppParameters, getAcceptedLanguage, getHost, getVfs} from "../utils/locals.js";
 
 import authenticate from "../utils/authenticate.js";
 import csrfProtection from "../utils/csrf.js";
@@ -130,7 +130,7 @@ Sitemap: ${sitemap}
       const queryLang = typeof req.query.lang === "string" ? req.query.lang : undefined;
       const lang = (queryLang && (dicts as readonly string[]).includes(queryLang))
         ? queryLang
-        : (req.acceptsLanguages(dicts as unknown as string[]) || "en");
+        : (getAcceptedLanguage(req) ?? "en");
       res.vary("Accept-Language");
 
       const sceneUrl = (name: string, l?: string) => {
