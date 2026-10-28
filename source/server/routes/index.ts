@@ -130,7 +130,7 @@ Sitemap: ${sitemap}
       const queryLang = typeof req.query.lang === "string" ? req.query.lang : undefined;
       const lang = (queryLang && (dicts as readonly string[]).includes(queryLang))
         ? queryLang
-        : (getAcceptedLanguage(req) ?? "en");
+        : (getAcceptedLanguage(req) ?? locals.config.get("default_language"));
       res.vary("Accept-Language");
 
       const sceneUrl = (name: string, l?: string) => {

@@ -537,10 +537,10 @@ export function getAcceptedLanguage(req: Request): AcceptedLocales | undefined {
 
 /**
  * Language to respond in: the session's (forced with `?lang=`),
- * else a supported `Accept-Language`, else english.
+ * else a supported `Accept-Language`, else the instance's `default_language`.
  */
 export function getLanguage(req: Request): AcceptedLocales {
-  return getSession(req)?.lang ?? getAcceptedLanguage(req) ?? "en";
+  return getSession(req)?.lang ?? getAcceptedLanguage(req) ?? getLocals(req).config.get("default_language");
 }
 
 /**
