@@ -328,4 +328,24 @@ describe("notFoundHandler middleware", function(){
     //Not testing text/html output because it requires working templates
   });
 
+  for(const [lang, title, message] of [["en", "Error", "Not Found"], ["fr", "Erreur", "Introuvable"]]){
+    it(`translates the default HTML page to ${lang}`, async function(){
+      const templates = new Templates({dir: templatesDir, cache: false});
+      app.engine('.hbs', templates.middleware);
+      app.set('view engine', '.hbs');
+      app.set('views', templates.dir);
+      app.locals.config = mockConfig;
+
+      const { text } = await request(app).get("/missing")
+        .set("Accept", "text/html")
+        .set("Accept-Language", lang)
+        .expect(404)
+        .expect("Content-Language", lang)
+        .expect("Vary", /Accept-Language/);
+      expect(text).to.contain(`<html lang="${lang}">`);
+      expect(text).to.contain(`class="error-title">${title} :404`);
+      expect(text).to.contain(`<p class="message">${message}</p>`);
+    });
+  }
+
 });

@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import type { TaskDefinition, TaskNode } from "../tasks/types.js";
 import { localize, Localized, translateErrorMessage, translateTask, translateTaskOutput } from "./i18n.js";
 import { BadRequestError, HTTPError } from "./errors.js";
+import * as errors from "./errors.js";
 import { parseTaskError, serializeTaskError } from "../tasks/errors.js";
 
 
@@ -121,6 +122,28 @@ describe("translateTask()", function(){
 });
 
 describe("translateErrorMessage()", function(){
+  for(const [Constructor, code, english, french] of [
+    [errors.BadRequestError, 400, "Bad Request", "Requête incorrecte"],
+    [errors.UnauthorizedError, 401, "Unauthorized", "Non autorisé"],
+    [errors.ForbiddenError, 403, "Forbidden", "Accès interdit"],
+    [errors.NotFoundError, 404, "Not Found", "Introuvable"],
+    [errors.MethodNotAllowedError, 405, "Method Not Allowed", "Méthode non autorisée"],
+    [errors.ConflictError, 409, "Conflict", "Conflit"],
+    [errors.LengthRequiredError, 411, "Length Required", "Longueur requise"],
+    [errors.PreconditionFailedError, 412, "Precondition Failed", "Précondition non satisfaite"],
+    [errors.RangeNotSatisfiableError, 416, "Range Not Satisfiable", "Plage demandée non satisfaisable"],
+    [errors.InternalError, 500, "Internal Server Error", "Erreur interne du serveur"],
+    [errors.NotImplementedError, 501, "Not Implemented", "Non implémenté"],
+  ] as const){
+    it(`translates the default ${Constructor.name} while keeping its stored message in English`, function(){
+      const error = new Constructor();
+      expect(error.code).to.equal(code);
+      expect(translateErrorMessage(error, "fr")).to.equal(`[${code}] ${french}`);
+      expect(translateErrorMessage(error, "en")).to.equal(`[${code}] ${english}`);
+      expect(error.message).to.equal(`[${code}] ${english}`);
+    });
+  }
+
   it("keeps messages of non-localized errors", function(){
     expect(translateErrorMessage({ message: "[400] foo" }, "fr")).to.equal("[400] foo");
   });
