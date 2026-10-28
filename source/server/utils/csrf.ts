@@ -2,6 +2,7 @@
 import { NextFunction, Request, Response } from "express";
 
 import { ForbiddenError } from "./errors.js";
+import { localize } from "./i18n.js";
 import { getAuthMethod, getHost } from "./locals.js";
 
 /**
@@ -56,7 +57,7 @@ function isCrossOrigin(req: Request): boolean {
 export default function csrfProtection(req: Request, res: Response, next: NextFunction) {
   if (SAFE_METHODS.has(req.method)) return next();
   if (getAuthMethod(res) !== "session") return next();
-  if (isCrossOrigin(req)) return next(new ForbiddenError(`Cross-origin request rejected`));
+  if (isCrossOrigin(req)) return next(new ForbiddenError(localize("errors.crossOrigin")));
   next();
 }
 
@@ -74,6 +75,6 @@ export default function csrfProtection(req: Request, res: Response, next: NextFu
  */
 export function csrfProtectAnonymous(req: Request, res: Response, next: NextFunction) {
   if (SAFE_METHODS.has(req.method)) return next();
-  if (isCrossOrigin(req)) return next(new ForbiddenError(`Cross-origin request rejected`));
+  if (isCrossOrigin(req)) return next(new ForbiddenError(localize("errors.crossOrigin")));
   next();
 }

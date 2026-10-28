@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
 import { getLanguage, getUser, useTemplateProperties } from "./locals.js";
 import { createLogger } from "./log/index.js";
-import { translateErrorMessage } from "./i18n.js";
+import { localize, translateErrorMessage } from "./i18n.js";
 
 const log = createLogger("http");
 
@@ -109,9 +109,12 @@ export function notFoundHandlerMdw(){
         res.status(404).send(error)
       },
       "text/html": ()=>{
+        const lang = getLanguage(req);
+        res.vary("Accept-Language");
+        res.set("Content-Language", lang);
         res.status(404).render("error", { 
-          error,
-          lang: getLanguage(req),
+          error: { ...error, message: localize("errors.notFound").translate(lang) },
+          lang,
           user: getUser(req),
         });
       },

@@ -33,6 +33,82 @@ describe("/auth/tokens", function(){
     return agent;
   }
 
+  describe("localized middleware responses", function(){
+    it("translates the default authentication refusal", async function(){
+      const { body } = await request(this.server).post("/auth/tokens")
+        .set("Accept-Language", "fr")
+        .expect(401)
+        .expect("Content-Language", "fr")
+        .expect("WWW-Authenticate", 'Bearer realm="authenticated access"');
+      expect(body.message).to.equal("Error: [401] Non autorisé");
+    });
+
+    for(const format of ["application/json", "text/plain", "text/html"]){
+      it(`translates a scope refusal in ${format} while preserving the Bearer challenge`, async function(){
+        const res = await request(this.server).post("/auth/tokens")
+          .set("Authorization", await bearer(user.username))
+          .set("Accept", format)
+          .set("Accept-Language", "fr")
+          .expect(403)
+          .expect("Content-Language", "fr")
+          .expect("Vary", /Accept-Language/)
+          .expect("WWW-Authenticate", 'Bearer error="insufficient_scope", scope="account:admin"');
+        expect(res.text).to.contain("[403] Portée insuffisante : account:admin");
+      });
+    }
+
+    it("translates an invalid authorization token", async function(){
+      const { body } = await request(this.server).get("/auth/tokens")
+        .set("Authorization", "Bearer invalid-token")
+        .set("Accept-Language", "fr")
+        .expect(401)
+        .expect("Content-Language", "fr");
+      expect(body.message).to.equal("Error: [401] Jeton d'autorisation invalide");
+    });
+
+    it("translates an expired authorization token", async function(){
+      const { token } = await userManager.createToken(user.uid, { name: "expired", expires: new Date(0) });
+      const { body } = await request(this.server).get("/auth/tokens")
+        .set("Authorization", `Bearer ${token}`)
+        .set("Accept-Language", "fr")
+        .expect(401)
+        .expect("Content-Language", "fr");
+      expect(body.message).to.equal("Error: [401] Jeton expiré");
+    });
+
+    it("translates a session CSRF refusal", async function(){
+      const agent = await login(this.server, user);
+      const { body } = await agent.post("/auth/tokens")
+        .set("Origin", "https://other.example")
+        .set("Accept-Language", "fr")
+        .expect(403)
+        .expect("Content-Language", "fr");
+      expect(body.message).to.equal("Error: [403] Requête provenant d'une autre origine refusée");
+    });
+
+    it("translates an expired session and still clears its cookie", async function(){
+      const agent = await login(this.server, user);
+      await this.services.db.run("UPDATE user_sessions SET expires_at = CURRENT_TIMESTAMP - interval '1 second'");
+      const { body } = await agent.get("/auth/tokens")
+        .set("Accept-Language", "fr")
+        .expect(401)
+        .expect("Content-Language", "fr")
+        .expect("Set-Cookie", /session=;/);
+      expect(body.message).to.equal("Error: [401] Session expirée. Veuillez vous reconnecter");
+      expect(await userManager.getSessions(user.uid)).to.have.length(0);
+    });
+
+    it("translates a revoked session", async function(){
+      const agent = await login(this.server, user);
+      await userManager.removeUserSessions(user.uid);
+      const { body } = await agent.get("/auth/tokens")
+        .set("Accept-Language", "fr")
+        .expect(401)
+        .expect("Content-Language", "fr");
+      expect(body.message).to.equal("Error: [401] Session invalide");
+    });
+  });
+
   describe("POST /auth/tokens", function(){
     it("requires authentication", async function(){
       await request(this.server).post("/auth/tokens")

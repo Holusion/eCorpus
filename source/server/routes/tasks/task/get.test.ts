@@ -112,9 +112,12 @@ describe("GET /tasks/:id", function(){
 
     it("unrelated user cannot access another user's task", async function(){
       const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
-      await request(this.server).get(`/tasks/${task.task_id}`)
+      const { body } = await request(this.server).get(`/tasks/${task.task_id}`)
       .set("Authorization", await bearer("charlie"))
-      .expect(401);
+      .set("Accept-Language", "fr")
+      .expect(401)
+      .expect("Content-Language", "fr");
+      expect(body.message).to.equal("Error: [401] Droits insuffisants : accès read requis");
     });
 
     describe("scene-based access", function(){
