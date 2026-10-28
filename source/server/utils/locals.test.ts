@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import { InternalError, UnauthorizedError } from "./errors.js";
-import { either, getHost, isEmbed, validateRedirect } from "./locals.js";
+import { either, getHost, getLanguage, isEmbed, validateRedirect } from "./locals.js";
 
 //Dummy middlewares
 function pass(req :Request, res :Response, next :NextFunction){
@@ -231,3 +231,31 @@ describe("isEmbed()", function(){
   })
 
 })
+
+
+describe("getLanguage()", function(){
+  function app(lang?: string){
+    const app = express();
+    app.get("/", (req, res)=>{
+      if(lang) (req as any).session = { lang };
+      res.send(getLanguage(req));
+    });
+    return app;
+  }
+
+  it("uses english without Accept-Language", async function(){
+    await request(app()).get("/").expect(200, "en");
+  });
+
+  it("uses a supported Accept-Language", async function(){
+    await request(app()).get("/").set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8").expect(200, "fr");
+  });
+
+  it("uses english for unsupported languages", async function(){
+    await request(app()).get("/").set("Accept-Language", "de").expect(200, "en");
+  });
+
+  it("prefers the session's language", async function(){
+    await request(app("fr")).get("/").set("Accept-Language", "en").expect(200, "fr");
+  });
+});

@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTPError } from "./errors.js";
-import { getUser, useTemplateProperties } from "./locals.js";
-import { locales } from "./templates/index.js";
+import { getLanguage, getUser, useTemplateProperties } from "./locals.js";
 import { createLogger } from "./log/index.js";
 
 const log = createLogger("http");
@@ -97,7 +96,7 @@ export function notFoundHandlerMdw(){
       "text/html": ()=>{
         res.status(404).render("error", { 
           error,
-          lang: req.acceptsLanguages(locales),
+          lang: getLanguage(req),
           user: getUser(req),
         });
       },
