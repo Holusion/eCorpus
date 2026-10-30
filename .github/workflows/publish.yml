@@ -19,12 +19,12 @@ permissions:
 jobs:
   docker-publish:
     name: Docker Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -60,7 +60,7 @@ jobs:
             BUILD_REF=${{ steps.ref.outputs.id }}
   clean:
     name: Clean package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 2
     steps:
     - uses: actions/delete-package-versions@v5
