@@ -108,7 +108,8 @@ export default async function getScenes(req :Request, res :Response){
   res.set("ETag", `W/"${eTag.digest("base64url")}"`);
   res.set("Last-Modified", new Date(lastModified).toUTCString());
   if( req.fresh){
-    return res.status(304).send("Not Modified");
+    res.status(304).send("Not Modified");
+    return;
   }
   
   await wrapFormat(res, {

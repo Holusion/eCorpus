@@ -26,7 +26,8 @@ export default async function handleGetDocument(req :Request, res :Response){
   res.set("ETag", `"${f.id}"`);
   res.set("Last-Modified", f.mtime.toUTCString());
   if(req.fresh){
-    return res.status(304).send("Not Modified");
+    res.status(304).send("Not Modified");
+    return;
   }
 
   res.set("Content-Type", "application/si-dpo-3d.document+json");

@@ -1,7 +1,5 @@
 
-import { Router } from "express";
-import wrap from "../../utils/wrapAsync.js";
-import bodyParser from "body-parser";
+import express, { Router } from "express";
 
 import { policy } from "../../utils/locals.js";
 import postGroups from "./post.js";
@@ -23,11 +21,11 @@ const router = Router();
 //manage-level users reach it, but a future per-group role extends the "group"
 //access resolver in locals.ts without touching these routes. Like scenes,
 //insufficient access answers an existence-hiding 404.
-router.get("/", policy({ scope: "groups:read" }), wrap(getGroups));
-router.post("/", policy({ scope: "groups:admin" }), bodyParser.json(), wrap(postGroups));
-router.get("/:group", policy({ access: "read", on: "group" }), wrap(getGroup));
-router.delete("/:group", policy({ access: "admin", on: "group" }), wrap(deleteGroup))
-router.put("/:group/:member", policy({ access: "admin", on: "group" }), wrap(putMember));
-router.delete("/:group/:member", policy({ access: "admin", on: "group" }), wrap(deleteMember));
+router.get("/", policy({ scope: "groups:read" }), getGroups);
+router.post("/", policy({ scope: "groups:admin" }), express.json(), postGroups);
+router.get("/:group", policy({ access: "read", on: "group" }), getGroup);
+router.delete("/:group", policy({ access: "admin", on: "group" }), deleteGroup)
+router.put("/:group/:member", policy({ access: "admin", on: "group" }), putMember);
+router.delete("/:group/:member", policy({ access: "admin", on: "group" }), deleteMember);
 
 export default router;

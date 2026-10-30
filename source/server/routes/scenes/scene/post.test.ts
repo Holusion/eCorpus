@@ -9,7 +9,6 @@ import { expect } from "chai";
 
 import postScene from "./post.js";
 import express, { Application } from "express";
-import wrap from "../../../utils/wrapAsync.js";
 import Vfs from "../../../vfs/index.js";
 
 import { fixturesDir } from "../../../__test_fixtures/fixtures.js";

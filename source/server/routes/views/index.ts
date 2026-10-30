@@ -1,6 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals } from "../../utils/locals.js";
-import wrap from "../../utils/wrapAsync.js";
+import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals, numericParam } from "../../utils/locals.js";
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
@@ -36,7 +35,7 @@ routes.use("/", (req :Request, res:Response, next)=>{
 routes.use("/", useTemplateProperties);
 
 
-routes.get("/", wrap(async (req, res)=>{
+routes.get("/", async (req, res)=>{
   const user = getUser(req);
   const vfs = getVfs(req);
   const uid = user?.uid;
@@ -81,13 +80,13 @@ routes.get("/", wrap(async (req, res)=>{
     topCollections,
     userOwnedScenes,
   });
-}));
+});
 
 
 
 
 
-routes.get("/upload", wrap(async (req, res)=>{
+routes.get("/upload", async (req, res)=>{
   const {templates}= getLocals(req);
   const requester = getUser(req);
   if(!isUserAtLeast(requester!, "create")){
@@ -162,9 +161,9 @@ routes.get("/upload", wrap(async (req, res)=>{
     title: "eCorpus: Create new scene",
     scenes,
   });
-}))
+})
 
-routes.get("/tags", wrap(async (req, res)=>{
+routes.get("/tags", async (req, res)=>{
   const vfs = getVfs(req);
   const {match, limit:limitString, offset:offsetString} =  req.query;
   const requester = getUser(req);
@@ -220,9 +219,9 @@ routes.get("/tags", wrap(async (req, res)=>{
     match,
     pager,
   });
-}));
+});
 
-routes.get("/tags/:tag", wrap(async (req, res)=>{
+routes.get("/tags/:tag", async (req, res)=>{
   const host = getHost(req);
   const vfs = getVfs(req);
   const requester = getUser(req);
@@ -240,9 +239,9 @@ routes.get("/tags/:tag", wrap(async (req, res)=>{
     tag,
     scenes,
   });
-}));
+});
 
-routes.get("/groups/:group", policy({ access: "read", on: "group" }), wrap(async (req, res)=>{
+routes.get("/groups/:group", policy({ access: "read", on: "group" }), async (req, res)=>{
   const host = getHost(req);
   const userManager = getUserManager(req);
   const requester = getUser(req);
@@ -255,10 +254,10 @@ routes.get("/groups/:group", policy({ access: "read", on: "group" }), wrap(async
     scenes: groupObj.scenes,
     members: groupObj.members,
   });
-}));
+});
 
 
-routes.get("/scenes", wrap(async (req, res)=>{
+routes.get("/scenes", async (req, res)=>{
   let host = getHost(req);
   let vfs = getVfs(req);
   let u = getUser(req);
@@ -323,9 +322,9 @@ routes.get("/scenes", wrap(async (req, res)=>{
     pager,
     tagSuggestions: serverTags.map(t=>t.name)
   });
-}));
+});
 
-routes.get("/user", wrap(async (req, res)=>{
+routes.get("/user", async (req, res)=>{
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
@@ -334,9 +333,9 @@ routes.get("/user", wrap(async (req, res)=>{
     layout: "user",
     title: "User Settings",
   });
-}));
+});
 
-routes.get("/user/groups", wrap(async (req, res)=>{
+routes.get("/user/groups", async (req, res)=>{
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user")}`);
@@ -348,7 +347,7 @@ routes.get("/user/groups", wrap(async (req, res)=>{
     title: "Group Settings — User",
     groups
   });
-}));
+});
 
 /**
  * The scope families offered by the token-mint UI, in display order: every
@@ -361,7 +360,7 @@ const TOKEN_UI_FAMILIES = ["corpus", "scenes", "history", "tasks", "users", "gro
 /** What a fresh token-mint form starts with: a minimal read-only token */
 const TOKEN_UI_DEFAULT_SCOPES = ["corpus:read", "scenes:read"];
 
-routes.get("/user/tokens", wrap(async (req, res)=>{
+routes.get("/user/tokens", async (req, res)=>{
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tokens")}`);
@@ -398,9 +397,9 @@ routes.get("/user/tokens", wrap(async (req, res)=>{
     showPersonal,
     showOauth,
   });
-}));
+});
 
-routes.get("/user/archives", wrap(async (req, res)=>{
+routes.get("/user/archives", async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   if(user == null || UserRoles.indexOf(user.level) < 1){
@@ -412,7 +411,7 @@ routes.get("/user/archives", wrap(async (req, res)=>{
     title: "Archives — User",
     archives,
   });
-}));
+});
 
 
 
@@ -424,7 +423,7 @@ routes.get("/design", (req, res)=>{
   });
 });
 
-routes.get("/design/embeds", wrap(async (req, res)=>{
+routes.get("/design/embeds", async (req, res)=>{
   const vfs = getVfs(req);
   const requester = getUser(req);
   const queryTag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
@@ -493,9 +492,9 @@ routes.get("/design/embeds", wrap(async (req, res)=>{
     allow: allowParts.join("; "),
     fullscreen,
   });
-}));
+});
 
-routes.get("/design/emails", wrap(async (req, res)=>{
+routes.get("/design/emails", async (req, res)=>{
   const allowedLangs = ["en", "fr"] as const;
   // Use a dedicated query param (not `lang`) — `lang` is the UI locale
   // controlled by the footer language switcher, and conflating the two
@@ -512,7 +511,7 @@ routes.get("/design/emails", wrap(async (req, res)=>{
     previewUsername: username,
     templates: ["connection", "onboarding"],
   });
-}));
+});
 
 
 routes.use("/admin", requireLevel("manage"));
@@ -535,7 +534,7 @@ routes.get("/admin", (req, res)=>{
   });
 });
 
-routes.get("/admin/archives", requireLevel("admin"), wrap(async (req, res)=>{
+routes.get("/admin/archives", requireLevel("admin"), async (req, res)=>{
   const vfs = getVfs(req);
   const user = getUser(req);
   let scenes = await vfs.getScenes(user?.uid, {archived: true, limit: 100 });
@@ -544,9 +543,9 @@ routes.get("/admin/archives", requireLevel("admin"), wrap(async (req, res)=>{
     title: "Archived scenes — Administration",
     scenes,
   });
-}));
+});
 
-routes.get("/admin/users", wrap(async (req, res)=>{
+routes.get("/admin/users", async (req, res)=>{
   const host = getHost(req);
   const userManager = getUserManager(req);
   const limit = qsToInt(req.query.limit) ?? 25;
@@ -583,9 +582,9 @@ routes.get("/admin/users", wrap(async (req, res)=>{
     pager,
     users,
   });
-}));
+});
 
-routes.get("/admin/oauth", requireLevel("admin"), wrap(async (req, res)=>{
+routes.get("/admin/oauth", requireLevel("admin"), async (req, res)=>{
   const clients = (await getUserManager(req).getClients()).map(c=>({
     id: c.id,
     name: c.name,
@@ -598,9 +597,9 @@ routes.get("/admin/oauth", requireLevel("admin"), wrap(async (req, res)=>{
     title: "OAuth clients — Administration",
     clients,
   });
-}));
+});
 
-routes.get("/admin/groups", wrap(async (req, res)=>{
+routes.get("/admin/groups", async (req, res)=>{
   let groups = await getUserManager(req).getGroups();
   res.render("admin/groups", {
     layout: "admin",
@@ -610,22 +609,22 @@ routes.get("/admin/groups", wrap(async (req, res)=>{
     total: groups.length,
     groups,
   });
-}));
+});
 
-routes.get("/admin/stats", requireLevel("admin"),  wrap(async (req, res)=>{
+routes.get("/admin/stats", requireLevel("admin"),  async (req, res)=>{
   const stats = await getVfs(req).getStats();
   res.render("admin/stats", {
     layout: "admin",
     title: "Instance Statistics — Administration",
     stats,
   });
-}));
+});
 
 //Ensure no unauthorized access
 //Additionally, sets res.locals.access, required for the "scene" template
 routes.use("/scenes/:scene", policy({ access: "read" }));
 
-routes.get("/scenes/:scene", wrap(async (req, res)=>{
+routes.get("/scenes/:scene", async (req, res)=>{
   const requester = getUser(req);
   const vfs = getVfs(req);
   const um = getUserManager(req);
@@ -671,9 +670,9 @@ routes.get("/scenes/:scene", wrap(async (req, res)=>{
     tagSuggestions,
     onboarding,
   });
-}));
+});
 
-routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), wrap(async (req, res) => {
+routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
@@ -703,7 +702,7 @@ routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), wrap(async (req,
     tasks,
     params: { type, status, rootOnly, limit, offset },
   });
-}));
+});
 
 routes.get("/scenes/:scene/view", async (req, res) => {
   let {scene} = req.params;
@@ -760,7 +759,7 @@ routes.get("/scenes/:scene/edit", policy({ access: "write" }), (req, res)=>{
 
 //Both history views follow /history/** exactly: a page the API would refuse
 //(or would refuse to a page's reader) misrepresents the permissions in force.
-routes.get("/scenes/:scene/history", policy({ scope: "history:read", access: "read" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history", policy({ scope: "history:read", access: "read" }), async (req, res)=>{
   let vfs = getVfs(req);
   let host = getHost(req);
   let {scene:scene_name} = req.params;
@@ -811,9 +810,9 @@ routes.get("/scenes/:scene/history", policy({ scope: "history:read", access: "re
     offset,
     isFirstPage: offset === 0,
   });
-}))
+})
 
-routes.get("/scenes/:scene/settings", policy({ access: "admin" }), wrap(async (req, res) => {
+routes.get("/scenes/:scene/settings", policy({ access: "admin" }), async (req, res) => {
   const requester = getUser(req);
   const vfs = getVfs(req);
   const um = getUserManager(req);
@@ -837,9 +836,9 @@ routes.get("/scenes/:scene/settings", policy({ access: "admin" }), wrap(async (r
     userPermissions,
     tagSuggestions,
   });
-}));
+});
 
-routes.get("/scenes/:scene/history/:id/view", policy({ scope: "history:read", access: "read" }), wrap(async (req, res)=>{
+routes.get("/scenes/:scene/history/:id/view", policy({ scope: "history:read", access: "read" }), async (req, res)=>{
   let vfs = getVfs(req);
   //scene_name is actually already validated through the policy above
   let {scene:scene_name, id} = req.params;
@@ -854,7 +853,7 @@ routes.get("/scenes/:scene/history/:id/view", policy({ scope: "history:read", ac
     referrer: `/ui/scenes/${scene.name}/history`,
     scenePath: `/history/${encodeURIComponent(scene.name)}/${encodeURIComponent(id)}/show/`,
   })
-}));
+});
 
 routes.get("/standalone", (req, res)=>{
   let host = getHost(req);
@@ -870,7 +869,7 @@ routes.get("/standalone", (req, res)=>{
 });
 
 
-routes.get("/user/tasks", wrap(async (req, res) => {
+routes.get("/user/tasks", async (req, res) => {
   const user = getUser(req);
   if (user == null || UserRoles.indexOf(user.level) < 1) {
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tasks")}`);
@@ -896,9 +895,9 @@ routes.get("/user/tasks", wrap(async (req, res) => {
     tasks,
     params: { type, status, rootOnly, limit, offset },
   });
-}));
+});
 
-routes.get("/admin/tasks", requireLevel("admin"), wrap(async (req, res) => {
+routes.get("/admin/tasks", requireLevel("admin"), async (req, res) => {
   const taskScheduler = getTaskScheduler(req);
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
@@ -920,9 +919,9 @@ routes.get("/admin/tasks", requireLevel("admin"), wrap(async (req, res) => {
     tasks,
     params: { type, status, rootOnly, limit, offset },
   });
-}));
+});
 
-routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
+routes.get("/tasks/:id", numericParam("id"), async (req, res) => {
   const {
     taskScheduler,
     userManager,
@@ -965,7 +964,7 @@ routes.get("/tasks/:id(\\d+)", wrap(async (req, res) => {
     owner,
     scene,
   });
-}));
+});
 
 
 export default routes;

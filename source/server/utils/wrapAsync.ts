@@ -1,26 +1,6 @@
 'use strict';
 
-import { Request, RequestHandler, Response, NextFunction } from "express";
-
-export interface AsyncRequestHandler{
-  (
-    req: Request,
-    res:  Response,
-  ) :Promise<any>;
-};
-/**
- * Wraps an async function to pass errors to next()
- * It's slightly convoluted to try to keep a proper name to the handler.
- * A simpler version would be `return (req, res next)=>handler(req, res).catch(next);`
- * @returns 
- */
-export default function wrap(handler :AsyncRequestHandler):RequestHandler {
-  let name = (typeof handler.prototype =="object")? handler.name: "anonymousHandler";
-  return new Function(
-    "handler",
-    `return function ${name} (req, res, next) { Promise.resolve(handler(req, res)).catch(next)};`
-  )(handler);
-}
+import { Response } from "express";
 
 /**
  * Asynchronous wrapper around Response.format().

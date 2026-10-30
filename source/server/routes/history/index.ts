@@ -1,9 +1,7 @@
 
-import { Router } from "express";
+import express, { Router } from "express";
 import { policy } from "../../utils/locals.js";
-import wrap from "../../utils/wrapAsync.js";
 
-import bodyParser from "body-parser";
 
 
 import { postSceneHistory } from "./post.js";
@@ -35,13 +33,13 @@ router.use((req, res, next)=>{
  */
 const readHistory = policy({ scope: "history:read", access: "read" });
 
-router.get("/:scene", readHistory, wrap(getSceneHistory));
+router.get("/:scene", readHistory, getSceneHistory);
 //Restoring a version is a scene write, not a history one.
-router.post("/:scene", policy({ access: "admin" }), bodyParser.json(), wrap(postSceneHistory));
+router.post("/:scene", policy({ access: "admin" }), express.json(), postSceneHistory);
 
-router.get("/:scene/:id/diff", readHistory, wrap(handleGetDiff));
-router.get("/:scene/:id/diff/:from", readHistory, wrap(handleGetDiff));
+router.get("/:scene/:id/diff", readHistory, handleGetDiff);
+router.get("/:scene/:id/diff/:from", readHistory, handleGetDiff);
 
-router.get("/:scene/:id/show/:name(*)", readHistory, wrap(handleShowFile));
+router.get("/:scene/:id/show/*name", readHistory, handleShowFile);
 
 export default router;

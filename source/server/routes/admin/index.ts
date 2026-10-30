@@ -1,13 +1,11 @@
 
-import { Router } from "express";
+import express, { Router } from "express";
 
 import { policy } from "../../utils/locals.js";
-import wrap from "../../utils/wrapAsync.js";
 import handleGetStats from "./stats/index.js";
 import handleMailtest from "./mail/sendtest.js";
 import handleGetConfig from "./config/get.js";
 import handlePatchConfig from "./config/patch.js";
-import bodyParser from "body-parser";
 import handleRenderMail from "./mail/render.js";
 
 
@@ -30,11 +28,11 @@ router.use((req, res, next)=>{
 //backing up /admin/config. instance:write is NOT (NON_MINTABLE_SCOPES):
 //rewriting runtime config can redirect smart_host and intercept login-link
 //emails, so config changes require an interactive admin session.
-router.get("/stats", policy({ scope: "instance:read" }), wrap(handleGetStats));
-router.get("/config", policy({ scope: "instance:read" }), wrap(handleGetConfig));
-router.patch("/config", policy({ scope: "instance:write" }), bodyParser.json(), wrap(handlePatchConfig));
+router.get("/stats", policy({ scope: "instance:read" }), handleGetStats);
+router.get("/config", policy({ scope: "instance:read" }), handleGetConfig);
+router.patch("/config", policy({ scope: "instance:write" }), express.json(), handlePatchConfig);
 
-router.post("/mail/test", policy({ scope: "instance:write" }), bodyParser.json(), wrap(handleMailtest));
-router.get("/mail/render/:name", policy({ scope: "instance:read" }), bodyParser.json(), wrap(handleRenderMail));
+router.post("/mail/test", policy({ scope: "instance:write" }), express.json(), handleMailtest);
+router.get("/mail/render/:name", policy({ scope: "instance:read" }), express.json(), handleRenderMail);
 
 export default router;
