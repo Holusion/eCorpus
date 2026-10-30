@@ -2,13 +2,13 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
-import { test, expect } from '../fixtures.js';
+import { test, expect, routeCimode } from '../fixtures.js';
 import type { Page } from "@playwright/test";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 //Authenticated as user
-test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/user.json', cimode: true });
 test.describe.configure({ mode: 'serial' });
 
 let scenePage: Page;
@@ -49,6 +49,8 @@ test.beforeAll(async ({request, browser})=>{
 
 
   scenePage = await browser.newPage();
+  //Pages created outside of the `context` fixture don't get its "cimode" routing
+  await routeCimode(scenePage.context());
   await scenePage.goto(`/ui/scenes/${name}`);
 });
 

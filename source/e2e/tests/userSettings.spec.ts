@@ -11,7 +11,7 @@ const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 
 //Runs with a per-test storageState, in locale "cimode"
-test.use({ storageState: { cookies: [], origins: [] }, locale: "cimode" });
+test.use({ storageState: { cookies: [], origins: [] }, cimode: true });
 
 let account: {username:string, password:string, uid:number};
 

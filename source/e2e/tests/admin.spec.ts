@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures.js';
 import { randomBytes, randomUUID } from "node:crypto";
 
 //Authenticated as admin
-test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/admin.json', cimode: true });
 
 
 

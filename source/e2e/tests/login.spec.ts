@@ -11,7 +11,7 @@ import type { BrowserContext } from "@playwright/test";
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
 //Runs unauthenticated, in locale "cimode"
-test.use({ storageState: { cookies: [], origins: [] }, locale: "cimode" });
+test.use({ storageState: { cookies: [], origins: [] }, cimode: true });
 
 let username: string;
 let password: string;

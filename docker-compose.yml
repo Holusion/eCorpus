@@ -36,18 +36,23 @@ services:
       retries: 10
     volumes:
       - app_data:/app/files
+    networks:
+      default:
+        aliases:
+          # Chromium forces HTTPS on the "app" hostname: .app is an HSTS-preloaded TLD
+          - ecorpus
   test: #run end-to-end tests when selected
     build:
       context: source/e2e
       args:
-        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION:-1.49.1}
+        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION:-1.64.1}
     depends_on:
       app:
         condition: service_healthy
     profiles:
       - test
     environment:
-      TEST_TARGET: "http://app:8000"
+      TEST_TARGET: "http://ecorpus:8000"
 volumes:
   postgres_data:
   app_data:

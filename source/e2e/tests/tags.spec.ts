@@ -5,7 +5,7 @@ import type { BrowserContext, Page } from "@playwright/test";
 
 
 //Authenticated as user
-test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/user.json', cimode: true });
 
 let adminContext :BrowserContext;
 

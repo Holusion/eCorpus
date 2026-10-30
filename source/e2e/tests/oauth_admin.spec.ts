@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 // The admin OAuth2 client-registration UI (/ui/admin/oauth).
 // Runs as an administrator (the chromium project's default storageState), in
 // "cimode" so labels surface as their i18n keys.
-test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/admin.json', cimode: true });
 
 const uniqueName = (p: string) => `e2e-${p}-${randomBytes(4).toString("hex")}`;
 

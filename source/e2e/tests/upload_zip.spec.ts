@@ -52,7 +52,7 @@ function reducePropfind(text:string) :ReducedWebDAVProps[]{
 
 
 //Authenticated as admin
-test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/admin.json', cimode: true });
 
 test("uploads a scene zip", async ({page, request})=>{
   //Generate the zip file's scene

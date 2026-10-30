@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 
 
 
-test.use({ storageState: {cookies:[], origins: []}, locale: "cimode"});
+test.use({ storageState: {cookies:[], origins: []}, cimode: true});
 
 
 //Authenticated as user
