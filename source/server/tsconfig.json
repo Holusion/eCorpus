@@ -6,6 +6,7 @@
         "module": "NodeNext",
         "target": "ES2021",
         "strict": true,
+        "isolatedModules": true,
         "resolveJsonModule": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
@@ -28,9 +29,5 @@
     ],
     "exclude": [
         "node_modules"
-    ],
-    "ts-node": {
-        "esm": true,
-        "files": true
-    }
+    ]
 }
