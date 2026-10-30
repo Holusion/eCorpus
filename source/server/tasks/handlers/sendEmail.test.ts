@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 
 import openDatabase, { Database } from "../../vfs/helpers/db.js";
 import Vfs from "../../vfs/index.js";
@@ -88,7 +88,7 @@ describe("sendEmail task handler", function () {
   it("marks the task as error when SMTP fails", async function () {
     const failing = {
       sendMail: async () => { throw new Error("boom"); },
-    } as unknown as nodemailer.Transporter;
+    } as unknown as Transporter;
     setTransporter(failing);
 
     await expect(scheduler.run({
