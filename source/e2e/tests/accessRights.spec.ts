@@ -1,7 +1,7 @@
 import { test, expect } from '../fixtures.js';
 
 //Runs with a per-test storageState, in locale "cimode"
-test.use({ storageState: { cookies: [], origins: [] }, locale: "cimode" });
+test.use({ storageState: { cookies: [], origins: [] }, cimode: true });
 
 //The _actual_ route access rights are tested in unit tests
 //We want to have the user properly informed and that's what we're testing here

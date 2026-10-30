@@ -20,7 +20,7 @@ jobs:
     # * release / prerelease: derived from the tag when this is a tag push,
     #   so the release job no longer relies on a non-existent "version" job.
     name: Compute metadata
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       safe_ref: ${{ steps.compute.outputs.safe_ref }}
       release: ${{ steps.compute.outputs.release }}
@@ -46,12 +46,12 @@ jobs:
 
   build-ui:
     name: UI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'
@@ -61,7 +61,7 @@ jobs:
         run: npm ci && (cd source/ui && npm ci)
       - name: build UI
         run: npm run build-ui
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: "client"
           path: "dist"
@@ -70,10 +70,10 @@ jobs:
 
   build-server:
     name: Server
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22, 24, 26]
     services:
       postgres: &postgres
         image: postgres:18
@@ -113,10 +113,10 @@ jobs:
       PGUSER: postgres
       PGDATABASE: postgres
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -126,7 +126,7 @@ jobs:
         run: (cd source/server && npm test)
       - name: build
         run:  npm run build-server
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: matrix.node-version == 22
         with:
           name: "server"
@@ -144,7 +144,7 @@ jobs:
 
   pack:
     name: Pack tarball
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [meta, build-ui, build-server]
     steps:
       - uses: actions/download-artifact@v8
@@ -156,7 +156,7 @@ jobs:
           mv server/* ./
           rm -r server
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: "eCorpus-${{needs.meta.outputs.safe_ref}}"
           path: eCorpus
@@ -165,7 +165,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
@@ -190,7 +190,7 @@ jobs:
     # Uses the packed tarball to run end-to-end tests.
     # Verifies that the built client and server work together correctly
     name: Test End-to-End
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [ meta, pack ]
 
     services:
@@ -202,7 +202,7 @@ jobs:
       PGUSER: postgres
       PGDATABASE: postgres
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             source/e2e
@@ -210,7 +210,7 @@ jobs:
         with:
           name: "eCorpus-${{needs.meta.outputs.safe_ref}}"
           path: build
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'
@@ -229,7 +229,7 @@ jobs:
           TEST: 1
         run: npm test
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
@@ -241,9 +241,9 @@ jobs:
     # This is distinct from the "publish" workflow
     # as it verifies that the docker image can be built and uses it to run end-to-end tests,
     # but does not publish the image to the registry
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: build containers

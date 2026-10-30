@@ -15,7 +15,7 @@ import { createHash, randomBytes } from "node:crypto";
 //
 // Runs unauthenticated by default; each test logs a fresh user in so consent
 // grants never bleed between tests.
-test.use({ storageState: { cookies: [], origins: [] }, locale: "cimode" });
+test.use({ storageState: { cookies: [], origins: [] }, cimode: true });
 
 let adminContext: BrowserContext;
 test.beforeAll(async ({browser})=>{

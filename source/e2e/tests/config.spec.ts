@@ -1,7 +1,7 @@
 import { expect, test } from '../fixtures.js';
 
 //Authenticated as admin
-test.use({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/admin.json', cimode: true });
 
 //Ensure mode is "serial" otherwise we'd have race conditions
 test.describe.configure({ mode: 'serial' });

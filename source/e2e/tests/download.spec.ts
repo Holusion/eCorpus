@@ -9,7 +9,7 @@ import { Writable } from "node:stream";
 import { once } from "node:events";
 
 //Authenticated as normal user
-test.use({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+test.use({ storageState: 'playwright/.auth/user.json', cimode: true });
 
 test("downloads a scene archive", async ({page, createScene})=>{
   const name = await createScene();

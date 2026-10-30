@@ -5,7 +5,7 @@ import { createHash, randomBytes } from "node:crypto";
 // The personal-access-token UI and the "Authorized applications" (OAuth grants)
 // section, both on /ui/user/tokens.
 // Runs unauthenticated by default; each test logs a fresh user in.
-test.use({ storageState: { cookies: [], origins: [] }, locale: "cimode" });
+test.use({ storageState: { cookies: [], origins: [] }, cimode: true });
 
 let adminContext: BrowserContext;
 test.beforeAll(async ({browser})=>{

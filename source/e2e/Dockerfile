@@ -1,5 +1,5 @@
 # PLAYWRIGHT_VERSION must match the version in package-lock.json
-ARG PLAYWRIGHT_VERSION=1.49.1
+ARG PLAYWRIGHT_VERSION=1.64.1
 FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app

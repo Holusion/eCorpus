@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, test as base } from '@playwright/test';
-import type { Page } from "@playwright/test";
+import type { Browser, BrowserContext, Page } from "@playwright/test";
 import { randomBytes, randomUUID } from 'node:crypto';
 
 
@@ -17,6 +17,11 @@ type AccessLevel = "use" | "create" | "admin";
 
 type UniqueAccount = {username:string, password:string, uid:number};
 
+type TestOptions = {
+  /** Serve pages in the "cimode" language, which renders i18n keys instead of translations */
+  cimode: boolean,
+}
+
 type TestFixture = {
   adminPage:Page,
   userPage:Page,
@@ -26,9 +31,33 @@ type TestFixture = {
 
 export {expect} from "@playwright/test";
 
-export const test = base.extend<TestFixture>({
+/**
+ * Chromium rejects "cimode" as a locale: contexts get a locale without translations ("zxx": no linguistic content)
+ * so the UI also falls back to i18n keys, while requests ask the server for "cimode".
+ * Page requests send the locale regardless of `extraHTTPHeaders`, so they need to be rewritten by a route.
+ */
+const cimodeOptions = { locale: "zxx", extraHTTPHeaders: { "Accept-Language": "cimode" } };
+
+export async function routeCimode(context :BrowserContext){
+  await context.route("**/*", route => route.continue({ headers: { ...route.request().headers(), "accept-language": "cimode" } }));
+}
+
+async function newCimodeContext(browser :Browser, storageState :string){
+  const ctx = await browser.newContext({ storageState, ...cimodeOptions });
+  await routeCimode(ctx);
+  return ctx;
+}
+
+export const test = base.extend<TestFixture & TestOptions>({
+  cimode: [false, { option: true }],
+  locale: async ({locale, cimode}, use)=> use(cimode ? cimodeOptions.locale : locale),
+  extraHTTPHeaders: async ({extraHTTPHeaders, cimode}, use)=> use(cimode ? { ...extraHTTPHeaders, ...cimodeOptions.extraHTTPHeaders } : extraHTTPHeaders),
+  context: async ({context, cimode}, use)=>{
+    if(cimode) await routeCimode(context);
+    await use(context);
+  },
   adminPage: async ({browser}, use)=>{
-    const ctx = await browser.newContext({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+    const ctx = await newCimodeContext(browser, 'playwright/.auth/admin.json');
     const adminPage = await ctx.newPage();
     await use(adminPage);
     //page close could normally be omitted but here if we don't ignore the beforeUnload, it could hang forever.
@@ -36,7 +65,7 @@ export const test = base.extend<TestFixture>({
     await ctx.close();
   },
   userPage: async ({browser}, use)=>{
-    const ctx = await browser.newContext({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+    const ctx = await newCimodeContext(browser, 'playwright/.auth/user.json');
     const userPage = await ctx.newPage();
     await use(userPage);
     //page close could normally be omitted but here if we don't ignore the beforeUnload, it could hang forever.
@@ -50,10 +79,10 @@ export const test = base.extend<TestFixture>({
   createScene: async ({browser}, use)=>{
     const fs = await import("node:fs/promises");
     const data = await fs.readFile(path.join(fixtures, "cube.glb"))
-    const userCtx = await browser.newContext({ storageState: 'playwright/.auth/user.json', locale: "cimode" });
+    const userCtx = await newCimodeContext(browser, 'playwright/.auth/user.json');
     // force-delete (?archive=false) requires instance-admin rights, so cleanup
     // runs through a separate admin context.
-    const adminCtx = await browser.newContext({ storageState: 'playwright/.auth/admin.json', locale: "cimode" });
+    const adminCtx = await newCimodeContext(browser, 'playwright/.auth/admin.json');
     const request = userCtx.request;
     const names :string[] = [];
     await use(async ({permissions, public_access, default_access, autoDelete=true} :CreateSceneOptions={})=>{
