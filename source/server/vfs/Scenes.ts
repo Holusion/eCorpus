@@ -2,6 +2,7 @@ import {escapeLiteral} from "pg";
 import { AccessMap, AccessType, AccessTypes, fromAccessLevel, toAccessLevel } from "../auth/UserManager.js";
 import staticConfig from "../utils/config.js";
 import { BadRequestError, ConflictError,  NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import { localize } from "../utils/i18n.js";
 import { Uid } from "../utils/uid.js";
 import BaseVfs from "./Base.js";
 import { HistoryEntry, ItemEntry, ItemProps, Scene, SceneMeta, SceneQuery, SceneType } from "./types.js";
@@ -415,7 +416,7 @@ export default abstract class ScenesVfs extends BaseVfs{
     )
     `, args);
 
-    if(!scene_stored) throw new NotFoundError(`No scene found with ${key}: ${nameOrId}`);
+    if(!scene_stored) throw new NotFoundError(localize("errors.resourceNotFound"));
 
     const scene :Omit<Scene, "tags"|"mtime"> = {
       ...scene_stored,

@@ -8,6 +8,7 @@ import { AccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
 import { BadRequestError, InternalError } from "../../utils/errors.js";
+import { localize } from "../../utils/i18n.js";
 import { toGlb } from "./toGlb.js";
 import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
 import { optimizeGlb } from "./optimizeGlb.js";
@@ -119,11 +120,13 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
   logger.debug("Check mime type of " + fileLocation);
   const mime = await readMagicBytes(filepath);
   if (mime !== "model/gltf-binary") {
-    throw new InternalError("This does not look like a GLB file");
+    throw new InternalError(localize("errors.upload.notGlb", { filename: path.basename(fileLocation) }));
   }
   const meta = await tasks.run({
     handler: inspectGlb,
     data: { fileLocation }
+  }).catch((e) => {
+    throw new InternalError(localize("errors.upload.invalidGlb", { filename: path.basename(fileLocation), reason: e.message }));
   });
 
   const stats = await fs.stat(filepath);

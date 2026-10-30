@@ -5,6 +5,7 @@ import {promisify} from "util";
 
 import uid, { Uid } from "../utils/uid.js";
 import { BadRequestError, ConflictError, InternalError, NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import { localize } from "../utils/i18n.js";
 import User, {SafeUser, StoredUser, UserLevels, UserRole, UserRoles} from "./User.js";
 
 import openDatabase, {Database, DbController, DbOptions} from "../vfs/helpers/db.js";
@@ -571,7 +572,7 @@ export default class UserManager extends DbController {
         "scene_id = $1" : "scene_name = $1" }`
       , uid ? [scene, uid] : [scene]
     );
-    if(!res || !res.level) throw new NotFoundError(`No scene with ${typeof scene ==="number"? `id ${scene}`: `name ${scene}`}`);
+    if(!res || !res.level) throw new NotFoundError(localize("errors.resourceNotFound"));
     return res.level as AccessLevel;
 
   }
@@ -694,7 +695,7 @@ export default class UserManager extends DbController {
       INNER JOIN users AS u ON u.user_id = s.fk_user_id
       WHERE s.sid_hash = $1
     `, [hashSid(sid)]);
-    if(!r) throw new UnauthorizedError(`Invalid session`);
+    if(!r) throw new UnauthorizedError(localize("errors.invalidSession"));
     return {
       user: User.safe(UserManager.deserialize({...r, password: undefined})),
       sessionId: deserializeSession(r).id,
@@ -795,7 +796,7 @@ export default class UserManager extends DbController {
    */
   async authenticateToken(token: string): Promise<{user: SafeUser, token: ApiToken}>{
     const secret = parseToken(token);
-    if(!secret) throw new UnauthorizedError(`Invalid authorization token`);
+    if(!secret) throw new UnauthorizedError(localize("errors.invalidToken"));
     //The secret is 256 bits of entropy, so an exact sha256(secret) match (a
     //unique index) IS the verification: no id is transmitted, and no separate
     //constant-time compare is needed.
@@ -807,10 +808,10 @@ export default class UserManager extends DbController {
       WHERE t.hash = $1
     `, [hash]);
     if(!r){
-      throw new UnauthorizedError(`Invalid authorization token`);
+      throw new UnauthorizedError(localize("errors.invalidToken"));
     }
     if(r.expires_at && r.expires_at.valueOf() < Date.now()){
-      throw new UnauthorizedError(`Token expired`);
+      throw new UnauthorizedError(localize("errors.tokenExpired"));
     }
     //Throttled usage tracking: at most one write per 5 minutes per token
     await this.db.run(`

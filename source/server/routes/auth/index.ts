@@ -6,6 +6,8 @@ import bodyParser from "body-parser";
 import { either, getUser, policy, useTemplateProperties  } from "../../utils/locals.js";
 import { noFraming } from "../../utils/headers.js";
 import { csrfProtectAnonymous } from "../../utils/csrf.js";
+import { HTTPError } from "../../utils/errors.js";
+import { localize } from "../../utils/i18n.js";
 import wrap from "../../utils/wrapAsync.js";
 import { getLogin, getLoginPayload, getLoginLink, sendLoginLink, postLogin } from "./login.js";
 import { postLogout } from "./logout.js";
@@ -55,6 +57,7 @@ router.post("/login",
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     validate: {trustProxy: false},
+    handler: (_req, _res, next) => next(new HTTPError(429, localize("errors.tooManyRequests"))),
   }),
   useJSON,
   useURLEncoded,
@@ -77,7 +80,8 @@ router.post("/login/:username/link", either(policy({ scope: "users:write" }), ra
 	limit: 1, // Limit each IP to 1 request per `window`.
 	standardHeaders: 'draft-7',
 	legacyHeaders: false,
-  validate: {trustProxy: false}
+  validate: {trustProxy: false},
+  handler: (_req, _res, next) => next(new HTTPError(429, localize("errors.tooManyRequests"))),
 })), wrap(sendLoginLink));
 
 router.post("/logout",  useJSON, useURLEncoded, wrap(postLogout));

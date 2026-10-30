@@ -428,9 +428,33 @@ info:
   etAl_other: "and {{count}} more"
 errors:
   generic: Unknown Error
+  badRequest: Bad Request
+  unauthorized: Unauthorized
+  forbidden: Forbidden
+  notFound: Not Found
+  methodNotAllowed: Method Not Allowed
+  conflict: Conflict
+  lengthRequired: Length Required
+  preconditionFailed: Precondition Failed
+  rangeNotSatisfiable: Range Not Satisfiable
+  internalServerError: Internal Server Error
+  notImplemented: Not Implemented
+  insufficientScope: "insufficient_scope: {{scope}}"
+  tokenAccessDenied: "token scope does not allow {{access}} access"
+  insufficientRights: "insufficient rights: {{access}} required"
+  sessionExpired: Session Token expired. Please reauthenticate
+  invalidSession: Invalid session
+  invalidToken: Invalid authorization token
+  tokenExpired: Token expired
+  crossOrigin: Cross-origin request rejected
+  tooManyRequests: Too many requests, please try again later.
+  resourceNotFound: "Can't find the requested resource. It may be private or not exist entirely."
   "Username not provided": Username not provided
   "Password not provided": Password not provided
   "Bad password": Invalid password
   "Username not found": Invalid Username
   "requireCreate": "{{what}} requires \"create\" rights"
   "requireUser": "Authentication is required for {{what}}"
+  upload:
+    notGlb: "{{filename}} does not look like a GLB file"
+    invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"

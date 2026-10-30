@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { getLocals } from "../../../utils/locals.js";
+import { translateTask } from "../../../utils/i18n.js";
 import { TaskDefinition, TaskDataPayload, TaskLogEntry } from "../../../tasks/types.js";
 
 export interface TaskResponse<TData extends TaskDataPayload = TaskDataPayload, TReturn = any> {
   task: TaskDefinition<TData, TReturn>;
   logs: TaskLogEntry[];
 }
-
 
 export async function getTask(req: Request, res: Response) {
   //Read authorization is enforced by the route's policy({access:"read", on:"task"}) guard.
@@ -15,5 +15,5 @@ export async function getTask(req: Request, res: Response) {
   const id = parseInt(idString);
   const task = await taskScheduler.getTask(id);
   const logs = await taskScheduler.getLogs(id);
-  res.status(200).send({ task, logs });
+  res.status(200).send({ task: translateTask(req, res, task), logs });
 }

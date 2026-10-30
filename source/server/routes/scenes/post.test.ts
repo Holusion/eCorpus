@@ -35,6 +35,15 @@ describe("POST /scenes", function(){
     this.beforeEach(async function(){
       user = await userManager.addUser("alice", "12345678", "create");
     });
+    it("translates the required-scope refusal", async function(){
+      const { body } = await request(this.server).post("/scenes")
+        .set("Authorization", await bearer(user.username, ["scenes:read"]))
+        .set("Accept-Language", "fr")
+        .expect(403)
+        .expect("Content-Language", "fr")
+        .expect("WWW-Authenticate", 'Bearer error="insufficient_scope", scope="corpus:write scenes:write"');
+      expect(body.message).to.equal("Error: [403] Portée insuffisante : corpus:write scenes:write");
+    });
     it("can import (as returned from GET /scenes)", async function(){
       //Where scenes are exported from the `GET /scenes` endpoint
       await vfs.createScene("foo", user.uid);

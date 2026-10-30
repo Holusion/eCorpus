@@ -1,7 +1,7 @@
 <div class="grid-content">
   <div class="error-main">
     {{#with error}}
-      <h1 class="error-title">Error :{{code}}</h1>
+      <h1 class="error-title">{{i18n "labels.error"}} :{{code}}</h1>
       <p class="message">{{message}}</p>
       {{#if reason}}
       {{else}}

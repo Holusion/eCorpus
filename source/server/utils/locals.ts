@@ -11,6 +11,7 @@ import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
 import { TaskScheduler } from "../tasks/scheduler.js";
 import { sceneLanguages, uiLanguages } from "./languages.js";
+import { localize } from "./i18n.js";
 
 
 export interface AppLocals{
@@ -131,7 +132,7 @@ export function requireScope(...names: string[]): RequestHandler {
     if (!names.every(n => hasScope(res, n))) {
       //Authenticated, but the credential wasn't delegated this scope.
       res.set("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${names.join(" ")}"`);
-      return next(new ForbiddenError(`insufficient_scope: ${names.join(" ")}`));
+      return next(new ForbiddenError(localize("errors.insufficientScope", { scope: names.join(" ") })));
     }
     next();
   };
@@ -281,7 +282,7 @@ function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Reques
     const access = Math.min(AccessLevel.Admin, cap);
     res.locals.access = access;
     if (check <= access) return next();
-    return next(new UnauthorizedError(`token scope does not allow ${min} access`));
+    return next(new UnauthorizedError(localize("errors.tokenAccessDenied", { access: min })));
   }
 
   //AccessLevel.None is 0, hence falsy: the cache check must be a null check.
@@ -295,9 +296,9 @@ function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Reques
       next();
     } else if (hidesExistence(on) && (req.method === "GET" || access <= AccessLevel.None)) {
       //Rewrite Unauthorized to "not found" so we don't leak private data
-      next(new NotFoundError(`Can't find the requested resource. It may be private or not exist entirely.`));
+      next(new NotFoundError(localize("errors.resourceNotFound")));
     } else {
-      next(new UnauthorizedError(`insufficient rights: ${min} required`));
+      next(new UnauthorizedError(localize("errors.insufficientRights", { access: min })));
     }
   }, next);
 }
@@ -368,7 +369,7 @@ function insufficientScope(res: Response, scope: string): HTTPError | null {
   const credential = getCredentialScopes(res);
   if (credential && !credential.has(scope)) {
     res.set("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${scope}"`);
-    return new ForbiddenError(`insufficient_scope: ${scope}`);
+    return new ForbiddenError(localize("errors.insufficientScope", { scope }));
   }
   return null;
 }
@@ -527,15 +528,31 @@ export function isEmbed(req: Request): boolean {
 }
 
 /**
+ * Supported language from the `Accept-Language` header, if any.
+ * Checks for the header's presence because `acceptsLanguages()` would otherwise return our first locale
+ */
+export function getAcceptedLanguage(req: Request): AcceptedLocales | undefined {
+  if (!req.get("Accept-Language")) return undefined;
+  return (req.acceptsLanguages(locales) || undefined) as AcceptedLocales | undefined;
+}
+
+/**
+ * Language to respond in: the session's (forced with `?lang=`),
+ * else a supported `Accept-Language`, else the instance's `default_language`.
+ */
+export function getLanguage(req: Request): AcceptedLocales {
+  return getSession(req)?.lang ?? getAcceptedLanguage(req) ?? getLocals(req).config.get("default_language");
+}
+
+/**
  * Common properties for template rendering.
  * All props required for navbar/footer rendering should be set here
  */
 export function useTemplateProperties(req: Request, res: Response, next?: NextFunction) {
-  const session = getSession(req);
   const { config } = getLocals(req);
   const user = getUser(req);
   const { search } = req.query;
-  const lang = session?.lang ?? (req.acceptsLanguages(locales) || "en");
+  const lang = getLanguage(req);
   Object.assign(res.locals, {
     lang,
     languages: uiLanguages.map(l => {

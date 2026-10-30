@@ -3,6 +3,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 
 import { expandCredential } from "../auth/Token.js";
 import { HTTPError, UnauthorizedError } from "./errors.js";
+import { localize } from "./i18n.js";
 import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
 
 /**
@@ -43,7 +44,7 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
       if (expires.valueOf() < now) {
         req.session = null;
         await userManager.removeSession(sessionId).catch(() => {});
-        throw new UnauthorizedError(`Session Token expired. Please reauthenticate`);
+        throw new UnauthorizedError(localize("errors.sessionExpired"));
       }
       if (expires.valueOf() < now + sessionMaxAge * 0.66) {
         //Sliding renewal: less than 66% of the session's lifetime remains.
@@ -69,7 +70,7 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
     //Cookie from before the server-side sessions migration (identity payload, no sid):
     //force a re-authentication.
     req.session = null;
-    return next(new UnauthorizedError(`Session Token expired. Please reauthenticate`));
+    return next(new UnauthorizedError(localize("errors.sessionExpired")));
   }
 
   next();
