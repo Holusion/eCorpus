@@ -1,5 +1,5 @@
 
-import nodemailer from "nodemailer";
+import nodemailer, { type SentMessageInfo, type Transporter } from "nodemailer";
 
 import {Config} from "../config.js";
 import { createLogger } from "../log/index.js";
@@ -19,13 +19,13 @@ interface MailInput{
 /**
  * Use smart host string with defaults
  */
-let _transporter: nodemailer.Transporter|undefined;
+let _transporter: Transporter|undefined;
 
 /**
  * Override the cached SMTP transporter. Pass `undefined` to fall back to the
  * smart_host configuration the next time `send()` is called. Intended for tests.
  */
-export function setTransporter(t: nodemailer.Transporter|undefined){
+export function setTransporter(t: Transporter|undefined){
   _transporter = t;
 }
 
@@ -39,8 +39,8 @@ export function setTransporter(t: nodemailer.Transporter|undefined){
  */
 export default async function send(
   message :MailInput,
-  transporter?: nodemailer.Transporter,
-) :ReturnType<nodemailer.Transporter["sendMail"]>{
+  transporter?: Transporter,
+) :Promise<SentMessageInfo>{
   if(!transporter && !_transporter){
     if(process.env["MAIL_FAKE"]){
       //Test / e2e mode: swallow every message into the in-memory JSON transport

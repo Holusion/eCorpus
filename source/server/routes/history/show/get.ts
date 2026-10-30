@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getVfs } from "../../../utils/locals.js";
+import { getPathParam, getVfs } from "../../../utils/locals.js";
 import { BadRequestError, NotFoundError } from "../../../utils/errors.js";
 import { pipeline } from "stream/promises";
 import { Readable } from "stream";
@@ -8,7 +8,8 @@ import { Readable } from "stream";
 
 export async function handleShowFile(req: Request, res: Response){
   let vfs = getVfs(req);
-  let {scene: sceneName, id, name} = req.params;
+  let {scene: sceneName, id} = req.params;
+  let name = getPathParam(req, "name")!;
   let ref = parseInt(id);
   if(!Number.isFinite(ref) || ref <= 0) throw new BadRequestError(`Invalid reference id: ${id}`);
   let scene = await vfs.getScene(sceneName);
@@ -24,7 +25,8 @@ export async function handleShowFile(req: Request, res: Response){
   res.set("Last-Modified", file.mtime.toUTCString());
   if(req.fresh){
     rs.destroy();
-    return res.status(304).send("Not Modified");
+    res.status(304).send("Not Modified");
+    return;
   }
   res.set("Content-Type", file.mime);
   res.status(200);

@@ -1,7 +1,6 @@
 
 import { Router } from "express";
 
-import wrap from "../../utils/wrapAsync.js";
 import { renderOpenSearch } from "./opensearch.js";
 import { getEmbed } from "./oembed.js";
 
@@ -15,6 +14,6 @@ router.use("/", (req, res, next)=>{
 });
 
 router.get("/opensearch.xml", renderOpenSearch);
-router.get("/oembed", wrap(getEmbed));
+router.get("/oembed", getEmbed);
 
 export default router;

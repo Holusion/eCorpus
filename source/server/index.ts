@@ -12,7 +12,8 @@ import("source-map-support").then((s)=>{
     let root = path.resolve(staticConfig.root_dir);
     console.info("Serve directory : "+root+" on "+staticConfig.port);
     const services = await createService();
-    services.app.listen(staticConfig.port, () => {
+    //Not using listen()'s callback: express 5 would hand it errors (eg. EADDRINUSE) instead of throwing
+    services.app.listen(staticConfig.port).once("listening", () => {
         console.info(`Server ready and listening on port ${staticConfig.port}\n`);
     });
 })();

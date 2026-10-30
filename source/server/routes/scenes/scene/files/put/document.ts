@@ -31,7 +31,8 @@ export default async function handlePutDocument(req :Request, res :Response){
   if(!refId || !config.get("enable_document_merge")){
     const {id} = await getVfs(req).writeDoc(JSON.stringify(newDoc), {scene: sceneName, user_id: uid, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
     res.set("ETag", `"${id}"`);
-    return res.status(204).send();
+    res.status(204).send();
+    return;
   }
   let {id: scene_id} = await vfs.getScene(sceneName);
   //Run the merge in a task so we get more logs when necessary

@@ -10,7 +10,6 @@ import {AppLocals, AppParameters, getHost, getVfs} from "../utils/locals.js";
 import authenticate from "../utils/authenticate.js";
 import csrfProtection from "../utils/csrf.js";
 import securityHeaders from "../utils/headers.js";
-import wrap from "../utils/wrapAsync.js";
 import Templates, { dicts } from "../utils/templates/index.js";
 import { getMetadata } from "./auth/oauth.js";
 
@@ -73,6 +72,14 @@ export default async function createServer(locals:AppParameters) :Promise<expres
     next();
   })
 
+  //Express 5 leaves req.body undefined unless a body parser matched the request.
+  //Keep express 4's `{}` default: handlers destructure it directly.
+  //Body parsers still replace it when they parse something
+  app.use((req, res, next)=>{
+    req.body ??= {};
+    next();
+  });
+
   /**
    * Resolves the request's identity (read with `getUser()`) from the session
    * cookie (server-side sessions) or an Authorization header.
@@ -94,7 +101,7 @@ export default async function createServer(locals:AppParameters) :Promise<expres
   app.get(["/"], (req, res)=> res.redirect("/ui/"));
 
   //OAuth2 authorization server metadata (RFC8414)
-  app.get("/.well-known/oauth-authorization-server", wrap(getMetadata));
+  app.get("/.well-known/oauth-authorization-server", getMetadata);
 
   app.get("/robots.txt", (req, res)=>{
     const sitemap = new URL("/sitemap.xml", getHost(req)).toString();

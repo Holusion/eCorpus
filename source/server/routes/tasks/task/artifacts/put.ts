@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import parseRange from "range-parser";
 import path from "node:path";
 import { stat } from "node:fs/promises";
 import { getVfs, getUser, getTaskScheduler } from "../../../../utils/locals.js";
@@ -62,7 +61,7 @@ export async function putTaskArtifact(req: Request, res: Response){
     );
     await processUpload();
     res.status(201);
-    return   res.format({
+    res.format({
       "text/plain": ()=>{
         res.send("Created")
       },
@@ -70,12 +69,12 @@ export async function putTaskArtifact(req: Request, res: Response){
         res.send({code: 201, message: "Created"})
       }
     });
+    return;
   }
-  const ranges = parseRange(filesize, contentRange.replace("bytes ", "bytes="));
-  if(ranges == -1 ) throw new RangeNotSatisfiableError();
-  else if(ranges == -2 || !Array.isArray(ranges) || ranges.length != 1 || ranges.type !== "bytes") throw new BadRequestError(`Malformed range header`);
-  
-  const { start, end} = ranges[0];
+  const range = /^bytes (\d+)-(\d+)\/(?:\d+|\*)$/.exec(contentRange.trim());
+  if(!range) throw new BadRequestError(`Malformed Content-Range header`);
+  const start = parseInt(range[1]), end = parseInt(range[2]);
+  if(end < start || filesize <= end) throw new RangeNotSatisfiableError();
 
 
   if(contentLength !== end - start + 1) throw new BadRequestError(`a Content-Length of ${contentLength} can't satisfy a range of ${end - start +1}`);
