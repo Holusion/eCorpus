@@ -26,7 +26,7 @@ export async function postLogin(req :Request, res :Response){
     if(e instanceof NotFoundError){ //cast NotFound as Unauthorized
       e = new UnauthorizedError(`Username not found`);
     }
-    const code :number = e.code ?? 500;
+    const code :number = (e instanceof HTTPError)? e.code : 500;
     const rawMessage = (e instanceof HTTPError)? e.message.slice(6): e.message;
     res.status(code);
     res.format({

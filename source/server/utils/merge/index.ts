@@ -5,8 +5,8 @@ import diff from "./diff.js";
 import { IDocument } from "../schema/document.js";
 import { fromPointers, toPointers } from "./pointers/index.js";
 
+export type { Diff };
 export {
-  Diff, 
   DELETE_KEY, 
   apply, 
   diff

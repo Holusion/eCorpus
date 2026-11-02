@@ -112,7 +112,8 @@ async function sendWholeFile(req :Request, res :Response){
   res.set("Last-Modified", file.mtime.toUTCString());
   if(req.fresh){
     file.stream.destroy();
-    return res.status(304).send("Not Modified");
+    res.status(304).send("Not Modified");
+    return;
   }
   res.set("Content-Type", file.mime);
   res.status(200);

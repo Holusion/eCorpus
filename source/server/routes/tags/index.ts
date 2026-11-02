@@ -1,7 +1,5 @@
-import { Router } from "express";
-import bodyParser from "body-parser";
+import express, { Router } from "express";
 
-import wrap from "../../utils/wrapAsync.js";
 
 import getTags from "./get.js";
 import getTag from "./tag/get.js";
@@ -10,11 +8,11 @@ import patchTags from "./patch.js";
 
 const router = Router();
 
-router.get("/",  wrap(getTags));
-router.get("/:tag", wrap(getTag));
+router.get("/",  getTags);
+router.get("/:tag", getTag);
 //Tagging is a per-scene write, but the scenes are named in the request body:
 //the handler walks each one's ACL (capped by the credential's scene scope),
 //so the route itself only requires an identity — the baseline corpus:read.
-router.patch("/", policy({ scope: "corpus:read" }), bodyParser.json(), wrap(patchTags));
+router.patch("/", policy({ scope: "corpus:read" }), express.json(), patchTags);
 
 export default router;

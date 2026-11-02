@@ -52,6 +52,15 @@ describe("GET /tasks/:id", function(){
     .expect(404);
   });
 
+  it("does not match a non-numeric id", async function(){
+    for(const id of ["foo", "1a", "-1"]){
+      const res = await request(this.server).get(`/tasks/${id}`)
+      .set("Authorization", await bearer("bob"));
+      expect(res.status, `GET /tasks/${id}`).to.equal(404);
+      expect(res.text, `GET /tasks/${id}`).to.include("No route was defined");
+    }
+  });
+
   describe("permissions", function(){
 
     it("task owner can access their own task", async function(){

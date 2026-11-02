@@ -12,5 +12,5 @@ export default async function handleCreateScene(req :Request, res :Response){
     throw new BadRequestError(`Requires an authenticated user`);
   }
   await vfs.createScene(scene, requester);
-  return res.status(201).send("Created");
+  res.status(201).send("Created");
 }

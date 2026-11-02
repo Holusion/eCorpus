@@ -11,7 +11,7 @@ import { AppLocals } from "./utils/locals.js";
 import { randomBytes } from "node:crypto";
 import { debuglog } from "node:util";
 import Vfs from "./vfs/index.js";
-//Imported for its side effect as much as for `createService`: ts-node compiles
+//Imported for its side effect as much as for `createService`: tsx compiles
 //the whole server here, while mocha is still loading files. Left to the first
 //hook that needs it (this used to be an `await import()` inside
 //createIntegrationContext) it costs seconds, overruns mocha's 2s hook timeout,

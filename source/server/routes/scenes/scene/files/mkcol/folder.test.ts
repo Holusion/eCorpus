@@ -52,33 +52,18 @@ describe("MKCOL /scenes/:scene/.*", function(){
     let badNames = [
       "/",
       "/foo",
-      ".anything" //Simply rejects any hidden directory as we have no use for them
+      ".anything", //Simply rejects any hidden directory as we have no use for them
+      //superagent>=10 sends dot segments verbatim, like any non-browser client could
+      ".",
+      "articles/..",
+      "..",
+      "../..",
+      "../../..",
     ];
     for (let name of badNames){
       let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
       .set("Authorization", await bearer(user.username))
       expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 400)`).to.equal(400);
-    }
-    let self = [
-      ".",
-      "articles/..",
-
-    ]
-    for (let name of self){
-      let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
-      .set("Authorization", await bearer(user.username))
-      expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 409)`).to.equal(409);
-    }
-    
-    let parents = [
-      "..",
-      "../..",
-      "../../..",
-    ];
-    for(let name of parents){
-      let res = await request(this.server).mkcol(`/scenes/${titleSlug}/${name}`)
-      .set("Authorization", await bearer(user.username))
-      expect(res.status, `[${res.status}] MKCOL /scenes/${titleSlug}/${name} (expected 404)`).to.equal(404);
     }
   });
 

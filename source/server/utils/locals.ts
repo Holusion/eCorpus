@@ -467,12 +467,29 @@ export function getUserId(req: Request) {
   return user ? user.uid : null;
 }
 
+/**
+ * Join a wildcard route parameter (`/*name`), which express gives as an array of path segments
+ */
+export function getPathParam(req: Request, param: string): string|undefined {
+  const value: string|string[]|undefined = req.params[param];
+  return Array.isArray(value)? value.join("/"): value;
+}
+
 export function getFileParams(req: Request): GetFileParams {
-  let { scene, name } = req.params;
+  let { scene } = req.params;
+  let name = getPathParam(req, "name");
   if (!scene) throw new BadRequestError(`Scene parameter not provided`);
   if (!name) throw new BadRequestError(`File parameter not provided`);
 
   return { scene, name };
+}
+
+/**
+ * Skip to the next matching route unless `param` is a positive integer.
+ * Replaces the `/:id(\\d+)` regex syntax express 5 no longer supports.
+ */
+export function numericParam(param: string): RequestHandler {
+  return (req, res, next) => next(/^\d+$/.test(req.params[param]) ? undefined : "route");
 }
 
 export function getVfs(req: Request) {

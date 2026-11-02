@@ -83,7 +83,10 @@ const asXML = (params: EmbedParams)=>{
 export async function getEmbed(req: Request, res: Response){
   let vfs = getVfs(req);
   const {format='json', url, maxwidth='800', maxheight='450'} = req.query;
-  if(format !== "json" && format !== "xml") return res.status(501).send("Not Implemented");
+  if(format !== "json" && format !== "xml"){
+    res.status(501).send("Not Implemented");
+    return;
+  }
   if(!url || typeof url !== "string") throw new BadRequestError(`No embed URL query provided`);
 
   const opts :CommonEmbedParams = {
@@ -123,7 +126,7 @@ export async function getEmbed(req: Request, res: Response){
   }
 
   if(isEmbedParams(opts)){
-    return res.set("Content-Type", format === "json"?"application/json":"text/xml"+"; charset=utf-8").status(200).send(format == "json"? asJSON(opts): asXML(opts));  
+    res.set("Content-Type", format === "json"?"application/json":"text/xml"+"; charset=utf-8").status(200).send(format == "json"? asJSON(opts): asXML(opts));  
   }else{
     throw new NotFoundError(`No public embeddable resource at ${url}`);
   }
