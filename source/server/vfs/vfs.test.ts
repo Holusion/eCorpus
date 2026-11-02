@@ -1822,7 +1822,7 @@ describe("Vfs", function(){
           });
 
           it("throw an error if not found", async function(){
-            await expect(vfs.getScene("bar")).to.be.rejectedWith("scene_name");
+            await expect(vfs.getScene("bar")).to.be.rejectedWith(NotFoundError);
           });
 
           it("get a valid scene", async function(){

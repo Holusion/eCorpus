@@ -1,6 +1,7 @@
 import path from "path"
 import {hostname} from "os";
 import { Database } from "../vfs/helpers/db.js";
+import { uiLanguages, UILanguage } from "./languages.js";
 
 /**
  * Configuration values that are only available as environment variables
@@ -39,6 +40,8 @@ const runtime_values = {
   contact_email:         [({hostname}:{hostname: string})=> "noreply@"+hostname, "string"],
   smart_host:            ["smtp://localhost:25", "string"],
   experimental:          [false,             "boolean"],
+  /** Language used when the user expressed no supported preference */
+  default_language:      ["en",              "language"],
   /// RETENTION (in days; 0 disables) ///
   task_retention_days:        [30,           "number"],
   task_errors_retention_days: [90,           "number"],
@@ -85,6 +88,12 @@ function toBool(s:string):boolean{
   return !(!s || s.toLowerCase() === "false" || s == "0");
 }
 
+function toLanguage(s: string): Lowercase<UILanguage>{
+  const lang = uiLanguages.find(l => l.toLowerCase() === s)?.toLowerCase();
+  if(!lang) throw new Error(`expected one of: ${uiLanguages.map(l => l.toLowerCase()).join(", ")}`);
+  return lang as Lowercase<UILanguage>;
+}
+
 /** Branded type for color config values — serialized as a CSS color string */
 export type ColorString = string & { readonly _brand: "color" };
 function toColor(s: string): ColorString{
@@ -101,6 +110,7 @@ const validatorMap = {
   boolean:      toBool,
   number:       toUInt,
   listenTarget: toListenTarget,
+  language:     toLanguage,
 } as const;
 
 const htmlTypeMap = {
@@ -110,6 +120,7 @@ const htmlTypeMap = {
   boolean:      "checkbox",
   number:       "number",
   listenTarget: "text",
+  language:     "text",
 } as const;
 
 type OptionType = keyof typeof validatorMap;

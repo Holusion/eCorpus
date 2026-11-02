@@ -1,4 +1,5 @@
 import request from "supertest";
+import { localize } from "../../../../utils/i18n.js";
 
 import User from "../../../../auth/User.js";
 import UserManager from "../../../../auth/UserManager.js";
@@ -42,6 +43,18 @@ describe("GET /tasks/:id/tree", function(){
     await request(this.server).get(`/tasks/999999/tree`)
     .set("Authorization", await bearer("bob"))
     .expect(404);
+  });
+
+  it("translates task trees", async function(){
+    const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
+    const child = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}, parent: task.task_id});
+    await taskScheduler.releaseTask(child.task_id, { messages: [localize("errors.upload.notGlb", { filename: "foo.glb" }).toData()] });
+    const {body} = await request(this.server).get(`/tasks/${task.task_id}/tree`)
+    .set("Authorization", await bearer("bob"))
+    .set("Accept-Language", "fr")
+    .expect(200)
+    .expect("Content-Language", "fr");
+    expect(body.task.children[0].output.messages[0]).to.have.property("message", "foo.glb ne semble pas être un fichier GLB");
   });
 
   describe("permissions", function(){

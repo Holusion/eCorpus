@@ -38,6 +38,12 @@ describe("staticConfig", function(){
       expect(opts).to.have.property("files_dir", "/app/files");
     });
     
+    it("parse languages", function(){
+      expect(parse({})).to.have.property("default_language", "en");
+      expect(parse({DEFAULT_LANGUAGE:"fr"})).to.have.property("default_language", "fr");
+      expect(()=>parse({DEFAULT_LANGUAGE:"de"})).to.throw("expected one of: en, fr");
+    });
+
     it("override default functions if necessary", function(){
       let opts = parse({ROOT_DIR:"/app", FILES_DIR: "/tmp/files"})
       expect(opts).to.have.property("root_dir", "/app");
@@ -306,6 +312,14 @@ describe("runtimeConfig", function(){
     const c = new Config({all:()=>Promise.resolve([]), run: ()=>Promise.resolve()} as any, {});
     await c.set("experimental", true);
     expect(c.get("experimental")).to.equal(true);
+  });
+
+  it("validates languages", async function(){
+    const c = new Config({all: ok, run: ok} as any, {});
+    await c.set("default_language", "fr");
+    expect(c.get("default_language")).to.equal("fr");
+    await expect(c.set("default_language", "de" as any)).to.be.rejectedWith("expected one of: en, fr");
+    expect(c.get("default_language")).to.equal("fr");
   });
 
   it("rejects values that can't be serialized", async function(){

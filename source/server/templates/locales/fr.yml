@@ -446,7 +446,31 @@ info:
   etAl_other: "et {{count}} autres"
 errors:
   generic: Erreur inconnue
+  badRequest: Requête incorrecte
+  unauthorized: Non autorisé
+  forbidden: Accès interdit
+  notFound: Introuvable
+  methodNotAllowed: Méthode non autorisée
+  conflict: Conflit
+  lengthRequired: Longueur requise
+  preconditionFailed: Précondition non satisfaite
+  rangeNotSatisfiable: Plage demandée non satisfaisable
+  internalServerError: Erreur interne du serveur
+  notImplemented: Non implémenté
+  insufficientScope: "Portée insuffisante : {{scope}}"
+  tokenAccessDenied: "La portée du jeton ne permet pas l'accès {{access}}"
+  insufficientRights: "Droits insuffisants : accès {{access}} requis"
+  sessionExpired: Session expirée. Veuillez vous reconnecter
+  invalidSession: Session invalide
+  invalidToken: Jeton d'autorisation invalide
+  tokenExpired: Jeton expiré
+  crossOrigin: Requête provenant d'une autre origine refusée
+  tooManyRequests: Trop de requêtes, veuillez réessayer plus tard.
+  resourceNotFound: "La ressource demandée est introuvable. Elle est peut-être privée ou n'existe pas."
   "Username not provided": Nom d'utilisateur non fourni
   "Password not provided": Mot de passe non fourni
   "Bad password": Mot de passe invalide
   "Username not found": Nom d'utilisateur invalide
+  upload:
+    notGlb: "{{filename}} ne semble pas être un fichier GLB"
+    invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"

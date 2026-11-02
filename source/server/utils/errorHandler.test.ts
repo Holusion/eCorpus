@@ -12,12 +12,13 @@ import request from "supertest";
 import { errorHandlerMdw, notFoundHandlerMdw } from "./errorHandler.js";
 import { InternalError, UnauthorizedError } from "./errors.js";
 import { captureLogs } from "./log/index.js";
+import { localize } from "./i18n.js";
 import Templates from "./templates/index.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const templatesDir = path.resolve(thisDir, "../templates");
 
-const mockConfig = { get: (_key: any) => "" } as any;
+const mockConfig = { get: (key: any) => key === "default_language" ? "en" : "" } as any;
 
 describe("errorHandler middleware", function(){
     let app :Express;
@@ -67,6 +68,92 @@ describe("errorHandler middleware", function(){
       .expect("Content-Type", "text/html; charset=utf-8")
       .expect(/^<!DOCTYPE html>/)
       .expect(/error-main/);
+    });
+
+    describe("localized errors", function(){
+      /** App throwing a localized error, optionally with a session language */
+      function localizedApp({ lang, default_language = "en" }: { lang?: string, default_language?: string } = {}){
+        const app = express();
+        app.locals.config = { get: (key: any) => key === "default_language" ? default_language : "" };
+        if(lang) app.use((req, res, next)=>{ (req as any).session = { lang }; next() });
+        app.get("/", ()=>{
+          throw new InternalError(localize("errors.upload.notGlb", { filename: "foo.glb" }));
+        });
+        app.use(errorHandlerMdw());
+        return app;
+      }
+
+      it("uses the instance's default language when no language is requested", async function(){
+        const res = await request(localizedApp())
+        .get("/")
+        .expect(500)
+        .expect("Vary", /Accept-Language/)
+        .expect("Content-Language", "en");
+        expect(res.body).to.have.property("message", "Error: [500] foo.glb does not look like a GLB file");
+
+        const fr = await request(localizedApp({ default_language: "fr" }))
+        .get("/")
+        .expect(500)
+        .expect("Content-Language", "fr");
+        expect(fr.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+      });
+
+      it("translates to the requested language", async function(){
+        const res = await request(localizedApp()).get("/")
+        .set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8")
+        .expect(500)
+        .expect("Content-Language", "fr");
+        expect(res.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+      });
+
+      it("translates text/plain responses", async function(){
+        await request(localizedApp()).get("/")
+        .set("Accept", "text/plain")
+        .set("Accept-Language", "fr")
+        .expect(500)
+        .expect("[500] foo.glb ne semble pas être un fichier GLB");
+      });
+
+      it("uses the default language for unsupported languages", async function(){
+        const res = await request(localizedApp({ default_language: "fr" })).get("/")
+        .set("Accept-Language", "de")
+        .expect(500)
+        .expect("Content-Language", "fr");
+        expect(res.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+      });
+
+      it("prefers the session's language over Accept-Language, like rendered pages", async function(){
+        const res = await request(localizedApp({ lang: "fr" })).get("/")
+        .set("Accept-Language", "en-US,en;q=0.9")
+        .expect(500)
+        .expect("Content-Language", "fr");
+        expect(res.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+      });
+
+      it("translates the error page", async function(){
+        const app = localizedApp({ lang: "fr" });
+        const templates = new Templates({dir: templatesDir, cache: false});
+        app.engine('.hbs', templates.middleware);
+        app.set('view engine', '.hbs');
+        app.set('views', templates.dir);
+        await request(app).get("/")
+        .set("Accept", "text/html")
+        .set("Accept-Language", "en")
+        .expect(500)
+        .expect(/<html lang="fr">/)
+        .expect(/foo.glb ne semble pas être un fichier GLB/);
+      });
+
+      it("ignores Accept-Language for non-localized errors", async function(){
+        let app = express();
+        app.get("/", ()=>{ throw new InternalError("plain") });
+        app.use(errorHandlerMdw());
+        const res = await request(app).get("/")
+        .set("Accept-Language", "fr")
+        .expect(500);
+        expect(res.headers).not.to.have.property("content-language");
+        expect(res.body).to.have.property("message", "Error: [500] plain");
+      });
     });
 
     it("advertises the Bearer scheme (not Basic) on 401", async function(){
@@ -240,5 +327,25 @@ describe("notFoundHandler middleware", function(){
     .expect("Content-Type", "text/plain; charset=utf-8");
     //Not testing text/html output because it requires working templates
   });
+
+  for(const [lang, title, message] of [["en", "Error", "Not Found"], ["fr", "Erreur", "Introuvable"]]){
+    it(`translates the default HTML page to ${lang}`, async function(){
+      const templates = new Templates({dir: templatesDir, cache: false});
+      app.engine('.hbs', templates.middleware);
+      app.set('view engine', '.hbs');
+      app.set('views', templates.dir);
+      app.locals.config = mockConfig;
+
+      const { text } = await request(app).get("/missing")
+        .set("Accept", "text/html")
+        .set("Accept-Language", lang)
+        .expect(404)
+        .expect("Content-Language", lang)
+        .expect("Vary", /Accept-Language/);
+      expect(text).to.contain(`<html lang="${lang}">`);
+      expect(text).to.contain(`class="error-title">${title} :404`);
+      expect(text).to.contain(`<p class="message">${message}</p>`);
+    });
+  }
 
 });

@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import { InternalError, UnauthorizedError } from "./errors.js";
-import { either, getHost, isEmbed, validateRedirect } from "./locals.js";
+import { either, getHost, getLanguage, isEmbed, validateRedirect } from "./locals.js";
 
 //Dummy middlewares
 function pass(req :Request, res :Response, next :NextFunction){
@@ -231,3 +231,33 @@ describe("isEmbed()", function(){
   })
 
 })
+
+
+describe("getLanguage()", function(){
+  function app({ default_language = "en", lang }: { default_language?: string, lang?: string } = {}){
+    const app = express();
+    app.locals.config = { get: (key: string) => key === "default_language" ? default_language : undefined };
+    app.get("/", (req, res)=>{
+      if(lang) (req as any).session = { lang };
+      res.send(getLanguage(req));
+    });
+    return app;
+  }
+
+  it("uses the instance's default language without Accept-Language", async function(){
+    await request(app()).get("/").expect(200, "en");
+    await request(app({ default_language: "fr" })).get("/").expect(200, "fr");
+  });
+
+  it("uses a supported Accept-Language", async function(){
+    await request(app()).get("/").set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8").expect(200, "fr");
+  });
+
+  it("uses the default language for unsupported languages", async function(){
+    await request(app({ default_language: "fr" })).get("/").set("Accept-Language", "de").expect(200, "fr");
+  });
+
+  it("prefers the session's language", async function(){
+    await request(app({ lang: "fr" })).get("/").set("Accept-Language", "en").expect(200, "fr");
+  });
+});

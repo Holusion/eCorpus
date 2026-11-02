@@ -43,6 +43,29 @@ describe("/auth/login", function(){
     expect(expiresDate.valueOf()).to.be.below(Date.now()+ maxAge + 1);
   });
 
+  it("translates anonymous CSRF refusals", async function(){
+    const { body } = await request(this.server).post("/auth/login")
+      .set("Origin", "https://other.example")
+      .set("Accept-Language", "fr")
+      .expect(403)
+      .expect("Content-Language", "fr");
+    expect(body.message).to.equal("Error: [403] Requête provenant d'une autre origine refusée");
+  });
+
+  it("translates rate-limit responses and preserves retry headers", async function(){
+    const path = "/auth/login/missing-rate-limit-user/link";
+    //A separate client address keeps this test independent of other login-link requests.
+    await request(this.server).post(path).set("X-Forwarded-For", "192.0.2.123").expect(404);
+    const { body } = await request(this.server).post(path)
+      .set("X-Forwarded-For", "192.0.2.123")
+      .set("Accept-Language", "fr")
+      .expect(429)
+      .expect("Content-Language", "fr")
+      .expect("Retry-After", /^\d+$/)
+      .expect("RateLimit", /remaining=0/);
+    expect(body.message).to.equal("Error: [429] Trop de requêtes, veuillez réessayer plus tard.");
+  });
+
   it("scopes the cookie's Secure flag to the connection (not NODE_ENV)", async function(){
     //Plain HTTP: the cookie must not be Secure, or it would never round-trip.
     //This is exactly what the dockerised e2e hits against the production image.
