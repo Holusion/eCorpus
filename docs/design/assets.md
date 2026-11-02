@@ -1,6 +1,6 @@
 # Design: Server-managed 3D assets
 
-> Status: **draft / request for comments**, revision 3
+> Status: **draft / request for comments**, revision 4
 > Scope: server-side data model, processing pipeline and the HTTP contract Voyager will consume.
 > Out of scope: the Voyager-side implementation.
 
@@ -23,10 +23,13 @@ The server has to tell Voyager what is available and when it changes.
 | Output format | **`.gltf` with external resources** by default (same family as the master). Profiles that get handed to an external AR app use the single-file format that app requires (§3.1). |
 | What gets versioned | **Master and config are versioned. Outputs are not**: an output is a function of (master version, config version, pipeline) and can always be regenerated. |
 | Master deduplication | **Not forced.** Uploading a file whose source hash matches an existing master gives a warning (and an offer to reuse it), nothing more. Bytes are deduplicated anyway at the blob level. |
-| Outputs per asset | **A set**, one per *profile*. `web` is always there. AR profiles are optional, enabled per asset (§3.1). |
+| Outputs per asset | **A set**, one per *profile*. Voyager quality levels and AR variants are all profiles. New assets get `web` (Web3D/High) and maybe `thumb` (Web3D/Thumb). The rest is enabled per asset (§3.1). |
+| Scenes and newly enabled outputs | **Scenes don't pick up new outputs by themselves.** The svx lists the derivatives the scene uses, and it's the only source of truth. If AR is enabled on an asset later, someone has to revisit the scene and add the AR derivative (§7.1). |
 | Old output during regeneration | **Up to each processor.** It decides whether to drop the previous output right away or keep serving it until it emits something new, depending on how long the run should take (§5.2). |
 | Replacing a master | **Allowed, with no similarity requirement.** The new master doesn't have to resemble the old one. The consequences for scenes are documented, not prevented (§5.3). |
-| Access control | **Same system as scenes**: owner, per-user and per-group access levels, `default_access`, `public_access`. Same levels, same code (§6). |
+| Access control | **Same system as scenes**: owner, per-user and per-group access levels, `default_access`, `public_access`. Same levels, same code (§6). Scene permissions are never copied onto assets. |
+| Using an asset in a scene | **Read access is transitive through scenes.** A user who can use an asset may publish it in a scene that's more visible than the asset. Readers of that scene can then load the outputs it references. That isn't a permission violation (§6.2). Changing an asset's permissions must not silently break scenes that use it (§6.3). |
+| Viewing an asset on its own | **A playground view** in voyager-explorer shows an asset without any scene. It's public if the asset is public (§7.5). |
 
 ### Non-goals (for this phase)
 
@@ -90,14 +93,19 @@ Gaps:
 
 Voyager picks derivatives by `(usage, quality)` (`CVARManager`):
 
-| Profile | Voyager derivative | Used by | Format | Notes |
+| Profile | Voyager derivative | Used by | Format | Enabled by default |
 |---|---|---|---|---|
-| `web` | `Web3D` / `High` | the viewer | `.gltf` + external resources | Always present. |
-| `ar-web` | `Web3D` / `AR` | WebXR, inside the viewer | `.gltf` + external resources | Lighter than `web`. Loaded by Voyager itself, so same serving as `web`. |
-| `ar-app` | `App3D` / `AR` | Android Scene Viewer | `.glb` | Voyager passes the URL to an external app in an intent. A single file is the safe choice. |
-| `ar-ios` | `iOSApp3D` / `AR` | iOS Quick Look | `.usdz` | Quick Look only takes USDZ. Needs a glTF → USDZ converter (building block 14). |
+| `web` | `Web3D` / `High` | the viewer | `.gltf` + external resources | **yes** (always present) |
+| `thumb` | `Web3D` / `Thumb` | the viewer: first thing shown while `High` loads | `.gltf` + external resources | probably (instance setting) |
+| `low`, `medium`, `highest` | `Web3D` / `Low`, `Medium`, `Highest` | the viewer, by device/bandwidth | `.gltf` + external resources | no |
+| `ar-web` | `Web3D` / `AR` | WebXR, inside the viewer | `.gltf` + external resources | no |
+| `ar-app` | `App3D` / `AR` | Android Scene Viewer | `.glb` | no |
+| `ar-ios` | `iOSApp3D` / `AR` | iOS Quick Look | `.usdz` | no |
 
-The profile list is configured on the server. Adding Voyager quality levels later (`Low`, `Thumb`…) just means adding profiles.
+Notes:
+- The profile list (format, processor, derivative, default config, enabled by default) is configured on the server, not by users.
+- `ar-app` is a single `.glb` because Voyager passes the URL to an external app in an Android intent. `ar-ios` is `.usdz` because Quick Look only takes USDZ, which needs a glTF → USDZ converter (building block 14).
+- **`thumb` and the `web` placeholder aren't the same thing.** The placeholder is temporary: it's what the `web` slot serves while the real output is computed. `thumb` is a permanent, small derivative that Voyager loads first, then replaces with `High` (it already does this). A processor may reuse one for the other: when `thumb` finishes first, the `web` run can emit the same blobs as its placeholder at no extra storage cost.
 
 **All outputs of one asset must share the master's coordinate frame.** Voyager treats them as derivatives of the same model and swaps between them (e.g. when entering AR) with the same transform and annotations. Processors may decimate, retexture and compress, but never re-center, re-orient or rescale.
 
@@ -215,7 +223,7 @@ upload task ──▶ ingest ──▶ master vN ──┐
                                                for older inputs)  entry file, publish an event
 ```
 
-Runs for different profiles are independent tasks and may run in parallel. `web` gets priority, since it's what the viewer shows. A config change only re-runs the profiles whose settings changed (comparing each profile's section between config versions). A new master re-runs every profile.
+Runs for different profiles are independent tasks and may run in parallel. `thumb` and `web` get priority, since they're what the viewer shows. A config change only re-runs the profiles whose settings changed (comparing each profile's section between config versions). A new master re-runs every profile.
 
 ### 5.1 Ingestion (upload → master)
 
@@ -277,43 +285,83 @@ Assets use **the same ACL system as scenes**: the same columns (`default_access`
 
 | Action | Required level on the asset |
 |---|---|
-| Read outputs, manifest, events | `read` |
+| Read outputs, manifest, events | `read`, or transitive read through a scene (§6.2) |
+| Playground view (§7.5) | `read` |
 | Download the master | `read` |
+| Use the asset in a scene (adds a grant) | `read`, direct only (§6.2) |
 | Change config, enable/disable profiles, replace master | `write` |
-| Change ACL, archive | `admin` |
+| Change ACL, archive, revoke a scene's grant | `admin` |
 | Create an asset (upload) | user role `create`, same as scene creation |
 
 Implementation: `UserManager.getAccessRights(scene, uid)` and the ACL routes are written against `scenes`/`users_acl`/`groups_acl`. They should be generalized over a resource type (`scene` | `asset`) instead of duplicated, so both stay identical by construction (building block 4).
 
-**Defaults:** an asset created from a scene upload starts with that scene's ACL: same owner, same `default_access`/`public_access`, and the scene's user and group grants copied. In the common case (one upload, one scene) the two stay in sync without anyone having to think about it.
-
-**Scenes don't grant access to assets.** Reading a scene doesn't give read access to the assets it references, as the "same system" rule requires. The cost: a public scene that uses a private asset shows a viewer without its model. The server should make that visible (§6.1) instead of fixing it silently.
+Rules that are specific to assets:
+- **No copying of permissions from scenes.** A new asset gets the instance defaults, like a new scene: the uploader is owner, and `default_access`/`public_access` take their default values. If it was created from a scene upload, that scene automatically gets a grant (§6.2), so the scene works whatever the asset's own ACL says.
+- **Scene permission changes never propagate to assets.**
+- Reading an asset's outputs can also come **through a scene** (§6.2). Everything else (master, config, playground, ACL) requires access on the asset itself.
 
 ### 6.1 Reference index
 
-`scene_asset_refs(fk_scene_id, fk_asset_id)` is rebuilt from the model URIs on every `scene.svx.json` write. It isn't needed for security, but it's used for:
+`scene_asset_refs(fk_scene_id, fk_asset_id)` is rebuilt from the model URIs of the **current** `scene.svx.json` on every document write. It's used for:
+- **Transitive access** (§6.2), together with grants.
 - **"Used in N scenes"** on the asset page, and a warning before changing a config or replacing a master that affects other scenes.
-- **ACL mismatch warnings**: when a scene is made more visible than one of its assets (or an asset less visible than a scene using it), the API response and the UI list the affected assets or scenes and offer to align their ACLs.
 - **Deletion**: an asset that's still referenced is archived, not deleted.
 - **Garbage collection and scene export** (§8).
+
+### 6.2 Transitive read access through scenes
+
+A user who can use an asset may put it in a scene that's more visible than the asset. Readers of the scene can then load the outputs it references. The publisher already had the right to see those outputs, so publishing them isn't a permission violation.
+
+Mechanism:
+
+```sql
+CREATE TABLE scene_asset_grants (
+  fk_scene_id   BIGINT NOT NULL REFERENCES scenes(scene_id) ON DELETE CASCADE,
+  fk_asset_id   BIGINT NOT NULL REFERENCES assets(asset_id) ON DELETE CASCADE,
+  fk_granted_by BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
+  ctime         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (fk_scene_id, fk_asset_id)
+);
+```
+
+- **A grant is created when a document write adds a reference** to an asset the scene has no grant for yet. The writer must have **direct** `read` access on the asset (through the asset's ACL, not through another scene). Otherwise the write is refused (`403`, naming the asset). This check is what stops someone from putting a random asset id in their own scene to read it.
+- **Access doesn't chain.** Access obtained through a scene doesn't let you grant the asset to another scene. Otherwise anyone viewing a public scene could re-publish its assets elsewhere, and making the original scene private again would no longer protect them. One consequence: duplicating a scene validates its references again against the user doing the copy. A user who only has transitive access gets a copy with missing models.
+- **Grants belong to the (scene, asset) pair, not to a document version.** If a reference is removed and later comes back (an undo, or a history restore), the existing grant still applies and no new check is needed. A user who restores an old version doesn't need access to the assets it referenced.
+- **Effective read on asset A's outputs** for user U:
+  `direct_read(U, A) OR EXISTS(scene S: read(U, S) AND ref(S, A) AND grant(S, A))`
+  Both the current reference and the grant are required. A scene that no longer uses the asset doesn't expose it, even with a grant.
+- **Scope:** transitive read covers the outputs (entry files and resources), the output part of the manifest, and events. It doesn't cover the master, the config, the playground view, or anything that writes.
+
+### 6.3 Changing asset permissions: don't break scenes
+
+Because scenes hold their own grants, **changing an asset's ACL only changes direct access**. Scenes that use the asset keep working, whatever the new ACL is. That's the reverse of propagation: asset changes don't reach into scenes.
+
+To keep this understandable for the asset's admins:
+- The asset ACL routes and UI show **which scenes still give access to the asset**, with their visibility (public, or visible to these groups). After making an asset private, its admin can see that "public scene X" still shows it.
+- An explicit **"revoke from scene"** action (asset `admin`) deletes a grant. The response lists what breaks (the scene shows the model as unavailable). It's the only way, besides archiving or deleting the asset, to take access back from a scene.
+- Archiving an asset keeps the grants (scenes keep working). Deleting it is refused while references exist (§6.1).
+
+Possible extension (not proposed for now): a per-asset flag "may not be published beyond its own ACL", which refuses new grants to scenes that are more visible than the asset.
 
 ## 7. Contract with Voyager
 
 ### 7.1 How a scene references an asset
 
 ```jsonc
-// scene.svx.json, models[i]: one derivative per enabled profile
+// scene.svx.json, models[i]: the derivatives this scene chose to use
 "derivatives": [
-  { "usage": "Web3D",    "quality": "High", "assets": [{ "type": "Model", "uri": "/assets/42/web/model.gltf", "byteSize": 1234567, "numFaces": 200000 }] },
-  { "usage": "App3D",    "quality": "AR",   "assets": [{ "type": "Model", "uri": "/assets/42/ar-app/model.glb" }] },
-  { "usage": "iOSApp3D", "quality": "AR",   "assets": [{ "type": "Model", "uri": "/assets/42/ar-ios/model.usdz" }] }
+  { "usage": "Web3D",    "quality": "Thumb", "assets": [{ "type": "Model", "uri": "/assets/42/thumb/model.gltf" }] },
+  { "usage": "Web3D",    "quality": "High",  "assets": [{ "type": "Model", "uri": "/assets/42/web/model.gltf", "byteSize": 1234567, "numFaces": 200000 }] },
+  { "usage": "App3D",    "quality": "AR",    "assets": [{ "type": "Model", "uri": "/assets/42/ar-app/model.glb" }] }
 ]
 ```
 
-**Enabled profiles can change after the scene was saved.** If AR is enabled on an asset later, the scenes that reference it don't list the AR derivatives, and the server doesn't rewrite them (§3). Proposal:
-- **A server-aware Voyager builds the derivative list from the asset manifest** (`outputs`) when it loads, and treats the derivatives in the svx as a fallback. Enabling or disabling a profile then takes effect in every scene right away.
-- **The svx still lists the derivatives known when it was saved**, so server-unaware clients and exports keep working. The editor refreshes them on the next save.
-- A derivative in the svx whose profile was disabled since answers `404`. Voyager already handles a missing derivative, but this is a reason to prefer the manifest.
+**The svx is the only source of truth for which derivatives a scene uses.** When a scene references an asset, the derivatives for the profiles enabled at that moment are written into it. After that, scenes don't detect new outputs:
+- If AR is enabled on an asset later, the scenes that reference it don't show AR until someone revisits each scene and adds the AR derivative. The asset manifest lists the available outputs, so the editor can offer them, but adding one is always a deliberate edit to the scene.
+- A derivative whose profile was disabled since answers `404` (the manifest says `removed`). Voyager already handles a missing derivative. The "used in N scenes" list (§6.1) lets the asset's owner see which scenes are affected before disabling a profile.
+- Everything a scene shows is in its svx, so scene history, exports and server-unaware clients all see the same thing.
+
+How the URIs are written:
 
 - **Root-relative URI.** It resolves correctly from `scenes/<name>/`, the history views, the standalone viewer, and embeds. It survives scene renames and a change of domain. The catch is that it breaks if eCorpus is ever served under a sub-path. That isn't supported today, but it's worth knowing.
 - `byteSize`/`numFaces` are written when the reference is added and are only hints. They may go stale. The live values are in the asset manifest.
@@ -379,7 +427,7 @@ It supports `ETag`/`If-None-Match`, so polling it is cheap when push isn't avail
 `GET /assets/events?id=42&id=57` returns `text/event-stream` (Server-Sent Events).
 
 - The client lists the assets it cares about (the ones the scene references), so the server doesn't need to know which scene is open. One connection per open scene.
-- Access is checked per id at connect time, `read` on each asset (§6).
+- Access is checked per id at connect time: `read` on each asset, direct or through a scene (§6.2).
 - Why SSE rather than WebSockets: one-way traffic is all we need, it goes through ordinary HTTP auth/cookies and proxies, the browser has `EventSource` built in, and `Last-Event-ID` gives resume after reconnecting.
 
 ```
@@ -392,9 +440,21 @@ event: output
 data: {"asset":42,"profile":"web","state":"ready","level":"final","etag":"…"}
 ```
 
-Expected Voyager behavior (informative only): on an `output` event with a new `etag` for the profile currently shown, reload its entry URL and swap the model in place. Annotations and transforms belong to the scene. They still line up after a config change (§3.1), and may not after a master replacement (§5.3). Events for other profiles (e.g. `ar-app`) only update the list of what's available. Enabling or disabling a profile also sends an `output` event (`state: "queued"` or `"removed"`).
+Expected Voyager behavior (informative only): on an `output` event with a new `etag` for a profile the scene uses, reload that derivative and swap it in place. Annotations and transforms belong to the scene. They still line up after a config change (§3.1), and may not after a master replacement (§5.3). Events for profiles the scene doesn't use are ignored, except by the editor, which can use them to offer the new outputs (§7.1). Enabling or disabling a profile sends an `output` event (`state: "queued"` or `"removed"`).
 
 The stream needs `X-Accel-Buffering: no`, no compression on this route, a heartbeat every ~25 s, event ids that stay monotonic across restarts (DB sequence), and a bounded replay window. If a client's `Last-Event-ID` is too old, the server sends a `reset` event and the client re-reads the manifests.
+
+### 7.5 Playground view
+
+Users can look at an asset directly in voyager-explorer, without any scene. It's useful to check an upload while it's processing, compare profiles, and decide whether to use the asset.
+
+- **URL:** `/ui/assets/42/view`. It renders the existing `scene/explorer` template with `scenePath: "/assets/42/playground/"`. That's the same pattern as the history view (`/scenes/:scene/history/:id/view`, which points the explorer at `/history/…/show/`).
+- **`GET /assets/42/playground/scene.svx.json` is generated on every request and never stored**, like `createDocumentFromFiles` does today. It has one model with **every enabled profile** as a derivative, default lighting and environment, and the asset name as title. Unlike scenes, this generated document always follows the current outputs, since there's nothing a user curated to protect.
+- **Access:** direct `read` on the asset (§6), **so the view is public when the asset is public**. Transitive access through a scene doesn't open the playground: a viewer of a scene sees the asset the way that scene presents it, not on its own.
+- **Read-only:** no editing, no saving. A "create a scene from this asset" action (which grants the new scene, §6.2) is the way to start authoring.
+- **Live:** it subscribes to the asset's events and swaps outputs as they're refined. That makes it a natural first target for Voyager's server-awareness: it's simpler than a scene, and every asset has one.
+- **Processing state:** while `web` is at `none` or `placeholder`, the page shows the state and progress from the manifest around the viewer. That's eCorpus UI, not Voyager, so it doesn't need any Voyager change.
+- Also useful later: generating the asset's thumbnail for listings by rendering the playground.
 
 ## 8. Other consequences of living outside scenes
 
@@ -402,7 +462,9 @@ The stream needs `X-Accel-Buffering: no`, no compression on this route, a heartb
 |---|---|---|
 | Scene zip export | The export would contain an svx pointing to `/assets/…` and no model. | Export follows the reference index: copy each referenced output into the archive (e.g. `models/<asset-name>/…`) and rewrite the URIs in the exported svx. Re-importing such an archive creates scene-local files, or offers to re-create assets. |
 | Scene history | Restoring an old scene version shows the *current* output of its assets, not the one it had back then. | Accepted, given unversioned outputs. Config changes keep annotations aligned (§3.1). A master replacement may not (§5.3). If needed, the past output can be regenerated from the master/config versions in effect at that date. |
-| Scene duplication | Copying a scene copies references, not models. | That's what we want. Both scenes share the asset, which the "used in" list makes visible. |
+| Scene duplication | Copying a scene copies references, not models. Grants are re-checked against the user making the copy (§6.2). | Both scenes share the asset, which the "used in" list makes visible. A user with only transitive access gets a copy with missing models, and the copy response lists them. |
+| Scene permissions | Making a scene more visible than its assets is allowed, through its grants (§6.2). | Nothing to sync. Scene permission changes never touch assets. |
+| Asset permissions | Making an asset more private doesn't affect scenes that hold a grant (§6.3). | The asset's permission page lists the scenes that still give access to it, and offers "revoke from scene". |
 | Deleting a scene | Leaves its assets alone. | Unreferenced assets show up in the owner's asset list. No automatic deletion. |
 | Deleting an asset | Would break the scenes that reference it. | Archive it instead of deleting it while references exist. Outputs stay served. |
 | WebDAV | Assets don't appear in a scene's tree. | Fine for now. A read-only `/assets` DAV tree could come later. |
@@ -419,8 +481,8 @@ Ordered roughly by dependency.
 | 1 | **Durable, resumable jobs** | Output runs last up to hours and must survive restarts. Today `reapOrphans()` fails every unfinished task on boot, and the watchdog kills anything past 1h. | On boot, re-queue output runs whose `state` is `queued`/`processing` instead of failing them. The served level is in the DB, so a restarted run can skip the placeholder. Give long runs their own time budget and their own queue, so they don't block placeholders, uploads or other tasks (today there's one root queue of 4). |
 | 2 | **Event bus** | Something has to connect "output emitted" (in a task) to "SSE clients" (in HTTP handlers). Neither exists. | Postgres `LISTEN/NOTIFY` (payload = event id) plus an `events` table for replay. Works with one process now and with several processes or external workers later. |
 | 3 | **SSE endpoint infrastructure** | No streaming route exists. | Auth, heartbeats, connection limits, documented reverse-proxy settings (buffering, timeouts). |
-| 4 | **Asset entity, routes, and an ACL layer generalized over scenes and assets** | Assets are a new top-level resource with the same ACL system as scenes. | Tables (§4), `/assets` routes (create from upload, list, get, archive). Make `UserManager.getAccessRights`, the scene permission routes and the group-grant code work on a resource type (`scene` \| `asset`) instead of duplicating them. Copy the ACL from the scene when an asset is created from a scene upload. |
-| 5 | **Reference index** | Needed for "used in" lists, ACL mismatch warnings, safe deletion, export and GC. | Parse model URIs on every `scene.svx.json` write (`routes/scenes/scene/files/put/document.ts`, `structuredDocMerge`, archive import) and maintain `scene_asset_refs`. |
+| 4 | **Asset entity, routes, and an ACL layer generalized over scenes and assets** | Assets are a new top-level resource with the same ACL system as scenes. | Tables (§4), `/assets` routes (create from upload, list, get, archive). Make `UserManager.getAccessRights`, the scene permission routes and the group-grant code work on a resource type (`scene` \| `asset`) instead of duplicating them. |
+| 5 | **Reference index and scene grants** | Needed for transitive access (a security boundary), "used in" lists, safe deletion, export and GC. | Parse model URIs on **every** path that writes a `scene.svx.json`: `routes/scenes/scene/files/put/document.ts`, `structuredDocMerge`, archive import, scene copy, history restore. Maintain `scene_asset_refs`. Create grants after checking the writer's direct `read`, and refuse the write otherwise. The output access check is `direct OR (scene read AND ref AND grant)`. It runs on every output and resource request, so it needs an index on `scene_asset_refs(fk_asset_id)` and probably a short per-user cache. Plus the asset-side list of granting scenes and the "revoke from scene" action. |
 | 6 | **Master format and ingestors** | No master concept exists. | Canonical `.gltf` writer, extraction of embedded images without re-encoding, Draco/meshopt decoding, pass-through of unknown extensions, loss warnings. Port `toGlb`/`objToGlb` to the ingestor contract. |
 | 7 | **Profile registry and output processors** | `optimizeGlb` writes a single `.glb` with one preset today. | An instance-level list of profiles (format, processor, Voyager derivative, default config). A `.gltf` writer whose external resources are named by content hash. `.glb` output for `ar-app`. The `invalidate()`/`emit()` primitives (§5.2). |
 | 8 | **Config schema and versioning** | Configs need validation, defaults per profile, and to stay meaningful when the optimizer changes. | JSON schema with a `schema_version` and a section per profile. Only transformations that keep the coordinate frame are allowed (§3.1). Compare each profile's section between versions so only the affected profiles re-run. Decide whether a pipeline upgrade re-runs outputs automatically (probably not: offer it, or do it lazily). |
@@ -431,6 +493,8 @@ Ordered roughly by dependency.
 | 13 | **Upload retention** | Ingestion may lose data for some formats. Deleting the upload immediately makes a bad conversion unrecoverable. | Keep the upload blob (`source_hash`) for a configurable number of days. Maybe let admins pin it. |
 | 14 | **glTF → USDZ converter** | `ar-ios` needs USDZ, and nothing in the stack produces it today. | Options to evaluate: a native tool (e.g. Blender in headless mode, or Pixar's `usd` Python tools) run as an external process, or a JS exporter (three.js `USDZExporter`, which needs a DOM-less environment). Its output quality decides whether `ar-ios` is viable at all. |
 | 15 | **Signed URLs for external AR apps** | Scene Viewer and Quick Look fetch the file without the user's session, so non-public AR outputs fail to load (§3.1). | A short-lived, signed URL for one output, issued on request by a user who has `read` access. Voyager asks for it right before launching AR. The same need already exists for private scenes. |
+| 16 | **Playground view** | Seeing an asset without a scene (§7.5). | A generated `playground/scene.svx.json` (reusing `createDocumentFromFiles`), a `/ui/assets/:id/view` route reusing the `scene/explorer` template, and processing state shown in the page. |
+| 17 | **Editor support for adding derivatives** | Scenes don't pick up new outputs, so users need an easy way to add them (§7.1). | Shows the outputs listed in the asset manifest that the scene doesn't use yet, and adds the derivatives on request. Probably in Voyager story (Voyager design). |
 
 Not strictly required at first, but worth deciding early:
 - **External workers**: blocks 1 and 2 (a DB-backed queue plus NOTIFY) make heavy processing on dedicated machines a deployment choice rather than a redesign.
@@ -438,18 +502,17 @@ Not strictly required at first, but worth deciding early:
 
 ## 10. Open questions
 
-1. **Derivative list: manifest or svx?** Is it acceptable for a server-aware Voyager to build its derivative list from the asset manifest, treating the svx list as a fallback (§7.1)? The alternative is to keep the svx as the only source and accept that enabling AR on an asset only shows up in a scene after it's next saved in the editor.
-2. **Which profiles are enabled by default** for a new asset: `web` only, or also the AR profiles when the instance supports them? Instance-wide setting, or per user?
-3. **More quality levels**: should `Low`/`Thumb` become profiles (Voyager already loads derivatives progressively), or is the `web` placeholder → final sequence enough?
-4. **ACL on creation**: is copying the scene's ACL to an asset created from a scene upload (§6) the right default? Should later ACL changes on that scene offer to propagate to its assets?
-5. **Non-model uploads**: should images (for articles or textures) eventually go through the same asset system (e.g. responsive variants), or does it stay models-only?
-6. **Upload retention**: what default grace period?
+1. **Is `thumb` enabled by default?** As an instance setting (proposed), or always?
+2. **Scope of transitive access**: should a scene grant all of an asset's outputs (proposed, simpler), or only the profiles the scene references? Limiting it would mean storing the profile in `scene_asset_refs`, and AR outputs would only become visible through the scene once someone adds them.
+3. **Restricting publication**: do we need the per-asset "may not be published beyond its own ACL" flag (§6.3) from the start, or is "revoke from scene" enough?
+4. **Non-model uploads**: should images (for articles or textures) eventually go through the same asset system (e.g. responsive variants), or does it stay models-only?
+5. **Upload retention**: what default grace period?
 
 ## 11. Suggested phasing
 
 1. **Foundations**: durable jobs (1), event bus + SSE (2, 3), progress hook (9). Useful on their own, e.g. live upload/task status in the UI.
 2. **Assets and masters**: entity, ACL and routes (4), ingestors (6), retention and cleanup (11, 13). Uploads create assets.
-3. **Outputs**: profile registry and processors for `web`, `ar-web` and `ar-app` (7), config schema (8), placeholder (10), manifest and serving (§7.2, §7.3), events (§7.4).
-4. **Scene integration**: reference index (5), scene creation from an upload writes `/assets/…` references, export inlining (12).
+3. **Outputs and playground**: profile registry and processors for `web`, `thumb`, `ar-web` and `ar-app` (7), config schema (8), placeholder (10), manifest and serving (§7.2, §7.3), events (§7.4), playground view (16). This gives a usable asset library before scenes even use it.
+4. **Scene integration**: reference index and grants (5), scene creation from an upload writes `/assets/…` references and creates the grant, export inlining (12), editor support for adding derivatives (17).
 5. **iOS AR and external apps**: USDZ converter (14), signed URLs (15). Independent from the rest, so it can come later.
 6. **Voyager integration** (separate design).
