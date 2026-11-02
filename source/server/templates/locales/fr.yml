@@ -1,4 +1,10 @@
 ---
+modelWarnings:
+  png-images: Cet objet contient des images PNG
+  large-textures: Cet objet contient de grandes textures
+  large-combined-diffuse-maps: Cet objet contient plusieurs textures diffuses dont la taille cumulée dépasse 4096×4096 pixels
+  recommend-optimize: Cochez la case « Optimiser » avant de créer la scène.
+  recommend-reexport: Réexportez le modèle avec moins de textures diffuses ou des textures plus petites pour que leur taille cumulée ne dépasse pas 4096×4096 pixels.
 lang:
   fr: Français
   en: Anglais

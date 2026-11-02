@@ -1,4 +1,10 @@
 ---
+modelWarnings:
+  png-images: This object has PNG images
+  large-textures: This object has large textures
+  large-combined-diffuse-maps: This object has multiple diffuse maps with a combined size above 4096×4096 pixels
+  recommend-optimize: Tick the "Optimize" checkbox before creating the scene.
+  recommend-reexport: Re-export the model with fewer or smaller diffuse maps so their combined size is at most 4096×4096 pixels.
 lang:
   fr: French
   en: English

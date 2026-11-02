@@ -190,6 +190,19 @@ export default class UploadManager extends LitElement{
   }
 
   /**
+   * Renders the warnings and messages returned for an upload, if any
+   */
+  private renderReport(u: UploadOperation){
+    const warnings = u.warnings ?? [];
+    const messages = u.messages ?? [];
+    if(!warnings.length && !messages.length) return null;
+    return html`<div class="upload-warnings" role="status">
+      ${warnings.length? html`<ul>${warnings.map(w=>html`<li>${w.message}</li>`)}</ul>`: null}
+      ${messages.map(m=>html`<p>${m.message}</p>`)}
+    </div>`;
+  }
+
+  /**
    * Renders an individual upload operation
    */
   private renderUploadItem = (u:UploadOperation)=>{
@@ -251,10 +264,11 @@ export default class UploadManager extends LitElement{
     return html`
     <li id="upload-${u.filename.replace(/[^-_a-z0-9]/g,"_")}" class="upload-line upload-${state}">
       <span class="upload-state">${stateText}</span>
-      <span class="upload-filename">
+      <div class="upload-filename">
         ${filetype}
         ${u.filename}
-      </span>
+        ${this.renderReport(u)}
+      </div>
       <span class="upload-progress">${progress}</span>
       <span class="upload-action action-cancel" title="${u.done?"remove":"abort"} upload" @click=${onActionClick}>🗙</span>
     </li>
@@ -355,6 +369,15 @@ export default class UploadManager extends LitElement{
   }
 
   static styles = [css`
+    .upload-warnings {
+      margin: .5rem 0;
+      padding: .5rem .75rem;
+      border-inline-start: 3px solid var(--color-warning, #b87800);
+      font-size: .9rem;
+      ul { margin: 0; padding-inline-start: 1.25rem; }
+      p { margin: .5rem 0; }
+      button { cursor: pointer; }
+    }
     .dropzone{
       display: block;
       max-width: 100%;
@@ -442,6 +465,9 @@ export default class UploadManager extends LitElement{
           width: 24px;
         }
         
+        .upload-progress{
+          white-space: nowrap;
+        }
 
         .upload-action{
 
