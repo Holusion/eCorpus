@@ -166,6 +166,17 @@ export interface AuthorizationCode {
   expires: Date;
 }
 
+export interface StoredNotification{
+  notification_id: number;
+  type: string;
+  ctime: Date;
+  read_at: Date|null;
+  task: {task_id: number, type: string, status: string}|null;
+  scene: string|null;
+  /** The scene a task was working on according to its data, which may not exist (or no longer) */
+  requested_scene: string|null;
+}
+
 export default class UserManager extends DbController {
 
   static async open(opts :DbOptions){
@@ -535,6 +546,57 @@ export default class UserManager extends DbController {
    * @throws {NotFoundError} when the scene doesn't exist — or resolves to None,
    * so an invisible scene is indistinguishable from an absent one.
    */
+  /**
+   * A user's notifications, newest first.
+   */
+  async getNotifications(uid: number, {unreadOnly = true, limit = 20, offset = 0}: {unreadOnly?: boolean, limit?: number, offset?: number} = {}): Promise<StoredNotification[]>{
+    const rows = await this.db.all<Omit<StoredNotification, "task"> & {task_id: number|null, task_type: string|null, task_status: string|null}>(`
+      SELECT
+        n.notification_id,
+        n.type,
+        n.ctime,
+        n.read_at,
+        t.task_id,
+        t.type AS task_type,
+        t.status AS task_status,
+        s.scene_name AS scene,
+        COALESCE(t.data->>'scene', t.data->>'name') AS requested_scene
+      FROM notifications n
+      LEFT JOIN tasks t ON t.task_id = n.fk_task_id
+      LEFT JOIN scenes s ON s.scene_id = COALESCE(n.fk_scene_id, t.fk_scene_id)
+      WHERE n.fk_user_id = $1 ${unreadOnly ? "AND n.read_at IS NULL" : ""}
+      ORDER BY n.notification_id DESC
+      LIMIT $2
+      OFFSET $3
+    `, [uid, limit, offset]);
+    return rows.map(({task_id, task_type, task_status, ...n})=> ({
+      ...n,
+      task: task_id === null ? null : {task_id, type: task_type!, status: task_status!},
+    }));
+  }
+
+  async countUnreadNotifications(uid: number): Promise<number>{
+    const r = await this.db.get<{count: number}>(`
+      SELECT COUNT(*) AS count FROM notifications WHERE fk_user_id = $1 AND read_at IS NULL
+    `, [uid]);
+    return r!.count;
+  }
+
+  /**
+   * Marks a user's notifications as read. Those of other users are left alone, whatever the IDs say.
+   * @returns the number of notifications that weren't read until now
+   */
+  async markNotificationsRead(uid: number, which: {ids: number[]}|{upTo: number}): Promise<number>{
+    const [condition, value] = "ids" in which
+      ? ["notification_id = ANY($2::bigint[])", which.ids]
+      : ["notification_id <= $2", which.upTo];
+    const r = await this.db.run(`
+      UPDATE notifications SET read_at = CURRENT_TIMESTAMP
+      WHERE fk_user_id = $1 AND read_at IS NULL AND ${condition}
+    `, [uid, value]);
+    return r.changes ?? 0;
+  }
+
   async getAccessRights(scene :string | number, uid :number | undefined | null) :Promise<AccessLevel>{
     const res = await this.db.get( typeof uid == "number" ? `
       SELECT max(level) as level

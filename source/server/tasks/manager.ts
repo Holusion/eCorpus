@@ -1,7 +1,7 @@
 import { BadRequestError, HTTPError, NotFoundError } from "../utils/errors.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { serializeTaskError } from "./errors.js";
-import { TaskStatus, TaskDataPayload, TaskDefinition, CreateTaskParams, TaskNode, TaskLogEntry, TaskTreeResult, LogSeverity } from "./types.js";
+import { TaskStatus, TaskDataPayload, TaskDefinition, CreateTaskParams, TaskEvent, TaskNode, TaskLogEntry, TaskTreeResult, LogSeverity } from "./types.js";
 import { createLogger } from "../utils/log/index.js";
 
 const log_status = createLogger("tasks:status");
@@ -117,11 +117,11 @@ export class TaskManager{
     tasks.status
    `;
 
-  public async create<T extends TaskDataPayload = any>({scene_id, user_id, type, data, status='pending', parent=null}: CreateTaskParams<T>): Promise<TaskDefinition<T>>{
-    let args =  [scene_id, type, data ?? {}, status, user_id, parent];
+  public async create<T extends TaskDataPayload = any>({scene_id, user_id, type, data, status='pending', parent=null, notify=false}: CreateTaskParams<T>): Promise<TaskDefinition<T>>{
+    let args =  [scene_id, type, data ?? {}, status, user_id, parent, notify === true ? "yes" : notify ? "awaited" : "no"];
     let task = await this.db.all<TaskDefinition<T>>(`
-      INSERT INTO tasks(fk_scene_id, type, data, status, fk_user_id, parent)
-      VALUES ($1, $2, $3, $4, $5, $6) 
+      INSERT INTO tasks(fk_scene_id, type, data, status, fk_user_id, parent, notify)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) 
       RETURNING ${TaskManager.#taskColumns}
     `, args);
     return task[0];
@@ -358,6 +358,40 @@ export class TaskManager{
       OFFSET $${offsetIdx}
       LIMIT $${limitIdx}
     `, params);
+  }
+
+  /**
+   * The tasks currently in flight, in the same form as a {@link TaskEvent}.
+   *
+   * It's what a client needs to read when it connects, in order to catch up on what it missed.
+   * `initializing` tasks are left out: those are uploads that the client is still sending, and the
+   * abandoned ones keep that status until the next {@link TaskScheduler.reapOrphans}.
+   */
+  public async getActiveTasks({user_id, scene_id}: {user_id?: number, scene_id?: number} = {}): Promise<TaskEvent[]>{
+    const where = [`status IN ('pending', 'running')`];
+    const params: number[] = [];
+    if(user_id !== undefined) where.push(`fk_user_id = $${params.push(user_id)}`);
+    if(scene_id !== undefined) where.push(`fk_scene_id = $${params.push(scene_id)}`);
+    return await this.db.all<TaskEvent>(`
+      SELECT
+        task_id,
+        parent,
+        left(type, 128) AS type,
+        status,
+        fk_scene_id AS scene_id,
+        fk_user_id AS user_id
+      FROM tasks
+      WHERE ${where.join(" AND ")}
+      ORDER BY task_id ASC
+    `, params);
+  }
+
+  /**
+   * The response that was waiting on this task won't deliver its outcome: notify its owner instead.
+   * Whether the task has settled or not doesn't matter, and it does nothing to a task that wasn't awaited.
+   */
+  public async stopAwaiting(id: number): Promise<void>{
+    await this.db.run(`UPDATE tasks SET notify = 'yes' WHERE task_id = $1 AND notify = 'awaited'`, [id]);
   }
 
   /**

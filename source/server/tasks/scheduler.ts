@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { Queue } from "./queue.js";
-import { CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunOptions, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
+import { AwaitingResponse, CreateRunTaskParams, CreateTaskParams, ITaskLogger, RunOptions, RunTaskParams, TaskDataPayload, TaskDefinition, TaskHandler, TaskHandlerContext, TaskPackage, TaskSchedulerContext, TaskSettledCallback, TaskStatus, } from "./types.js";
 import { createLogger } from "./logger.js";
 import { TaskManager } from "./manager.js";
 import { TaskTimeoutError } from "./errors.js";
@@ -44,6 +44,12 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
    * Work queue. used internally by {@link TaskScheduler.run} to run jobs
    * */
   private readonly rootQueue = new Queue(4, "root");
+
+  /**
+   * Tasks that an HTTP response is waiting on, and whether they have settled.
+   * It's lost in a crash, which is why the database has its own record of it. See {@link reapOrphans}.
+   */
+  private readonly awaited = new Map<number, { settled: boolean }>();
 
 
   public get taskContext() {
@@ -202,11 +208,13 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
         const output = await this.nest({ concurrency: 1, name: `${task.type}#${task.task_id.toString()}`, parent: thisContext }, handler.bind(context), { context, task })
         settled = true;
         await this.releaseTask(task.task_id, output);
+        this.markSettled(task.task_id);
         return output;
       } catch (e: any) {
         settled = true;
         //Here we might make an exception if e.name === "AbortError" and the database is closed
         await this.errorTask(task.task_id, e).catch(e => console.error("Failed to set task error : ", e));
+        this.markSettled(task.task_id);
         throw e;
       } finally {
         if (budgetTimer) clearTimeout(budgetTimer);
@@ -284,7 +292,37 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     if (!params.scene_id && parent?.scene_id) params.scene_id = parent.scene_id;
     if (!params.user_id && parent?.user_id) params.user_id = parent.user_id;
     if (!params.parent && parent?.task_id) params.parent = parent.task_id;
-    return await super.create(params);
+    const task = await super.create(params);
+    if (params.notify && params.notify !== true) this.watchResponse(task.task_id, params.notify);
+    return task;
+  }
+
+  /**
+   * A task's status is committed before anything waiting on it can resume,
+   * so this always comes before the response that reports on it is sent.
+   */
+  private markSettled(task_id: number) {
+    const entry = this.awaited.get(task_id);
+    if (entry) entry.settled = true;
+  }
+
+  /**
+   * Decides what happens once `res` is over. A task's outcome only went through if the response
+   * was complete, and if the task had settled by then: otherwise, the handler didn't wait for it.
+   *
+   * A response's "close" event always fires, whether it completed or not.
+   */
+  private watchResponse(task_id: number, res: AwaitingResponse) {
+    const stopAwaiting = () => {
+      this.stopAwaiting(task_id).catch(err => log.warn({ err, task_id }, `Failed to update task #${task_id}, its owner won't be notified`));
+    };
+    if (res.destroyed) return stopAwaiting(); //It was over before the task even got created
+    const entry = { settled: false };
+    this.awaited.set(task_id, entry);
+    res.once("close", () => {
+      this.awaited.delete(task_id);
+      if (!entry.settled || !res.writableFinished) stopAwaiting();
+    });
   }
 
   /**
@@ -293,6 +331,8 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
    *
    * Assumes single-instance ownership of the database — any non-terminal row at
    * startup is by definition stranded (no live process holds it).
+   *
+   * Responses that were waiting on those tasks are gone too, so their owners get notified.
    *
    * @returns the number of rows that were transitioned to `error`
    */
@@ -303,7 +343,8 @@ export class TaskScheduler<TContext extends { db: DatabaseHandle } = TaskSchedul
     const r = await this.db.run(`
       UPDATE tasks
          SET status = 'error',
-             output = $1::json
+             output = $1::json,
+             notify = CASE WHEN notify = 'awaited' THEN 'yes'::task_notify ELSE notify END
        WHERE status IN ('pending','initializing','running')
     `, [payload]);
     return r.changes ?? 0;

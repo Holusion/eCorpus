@@ -41,6 +41,22 @@ export interface TaskDefinition<TData extends TaskDataPayload = TaskDataPayload,
 
 
 
+/**
+ * A change to a task, as published by the database.
+ *
+ * It says what changed and who may be concerned, nothing more:
+ * clients get the rest from `GET /tasks/:id`, which does its own access checks.
+ */
+export interface TaskEvent{
+  task_id: number;
+  parent: number|null;
+  type: string;
+  /** `deleted` is sent for tasks removed before they settled */
+  status: TaskStatus|"deleted";
+  scene_id: number|null;
+  user_id: number|null;
+}
+
 export interface TaskSchedulerContext{
   vfs: Vfs,
   db: DatabaseHandle,
@@ -78,10 +94,28 @@ type TaskDataRequirement<T extends TaskDataPayload> = T extends undefined
   : { data: T };
 
 
+/**
+ * The part of an HTTP response needed to tell if it delivered a task's outcome.
+ */
+export interface AwaitingResponse{
+  once(event: "close", listener: ()=>void): unknown;
+  readonly writableFinished: boolean;
+  readonly destroyed: boolean;
+}
+
 type TaskCreateCommonParameters = {
   scene_id?: number|null;
   user_id?: number|null;
   parent?: number|null;
+  /**
+   * Whether the owner should get a notification when this task settles. Nothing notifies by default:
+   * a task's type doesn't tell if it's worth telling someone about, but what starts it knows.
+   *  - `true`: nobody is waiting on this task. Notify when it settles.
+   *  - a response: it will carry the outcome. Notify only if it doesn't get through, or isn't waiting.
+   *
+   * It only has an effect on root tasks that have an owner.
+   */
+  notify?: boolean|AwaitingResponse;
 }
 
 export interface RunOptions{

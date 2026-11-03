@@ -38,6 +38,36 @@ describe("TaskManager", function(){
   })
 
 
+  describe("getActiveTasks()", function(){
+    it("returns tasks in flight, oldest first, in the form of a task event", async function(){
+      const pending = await listener.create({type: "testTask", data: {secret: true}, scene_id, user_id});
+      const running = await listener.create({type: "testTask", data: {}, status: "running"});
+      await listener.create({type: "testTask", data: {}, status: "initializing"});
+      await listener.create({type: "testTask", data: {}, status: "success"});
+      await listener.create({type: "testTask", data: {}, status: "error"});
+      expect(await listener.getActiveTasks()).to.deep.equal([
+        {task_id: pending.task_id, parent: null, type: "testTask", status: "pending", scene_id, user_id},
+        {task_id: running.task_id, parent: null, type: "testTask", status: "running", scene_id: null, user_id: null},
+      ]);
+    });
+
+    it("filters by user and scene", async function(){
+      const both = await listener.create({type: "testTask", data: {}, scene_id, user_id});
+      const scene = await listener.create({type: "testTask", data: {}, scene_id});
+      const user = await listener.create({type: "testTask", data: {}, user_id});
+      await listener.create({type: "testTask", data: {}});
+      const ids = (tasks: {task_id: number}[])=> tasks.map(t=> t.task_id);
+      expect(ids(await listener.getActiveTasks({user_id}))).to.deep.equal([both.task_id, user.task_id]);
+      expect(ids(await listener.getActiveTasks({scene_id}))).to.deep.equal([both.task_id, scene.task_id]);
+      expect(ids(await listener.getActiveTasks({user_id, scene_id}))).to.deep.equal([both.task_id]);
+    });
+
+    it("bounds the type like task events do", async function(){
+      await listener.create({type: "x".repeat(200), data: {}});
+      expect((await listener.getActiveTasks())[0].type).to.equal("x".repeat(128));
+    });
+  });
+
   //Non-connected functions that should work well in isolation
   it("create tasks", async function(){
     let task = await listener.create({
