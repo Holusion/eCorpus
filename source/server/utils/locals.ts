@@ -10,6 +10,7 @@ import Templates, { AcceptedLocales, locales } from "./templates/index.js";
 import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
 import { TaskScheduler } from "../tasks/scheduler.js";
+import { EventHub } from "../tasks/events.js";
 import { sceneLanguages, uiLanguages } from "./languages.js";
 import { localize } from "./i18n.js";
 
@@ -19,6 +20,7 @@ export interface AppLocals{
   userManager: UserManager;
   vfs: Vfs;
   taskScheduler: TaskScheduler;
+  events: EventHub;
   templates: Templates;
   config: Config;
   /** Length of a session, in milliseconds since epoch */

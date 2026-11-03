@@ -472,6 +472,7 @@ errors:
   tokenExpired: Jeton expiré
   crossOrigin: Requête provenant d'une autre origine refusée
   tooManyRequests: Trop de requêtes, veuillez réessayer plus tard.
+  serviceUnavailable: Service temporairement indisponible, veuillez réessayer plus tard.
   resourceNotFound: "La ressource demandée est introuvable. Elle est peut-être privée ou n'existe pas."
   "Username not provided": Nom d'utilisateur non fourni
   "Password not provided": Mot de passe non fourni

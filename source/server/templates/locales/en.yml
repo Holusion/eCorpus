@@ -454,6 +454,7 @@ errors:
   tokenExpired: Token expired
   crossOrigin: Cross-origin request rejected
   tooManyRequests: Too many requests, please try again later.
+  serviceUnavailable: Service temporarily unavailable, please try again later.
   resourceNotFound: "Can't find the requested resource. It may be private or not exist entirely."
   "Username not provided": Username not provided
   "Password not provided": Password not provided
