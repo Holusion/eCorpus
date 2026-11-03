@@ -923,7 +923,7 @@ routes.get("/admin/tasks", requireLevel("admin"), async (req, res) => {
   });
 });
 
-routes.get("/tasks/:id", numericParam("id"), async (req, res) => {
+routes.get("/tasks/:id", numericParam("id"), policy({ access: "read", on: "task" }), async (req, res) => {
   const {
     taskScheduler,
     userManager,
