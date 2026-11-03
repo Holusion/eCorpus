@@ -67,17 +67,18 @@ export async function parseMigrationFile(file:string){
   return parseMigrationString(content);
 }
 
+/**
+ * Must be called from within the transaction opened by {@link migrate}
+ */
 async function undoMigration(db:ClientBase, record :MigrationRecord){
   log.warn({ migration: fmtMigration(record) }, `Undo migration ${fmtMigration(record)} (file not found)`);
-  await db.query("BEGIN TRANSACTION");
   try{
     await db.query("SET CONSTRAINTS ALL DEFERRED");
     await db.query(record.down);
     await db.query(`DELETE FROM migrations WHERE id = $1`, [record.id]);
+    await db.query("SET CONSTRAINTS ALL IMMEDIATE");
   }catch(e){
     throw expandSQLError(e, record.down, `migration record ${record.id.toString().padStart(3, "0")}-${record.name}`);
-  }finally{
-    await db.query("END TRANSACTION");
   }
 }
 
@@ -105,10 +106,21 @@ function formatReport(report:MigrationReport, err:Error):string{
     `\tskipped (already applied): ${report.skipped.length? report.skipped.map(fmtMigration).join(", "): "<none>"}`,
     `\tundone in this run: ${report.undone.length? report.undone.map(fmtMigration).join(", "): "<none>"}`,
     `\tapplied in this run: ${report.applied.length? report.applied.map(fmtMigration).join(", "): "<none>"}`,
+    `\tall changes made in this run were rolled back`,
   ];
   return lines.join("\n");
 }
 
+/**
+ * Brings the database up to date with the migration files in a directory.
+ *
+ * A run is atomic: everything it does happens in a single transaction, so if it fails the database is left as it was.
+ * Migrations can't rely on a previous migration of the run being committed. Notably, a value added to an
+ * existing enum with `ALTER TYPE ... ADD VALUE` can't be used until commit, including by the next migrations.
+ *
+ * Deferred triggers are flushed after each migration: they would otherwise prevent the next one
+ * from altering their table ("pending trigger events").
+ */
 export async function migrate({db, migrations: dir, force}: MigrationParams){
   const files = await listMigrations(dir);
   const report :MigrationReport = {
@@ -165,7 +177,6 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
       report.current = file;
       const m = await parseMigrationFile(file.filepath);
       log.info({ migration: fmtMigration(file) }, `Apply migration ${path.basename(file.filepath)}`);
-      await db.query("BEGIN TRANSACTION");
       try{
           await db.query("SET CONSTRAINTS ALL DEFERRED");
           await db.query(m.up);
@@ -176,10 +187,9 @@ export async function migrate({db, migrations: dir, force}: MigrationParams){
             VALUES
               ($1, $2, $3, $4)
             `, [file.id, file.name, m.up, m.down]);
+          await db.query("SET CONSTRAINTS ALL IMMEDIATE");
       }catch(e:any){
         throw expandSQLError(e, m.up, `file ${path.basename(file.filepath)}`);
-      }finally{
-          await db.query("END TRANSACTION");
       }
       report.applied.push({id: file.id, name: file.name});
       report.current = undefined;
