@@ -34,6 +34,7 @@ export async function postRawZipfile(req: Request, res: Response) {
     user_id: requester.uid,
     type: "handlePostScene",
     immediate: true,
+    notify: res,
     handler: async function handlePostScene({ task, context: { vfs, logger } }): Promise<ImportSceneResult[]> {
       const dir = await vfs.createTaskWorkspace(task.task_id);
       //Ensure path sanitization, even though getFilename shouldn't yield absolute paths

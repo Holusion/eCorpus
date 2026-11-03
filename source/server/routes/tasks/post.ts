@@ -32,6 +32,8 @@ export async function createUserTask(req: Request, res: Response){
     type,
     data,
     status,
+    //An upload is only being initialized at this point, and its page follows it.
+    notify: status === "pending" ? res : false,
   });
 
 

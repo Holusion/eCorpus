@@ -32,14 +32,17 @@ export default async function postScene(req: Request, res: Response) {
 
   let scene_id = await vfs.createScene(scene, user_id);
   await taskScheduler.run({
-    scene_id,
+    //Only attached to the scene once it's complete: a failure removes the scene,
+    //which would take the task along, with its logs and the notification about it.
+    scene_id: null,
     user_id,
     type: "postScene",
+    notify: res,
     data: {
       language,
       scene,
     },
-    handler: async function postsSceneHandler({ context: { logger, vfs } }) {
+    handler: async function postsSceneHandler({ task, context: { logger, vfs, tasks } }) {
       logger.debug("Draining the HTTP request into scene space");
       let f = await vfs.writeFile(req, { user_id, scene: scene, mime: "model/gltf-binary", name: `${scene}.glb` });
       if (f.size == 0 || !f.hash) throw new BadRequestError(`Body was empty. Can't create a scene.`);
@@ -73,6 +76,7 @@ export default async function postScene(req: Request, res: Response) {
         name: "scene.svx.json",
         mime: "application/si-dpo-3d.document+json"
       });
+      await tasks.setTaskScene(task.task_id, scene_id);
     }
   }).catch(async e => {
     //If written, the file will stay as a loose object but will get cleaned-up later

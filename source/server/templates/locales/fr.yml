@@ -481,3 +481,22 @@ errors:
   upload:
     notGlb: "{{filename}} ne semble pas être un fichier GLB"
     invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"
+
+notifications:
+  default: Vous avez une nouvelle notification
+  task:
+    default:
+      success: "La tâche {{type}} est terminée"
+      error: "La tâche {{type}} a échoué"
+    createSceneFromFiles:
+      success: "La scène {{scene}} est prête"
+      error: "La création de la scène {{scene}} a échoué"
+    extractScenesArchives:
+      success: L'import de l'archive est terminé
+      error: L'import de l'archive a échoué
+    handlePostScene:
+      success: L'import de l'archive est terminé
+      error: L'import de l'archive a échoué
+    postScene:
+      success: "La scène {{scene}} est prête"
+      error: "La création de la scène {{scene}} a échoué"

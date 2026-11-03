@@ -465,3 +465,22 @@ errors:
   upload:
     notGlb: "{{filename}} does not look like a GLB file"
     invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"
+
+notifications:
+  default: You have a new notification
+  task:
+    default:
+      success: "Task {{type}} has finished"
+      error: "Task {{type}} has failed"
+    createSceneFromFiles:
+      success: "Scene {{scene}} is ready"
+      error: "Creation of scene {{scene}} has failed"
+    extractScenesArchives:
+      success: Archive import has finished
+      error: Archive import has failed
+    handlePostScene:
+      success: Archive import has finished
+      error: Archive import has failed
+    postScene:
+      success: "Scene {{scene}} is ready"
+      error: "Creation of scene {{scene}} has failed"

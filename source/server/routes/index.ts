@@ -24,6 +24,7 @@ import groupsRoutes from "./groups/index.js";
 import servicesRoutes from "./services/index.js";
 import tasksRoutes from "./tasks/index.js";
 import eventsRoutes from "./events/index.js";
+import notificationsRoutes from "./notifications/index.js";
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
@@ -120,6 +121,7 @@ Disallow: /users/
 Disallow: /groups/
 Disallow: /tasks/
 Disallow: /events/
+Disallow: /notifications/
 Disallow: /history/
 Disallow: /ui/scenes/*/edit
 Disallow: /ui/scenes/*/history
@@ -240,6 +242,7 @@ Sitemap: ${sitemap}
   app.use("/tasks", tasksRoutes);
   //Not under /scenes: /scenes/:scene/* would read it as a file, and allows any origin to read its responses.
   app.use("/events", eventsRoutes);
+  app.use("/notifications", notificationsRoutes);
 
   // error handling
   //404: Not Found handler This should be last as it will match everything
