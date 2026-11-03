@@ -502,6 +502,15 @@ export default abstract class ScenesVfs extends BaseVfs{
     return r?.count ?? 0;
   }
 
+  /**
+   * @throws {NotFoundError} when no scene has this name
+   */
+  async getSceneId(scene_name: string): Promise<number>{
+    const r = await this.db.get<{scene_id: number}>(`SELECT scene_id FROM scenes WHERE scene_name = $1`, [scene_name]);
+    if(!r) throw new NotFoundError(`No scene with name ${scene_name}`);
+    return r.scene_id;
+  }
+
   async getSceneMeta(scene_name: string): Promise<SceneMeta>{
       const meta = (await this.db.get(`
       SELECT meta

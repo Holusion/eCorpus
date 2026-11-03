@@ -19,6 +19,10 @@ import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
  * `Authorization: Basic` (user passwords) is not supported anymore: services
  * authenticate with revocable, scoped tokens (see docs/auth-redesign.md).
  */
+function isEventsPath(path: string): boolean{
+  return path === "/events" || path.startsWith("/events/");
+}
+
 export default function authenticate(req: Request, res: Response, next: NextFunction) {
   const { sessionMaxAge } = getLocals(req);
   const now = Date.now();
@@ -46,7 +50,9 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
         await userManager.removeSession(sessionId).catch(() => {});
         throw new UnauthorizedError(localize("errors.sessionExpired"));
       }
-      if (expires.valueOf() < now + sessionMaxAge * 0.66) {
+      //An open tab reconnects its event stream by itself: counting that
+      //as activity would keep a session alive for as long as a tab stays open.
+      if (expires.valueOf() < now + sessionMaxAge * 0.66 && !isEventsPath(req.path)) {
         //Sliding renewal: less than 66% of the session's lifetime remains.
         const newExpires = new Date(now + sessionMaxAge);
         await userManager.renewSession(sessionId, newExpires);

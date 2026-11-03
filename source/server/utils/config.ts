@@ -48,8 +48,14 @@ const runtime_values = {
   /// TASK SCHEDULER ///
   /** Max wall-clock time a single task may run before the watchdog aborts and fails it (seconds; 0 disables) */
   task_timeout_seconds:       [3600,         "number"],
+  /**
+   * How long an event stream stays open before it has to reconnect, within 20% (seconds).
+   * It's the longest that a change of permissions can take to reach an open stream.
+   */
+  event_stream_seconds: [900,          "number"],
   /// FEATURE FLAGS ///
   enable_document_merge: [isExperimental,    "boolean"],
+  enable_events:    [isExperimental,    "boolean"],
 } as const;
 
 const _all_values = {...static_values, ...runtime_values} as const;
