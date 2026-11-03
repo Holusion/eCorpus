@@ -194,6 +194,133 @@ describe("Database migration", function(){
       await expect(migrate({db, migrations:dir, force: true})).to.be.rejectedWith("x");
     });
 
+    describe("atomicity", function(){
+      async function state(){
+        return {
+          tables: (await db.query(`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> 'migrations' ORDER BY tablename`)).rows.map(r=>r.tablename),
+          records: (await db.query(`SELECT id FROM migrations ORDER BY id`)).rows.map(r=>r.id),
+        };
+      }
+
+      it("keeps earlier migrations of the run out if a later one fails", async function(){
+        await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);\n-- down\nDROP TABLE a;");
+        await fs.writeFile(path.join(dir, "002-b.sql"), "CREATE TABLE b(id INT);\nSELECT nope;\n-- down\nDROP TABLE b;");
+        await expect(migrate({db, migrations:dir, force: false})).to.be.rejectedWith("002-b.sql");
+        expect(await state()).to.deep.equal({tables: [], records: []});
+      });
+
+      it("keeps migrations applied by a previous run if a later one fails", async function(){
+        await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);\n-- down\nDROP TABLE a;");
+        await migrate({db, migrations:dir, force: false});
+        await fs.writeFile(path.join(dir, "002-b.sql"), "CREATE TABLE b(id INT);\n-- down\nDROP TABLE b;");
+        await fs.writeFile(path.join(dir, "003-c.sql"), "SELECT nope;\n-- down\nSELECT 1;");
+        await expect(migrate({db, migrations:dir, force: false})).to.be.rejectedWith("003-c.sql");
+        expect(await state()).to.deep.equal({tables: ["a"], records: [1]});
+      });
+
+      it("restores the undone migration and its data if a forced re-apply fails", async function(){
+        await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);\n-- down\nDROP TABLE a;");
+        await migrate({db, migrations:dir, force: false});
+        await db.query("INSERT INTO a(id) VALUES (1)");
+
+        await fs.writeFile(path.join(dir, "001-a.sql"), "SELECT nope;\n-- down\nDROP TABLE a;");
+        await expect(migrate({db, migrations:dir, force: true})).to.be.rejectedWith("001-a.sql");
+
+        expect(await state()).to.deep.equal({tables: ["a"], records: [1]});
+        expect((await db.query("SELECT id FROM a")).rows).to.deep.equal([{id: 1}]);
+      });
+
+      it("restores a migration undone for its missing file if a later step fails", async function(){
+        await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);\n-- down\nDROP TABLE a;");
+        await fs.writeFile(path.join(dir, "002-b.sql"), "CREATE TABLE b(id INT);\n-- down\nDROP TABLE b;");
+        await migrate({db, migrations:dir, force: false});
+        await db.query("INSERT INTO b(id) VALUES (1)");
+
+        await fs.rm(path.join(dir, "002-b.sql"));
+        await fs.writeFile(path.join(dir, "003-c.sql"), "SELECT nope;\n-- down\nSELECT 1;");
+        await expect(migrate({db, migrations:dir, force: false})).to.be.rejectedWith("003-c.sql");
+
+        expect(await state()).to.deep.equal({tables: ["a", "b"], records: [1, 2]});
+        expect((await db.query("SELECT id FROM b")).rows).to.deep.equal([{id: 1}]);
+      });
+
+      it("restores the database if \"down\" fails", async function(){
+        await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);\n-- down\nDROP TABLE a;\nSELECT nope;");
+        await migrate({db, migrations:dir, force: false});
+        await expect(migrate({db, migrations:dir, force: true})).to.be.rejectedWith("record 001-a");
+        expect(await state()).to.deep.equal({tables: ["a"], records: [1]});
+      });
+
+      it("says the run was rolled back in its failure report", async function(){
+        await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);");
+        await fs.writeFile(path.join(dir, "002-b.sql"), "xxx");
+        await expect(migrate({db, migrations:dir, force: false})).to.be.rejected;
+        const [record] = logCapture.records.filter(r => r.module === "pg:migration" && r.level === "error");
+        expect(record.msg).to.contain("rolled back");
+      });
+
+      it("doesn't raise transaction warnings", async function(){
+        const notices :Array<string|undefined> = [];
+        const onNotice = (n: {code?: string})=> notices.push(n.code);
+        db.on("notice", onNotice);
+        try{
+          await fs.writeFile(path.join(dir, "001-a.sql"), "CREATE TABLE a(id INT);\n-- down\nDROP TABLE a;");
+          await fs.writeFile(path.join(dir, "002-b.sql"), "CREATE TABLE b(id INT);\n-- down\nDROP TABLE b;");
+          await migrate({db, migrations:dir, force: false});
+          await migrate({db, migrations:dir, force: true});
+          await fs.writeFile(path.join(dir, "003-c.sql"), "SELECT nope;");
+          await expect(migrate({db, migrations:dir, force: false})).to.be.rejected;
+        }finally{
+          db.off("notice", onNotice);
+        }
+        //active_sql_transaction and no_active_sql_transaction
+        expect(notices).not.to.include("25001");
+        expect(notices).not.to.include("25P01");
+      });
+
+      describe("deferred triggers", function(){
+        const withDeferredTrigger = `
+          CREATE TABLE a(id INT);
+          CREATE FUNCTION a_check() RETURNS TRIGGER AS $$
+          BEGIN
+            IF NEW.id < 0 THEN RAISE EXCEPTION 'negative id'; END IF;
+            RETURN NULL;
+          END
+          $$ LANGUAGE plpgsql;
+          CREATE CONSTRAINT TRIGGER a_check AFTER INSERT ON a
+          DEFERRABLE INITIALLY DEFERRED
+          FOR EACH ROW EXECUTE FUNCTION a_check();
+        `;
+
+        it("are flushed before the next migration alters their table", async function(){
+          await fs.writeFile(path.join(dir, "001-a.sql"), withDeferredTrigger);
+          await fs.writeFile(path.join(dir, "002-populate.sql"), "INSERT INTO a(id) VALUES (1);");
+          await fs.writeFile(path.join(dir, "003-alter.sql"), "ALTER TABLE a ADD COLUMN name TEXT;");
+          await migrate({db, migrations:dir, force: false});
+          expect((await db.query("SELECT id, name FROM a")).rows).to.deep.equal([{id: 1, name: null}]);
+        });
+
+        it("are flushed before re-applying a forced migration", async function(){
+          await fs.writeFile(path.join(dir, "001-a.sql"), withDeferredTrigger);
+          await fs.writeFile(path.join(dir, "002-populate.sql"), "SELECT 1;\n-- down\nINSERT INTO a(id) VALUES (1);");
+          await migrate({db, migrations:dir, force: false});
+          await fs.writeFile(path.join(dir, "002-populate.sql"), "ALTER TABLE a ADD COLUMN other TEXT;\n-- down\nALTER TABLE a DROP COLUMN other;");
+          await migrate({db, migrations:dir, force: true});
+          expect((await db.query("SELECT id, other FROM a")).rows).to.deep.equal([{id: 1, other: null}]);
+        });
+
+        it("fail the migration that triggered them", async function(){
+          await fs.writeFile(path.join(dir, "001-a.sql"), withDeferredTrigger);
+          await fs.writeFile(path.join(dir, "002-populate.sql"), "INSERT INTO a(id) VALUES (-1);");
+          await fs.writeFile(path.join(dir, "003-b.sql"), "CREATE TABLE b(id INT);");
+          await expect(migrate({db, migrations:dir, force: false})).to.be.rejectedWith("negative id");
+          expect(await state()).to.deep.equal({tables: [], records: []});
+          const [record] = logCapture.records.filter(r => r.module === "pg:migration" && r.level === "error");
+          expect(record.msg).to.match(/failed on: 002-populate/);
+        });
+      });
+    });
+
     it("replaces last migration if renamed", async function(){
       // Might happen when we switch dev branches. In this case we want the migration to be removed and its replacement reapplied
     })

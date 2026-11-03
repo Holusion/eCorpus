@@ -1,7 +1,10 @@
+import fs from "fs/promises";
 import os from "os";
 import { expect } from "chai";
 import open, { Database, DbController, withTransaction } from "./db.js";
+import { listMigrations, migrate } from "./migrations.js";
 import path from "path";
+import { Client } from "pg";
 import { fileURLToPath } from 'url';
 import Vfs from "../index.js";
 import UserManager from "../../auth/UserManager.js";
@@ -20,6 +23,43 @@ describe("Database", function(){
     await expect(open({uri: "postgres://user:secret@localhost:5430/foo"})).to.be.rejectedWith("database connect ECONNREFUSED at : postgres://***:***@localhost:5430/foo");
   });
 
+
+  describe("migration files", function(){
+    const migrationsDir = path.join(thisDir, "../../migrations");
+    let tmpDir :string;
+    this.beforeAll(async function(){
+      tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "eCorpus-db-upgrade-tests-"));
+    });
+    this.afterAll(async function(){
+      await fs.rm(tmpDir, {recursive: true, force: true});
+    });
+
+    // All pending migrations run in one transaction, which restricts what one can rely on from another:
+    // a value added with ALTER TYPE ... ADD VALUE can't be used until it commits.
+    // A fresh install wouldn't catch that because new enum types are exempted.
+    it("upgrades a database stopped at any previous migration", async function(){
+      this.timeout(30000);
+      const files = await listMigrations(migrationsDir);
+      for(let count = 1; count < files.length; count++){
+        const dir = await fs.mkdtemp(path.join(tmpDir, "upgrade-"));
+        for(const {filepath} of files.slice(0, count)){
+          await fs.copyFile(filepath, path.join(dir, path.basename(filepath)));
+        }
+        const uri = await getUniqueDb(`upgrade_from_${count}`);
+        const client = new Client({connectionString: uri});
+        await client.connect();
+        try{
+          await migrate({db: client, migrations: dir, force: false});
+          await migrate({db: client, migrations: migrationsDir, force: false});
+          const {rows} = await client.query(`SELECT id FROM migrations ORDER BY id`);
+          expect(rows.map(r=>r.id)).to.deep.equal(files.map(f=>f.id));
+        }finally{
+          await client.end();
+          await dropDb(uri);
+        }
+      }
+    });
+  });
 
   describe("open", function(){
     let db :Database, uri: string;
