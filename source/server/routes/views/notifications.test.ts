@@ -198,7 +198,7 @@ describe("Notifications in the UI", function(){
     const link = (task_id: number)=> `href="/ui/tasks/${task_id}"`;
     /** The markup of what's displayed for a task, without what's under it */
     const rowOf = (text: string, task_id: number)=>{
-      const row = text.match(/<div class="task-row[ "].*?<\/button>\s*<\/div>\s*<\/div>|<div class="task-row[ "].*?<\/a>\s*<\/div>\s*<\/div>/gs)?.find(r=> r.includes(`#${task_id}\n`) || r.includes(`#${task_id} `));
+      const row = text.match(/<div class="task-row[ "].*?<\/a>\s*<\/div>\s*<\/div>/gs)?.find(r=> r.includes(`#${task_id}\n`) || r.includes(`#${task_id} `));
       expect(row, `row of task #${task_id}`).to.be.a("string");
       return row!;
     };
@@ -207,16 +207,24 @@ describe("Notifications in the UI", function(){
       it("show the type of a task, and how to get to it", async function(){
         const id = await task();
         const {text} = await page(this.server, url);
-        expect(rowOf(text, id)).to.include(`<a class="task-row-type" ${link(id)}>‹testTask›</a>`);
+        expect(rowOf(text, id)).to.include(`<a class="task-row-type" ${link(id)}>testTask</a>`);
       });
 
-      it("show the scene before it, when it has one", async function(){
+      it("say what scene it's on, when it has one", async function(){
         const scene_id = await vfs.createScene("foo", owner);
         const id = await task({scene_id});
         const none = await task();
         const {text} = await page(this.server, url);
-        expect(rowOf(text, id)).to.match(/<a href="\/ui\/scenes\/foo">foo<\/a>\s*<a class="task-row-type"/);
+        expect(rowOf(text, id)).to.match(/>testTask<\/a>\s*<span class="task-row-scene">on ‹<a href="\/ui\/scenes\/foo">foo<\/a>›<\/span>/);
         expect(rowOf(text, none)).not.to.include("/ui/scenes/");
+        expect(rowOf(text, none)).not.to.include("‹");
+      });
+
+      it("say so in the language of the page", async function(){
+        const scene_id = await vfs.createScene("foo", owner);
+        const id = await task({scene_id});
+        const {text} = await page(this.server, `${url}?lang=fr`);
+        expect(rowOf(text, id)).to.include("sur ‹");
       });
 
       it("escape what comes from a scene's name", async function(){
@@ -393,14 +401,18 @@ describe("Notifications in the UI", function(){
     });
 
     describe("what's new", function(){
-      it("tells a task with an unread notification, with a way to acknowledge it", async function(){
+      it("knows about a task with an unread notification, for what's going to show it", async function(){
         const id = await task({notify: true});
         const [{notification_id}] = await userManager.getNotifications(owner, {limit: 1});
         const row = rowOf((await page(this.server, url)).text, id);
         expect(row).to.include(`class="task-row unread" data-notification-id="${notification_id}"`);
-        expect(row).to.include("inbox-mark-read");
-        expect(row).to.include(`aria-label="mark as read"`);
-        expect(row).to.include(`name="check-check"`);
+      });
+
+      it("has nothing to act on in the list", async function(){
+        const id = await task({notify: true});
+        const {text} = await page(this.server, url);
+        expect(rowOf(text, id)).not.to.include("<button");
+        expect(text).not.to.include("js/inbox.js");
       });
 
       it("doesn't for one that's been read", async function(){
@@ -408,14 +420,12 @@ describe("Notifications in the UI", function(){
         await userManager.markNotificationsRead(owner, {task_id: id});
         const row = rowOf((await page(this.server, url)).text, id);
         expect(row).not.to.include("unread");
-        expect(row).not.to.include("inbox-mark-read");
       });
 
       it("doesn't for one nobody was notified about", async function(){
         const id = await task();
         const row = rowOf((await page(this.server, url)).text, id);
         expect(row).not.to.include("unread");
-        expect(row).not.to.include("inbox-mark-read");
       });
 
       it("is about the one looking at it", async function(){
@@ -423,7 +433,6 @@ describe("Notifications in the UI", function(){
         const id = await task({notify: true});
         const row = rowOf((await page(this.server, "/ui/admin/tasks", {as: "admin"})).text, id);
         expect(row).not.to.include("unread");
-        expect(row).not.to.include("inbox-mark-read");
       });
 
       it("is shown on a task with others under it, and only on that one", async function(){
@@ -454,11 +463,6 @@ describe("Notifications in the UI", function(){
       expect(text).not.to.include("inbox-delete");
     });
 
-    it("has what it takes to mark as read, when there's a list", async function(){
-      expect((await page(this.server, url)).text, "nothing to act on").not.to.include("js/inbox.js");
-      await task({notify: true});
-      expect((await page(this.server, url)).text).to.include("js/inbox.js");
-    });
   });
 
 

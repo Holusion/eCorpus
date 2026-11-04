@@ -97,6 +97,7 @@ labels:
   success: Success
   error: Error
   taskTypes: Task types
+  taskOnScene: "on"
   allTasks: All tasks
   rootOnly: Root tasks
   noTasks: No tasks found.

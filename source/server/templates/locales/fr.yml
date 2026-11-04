@@ -96,6 +96,7 @@ labels:
   success: Succès
   error: Erreur
   taskTypes: Types de tâches
+  taskOnScene: "sur"
   allTasks: Toutes les tâches
   rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.

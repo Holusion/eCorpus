@@ -23,12 +23,11 @@
   </div>
 </form>
 {{#if tasks.length}}
-  <ul class="task-rows{{#unless params.rootOnly}} task-rows-tree{{/unless}}" data-notifications>
+  <ul class="task-rows{{#unless params.rootOnly}} task-rows-tree{{/unless}}">
     {{#each tasks}}
       {{> taskRow }}
     {{/each}}
   </ul>
-  <script type="module" src="/dist/js/inbox.js?ref={{ config.build_ref }}"></script>
 {{else}}
   <p style="color: var(--color-secondary)">{{i18n "labels.noTasks" default="No tasks found."}}</p>
 {{/if}}

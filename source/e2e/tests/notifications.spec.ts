@@ -1,7 +1,7 @@
 import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import type { BrowserContext, Page, Request } from "@playwright/test";
 
@@ -554,49 +554,24 @@ test.describe("for logged-in users", ()=>{
       const badge = (page: Page)=> page.locator("#nav-notifications .nav-badge");
       const unread = (page: Page)=> page.locator(".task-row.unread");
 
-      test("a task with something new stands out, until it's marked as read", async ({page, baseURL, context})=>{
+      test("shows every status the same, whether it's been read or not", async ({page, baseURL, context})=>{
         await open(page, PAGE);
         await abandonUpload(page, baseURL!);
         await expect(badge(page)).toHaveAttribute("data-count", "1");
         await open(page, "/ui/user/tasks");
-        await expect(badge(page)).toHaveAttribute("data-count", "1");
-
-        const status = unread(page).locator(".task-status");
+        const status = page.locator(".task-row .task-status").first();
+        await expect(page.locator(".task-row.unread")).toHaveCount(1);
         await expect(status).toHaveCSS("opacity", "1");
-        const mark = unread(page).getByRole("button", {name: "mark as read"});
-        await expect(mark.locator("ui-icon")).toHaveAttribute("name", "check-check");
-        await mark.click();
+        const color = await status.evaluate(el=> getComputedStyle(el).backgroundColor);
+        await expect(page.locator(".task-row button")).toHaveCount(0);
 
-        await expect(unread(page)).toHaveCount(0);
-        await expect(page.getByRole("button", {name: "mark as read"}).first(), "there's nothing left to mark").toBeHidden();
-        await expect(page.locator(".task-row .task-status").first()).not.toHaveCSS("opacity", "1");
-        await expect(badge(page)).toBeHidden();
-        await expect(page).toHaveURL(/\/ui\/user\/tasks$/);
-        expect(await (await context.request.get("/notifications?status=unread")).json()).toEqual([]);
-      });
-
-      test("a task still running doesn't step back", async ({page, baseURL})=>{
-        await open(page, PAGE);
-        const {leave} = await startUpload(page, baseURL!);
-        try{
-          await page.goto("/ui/user/tasks");
-          const status = page.locator(".task-status.status-running");
-          await expect(status).toHaveCount(1);
-          await expect(status).toHaveCSS("opacity", "1");
-        }finally{
-          leave();
-        }
-      });
-
-      test("the mark fits on the status it's about", async ({page, baseURL})=>{
-        await open(page, PAGE);
-        await abandonUpload(page, baseURL!);
-        await expect(badge(page)).toHaveAttribute("data-count", "1");
-        await open(page, "/ui/user/tasks");
-        const [status, mark] = [await unread(page).locator(".task-status").boundingBox(), await unread(page).locator(".inbox-mark-read").boundingBox()];
-        expect(mark!.width).toBeLessThan(24);
-        expect(mark!.x + mark!.width / 2, "on its corner").toBeGreaterThan(status!.x + status!.width - 12);
-        expect(mark!.y + mark!.height / 2, "on its corner").toBeLessThan(status!.y + 12);
+        const [{notification_id}] = await (await context.request.get("/notifications?status=unread")).json();
+        await context.request.post("/notifications/read", {data: JSON.stringify({ids: [notification_id]}), headers: {"Content-Type": "application/json"}});
+        await page.reload();
+        await expect(page.locator(".task-row.unread")).toHaveCount(0);
+        await expect(status).toHaveCSS("opacity", "1");
+        await expect(status).toHaveCSS("filter", "none");
+        expect(await status.evaluate(el=> getComputedStyle(el).backgroundColor)).toEqual(color);
       });
 
       test.describe("as a hierarchy", ()=>{
@@ -635,21 +610,6 @@ test.describe("for logged-in users", ()=>{
           await page.waitForURL(/\/ui\/tasks\/\d+$/);
         });
 
-        test("marking a task as read doesn't collapse it", async ({page, baseURL, context})=>{
-          await createScene(page, context);
-          await page.route(url=> url.pathname === "/ui/user/tasks", async (route)=>{
-            const res = await route.fetch();
-            const body = (await res.text()).replace(/<div class="task-row"/, `<div class="task-row unread" data-notification-id="1"`)
-              .replace(/(<a href="\/ui\/tasks\/\d+" class="task-status[^>]*>[^<]*<\/a>)/, `$1<button class="inbox-mark-read" type="button" aria-label="mark as read"></button>`);
-            await route.fulfill({response: res, body});
-          });
-          await page.route("**/notifications/read", (r)=> r.fulfill({status: 200, contentType: "application/json", body: JSON.stringify({read: 1, unread: 0, unread_errors: 0})}));
-          await page.goto("/ui/user/tasks?rootOnly=false");
-          await tree(page).locator(".inbox-mark-read").first().click();
-          await expect(page.locator(".task-row.unread")).toHaveCount(0);
-          await expect(tree(page)).toHaveAttribute("open", "");
-        });
-
         test("keeps the type of a task in sight, whatever the length of its scene's name", async ({page, context})=>{
           await page.setViewportSize({width: 390, height: 700});
           const name = `a very long name ${"that goes on and on ".repeat(10)}${randomUUID()}`;
@@ -666,9 +626,64 @@ test.describe("for logged-in users", ()=>{
           ];
           expect(type!.x + type!.width, "next to the name, before the status").toBeLessThanOrEqual(status!.x);
           expect(type!.x + type!.width).toBeLessThanOrEqual(row!.x + row!.width + 1);
-          await expect(page.locator(".task-row-type").first()).toContainText("postScene");
+          await expect(page.locator(".task-row-type").first()).toHaveText("postScene");
+          await expect(page.locator(".task-row-scene").first(), "with what closes it").toContainText("›");
+          const scene = await page.locator(".task-row-scene").first().boundingBox();
+          expect(scene!.x + scene!.width, "the name gives way").toBeLessThanOrEqual(status!.x);
           const overflow = await page.evaluate(()=> document.documentElement.scrollWidth - document.documentElement.clientWidth);
           expect(overflow, "no scrolling sideways").toBeLessThanOrEqual(0);
+        });
+
+        test("doesn't cut the type for a long name on a wide screen", async ({page, context})=>{
+          await page.setViewportSize({width: 1200, height: 700});
+          const name = `a very long name ${"that goes on and on ".repeat(10)}${randomUUID()}`;
+          await expect(await context.request.post(`/scenes/${encodeURIComponent(name)}`, {
+            data: await fs.readFile(path.join(import.meta.dirname, "../__test_fixtures/cube.glb")),
+            headers: {"Content-Type": "model/gltf-binary"},
+          })).toBeOK();
+          await page.goto("/ui/user/tasks");
+          const type = page.locator(".task-row-type").first();
+          const {scrollWidth, clientWidth} = await type.evaluate(el=> ({scrollWidth: el.scrollWidth, clientWidth: el.clientWidth}));
+          expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+          const [typeBox, sceneBox] = [await type.boundingBox(), await page.locator(".task-row-scene").first().boundingBox()];
+          expect(sceneBox!.y, "on the same line").toBeLessThan(typeBox!.y + typeBox!.height);
+          const link = page.locator(".task-row-scene a").first();
+          const cut = await link.evaluate(el=> el.scrollWidth - el.clientWidth);
+          expect(cut, "the name is what gives way").toBeGreaterThan(0);
+        });
+
+        test("keeps a short name on the line of its type, even on a small screen", async ({page, context})=>{
+          await expect(await context.request.post(`/scenes/${randomBytes(2).toString("hex")}`, {
+            data: await fs.readFile(path.join(import.meta.dirname, "../__test_fixtures/cube.glb")),
+            headers: {"Content-Type": "model/gltf-binary"},
+          })).toBeOK();
+          await page.setViewportSize({width: 520, height: 700});
+          await page.goto("/ui/user/tasks");
+          const [typeBox, sceneBox] = [await page.locator(".task-row-type").first().boundingBox(), await page.locator(".task-row-scene").first().boundingBox()];
+          expect(sceneBox!.y).toBeLessThan(typeBox!.y + typeBox!.height);
+        });
+
+        test("keeps everything in its row on a phone", async ({page, context})=>{
+          await page.setViewportSize({width: 390, height: 900});
+          await createScene(page, context);
+          await page.goto("/ui/user/tasks?rootOnly=false");
+          const rows = page.locator(".task-row");
+          expect(await rows.count(), "with some long types among them").toBeGreaterThan(2);
+          await expect(page.locator(".task-row-type", {hasText: "createDocumentFromFiles"})).toHaveCount(1);
+          for(const row of await rows.all()){
+            const status = await row.locator(".task-status").boundingBox();
+            //Text can get out of a box that's been shrunk, so it has to be held back too
+            for(const part of await row.locator(".task-row-type, .task-row-scene").all()){
+              const box = await part.boundingBox();
+              expect(box!.x + box!.width, await part.innerText()).toBeLessThanOrEqual(status!.x);
+              await expect(part).toHaveCSS("overflow-x", "hidden");
+            }
+          }
+          //The scene is still readable there
+          const scene = page.locator(".task-row-scene").first();
+          const [type, name] = [await page.locator(".task-row-type").first().boundingBox(), await scene.boundingBox()];
+          expect(name!.y, "on a line of its own").toBeGreaterThanOrEqual(type!.y + type!.height - 1);
+          expect(name!.width, "with some room").toBeGreaterThan(type!.width);
         });
 
         test("root tasks have nothing to unfold", async ({page, context})=>{
@@ -677,17 +692,6 @@ test.describe("for logged-in users", ()=>{
           await expect(page.locator(".task-row").first()).toBeVisible();
           await expect(page.locator(".task-rows details")).toHaveCount(0);
         });
-      });
-
-      test("a right click doesn't mark anything as read", async ({page, baseURL, context})=>{
-        await open(page, PAGE);
-        await abandonUpload(page, baseURL!);
-        await expect(badge(page)).toHaveAttribute("data-count", "1");
-        await open(page, "/ui/user/tasks");
-        await unread(page).getByRole("button", {name: "mark as read"}).click({button: "right"});
-        await page.waitForTimeout(200);
-        const all = await (await context.request.get("/notifications?status=unread")).json();
-        expect(all).toHaveLength(1);
       });
 
       for(const {name, viewport} of [{name: "a wide screen", viewport: {width: 1200, height: 700}}, {name: "a phone", viewport: {width: 390, height: 700}}]){

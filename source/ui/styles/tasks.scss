@@ -179,19 +179,35 @@
 
 .task-row-title {
   display: flex;
+  flex-wrap: nowrap;
   align-items: baseline;
-  gap: .4rem;
+  gap: 0 .4rem;
   white-space: nowrap;
 
-  //A name gives way, as the type is what tells tasks of a scene apart
-  > a:not(.task-row-type) {
-    overflow: hidden;
-    text-overflow: ellipsis;
+  //There wouldn't be anything left of a long name: it goes to a line of its own
+  @media (max-width: 650px) {
+    flex-wrap: wrap;
   }
 }
 
+//It stays whole, as it's what tells tasks apart, unless it's longer than the whole line
 .task-row-type {
-  opacity: .8;
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+//A name gives way
+.task-row-scene {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .task-row-details {
@@ -202,47 +218,12 @@
 }
 
 .task-row-status {
-  position: relative;
   flex: 0 0 auto;
 
   .task-status {
     display: block;
     text-decoration: none;
   }
-
-  //Small, on the corner of the status: there's something to acknowledge there
-  .inbox-mark-read {
-    --btn-color: var(--color-dark);
-    position: absolute;
-    top: -.5rem;
-    right: -.4rem;
-    box-sizing: content-box;
-    display: flex;
-    width: .9rem;
-    height: .9rem;
-    padding: 2px;
-    color: var(--color-dark);
-    background: var(--color-primary);
-    border: 1px solid var(--color-dark);
-    border-radius: 50%;
-    cursor: pointer;
-
-    &:hover, &:focus {
-      background: var(--color-primary-light);
-    }
-
-    .ui-icon, svg {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-  }
-}
-
-//What's over and has been seen steps back, what's new or still going doesn't
-.task-row:not(.unread) .task-status:is(.status-success, .status-error) {
-  opacity: .55;
-  filter: saturate(.6);
 }
 
 .task-rows-tree {
