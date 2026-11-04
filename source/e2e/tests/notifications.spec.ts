@@ -523,6 +523,47 @@ test.describe("for logged-in users", ()=>{
     await expect(all).toHaveText("mark all as read");
   });
 
+  test.describe("tasks", ()=>{
+    test("visiting a task marks its notification as read", async ({page, baseURL, context})=>{
+      await open(page, PAGE);
+      await abandonUpload(page, baseURL!);
+      const badge = page.locator("#nav-notifications .nav-badge");
+      await expect(badge).toHaveAttribute("data-count", "1");
+      const [{link}] = await (await context.request.get("/notifications?status=unread")).json();
+
+      //However we get there
+      const connected = page.waitForResponse(res=> STREAM.test(res.url()));
+      await page.goto(link);
+      await connected;
+      await expect(badge, "on that same page").toBeHidden();
+      expect(await (await context.request.get("/notifications?status=unread")).json()).toEqual([]);
+    });
+
+    test("can be limited to those with an unread notification", async ({page, baseURL, context})=>{
+      await open(page, PAGE);
+      await abandonUpload(page, baseURL!);
+      await expect(page.locator("#nav-notifications .nav-badge")).toHaveAttribute("data-count", "1");
+
+      await page.goto("/ui/user/tasks");
+      const filter = page.locator(`select[name="rootOnly"]`);
+      await filter.selectOption("unread");
+      await page.waitForURL(/rootOnly=unread/);
+      await expect(filter).toHaveValue("unread");
+      const row = page.locator(".tasks-table tbody tr");
+      await expect(row).toHaveCount(1);
+
+      //Going there is reading it
+      await row.getByRole("link", {name: /postScene#/}).click();
+      await page.waitForURL(/\/ui\/tasks\/\d+$/);
+      await page.goBack();
+      await page.reload();
+      await expect(filter).toHaveValue("unread");
+      await expect(row).toHaveCount(0);
+      await expect(page.locator("main")).toContainText("No tasks found");
+    });
+  });
+
+
   test.describe("toast", ()=>{
     test.beforeEach(async ({page})=>{
       await page.clock.install();
@@ -573,10 +614,16 @@ test.describe("for logged-in users", ()=>{
       await expect(badge(page)).toHaveAttribute("data-count", "3");
       await expect(badge(page)).toHaveCSS("background-color", await colorOf(page, "--color-error"));
       //Whatever state the bell is in
+      await page.route(url=> url.toString().includes("status=unread&limit="), (route)=> route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([3, 2, 1].map(id=> ({notification_id: id, message: `Task ${id}`, link: `/ui/tasks/${id}`, task: {task_id: id, status: id === 2 ? "error" : "success"}}))),
+      }));
       await page.locator("#nav-notifications").hover();
       await expect(badge(page)).toHaveCSS("background-color", await colorOf(page, "--color-error"));
       await page.locator("#nav-notifications").click();
-      await expect(page.locator("#nav-notifications-panel")).toBeVisible();
+      await expect(page.locator("#nav-notifications-panel li")).toHaveCount(3);
+      await expect(badge(page)).toHaveAttribute("data-count", "3");
       await expect(badge(page)).toHaveCSS("background-color", await colorOf(page, "--color-error"));
     });
 

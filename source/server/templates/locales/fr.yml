@@ -98,6 +98,7 @@ labels:
   taskTypes: Types de tâches
   allTasks: Toutes les tâches
   rootOnly: Premier niveau
+  unreadNotifications: Notifications non lues
   noTasks: Aucune tâche trouvée.
   noNotifications: Aucune notification.
   noNewNotifications: Aucune nouvelle notification.

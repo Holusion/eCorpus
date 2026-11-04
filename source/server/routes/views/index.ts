@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals, numericParam, getLanguage } from "../../utils/locals.js";
+import { policy, getCredentialScopes, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, requireLevel, useTemplateProperties, getTaskScheduler, getLocals, numericParam, getLanguage } from "../../utils/locals.js";
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
@@ -884,7 +884,9 @@ routes.get("/user/tasks", async (req, res) => {
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
+  //Notifications are about root tasks, so that's the same as "root tasks", with one more condition
+  const unreadOnly = req.query.rootOnly === "unread";
+  const rootOnly = unreadOnly || (qsToBool(req.query.rootOnly) ?? true);
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
@@ -892,12 +894,12 @@ routes.get("/user/tasks", async (req, res) => {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: user.uid, type, status, rootOnly, limit, offset });
+  const tasks = await taskScheduler.getTasks({ user_id: user.uid, unreadBy: unreadOnly ? user.uid : undefined, type, status, rootOnly, limit, offset });
   res.render("user/tasks", {
     layout: "user",
     title: "My Tasks — User",
     tasks,
-    params: { type, status, rootOnly, limit, offset },
+    params: { type, status, rootOnly, unreadOnly, limit, offset },
   });
 });
 
@@ -964,6 +966,15 @@ routes.get("/tasks/:id", numericParam("id"), policy({ access: "read", on: "task"
   const rawLevel = req.query.level as string | undefined;
   const level: Level = (validLevels as readonly string[]).includes(rawLevel ?? "") ? rawLevel as Level : "info";
   const {root, logs} = await taskScheduler.getTaskTree(id, {level});
+
+  //Looking at the task is what its notification asked for. It's only ever the visitor's own: an admin
+  //looking at someone's task doesn't read it for them. A token also has to be allowed to change that.
+  const credential = getCredentialScopes(res);
+  if(req.method === "GET" && requester && (!credential || credential.has("account:write"))){
+    await userManager.markNotificationsRead(requester.uid, {task_id: id}).catch(err=>{
+      log.warn({err, task_id: id}, `Failed to mark the notification about task #${id} as read`);
+    });
+  }
 
   // Logs at severity >= warn, regardless of the UI filter.
   // When the displayed list filters above warn (level error/fatal), warn lines

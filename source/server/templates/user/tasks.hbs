@@ -2,13 +2,16 @@
 <section>
   <h3>{{i18n "nav.tasks"}}</h3>
   {{#unless tasks.length}}
-    <aside class="help-block">
-      <ui-icon name="info"></ui-icon>
-      <div class="help-block-content">
-        <p>{{{i18n "onboarding.tasks.lead"}}}</p>
-        <a href="https://ecorpus.eu/en/doc/explainers/tasks.html">{{i18n "onboarding.tasks.link"}} →</a>
-      </div>
-    </aside>
+    {{!-- Nothing unread is good news: it's no reason to explain what tasks are --}}
+    {{#unless params.unreadOnly}}
+      <aside class="help-block">
+        <ui-icon name="info"></ui-icon>
+        <div class="help-block-content">
+          <p>{{{i18n "onboarding.tasks.lead"}}}</p>
+          <a href="https://ecorpus.eu/en/doc/explainers/tasks.html">{{i18n "onboarding.tasks.link"}} →</a>
+        </div>
+      </aside>
+    {{/unless}}
   {{/unless}}
-  {{> taskList params=params tasks=tasks}}
+  {{> taskList params=params tasks=tasks withUnread=true}}
 </section>

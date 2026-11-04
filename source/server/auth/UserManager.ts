@@ -599,10 +599,10 @@ export default class UserManager extends DbController {
    * Marks a user's notifications as read. Those of other users are left alone, whatever the IDs say.
    * @returns the number of notifications that weren't read until now
    */
-  async markNotificationsRead(uid: number, which: {ids: number[]}|{upTo: number}): Promise<number>{
-    const [condition, value] = "ids" in which
-      ? ["notification_id = ANY($2::bigint[])", which.ids]
-      : ["notification_id <= $2", which.upTo];
+  async markNotificationsRead(uid: number, which: {ids: number[]}|{upTo: number}|{task_id: number}): Promise<number>{
+    const [condition, value] = "ids" in which ? ["notification_id = ANY($2::bigint[])", which.ids]
+      : "upTo" in which ? ["notification_id <= $2", which.upTo]
+      : ["fk_task_id = $2", which.task_id];
     const r = await this.db.run(`
       UPDATE notifications SET read_at = CURRENT_TIMESTAMP
       WHERE fk_user_id = $1 AND read_at IS NULL AND ${condition}

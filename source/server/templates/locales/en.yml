@@ -99,6 +99,7 @@ labels:
   taskTypes: Task types
   allTasks: All tasks
   rootOnly: Root tasks
+  unreadNotifications: Unread notifications
   noTasks: No tasks found.
   noNotifications: No notifications.
   noNewNotifications: No new notifications.

@@ -89,6 +89,179 @@ describe("Notifications in the UI", function(){
   });
 
 
+  describe("GET /ui/tasks/:id", function(){
+    /** @returns the ID of the task along with the one of the notification */
+    async function notifiedTask(user_id = owner){
+      const task = await taskScheduler.create({type: "testTask", data: {}, user_id, notify: true, status: "running"});
+      await taskScheduler.releaseTask(task.task_id);
+      const [notification] = await userManager.getNotifications(user_id, {limit: 1});
+      return {task_id: task.task_id, notification_id: notification.notification_id};
+    }
+    const isRead = async (uid: number, id: number)=>{
+      const all = await userManager.getNotifications(uid, {unreadOnly: false, limit: 100});
+      return all.find(n=> n.notification_id === id)!.read_at !== null;
+    };
+
+    it("marks the notification about this task as read", async function(){
+      const {task_id, notification_id} = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`);
+      expect(await isRead(owner, notification_id)).to.equal(true);
+    });
+
+    it("has the count right on the page that does it", async function(){
+      const {task_id} = await notifiedTask();
+      await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`);
+      expect(await userManager.getUnreadSummary(owner)).to.deep.equal({unread: 1, errors: 0});
+    });
+
+    it("leaves other notifications alone", async function(){
+      const {task_id} = await notifiedTask();
+      const {notification_id} = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`);
+      expect(await isRead(owner, notification_id)).to.equal(false);
+    });
+
+    it("works with any filter on its logs", async function(){
+      const {task_id, notification_id} = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}?level=error`);
+      expect(await isRead(owner, notification_id)).to.equal(true);
+    });
+
+    it("keeps the time it was first read at", async function(){
+      const {task_id, notification_id} = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`);
+      const read_at = async ()=> (await userManager.getNotifications(owner, {unreadOnly: false})).find(n=> n.notification_id === notification_id)!.read_at;
+      const first = await read_at();
+      await page(this.server, `/ui/tasks/${task_id}`);
+      expect(await read_at()).to.deep.equal(first);
+    });
+
+    it("is fine with a task nobody is notified about", async function(){
+      const task = await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"});
+      await page(this.server, `/ui/tasks/${task.task_id}`);
+    });
+
+    it("doesn't read someone else's notification, for an admin looking at their task", async function(){
+      await userManager.addUser("admin", "12345678", "admin");
+      const {task_id, notification_id} = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`, {as: "admin"});
+      expect(await isRead(owner, notification_id)).to.equal(false);
+    });
+
+    it("doesn't do anything for those who aren't allowed to see it", async function(){
+      const {task_id, notification_id} = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`, {as: "other", status: 401});
+      await page(this.server, `/ui/tasks/${task_id}`, {as: null, status: 401});
+      expect(await isRead(owner, notification_id)).to.equal(false);
+    });
+
+    it("isn't a visit when it's only a HEAD request", async function(){
+      const {task_id, notification_id} = await notifiedTask();
+      await request(this.server).head(`/ui/tasks/${task_id}`).set("Authorization", await bearer("owner")).expect(200);
+      expect(await isRead(owner, notification_id)).to.equal(false);
+    });
+
+    describe("with a token", function(){
+      const token = async (scope: string[])=>{
+        const {token} = await userManager.createToken(owner, {name: "test", scope});
+        return `Bearer ${token}`;
+      };
+
+      it("doesn't change anything, if it's only allowed to read tasks", async function(){
+        const {task_id, notification_id} = await notifiedTask();
+        await request(this.server).get(`/ui/tasks/${task_id}`).set("Authorization", await token(["tasks:read"])).expect(200);
+        expect(await isRead(owner, notification_id)).to.equal(false);
+      });
+
+      it("marks it as read if it's allowed to change the account", async function(){
+        const {task_id, notification_id} = await notifiedTask();
+        await request(this.server).get(`/ui/tasks/${task_id}`).set("Authorization", await token(["tasks:read", "account:write"])).expect(200);
+        expect(await isRead(owner, notification_id)).to.equal(true);
+      });
+    });
+  });
+
+
+  describe("GET /ui/user/tasks", function(){
+    const url = "/ui/user/tasks";
+    const option = /<option value="unread"([^>]*)>/;
+
+    async function notifiedTask({user_id = owner, fail = false} = {}){
+      const task = await taskScheduler.create({type: "testTask", data: {}, user_id, notify: true, status: "running"});
+      if(fail) await taskScheduler.errorTask(task.task_id, new Error("Task failed"));
+      else await taskScheduler.releaseTask(task.task_id);
+      return task.task_id;
+    }
+    const link = (task_id: number)=> `testTask#${task_id}`;
+
+    it("offers to show what has an unread notification", async function(){
+      const {text} = await page(this.server, url);
+      expect(text).to.include("Unread notifications");
+      expect(option.exec(text)?.[1], "not by default").not.to.include("selected");
+      expect(text).to.match(/<option value="true" selected>/);
+    });
+
+    it("only shows those", async function(){
+      const unread = await notifiedTask();
+      const read = await notifiedTask();
+      const notified = await userManager.getNotifications(owner, {limit: 1});
+      await userManager.markNotificationsRead(owner, {ids: [notified[0].notification_id]});
+      const quiet = (await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"})).task_id;
+      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      expect(text).to.include(link(unread));
+      expect(text).not.to.include(link(read));
+      expect(text).not.to.include(link(quiet));
+      expect(option.exec(text)?.[1], "as the selected option").to.include("selected");
+      expect(text).not.to.match(/<option value="true" selected>/);
+      expect(text).not.to.match(/<option value="false" selected>/);
+    });
+
+    it("doesn't change what's shown otherwise", async function(){
+      const read = await notifiedTask();
+      await userManager.markNotificationsRead(owner, {task_id: read});
+      for(const query of ["", "?rootOnly=true", "?rootOnly=false"]){
+        expect((await page(this.server, url+query)).text, query).to.include(link(read));
+      }
+    });
+
+    it("doesn't show the tasks of others", async function(){
+      const theirs = await notifiedTask({user_id: other});
+      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      expect(text).not.to.include(link(theirs));
+    });
+
+    it("goes along with the other filters", async function(){
+      const success = await notifiedTask();
+      const failure = await notifiedTask({fail: true});
+      const {text} = await page(this.server, `${url}?rootOnly=unread&status=error`);
+      expect(text).to.include(link(failure));
+      expect(text).not.to.include(link(success));
+    });
+
+    it("no longer shows a task once it's been visited", async function(){
+      const task_id = await notifiedTask();
+      await page(this.server, `/ui/tasks/${task_id}`);
+      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      expect(text).not.to.include(link(task_id));
+    });
+
+    it("doesn't explain what tasks are when there's just nothing unread", async function(){
+      expect((await page(this.server, url)).text, "for comparison").to.include("help-block");
+      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      expect(text).not.to.include("help-block");
+      expect(text).to.include("No tasks found");
+    });
+
+    it("isn't offered on the other lists of tasks", async function(){
+      await userManager.addUser("admin", "12345678", "admin");
+      const {text} = await page(this.server, "/ui/admin/tasks", {as: "admin"});
+      expect(text).to.include(`value="false"`);
+      expect(text).not.to.match(option);
+    });
+  });
+
+
   describe("GET /ui/user/notifications", function(){
     const url = "/ui/user/notifications";
 

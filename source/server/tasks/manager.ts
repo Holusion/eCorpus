@@ -304,10 +304,11 @@ export class TaskManager{
    * - `user_id` : filter by `fk_user_id`
    * - `type`    : regular expression match against `type` column
    * - `scene_id`: filter by `fk_scene_id`
+   * - `unreadBy`: only tasks this user has an unread notification about
    *
    * Returns tasks ordered by `ctime DESC` (newest first).
    */
-  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; unreadBy?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
     if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
@@ -341,6 +342,15 @@ export class TaskManager{
     // Status filter: 'success' or 'error' or 'all' (no filter)
     if (options.status && options.status !== 'all') {
       where.push(`status = $${params.push(options.status)}`);
+    }
+
+    if (options.unreadBy != null) {
+      where.push(`EXISTS (
+        SELECT 1 FROM notifications
+        WHERE notifications.fk_task_id = tasks.task_id
+          AND notifications.fk_user_id = $${params.push(options.unreadBy)}
+          AND notifications.read_at IS NULL
+      )`);
     }
 
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";

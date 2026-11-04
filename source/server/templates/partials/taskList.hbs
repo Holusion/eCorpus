@@ -17,8 +17,11 @@
   <div class="form-item">
     <label>{{i18n "labels.taskTypes"}}</label>
     <select name="rootOnly" onchange="this.form.submit()">
-      <option value="true" {{#if params.rootOnly}}selected{{/if}}>{{i18n "labels.rootOnly"}}</option>
+      <option value="true" {{#if params.rootOnly}}{{#unless params.unreadOnly}}selected{{/unless}}{{/if}}>{{i18n "labels.rootOnly"}}</option>
       <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks"}}</option>
+      {{#if withUnread}}
+        <option value="unread" {{#if params.unreadOnly}}selected{{/if}}>{{i18n "labels.unreadNotifications"}}</option>
+      {{/if}}
     </select>
   </div>
 </form>
