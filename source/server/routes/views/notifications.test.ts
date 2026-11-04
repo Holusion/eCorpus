@@ -231,6 +231,13 @@ describe("Notifications in the UI", function(){
       expect(text).not.to.include(link(theirs));
     });
 
+    it("doesn't count a notification meant for someone else, about one of your tasks", async function(){
+      const {task_id} = await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"});
+      await taskScheduler.db.run(`INSERT INTO notifications(fk_user_id, type, fk_task_id) VALUES ($1, 'task', $2)`, [other, task_id]);
+      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      expect(text).not.to.include(link(task_id));
+    });
+
     it("goes along with the other filters", async function(){
       const success = await notifiedTask();
       const failure = await notifiedTask({fail: true});
