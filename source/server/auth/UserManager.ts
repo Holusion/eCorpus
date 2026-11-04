@@ -575,6 +575,19 @@ export default class UserManager extends DbController {
     }));
   }
 
+  /** How many notifications are unread, and how many of those are about something that failed */
+  async getUnreadSummary(uid: number): Promise<{unread: number, errors: number}>{
+    const r = await this.db.get<{unread: number, errors: number}>(`
+      SELECT
+        COUNT(*) AS unread,
+        COUNT(*) FILTER (WHERE t.status = 'error') AS errors
+      FROM notifications n
+      LEFT JOIN tasks t ON t.task_id = n.fk_task_id
+      WHERE n.fk_user_id = $1 AND n.read_at IS NULL
+    `, [uid]);
+    return r!;
+  }
+
   async countUnreadNotifications(uid: number): Promise<number>{
     const r = await this.db.get<{count: number}>(`
       SELECT COUNT(*) AS count FROM notifications WHERE fk_user_id = $1 AND read_at IS NULL

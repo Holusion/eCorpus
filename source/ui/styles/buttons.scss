@@ -126,6 +126,15 @@ a{
 
   // --- Size variants ---
 
+  // Fits around its icon. Comes first so that other sizes apply to it too.
+  &.btn-icon {
+    min-width: auto;
+    padding: .5rem;
+    .ui-icon{
+      display: block;
+    }
+  }
+
   &.btn-small {
     padding: 0 4px;
     min-width: auto;

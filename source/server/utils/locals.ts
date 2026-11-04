@@ -591,6 +591,8 @@ export function useTemplateProperties(req: Request, res: Response, next?: NextFu
     root_url: canonical(req, "/").toString(),
     color_primary: config.get("color_primary"),
     color_secondary: config.get("color_secondary"),
+    //Only those who can get an answer from it should have the client for it
+    events_stream: (config.get("enable_events") && isUserAtLeast(user, "use")) ? `/events/users/${user!.uid}` : null,
   });
   if (next) next();
 }

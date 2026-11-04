@@ -1,0 +1,55 @@
+<section>
+  <h3>{{i18n "nav.notifications"}}</h3>
+  <div class="inbox-toolbar">
+    <form class="form-control form-row" method="GET">
+      <div class="form-item">
+        <label>{{i18n "fields.status"}}</label>
+        <select name="status" onchange="this.form.submit()">
+          <option value="all" {{#if (test params.status "==" "all")}}selected{{/if}}>{{i18n "labels.all"}}</option>
+          <option value="unread" {{#if (test params.status "==" "unread")}}selected{{/if}}>{{i18n "labels.unread"}}</option>
+        </select>
+      </div>
+    </form>
+    {{#if newest}}
+      <button id="inbox-mark-all" class="btn btn-main" type="button" data-up-to="{{newest}}"><ui-icon name="check-check"></ui-icon> {{i18n "buttons.markAllAsRead"}}</button>
+    {{/if}}
+  </div>
+
+  {{#if notifications.length}}
+    <ul class="inbox">
+      {{#each notifications}}
+        <li class="inbox-item{{#unless read_at}} unread{{/unless}}" data-notification-id="{{notification_id}}">
+          {{#if (test task.status "==" "error")}}
+            <ui-icon class="text-error" name="error"></ui-icon>
+          {{else if (test task.status "==" "success")}}
+            <ui-icon class="text-success" name="check"></ui-icon>
+          {{else}}
+            <ui-icon class="text-info" name="info"></ui-icon>
+          {{/if}}
+          <div class="inbox-item-content">
+            {{#if link}}
+              <a class="inbox-item-message" href="{{link}}">{{message}}</a>
+            {{else}}
+              <span class="inbox-item-message">{{message}}</span>
+            {{/if}}
+            <small class="inbox-item-details">
+              {{dateString ctime}}
+              {{#if scene}}
+                &mdash; <a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a>
+              {{/if}}
+            </small>
+          </div>
+          {{#unless read_at}}
+            <button class="btn btn-outline btn-icon inbox-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
+          {{/unless}}
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <p>{{i18n "labels.noNotifications"}}</p>
+  {{/if}}
+  {{#with pager}}
+    {{> pager }}
+  {{/with}}
+</section>
+<script type="module" src="/dist/js/inbox.js?ref={{ config.build_ref }}"></script>

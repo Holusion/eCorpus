@@ -59,6 +59,36 @@ describe("Notifications", function(){
   });
 
 
+  describe("getUnreadSummary()", function(){
+    it("counts what's unread, and what's about a failure", async function(){
+      expect(await userManager.getUnreadSummary(user.uid)).to.deep.equal({unread: 0, errors: 0});
+      await notifiedTask();
+      expect(await userManager.getUnreadSummary(user.uid)).to.deep.equal({unread: 1, errors: 0});
+      await notifiedTask({fail: true});
+      await notifiedTask({fail: true});
+      expect(await userManager.getUnreadSummary(user.uid)).to.deep.equal({unread: 3, errors: 2});
+    });
+
+    it("doesn't count what's been read", async function(){
+      await notifiedTask({fail: true});
+      const [{notification_id}] = await userManager.getNotifications(user.uid);
+      await notifiedTask();
+      await userManager.markNotificationsRead(user.uid, {ids: [notification_id]});
+      expect(await userManager.getUnreadSummary(user.uid)).to.deep.equal({unread: 1, errors: 0});
+    });
+
+    it("doesn't count what belongs to someone else", async function(){
+      await notifiedTask({user_id: other.uid, fail: true});
+      expect(await userManager.getUnreadSummary(user.uid)).to.deep.equal({unread: 0, errors: 0});
+    });
+
+    it("counts a notification about something else than a task, not as a failure", async function(){
+      await addNotification(user.uid, "sceneShared");
+      expect(await userManager.getUnreadSummary(user.uid)).to.deep.equal({unread: 1, errors: 0});
+    });
+  });
+
+
   describe("GET /notifications", function(){
     it("requires a logged-in user", async function(){
       await request(this.server).get("/notifications").expect(401);
@@ -208,6 +238,18 @@ describe("Notifications", function(){
 
 
   describe("POST /notifications/read", function(){
+    it("says what's left, for clients to update their count", async function(){
+      await notifiedTask({fail: true});
+      const [{notification_id}] = await userManager.getNotifications(user.uid);
+      await notifiedTask();
+      await notifiedTask({fail: true});
+      const {body} = await request(this.server).post("/notifications/read")
+        .set("Authorization", await bearer("bob"))
+        .send({ids: [notification_id]})
+        .expect(200);
+      expect(body).to.deep.equal({read: 1, unread: 2, unread_errors: 1});
+    });
+
     const unread = (uid: number)=> userManager.countUnreadNotifications(uid);
 
     it("requires a logged-in user", async function(){
@@ -223,7 +265,7 @@ describe("Notifications", function(){
       const a = await addNotification(user.uid, "a"), b = await addNotification(user.uid, "a");
       await addNotification(user.uid, "a");
       const {body} = await request(this.server).post("/notifications/read").send({ids: [a, b]}).set("Authorization", await bearer("bob")).expect(200);
-      expect(body).to.deep.equal({read: 2});
+      expect(body).to.include({read: 2});
       expect(await unread(user.uid)).to.equal(1);
     });
 
@@ -232,7 +274,7 @@ describe("Notifications", function(){
       const upTo = await addNotification(user.uid, "a");
       const later = await addNotification(user.uid, "a");
       const {body} = await request(this.server).post("/notifications/read").send({up_to: upTo}).set("Authorization", await bearer("bob")).expect(200);
-      expect(body).to.deep.equal({read: 2});
+      expect(body).to.include({read: 2});
       const left = await userManager.getNotifications(user.uid);
       expect(left.map(n=> n.notification_id)).to.deep.equal([later]);
     });
@@ -240,10 +282,10 @@ describe("Notifications", function(){
     it("can't touch the notifications of someone else", async function(){
       const theirs = await addNotification(other.uid, "a");
       const Authorization = await bearer("bob");
-      expect((await request(this.server).post("/notifications/read").send({ids: [theirs]}).set("Authorization", Authorization).expect(200)).body).to.deep.equal({read: 0});
-      expect((await request(this.server).post("/notifications/read").send({up_to: theirs}).set("Authorization", Authorization).expect(200)).body).to.deep.equal({read: 0});
+      expect((await request(this.server).post("/notifications/read").send({ids: [theirs]}).set("Authorization", Authorization).expect(200)).body).to.include({read: 0});
+      expect((await request(this.server).post("/notifications/read").send({up_to: theirs}).set("Authorization", Authorization).expect(200)).body).to.include({read: 0});
       const admin = await bearer("alice");
-      expect((await request(this.server).post("/notifications/read").send({ids: [theirs]}).set("Authorization", admin).expect(200)).body).to.deep.equal({read: 0});
+      expect((await request(this.server).post("/notifications/read").send({ids: [theirs]}).set("Authorization", admin).expect(200)).body).to.include({read: 0});
       expect(await unread(other.uid)).to.equal(1);
     });
 
@@ -254,7 +296,7 @@ describe("Notifications", function(){
       const [first] = await userManager.getNotifications(user.uid, {unreadOnly: false});
       await timers.setTimeout(5);
       const {body} = await request(this.server).post("/notifications/read").send({ids: [id]}).set("Authorization", Authorization).expect(200);
-      expect(body).to.deep.equal({read: 0});
+      expect(body).to.include({read: 0});
       const [second] = await userManager.getNotifications(user.uid, {unreadOnly: false});
       expect(second.read_at).to.deep.equal(first.read_at);
     });

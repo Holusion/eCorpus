@@ -100,6 +100,9 @@ labels:
   allTasks: All tasks
   rootOnly: Root tasks
   noTasks: No tasks found.
+  noNotifications: No notifications.
+  noNewNotifications: No new notifications.
+  unread: unread
   noLogs: No logs.
   warnings: Warnings
   optimizeModel: Optimize models
@@ -121,6 +124,9 @@ buttons:
   logout: Disconnect
   next: "Next Page"
   previous: "Previous Page"
+  markAsRead: mark as read
+  markAllAsRead: mark all as read
+  showTasks: show tasks
   archive: Archive
   delete: Delete
   editTags: Edit tags
@@ -184,6 +190,7 @@ nav:
   userGroups: Groups
   userArchives: Archives
   tasks: tasks
+  notifications: Notifications
   overview: Overview
   upload: upload
 
@@ -468,6 +475,7 @@ errors:
 
 notifications:
   default: You have a new notification
+  markFailed: Couldn't mark as read. Please try again.
   task:
     default:
       success: "Task {{type}} has finished"

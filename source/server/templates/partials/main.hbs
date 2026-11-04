@@ -10,5 +10,8 @@
     </main>
     {{> footer }}
     <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
+    {{#if events_stream}}
+      <script defer src="/dist/js/events.js?ref={{ config.build_ref }}" data-stream="{{events_stream}}"></script>
+    {{/if}}
   </body>
 </html>

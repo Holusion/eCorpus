@@ -25,11 +25,25 @@
       {{#if (userLevel user.level "manage") }}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
-      <div class="divider"></div>
+      {{#if events_stream}}
+        <button id="nav-notifications" class="btn btn-outline btn-icon nav-btn" type="button" popovertarget="nav-notifications-panel" title="{{i18n "nav.notifications"}}">
+          <ui-icon name="bell"></ui-icon>
+          <span class="visually-hidden">{{i18n "nav.notifications"}}</span>
+          <span class="nav-badge" role="img" hidden></span>
+        </button>
+        <div id="nav-notifications-panel" popover data-mark-failed="{{i18n "notifications.markFailed"}}" data-mark-read="{{i18n "buttons.markAsRead"}}">
+          <ul></ul>
+          <p hidden>{{i18n "labels.noNewNotifications"}}</p>
+          <div class="nav-notifications-actions">
+            <a class="btn btn-outline" href="/ui/user/tasks">{{i18n "buttons.showTasks"}}</a>
+            <button class="btn btn-outline nav-notifications-mark-all" type="button" hidden>{{i18n "buttons.markAllAsRead"}} <ui-icon name="check-check"></ui-icon></button>
+          </div>
+        </div>
+      {{/if}}
       {{#if (test user "==" null)}}
         {{#navLink (join "/auth/login/?redirect=" (encodeURIComponent location)) title="/auth/login/"}}{{i18n "nav.login"}}{{/navLink}}
       {{else if user.username}}
-        {{#navLink "/ui/user/"}}{{user.username}}{{/navLink}}
+        {{#navLink "/ui/user/" id="nav-user-settings" title=(i18n "titles.userSettings") class="btn btn-outline nav-btn"}}{{user.username}}{{/navLink}}
       {{/if}}
     </div>
     <button id="main-navbar-collapse-toggle" class="btn btn-transparent btn-primary"  style="padding: 0 1rem"

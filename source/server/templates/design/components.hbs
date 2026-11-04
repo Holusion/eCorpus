@@ -461,7 +461,8 @@
     <code>.btn-outline</code> or <code>.btn-transparent</code> for
     decreasing visual weight. Size modifiers: <code>.btn-small</code> (icon
     actions in rows), <code>.btn-inline</code> (sits inside running text),
-    <code>.btn-pill</code> (rounded badge). <code>.btn-addon</code> drops
+    <code>.btn-pill</code> (rounded badge), <code>.btn-icon</code> (fits around
+    its icon, and can be stacked with the others). <code>.btn-addon</code> drops
     the min-width and background and is used immediately after an
     <code>&lt;input&gt;</code> to glue a trailing action button to the
     input's right edge.
@@ -503,6 +504,7 @@
   <div class="demo-frame" data-label="sizes" >
     <div class="btn-grid">
       <button class="btn">default</button>
+      <button class="btn btn-icon" aria-label="icon"><ui-icon name="bell"></ui-icon></button>
       <button class="btn btn-small">small</button>
       <button class="btn btn-small btn-transparent btn-danger">
         <ui-icon name="trash"></ui-icon>

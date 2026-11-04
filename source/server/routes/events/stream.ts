@@ -98,9 +98,9 @@ async function openStream(req: Request, res: Response, keys: EventKey|EventKey[]
   }
   if(closed) return unsubscribe();
 
-  const [tasks, unread] = await Promise.all([
+  const [tasks, summary] = await Promise.all([
     taskScheduler.getActiveTasks(scope),
-    inbox !== undefined ? userManager.countUnreadNotifications(inbox) : undefined,
+    inbox !== undefined ? userManager.getUnreadSummary(inbox) : undefined,
   ]);
   if(closed) return;
   if(stream.ended){
@@ -109,7 +109,7 @@ async function openStream(req: Request, res: Response, keys: EventKey|EventKey[]
     throw new HTTPError(503, localize("errors.serviceUnavailable"));
   }
 
-  stream.start(`event: snapshot\ndata: ${JSON.stringify({tasks, unread})}\n\n`);
+  stream.start(`event: snapshot\ndata: ${JSON.stringify({tasks, unread: summary?.unread, unread_errors: summary?.errors})}\n\n`);
 
   //Zero wouldn't mean "disabled" here: it would leave streams with no permissions check
   const lifetime = (config.get("event_stream_seconds") || 900) * 1000;

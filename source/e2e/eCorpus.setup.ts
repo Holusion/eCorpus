@@ -6,9 +6,9 @@ const userFile = "playwright/.auth/user.json";
 setup.use({
   locale: "en-US",
 });
-// The three setup tests below have a hard ordering dependency: the
+// The setup tests below have a hard ordering dependency: the
 // "create superAdmin account" step bootstraps testAdmin:12345678,
-// which the two "authenticate as ..." steps then log in as to create
+// which the following steps then log in as to create
 // their own randomized accounts (Basic auth is not supported anymore:
 // bootstrap requests authenticate with a session cookie).
 // Force them serial so workers > 1 in the project config doesn't race.
@@ -51,6 +51,19 @@ setup("create superAdmin account", async ({request})=>{
   }else{
     expect(res.status()).toEqual(201);
   }
+});
+
+// With a setting rather than through the environment, so it works for any server
+// the suite may run against. Every page of the suite then runs with the events client.
+setup("enable events", async ({request})=>{
+  await loginAsTestAdmin(request);
+  const res = await request.patch("/admin/config", {
+    data: JSON.stringify({enable_events: true}),
+    headers: {
+      "Content-Type": "application/json",
+    }
+  });
+  expect(res.status()).toEqual(204);
 });
 
 setup('authenticate as admin', async ({ request }) => {

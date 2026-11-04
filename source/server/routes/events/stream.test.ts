@@ -56,6 +56,12 @@ class TestStream{
     return this.frames.filter(f=> f.startsWith("event: task\n")).map(f=> JSON.parse(f.slice("event: task\ndata: ".length)));
   }
 
+  /** The count of unread notifications about a failure in the snapshot, if any */
+  get unreadErrors(): number|undefined{
+    const frame = this.frames.find(f=> f.startsWith("event: snapshot\n"));
+    return frame && JSON.parse(frame.slice("event: snapshot\ndata: ".length)).unread_errors;
+  }
+
   /** The count of unread notifications in the snapshot, if any */
   get unread(): number|undefined{
     const frame = this.frames.find(f=> f.startsWith("event: snapshot\n"));
@@ -413,6 +419,24 @@ describe("Event streams", function(){
     it("says there are none rather than leaving it out", async function(){
       const stream = await connect(`/events/users/${user.uid}`);
       expect(stream.unread).to.equal(0);
+      expect(stream.unreadErrors).to.equal(0);
+    });
+
+    it("says how many of those are about a failure", async function(){
+      await notifyUser(user.uid);
+      const failed = await tasks.create({type: "testTask", data: {}, user_id: user.uid, notify: true, status: "running"});
+      await tasks.errorTask(failed.task_id, new Error("Task failed"));
+      const stream = await connect(`/events/users/${user.uid}`);
+      expect(stream.unread).to.equal(2);
+      expect(stream.unreadErrors).to.equal(1);
+    });
+
+    it("doesn't say anything about failures to someone watching another user", async function(){
+      const failed = await tasks.create({type: "testTask", data: {}, user_id: other.uid, notify: true, status: "running"});
+      await tasks.errorTask(failed.task_id, new Error("Task failed"));
+      const stream = await connect(`/events/users/${other.uid}`, "alice");
+      expect(stream.unread).to.equal(undefined);
+      expect(stream.unreadErrors).to.equal(undefined);
     });
 
     it("signals new notifications, with no text in them", async function(){

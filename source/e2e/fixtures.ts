@@ -117,7 +117,7 @@ export const test = base.extend<TestFixture & TestOptions>({
     let adminContext = await browser.newContext({storageState: "playwright/.auth/admin.json"});
 
     await use(async (level :AccessLevel = "create")=>{
-      let username = `testUserLogin${randomBytes(2).readUInt16LE().toString(36)}`;
+      let username = `testUserLogin${randomBytes(4).readUInt32LE().toString(36)}`;
       let password = randomBytes(16).toString("base64");
       //Create a user for this specific test
       let res = await adminContext.request.post("/users", {

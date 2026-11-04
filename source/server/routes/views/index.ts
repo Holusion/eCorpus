@@ -12,6 +12,8 @@ import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
 import { translateErrorMessage } from "../../utils/i18n.js";
+import { listNotifications } from "../notifications/list.js";
+import { requireEvents } from "../events/stream.js";
 
 
 const log = createLogger("http:views");
@@ -896,6 +898,32 @@ routes.get("/user/tasks", async (req, res) => {
     title: "My Tasks — User",
     tasks,
     params: { type, status, rootOnly, limit, offset },
+  });
+});
+
+routes.get("/user/notifications", requireEvents, async (req, res) => {
+  const user = getUser(req);
+  if (user == null || UserRoles.indexOf(user.level) < 1) {
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/notifications")}`);
+  }
+  const {notifications, status, limit, offset} = await listNotifications(req, "all");
+  const unread = await getUserManager(req).countUnreadNotifications(user.uid);
+
+  const pageUrl = (offset: number)=>{
+    const url = new URL(req.originalUrl, getHost(req));
+    url.searchParams.set("offset", offset.toString());
+    return url.pathname + url.search;
+  };
+  const next = notifications.length === limit ? pageUrl(offset + limit) : undefined;
+  const previous = offset ? pageUrl(Math.max(0, offset - limit)) : undefined;
+  res.render("user/notifications", {
+    layout: "user",
+    title: "Notifications — User",
+    notifications,
+    //"Mark all" goes up to the newest notification, which is only on the first page
+    newest: (offset === 0 && 0 < unread) ? notifications[0]?.notification_id : undefined,
+    params: { status },
+    pager: (next || previous) ? { from: offset, to: offset + notifications.length, next, previous } : undefined,
   });
 });
 

@@ -99,6 +99,9 @@ labels:
   allTasks: Toutes les tâches
   rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.
+  noNotifications: Aucune notification.
+  noNewNotifications: Aucune nouvelle notification.
+  unread: non lues
   noLogs: Aucun journal.
   warnings: Avertissements
   optimizeModel: Optimiser les modèles
@@ -123,6 +126,9 @@ buttons:
   logout: Déconnecter
   next: "Page Suivante"
   previous: "Page Précédente"
+  markAsRead: marquer comme lue
+  markAllAsRead: tout lu
+  showTasks: voir les tâches
   archive: Archiver
   delete: Supprimer
   editTags: Modifier les tags
@@ -184,6 +190,7 @@ nav:
   userGroups: Groupes
   userArchives: Archives
   tasks: tâches
+  notifications: Notifications
   overview: Aperçu
   upload: créer
 
@@ -484,6 +491,7 @@ errors:
 
 notifications:
   default: Vous avez une nouvelle notification
+  markFailed: Le marquage comme lu a échoué. Veuillez réessayer.
   task:
     default:
       success: "La tâche {{type}} est terminée"
