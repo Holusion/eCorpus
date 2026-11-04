@@ -271,7 +271,7 @@ test.describe("for logged-in users", ()=>{
       await expect(panel(page)).toContainText("No new notifications");
       await expect(markAll(page)).toBeHidden();
       await panel(page).getByRole("link", {name: "show tasks"}).click();
-      await page.waitForURL(/\/ui\/user\/tasks$/);
+      await page.waitForURL(/\/ui\/user\/tasks\?rootOnly=notifications$/);
     });
 
     test("ends with its two actions, side by side, with the icon last", async ({page})=>{
@@ -397,6 +397,15 @@ test.describe("for logged-in users", ()=>{
       await openList(page);
       await expect(badge).toBeHidden();
       await expect(panel(page)).toContainText("No new notifications");
+    });
+
+    test("a right click on a title doesn't mark it as read", async ({page, baseURL, context})=>{
+      await withNotification(page, baseURL!);
+      await openList(page);
+      await panel(page).locator("li a").click({button: "right"});
+      await page.waitForTimeout(200);
+      const unread = await (await context.request.get("/notifications?status=unread")).json();
+      expect(unread).toHaveLength(1);
     });
 
     test("following a title marks it as read", async ({page, baseURL, context})=>{
@@ -539,27 +548,158 @@ test.describe("for logged-in users", ()=>{
       expect(await (await context.request.get("/notifications?status=unread")).json()).toEqual([]);
     });
 
-    test("can be limited to those with an unread notification", async ({page, baseURL, context})=>{
-      await open(page, PAGE);
-      await abandonUpload(page, baseURL!);
-      await expect(page.locator("#nav-notifications .nav-badge")).toHaveAttribute("data-count", "1");
+    test.describe("listed with their notifications", ()=>{
+      const row = (page: Page)=> page.locator(".tasks-table tbody tr");
+      const badge = (page: Page)=> page.locator("#nav-notifications .nav-badge");
 
-      await page.goto("/ui/user/tasks");
-      const filter = page.locator(`select[name="rootOnly"]`);
-      await filter.selectOption("unread");
-      await page.waitForURL(/rootOnly=unread/);
-      await expect(filter).toHaveValue("unread");
-      const row = page.locator(".tasks-table tbody tr");
-      await expect(row).toHaveCount(1);
+      /** Opens the list the way it's meant to be, from the bell */
+      async function fromTheBell(page: Page){
+        const connected = page.waitForResponse(res=> STREAM.test(res.url()));
+        await page.locator("#nav-notifications").click();
+        await page.locator("#nav-notifications-panel").getByRole("link", {name: "show tasks"}).click();
+        await page.waitForURL(/\/ui\/user\/tasks\?rootOnly=notifications$/);
+        await connected;
+      }
 
-      //Going there is reading it
-      await row.getByRole("link", {name: /postScene#/}).click();
-      await page.waitForURL(/\/ui\/tasks\/\d+$/);
-      await page.goBack();
-      await page.reload();
-      await expect(filter).toHaveValue("unread");
-      await expect(row).toHaveCount(0);
-      await expect(page.locator("main")).toContainText("No tasks found");
+      test("opens from the bell, and shows them read or not", async ({page, baseURL, context})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "2");
+        const [newest] = await (await context.request.get("/notifications?status=unread")).json();
+        await context.request.post("/notifications/read", {data: JSON.stringify({ids: [newest.notification_id]}), headers: {"Content-Type": "application/json"}});
+
+        await fromTheBell(page);
+        await expect(page.locator(`select[name="rootOnly"]`)).toHaveValue("notifications");
+        await expect(row(page)).toHaveCount(2);
+        await expect(page.locator(".tasks-table tbody tr.unread")).toHaveCount(1);
+      });
+
+      for(const {name, viewport} of [{name: "a wide screen", viewport: {width: 1200, height: 700}}, {name: "a phone", viewport: {width: 390, height: 700}}]){
+        test(`has its actions within reach on ${name}`, async ({page, baseURL})=>{
+          await page.setViewportSize({width: 1200, height: 700});
+          await open(page, PAGE);
+          await abandonUpload(page, baseURL!);
+          await expect(badge(page)).toHaveAttribute("data-count", "1");
+          await page.setViewportSize(viewport);
+          await page.goto("/ui/user/tasks?rootOnly=notifications");
+          const wrap = await page.locator(".list-table-wrap").boundingBox();
+          for(const name of ["mark as read", "delete"]){
+            const box = await row(page).getByRole("button", {name}).boundingBox();
+            expect(box!.x, `${name}, without scrolling`).toBeGreaterThanOrEqual(wrap!.x);
+            expect(box!.x + box!.width, `${name}, without scrolling`).toBeLessThanOrEqual(wrap!.x + wrap!.width);
+          }
+        });
+      }
+
+      test("doesn't hide anything on a wide screen", async ({page, baseURL})=>{
+        await page.setViewportSize({width: 1200, height: 700});
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await page.goto("/ui/user/tasks?rootOnly=notifications");
+        const {scrollWidth, clientWidth} = await page.locator(".list-table-wrap").evaluate(el=> ({scrollWidth: el.scrollWidth, clientWidth: el.clientWidth}));
+        expect(scrollWidth, "no need to scroll").toBeLessThanOrEqual(clientWidth);
+        const [status, actions] = [await row(page).locator(".col-status a").boundingBox(), await row(page).locator(".col-notification").boundingBox()];
+        expect(status!.x + status!.width, "the status isn't under the actions").toBeLessThanOrEqual(actions!.x);
+      });
+
+      test("can be selected from the list of tasks", async ({page, baseURL})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await page.goto("/ui/user/tasks");
+        await expect(page.locator(".inbox-delete")).toHaveCount(0);
+        await page.locator(`select[name="rootOnly"]`).selectOption("notifications");
+        await page.waitForURL(/rootOnly=notifications/);
+        await expect(page.locator(".inbox-delete")).toHaveCount(1);
+      });
+
+      test("can be marked as read", async ({page, baseURL, context})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await fromTheBell(page);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+
+        const mark = row(page).getByRole("button", {name: "mark as read"});
+        await expect(mark.locator("ui-icon")).toHaveAttribute("name", "check-check");
+        await mark.click();
+
+        await expect(page.locator(".tasks-table tbody tr.unread")).toHaveCount(0);
+        await expect(mark, "there's nothing left to mark").toHaveCount(0);
+        await expect(badge(page)).toBeHidden();
+        await expect(row(page), "it's still there").toHaveCount(1);
+        expect(await (await context.request.get("/notifications?status=unread")).json()).toEqual([]);
+      });
+
+      test("can be deleted, while the task stays", async ({page, baseURL, context})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        const [{link}] = await (await context.request.get("/notifications?status=unread")).json();
+        await fromTheBell(page);
+
+        const remove = row(page).getByRole("button", {name: "delete"});
+        await expect(remove.locator("ui-icon")).toHaveAttribute("name", "trash");
+        await remove.click();
+
+        await expect(row(page)).toHaveCount(0);
+        await expect(badge(page)).toBeHidden();
+        expect(await (await context.request.get("/notifications?status=all")).json()).toEqual([]);
+        await expect(await context.request.get(link), "the task").toBeOK();
+
+        await page.reload();
+        await expect(row(page)).toHaveCount(0);
+        await expect(page.locator("main")).toContainText("No tasks found");
+        await page.goto("/ui/user/tasks");
+        await expect(row(page), "it's still among tasks").toHaveCount(1);
+      });
+
+      test("keeps the list from the bell up to date when deleting", async ({page, baseURL})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "2");
+        await fromTheBell(page);
+        const listed = page.waitForResponse(res=> res.url().includes("status=unread&limit="));
+        await page.locator("#nav-notifications").click();
+        await listed;
+        const panel = page.locator("#nav-notifications-panel li");
+        await expect(panel).toHaveCount(2);
+        await page.keyboard.press("Escape");
+
+        await row(page).first().getByRole("button", {name: "delete"}).click();
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await expect(panel).toHaveCount(1);
+      });
+
+      test("only acts on a real click", async ({page, baseURL, context})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await fromTheBell(page);
+        await row(page).getByRole("button", {name: "delete"}).click({button: "right"});
+        await row(page).getByRole("button", {name: "mark as read"}).click({button: "right"});
+        await page.waitForTimeout(200);
+        const all = await (await context.request.get("/notifications?status=all")).json();
+        expect(all).toHaveLength(1);
+        expect(all[0].read_at).toBeNull();
+      });
+
+      test("says so when deleting fails", async ({page, baseURL})=>{
+        await open(page, PAGE);
+        await abandonUpload(page, baseURL!);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+        await fromTheBell(page);
+        await page.route(/\/notifications\/\d+$/, (route)=> route.fulfill({status: 500, body: "nope"}));
+        await row(page).getByRole("button", {name: "delete"}).click();
+        await expect(page.locator(".notification-error").last()).toContainText("Couldn't delete this notification");
+        await expect(row(page)).toHaveCount(1);
+        await expect(badge(page)).toHaveAttribute("data-count", "1");
+      });
     });
   });
 
@@ -862,6 +1002,8 @@ test.describe("for logged-in users", ()=>{
 
     for(const status of [401, 403, 404]){
       test(`gives up on a ${status}`, async ({page})=>{
+        //Otherwise, moving the clock before the page got its answer would count as it taking too long
+        await ignoreSilence(page);
         const requests = streamRequests(page);
         await page.route(STREAM, (route)=> route.fulfill({status, body: "nope"}));
         await load(page);

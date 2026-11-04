@@ -2,8 +2,8 @@
 <section>
   <h3>{{i18n "nav.tasks"}}</h3>
   {{#unless tasks.length}}
-    {{!-- Nothing unread is good news: it's no reason to explain what tasks are --}}
-    {{#unless params.unreadOnly}}
+    {{!-- No notifications is good news: it's no reason to explain what tasks are --}}
+    {{#unless params.notificationsOnly}}
       <aside class="help-block">
         <ui-icon name="info"></ui-icon>
         <div class="help-block-content">
@@ -13,5 +13,8 @@
       </aside>
     {{/unless}}
   {{/unless}}
-  {{> taskList params=params tasks=tasks withUnread=true}}
+  {{> taskList params=params tasks=tasks withNotifications=true}}
 </section>
+{{#if params.notificationsOnly}}
+  <script type="module" src="/dist/js/inbox.js?ref={{ config.build_ref }}"></script>
+{{/if}}

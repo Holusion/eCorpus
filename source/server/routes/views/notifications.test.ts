@@ -63,7 +63,7 @@ describe("Notifications in the UI", function(){
       const {text} = await page(this.server, "/ui/tags");
       expect(text).to.match(/<button id="nav-notifications"[^>]* popovertarget="nav-notifications-panel"/);
       expect(text).to.match(/<div id="nav-notifications-panel" popover/);
-      expect(text).to.include(`href="/ui/user/tasks"`);
+      expect(text).to.include(`href="/ui/user/tasks?rootOnly=notifications"`);
     });
 
     it("isn't loaded for anonymous visitors", async function(){
@@ -185,7 +185,8 @@ describe("Notifications in the UI", function(){
 
   describe("GET /ui/user/tasks", function(){
     const url = "/ui/user/tasks";
-    const option = /<option value="unread"([^>]*)>/;
+    const query = `${url}?rootOnly=notifications`;
+    const option = /<option value="notifications"([^>]*)>/;
 
     async function notifiedTask({user_id = owner, fail = false} = {}){
       const task = await taskScheduler.create({type: "testTask", data: {}, user_id, notify: true, status: "running"});
@@ -194,68 +195,113 @@ describe("Notifications in the UI", function(){
       return task.task_id;
     }
     const link = (task_id: number)=> `testTask#${task_id}`;
+    /** The ID of the notification about a task */
+    const notificationId = async (task_id: number, uid = owner)=>{
+      const all = await userManager.getNotifications(uid, {unreadOnly: false, limit: 100});
+      return all.find(n=> n.task?.task_id === task_id)!.notification_id;
+    };
+    /** What's in the row about a task */
+    const row = (text: string, task_id: number)=> text.match(/<tr[ >].*?<\/tr>/gs)?.find(r=> r.includes(link(task_id)));
 
-    it("offers to show what has an unread notification", async function(){
+    it("offers to show what has a notification", async function(){
       const {text} = await page(this.server, url);
-      expect(text).to.include("Unread notifications");
       expect(option.exec(text)?.[1], "not by default").not.to.include("selected");
       expect(text).to.match(/<option value="true" selected>/);
     });
 
-    it("only shows those", async function(){
+    it("shows those, read or not, and no other tasks", async function(){
       const unread = await notifiedTask();
       const read = await notifiedTask();
-      const notified = await userManager.getNotifications(owner, {limit: 1});
-      await userManager.markNotificationsRead(owner, {ids: [notified[0].notification_id]});
+      await userManager.markNotificationsRead(owner, {task_id: read});
       const quiet = (await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"})).task_id;
-      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      const {text} = await page(this.server, query);
       expect(text).to.include(link(unread));
-      expect(text).not.to.include(link(read));
+      expect(text).to.include(link(read));
       expect(text).not.to.include(link(quiet));
       expect(option.exec(text)?.[1], "as the selected option").to.include("selected");
       expect(text).not.to.match(/<option value="true" selected>/);
       expect(text).not.to.match(/<option value="false" selected>/);
     });
 
-    it("doesn't change what's shown otherwise", async function(){
+    it("tells which are unread, and can only mark those", async function(){
+      const unread = await notifiedTask();
       const read = await notifiedTask();
       await userManager.markNotificationsRead(owner, {task_id: read});
-      for(const query of ["", "?rootOnly=true", "?rootOnly=false"]){
-        expect((await page(this.server, url+query)).text, query).to.include(link(read));
+      const {text} = await page(this.server, query);
+      expect(text).to.include(`<tr data-notification-id="${await notificationId(unread)}" class="unread">`);
+      expect(row(text, unread)).to.include("inbox-mark-read");
+      expect(row(text, read)).not.to.include("inbox-mark-read");
+      expect(row(text, read)).not.to.include(`class="unread"`);
+    });
+
+    it("can delete all of them", async function(){
+      const unread = await notifiedTask();
+      const read = await notifiedTask();
+      await userManager.markNotificationsRead(owner, {task_id: read});
+      const {text} = await page(this.server, query);
+      expect(row(text, unread)).to.include("inbox-delete");
+      expect(row(text, read)).to.include("inbox-delete");
+    });
+
+    it("loads what makes those work, only then", async function(){
+      await notifiedTask();
+      expect((await page(this.server, query)).text).to.include("js/inbox.js");
+      expect((await page(this.server, url)).text).not.to.include("js/inbox.js");
+    });
+
+    it("has no such column otherwise", async function(){
+      const task_id = await notifiedTask();
+      for(const q of ["", "?rootOnly=true", "?rootOnly=false"]){
+        const {text} = await page(this.server, url+q);
+        expect(text, q).to.include(link(task_id));
+        expect(text, q).not.to.include("inbox-delete");
+        expect(text, q).not.to.include("data-notification-id");
       }
     });
 
     it("doesn't show the tasks of others", async function(){
       const theirs = await notifiedTask({user_id: other});
-      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      const {text} = await page(this.server, query);
       expect(text).not.to.include(link(theirs));
     });
 
     it("doesn't count a notification meant for someone else, about one of your tasks", async function(){
       const {task_id} = await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"});
       await taskScheduler.db.run(`INSERT INTO notifications(fk_user_id, type, fk_task_id) VALUES ($1, 'task', $2)`, [other, task_id]);
-      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      const {text} = await page(this.server, query);
       expect(text).not.to.include(link(task_id));
     });
 
     it("goes along with the other filters", async function(){
       const success = await notifiedTask();
       const failure = await notifiedTask({fail: true});
-      const {text} = await page(this.server, `${url}?rootOnly=unread&status=error`);
-      expect(text).to.include(link(failure));
+      for(const [q, shown, hidden] of [[`${query}&status=error`, failure, success], [`${query}&status=success`, success, failure]] as const){
+        const {text} = await page(this.server, q);
+        expect(text, q).to.include(link(shown));
+        expect(text, q).not.to.include(link(hidden));
+      }
+      const {text} = await page(this.server, `${query}&type=otherTask`);
       expect(text).not.to.include(link(success));
     });
 
-    it("no longer shows a task once it's been visited", async function(){
+    it("still shows a task once it's been visited, as read", async function(){
       const task_id = await notifiedTask();
       await page(this.server, `/ui/tasks/${task_id}`);
-      const {text} = await page(this.server, `${url}?rootOnly=unread`);
-      expect(text).not.to.include(link(task_id));
+      const {text} = await page(this.server, query);
+      expect(row(text, task_id)).not.to.include("inbox-mark-read");
+      expect(row(text, task_id)).to.include("inbox-delete");
     });
 
-    it("doesn't explain what tasks are when there's just nothing unread", async function(){
+    it("no longer shows a task once its notification is deleted, in this view only", async function(){
+      const task_id = await notifiedTask();
+      await userManager.deleteNotification(owner, await notificationId(task_id));
+      expect((await page(this.server, query)).text).not.to.include(link(task_id));
+      expect((await page(this.server, url)).text).to.include(link(task_id));
+    });
+
+    it("doesn't explain what tasks are when there's just no notification", async function(){
       expect((await page(this.server, url)).text, "for comparison").to.include("help-block");
-      const {text} = await page(this.server, `${url}?rootOnly=unread`);
+      const {text} = await page(this.server, query);
       expect(text).not.to.include("help-block");
       expect(text).to.include("No tasks found");
     });

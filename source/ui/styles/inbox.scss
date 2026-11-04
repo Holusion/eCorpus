@@ -77,3 +77,40 @@
   --btn-text-color: var(--color-dark);
   flex: 0 0 auto;
 }
+
+// The same notifications, in a list of tasks
+table.list-table.tasks-table-notifications {
+  // One more column has to fit in there
+  th, td {
+    padding-inline: .5rem;
+  }
+
+  td.col-status {
+    //It has its own, inline
+    padding-inline: .25rem !important;
+  }
+
+  //Those are what's meant to give way
+  .col-scene, .col-type {
+    min-width: 80px;
+  }
+}
+
+.tasks-table {
+  tr.unread > td:first-child {
+    box-shadow: inset 3px 0 var(--color-primary);
+  }
+
+  // The table can be wider than what's around it: those shouldn't take scrolling to reach
+  .col-notification {
+    position: sticky;
+    right: 0;
+    background: var(--color-dark);
+  }
+
+  .col-notification-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .25rem;
+  }
+}

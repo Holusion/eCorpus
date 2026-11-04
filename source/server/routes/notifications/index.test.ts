@@ -237,6 +237,84 @@ describe("Notifications", function(){
   });
 
 
+  describe("DELETE /notifications/:id", function(){
+    const remove = async (server: any, id: number|string, as: string|null = "bob")=>{
+      const req = request(server).delete(`/notifications/${id}`);
+      if(as) req.set("Authorization", await bearer(as));
+      return req;
+    };
+    const all = (uid: number)=> userManager.getNotifications(uid, {unreadOnly: false});
+
+    it("deletes a notification, and says what's left", async function(){
+      const task = await notifiedTask({fail: true});
+      await notifiedTask();
+      await notifiedTask({fail: true});
+      const id = (await all(user.uid)).find(n=> n.task?.task_id === task.task_id)!.notification_id;
+      const {status, body} = await remove(this.server, id);
+      expect(status).to.equal(200);
+      expect(body).to.deep.equal({unread: 2, unread_errors: 1});
+      expect((await all(user.uid)).map(n=> n.notification_id)).not.to.include(id);
+    });
+
+    it("works for one that's been read", async function(){
+      const id = await addNotification(user.uid, "a");
+      await userManager.markNotificationsRead(user.uid, {ids: [id]});
+      expect((await remove(this.server, id)).status).to.equal(200);
+      expect(await all(user.uid)).to.deep.equal([]);
+    });
+
+    it("leaves the task alone, along with its logs", async function(){
+      const task = await notifiedTask();
+      const [{notification_id}] = await all(user.uid);
+      await remove(this.server, notification_id);
+      expect((await tasks.getTask(task.task_id)).status).to.equal("success");
+    });
+
+    it("doesn't come back, whatever happens to the task from there", async function(){
+      const task = await notifiedTask();
+      const [{notification_id}] = await all(user.uid);
+      await remove(this.server, notification_id);
+      await tasks.db.run(`UPDATE tasks SET output = '{"a":1}' WHERE task_id = $1`, [task.task_id]);
+      await tasks.stopAwaiting(task.task_id);
+      await tasks.reapOrphans();
+      expect(await all(user.uid)).to.deep.equal([]);
+    });
+
+    it("says it doesn't exist the second time", async function(){
+      const id = await addNotification(user.uid, "a");
+      await remove(this.server, id);
+      expect((await remove(this.server, id)).status).to.equal(404);
+    });
+
+    it("can't touch the notifications of someone else, even for an admin", async function(){
+      const theirs = await addNotification(other.uid, "a");
+      expect((await remove(this.server, theirs)).status).to.equal(404);
+      expect((await remove(this.server, theirs, "alice")).status).to.equal(404);
+      expect(await all(other.uid)).to.have.length(1);
+    });
+
+    it("requires a logged-in user", async function(){
+      const id = await addNotification(user.uid, "a");
+      expect((await remove(this.server, id, null)).status).to.equal(401);
+      expect(await all(user.uid)).to.have.length(1);
+    });
+
+    it("requires a token that's allowed to change the account", async function(){
+      const id = await addNotification(user.uid, "a");
+      const {token: reader} = await userManager.createToken(user.uid, {name: "reader", scope: ["account:read"]});
+      await request(this.server).delete(`/notifications/${id}`).set("Authorization", `Bearer ${reader}`).expect(403);
+      expect(await all(user.uid)).to.have.length(1);
+      const {token: writer} = await userManager.createToken(user.uid, {name: "writer", scope: ["account:write"]});
+      await request(this.server).delete(`/notifications/${id}`).set("Authorization", `Bearer ${writer}`).expect(200);
+      expect(await all(user.uid)).to.deep.equal([]);
+    });
+
+    it("refuses what isn't an ID", async function(){
+      expect((await remove(this.server, "foo")).status).to.be.within(400, 404);
+    });
+  });
+
+
   describe("POST /notifications/read", function(){
     it("says what's left, for clients to update their count", async function(){
       await notifiedTask({fail: true});

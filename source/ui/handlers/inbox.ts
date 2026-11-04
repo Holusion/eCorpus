@@ -1,17 +1,22 @@
 /**
- * Marking notifications as read, in the inbox page.
- * Opening the page doesn't: a failure someone hasn't had time to look at shouldn't go away by itself.
+ * Acting on notifications from a page listing them, which only has to mark them with `data-notification-id`.
+ * Opening a page doesn't count as reading them: a failure someone hasn't had time to look at shouldn't go away by itself.
  */
-import { isRead, markAsRead, ReadNotifications, reportMarkFailure } from "./markRead";
+import { deleteNotification, followsLink, isRead, markAsRead, ReadNotifications, reportDeleteFailure, reportMarkFailure } from "./markRead";
 
-const list = document.querySelector<HTMLElement>(".inbox");
+const list = document.querySelector<HTMLElement>("[data-notifications]");
 const markAll = document.querySelector<HTMLButtonElement>("#inbox-mark-all");
 
 function onActivate(e: Event) {
   const target = e.target as HTMLElement;
-  const item = target.closest<HTMLElement>(".inbox-item.unread");
-  if (!item || !target.closest(".inbox-mark-read, a.inbox-item-message")) return;
-  markAsRead({ ids: [parseInt(item.dataset.notificationId!, 10)] }).catch(reportMarkFailure);
+  const item = target.closest<HTMLElement>("[data-notification-id]");
+  if (!item || !followsLink(e)) return;
+  const id = parseInt(item.dataset.notificationId!, 10);
+  if (target.closest(".inbox-delete")) {
+    if (e.type === "click") deleteNotification(id).catch(reportDeleteFailure);
+  } else if (item.classList.contains("unread") && target.closest(".inbox-mark-read, a.inbox-item-message")) {
+    markAsRead({ ids: [id] }).catch(reportMarkFailure);
+  }
 }
 
 list?.addEventListener("click", onActivate);
@@ -27,10 +32,14 @@ markAll?.addEventListener("click", () => {
     });
 });
 
+document.addEventListener("notification-deleted", (e) => {
+  list?.querySelector(`[data-notification-id="${(e as CustomEvent<number>).detail}"]`)?.remove();
+});
+
 //It may also come from the navbar
 document.addEventListener("notifications-read", (e) => {
   const { detail } = e as CustomEvent<ReadNotifications>;
-  list?.querySelectorAll<HTMLElement>(".inbox-item.unread").forEach((item) => {
+  list?.querySelectorAll<HTMLElement>("[data-notification-id].unread").forEach((item) => {
     if (!isRead(detail, parseInt(item.dataset.notificationId!, 10))) return;
     item.classList.remove("unread");
     item.querySelector(".inbox-mark-read")?.remove();

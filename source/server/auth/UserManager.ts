@@ -596,6 +596,15 @@ export default class UserManager extends DbController {
   }
 
   /**
+   * Deletes one of a user's notifications. Nothing brings it back, whatever happens to its task from there.
+   * @returns whether there was such a notification
+   */
+  async deleteNotification(uid: number, notification_id: number): Promise<boolean>{
+    const r = await this.db.run(`DELETE FROM notifications WHERE fk_user_id = $1 AND notification_id = $2`, [uid, notification_id]);
+    return 0 < (r.changes ?? 0);
+  }
+
+  /**
    * Marks a user's notifications as read. Those of other users are left alone, whatever the IDs say.
    * @returns the number of notifications that weren't read until now
    */

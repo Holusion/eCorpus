@@ -885,8 +885,8 @@ routes.get("/user/tasks", async (req, res) => {
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
   //Notifications are about root tasks, so that's the same as "root tasks", with one more condition
-  const unreadOnly = req.query.rootOnly === "unread";
-  const rootOnly = unreadOnly || (qsToBool(req.query.rootOnly) ?? true);
+  const notificationsOnly = req.query.rootOnly === "notifications";
+  const rootOnly = notificationsOnly || (qsToBool(req.query.rootOnly) ?? true);
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
@@ -894,12 +894,12 @@ routes.get("/user/tasks", async (req, res) => {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: user.uid, unreadBy: unreadOnly ? user.uid : undefined, type, status, rootOnly, limit, offset });
+  const tasks = await taskScheduler.getTasks({ user_id: user.uid, notifiedUser: notificationsOnly ? user.uid : undefined, type, status, rootOnly, limit, offset });
   res.render("user/tasks", {
     layout: "user",
     title: "My Tasks — User",
     tasks,
-    params: { type, status, rootOnly, unreadOnly, limit, offset },
+    params: { type, status, rootOnly, notificationsOnly, limit, offset },
   });
 });
 

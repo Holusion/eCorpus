@@ -207,6 +207,9 @@ export interface TaskListItem<TData extends TaskDataPayload = TaskDataPayload, T
   extends TaskDefinition<TData, TReturn> {
   scene: string | null;
   owner: string | null;
+  /** When asked for the tasks a user has a notification about */
+  notification_id?: number;
+  notification_read_at?: Date | null;
 }
 
 /**

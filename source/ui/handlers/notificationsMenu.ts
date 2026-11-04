@@ -2,7 +2,7 @@
  * The list of unread notifications that opens from the bell in the navbar. It's a native popover, so
  * this has nothing to do with opening it. It only asks for the list then, as most page views will never need it.
  */
-import { isRead, markAsRead, ReadNotifications, reportMarkFailure } from "./markRead";
+import { followsLink, isRead, markAsRead, ReadNotifications, reportMarkFailure } from "./markRead";
 import { setUnread } from "./unreadBadge";
 
 //As much as the API gives. This is the only place to find what's unread: it scrolls.
@@ -121,7 +121,7 @@ if (panel && list && empty && markAll) {
 
   const onActivate = (e: Event) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>("li");
-    if (!item || !(e.target as HTMLElement).closest("a, button")) return;
+    if (!item || !followsLink(e) || !(e.target as HTMLElement).closest("a, button")) return;
     markAsRead({ ids: [parseInt(item.dataset.notificationId!, 10)] }).catch(reportMarkFailure);
   };
   list.addEventListener("click", onActivate);
@@ -135,6 +135,14 @@ if (panel && list && empty && markAll) {
       .finally(() => {
         markAll.disabled = false;
       });
+  });
+
+  document.addEventListener("notification-deleted", (e) => {
+    const id = (e as CustomEvent<number>).detail;
+    keepingFocus(() => {
+      list.querySelector(`[data-notification-id="${id}"]`)?.remove();
+      showState();
+    });
   });
 
   document.addEventListener("notifications-read", (e) => {

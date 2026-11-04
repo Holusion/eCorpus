@@ -1,7 +1,7 @@
 import express, { Request, Response, Router } from "express";
 
-import { BadRequestError } from "../../utils/errors.js";
-import { getLanguage, getUser, getUserManager, policy } from "../../utils/locals.js";
+import { BadRequestError, NotFoundError } from "../../utils/errors.js";
+import { getLanguage, getUser, getUserManager, numericParam, policy } from "../../utils/locals.js";
 
 import { listNotifications } from "./list.js";
 
@@ -41,8 +41,19 @@ async function markAsRead(req: Request, res: Response){
   res.status(200).send({read, unread, unread_errors: errors});
 }
 
+/** Deletes one of the requester's notifications. The task it's about isn't affected. */
+async function deleteNotification(req: Request, res: Response){
+  const userManager = getUserManager(req);
+  const {uid} = getUser(req)!;
+  if(!await userManager.deleteNotification(uid, parseInt(req.params.id, 10))) throw new NotFoundError();
+  //What's left, for clients to not have to work it out
+  const {unread, errors} = await userManager.getUnreadSummary(uid);
+  res.status(200).send({unread, unread_errors: errors});
+}
+
 //Not only about tasks, so this follows the family of what belongs to a user's account.
 router.get("/", policy({ scope: "account:read" }), getNotifications);
 router.post("/read", policy({ scope: "account:write" }), express.json(), markAsRead);
+router.delete("/:id", numericParam("id"), policy({ scope: "account:write" }), deleteNotification);
 
 export default router;

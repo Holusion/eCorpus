@@ -17,17 +17,17 @@
   <div class="form-item">
     <label>{{i18n "labels.taskTypes"}}</label>
     <select name="rootOnly" onchange="this.form.submit()">
-      <option value="true" {{#if params.rootOnly}}{{#unless params.unreadOnly}}selected{{/unless}}{{/if}}>{{i18n "labels.rootOnly"}}</option>
+      <option value="true" {{#if params.rootOnly}}{{#unless params.notificationsOnly}}selected{{/unless}}{{/if}}>{{i18n "labels.rootOnly"}}</option>
       <option value="false" {{#unless params.rootOnly}}selected{{/unless}}>{{i18n "labels.allTasks"}}</option>
-      {{#if withUnread}}
-        <option value="unread" {{#if params.unreadOnly}}selected{{/if}}>{{i18n "labels.unreadNotifications"}}</option>
+      {{#if withNotifications}}
+        <option value="notifications" {{#if params.notificationsOnly}}selected{{/if}}>{{i18n "nav.notifications"}}</option>
       {{/if}}
     </select>
   </div>
 </form>
 {{#if tasks.length}}
   <div class="list-table-wrap">
-  <table class="list-table tasks-table">
+  <table class="list-table tasks-table{{#if params.notificationsOnly}} tasks-table-notifications{{/if}}">
     <thead>
       <tr>
         <th>{{i18n "fields.ctime"}}</th>
@@ -36,11 +36,12 @@
         <th>{{i18n "fields.scene"}}</th>
         <th>{{i18n "fields.type"}}</th>
         <th>{{i18n "fields.status"}}</th>
+        {{#if params.notificationsOnly}}<th class="col-notification"><span class="visually-hidden">{{i18n "nav.notifications"}}</span></th>{{/if}}
       </tr>
     </thead>
-    <tbody>
+    <tbody {{#if params.notificationsOnly}}data-notifications{{/if}}>
       {{#each tasks}}
-      <tr>
+      <tr {{#if notification_id}}data-notification-id="{{notification_id}}" {{#unless notification_read_at}}class="unread"{{/unless}}{{/if}}>
         <td class="col-ctime compact">{{dateString ctime}}</td>
         {{#unless @root.params.rootOnly }}
           <td class="col-parent compact">
@@ -77,6 +78,16 @@
             {{status}}
           </a>
         </td>
+        {{#if notification_id}}
+          <td class="col-notification compact">
+            <div class="col-notification-actions">
+              {{#unless notification_read_at}}
+                <button class="btn btn-outline btn-icon inbox-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
+              {{/unless}}
+              <button class="btn btn-outline btn-icon btn-danger inbox-delete" type="button" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}"><ui-icon name="trash"></ui-icon></button>
+            </div>
+          </td>
+        {{/if}}
       </tr>
       {{/each}}
     </tbody>

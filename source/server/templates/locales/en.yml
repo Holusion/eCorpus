@@ -99,7 +99,6 @@ labels:
   taskTypes: Task types
   allTasks: All tasks
   rootOnly: Root tasks
-  unreadNotifications: Unread notifications
   noTasks: No tasks found.
   noNotifications: No notifications.
   noNewNotifications: No new notifications.
@@ -477,6 +476,7 @@ errors:
 notifications:
   default: You have a new notification
   markFailed: Couldn't mark as read. Please try again.
+  deleteFailed: Couldn't delete this notification. Please try again.
   task:
     default:
       success: "Task {{type}} has finished"

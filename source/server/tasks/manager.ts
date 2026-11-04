@@ -304,11 +304,11 @@ export class TaskManager{
    * - `user_id` : filter by `fk_user_id`
    * - `type`    : regular expression match against `type` column
    * - `scene_id`: filter by `fk_scene_id`
-   * - `unreadBy`: only tasks this user has an unread notification about
+   * - `notifiedUser`: only tasks this user has a notification about, along with that notification
    *
    * Returns tasks ordered by `ctime DESC` (newest first).
    */
-  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; unreadBy?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; notifiedUser?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
     if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
@@ -319,39 +319,36 @@ export class TaskManager{
     const params: any[] = [];
 
     if (options.user_id != null) {
-      where.push(`fk_user_id = $${params.push(options.user_id)}`);
+      where.push(`tasks.fk_user_id = $${params.push(options.user_id)}`);
     }
 
     if (options.scene_id != null) {
-      where.push(`fk_scene_id = $${params.push(options.scene_id)}`);
+      where.push(`tasks.fk_scene_id = $${params.push(options.scene_id)}`);
     }
 
 
     if (options.type) {
       // Exact match on `type` (previously supported regex). Use equality to
       // avoid surprising regex semantics and to keep behavior predictable.
-      where.push(`type = $${params.push(options.type)}`);
+      where.push(`tasks.type = $${params.push(options.type)}`);
     }
 
     // By default, return only root tasks (no parent). Caller can set `rootOnly: false`
     // to include child tasks as well. This preserves previous summary behaviour.
     if (options.rootOnly !== false) {
-      where.push(`parent IS NULL`);
+      where.push(`tasks.parent IS NULL`);
     }
 
     // Status filter: 'success' or 'error' or 'all' (no filter)
     if (options.status && options.status !== 'all') {
-      where.push(`status = $${params.push(options.status)}`);
+      where.push(`tasks.status = $${params.push(options.status)}`);
     }
 
-    if (options.unreadBy != null) {
-      where.push(`EXISTS (
-        SELECT 1 FROM notifications
-        WHERE notifications.fk_task_id = tasks.task_id
-          AND notifications.fk_user_id = $${params.push(options.unreadBy)}
-          AND notifications.read_at IS NULL
-      )`);
-    }
+    //There's at most one per task for a given user
+    const notifiedJoin = options.notifiedUser != null ? `
+      JOIN notifications ON notifications.fk_task_id = tasks.task_id
+        AND notifications.fk_user_id = $${params.push(options.notifiedUser)}` : "";
+    const notifiedColumns = notifiedJoin ? ", notifications.notification_id, notifications.read_at AS notification_read_at" : "";
 
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -359,10 +356,11 @@ export class TaskManager{
     const limitIdx = params.push(limit);
 
     return this.db.all<import("./types.js").TaskListItem>(`
-      SELECT ${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner
+      SELECT ${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner${notifiedColumns}
       FROM tasks
       LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
       LEFT JOIN users ON users.user_id = tasks.fk_user_id
+      ${notifiedJoin}
       ${whereClause}
       ORDER BY tasks.task_id DESC
       OFFSET $${offsetIdx}

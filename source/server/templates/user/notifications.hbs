@@ -16,7 +16,7 @@
   </div>
 
   {{#if notifications.length}}
-    <ul class="inbox">
+    <ul class="inbox" data-notifications>
       {{#each notifications}}
         <li class="inbox-item{{#unless read_at}} unread{{/unless}}" data-notification-id="{{notification_id}}">
           {{#if (test task.status "==" "error")}}
