@@ -9,6 +9,7 @@ import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
 import { AccessLevel } from "../../auth/UserManager.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
+import { TaskScheduler } from "../../tasks/scheduler.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
 import { translateErrorMessage } from "../../utils/i18n.js";
@@ -24,6 +25,15 @@ function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
     thumb = new URL(path.join("/scenes/", encodeURIComponent(name), encodeURIComponent(thumb)), getHost(req)).toString();
   }
   return {thumb, name, ...s};
+}
+
+/** Tasks for a list in a page: only those at the root, or those that start a tree along with what's under them */
+function listTasks(req: Request, {rootOnly, ...options}: Omit<NonNullable<Parameters<TaskScheduler["getTasks"]>[0]>, "notificationsOf">){
+  const taskScheduler = getTaskScheduler(req);
+  const notificationsOf = getUser(req)?.uid;
+  return rootOnly !== false
+    ? taskScheduler.getTasks({...options, rootOnly, notificationsOf})
+    : taskScheduler.getTaskTrees({...options, notificationsOf});
 }
 
 const routes = Router();
@@ -679,7 +689,6 @@ routes.get("/scenes/:scene", async (req, res)=>{
 routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
-  const taskScheduler = getTaskScheduler(req);
 
   const scene = mapScene(req, await vfs.getScene(scene_name));
 
@@ -697,7 +706,7 @@ routes.get("/scenes/:scene/tasks", policy({ access: "admin" }), async (req, res)
     type = rawType;
   }
 
-  const tasks = await taskScheduler.getTasks({ scene_id: scene.id, type, status, rootOnly, limit, offset });
+  const tasks = await listTasks(req, { scene_id: scene.id, type, status, rootOnly, limit, offset });
 
   res.render("scene/tasks", {
     layout: "scene",
@@ -878,15 +887,12 @@ routes.get("/user/tasks", async (req, res) => {
   if (user == null || UserRoles.indexOf(user.level) < 1) {
     return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/tasks")}`);
   }
-  const taskScheduler = getTaskScheduler(req);
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  //Notifications are about root tasks, so that's the same as "root tasks", with one more condition
-  const notificationsOnly = req.query.rootOnly === "notifications";
-  const rootOnly = notificationsOnly || (qsToBool(req.query.rootOnly) ?? true);
+  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
@@ -894,12 +900,12 @@ routes.get("/user/tasks", async (req, res) => {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: user.uid, notifiedUser: notificationsOnly ? user.uid : undefined, type, status, rootOnly, limit, offset });
+  const tasks = await listTasks(req, { user_id: user.uid, type, status, rootOnly, limit, offset });
   res.render("user/tasks", {
     layout: "user",
     title: "My Tasks — User",
     tasks,
-    params: { type, status, rootOnly, notificationsOnly, limit, offset },
+    params: { type, status, rootOnly, limit, offset },
   });
 });
 
@@ -930,7 +936,6 @@ routes.get("/user/notifications", requireEvents, async (req, res) => {
 });
 
 routes.get("/admin/tasks", requireLevel("admin"), async (req, res) => {
-  const taskScheduler = getTaskScheduler(req);
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
   const allowedStatus = ['all', 'success', 'error'];
@@ -944,12 +949,12 @@ routes.get("/admin/tasks", requireLevel("admin"), async (req, res) => {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly, limit, offset });
+  const tasks = await listTasks(req, { type, status, rootOnly, limit, offset });
   res.render("admin/tasks", {
     layout: "admin",
     title: "Tasks — Administration",
     tasks,
-    params: { type, status, rootOnly, limit, offset },
+    params: { type, status, rootOnly, limit, offset, showOwner: true },
   });
 });
 

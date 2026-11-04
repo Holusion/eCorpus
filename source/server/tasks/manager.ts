@@ -304,34 +304,33 @@ export class TaskManager{
    * - `user_id` : filter by `fk_user_id`
    * - `type`    : regular expression match against `type` column
    * - `scene_id`: filter by `fk_scene_id`
-   * - `notifiedUser`: only tasks this user has a notification about, along with that notification
+   * - `notificationsOf`: also say which tasks this user has an unread notification about
    *
    * Returns tasks ordered by `ctime DESC` (newest first).
    */
-  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; notifiedUser?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; notificationsOf?: number; topLevelOnly?: boolean; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
     if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
     if (limit > 100) throw new BadRequestError(`When provided, limit must be <= 100`);
     if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a non-negative integer`);
 
-    const where: string[] = [];
     const params: any[] = [];
 
-    if (options.user_id != null) {
-      where.push(`tasks.fk_user_id = $${params.push(options.user_id)}`);
-    }
-
-    if (options.scene_id != null) {
-      where.push(`tasks.fk_scene_id = $${params.push(options.scene_id)}`);
-    }
-
-
-    if (options.type) {
+    /** What the filters ask of a task, under a given alias */
+    const matching = (t: string) => {
+      const conditions: string[] = [];
+      if (options.user_id != null) conditions.push(`${t}.fk_user_id = $${params.push(options.user_id)}`);
+      if (options.scene_id != null) conditions.push(`${t}.fk_scene_id = $${params.push(options.scene_id)}`);
       // Exact match on `type` (previously supported regex). Use equality to
       // avoid surprising regex semantics and to keep behavior predictable.
-      where.push(`tasks.type = $${params.push(options.type)}`);
-    }
+      if (options.type) conditions.push(`${t}.type = $${params.push(options.type)}`);
+      // Status filter: 'success' or 'error' or 'all' (no filter)
+      if (options.status && options.status !== 'all') conditions.push(`${t}.status = $${params.push(options.status)}`);
+      return conditions;
+    };
+
+    const where = matching("tasks");
 
     // By default, return only root tasks (no parent). Caller can set `rootOnly: false`
     // to include child tasks as well. This preserves previous summary behaviour.
@@ -339,34 +338,92 @@ export class TaskManager{
       where.push(`tasks.parent IS NULL`);
     }
 
-    // Status filter: 'success' or 'error' or 'all' (no filter)
-    if (options.status && options.status !== 'all') {
-      where.push(`tasks.status = $${params.push(options.status)}`);
+    // Whatever starts a tree: a parent that doesn't match would hide what does otherwise
+    if (options.topLevelOnly) {
+      const parentMatches = ["p.task_id = tasks.parent", ...matching("p")].join(" AND ");
+      where.push(`(tasks.parent IS NULL OR NOT EXISTS (SELECT 1 FROM tasks p WHERE ${parentMatches}))`);
     }
 
-    //There's at most one per task for a given user
-    const notifiedJoin = options.notifiedUser != null ? `
-      JOIN notifications ON notifications.fk_task_id = tasks.task_id
-        AND notifications.fk_user_id = $${params.push(options.notifiedUser)}` : "";
-    const notifiedColumns = notifiedJoin ? ", notifications.notification_id, notifications.read_at AS notification_read_at" : "";
-
+    const { columns, joins } = TaskManager.#listParts(options.notificationsOf, params);
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     const offsetIdx = params.push(offset);
     const limitIdx = params.push(limit);
 
     return this.db.all<import("./types.js").TaskListItem>(`
-      SELECT ${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner${notifiedColumns}
+      SELECT ${columns}
       FROM tasks
-      LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
-      LEFT JOIN users ON users.user_id = tasks.fk_user_id
-      ${notifiedJoin}
+      ${joins}
       ${whereClause}
       ORDER BY tasks.task_id DESC
       OFFSET $${offsetIdx}
       LIMIT $${limitIdx}
     `, params);
   }
+
+  /** What's displayed about a task in a list, other than the task itself */
+  static #listParts(notificationsOf: number | undefined, params: any[]) {
+    const notified = notificationsOf != null;
+    return {
+      columns: `${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner`
+        + (notified ? ", notifications.notification_id AS unread_notification" : ""),
+      joins: `
+        LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
+        LEFT JOIN users ON users.user_id = tasks.fk_user_id
+        ${notified ? `LEFT JOIN notifications ON notifications.fk_task_id = tasks.task_id
+          AND notifications.fk_user_id = $${params.push(notificationsOf)}
+          AND notifications.read_at IS NULL` : ""}`,
+    };
+  }
+
+  /**
+   * Lists tasks as trees: what matches the filters and doesn't have a parent that does too, each with all that's under it.
+   * `limit` and `offset` are about those at the top, as it would otherwise cut through a tree.
+   *
+   * What's under a task isn't filtered: it's part of what happened to it.
+   */
+  public async getTaskTrees(options: Omit<NonNullable<Parameters<TaskManager["getTasks"]>[0]>, "rootOnly" | "topLevelOnly">) {
+    type Item = import("./types.js").TaskListItem & { children: Item[] };
+    const top = await this.getTasks({ ...options, rootOnly: false, topLevelOnly: true }) as Item[];
+    const byId = new Map<number, Item>();
+    for (const task of top) {
+      task.children = [];
+      byId.set(task.task_id, task);
+    }
+    if (!top.length) return top;
+
+    const params: any[] = [top.map(t => t.task_id)];
+    const { columns, joins } = TaskManager.#listParts(options.notificationsOf, params);
+    const descendants = await this.db.all<Item>(`
+      WITH RECURSIVE tree AS (
+        SELECT task_id FROM tasks WHERE parent = ANY($1::bigint[])
+        UNION
+        SELECT tasks.task_id FROM tasks JOIN tree ON tasks.parent = tree.task_id
+      )
+      SELECT ${columns}
+      FROM tree
+      JOIN tasks ON tasks.task_id = tree.task_id
+      ${joins}
+      ORDER BY tasks.task_id ASC
+      LIMIT ${TaskManager.#MAX_DESCENDANTS}
+    `, params);
+    for (const task of descendants) {
+      //Something at the top may be under another one, when listing by pages
+      const known = byId.get(task.task_id);
+      if (known) continue;
+      task.children = [];
+      byId.set(task.task_id, task);
+    }
+    for (const task of descendants) {
+      const item = byId.get(task.task_id)!;
+      if (top.includes(item)) continue;
+      byId.get(task.parent!)?.children.push(item);
+    }
+    return top;
+  }
+
+  /** A task can have many children, and it all ends up in one page. Those are the oldest ones. */
+  static readonly #MAX_DESCENDANTS = 1000;
 
   /**
    * The tasks currently in flight, in the same form as a {@link TaskEvent}.

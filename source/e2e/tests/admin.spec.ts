@@ -55,7 +55,7 @@ test("schedules an onboarding email when send_onboarding is checked", async ({pa
   // After form submit the page reloads on the users list. Now check the
   // tasks list to confirm an onboarding sendEmail task was created.
   await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
-  const row = page.getByRole("row", {name: new RegExp(name)});
+  const row = page.locator(".task-row", {hasText: name});
   await expect(row).toBeVisible();
   await expect(row).toContainText("sendEmail");
 });
@@ -74,7 +74,7 @@ test("does not schedule an onboarding email when the checkbox is not ticked", as
   await expect(res).toBeOK();
 
   await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
-  await expect(page.getByRole("row", {name: new RegExp(name)})).toHaveCount(0);
+  await expect(page.locator(".task-row", {hasText: name})).toHaveCount(0);
 });
 
 test("can delete a non-admin user", async ({page, request})=>{

@@ -31,11 +31,11 @@
           <span class="visually-hidden">{{i18n "nav.notifications"}}</span>
           <span class="nav-badge" role="img" hidden></span>
         </button>
-        <div id="nav-notifications-panel" popover data-mark-failed="{{i18n "notifications.markFailed"}}" data-delete-failed="{{i18n "notifications.deleteFailed"}}" data-mark-read="{{i18n "buttons.markAsRead"}}">
+        <div id="nav-notifications-panel" popover data-mark-failed="{{i18n "notifications.markFailed"}}" data-mark-read="{{i18n "buttons.markAsRead"}}">
           <ul></ul>
           <p hidden>{{i18n "labels.noNewNotifications"}}</p>
           <div class="nav-notifications-actions">
-            <a class="btn btn-outline" href="/ui/user/tasks?rootOnly=notifications">{{i18n "buttons.showTasks"}}</a>
+            <a class="btn btn-outline" href="/ui/user/tasks">{{i18n "buttons.showTasks"}}</a>
             <button class="btn btn-outline nav-notifications-mark-all" type="button" hidden>{{i18n "buttons.markAllAsRead"}} <ui-icon name="check-check"></ui-icon></button>
           </div>
         </div>

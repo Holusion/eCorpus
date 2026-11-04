@@ -1,0 +1,20 @@
+<div class="task-row{{#if unread_notification}} unread{{/if}}"{{#if unread_notification}} data-notification-id="{{unread_notification}}"{{/if}}>
+  <div class="task-row-content">
+    <span class="task-row-title">
+      {{#if scene}}<a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a>{{/if}}
+      <a class="task-row-type" href="/ui/tasks/{{task_id}}">‹{{type}}›</a>
+    </span>
+    <small class="task-row-details">
+      {{dateString ctime}} &mdash; #{{task_id}}
+      {{#if @root.params.showOwner}}
+        {{#if user_id}}&mdash; <a href="/ui/tasks?user={{user_id}}">{{owner}}</a>{{/if}}
+      {{/if}}
+    </small>
+  </div>
+  <div class="task-row-status">
+    <a href="/ui/tasks/{{task_id}}" class="task-status task-status-large status-{{status}}">{{status}}</a>
+    {{#if unread_notification}}
+      <button class="inbox-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
+    {{/if}}
+  </div>
+</div>

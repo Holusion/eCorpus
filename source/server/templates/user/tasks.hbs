@@ -2,19 +2,13 @@
 <section>
   <h3>{{i18n "nav.tasks"}}</h3>
   {{#unless tasks.length}}
-    {{!-- No notifications is good news: it's no reason to explain what tasks are --}}
-    {{#unless params.notificationsOnly}}
-      <aside class="help-block">
-        <ui-icon name="info"></ui-icon>
-        <div class="help-block-content">
-          <p>{{{i18n "onboarding.tasks.lead"}}}</p>
-          <a href="https://ecorpus.eu/en/doc/explainers/tasks.html">{{i18n "onboarding.tasks.link"}} →</a>
-        </div>
-      </aside>
-    {{/unless}}
+    <aside class="help-block">
+      <ui-icon name="info"></ui-icon>
+      <div class="help-block-content">
+        <p>{{{i18n "onboarding.tasks.lead"}}}</p>
+        <a href="https://ecorpus.eu/en/doc/explainers/tasks.html">{{i18n "onboarding.tasks.link"}} →</a>
+      </div>
+    </aside>
   {{/unless}}
-  {{> taskList params=params tasks=tasks withNotifications=true}}
+  {{> taskList params=params tasks=tasks}}
 </section>
-{{#if params.notificationsOnly}}
-  <script type="module" src="/dist/js/inbox.js?ref={{ config.build_ref }}"></script>
-{{/if}}

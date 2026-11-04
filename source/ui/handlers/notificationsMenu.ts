@@ -137,14 +137,6 @@ if (panel && list && empty && markAll) {
       });
   });
 
-  document.addEventListener("notification-deleted", (e) => {
-    const id = (e as CustomEvent<number>).detail;
-    keepingFocus(() => {
-      list.querySelector(`[data-notification-id="${id}"]`)?.remove();
-      showState();
-    });
-  });
-
   document.addEventListener("notifications-read", (e) => {
     const { detail } = e as CustomEvent<ReadNotifications>;
     //What's being listed may have been read before this happened

@@ -3,10 +3,11 @@ import request from "supertest";
 import UserManager from "../../auth/UserManager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
 import { Config } from "../../utils/config.js";
+import Vfs from "../../vfs/index.js";
 
 
 describe("Notifications in the UI", function(){
-  let userManager: UserManager, taskScheduler: TaskScheduler, config: Config;
+  let userManager: UserManager, taskScheduler: TaskScheduler, config: Config, vfs: Vfs;
   let owner: number, other: number, lowest: number;
 
   /** Requests a page, by default as the user who's getting notified */
@@ -30,6 +31,7 @@ describe("Notifications in the UI", function(){
     userManager = locals.userManager;
     taskScheduler = locals.taskScheduler;
     config = locals.config;
+    vfs = locals.vfs;
   });
 
   this.beforeEach(async function(){
@@ -63,7 +65,7 @@ describe("Notifications in the UI", function(){
       const {text} = await page(this.server, "/ui/tags");
       expect(text).to.match(/<button id="nav-notifications"[^>]* popovertarget="nav-notifications-panel"/);
       expect(text).to.match(/<div id="nav-notifications-panel" popover/);
-      expect(text).to.include(`href="/ui/user/tasks?rootOnly=notifications"`);
+      expect(text).to.include(`href="/ui/user/tasks"`);
     });
 
     it("isn't loaded for anonymous visitors", async function(){
@@ -185,132 +187,277 @@ describe("Notifications in the UI", function(){
 
   describe("GET /ui/user/tasks", function(){
     const url = "/ui/user/tasks";
-    const query = `${url}?rootOnly=notifications`;
-    const option = /<option value="notifications"([^>]*)>/;
 
-    async function notifiedTask({user_id = owner, fail = false} = {}){
-      const task = await taskScheduler.create({type: "testTask", data: {}, user_id, notify: true, status: "running"});
-      if(fail) await taskScheduler.errorTask(task.task_id, new Error("Task failed"));
-      else await taskScheduler.releaseTask(task.task_id);
-      return task.task_id;
+    async function task(params: {parent?: number, user_id?: number, status?: "success"|"error", scene_id?: number, type?: string, notify?: boolean} = {}){
+      const {status = "success", type = "testTask", user_id = owner, notify = false, ...rest} = params;
+      const created = await taskScheduler.create({type, data: {}, user_id, notify, status: "running", ...rest});
+      if(status === "error") await taskScheduler.errorTask(created.task_id, new Error("Task failed"));
+      else await taskScheduler.releaseTask(created.task_id);
+      return created.task_id;
     }
-    const link = (task_id: number)=> `testTask#${task_id}`;
-    /** The ID of the notification about a task */
-    const notificationId = async (task_id: number, uid = owner)=>{
-      const all = await userManager.getNotifications(uid, {unreadOnly: false, limit: 100});
-      return all.find(n=> n.task?.task_id === task_id)!.notification_id;
+    const link = (task_id: number)=> `href="/ui/tasks/${task_id}"`;
+    /** The markup of what's displayed for a task, without what's under it */
+    const rowOf = (text: string, task_id: number)=>{
+      const row = text.match(/<div class="task-row[ "].*?<\/button>\s*<\/div>\s*<\/div>|<div class="task-row[ "].*?<\/a>\s*<\/div>\s*<\/div>/gs)?.find(r=> r.includes(`#${task_id}\n`) || r.includes(`#${task_id} `));
+      expect(row, `row of task #${task_id}`).to.be.a("string");
+      return row!;
     };
-    /** What's in the row about a task */
-    const row = (text: string, task_id: number)=> text.match(/<tr[ >].*?<\/tr>/gs)?.find(r=> r.includes(link(task_id)));
 
-    it("offers to show what has a notification", async function(){
+    describe("rows", function(){
+      it("show the type of a task, and how to get to it", async function(){
+        const id = await task();
+        const {text} = await page(this.server, url);
+        expect(rowOf(text, id)).to.include(`<a class="task-row-type" ${link(id)}>‹testTask›</a>`);
+      });
+
+      it("show the scene before it, when it has one", async function(){
+        const scene_id = await vfs.createScene("foo", owner);
+        const id = await task({scene_id});
+        const none = await task();
+        const {text} = await page(this.server, url);
+        expect(rowOf(text, id)).to.match(/<a href="\/ui\/scenes\/foo">foo<\/a>\s*<a class="task-row-type"/);
+        expect(rowOf(text, none)).not.to.include("/ui/scenes/");
+      });
+
+      it("escape what comes from a scene's name", async function(){
+        const scene_id = await vfs.createScene("<b>foo</b>", owner);
+        const {text} = await (async ()=>{ await task({scene_id}); return page(this.server, url); })();
+        expect(text).not.to.include("<b>foo</b>");
+      });
+
+      it("have the date and ID on a second line", async function(){
+        const id = await task();
+        const {text} = await page(this.server, url);
+        expect(rowOf(text, id)).to.match(new RegExp(`<small class="task-row-details">[^<]*\\d[^<]*#${id}`));
+      });
+
+      it("show the status, linking to the task", async function(){
+        const id = await task({status: "error"});
+        const {text} = await page(this.server, url);
+        expect(rowOf(text, id)).to.include(`<a ${link(id)} class="task-status task-status-large status-error">error</a>`);
+      });
+
+      it("only show the owner to those looking at everyone's tasks", async function(){
+        await userManager.addUser("admin", "12345678", "admin");
+        const id = await task();
+        expect(rowOf((await page(this.server, "/ui/admin/tasks", {as: "admin"})).text, id)).to.include(">owner</a>");
+        expect(rowOf((await page(this.server, url)).text, id)).not.to.include(">owner</a>");
+      });
+    });
+
+    describe("hierarchy", function(){
+      const all = `${url}?rootOnly=false`;
+
+      /** The list that's right under the row of a task, up to where it closes */
+      function under(text: string, id: number){
+        const start = text.indexOf(`&mdash; #${id}`);
+        expect(start, `task #${id}`).to.be.above(-1);
+        const details = text.lastIndexOf("<details", start);
+        const opened = text.indexOf('<ul class="task-rows">', start);
+        expect(details, `collapsible tree of #${id}`).to.be.above(-1);
+        let depth = 1, i = opened + 1;
+        const tag = /<(\/?)ul[ >]/g;
+        tag.lastIndex = i;
+        let m: RegExpExecArray|null;
+        while(depth && (m = tag.exec(text))){
+          depth += m[1] ? -1 : 1;
+          i = tag.lastIndex;
+        }
+        return text.slice(opened, i);
+      }
+
+      it("only shows root tasks by default, with nothing to unfold", async function(){
+        const root = await task();
+        const child = await task({parent: root});
+        const {text} = await page(this.server, url);
+        expect(text).to.include(link(root));
+        expect(text).not.to.include(link(child));
+        expect(text).not.to.include("<details");
+        expect(text).not.to.include("task-rows-tree");
+      });
+
+      it("shows what's under a task, nested in something that can be collapsed", async function(){
+        const root = await task();
+        const child = await task({parent: root});
+        const {text} = await page(this.server, all);
+        expect(text).to.include("task-rows-tree");
+        expect(text).to.match(/<details open>\s*<summary>/);
+        expect(under(text, root)).to.include(link(child));
+      });
+
+      it("goes as deep as it has to, each with its own tree", async function(){
+        const root = await task();
+        const child = await task({parent: root});
+        const grandchild = await task({parent: child});
+        const {text} = await page(this.server, all);
+        expect(under(text, root)).to.include(link(grandchild));
+        expect(under(text, child)).to.include(link(grandchild));
+        expect(text.match(/<details/g)).to.have.length(2);
+      });
+
+      it("doesn't show a task twice", async function(){
+        const root = await task();
+        const child = await task({parent: root});
+        const {text} = await page(this.server, all);
+        expect(text.match(new RegExp(`<a class="task-row-type" ${link(child)}`, "g"))).to.have.length(1);
+      });
+
+      it("keeps a task with nothing under it simple", async function(){
+        await task();
+        const {text} = await page(this.server, all);
+        expect(text).not.to.include("<details");
+      });
+
+      it("keeps those under a task in order", async function(){
+        const root = await task();
+        const first = await task({parent: root});
+        const second = await task({parent: root});
+        const list = under((await page(this.server, all)).text, root);
+        expect(list.indexOf(link(first))).to.be.below(list.indexOf(link(second)));
+      });
+
+      it("shows the newest trees first", async function(){
+        const older = await task();
+        const newer = await task();
+        const {text} = await page(this.server, all);
+        expect(text.indexOf(link(newer))).to.be.below(text.indexOf(link(older)));
+      });
+
+      it("counts trees when limiting, not what's in them", async function(){
+        const older = await task();
+        const newer = await task();
+        const children = [await task({parent: newer}), await task({parent: newer}), await task({parent: newer})];
+        const {text} = await page(this.server, `${all}&limit=1`);
+        for(const child of children) expect(text).to.include(link(child));
+        expect(text).not.to.include(link(older));
+      });
+
+      it("goes to the next tree with an offset", async function(){
+        const older = await task();
+        const newer = await task();
+        const {text} = await page(this.server, `${all}&limit=1&offset=1`);
+        expect(text).to.include(link(older));
+        expect(text).not.to.include(link(newer));
+      });
+
+      it("shows a task that matches a filter, even if its parent doesn't", async function(){
+        const root = await task();
+        const failed = await task({parent: root, status: "error"});
+        const {text} = await page(this.server, `${all}&status=error`);
+        expect(text).to.include(link(failed));
+        expect(text).not.to.include(`<a class="task-row-type" ${link(root)}`);
+      });
+
+      it("shows what's under a task that matches a filter, whatever it is", async function(){
+        const root = await task({status: "error"});
+        const child = await task({parent: root});
+        const {text} = await page(this.server, `${all}&status=error`);
+        expect(under(text, root)).to.include(link(child));
+      });
+
+      it("keeps a child nested when both it and its parent match", async function(){
+        const root = await task({status: "error"});
+        const child = await task({parent: root, status: "error"});
+        const {text} = await page(this.server, `${all}&status=error`);
+        expect(under(text, root)).to.include(link(child));
+        expect(text.match(new RegExp(`<a class="task-row-type" ${link(child)}`, "g"))).to.have.length(1);
+      });
+
+      it("works with a filter on the type", async function(){
+        const root = await task();
+        const other = await task({parent: root, type: "otherTask"});
+        const {text} = await page(this.server, `${all}&type=otherTask`);
+        expect(text).to.include(link(other));
+        expect(text).not.to.include(`<a class="task-row-type" ${link(root)}`);
+      });
+
+      it("doesn't show the tasks of others", async function(){
+        const theirs = await task({user_id: other});
+        const {text} = await page(this.server, all);
+        expect(text).not.to.include(link(theirs));
+      });
+
+      it("works on the other lists of tasks", async function(){
+        await userManager.addUser("admin", "12345678", "admin");
+        const root = await task();
+        const child = await task({parent: root});
+        const {text} = await page(this.server, "/ui/admin/tasks?rootOnly=false", {as: "admin"});
+        expect(under(text, root)).to.include(link(child));
+
+        const scene_id = await vfs.createScene("foo", owner);
+        const sceneRoot = await task({scene_id});
+        const sceneChild = await task({parent: sceneRoot, scene_id});
+        const inScene = await page(this.server, "/ui/scenes/foo/tasks?rootOnly=false");
+        expect(under(inScene.text, sceneRoot)).to.include(link(sceneChild));
+      });
+    });
+
+    describe("what's new", function(){
+      it("tells a task with an unread notification, with a way to acknowledge it", async function(){
+        const id = await task({notify: true});
+        const [{notification_id}] = await userManager.getNotifications(owner, {limit: 1});
+        const row = rowOf((await page(this.server, url)).text, id);
+        expect(row).to.include(`class="task-row unread" data-notification-id="${notification_id}"`);
+        expect(row).to.include("inbox-mark-read");
+        expect(row).to.include(`aria-label="mark as read"`);
+        expect(row).to.include(`name="check-check"`);
+      });
+
+      it("doesn't for one that's been read", async function(){
+        const id = await task({notify: true});
+        await userManager.markNotificationsRead(owner, {task_id: id});
+        const row = rowOf((await page(this.server, url)).text, id);
+        expect(row).not.to.include("unread");
+        expect(row).not.to.include("inbox-mark-read");
+      });
+
+      it("doesn't for one nobody was notified about", async function(){
+        const id = await task();
+        const row = rowOf((await page(this.server, url)).text, id);
+        expect(row).not.to.include("unread");
+        expect(row).not.to.include("inbox-mark-read");
+      });
+
+      it("is about the one looking at it", async function(){
+        await userManager.addUser("admin", "12345678", "admin");
+        const id = await task({notify: true});
+        const row = rowOf((await page(this.server, "/ui/admin/tasks", {as: "admin"})).text, id);
+        expect(row).not.to.include("unread");
+        expect(row).not.to.include("inbox-mark-read");
+      });
+
+      it("is shown on a task with others under it, and only on that one", async function(){
+        const root = await task({notify: true});
+        const child = await task({parent: root});
+        const {text} = await page(this.server, `${url}?rootOnly=false`);
+        expect(rowOf(text, root)).to.include("unread");
+        expect(rowOf(text, child)).not.to.include("unread");
+      });
+
+      it("doesn't count a notification meant for someone else, about one of your tasks", async function(){
+        const id = await task();
+        await taskScheduler.db.run(`INSERT INTO notifications(fk_user_id, type, fk_task_id) VALUES ($1, 'task', $2)`, [other, id]);
+        const row = rowOf((await page(this.server, url)).text, id);
+        expect(row).not.to.include("unread");
+      });
+
+      it("goes away once the task has been visited", async function(){
+        const id = await task({notify: true});
+        await page(this.server, `/ui/tasks/${id}`);
+        expect(rowOf((await page(this.server, url)).text, id)).not.to.include("unread");
+      });
+    });
+
+    it("no longer has a view of notifications", async function(){
       const {text} = await page(this.server, url);
-      expect(option.exec(text)?.[1], "not by default").not.to.include("selected");
-      expect(text).to.match(/<option value="true" selected>/);
+      expect(text).not.to.match(/<option value="notifications"/);
+      expect(text).not.to.include("inbox-delete");
     });
 
-    it("shows those, read or not, and no other tasks", async function(){
-      const unread = await notifiedTask();
-      const read = await notifiedTask();
-      await userManager.markNotificationsRead(owner, {task_id: read});
-      const quiet = (await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"})).task_id;
-      const {text} = await page(this.server, query);
-      expect(text).to.include(link(unread));
-      expect(text).to.include(link(read));
-      expect(text).not.to.include(link(quiet));
-      expect(option.exec(text)?.[1], "as the selected option").to.include("selected");
-      expect(text).not.to.match(/<option value="true" selected>/);
-      expect(text).not.to.match(/<option value="false" selected>/);
-    });
-
-    it("tells which are unread, and can only mark those", async function(){
-      const unread = await notifiedTask();
-      const read = await notifiedTask();
-      await userManager.markNotificationsRead(owner, {task_id: read});
-      const {text} = await page(this.server, query);
-      expect(text).to.include(`<tr data-notification-id="${await notificationId(unread)}" class="unread">`);
-      expect(row(text, unread)).to.include("inbox-mark-read");
-      expect(row(text, read)).not.to.include("inbox-mark-read");
-      expect(row(text, read)).not.to.include(`class="unread"`);
-    });
-
-    it("can delete all of them", async function(){
-      const unread = await notifiedTask();
-      const read = await notifiedTask();
-      await userManager.markNotificationsRead(owner, {task_id: read});
-      const {text} = await page(this.server, query);
-      expect(row(text, unread)).to.include("inbox-delete");
-      expect(row(text, read)).to.include("inbox-delete");
-    });
-
-    it("loads what makes those work, only then", async function(){
-      await notifiedTask();
-      expect((await page(this.server, query)).text).to.include("js/inbox.js");
-      expect((await page(this.server, url)).text).not.to.include("js/inbox.js");
-    });
-
-    it("has no such column otherwise", async function(){
-      const task_id = await notifiedTask();
-      for(const q of ["", "?rootOnly=true", "?rootOnly=false"]){
-        const {text} = await page(this.server, url+q);
-        expect(text, q).to.include(link(task_id));
-        expect(text, q).not.to.include("inbox-delete");
-        expect(text, q).not.to.include("data-notification-id");
-      }
-    });
-
-    it("doesn't show the tasks of others", async function(){
-      const theirs = await notifiedTask({user_id: other});
-      const {text} = await page(this.server, query);
-      expect(text).not.to.include(link(theirs));
-    });
-
-    it("doesn't count a notification meant for someone else, about one of your tasks", async function(){
-      const {task_id} = await taskScheduler.create({type: "testTask", data: {}, user_id: owner, status: "success"});
-      await taskScheduler.db.run(`INSERT INTO notifications(fk_user_id, type, fk_task_id) VALUES ($1, 'task', $2)`, [other, task_id]);
-      const {text} = await page(this.server, query);
-      expect(text).not.to.include(link(task_id));
-    });
-
-    it("goes along with the other filters", async function(){
-      const success = await notifiedTask();
-      const failure = await notifiedTask({fail: true});
-      for(const [q, shown, hidden] of [[`${query}&status=error`, failure, success], [`${query}&status=success`, success, failure]] as const){
-        const {text} = await page(this.server, q);
-        expect(text, q).to.include(link(shown));
-        expect(text, q).not.to.include(link(hidden));
-      }
-      const {text} = await page(this.server, `${query}&type=otherTask`);
-      expect(text).not.to.include(link(success));
-    });
-
-    it("still shows a task once it's been visited, as read", async function(){
-      const task_id = await notifiedTask();
-      await page(this.server, `/ui/tasks/${task_id}`);
-      const {text} = await page(this.server, query);
-      expect(row(text, task_id)).not.to.include("inbox-mark-read");
-      expect(row(text, task_id)).to.include("inbox-delete");
-    });
-
-    it("no longer shows a task once its notification is deleted, in this view only", async function(){
-      const task_id = await notifiedTask();
-      await userManager.deleteNotification(owner, await notificationId(task_id));
-      expect((await page(this.server, query)).text).not.to.include(link(task_id));
-      expect((await page(this.server, url)).text).to.include(link(task_id));
-    });
-
-    it("doesn't explain what tasks are when there's just no notification", async function(){
-      expect((await page(this.server, url)).text, "for comparison").to.include("help-block");
-      const {text} = await page(this.server, query);
-      expect(text).not.to.include("help-block");
-      expect(text).to.include("No tasks found");
-    });
-
-    it("isn't offered on the other lists of tasks", async function(){
-      await userManager.addUser("admin", "12345678", "admin");
-      const {text} = await page(this.server, "/ui/admin/tasks", {as: "admin"});
-      expect(text).to.include(`value="false"`);
-      expect(text).not.to.match(option);
+    it("has what it takes to mark as read, when there's a list", async function(){
+      expect((await page(this.server, url)).text, "nothing to act on").not.to.include("js/inbox.js");
+      await task({notify: true});
+      expect((await page(this.server, url)).text).to.include("js/inbox.js");
     });
   });
 

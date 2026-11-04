@@ -1,0 +1,14 @@
+<li>
+  {{#if children.length}}
+    <details open>
+      <summary>{{> taskRowContent }}</summary>
+      <ul class="task-rows">
+        {{#each children}}
+          {{> taskRow }}
+        {{/each}}
+      </ul>
+    </details>
+  {{else}}
+    {{> taskRowContent }}
+  {{/if}}
+</li>

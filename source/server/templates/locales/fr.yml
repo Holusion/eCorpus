@@ -492,7 +492,6 @@ errors:
 notifications:
   default: Vous avez une nouvelle notification
   markFailed: Le marquage comme lu a échoué. Veuillez réessayer.
-  deleteFailed: La suppression de cette notification a échoué. Veuillez réessayer.
   task:
     default:
       success: "La tâche {{type}} est terminée"
