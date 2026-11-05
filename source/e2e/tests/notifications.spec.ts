@@ -162,6 +162,26 @@ test.describe("for logged-in users", ()=>{
     await expect(page.locator("#nav-notifications .nav-badge")).toBeHidden();
   });
 
+  test("cuts long titles on the page of notifications, and gives them in full on demand", async ({page, baseURL})=>{
+    await open(page, PAGE);
+    await abandonUpload(page, baseURL!);
+    await expect(page.locator("#nav-notifications .nav-badge")).toHaveAttribute("data-count", "1");
+    await page.setViewportSize({width: 390, height: 700});
+    await open(page, "/ui/user/notifications");
+    const title = page.locator(".inbox-item-message");
+    const text = await title.innerText();
+    await expect(title).toHaveAttribute("title", text);
+    const {cut, height, lineHeight} = await title.evaluate(el=> ({
+      cut: el.scrollWidth - el.clientWidth,
+      height: el.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(el).fontSize) * 2,
+    }));
+    expect(cut, "it doesn't fit").toBeGreaterThan(0);
+    expect(height, "on one line").toBeLessThan(lineHeight);
+    const overflow = await page.evaluate(()=> document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, "no scrolling sideways").toBeLessThanOrEqual(0);
+  });
+
   test("all notifications can be marked as read at once", async ({page, baseURL})=>{
     await open(page, PAGE);
     await abandonUpload(page, baseURL!);
@@ -645,9 +665,7 @@ test.describe("for logged-in users", ()=>{
       await mark(page).click();
       await expect(remove(page)).toBeVisible();
       await expect(mark(page)).toHaveCount(0);
-      //Not its height on the page: a title that isn't bold anymore may take fewer lines
-      const after = await remove(page).boundingBox();
-      expect([after!.x, after!.width, after!.height]).toEqual([before!.x, before!.width, before!.height]);
+      expect(await remove(page).boundingBox()).toEqual(before);
       await expect(remove(page).locator("ui-icon")).toHaveAttribute("name", "trash");
       await expect(remove(page)).toHaveAttribute("title", "Delete");
     });

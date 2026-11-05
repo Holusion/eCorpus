@@ -473,7 +473,7 @@ describe("Notifications in the UI", function(){
       //Which one shows is up to the styles, as it changes without leaving the page
       expect(text.match(/class="[^"]*inbox-mark-read/g), "on each of them").to.have.length(2);
       expect(text.match(/class="[^"]*inbox-delete/g), "on each of them").to.have.length(2);
-      expect(text).to.match(/class="inbox-item-message" href="\/ui\/tasks\/\d+"/);
+      expect(text).to.match(/class="inbox-item-message" href="\/ui\/tasks\/\d+" title="[^"]+">/);
     });
 
     it("can be limited to unread notifications", async function(){

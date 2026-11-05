@@ -63,8 +63,11 @@
   gap: .15rem;
 }
 
+//On one line, whatever its length: being read makes it lighter, which shouldn't move anything
 .inbox-item-message {
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .inbox-item-details {

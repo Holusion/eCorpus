@@ -28,9 +28,9 @@
           {{/if}}
           <div class="inbox-item-content">
             {{#if link}}
-              <a class="inbox-item-message" href="{{link}}">{{message}}</a>
+              <a class="inbox-item-message" href="{{link}}" title="{{message}}">{{message}}</a>
             {{else}}
-              <span class="inbox-item-message">{{message}}</span>
+              <span class="inbox-item-message" title="{{message}}">{{message}}</span>
             {{/if}}
             <small class="inbox-item-details">
               {{dateString ctime}}
