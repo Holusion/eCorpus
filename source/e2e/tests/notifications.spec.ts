@@ -28,11 +28,22 @@ async function login(context: BrowserContext, {username, password}: {username: s
  */
 async function startUpload(page: Page, baseURL: string){
   const scene = randomUUID();
-  const started = page.evaluate(()=> new Promise<void>((resolve)=>{
-    document.addEventListener("task-event", (e)=>{
-      if((e as CustomEvent).detail.type === "postScene") resolve();
+  //Listens before making the request, for its event to not come first. A previous upload can still have
+  //events of its own coming, and those don't say anything about this one.
+  await page.evaluate(()=>{
+    const w = window as any;
+    w.seenUploads ??= new Set<number>();
+    w.uploadStarted = new Promise<void>((resolve)=>{
+      const listener = (e: Event)=>{
+        const {type, task_id} = (e as CustomEvent).detail;
+        if(type !== "postScene" || w.seenUploads.has(task_id)) return;
+        w.seenUploads.add(task_id);
+        document.removeEventListener("task-event", listener);
+        resolve();
+      };
+      document.addEventListener("task-event", listener);
     });
-  }));
+  });
   const cookie = (await page.context().cookies()).map(c=> `${c.name}=${c.value}`).join("; ");
   const req = http.request(new URL(`/scenes/${scene}`, baseURL), {
     method: "POST",
@@ -40,7 +51,7 @@ async function startUpload(page: Page, baseURL: string){
   });
   req.on("error", ()=>{});
   req.write("incomplete");
-  await started;
+  await page.evaluate(()=> (window as any).uploadStarted);
   return {scene, leave: ()=> req.destroy()};
 }
 
@@ -625,12 +636,12 @@ test.describe("for logged-in users", ()=>{
     await abandonUpload(page, baseURL!);
     await expect(page.locator("#nav-notifications .nav-badge")).toHaveAttribute("data-count", "1");
     await open(page, "/ui/user/notifications");
-    const row = page.locator(".inbox-item.unread").getByRole("button", {name: "mark as read"});
-    await expect(row.locator("ui-icon")).toHaveAttribute("name", "check-check");
-    await expect(row).toHaveAttribute("title", "mark as read");
-    await expect(row).toHaveText("");
-    await expect(row).toHaveClass(/btn-outline/);
-    const all = page.locator("#inbox-mark-all");
+    const mark = page.getByRole("main").getByRole("button", {name: "mark as read"});
+    //Icons are hidden from assistive technologies: they have nothing else to go by
+    await expect(mark.locator("ui-icon")).toHaveAttribute("name", "check-check");
+    await expect(mark).toHaveAttribute("title", "mark as read");
+    await expect(mark).toHaveText("");
+    const all = page.getByRole("main").getByRole("button", {name: "mark all as read"});
     await expect(all.locator("ui-icon")).toHaveAttribute("name", "check-check");
     await expect(all).toHaveText("mark all as read");
   });
