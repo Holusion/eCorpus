@@ -26,22 +26,27 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  background: var(--color-section);
 }
 
 .inbox-item {
   display: flex;
   flex-wrap: wrap;
-  gap: .75rem;
+  gap: .25rem;
   align-items: center;
   margin: 2px 0;
-  padding: .5rem .75rem;
+  padding: 8px 8px 8px 12px;
   border-left: 3px solid transparent;
-  border-bottom: 1px solid var(--color-highlight);
+  background: var(--color-dark);
 
   > .ui-icon {
     flex: 0 0 auto;
     width: 1.5rem;
     height: 1.5rem;
+  }
+
+  > .inbox-item-content {
+    padding-left: .5rem;
   }
 
   &.unread {

@@ -29,10 +29,10 @@
             <submit-fragment encoding="application/json" onsubmit="this.closest('tr')?.remove();">
               <form class="form-control" style="display:flex; justify-content:end;gap:.6rem;">
                 <input type="hidden" name="archived", value="false"/>
-                <button data-formmethod="PATCH"  formaction="/scenes/{{encodeURIComponent name }}" role="submit" class="btn btn-small btn-transparent btn-inline text-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
+                <button data-formmethod="PATCH"  formaction="/scenes/{{encodeURIComponent name }}" role="submit" class="btn btn-small btn-transparent btn-inline btn-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
                   <ui-icon name="restore"></ui-icon>
                 </button>
-                <button data-formmethod="DELETE" formaction="/scenes/{{encodeURIComponent name }}?archive=false" role="submit" class="btn btn-small btn-transparent btn-inline text-error" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}" >
+                <button data-formmethod="DELETE" formaction="/scenes/{{encodeURIComponent name }}?archive=false" role="submit" class="btn btn-small btn-transparent btn-inline btn-danger" title="{{i18n "labels.delete"}}" aria-label="{{i18n "labels.delete"}}" >
                   <ui-icon name="trash"></ui-icon>
                 </button>
               </form>
