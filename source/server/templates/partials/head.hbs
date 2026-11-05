@@ -23,6 +23,23 @@
 {{/if}}
 
 <link rel="preload" href="/dist/images/icons.svg" as="image" type="image/svg+xml">
+{{!-- Not in a bundle: those come after what they'd draw, so pages get painted with no icons. Here, each one is drawn as soon as it gets parsed. --}}
+<script>
+  customElements.define("ui-icon", class extends HTMLElement {
+    static observedAttributes = ["name"];
+    connectedCallback() {
+      this.classList.add("ui-icon");
+      this.render();
+    }
+    attributeChangedCallback() {
+      this.render();
+    }
+    render() {
+      const name = (this.getAttribute("name") ?? "").replace(/[^a-z0-9_-]/gi, "");
+      this.innerHTML = (!name || name === "empty") ? "" : `<svg aria-hidden="true"><use href="/dist/images/icons.svg#icon-${name}"></use></svg>`;
+    }
+  });
+</script>
 
 <style>
   :root{

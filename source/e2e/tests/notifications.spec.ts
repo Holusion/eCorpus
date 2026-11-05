@@ -649,6 +649,13 @@ test.describe("for logged-in users", ()=>{
     await expect(all).toHaveText("mark all as read");
   });
 
+  test("draws the bell without waiting for the main bundle", async ({page})=>{
+    await page.route("**/dist/js/corpus.js*", (route)=> route.abort());
+    await page.goto(PAGE);
+    //Icons are hidden from assistive technologies: they have nothing else to go by
+    await expect(page.getByRole("button", {name: "Notifications"}).locator("svg use")).toHaveAttribute("href", /#icon-bell$/);
+  });
+
   test.describe("following a notification counts it out before leaving", ()=>{
     /** Two notifications, on a page that will never hear back about marking one as read */
     async function withTwo(page: Page, baseURL: string){
