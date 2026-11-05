@@ -173,21 +173,25 @@ a{
   }
 
   &.btn-transparent {
+    // Pulls lightness towards 0.8 and reduces chroma: lifts muted colors, tones down vibrant ones.
+    // Comes after the color variants on purpose: theirs are made for solid backgrounds.
+     --btn-color-hover: color-mix(in oklch, var(--btn-color), white 45%);
     background-color: transparent !important;
     color: var(--btn-color);
+
+    // Without a color variant, it has no color worth deriving a hover from
+    &:not(.btn-main, .btn-primary, .btn-secondary, .btn-danger, .btn-success, .btn-info) {
+      --btn-color-hover: var(--color-primary);
+    }
 
     &:hover:not([disabled]) {
       color: var(--btn-color-hover);
       box-shadow: none !important;
+      filter: none;
     }
 
     &.btn-primary:hover:not([disabled]) {
       text-decoration: underline;
-    }
-
-    &.btn-danger:hover:not([disabled]) {
-      color: var(--btn-color);
-      filter: saturate(0.4);
     }
   }
 
