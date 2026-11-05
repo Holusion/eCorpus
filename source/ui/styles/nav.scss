@@ -469,6 +469,14 @@ nav, .navbar {
           overflow: hidden;
           text-overflow: ellipsis;
         }
+
+        > time {
+          flex: 0 0 auto;
+          margin-left: auto;
+          font-size: smaller;
+          white-space: nowrap;
+          opacity: .75;
+        }
       }
 
       > .btn {
@@ -550,14 +558,6 @@ nav, .navbar {
     #main-navbar-collapse-toggle {
       display: flex;
       min-width: auto;
-    }
-
-    #nav-notifications-panel {
-      top: var(--nav-height);
-      left: .25rem;
-      right: .25rem;
-      width: auto;
-      max-width: none;
     }
   }
 }

@@ -1,6 +1,7 @@
 /**
  * The list of unread notifications that opens from the bell in the navbar. It's a native popover, so
- * this has nothing to do with opening it. It only asks for the list then, as most page views will never need it.
+ * this has nothing to do with opening it, except on small screens that have no room for it.
+ * It only asks for the list then, as most page views will never need it.
  */
 import { followsLink, isRead, markAsRead, ReadNotifications, reportMarkFailure } from "./markRead";
 import { setUnread } from "./unreadBadge";
@@ -8,6 +9,14 @@ import { setUnread } from "./unreadBadge";
 //As much as the API gives. This is the only place to find what's unread: it scrolls.
 const LIMIT = 100;
 
+//Not in TypeScript's libraries yet
+declare const Temporal: any;
+
+//What's shorter than the last of those is "now"
+const AGE_UNITS: Intl.RelativeTimeFormatUnit[] = ["years", "months", "days", "hours", "minutes"];
+const ageFormat = new Intl.RelativeTimeFormat(document.documentElement.lang || undefined, { style: "short", numeric: "auto" });
+
+const bell = document.querySelector<HTMLElement>("#nav-notifications");
 const panel = document.querySelector<HTMLElement>("#nav-notifications-panel");
 const list = panel?.querySelector<HTMLElement>("ul");
 const empty = panel?.querySelector<HTMLElement>("p");
@@ -48,6 +57,7 @@ function keepingFocus(change: () => void) {
 
 interface ListedNotification {
   notification_id: number;
+  ctime: string;
   message: string;
   link: string | null;
   task: { status: string } | null;
@@ -64,8 +74,21 @@ function statusIcon(status?: string) {
   return icon;
 }
 
+/** How long ago something happened, on browsers that have what it takes */
+function howLongAgo(date: string) {
+  if (typeof Temporal === "undefined") return undefined;
+  const now = Temporal.Now.zonedDateTimeISO();
+  const age = Temporal.Instant.from(date).toZonedDateTimeISO(now.timeZoneId).until(now, { largestUnit: "year" });
+  //Clocks don't always agree: nothing here is about the future
+  const unit = 0 < age.sign ? AGE_UNITS.find((u) => age[u] !== 0) : undefined;
+  const time = document.createElement("time");
+  time.dateTime = date;
+  time.textContent = ageFormat.format(unit ? -age[unit] : 0, unit ?? "second");
+  return time;
+}
+
 function render(notifications: ListedNotification[]) {
-  const items = notifications.map(({ notification_id, message, link, task }) => {
+  const items = notifications.map(({ notification_id, ctime, message, link, task }) => {
     const item = document.createElement("li");
     item.dataset.notificationId = notification_id.toString();
     const title = document.createElement(link ? "a" : "div");
@@ -75,6 +98,8 @@ function render(notifications: ListedNotification[]) {
     const text = document.createElement("span");
     text.textContent = message;
     title.append(statusIcon(task?.status), text);
+    const age = howLongAgo(ctime);
+    if (age) title.appendChild(age);
     item.appendChild(title);
     item.appendChild(markButton());
     return item;
@@ -115,6 +140,13 @@ export function refreshNotificationsMenu() {
 }
 
 if (panel && list && empty && markAll) {
+  //The links of the navbar only open as a menu on small screens
+  bell?.addEventListener("click", (e) => {
+    if (!panel.parentElement!.matches(":popover-open")) return;
+    e.preventDefault();
+    window.location.assign(panel.querySelector<HTMLAnchorElement>(".nav-notifications-actions a")!.href);
+  });
+
   panel.addEventListener("beforetoggle", (e) => {
     if ((e as ToggleEvent).newState === "open") refresh();
   });

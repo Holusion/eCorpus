@@ -65,7 +65,7 @@ describe("Notifications in the UI", function(){
       const {text} = await page(this.server, "/ui/tags");
       expect(text).to.match(/<button id="nav-notifications"[^>]* popovertarget="nav-notifications-panel"/);
       expect(text).to.match(/<div id="nav-notifications-panel" popover/);
-      expect(text).to.include(`href="/ui/user/tasks"`);
+      expect(text).to.include(`<a class="btn btn-outline" href="/ui/user/notifications">`);
     });
 
     it("isn't loaded for anonymous visitors", async function(){
@@ -400,61 +400,13 @@ describe("Notifications in the UI", function(){
       });
     });
 
-    describe("what's new", function(){
-      it("knows about a task with an unread notification, for what's going to show it", async function(){
-        const id = await task({notify: true});
-        const [{notification_id}] = await userManager.getNotifications(owner, {limit: 1});
-        const row = rowOf((await page(this.server, url)).text, id);
-        expect(row).to.include(`class="task-row unread" data-notification-id="${notification_id}"`);
-      });
-
-      it("has nothing to act on in the list", async function(){
-        const id = await task({notify: true});
-        const {text} = await page(this.server, url);
-        expect(rowOf(text, id)).not.to.include("<button");
-        expect(text).not.to.include("js/inbox.js");
-      });
-
-      it("doesn't for one that's been read", async function(){
-        const id = await task({notify: true});
-        await userManager.markNotificationsRead(owner, {task_id: id});
-        const row = rowOf((await page(this.server, url)).text, id);
-        expect(row).not.to.include("unread");
-      });
-
-      it("doesn't for one nobody was notified about", async function(){
-        const id = await task();
-        const row = rowOf((await page(this.server, url)).text, id);
-        expect(row).not.to.include("unread");
-      });
-
-      it("is about the one looking at it", async function(){
-        await userManager.addUser("admin", "12345678", "admin");
-        const id = await task({notify: true});
-        const row = rowOf((await page(this.server, "/ui/admin/tasks", {as: "admin"})).text, id);
-        expect(row).not.to.include("unread");
-      });
-
-      it("is shown on a task with others under it, and only on that one", async function(){
-        const root = await task({notify: true});
-        const child = await task({parent: root});
-        const {text} = await page(this.server, `${url}?rootOnly=false`);
-        expect(rowOf(text, root)).to.include("unread");
-        expect(rowOf(text, child)).not.to.include("unread");
-      });
-
-      it("doesn't count a notification meant for someone else, about one of your tasks", async function(){
-        const id = await task();
-        await taskScheduler.db.run(`INSERT INTO notifications(fk_user_id, type, fk_task_id) VALUES ($1, 'task', $2)`, [other, id]);
-        const row = rowOf((await page(this.server, url)).text, id);
-        expect(row).not.to.include("unread");
-      });
-
-      it("goes away once the task has been visited", async function(){
-        const id = await task({notify: true});
-        await page(this.server, `/ui/tasks/${id}`);
-        expect(rowOf((await page(this.server, url)).text, id)).not.to.include("unread");
-      });
+    it("knows nothing about notifications", async function(){
+      const id = await task({notify: true});
+      const {text} = await page(this.server, url);
+      const row = rowOf(text, id);
+      expect(row).to.match(/^<div class="task-row">/);
+      expect(row).not.to.include("<button");
+      expect(text).not.to.include("js/inbox.js");
     });
 
     it("no longer has a view of notifications", async function(){
@@ -469,8 +421,14 @@ describe("Notifications in the UI", function(){
   describe("GET /ui/user/notifications", function(){
     const url = "/ui/user/notifications";
 
-    it("isn't linked from anywhere for now, as long as we try out the list in the navbar", async function(){
-      for(const path of ["/ui/tags", "/ui/user/", url]){
+    it("is linked from the pages of a user", async function(){
+      const {text} = await page(this.server, "/ui/user/");
+      expect(text).to.match(/<div class="grid-toolbar">.*href="\/ui\/user\/notifications"/s);
+    });
+
+    it("isn't linked from anywhere when the feature is disabled", async function(){
+      await config.set("enable_events", false);
+      for(const path of ["/ui/tags", "/ui/user/"]){
         const {text} = await page(this.server, path);
         expect(text, path).not.to.include(`href="/ui/user/notifications"`);
       }

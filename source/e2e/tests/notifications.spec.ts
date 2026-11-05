@@ -267,21 +267,21 @@ test.describe("for logged-in users", ()=>{
       expect(box!.x).toBeGreaterThanOrEqual(0);
     });
 
-    test("says when there's nothing new, and still leads to tasks", async ({page})=>{
+    test("says when there's nothing new, and still leads to all notifications", async ({page})=>{
       await open(page, PAGE);
       await openList(page);
       await expect(panel(page)).toContainText("No new notifications");
       await expect(markAll(page)).toBeHidden();
-      await panel(page).getByRole("link", {name: "show tasks"}).click();
-      await page.waitForURL(/\/ui\/user\/tasks$/);
+      await panel(page).getByRole("link", {name: "all notifications"}).click();
+      await page.waitForURL(/\/ui\/user\/notifications$/);
     });
 
     test("ends with its two actions, side by side, with the icon last", async ({page})=>{
       await open(page, PAGE);
       await listOf(page, 2);
       await openList(page);
-      const tasks = panel(page).getByRole("link", {name: "show tasks"});
-      const [left, right] = [await tasks.boundingBox(), await markAll(page).boundingBox()];
+      const all = panel(page).getByRole("link", {name: "all notifications"});
+      const [left, right] = [await all.boundingBox(), await markAll(page).boundingBox()];
       expect(Math.abs(left!.y - right!.y)).toBeLessThan(1);
       expect(left!.x + left!.width).toBeLessThan(right!.x);
       const last = await markAll(page).evaluate(el=> el.lastElementChild?.getAttribute("name"));
@@ -452,7 +452,7 @@ test.describe("for logged-in users", ()=>{
       await page.keyboard.press("Tab");
       await expect(panel(page).locator("li button")).toBeFocused();
       await page.keyboard.press("Tab");
-      await expect(panel(page).getByRole("link", {name: "show tasks"})).toBeFocused();
+      await expect(panel(page).getByRole("link", {name: "all notifications"})).toBeFocused();
       await page.keyboard.press("Tab");
       await expect(markAll(page)).toBeFocused();
       //Listing again would replace what has the focus
@@ -500,21 +500,101 @@ test.describe("for logged-in users", ()=>{
     test.describe("on a touch screen", ()=>{
       test.use({ hasTouch: true, viewport: {width: 390, height: 700} });
 
-      test("opens from the menu with a tap, and fits on the screen", async ({page, baseURL})=>{
+      test("goes to the page of notifications, with no list in between", async ({page, baseURL})=>{
         await withNotification(page, baseURL!);
+        let listed = false;
+        page.on("request", req=>{ if(isListing(req.url())) listed = true; });
         await page.locator("#main-navbar-collapse-toggle").tap();
         await expect(bell(page)).toBeVisible();
-        const listed = page.waitForResponse(res=> isListing(res.url()));
         await bell(page).tap();
-        await listed;
-        await expect(panel(page)).toBeVisible();
-        await expect(panel(page)).toBeInViewport({ratio: 1});
-        const box = await panel(page).boundingBox();
-        expect(box!.width).toBeGreaterThan(350);
+        await page.waitForURL(/\/ui\/user\/notifications$/);
+        await expect(page.locator(".inbox-item.unread")).toHaveCount(1);
+        await expect(panel(page)).toBeHidden();
+        expect(listed).toBe(false);
+      });
+    });
 
-        await panel(page).locator("li button").tap();
-        await expect(panel(page).locator("li")).toHaveCount(0);
-        await expect(panel(page)).toBeVisible();
+    test("goes by the size the window has now, even with a list that's been opened before", async ({page})=>{
+      await open(page, PAGE);
+      await listOf(page, 2);
+      await openList(page);
+      await bell(page).click();
+      await expect(panel(page)).toBeHidden();
+      await page.setViewportSize({width: 390, height: 700});
+      await page.locator("#main-navbar-collapse-toggle").click();
+      await bell(page).click();
+      await page.waitForURL(/\/ui\/user\/notifications$/);
+    });
+
+    test.describe("how long ago", ()=>{
+      const time = (page: Page)=> panel(page).locator("li time");
+      const ago = (ms: number)=> new Date(Date.now() - ms).toISOString();
+      const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
+
+      /** One notification, of a given age */
+      async function aged(page: Page, ctime: string){
+        await page.route(url=> isListing(url.toString()), (route)=> route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([{notification_id: 1, type: "task", ctime, read_at: null, message: "Notification", link: "/ui/tasks/1", task: {task_id: 1, type: "testTask", status: "success"}, scene: null}]),
+        }));
+        await openList(page);
+      }
+
+      test("works from what the API really gives", async ({page, baseURL})=>{
+        await withNotification(page, baseURL!);
+        await openList(page);
+        await expect(time(page)).toHaveText(/^(now|\d+ ?m(in)?\.? ago)$/);
+        const datetime = await time(page).getAttribute("datetime");
+        expect(Math.abs(Date.now() - new Date(datetime!).getTime())).toBeLessThan(5 * MINUTE);
+      });
+
+      for(const [age, expected] of [
+        [30_000, "now"],
+        [5 * MINUTE + 1000, "5 min. ago"],
+        [3 * HOUR + 1000, "3 hr. ago"],
+        [DAY + 1000, "yesterday"],
+        [2 * DAY + 1000, "2 days ago"],
+        [800 * DAY, "2 yr. ago"],
+      ] as const){
+        test(`says "${expected}"`, async ({page})=>{
+          await open(page, PAGE);
+          await aged(page, ago(age));
+          await expect(time(page)).toHaveText(expected);
+        });
+      }
+
+      test("doesn't tell a time to come, if clocks don't agree", async ({page})=>{
+        await open(page, PAGE);
+        await aged(page, ago(-5 * MINUTE));
+        await expect(time(page)).toHaveText("now");
+      });
+
+      test("is in the language of the page", async ({page})=>{
+        await open(page, `${PAGE}?lang=fr`);
+        await aged(page, ago(5 * MINUTE + 1000));
+        await expect(time(page)).toHaveText("il y a 5 min");
+      });
+
+      test("is muted, after the title, without taking anything from it", async ({page})=>{
+        await open(page, PAGE);
+        await listOf(page, 1, ()=> "A very long title ".repeat(10));
+        await openList(page);
+        const title = panel(page).locator("li a > span");
+        await expect(time(page)).toHaveCSS("opacity", "0.75");
+        const [titleBox, timeBox, button] = [await title.boundingBox(), await time(page).boundingBox(), await panel(page).locator("li button").boundingBox()];
+        expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(timeBox!.x);
+        expect(timeBox!.x + timeBox!.width).toBeLessThanOrEqual(button!.x);
+        expect(await time(page).evaluate(el=> el.scrollWidth <= el.clientWidth), "it's not cut").toBe(true);
+      });
+
+      test("is skipped without the Temporal API", async ({page})=>{
+        await page.addInitScript(()=>{ delete (globalThis as any).Temporal; });
+        await open(page, PAGE);
+        await listOf(page, 2);
+        await openList(page);
+        await expect(panel(page).locator("li")).toHaveCount(2);
+        await expect(time(page)).toHaveCount(0);
       });
     });
   });
@@ -552,27 +632,6 @@ test.describe("for logged-in users", ()=>{
 
     test.describe("in their list", ()=>{
       const badge = (page: Page)=> page.locator("#nav-notifications .nav-badge");
-      const unread = (page: Page)=> page.locator(".task-row.unread");
-
-      test("shows every status the same, whether it's been read or not", async ({page, baseURL, context})=>{
-        await open(page, PAGE);
-        await abandonUpload(page, baseURL!);
-        await expect(badge(page)).toHaveAttribute("data-count", "1");
-        await open(page, "/ui/user/tasks");
-        const status = page.locator(".task-row .task-status").first();
-        await expect(page.locator(".task-row.unread")).toHaveCount(1);
-        await expect(status).toHaveCSS("opacity", "1");
-        const color = await status.evaluate(el=> getComputedStyle(el).backgroundColor);
-        await expect(page.locator(".task-row button")).toHaveCount(0);
-
-        const [{notification_id}] = await (await context.request.get("/notifications?status=unread")).json();
-        await context.request.post("/notifications/read", {data: JSON.stringify({ids: [notification_id]}), headers: {"Content-Type": "application/json"}});
-        await page.reload();
-        await expect(page.locator(".task-row.unread")).toHaveCount(0);
-        await expect(status).toHaveCSS("opacity", "1");
-        await expect(status).toHaveCSS("filter", "none");
-        expect(await status.evaluate(el=> getComputedStyle(el).backgroundColor)).toEqual(color);
-      });
 
       test.describe("as a hierarchy", ()=>{
         /** A real scene, whose creation runs a task with others under it */
@@ -766,7 +825,7 @@ test.describe("for logged-in users", ()=>{
       await page.route(url=> url.toString().includes("status=unread&limit="), (route)=> route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([3, 2, 1].map(id=> ({notification_id: id, message: `Task ${id}`, link: `/ui/tasks/${id}`, task: {task_id: id, status: id === 2 ? "error" : "success"}}))),
+        body: JSON.stringify([3, 2, 1].map(id=> ({notification_id: id, ctime: new Date().toISOString(), message: `Task ${id}`, link: `/ui/tasks/${id}`, task: {task_id: id, status: id === 2 ? "error" : "success"}}))),
       }));
       await page.locator("#nav-notifications").hover();
       await expect(badge(page)).toHaveCSS("background-color", await colorOf(page, "--color-error"));
@@ -799,8 +858,8 @@ test.describe("for logged-in users", ()=>{
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([
-          {notification_id: 2, message: "Failure", link: "/ui/tasks/2", task: {task_id: 2, status: "error"}},
-          {notification_id: 1, message: "Success", link: "/ui/tasks/1", task: {task_id: 1, status: "success"}},
+          {notification_id: 2, ctime: new Date().toISOString(), message: "Failure", link: "/ui/tasks/2", task: {task_id: 2, status: "error"}},
+          {notification_id: 1, ctime: new Date().toISOString(), message: "Success", link: "/ui/tasks/1", task: {task_id: 1, status: "success"}},
         ]),
       }));
       await page.goto(PAGE);
@@ -816,7 +875,7 @@ test.describe("for logged-in users", ()=>{
       await page.route(url=> url.toString().includes("status=unread&limit="), (route)=> route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([{notification_id: 1, message: "Success", link: "/ui/tasks/1", task: {task_id: 1, status: "success"}}]),
+        body: JSON.stringify([{notification_id: 1, ctime: new Date().toISOString(), message: "Success", link: "/ui/tasks/1", task: {task_id: 1, status: "success"}}]),
       }));
       await page.goto(PAGE);
       await expect(badge(page)).toHaveCSS("background-color", await colorOf(page, "--color-error"));

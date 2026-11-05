@@ -304,11 +304,10 @@ export class TaskManager{
    * - `user_id` : filter by `fk_user_id`
    * - `type`    : regular expression match against `type` column
    * - `scene_id`: filter by `fk_scene_id`
-   * - `notificationsOf`: also say which tasks this user has an unread notification about
    *
    * Returns tasks ordered by `ctime DESC` (newest first).
    */
-  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; notificationsOf?: number; topLevelOnly?: boolean; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; topLevelOnly?: boolean; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
     if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
@@ -344,16 +343,15 @@ export class TaskManager{
       where.push(`(tasks.parent IS NULL OR NOT EXISTS (SELECT 1 FROM tasks p WHERE ${parentMatches}))`);
     }
 
-    const { columns, joins } = TaskManager.#listParts(options.notificationsOf, params);
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     const offsetIdx = params.push(offset);
     const limitIdx = params.push(limit);
 
     return this.db.all<import("./types.js").TaskListItem>(`
-      SELECT ${columns}
+      SELECT ${TaskManager.#listColumns}
       FROM tasks
-      ${joins}
+      ${TaskManager.#listJoins}
       ${whereClause}
       ORDER BY tasks.task_id DESC
       OFFSET $${offsetIdx}
@@ -362,19 +360,10 @@ export class TaskManager{
   }
 
   /** What's displayed about a task in a list, other than the task itself */
-  static #listParts(notificationsOf: number | undefined, params: any[]) {
-    const notified = notificationsOf != null;
-    return {
-      columns: `${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner`
-        + (notified ? ", notifications.notification_id AS unread_notification" : ""),
-      joins: `
-        LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
-        LEFT JOIN users ON users.user_id = tasks.fk_user_id
-        ${notified ? `LEFT JOIN notifications ON notifications.fk_task_id = tasks.task_id
-          AND notifications.fk_user_id = $${params.push(notificationsOf)}
-          AND notifications.read_at IS NULL` : ""}`,
-    };
-  }
+  static readonly #listColumns = `${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner`;
+  static readonly #listJoins = `
+    LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
+    LEFT JOIN users ON users.user_id = tasks.fk_user_id`;
 
   /**
    * Lists tasks as trees: what matches the filters and doesn't have a parent that does too, each with all that's under it.
@@ -392,21 +381,19 @@ export class TaskManager{
     }
     if (!top.length) return top;
 
-    const params: any[] = [top.map(t => t.task_id)];
-    const { columns, joins } = TaskManager.#listParts(options.notificationsOf, params);
     const descendants = await this.db.all<Item>(`
       WITH RECURSIVE tree AS (
         SELECT task_id FROM tasks WHERE parent = ANY($1::bigint[])
         UNION
         SELECT tasks.task_id FROM tasks JOIN tree ON tasks.parent = tree.task_id
       )
-      SELECT ${columns}
+      SELECT ${TaskManager.#listColumns}
       FROM tree
       JOIN tasks ON tasks.task_id = tree.task_id
-      ${joins}
+      ${TaskManager.#listJoins}
       ORDER BY tasks.task_id ASC
       LIMIT ${TaskManager.#MAX_DESCENDANTS}
-    `, params);
+    `, [top.map(t => t.task_id)]);
     for (const task of descendants) {
       //Something at the top may be under another one, when listing by pages
       const known = byId.get(task.task_id);

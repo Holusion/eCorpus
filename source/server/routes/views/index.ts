@@ -28,12 +28,11 @@ function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
 }
 
 /** Tasks for a list in a page: only those at the root, or those that start a tree along with what's under them */
-function listTasks(req: Request, {rootOnly, ...options}: Omit<NonNullable<Parameters<TaskScheduler["getTasks"]>[0]>, "notificationsOf">){
+function listTasks(req: Request, {rootOnly, ...options}: NonNullable<Parameters<TaskScheduler["getTasks"]>[0]>){
   const taskScheduler = getTaskScheduler(req);
-  const notificationsOf = getUser(req)?.uid;
   return rootOnly !== false
-    ? taskScheduler.getTasks({...options, rootOnly, notificationsOf})
-    : taskScheduler.getTaskTrees({...options, notificationsOf});
+    ? taskScheduler.getTasks({...options, rootOnly})
+    : taskScheduler.getTaskTrees(options);
 }
 
 const routes = Router();

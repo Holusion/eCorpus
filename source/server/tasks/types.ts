@@ -207,8 +207,6 @@ export interface TaskListItem<TData extends TaskDataPayload = TaskDataPayload, T
   extends TaskDefinition<TData, TReturn> {
   scene: string | null;
   owner: string | null;
-  /** The ID of an unread notification about this task, for the user this was asked about */
-  unread_notification?: number | null;
   children?: TaskListItem<TData, TReturn>[];
 }
 

@@ -8,15 +8,12 @@
       {{#navLink "/ui/user/tokens" "exact"}}<ui-icon name="key"></ui-icon> {{i18n "nav.tokens"}}{{/navLink}}
       {{#navLink "/ui/user/archives" "exact"}}<ui-icon name="folder" style="display:flex"></ui-icon> {{i18n "nav.userArchives"}}{{/navLink}}
       {{#navLink "/ui/user/tasks" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
-      {{!-- Prototyping with only the list in the navbar. The page is still there if that doesn't work out.
       {{#if events_stream}}
         {{#navLink "/ui/user/notifications" "exact"}}<ui-icon name="bell"></ui-icon> {{i18n "nav.notifications"}}{{/navLink}}
       {{/if}}
-      --}}
     </nav>
   </div> 
   <div class="grid-content">
     {{{body}}}
   </div>
-
 {{/main}}

@@ -127,7 +127,7 @@ buttons:
   previous: "Previous Page"
   markAsRead: mark as read
   markAllAsRead: mark all as read
-  showTasks: show tasks
+  showNotifications: all notifications
   archive: Archive
   delete: Delete
   editTags: Edit tags

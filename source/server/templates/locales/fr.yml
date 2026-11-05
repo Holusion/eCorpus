@@ -129,7 +129,7 @@ buttons:
   previous: "Page Précédente"
   markAsRead: marquer comme lue
   markAllAsRead: tout lu
-  showTasks: voir les tâches
+  showNotifications: toutes les notifications
   archive: Archiver
   delete: Supprimer
   editTags: Modifier les tags
