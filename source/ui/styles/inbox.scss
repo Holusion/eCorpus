@@ -71,9 +71,15 @@
   opacity: .75;
 }
 
-.inbox-mark-read {
+.inbox-mark-read, .inbox-delete {
   --btn-color: var(--color-text);
   //Hovering fills it with the above: its icon has to stand out from that
   --btn-text-color: var(--color-dark);
   flex: 0 0 auto;
+}
+
+//One takes the place of the other
+.inbox-item.unread .inbox-delete,
+.inbox-item:not(.unread) .inbox-mark-read {
+  display: none;
 }

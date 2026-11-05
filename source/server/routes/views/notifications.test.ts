@@ -470,7 +470,9 @@ describe("Notifications in the UI", function(){
       const {text} = await page(this.server, url);
       expect(text).to.include(`class="inbox-item unread" data-notification-id="${second}"`);
       expect(text).to.include(`class="inbox-item" data-notification-id="${first}"`);
-      expect(text.match(/class="[^"]*inbox-mark-read/g), "those that can be marked").to.have.length(1);
+      //Which one shows is up to the styles, as it changes without leaving the page
+      expect(text.match(/class="[^"]*inbox-mark-read/g), "on each of them").to.have.length(2);
+      expect(text.match(/class="[^"]*inbox-delete/g), "on each of them").to.have.length(2);
       expect(text).to.match(/class="inbox-item-message" href="\/ui\/tasks\/\d+"/);
     });
 
@@ -503,6 +505,13 @@ describe("Notifications in the UI", function(){
       const {text} = await page(this.server, `${url}?limit=1`);
       expect(text).not.to.include(`data-notification-id="${oldest}"`);
       expect(text).to.include(`data-up-to="${newest}"`);
+    });
+
+    it("names what deleting does, and how it can fail", async function(){
+      await notify();
+      const {text} = await page(this.server, url);
+      expect(text).to.match(/<button [^>]*inbox-delete[^>]* title="Delete" aria-label="Delete"><ui-icon name="trash">/);
+      expect(text).to.include(`data-delete-failed="Couldn&#x27;t delete this notification. Please try again."`);
     });
 
     it("has nothing to mark once everything is read", async function(){

@@ -16,7 +16,7 @@
   </div>
 
   {{#if notifications.length}}
-    <ul class="inbox" data-notifications>
+    <ul class="inbox" data-notifications data-delete-failed="{{i18n "notifications.deleteFailed"}}">
       {{#each notifications}}
         <li class="inbox-item{{#unless read_at}} unread{{/unless}}" data-notification-id="{{notification_id}}">
           {{#if (test task.status "==" "error")}}
@@ -39,9 +39,9 @@
               {{/if}}
             </small>
           </div>
-          {{#unless read_at}}
-            <button class="btn btn-outline btn-icon inbox-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
-          {{/unless}}
+          {{!-- Only one of those shows, depending on whether it's unread: it changes without leaving the page --}}
+          <button class="btn btn-outline btn-icon inbox-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
+          <button class="btn btn-outline btn-icon inbox-delete" type="button" title="{{i18n "buttons.delete"}}" aria-label="{{i18n "buttons.delete"}}"><ui-icon name="trash"></ui-icon></button>
         </li>
       {{/each}}
     </ul>

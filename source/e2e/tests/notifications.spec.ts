@@ -495,6 +495,7 @@ test.describe("for logged-in users", ()=>{
       await markAll(page).click();
       await expect(page.locator(".inbox-item.unread")).toHaveCount(0);
       await expect(page.locator("#inbox-mark-all")).toHaveCount(0);
+      await expect(page.locator(".inbox-item").getByRole("button", {name: "Delete"})).toBeVisible();
     });
 
     test.describe("on a touch screen", ()=>{
@@ -612,6 +613,124 @@ test.describe("for logged-in users", ()=>{
     const all = page.locator("#inbox-mark-all");
     await expect(all.locator("ui-icon")).toHaveAttribute("name", "check-check");
     await expect(all).toHaveText("mark all as read");
+  });
+
+  test.describe("deleting from the page of notifications", ()=>{
+    const items = (page: Page)=> page.locator(".inbox-item");
+    const mark = (page: Page)=> page.getByRole("button", {name: "mark as read"});
+    const remove = (page: Page)=> page.getByRole("button", {name: "Delete"});
+    const badge = (page: Page)=> page.locator("#nav-notifications .nav-badge");
+
+    /** Lands on the page with that many notifications, none of them read */
+    async function withUnread(page: Page, baseURL: string, count: number){
+      await open(page, PAGE);
+      for(let i = 1; i <= count; i++){
+        await abandonUpload(page, baseURL);
+        await expect(badge(page)).toHaveAttribute("data-count", i.toString());
+      }
+      await open(page, "/ui/user/notifications");
+    }
+
+    /** Lands on the page with all of its notifications read */
+    async function withRead(page: Page, baseURL: string, count: number){
+      await withUnread(page, baseURL, count);
+      await page.locator("#inbox-mark-all").click();
+      await expect(remove(page)).toHaveCount(count);
+    }
+
+    test("isn't offered until it's been read, and then takes the place of marking it", async ({page, baseURL})=>{
+      await withUnread(page, baseURL!, 1);
+      await expect(remove(page)).toHaveCount(0);
+      const before = await mark(page).boundingBox();
+      await mark(page).click();
+      await expect(remove(page)).toBeVisible();
+      await expect(mark(page)).toHaveCount(0);
+      //Not its height on the page: a title that isn't bold anymore may take fewer lines
+      const after = await remove(page).boundingBox();
+      expect([after!.x, after!.width, after!.height]).toEqual([before!.x, before!.width, before!.height]);
+      await expect(remove(page).locator("ui-icon")).toHaveAttribute("name", "trash");
+      await expect(remove(page)).toHaveAttribute("title", "Delete");
+    });
+
+    test("removes it for good, and leaves the others alone", async ({page, baseURL})=>{
+      await withUnread(page, baseURL!, 2);
+      const [newest, oldest] = await items(page).evaluateAll(els=> els.map(el=> (el as HTMLElement).dataset.notificationId));
+      await items(page).first().locator(".inbox-mark-read").click();
+      await expect(remove(page)).toHaveCount(1);
+      const link = await page.locator(`[data-notification-id="${newest}"] a.inbox-item-message`).getAttribute("href");
+      await remove(page).click();
+      await expect(items(page)).toHaveCount(1);
+      await expect(page.locator(`[data-notification-id="${oldest}"]`)).toHaveClass(/unread/);
+      await expect(badge(page), "it didn't count anymore").toHaveAttribute("data-count", "1");
+      await open(page, "/ui/user/notifications");
+      await expect(items(page)).toHaveCount(1);
+      await expect(page.locator(`[data-notification-id="${newest}"]`)).toHaveCount(0);
+      await page.goto(link!);
+      await expect(page.locator("h1, h2, h3").first(), "the task is still there").toBeVisible();
+      expect((await page.request.get(link!)).status()).toEqual(200);
+    });
+
+    test("doesn't take the end of a double click for it, when marking as read", async ({page, baseURL})=>{
+      await withUnread(page, baseURL!, 1);
+      const box = await mark(page).boundingBox();
+      await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+      await page.mouse.down({clickCount: 1});
+      await page.mouse.up({clickCount: 1});
+      await expect(remove(page)).toBeVisible();
+      await page.mouse.down({clickCount: 2});
+      await page.mouse.up({clickCount: 2});
+      await page.waitForTimeout(200);
+      await expect(items(page)).toHaveCount(1);
+    });
+
+    test("only deletes one with a double click", async ({page, baseURL})=>{
+      await withRead(page, baseURL!, 2);
+      await remove(page).first().dblclick();
+      await expect(items(page)).toHaveCount(1);
+      await page.waitForTimeout(200);
+      await open(page, "/ui/user/notifications");
+      await expect(items(page)).toHaveCount(1);
+    });
+
+    test("says when nothing's left", async ({page, baseURL})=>{
+      await withRead(page, baseURL!, 1);
+      await remove(page).click();
+      await expect(page.getByText("No notifications.")).toBeVisible();
+      await expect(items(page)).toHaveCount(0);
+    });
+
+    test("can be reached from the keyboard, right after marking as read", async ({page, baseURL})=>{
+      await withUnread(page, baseURL!, 2);
+      await items(page).first().locator(".inbox-mark-read").focus();
+      await page.keyboard.press("Enter");
+      await expect(remove(page)).toHaveCount(1);
+      await expect(items(page), "it's still there").toHaveCount(2);
+      await page.keyboard.press("Tab");
+      await expect(remove(page)).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(items(page)).toHaveCount(1);
+    });
+
+    test("tells when it fails, and it can be tried again", async ({page, baseURL})=>{
+      await withRead(page, baseURL!, 1);
+      await page.route(/\/notifications\/\d+$/, (route)=> route.fulfill({status: 500, contentType: "application/json", body: "{}"}));
+      await remove(page).click();
+      await expect(page.locator(".notification.error, .notification").first()).toContainText("Couldn't delete this notification");
+      await expect(items(page)).toHaveCount(1);
+      await expect(remove(page)).toBeEnabled();
+      await page.unroute(/\/notifications\/\d+$/);
+      await remove(page).click();
+      await expect(page.getByText("No notifications.")).toBeVisible();
+    });
+
+    test("isn't a failure if it's already gone", async ({page, baseURL})=>{
+      await withRead(page, baseURL!, 2);
+      const id = await items(page).first().getAttribute("data-notification-id");
+      await expect(await page.request.delete(`/notifications/${id}`)).toBeOK();
+      await remove(page).first().click();
+      await expect(items(page)).toHaveCount(1);
+      await expect(page.locator(".notification")).toHaveCount(0);
+    });
   });
 
   test.describe("tasks", ()=>{
