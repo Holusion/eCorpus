@@ -2,7 +2,7 @@
  * Acting on notifications from a page listing them, which only has to mark them with `data-notification-id`.
  * Opening a page doesn't count as reading them: a failure someone hasn't had time to look at shouldn't go away by itself.
  */
-import { followsLink, isRead, markAsRead, ReadNotifications, reportMarkFailure } from "./markRead";
+import { followsLink, isRead, markAsRead, markFollowed, ReadNotifications, reportMarkFailure } from "./markRead";
 import { notify } from "./notify";
 import { setUnread } from "./unreadBadge";
 
@@ -13,7 +13,9 @@ function onActivate(e: Event) {
   const target = e.target as HTMLElement;
   const item = target.closest<HTMLElement>("[data-notification-id].unread");
   if (!item || !followsLink(e) || !target.closest(".inbox-mark-read, a.inbox-item-message")) return;
-  markAsRead({ ids: [parseInt(item.dataset.notificationId!, 10)] }).catch(reportMarkFailure);
+  const id = parseInt(item.dataset.notificationId!, 10);
+  if (target.closest("a")) markFollowed(id);
+  else markAsRead({ ids: [id] }).catch(reportMarkFailure);
 }
 
 /** The task it's about isn't affected. Nothing brings it back. */

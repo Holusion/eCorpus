@@ -89,6 +89,9 @@ async function expectRequests(page: Page, requests: Request[], count: number, me
 
 const snapshot = (unread: number, unread_errors = 0)=> `event: snapshot\ndata: ${JSON.stringify({tasks: [], unread, unread_errors})}\n\n`;
 
+/** The count next to the bell, whose name is its number. It isn't there when there's nothing new. */
+const unreadCount = (page: Page)=> page.getByRole("button", {name: "Notifications"}).getByRole("img");
+
 /** Hides the page, as far as it can tell */
 async function setHidden(page: Page, hidden: boolean){
   await page.evaluate((hidden)=>{
@@ -646,6 +649,45 @@ test.describe("for logged-in users", ()=>{
     await expect(all).toHaveText("mark all as read");
   });
 
+  test.describe("following a notification counts it out before leaving", ()=>{
+    /** Two notifications, on a page that will never hear back about marking one as read */
+    async function withTwo(page: Page, baseURL: string){
+      await open(page, PAGE);
+      const scenes = [await abandonUpload(page, baseURL), await abandonUpload(page, baseURL)];
+      await expect(unreadCount(page)).toHaveAccessibleName("2");
+      await page.route("**/notifications/read", ()=>{});
+      return scenes;
+    }
+
+    /** Before the page's stream connects, it can only be what the previous page saved */
+    async function expectOneLeft(page: Page){
+      await page.waitForURL(/\/ui\/tasks\/\d+$/);
+      await expect(unreadCount(page)).toHaveAccessibleName("1", {timeout: 1000});
+    }
+
+    test("from the bell", async ({page, baseURL})=>{
+      await withTwo(page, baseURL!);
+      await page.getByRole("button", {name: "Notifications"}).click();
+      await page.getByRole("listitem").getByRole("link", {name: /scene/}).first().click();
+      await expectOneLeft(page);
+    });
+
+    test("from a toast", async ({page, baseURL})=>{
+      const [, scene] = await withTwo(page, baseURL!);
+      await page.getByRole("link", {name: new RegExp(scene)}).click();
+      await expectOneLeft(page);
+    });
+
+    test("from the page of notifications", async ({page, baseURL})=>{
+      await withTwo(page, baseURL!);
+      await page.unroute("**/notifications/read");
+      await open(page, "/ui/user/notifications");
+      await page.route("**/notifications/read", ()=>{});
+      await page.getByRole("main").getByRole("link", {name: /scene/}).first().click();
+      await expectOneLeft(page);
+    });
+  });
+
   test.describe("deleting from the page of notifications", ()=>{
     const items = (page: Page)=> page.locator(".inbox-item");
     const mark = (page: Page)=> page.getByRole("button", {name: "mark as read"});
@@ -1104,13 +1146,98 @@ test.describe("for logged-in users", ()=>{
       await page.clock.fastForward(2000);
     }
 
+    /** A stream that gives a count, and leaves the next page with something fresh to show */
+    async function loadWithCount(page: Page, requests: Request[], unread = 3, errors = 1){
+      await page.route(STREAM, (route)=> route.fulfill({status: 200, contentType: "text/event-stream", body: `retry: 100000\n\n${snapshot(unread, errors)}`}));
+      await load(page);
+      await expect.poll(()=> page.evaluate(()=> sessionStorage.getItem("unread-notifications")), "has got to the page").toContain(`"count":${unread}`);
+      expect(requests).toHaveLength(1);
+    }
+
+    /** Has the next page find this saved. Streams are refused from there on, for the count to only come from this. */
+    async function save(page: Page, {age, user}: {age: number, user?: string}){
+      await page.route(STREAM, (route)=> route.fulfill({status: 404}));
+      const stream = page.waitForRequest(STREAM);
+      await load(page);
+      const self = (await stream).url().split("/").pop();
+      await page.evaluate(({age, user})=>{
+        sessionStorage.setItem("unread-notifications", JSON.stringify({user, at: Date.now() - age, count: 3, level: "error"}));
+      }, {age, user: user ?? self});
+    }
+
+    test("shows what the previous page knew, and takes its time to connect", async ({page})=>{
+      const requests = streamRequests(page);
+      await loadWithCount(page, requests);
+
+      await page.goto("/ui/user/", {waitUntil: "load"});
+      const badge = unreadCount(page);
+      await expect(badge).toHaveAccessibleName("3");
+      //A color isn't exposed in any other way
+      await expect(badge).toHaveAttribute("data-level", "error");
+      await expectRequests(page, requests, 1);
+      await page.clock.fastForward(3000);
+      await expectRequests(page, requests, 1);
+
+      await page.route(STREAM, (route)=> route.fulfill({status: 200, contentType: "text/event-stream", body: `retry: 100000\n\n${snapshot(1)}`}));
+      await page.clock.fastForward(2500);
+      await expect.poll(()=> requests.length).toBe(2);
+      await expect(badge, "the stream has the last word").toHaveAccessibleName("1");
+      await expect(badge).toHaveAttribute("data-level", "success");
+    });
+
+    test("shows it without waiting for the page's other scripts", async ({page})=>{
+      await save(page, {age: 0});
+      await page.route("**/dist/js/events.js*", (route)=> route.abort());
+      await page.goto(PAGE, {waitUntil: "load"});
+      await expect(unreadCount(page)).toHaveAccessibleName("3");
+    });
+
+    test("doesn't show that there's nothing new as a count", async ({page})=>{
+      const requests = streamRequests(page);
+      await loadWithCount(page, requests, 0, 0);
+      await page.goto("/ui/user/", {waitUntil: "load"});
+      await expect(unreadCount(page)).toBeHidden();
+      await expectRequests(page, requests, 1, "it's still something the page knows");
+    });
+
     test("doesn't open for a quick look at a page", async ({page})=>{
       const requests = streamRequests(page);
+      await loadWithCount(page, requests);
+      await page.goto("/ui/user/", {waitUntil: "load"});
+      await page.clock.fastForward(1000);
       await page.goto(PAGE, {waitUntil: "load"});
       await page.clock.fastForward(1000);
-      await page.goto("/ui/user/");
-      await page.clock.fastForward(1000);
-      await expectRequests(page, requests, 0);
+      await expectRequests(page, requests, 1);
+    });
+
+    test("doesn't let quick looks at pages put it off for long", async ({page})=>{
+      const requests = streamRequests(page);
+      await loadWithCount(page, requests);
+      //They don't count as knowing anything: what's saved ages from the last time a stream told
+      for(let i = 0; i < 9; i++){
+        await page.goto(i % 2 ? PAGE : "/ui/user/", {waitUntil: "load"});
+        await page.clock.fastForward(3000);
+        await expectRequests(page, requests, 1, "what's saved is still fresh");
+      }
+      await page.clock.fastForward(4000);
+      await page.goto(PAGE, {waitUntil: "load"});
+      await expect.poll(()=> requests.length, {timeout: 2000}).toBe(2);
+    });
+
+    test("connects right after loading, with nothing to show if what's saved is too old", async ({page})=>{
+      await save(page, {age: 31000});
+      const requests = streamRequests(page);
+      await page.goto(PAGE, {waitUntil: "load"});
+      await expect(unreadCount(page)).toBeHidden();
+      await expect.poll(()=> requests.length, {timeout: 2000}).toBe(1);
+    });
+
+    test("doesn't show what was saved for another user", async ({page})=>{
+      await save(page, {age: 0, user: "0"});
+      const requests = streamRequests(page);
+      await page.goto(PAGE, {waitUntil: "load"});
+      await expect(unreadCount(page)).toBeHidden();
+      await expect.poll(()=> requests.length, {timeout: 2000}).toBe(1);
     });
 
     test("doesn't open in a tab that opened in the background", async ({page})=>{

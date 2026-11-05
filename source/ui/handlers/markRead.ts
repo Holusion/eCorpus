@@ -3,7 +3,7 @@
  * Those can be in separate bundles: they find out about each other through an event on `document`.
  */
 import { notify } from "./notify";
-import { setUnread } from "./unreadBadge";
+import { addUnread, setUnread } from "./unreadBadge";
 
 export type ReadNotifications = { ids: number[] } | { up_to: number };
 
@@ -24,6 +24,16 @@ export async function markAsRead(which: ReadNotifications): Promise<void> {
   const { unread, unread_errors } = await res.json() as { unread: number, unread_errors: number };
   setUnread(unread, 0 < unread_errors);
   document.dispatchEvent(new CustomEvent<ReadNotifications>("notifications-read", { detail: which }));
+}
+
+/**
+ * For a link to what a notification is about. It's counted out right away: the next page starts with
+ * the count this one saved, and this one may be gone by the time there's an answer.
+ * Failing doesn't change that: the link is to its task, and visiting that reads it on the server.
+ */
+export function markFollowed(id: number) {
+  addUnread(-1);
+  markAsRead({ ids: [id] }).catch(reportMarkFailure);
 }
 
 export function reportMarkFailure(e: unknown) {

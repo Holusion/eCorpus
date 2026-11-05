@@ -7,13 +7,19 @@
  * The server keeps all the state. Whatever goes wrong here gets fixed by reconnecting:
  * every connection starts with a snapshot.
  */
+import { followsLink } from "./markRead";
 import { notify } from "./notify";
 import { refreshNotificationsMenu } from "./notificationsMenu";
 import { SseFrame, SseParser } from "./sse";
-import { addUnread, setUnread, showUnreadErrors } from "./unreadBadge";
+import { addUnread, hasSavedUnread, saveUnread, setUnread, showUnreadErrors } from "./unreadBadge";
 
-/** Quick click-throughs shouldn't open a stream at all */
-const OPEN_DELAY = 1500;
+/** With nothing to show until it connects */
+const OPEN_DELAY = 100;
+/**
+ * When showing what the previous page saved, for a page that's still fresh (see navbar.hbs).
+ * Quick click-throughs then don't open a stream at all, until what's saved is too old for that.
+ */
+const OPEN_DELAY_FRESH = 5000;
 /** Forgotten tabs are what would otherwise make up most open streams */
 const HIDDEN_GRACE = 2 * 60 * 1000;
 /** The server pings every 30 seconds: a connection that's silent for longer than that is dead */
@@ -38,6 +44,8 @@ const streamUrl = (document.currentScript as HTMLScriptElement | null)?.dataset.
 
 /** The running connection */
 let connection: AbortController | null = null;
+/** Whether the running connection has got its snapshot: nothing can have changed without us knowing */
+let synced = false;
 let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 let hiddenTimer: ReturnType<typeof setTimeout> | undefined;
 let stopped = false;
@@ -75,6 +83,7 @@ function disconnect() {
   reconnectTimer = undefined;
   const c = connection;
   connection = null;
+  synced = false;
   c?.abort();
 }
 
@@ -93,6 +102,7 @@ function onFrame({ event, data, retry }: SseFrame) {
   if (event === "snapshot") {
     const { tasks, unread, unread_errors } = JSON.parse(data) as { tasks: TaskEvent[], unread?: number, unread_errors?: number };
     failures = 0;
+    synced = true;
     activeTasks.clear();
     for (const task of tasks) {
       trackTask(task);
@@ -161,6 +171,7 @@ async function connect(url: string) {
   }
   if (connection !== c) return;
   connection = null;
+  synced = false;
   if (delay === null) stopped = true;
   else schedule(delay, () => connect(url));
 }
@@ -178,9 +189,9 @@ function onVisibilityChange(url: string) {
   else if (!reconnectTimer) connect(url);
 }
 
-function open(url: string) {
+function open(url: string, delay: number) {
   //A tab opened in the background waits for someone to look at it
-  schedule(OPEN_DELAY, () => {
+  schedule(delay, () => {
     if (!document.hidden) connect(url);
   });
 }
@@ -220,14 +231,28 @@ async function handleNewNotifications() {
 }
 
 
+/** A toast's link leads to its task, which reads it on the server. The next page starts with the count this one saved. */
+function onToastActivate(e: Event) {
+  if (followsLink(e) && (e.target as HTMLElement).closest("notification-line a")) addUnread(-1);
+}
+
 if (streamUrl) {
   const url = streamUrl;
+  document.addEventListener("click", onToastActivate);
+  //Middle click: the link opens in another tab
+  document.addEventListener("auxclick", onToastActivate);
   document.addEventListener("visibilitychange", () => onVisibilityChange(url));
-  //An open request would keep the page out of the back/forward cache
-  window.addEventListener("pagehide", disconnect);
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) open(url);
+  window.addEventListener("pagehide", () => {
+    //As long as it's connected, what the badge shows is still right however long ago it was set
+    if (synced) saveUnread();
+    //An open request would keep the page out of the back/forward cache
+    disconnect();
   });
-  if (document.readyState === "complete") open(url);
-  else window.addEventListener("load", () => open(url), { once: true });
+  window.addEventListener("pageshow", (e) => {
+    //It may have been away for any amount of time
+    if (e.persisted) open(url, OPEN_DELAY);
+  });
+  const openAfterLoad = () => open(url, hasSavedUnread() ? OPEN_DELAY_FRESH : OPEN_DELAY);
+  if (document.readyState === "complete") openAfterLoad();
+  else window.addEventListener("load", openAfterLoad, { once: true });
 }

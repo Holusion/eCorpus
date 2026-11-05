@@ -3,7 +3,7 @@
  * this has nothing to do with opening it, except on small screens that have no room for it.
  * It only asks for the list then, as most page views will never need it.
  */
-import { followsLink, isRead, markAsRead, ReadNotifications, reportMarkFailure } from "./markRead";
+import { followsLink, isRead, markAsRead, markFollowed, ReadNotifications, reportMarkFailure } from "./markRead";
 import { setUnread } from "./unreadBadge";
 
 //As much as the API gives. This is the only place to find what's unread: it scrolls.
@@ -154,7 +154,9 @@ if (panel && list && empty && markAll) {
   const onActivate = (e: Event) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>("li");
     if (!item || !followsLink(e) || !(e.target as HTMLElement).closest("a, button")) return;
-    markAsRead({ ids: [parseInt(item.dataset.notificationId!, 10)] }).catch(reportMarkFailure);
+    const id = parseInt(item.dataset.notificationId!, 10);
+    if ((e.target as HTMLElement).closest("a")) markFollowed(id);
+    else markAsRead({ ids: [id] }).catch(reportMarkFailure);
   };
   list.addEventListener("click", onActivate);
   //Middle click: the link opens in another tab

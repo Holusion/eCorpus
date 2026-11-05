@@ -29,7 +29,23 @@
         <button id="nav-notifications" class="btn btn-outline btn-icon nav-btn" type="button" popovertarget="nav-notifications-panel" title="{{i18n "nav.notifications"}}">
           <ui-icon name="bell"></ui-icon>
           <span class="visually-hidden">{{i18n "nav.notifications"}}</span>
-          <span class="nav-badge" role="img" hidden></span>
+          <span class="nav-badge" role="img" data-user="{{user.uid}}" hidden></span>
+          {{!-- Inline to run before anything gets painted. Being "fresh" means less than a heartbeat of the stream, and a page that shows this connects later: see events.ts --}}
+          <script>
+            try {
+              const badge = document.currentScript.previousElementSibling;
+              const { user, at, count, level } = JSON.parse(sessionStorage.getItem("unread-notifications"));
+              const age = Date.now() - at;
+              if (user === badge.dataset.user && 0 <= age && age < 30000) {
+                badge.dataset.count = count;
+                badge.setAttribute("aria-label", count);
+                badge.hidden = count === 0;
+                if (level) badge.dataset.level = level;
+              }
+            } catch (e) {
+              //Nothing saved, or no way to read it: the count shows once the stream connects
+            }
+          </script>
         </button>
         <div id="nav-notifications-panel" popover data-mark-failed="{{i18n "notifications.markFailed"}}" data-mark-read="{{i18n "buttons.markAsRead"}}">
           <ul></ul>
