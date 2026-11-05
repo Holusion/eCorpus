@@ -2,8 +2,6 @@ import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 
-import "./Icon";
-
 import styles from '!lit-css-loader?{"specifier":"lit"}!sass-loader!../styles/notifications.scss';
 
 

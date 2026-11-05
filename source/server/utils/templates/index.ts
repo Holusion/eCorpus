@@ -21,10 +21,6 @@ interface RenderOptions {
   [key: string]: any;
 }
 
-interface EmailOptions extends RenderOptions {
-  layout?: "email" | string;
-  lang?: AcceptedLocales;
-}
 
 export default class Templates {
   #cacheMap?: Map<string, Handlebars.TemplateDelegate>;
