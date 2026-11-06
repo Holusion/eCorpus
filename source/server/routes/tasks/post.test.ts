@@ -1,9 +1,11 @@
 import request from "supertest";
 import { randomBytes } from "node:crypto";
+import timers from "node:timers/promises";
 
 import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
+import { TaskDefinition } from "../../tasks/types.js";
 
 
 describe("POST /tasks", function(){
@@ -19,13 +21,40 @@ describe("POST /tasks", function(){
     other = await userManager.addUser("charlie", "12345678", "create");
   });
 
-  it("creates an upload task", async function(){
-    const {body} = await request(this.server).post("/tasks")
-    .set("Authorization", await bearer("bob"))
-    .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
-    .expect(201);
-    expect(body).to.have.property("task_id").a("number");
-    expect(body).to.have.property("status", "initializing");
+  describe("initial status", function(){
+    it("creates an upload task waiting for its data", async function(){
+      const res = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "parseUserUpload", data: {filename: "foo.glb", size: 1}})
+      .expect(201);
+      expect(res.body).to.have.property("task_id").a("number");
+      expect(res.body).to.have.property("status", "initializing");
+      expect(res.headers).to.have.property("location", `/tasks/${res.body.task_id}`);
+    });
+
+    it("accepts a status matching the type's", async function(){
+      const {body} = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
+      .expect(201);
+      expect(body).to.have.property("status", "initializing");
+      await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "delayTask", status: "pending", data: {}})
+      .expect(200);
+    });
+
+    for(const [type, status] of [["delayTask", "initializing"], ["parseUserUpload", "pending"], ["delayTask", "running"], ["delayTask", "success"]]){
+      it(`rejects ${type} created ${status}`, async function(){
+        const count = async ()=> (await taskScheduler.getTasks({type, user_id: user.uid, limit: 100})).length;
+        const before = await count();
+        await request(this.server).post("/tasks")
+        .set("Authorization", await bearer("bob"))
+        .send({type, status, data: {filename: "foo.glb", size: 1}})
+        .expect(400);
+        expect(await count()).to.equal(before);
+      });
+    }
   });
 
   describe("rejects internal task types", function(){
@@ -53,12 +82,24 @@ describe("POST /tasks", function(){
     }
   });
 
+  /** Poll a task until it reaches a final status */
+  async function settled(task_id: number, timeout = 2000): Promise<TaskDefinition>{
+    const end = Date.now() + timeout;
+    while(true){
+      const task = await taskScheduler.getTask(task_id);
+      if(task.status === "success" || task.status === "error") return task;
+      if(end < Date.now()) throw new Error(`Task #${task_id} still ${task.status} after ${timeout}ms`);
+      await timers.setTimeout(10);
+    }
+  }
+
   describe("delayTask", function(){
     it("waits, then succeeds", async function(){
       const {body} = await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
       .send({type: "delayTask", data: {ms: 20}})
-      .expect(201);
+      .expect(200)
+      .expect("Content-Location", /^\/tasks\/\d+$/);
       expect(body).to.have.property("status", "success");
       expect(body).to.have.property("output").deep.equal({ms: 20});
       expect(await taskScheduler.getLogs(body.task_id)).to.have.length.above(0);
@@ -68,7 +109,7 @@ describe("POST /tasks", function(){
       const {body} = await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
       .send({type: "delayTask"})
-      .expect(201);
+      .expect(200);
       expect(body).to.have.property("output").deep.equal({ms: 0});
     });
 
@@ -90,6 +131,48 @@ describe("POST /tasks", function(){
         .expect(400);
       });
     }
+  });
+
+  describe("Prefer: respond-async", function(){
+    it("answers 202 at once, then runs the task", async function(){
+      const res = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .set("Prefer", "respond-async")
+      .send({type: "delayTask", data: {ms: 100}})
+      .expect(202);
+      const task_id = res.body.task_id;
+      expect(task_id).to.be.a("number");
+      expect(res.body.status).to.be.oneOf(["pending", "running"]);
+      expect(res.headers).to.have.property("location", `/tasks/${task_id}`);
+      expect(res.headers).to.have.property("preference-applied", "respond-async");
+      expect(await settled(task_id)).to.have.property("status", "success");
+    });
+
+    it("records a failure on the task", async function(){
+      const {body: {task_id}} = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .set("Prefer", "wait=10, respond-async")
+      .send({type: "delayTask", data: {ms: 10, fail: "Requested failure"}})
+      .expect(202);
+      expect(await settled(task_id)).to.have.property("status", "error");
+    });
+
+    it("is ignored for an initializing task", async function(){
+      const res = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .set("Prefer", "respond-async")
+      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
+      .expect(201);
+      expect(res.headers).not.to.have.property("preference-applied");
+    });
+
+    it("still answers validation errors synchronously", async function(){
+      await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .set("Prefer", "respond-async")
+      .send({type: "sendEmail", data: {}})
+      .expect(400);
+    });
   });
 
   describe("source tasks", function(){
@@ -125,7 +208,7 @@ describe("POST /tasks", function(){
       await request(this.server).post("/tasks")
       .set("Authorization", await bearer("charlie"))
       .send({type: "createSceneFromFiles", data: {tasks: [own], name, language: "EN"}})
-      .expect(201);
+      .expect(200);
       expect(await sceneExists(this, name)).to.be.true;
     });
 

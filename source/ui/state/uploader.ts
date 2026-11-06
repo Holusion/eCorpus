@@ -188,7 +188,6 @@ export class Uploader implements ReactiveController{
       },
       body: JSON.stringify({
         type: "parseUserUpload",
-        status: "initializing",
         data:{
           filename: task.filename,
           size: task.total,
