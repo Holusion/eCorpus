@@ -1,7 +1,7 @@
 
 import {Database, DbController} from "./helpers/db.js";
 import path from "path";
-import { NotFoundError } from "../utils/errors.js";
+import { BadRequestError, NotFoundError } from "../utils/errors.js";
 import { FileProps } from "./types.js";
 import { mkdir, rm, readdir } from "fs/promises";
 
@@ -88,6 +88,26 @@ export default abstract class BaseVfs extends DbController{
 
   public getTaskWorkspace(id: number){
     return path.join(this.artifactsDir, id.toString(10));
+  }
+
+  /**
+   * Resolve a user-provided path inside a task's workspace.
+   * Nested paths (eg. `textures/diffuse.jpg`) are allowed, as long as they stay within the workspace.
+   * @param id the task id
+   * @param filepath a path relative to the task's workspace
+   * @throws {BadRequestError} if filepath is not a relative path to something inside the workspace
+   */
+  public getTaskFilePath(id: number, filepath: string): string{
+    const dir = this.getTaskWorkspace(id);
+    if(typeof filepath !== "string" || !filepath || filepath.includes("\0") || path.isAbsolute(filepath)){
+      throw new BadRequestError(`Invalid task file path: ${JSON.stringify(filepath)}`);
+    }
+    const resolved = path.resolve(dir, filepath);
+    const rel = path.relative(dir, resolved);
+    if(!rel || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)){
+      throw new BadRequestError(`Task file path ${JSON.stringify(filepath)} is outside of the task's workspace`);
+    }
+    return resolved;
   }
 
   abstract close() :Promise<any>;

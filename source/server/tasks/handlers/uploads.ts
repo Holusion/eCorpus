@@ -7,7 +7,7 @@ import { isUserAtLeast } from "../../auth/User.js";
 import { AccessLevel } from "../../auth/UserManager.js";
 import { parseFilepath, isMainSceneFile } from "../../utils/archives.js";
 import { FileArtifact, TaskHandlerParams } from "../types.js";
-import { BadRequestError, InternalError } from "../../utils/errors.js";
+import { BadRequestError, InternalError, UnauthorizedError } from "../../utils/errors.js";
 import { localize, LocalizedOutput } from "../../utils/i18n.js";
 import { toGlb } from "./toGlb.js";
 import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.js";
@@ -152,7 +152,7 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
  * @returns 
  */
 export async function parseUserUpload({ task: { task_id, user_id, data: { filename, size } }, context: { vfs, tasks, userManager, logger } }: TaskHandlerParams<UploadHandlerParams>): Promise<ParsedUserUpload> {
-  const fileLocation = vfs.relative(path.join(vfs.getTaskWorkspace(task_id), filename));
+  const fileLocation = vfs.relative(vfs.getTaskFilePath(task_id, filename));
 
   logger.debug(`Checking size of uploaded file ${fileLocation}`);
   let diskSize: number;
@@ -196,6 +196,22 @@ export async function parseUserUpload({ task: { task_id, user_id, data: { filena
 
 
 
+/**
+ * Fetch the upload tasks a task was given as sources.
+ * Source ids are user-provided: they must all be tasks owned by the same user.
+ */
+export async function getSourceUploads(tasks: TaskHandlerParams["context"]["tasks"], source_ids: unknown, user_id: number | null) {
+  if (typeof user_id !== "number") throw new InternalError(`Source files require an owner. No user_id provided`);
+  if (!Array.isArray(source_ids) || !source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
+  for (const task_id of source_ids) {
+    if (!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
+  }
+  const source_tasks = await Promise.all(source_ids.map((id: number) => tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
+  const foreign_tasks = source_tasks.filter(t => t.user_id !== user_id);
+  if (foreign_tasks.length) throw new UnauthorizedError(`Source task${1 < foreign_tasks.length ? "s" : ""} #${foreign_tasks.map(t => t.task_id).join(", #")} does not belong to this user`);
+  return source_tasks;
+}
+
 export interface ProcessUploadedFilesParams {
   tasks: number[];
   name: string;
@@ -215,12 +231,8 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
   if (!name) throw new BadRequestError(`Can't create a scene without a name`);
   if (!language) throw new BadRequestError(`Default language is required for scene creation`);
   if (!isSceneLanguage(language)) throw new BadRequestError(`Unsupported scene language ${language}`);
-  if (!source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
 
-  for (const task_id of source_ids) {
-    if (!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
-  }
-  const source_tasks = await Promise.all(source_ids.map(id => tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
+  const source_tasks = await getSourceUploads(tasks, source_ids, user_id);
   const failed_tasks = source_tasks.filter(t => t.status !== "success");
   const invalid_outputs = source_tasks.filter(t => !isUploadedFile(t.output));
   if (failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length ? "s" : ""} #${failed_tasks.map(t => t.task_id).join(", #")} has not completed successfully`);

@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import path from "node:path";
 import { stat } from "node:fs/promises";
 import { getVfs, getUser, getTaskScheduler } from "../../../../utils/locals.js";
 import { BadRequestError, LengthRequiredError, RangeNotSatisfiableError, UnauthorizedError } from "../../../../utils/errors.js";
@@ -51,7 +50,7 @@ export async function putTaskArtifact(req: Request, res: Response){
     await taskScheduler.runTask({ task, immediate: true, handler: parseUserUpload as any });
   }
 
-  const filepath = path.join(vfs.getTaskWorkspace(task.task_id), filename);
+  const filepath = vfs.getTaskFilePath(task.task_id, filename);
 
   if(!contentRange){
     const ws = createWriteStream(filepath)
