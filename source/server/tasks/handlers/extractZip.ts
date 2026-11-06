@@ -9,7 +9,7 @@ import { parseFilepath } from "../../utils/archives.js";
 import { AccessLevel, fromAccessLevel } from "../../auth/UserManager.js";
 import { getMimeType } from "../../utils/filetypes.js";
 import { finished } from "node:stream/promises";
-import { UploadHandlerParams, ParsedUserUpload, UploadedArchive, UploadedFile } from "./uploads.js";
+import { UploadHandlerParams, ParsedUserUpload, UploadedArchive, UploadedFile, getSourceUploads } from "./uploads.js";
 
 
 
@@ -194,13 +194,8 @@ export function isUploadedArchive(t: UploadedFile): t is UploadedArchive {
   return t.mime == "application/zip" && (t as any).scenes?.length;
 }
 
-export async function extractScenesArchives({ context: { tasks, logger }, task: { data: { tasks: source_ids } } }: TaskHandlerParams<{ tasks: number[]; }>): Promise<ImportSuccessResult[]> {
-  if (!source_ids.length) throw new BadRequestError(`This task requires at least one source file`);
-
-  for (const task_id of source_ids) {
-    if (!Number.isInteger(task_id)) throw new BadRequestError(`Invalid source task id: ${task_id}`);
-  }
-  const source_tasks = await Promise.all(source_ids.map(id => tasks.getTask<UploadHandlerParams, ParsedUserUpload>(id)));
+export async function extractScenesArchives({ context: { tasks, logger }, task: { user_id, data: { tasks: source_ids } } }: TaskHandlerParams<{ tasks: number[]; }>): Promise<ImportSuccessResult[]> {
+  const source_tasks = await getSourceUploads(tasks, source_ids, user_id);
   const failed_tasks = source_tasks.filter(t => t.status !== "success");
   const invalid_outputs = source_tasks.filter(t => !isUploadedArchive(t.output));
   if (failed_tasks.length) throw new BadRequestError(`Source task${1 < failed_tasks.length ? "s" : ""} ${failed_tasks.map(t => t.task_id).join(", ")} has not completed successfully`);
