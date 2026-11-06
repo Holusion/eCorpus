@@ -7,6 +7,14 @@
   color: var(--color-warning);
 }
 
+/* Filters over a list of tasks */
+.task-list-filters {
+  //Without any help text to make room for, its button lines up with its fields
+  .form-item {
+    padding-bottom: 0;
+  }
+}
+
 .task-title-bar {
   display: flex;
   flex-wrap: wrap;

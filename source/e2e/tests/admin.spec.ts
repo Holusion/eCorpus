@@ -77,6 +77,28 @@ test("does not schedule an onboarding email when the checkbox is not ticked", as
   await expect(page.getByRole("row", {name: new RegExp(name)})).toHaveCount(0);
 });
 
+test.describe("tasks list", ()=>{
+  /** Creates a user that has a task of its own: its onboarding email */
+  async function userWithTask(request: import("@playwright/test").APIRequestContext, prefix: string){
+    const username = `${prefix}-${randomBytes(6).toString("base64url")}`;
+    const res = await request.post("/users", {
+      data: {username, email: `${username}@example.com`, password: randomUUID(), level: "use", send_onboarding: true},
+    });
+    await expect(res).toBeOK();
+    return username;
+  }
+
+  test("links the owner of each task to their tasks", async ({page, request})=>{
+    const owner = await userWithTask(request, "test-taskownerlink");
+    await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
+    await page.getByRole("row", {name: owner}).getByRole("link", {name: owner, exact: true}).click();
+    //The user's own list of tasks, as they see it
+    await expect(page).toHaveURL(/\/ui\/users\/\d+\/tasks$/);
+    await expect(page.getByRole("heading", {name: new RegExp(`titles.userSettings — ${owner}`)})).toBeVisible();
+    await expect(page.getByRole("link", {name: /sendEmail/})).toBeVisible();
+  });
+});
+
 test("can delete a non-admin user", async ({page, request})=>{
   let username = `test-deleteuser-${randomBytes(6).toString("base64url")}`;
   let u = {
