@@ -68,6 +68,47 @@ describe("Vfs", function(){
     });
     
   })
+
+  describe("getTaskFilePath()", function(){
+    let vfs: Vfs, workspace: string;
+    this.beforeEach(function(){
+      vfs = new Vfs("/path/to/data", {} as any);
+      workspace = vfs.getTaskWorkspace(42);
+    });
+    it("resolves a file name in the task's workspace", function(){
+      expect(vfs.getTaskFilePath(42, "foo.glb")).to.equal(path.join(workspace, "foo.glb"));
+    });
+    it("allows nested files", function(){
+      expect(vfs.getTaskFilePath(42, "textures/diffuse.jpg")).to.equal(path.join(workspace, "textures", "diffuse.jpg"));
+      expect(vfs.getTaskFilePath(42, "textures/../foo.obj")).to.equal(path.join(workspace, "foo.obj"));
+    });
+    it("allows names that merely start with dots", function(){
+      expect(vfs.getTaskFilePath(42, "..foo.glb")).to.equal(path.join(workspace, "..foo.glb"));
+      expect(vfs.getTaskFilePath(42, ".hidden")).to.equal(path.join(workspace, ".hidden"));
+    });
+    for(const p of [
+      "../foo.glb",
+      "..",
+      "textures/../../foo.glb",
+      "../43/foo.glb",
+      "../../../../etc/passwd",
+      "/etc/passwd",
+      "",
+      ".",
+      "textures/..",
+      "foo\0.glb",
+    ]){
+      it(`rejects ${JSON.stringify(p)}`, function(){
+        expect(()=>vfs.getTaskFilePath(42, p)).to.throw(BadRequestError);
+      });
+    }
+    it("rejects non-string paths", function(){
+      for(const p of [null, undefined, 1, {}, ["foo"]]){
+        expect(()=>vfs.getTaskFilePath(42, p as any), JSON.stringify(p)).to.throw(BadRequestError);
+      }
+    });
+  });
+
   describe("", function(){
     this.beforeEach(async function(){
       this.dir = await fs.mkdtemp(path.join(tmpdir(), `vfs_tests`));

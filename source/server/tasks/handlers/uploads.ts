@@ -152,7 +152,7 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
  * @returns 
  */
 export async function parseUserUpload({ task: { task_id, user_id, data: { filename, size } }, context: { vfs, tasks, userManager, logger } }: TaskHandlerParams<UploadHandlerParams>): Promise<ParsedUserUpload> {
-  const fileLocation = vfs.relative(path.join(vfs.getTaskWorkspace(task_id), filename));
+  const fileLocation = vfs.relative(vfs.getTaskFilePath(task_id, filename));
 
   logger.debug(`Checking size of uploaded file ${fileLocation}`);
   let diskSize: number;

@@ -165,6 +165,23 @@ describe("PUT /tasks/:id/artifact", function(){
     expect(res.body).to.have.property("message", `Error: [416] Missing bytes 0-10`);
   });
 
+  describe("rejects file names that break out of the task's workspace", function(){
+    for(const name of ["../escape.bin", "../../../escape.bin", "foo/../../escape.bin"]){
+      it(JSON.stringify(name), async function(){
+        const data = randomBytes(16);
+        const {body: {task_id}} = await request(this.server).post(`/tasks`)
+        .set("Authorization", await bearer("alice"))
+        .send({ type: "parseUserUpload", data: {filename: name, size: data.length}, status: "initializing" })
+        .expect(201);
+        await request(this.server).put(`/tasks/${task_id}/artifact`)
+        .set("Authorization", await bearer("alice"))
+        .send(data)
+        .expect(400);
+        await expect(fs.access(path.resolve(vfs.getTaskWorkspace(task_id), name))).to.be.rejectedWith("ENOENT");
+      });
+    }
+  });
+
   describe("localized parse errors", function(){
     /** Creates an upload task for a `.glb` file and uploads `data` in one go */
     async function uploadGlb(ctx: Mocha.Context, data: Buffer, lang?: string){
