@@ -2,10 +2,21 @@ import { Request, Response } from "express";
 import { getTaskScheduler, getUser, getVfs } from "../../utils/locals.js";
 import { BadRequestError } from "../../utils/errors.js";
 
-import * as handlers from "../../tasks/handlers/index.js";
+import { createSceneFromFiles, extractScenesArchives, parseUserUpload } from "../../tasks/handlers/index.js";
 
-function isUserTaskType(t: any): t is keyof typeof handlers{
-  return typeof t === "string" && typeof (handlers as any)[t] === "function";
+/**
+ * Task types a user may create through this route.
+ * Other handlers (email, maintenance…) are internal and must never be reachable from here:
+ * add to this list only handlers that are safe to run with arbitrary user-provided data.
+ */
+const userTasks = {
+  createSceneFromFiles,
+  extractScenesArchives,
+  parseUserUpload,
+} as const;
+
+function isUserTaskType(t: unknown): t is keyof typeof userTasks{
+  return typeof t === "string" && Object.hasOwn(userTasks, t);
 }
 
 
@@ -36,7 +47,7 @@ export async function createUserTask(req: Request, res: Response){
 
 
   if(status == "pending"){
-    await taskScheduler.runTask({task, handler: handlers[type] as any});
+    await taskScheduler.runTask({task, handler: userTasks[type] as any});
     //We could just refresh task.output from the result of runTask and task.status
     //But it's safer to just fetch the whole task again
     task = await taskScheduler.getTask(task.task_id);
