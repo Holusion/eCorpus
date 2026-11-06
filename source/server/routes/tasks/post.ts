@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getTaskScheduler, getUser, getVfs } from "../../utils/locals.js";
+import { getLocals, getTaskScheduler, getUser, getVfs } from "../../utils/locals.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { TaskHandler } from "../../tasks/types.js";
 import { prefers } from "../../utils/prefer.js";
@@ -78,10 +78,15 @@ export async function createUserTask(req: Request, res: Response){
     res.set("Location", location);
     res.status(201).send(task);
   }else if(prefers(req, "respond-async")){
-    //The outcome is recorded on the task, found at its location
+    //Before it starts: the task can't settle unnoticed
+    await getLocals(req).notifications.notify(task);
+    //The outcome is recorded on the task and reaches the requester as a notification
     taskScheduler.runTask({task, handler})
-    .catch(err => log.debug({task_id: task.task_id, err}, `Task #${task.task_id} (${task.type}) failed`));
+    .catch(err => log.debug({task_id: task.task_id, err}, `Task #${task.task_id} (${task.type}) failed (User has been notified)`));
+
     res.set("Location", location);
+    //Where the notification about it can be followed
+    res.set("Link", `</users/${requester.uid}/activity>; rel="monitor"`);
     res.set("Preference-Applied", "respond-async");
     res.status(202).send(task);
   }else{

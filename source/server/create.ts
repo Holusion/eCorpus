@@ -9,6 +9,7 @@ import Vfs from "./vfs/index.js";
 import defaultConfig, { Config, parse } from "./utils/config.js";
 import createServer from "./routes/index.js";
 import { TaskScheduler } from "./tasks/scheduler.js";
+import { NotificationManager } from "./notifications/manager.js";
 import { runCleanup } from "./tasks/handlers/cleanup.js";
 import { createLogger } from "./utils/log/index.js";
 
@@ -18,6 +19,7 @@ export interface Services{
   app: express.Application;
   vfs: Vfs;
   taskScheduler: TaskScheduler;
+  notifications: NotificationManager;
   userManager: UserManager;
   db: Database;
   close: ()=>Promise<void>;
@@ -40,6 +42,8 @@ export default async function createService(env = process.env) :Promise<Services
   const userManager = new UserManager(db);
 
   const taskScheduler = new TaskScheduler({db, vfs, userManager, config: runtimeConfig});
+  //Doesn't connect to anything until someone subscribes
+  const notifications = new NotificationManager({db, uri: database_uri});
 
 
   if(clean_database){
@@ -60,6 +64,7 @@ export default async function createService(env = process.env) :Promise<Services
     fileDir: files_dir,
     vfs,
     taskScheduler,
+    notifications,
     config: runtimeConfig,
   });
 
@@ -68,10 +73,12 @@ export default async function createService(env = process.env) :Promise<Services
     vfs,
     userManager,
     taskScheduler,
+    notifications,
     db,
     async close(){
       try{
         await taskScheduler.close();
+        await notifications.close();
         await vfs.close();
       }finally{
         //Always release the singleton

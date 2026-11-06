@@ -1,6 +1,7 @@
 import request from "supertest";
 import { randomBytes } from "node:crypto";
 import timers from "node:timers/promises";
+import { Client } from "pg";
 
 import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
@@ -93,6 +94,10 @@ describe("POST /tasks", function(){
     }
   }
 
+  async function notificationsOf(task_id: number){
+    return await taskScheduler.db.all(`SELECT fk_user_id AS user_id, type, read FROM notifications WHERE fk_task_id = $1`, [task_id]);
+  }
+
   describe("delayTask", function(){
     it("waits, then succeeds", async function(){
       const {body} = await request(this.server).post("/tasks")
@@ -134,7 +139,30 @@ describe("POST /tasks", function(){
   });
 
   describe("Prefer: respond-async", function(){
-    it("answers 202 at once, then runs the task", async function(){
+    let listener: Client;
+    let signals: any[];
+    this.beforeEach(async function(){
+      signals = [];
+      listener = new Client({connectionString: this.db_uri});
+      await listener.connect();
+      listener.on("notification", (msg)=> signals.push(JSON.parse(msg.payload!)));
+      await listener.query("LISTEN notifications");
+    });
+    this.afterEach(async function(){
+      await listener.end();
+    });
+
+    /** Wait for `count` signals about the notification of `task_id` */
+    async function signalsOf(task_id: number, count: number, timeout = 1000){
+      const about = ()=> signals.filter(s => s.item.task_id === task_id);
+      const end = Date.now() + timeout;
+      while(about().length < count && Date.now() < end){
+        await timers.setTimeout(10);
+      }
+      return about().map(({user_id, item: {status, read}})=>({user_id, status, read}));
+    }
+
+    it("answers 202 at once, then notifies the requester", async function(){
       const res = await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
       .set("Prefer", "respond-async")
@@ -145,16 +173,32 @@ describe("POST /tasks", function(){
       expect(res.body.status).to.be.oneOf(["pending", "running"]);
       expect(res.headers).to.have.property("location", `/tasks/${task_id}`);
       expect(res.headers).to.have.property("preference-applied", "respond-async");
+      expect(await notificationsOf(task_id)).to.deep.equal([{user_id: user.uid, type: "delayTask", read: false}]);
+
       expect(await settled(task_id)).to.have.property("status", "success");
+      const received = await signalsOf(task_id, 3);
+      expect(received[0]).to.deep.equal({user_id: user.uid, status: "pending", read: false});
+      expect(received.at(-1)).to.deep.equal({user_id: user.uid, status: "success", read: false});
     });
 
-    it("records a failure on the task", async function(){
+    it("notifies about a failure", async function(){
       const {body: {task_id}} = await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
       .set("Prefer", "wait=10, respond-async")
       .send({type: "delayTask", data: {ms: 10, fail: "Requested failure"}})
       .expect(202);
       expect(await settled(task_id)).to.have.property("status", "error");
+      expect((await signalsOf(task_id, 3)).at(-1)).to.deep.equal({user_id: user.uid, status: "error", read: false});
+      expect(await notificationsOf(task_id)).to.deep.equal([{user_id: user.uid, type: "delayTask", read: false}]);
+    });
+
+    it("is silent without the preference", async function(){
+      const {body: {task_id}} = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "delayTask", data: {ms: 10}})
+      .expect(200);
+      expect(await notificationsOf(task_id)).to.deep.equal([]);
+      expect(await signalsOf(task_id, 1, 100)).to.deep.equal([]);
     });
 
     it("is ignored for an initializing task", async function(){
@@ -164,6 +208,7 @@ describe("POST /tasks", function(){
       .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
       .expect(201);
       expect(res.headers).not.to.have.property("preference-applied");
+      expect(await notificationsOf(res.body.task_id)).to.deep.equal([]);
     });
 
     it("still answers validation errors synchronously", async function(){
