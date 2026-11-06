@@ -53,6 +53,45 @@ describe("POST /tasks", function(){
     }
   });
 
+  describe("delayTask", function(){
+    it("waits, then succeeds", async function(){
+      const {body} = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "delayTask", data: {ms: 20}})
+      .expect(201);
+      expect(body).to.have.property("status", "success");
+      expect(body).to.have.property("output").deep.equal({ms: 20});
+      expect(await taskScheduler.getLogs(body.task_id)).to.have.length.above(0);
+    });
+
+    it("defaults to no delay", async function(){
+      const {body} = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "delayTask"})
+      .expect(201);
+      expect(body).to.have.property("output").deep.equal({ms: 0});
+    });
+
+    it("fails on demand", async function(){
+      const res = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("bob"))
+      .send({type: "delayTask", data: {ms: 0, fail: "Requested failure"}})
+      .expect(500);
+      expect(res.body.message).to.match(/Requested failure/);
+      const [task] = await taskScheduler.getTasks({type: "delayTask", user_id: user.uid, status: "error"});
+      expect(task).to.be.ok;
+    });
+
+    for(const ms of [-1, 1.5, "10", 10*60*1000 + 1]){
+      it(`rejects ms = ${JSON.stringify(ms)}`, async function(){
+        await request(this.server).post("/tasks")
+        .set("Authorization", await bearer("bob"))
+        .send({type: "delayTask", data: {ms}})
+        .expect(400);
+      });
+    }
+  });
+
   describe("source tasks", function(){
     /** Upload a file as `username`, returning the id of the (successful) upload task */
     async function upload(ctx: Mocha.Context, username: string): Promise<number>{

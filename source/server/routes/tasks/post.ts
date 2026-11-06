@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getTaskScheduler, getUser, getVfs } from "../../utils/locals.js";
 import { BadRequestError } from "../../utils/errors.js";
 
-import { createSceneFromFiles, extractScenesArchives, parseUserUpload } from "../../tasks/handlers/index.js";
+import { createSceneFromFiles, delayTask, extractScenesArchives, parseUserUpload } from "../../tasks/handlers/index.js";
 
 /**
  * Task types a user may create through this route.
@@ -13,6 +13,7 @@ const userTasks = {
   createSceneFromFiles,
   extractScenesArchives,
   parseUserUpload,
+  delayTask,
 } as const;
 
 function isUserTaskType(t: unknown): t is keyof typeof userTasks{
