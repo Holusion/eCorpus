@@ -7,6 +7,7 @@
 import { NotificationItem, stateOf } from "../state/notifications";
 import { getStatus, isLoaded, itemsIn } from "./state";
 import { followsLink, markAsRead } from "./markRead";
+import { wipeAway } from "./leave";
 
 type Messages = {
   default?: string;
@@ -40,8 +41,6 @@ const loading = panel?.querySelector<HTMLElement>(".nav-notifications-loading");
 const empty = panel?.querySelector<HTMLElement>(".nav-notifications-empty");
 const offline = panel?.querySelector<HTMLElement>(".nav-notifications-offline");
 const markAll = panel?.querySelector<HTMLButtonElement>(".nav-notifications-mark-all");
-/** How long a line takes to leave. It can't be clicked meanwhile: what took its place can. */
-const LEAVE_DURATION = 200;
 
 let messages: Messages = {};
 try {
@@ -63,10 +62,10 @@ export function linkOf(item: NotificationItem): string | null {
   return item.task_id === null ? null : `/ui/tasks/${item.task_id}`;
 }
 
-/** Tells at a glance how things went, as titles may be cut before they get to it */
-function statusIcon(item: NotificationItem) {
+/** Tells at a glance how things went, as titles may be cut before they get to it. The server draws the same: see views/index.ts */
+export function statusIcon(item: NotificationItem) {
   const icon = document.createElement("ui-icon");
-  const [name, color] = stateOf(item) === "running" ? ["loader", "nav-notifications-running"]
+  const [name, color] = stateOf(item) === "running" ? ["loader", "notifications-running"]
     : item.status === "error" ? ["error", "text-error"]
     : item.status === "success" ? ["check", "text-success"]
     : ["info", "text-info"];
@@ -97,9 +96,9 @@ function since(seconds: number) {
   return li;
 }
 
-function markButton() {
+export function markButton(className = "") {
   const button = document.createElement("button");
-  button.className = "btn btn-transparent btn-icon";
+  button.className = `btn btn-transparent btn-icon ${className}`.trim();
   button.type = "button";
   button.title = panel!.dataset.markRead ?? "";
   button.setAttribute("aria-label", button.title);
@@ -160,31 +159,13 @@ function keepingFocus(change: () => void) {
   (target ?? (markAll!.hidden ? document.querySelector<HTMLElement>("#nav-notifications")! : markAll!)).focus();
 }
 
-/**
- * Lines that are gone get wiped away, over what has taken their place: they're out of the list already,
- * so that clicking again where they were gets to the next one.
- */
+/** Lines that are gone get wiped away. Over the panel: the list scrolls, and they may have been where it ends. */
 function leave(lines: Map<string, { li: HTMLElement, rect: DOMRect }>) {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const origin = panel!.getBoundingClientRect();
   const visible = list!.parentElement!.getBoundingClientRect();
   for (const [id, { li, rect }] of lines) {
-    //Still there, or scrolled out of sight
-    if (list!.querySelector(`li[data-notification-id="${id}"]`) || rect.bottom <= visible.top || visible.bottom <= rect.top) continue;
-    li.classList.add("leaving");
-    li.inert = true;
-    Object.assign(li.style, {
-      top: `${rect.top - origin.top - panel!.clientTop}px`,
-      left: `${rect.left - origin.left - panel!.clientLeft}px`,
-      width: `${rect.width}px`,
-      height: `${rect.height}px`,
-    });
-    panel!.appendChild(li);
-    const done = () => li.remove();
-    li.animate([
-      { clipPath: "inset(0 0 0 0)", opacity: 1 },
-      { clipPath: "inset(0 0 0 100%)", opacity: 0 },
-    ], { duration: LEAVE_DURATION, easing: "ease-in" }).finished.then(done, done);
+    //Still there
+    if (list!.querySelector(`li[data-notification-id="${id}"]`)) continue;
+    wipeAway(li, rect, panel!, visible);
   }
 }
 
@@ -232,7 +213,28 @@ function render(animate = false) {
   if (animate) leave(previous);
 }
 
+/** As narrow as when the navbar's links collapse: see nav.scss */
+const narrow = matchMedia("(max-width: 650px)");
+
 if (panel && list && loading && empty && offline && markAll) {
+  //The bell is a link to the page that has everything. Only a plain click with a pointer opens the panel instead.
+  //Otherwise it's the page, as with any link: in another tab, or with the keyboard and assistive technologies
+  //(their clicks have no count), or on small screens that have no room for the panel.
+  const bell = document.querySelector<HTMLAnchorElement>("a#nav-notifications");
+  if (bell) {
+    //Pressing it while the panel's open closes it already, as it's outside: that click shouldn't open it again
+    let wasOpen = false;
+    bell.addEventListener("pointerdown", () => {
+      wasOpen = panel.matches(":popover-open");
+    });
+    bell.addEventListener("click", (e) => {
+      if (e.detail === 0 || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || narrow.matches) return;
+      e.preventDefault();
+      if (wasOpen) panel.hidePopover();
+      else panel.showPopover();
+    });
+  }
+
   document.addEventListener("activity-change", () => {
     //Ages, and where the list is cut, are only updated when it opens: it's not worth redrawing for while it's closed
     if (panel.matches(":popover-open")) render(true);

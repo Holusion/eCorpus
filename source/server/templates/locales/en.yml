@@ -101,6 +101,8 @@ labels:
   rootOnly: Root tasks
   noTasks: No tasks found.
   noUnreadNotifications: No unread notifications.
+  noNotifications: No notifications.
+  unreadOnly: Unread only
   loading: Loading…
   noLogs: No logs.
   warnings: Warnings
@@ -124,6 +126,7 @@ buttons:
   next: "Next Page"
   markAsRead: mark as read
   markAllAsRead: mark all as read
+  allNotifications: show all
   previous: "Previous Page"
   archive: Archive
   delete: Delete

@@ -12,6 +12,8 @@ import { linkOf, messageOf } from "../activity/panel";
 import { getStatus, itemsIn, setItems, setStatus, updateItem } from "../activity/state";
 import { DeletedNotification, NotificationItem, stateOf } from "../state/notifications";
 import { toast } from "../state/toast";
+//The page of notifications, when that's the one open
+import "../activity/page";
 
 /** Forgotten tabs are what would otherwise make up most open streams */
 const HIDDEN_GRACE = 2 * 60 * 1000;

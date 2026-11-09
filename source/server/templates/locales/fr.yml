@@ -100,6 +100,8 @@ labels:
   rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.
   noUnreadNotifications: Aucune notification non lue.
+  noNotifications: Aucune notification.
+  unreadOnly: Non lues uniquement
   loading: Chargement…
   noLogs: Aucun journal.
   warnings: Avertissements
@@ -126,6 +128,7 @@ buttons:
   next: "Page Suivante"
   markAsRead: marquer comme lu
   markAllAsRead: tout marquer comme lu
+  allNotifications: voir tout
   previous: "Page Précédente"
   archive: Archiver
   delete: Supprimer

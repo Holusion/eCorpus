@@ -153,27 +153,41 @@ $sync-delay: .6s;
       right: max(.25rem, anchor(right));
     }
 
-    // The list, and what's above it, which goes out of sight with it. What tells how it's going stays under it.
+    // The list, and what's under it, which scrolls with it. What tells how it's going stays under that, in sight.
     .nav-notifications-scroll {
       max-height: min(350px, calc(100vh - var(--nav-height) - 40px));
       overflow-y: auto;
       scrollbar-gutter: stable;
     }
 
+    // The way to everything else on the left, what can be done here on the right
     .nav-notifications-header {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
       padding: .15rem 0;
-      // Nothing to do yet
-      &:not(:has(> :not([hidden]))) {
-        display: none;
-      }
 
       > .btn {
         --btn-color: var(--color-text);
+        min-width: 0;
         flex-wrap: nowrap;
         padding: .25rem .5rem;
         white-space: nowrap;
+      }
+      > .nav-notifications-mark-all {
+        margin-left: auto;
+        > .ui-icon{
+          margin-left: .35rem;
+        }
+      }
+      // Its text only is underlined: what's set on the link would reach its arrow too, whatever the arrow says
+      > .nav-notifications-all {
+        gap: .35rem;
+        &::before {
+          content: "◂" / "";
+        }
+        > span {
+          text-decoration: underline;
+        }
       }
     }
 
@@ -272,11 +286,6 @@ $sync-delay: .6s;
       }
     }
 
-    .nav-notifications-running {
-      color: var(--color-primary);
-      animation: activity-spin 1s linear infinite;
-    }
-
     // As the bell shows it: what isn't known yet, as opposed to running tasks
     .nav-notifications-loading, .nav-notifications-offline {
       display: flex;
@@ -308,9 +317,123 @@ $sync-delay: .6s;
   }
 }
 
+// A task that's running, in the panel or in the page of notifications
+.notifications-running {
+  color: var(--color-primary);
+  animation: activity-spin 1s linear infinite;
+}
+
+// The page of notifications, that small screens get to from the bell.
+// Its list runs from one edge of the section to the other, as the other lists of the user's pages do:
+// what's in its lines starts where the rest of the section does.
+.notifications-page {
+  .notifications-toolbar {
+
+    // Its icon over those of the lines: they end as far from the edge
+    > .notifications-mark-all {
+      --btn-color: var(--color-text);
+      min-width: 0;
+      margin-left: auto;
+      padding-right: .5rem;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      &[hidden] {
+        display: none;
+      }
+    }
+  }
+
+  .notifications-list {
+    margin: 0 calc(-1 * var(--section-padding) + 4px) calc(-1 * var(--section-padding) + 4px);
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 2px 0;
+    // Room for the border of what's unread, which leaves everything where it is
+    padding: .25rem calc(var(--section-padding) - 6px);
+    border-width: 0 2px;
+    border-style: solid;
+    border-color: transparent;
+    background-clip: padding-box;
+    background-color: var(--color-dark);
+
+    > .ui-icon {
+      flex: 0 0 auto;
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    // What's new stands out from what's been read
+    &.unread, &.running {
+      background-color: var(--color-highlight);
+      color: var(--color-light);
+    }
+
+    &.unread {
+      border-left-color: var(--color-primary);
+      .notifications-content > :first-child {
+        font-weight: bold;
+      }
+    }
+    &.read{
+      .ui-icon{
+        opacity: .7;
+      }
+      .notifications-content > a {
+        color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+      }
+    }
+  }
+
+  .notifications-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+
+    &:last-child {
+      //additional right padding to leave space for "mark as read" button
+      //override when .unread
+      padding-right: 48px;
+    }
+
+    // On one line, whatever its length: being read makes it lighter, which shouldn't move anything
+    > a, > span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    > time {
+      align-self: flex-end;
+      font-size: 80%;
+      color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+    }
+  }
+
+  .notifications-mark-read {
+    --btn-color: var(--color-text);
+    flex: 0 0 auto;
+  }
+
+  // Out of the list already, with only those that are unread: over what has taken its place. See activity/leave.ts
+  li.leaving {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    margin: 0;
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #main-navbar #nav-notifications[data-running]::before,
-  #main-navbar #nav-notifications-panel .nav-notifications-running {
+  .notifications-running {
     animation: none;
   }
   // Dimmed instead of pulsing, with the same delay

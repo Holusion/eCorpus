@@ -12,6 +12,9 @@ import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
 import { translateErrorMessage } from "../../utils/i18n.js";
+import { NotificationManager } from "../../notifications/manager.js";
+import { messageOf, stateOf } from "../../notifications/messages.js";
+import { NotificationItem } from "../../notifications/types.js";
 
 
 const log = createLogger("http:views");
@@ -896,6 +899,58 @@ routes.get("/user/tasks", async (req, res) => {
     title: "My Tasks — User",
     tasks,
     params: { type, status, rootOnly, limit, offset },
+  });
+});
+
+/** How a notification shows in a page. The bell's panel draws them the same way: see source/ui/activity/panel.ts */
+function notificationView(item: NotificationItem, lng: string){
+  const state = stateOf(item);
+  const [icon, iconClass] = state === "running" ? ["loader", "notifications-running"]
+    : item.status === "error" ? ["error", "text-error"]
+    : item.status === "success" ? ["check", "text-success"]
+    : ["info", "text-info"];
+  return {
+    notification_id: item.notification_id,
+    state,
+    message: messageOf(item, lng),
+    link: item.task_id === null ? null : `/ui/tasks/${item.task_id}`,
+    icon,
+    iconClass,
+    mtime: item.mtime,
+  };
+}
+
+/**
+ * All of a user's notifications, read or not, a page at a time. Where small screens get from the bell:
+ * they don't have the room for its panel.
+ */
+routes.get("/user/notifications", async (req, res) => {
+  const user = getUser(req);
+  if (!isUserAtLeast(user, "use")) {
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/notifications")}`);
+  }
+  const unreadOnly = qsToBool(req.query.unread) ?? false;
+  const limit = NotificationManager.notificationsLimit(qsToInt(req.query.limit));
+  const offset = qsToInt(req.query.offset) ?? 0;
+  //One more, to tell whether there's a next page
+  const items = await getLocals(req).notifications.getNotifications(user!.uid, { limit: limit + 1, offset, unreadOnly });
+  const lng = getLanguage(req);
+  const notifications = items.slice(0, limit).map((item) => notificationView(item, lng));
+
+  const pageUrl = (offset: number) => {
+    const url = new URL(req.originalUrl, getHost(req));
+    url.searchParams.set("offset", offset.toString());
+    return url.pathname + url.search;
+  };
+  const next = limit < items.length ? pageUrl(offset + limit) : undefined;
+  const previous = offset ? pageUrl(Math.max(0, offset - limit)) : undefined;
+  res.render("user/notifications", {
+    layout: "user",
+    title: "Notifications — User",
+    notifications,
+    unread: notifications.some((n) => n.state === "unread"),
+    params: { unreadOnly },
+    pager: (next || previous) ? { from: offset, to: offset + notifications.length, next, previous } : undefined,
   });
 });
 

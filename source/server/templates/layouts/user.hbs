@@ -8,6 +8,9 @@
       {{#navLink "/ui/user/tokens" "exact"}}<ui-icon name="key"></ui-icon> {{i18n "nav.tokens"}}{{/navLink}}
       {{#navLink "/ui/user/archives" "exact"}}<ui-icon name="folder" style="display:flex"></ui-icon> {{i18n "nav.userArchives"}}{{/navLink}}
       {{#navLink "/ui/user/tasks" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
+      {{#if activity}}
+        {{#navLink "/ui/user/notifications" "exact"}}<ui-icon name="bell"></ui-icon> {{i18n "nav.notifications"}}{{/navLink}}
+      {{/if}}
     </nav>
   </div> 
   <div class="grid-content">

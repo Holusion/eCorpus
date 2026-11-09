@@ -29,6 +29,11 @@ export function listItems(): NotificationItem[] {
   return Array.from(items.values()).sort((a, b) => Date.parse(b.mtime) - Date.parse(a.mtime) || b.notification_id - a.notification_id);
 }
 
+/** As last told by the server, if it has told about it */
+export function getItem(id: number): NotificationItem | undefined {
+  return items.get(id);
+}
+
 /** Newest first */
 export function itemsIn(state: ItemState): NotificationItem[] {
   return listItems().filter((n) => stateOf(n) === state);

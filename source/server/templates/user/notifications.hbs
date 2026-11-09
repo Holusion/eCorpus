@@ -1,0 +1,37 @@
+<section class="notifications-page">
+  <h3>{{i18n "nav.notifications"}}</h3>
+  <div class="notifications-toolbar">
+    <form class="form-control" style="align-items:start;" method="GET">
+      <label class="form-item inline"><input type="checkbox" name="unread" value="true" onchange="this.form.requestSubmit()" {{#if params.unreadOnly}}checked{{/if}}> {{i18n "labels.unreadOnly"}}</label>
+    </form>
+    {{!-- What's unread in this page: there's no "everything up to", that could take what isn't shown --}}
+    <button class="btn btn-transparent notifications-mark-all" type="button" {{#unless unread}}hidden{{/unless}}><span style="padding-right:.2rem;">{{i18n "buttons.markAllAsRead"}}</span> <ui-icon name="check-check"></ui-icon></button>
+  </div>
+
+  {{#if notifications.length}}
+    {{!-- Drawn by the server, kept up to date by the browser: see activity/page.ts --}}
+    <ul class="notifications-list" data-notifications{{#if params.unreadOnly}} data-unread-only{{/if}}>
+      {{#each notifications}}
+        <li class="{{state}}" data-notification-id="{{notification_id}}">
+          <ui-icon class="{{iconClass}}" name="{{icon}}"></ui-icon>
+          <div class="notifications-content">
+            {{#if link}}
+              <a href="{{link}}">{{message}}</a>
+            {{else}}
+              <span>{{message}}</span>
+            {{/if}}
+            <time datetime="{{dateString mtime "iso"}}">{{dateString mtime}}</time>
+          </div>
+          {{#if (test state "==" "unread")}}
+            <button class="btn btn-transparent btn-icon notifications-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
+          {{/if}}
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <p>{{#if params.unreadOnly}}{{i18n "labels.noUnreadNotifications"}}{{else}}{{i18n "labels.noNotifications"}}{{/if}}</p>
+  {{/if}}
+  {{#with pager}}
+    {{> pager }}
+  {{/with}}
+</section>

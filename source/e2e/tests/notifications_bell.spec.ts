@@ -29,7 +29,7 @@ async function startDelay(page: Page, data: { ms?: number, fail?: string }): Pro
 }
 
 function bellOf(page: Page) {
-  return page.getByRole("navigation").getByRole("button", { name: /nav\.notifications/ });
+  return page.getByRole("navigation").getByRole("link", { name: /nav\.notifications/ });
 }
 
 /** How many unread notifications the bell has: it isn't there when there are none */

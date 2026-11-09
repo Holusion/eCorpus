@@ -35,18 +35,20 @@
     {{!-- Out of the links: what's the user's own stays in sight when those collapse on small screens --}}
     <div class="nav-account">
       {{#if activity}}
-        {{!-- Without a data-status (see activity/state.ts), it hasn't started --}}
-        <button id="nav-notifications" class="btn btn-outline btn-icon nav-btn" type="button" popovertarget="nav-notifications-panel" title="{{i18n "nav.notifications"}}" data-activity="{{activity.url}}">
+        {{!-- Without a data-status (see activity/state.ts), it hasn't started.
+          A link to the page of notifications: only a plain click opens the panel instead, see activity/panel.ts --}}
+        <a id="nav-notifications" class="btn btn-outline btn-icon nav-btn" href="/ui/user/notifications" title="{{i18n "nav.notifications"}}" data-activity="{{activity.url}}">
           <ui-icon name="bell"></ui-icon>
           <span class="visually-hidden">{{i18n "nav.notifications"}}</span>
           <span class="nav-badge" role="img" hidden></span>
-        </button>
+        </a>
         <div id="nav-notifications-panel" popover data-mark-failed="{{i18n "notifications.markFailed"}}" data-mark-read="{{i18n "buttons.markAsRead"}}" data-just-now="{{i18n "notifications.justNow"}}" data-messages="{{activity.messages}}">
           <div class="nav-notifications-scroll">
+            <ul></ul>
             <div class="nav-notifications-header">
+              <a class="btn btn-transparent nav-notifications-all" href="/ui/user/notifications"><span>{{i18n "buttons.allNotifications"}}</span></a>
               <button class="btn btn-transparent nav-notifications-mark-all" type="button" hidden>{{i18n "buttons.markAllAsRead"}} <ui-icon name="check-check"></ui-icon></button>
             </div>
-            <ul></ul>
           </div>
           <p class="nav-notifications-loading" role="status"><ui-icon name="bell"></ui-icon> {{i18n "labels.loading"}}</p>
           <p class="nav-notifications-empty" hidden>{{i18n "labels.noUnreadNotifications"}}</p>
