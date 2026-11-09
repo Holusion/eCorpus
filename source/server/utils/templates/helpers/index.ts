@@ -7,6 +7,7 @@
  *    {{#navLink "/path"}}Label{{/navLink}}
  *    {{#navLink "/path" "exact"}}Label{{/navLink}}      prefix match → exact match
  *    {{#navLink "/path" "disabled"}}Label{{/navLink}}   extra string args become HTML attributes
+ *    {{#navLink "/path" id="foo"}}Label{{/navLink}}     so do named params, escaped. `class` replaces `nav-link`
  *    Requires `location` in template context (the current request pathname).
  *
  *  i18n  — translate a key via i18next
