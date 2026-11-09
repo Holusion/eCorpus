@@ -57,6 +57,23 @@ describe("Lists of tasks in the UI", function(){
       expect(text).to.include(`<a class="task-row-owner" href="/ui/users/${owner}/tasks">owner</a>`);
     });
 
+    it("keeps the filters on type and status on that link", async function(){
+      await task({status: "error", type: "some task"});
+      const filtered = async (query: string)=> (await page(this.server, `${url}?${query}`, {as: "admin"})).text;
+      expect(await filtered(`type=${encodeURIComponent("some task")}&status=error`))
+        .to.include(`<a class="task-row-owner" href="/ui/users/${owner}/tasks?type=some%20task&amp;status=error">owner</a>`);
+      expect(await filtered(`type=${encodeURIComponent("some task")}`))
+        .to.include(`<a class="task-row-owner" href="/ui/users/${owner}/tasks?type=some%20task">owner</a>`);
+      expect(await filtered(`status=error`))
+        .to.include(`<a class="task-row-owner" href="/ui/users/${owner}/tasks?status=error">owner</a>`);
+    });
+
+    it("leaves out a status that doesn't filter anything", async function(){
+      await task();
+      const {text} = await page(this.server, `${url}?status=all`, {as: "admin"});
+      expect(text).to.include(`<a class="task-row-owner" href="/ui/users/${owner}/tasks">owner</a>`);
+    });
+
     it("is only for admins", async function(){
       await page(this.server, url, {as: "owner", status: 401});
     });

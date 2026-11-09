@@ -33,7 +33,7 @@
         {{#if @root.account}}
           <span class="task-row-owner">{{owner}}</span>
         {{else if (test (userLevel @root.user.level "admin") "||" (test user_id "==" @root.user.uid))}}
-          <a class="task-row-owner" href="/ui/users/{{user_id}}/tasks">{{owner}}</a>
+          <a class="task-row-owner" href="/ui/users/{{user_id}}/tasks{{#if @root.params.type}}?type={{encodeURIComponent @root.params.type}}{{#if (test @root.params.status "&&" (test @root.params.status "!=" "all"))}}&amp;status={{@root.params.status}}{{/if}}{{else if (test @root.params.status "&&" (test @root.params.status "!=" "all"))}}?status={{@root.params.status}}{{/if}}">{{owner}}</a>
         {{else}}
           <span class="task-row-owner">{{owner}}</span>
         {{/if}}

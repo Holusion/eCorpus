@@ -93,7 +93,7 @@ test.describe("tasks list", ()=>{
     await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
     await page.getByRole("listitem", {name: owner}).getByRole("link", {name: owner, exact: true}).click();
     //The user's own list of tasks, as they see it
-    await expect(page).toHaveURL(/\/ui\/users\/\d+\/tasks$/);
+    await expect(page).toHaveURL(/\/ui\/users\/\d+\/tasks\?type=sendEmail$/);
     await expect(page.getByRole("heading", {name: new RegExp(`titles.userSettings — ${owner}`)})).toBeVisible();
     await expect(page.getByRole("link", {name: /sendEmail/})).toBeVisible();
   });
