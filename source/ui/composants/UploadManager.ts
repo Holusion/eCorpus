@@ -1,7 +1,7 @@
 import { css, html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
-import Notification from "./Notification";
+import { toast } from "../state/toast";
 import { formatBytes, binaryUnit } from "./Size";
 import HttpError from "../state/HttpError";
 import { SceneUploadResult, Uploader, UploadOperation } from "../state/uploader";
@@ -36,7 +36,7 @@ export default class UploadManager extends LitElement{
     const form = this.uploadForm!;
     const data= new FormData(form);
     if(!form.checkValidity()){
-      Notification.show("Upload form is invalid", "warning", 1500);
+      toast("Upload form is invalid", "warning", 1500);
       return;
     }
     const tasks = this.uploader.uploads.map(u=>u.task_id)
@@ -213,7 +213,7 @@ export default class UploadManager extends LitElement{
         u.task_id && fetch(`/tasks/${u.task_id}`, {method: "DELETE"})
           .then(res=> HttpError.okOrThrow(res))
           .catch(err=>{
-            Notification.show(`Failed to delete upload task for ${u.filename}. Data may remain on the server`, "warning", 10000);
+            toast(`Failed to delete upload task for ${u.filename}. Data may remain on the server`, "warning", 10000);
             console.warn(err)
           });
         this.uploader.remove(u.id);

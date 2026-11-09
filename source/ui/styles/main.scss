@@ -23,11 +23,11 @@ main {
 
 
 /*
- *  Notifications styles
- * (Notifications are slotted, so externally styled)
+ *  Toasts styles
+ * (Toasts are slotted, so externally styled)
  */
 
- .notification {
+ .toast {
   position: relative;
   left: 0;
   margin: 8px;
@@ -45,20 +45,20 @@ main {
     padding: 8px; 
   }
 
-  &.notification-info > .ui-icon {
+  &.toast-info > .ui-icon {
     color: var(--color-info);
   }
-  &.notification-success > .ui-icon {
+  &.toast-success > .ui-icon {
     color: var(--color-success);
   }
-  &.notification-warning > .ui-icon {
+  &.toast-warning > .ui-icon {
     color: var(--color-warning);
   }
-  &.notification-error > .ui-icon {
+  &.toast-error > .ui-icon {
     color: var(--color-error);
   }
   
-  .notification-message {
+  .toast-message {
     flex: 1 1 100%;
     padding: 8px;
     text-overflow: ellipsis;
@@ -68,7 +68,7 @@ main {
     }
   }
 
-  .notification-close {
+  .toast-close {
     flex: 0;
     padding: 4px 6px 6px 6px;
     font-weight: bolder;

@@ -852,21 +852,21 @@
 
 
 <section>
-  <h3>Notifications</h3>
+  <h3>Toasts</h3>
   <div class="design-note">
-    Notifications are emitted via the global <code>notification-stack</code>
-    custom element. Anywhere in client JS:
-    <code>document.querySelector("notification-stack").constructor.show(message, level, timeoutMs)</code>.
+    Toasts are shown in the global <code>toast-stack</code>
+    custom element. From modules, with <code>toast()</code> from <code>state/toast.ts</code>. From inline scripts:
+    <code>document.querySelector("toast-stack").constructor.show(message, level, timeoutMs)</code>.
     Levels are <code>info</code>, <code>success</code>, <code>warning</code>,
     <code>error</code> — <code>error</code> sticks until dismissed
     (timeout&nbsp;0).
   </div>
-  <div class="demo-frame" data-label="trigger notifications">
+  <div class="demo-frame" data-label="trigger toasts">
     <div class="btn-grid">
-      <button class="btn btn-info" onclick="document.querySelector('notification-stack').constructor.show('Heads up.', 'info', 3000)">info</button>
-      <button class="btn btn-success" onclick="document.querySelector('notification-stack').constructor.show('Saved.', 'success', 3000)">success</button>
-      <button class="btn" style="--btn-color: var(--color-warning, #c69026);" onclick="document.querySelector('notification-stack').constructor.show('Watch out.', 'warning', 5000)">warning</button>
-      <button class="btn btn-danger" onclick="document.querySelector('notification-stack').constructor.show('Something broke.', 'error', 0)">error</button>
+      <button class="btn btn-info" onclick="document.querySelector('toast-stack').constructor.show('Heads up.', 'info', 3000)">info</button>
+      <button class="btn btn-success" onclick="document.querySelector('toast-stack').constructor.show('Saved.', 'success', 3000)">success</button>
+      <button class="btn" style="--btn-color: var(--color-warning, #c69026);" onclick="document.querySelector('toast-stack').constructor.show('Watch out.', 'warning', 5000)">warning</button>
+      <button class="btn btn-danger" onclick="document.querySelector('toast-stack').constructor.show('Something broke.', 'error', 0)">error</button>
     </div>
   </div>
 </section>

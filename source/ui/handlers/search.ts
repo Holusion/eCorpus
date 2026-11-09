@@ -1,5 +1,5 @@
 
-import {notify} from "./notify";
+import { toast } from "../state/toast";
 
 
 type SelectionEvent = CustomEvent<{selection: string[], total: number}>
@@ -218,14 +218,14 @@ function registerBatchTag({tagName, addTag, removeTag}:BatchTagElements, selecti
       }
     }).then((response) => {
       if (!response.ok) {
-        notify(`Tag could not be ${action}d. ${response.statusText}`, "error", 4000);
+        toast(`Tag could not be ${action}d. ${response.statusText}`, "error", 4000);
       } else {
-        notify(`Tag ${tagName.value} was ${action}d`, "success", 4000);
+        toast(`Tag ${tagName.value} was ${action}d`, "success", 4000);
         tagName.value = "";
       }
     }, (e) => {
       console.log("Error", e);
-      notify(`Tag could not be ${action}d.`, "error", 4000);
+      toast(`Tag could not be ${action}d.`, "error", 4000);
     });
   }
 
