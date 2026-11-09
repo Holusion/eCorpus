@@ -143,6 +143,68 @@ describe("Lists of tasks in the UI", function(){
       });
     });
 
+    describe("pages", function(){
+      const unescape = (href?: string)=> href?.replace(/&#x3D;/g, "=").replace(/&amp;/g, "&");
+      const next = (text: string)=> unescape(text.match(/<a class="btn btn-main"\s*id="search-next" href="([^"]*)"/)?.[1]);
+      const previous = (text: string)=> unescape(text.match(/<a class="btn btn-main" id="search-previous" href="([^"]*)"/)?.[1]);
+
+      it("have no pager when everything fits in one", async function(){
+        await task();
+        const {text} = await page(this.server, url);
+        expect(text).not.to.include("search-next");
+        expect(text).not.to.include("search-previous");
+      });
+
+      it("link to the next one when this one is full, with the same filters", async function(){
+        for(let i = 0; i < 3; i++) await task({type: "a", status: "error"});
+        const {text} = await page(this.server, `${url}?type=a&status=error&limit=2`);
+        expect(next(text)).to.equal(`${url}?type=a&status=error&limit=2&offset=2`);
+        expect(previous(text)).to.be.undefined;
+        expect(text).to.match(/>\s*0-2\s*</);
+      });
+
+      it("link back to the previous one, down to the first", async function(){
+        for(let i = 0; i < 3; i++) await task();
+        const {text} = await page(this.server, `${url}?limit=2&offset=2`);
+        expect(previous(text)).to.equal(`${url}?limit=2&offset=0`);
+        expect(next(text)).to.be.undefined;
+        expect(text).to.match(/>\s*2-3\s*</);
+        expect(previous((await page(this.server, `${url}?limit=2&offset=1`)).text), "not before the first").to.equal(`${url}?limit=2&offset=0`);
+      });
+
+      it("count trees, not what's in them", async function(){
+        const older = await task();
+        const newer = await task();
+        await task({parent: newer});
+        await task({parent: newer});
+        const {text} = await page(this.server, `${url}?limit=1`);
+        expect(text).to.match(/>\s*0-1\s*</);
+        expect(next(text)).to.equal(`${url}?limit=1&offset=1`);
+        const second = await page(this.server, next(text)!);
+        expect(second.text).to.include(link(older));
+      });
+
+      it("still lead back from past the end", async function(){
+        await task();
+        const {text} = await page(this.server, `${url}?offset=20`);
+        expect(previous(text)).to.equal(`${url}?offset=0`);
+        expect(text).not.to.include("No tasks found.");
+      });
+
+      it("are on the admin list too", async function(){
+        for(let i = 0; i < 2; i++) await task();
+        const {text} = await page(this.server, "/ui/admin/tasks?limit=1", {as: "admin"});
+        expect(next(text)).to.equal("/ui/admin/tasks?limit=1&offset=1");
+      });
+
+      it("are on the scene's list too", async function(){
+        const scene_id = await vfs.createScene("foo", owner);
+        for(let i = 0; i < 2; i++) await task({scene_id});
+        const {text} = await page(this.server, "/ui/scenes/foo/tasks?limit=1");
+        expect(next(text)).to.equal("/ui/scenes/foo/tasks?limit=1&offset=1");
+      });
+    });
+
     describe("rows", function(){
       it("show the type of a task, and how to get to it", async function(){
         const id = await task();

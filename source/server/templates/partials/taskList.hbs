@@ -27,6 +27,13 @@
       {{> taskRow }}
     {{/each}}
   </ul>
+  {{#with pager}}
+    {{> pager }}
+  {{/with}}
+{{else if pager.previous}}
+  {{#with pager}}
+    {{> pager }}
+  {{/with}}
 {{else}}
   <p style="color: var(--color-secondary)">{{i18n "labels.noTasks" default="No tasks found."}}</p>
 {{/if}}

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getHost, getLocals, getTaskScheduler, getUser, getUserManager, getVfs, parseTaskListQuery, requireLevel } from "../../utils/locals.js";
+import { getHost, getLocals, getTaskListPager, getTaskScheduler, getUser, getUserManager, getVfs, parseTaskListQuery, requireLevel } from "../../utils/locals.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 
 /**
@@ -124,6 +124,7 @@ routes.get("/tasks", requireLevel("admin"), async (req, res) => {
     title: "Tasks — Administration",
     tasks,
     types,
+    pager: getTaskListPager(req, { limit, offset }, tasks.length),
     params: { type, status, limit, offset },
   });
 });

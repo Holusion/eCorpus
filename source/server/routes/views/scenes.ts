@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getHost, getSession, getTaskScheduler, getUser, getUserManager, getVfs, mapScene, parseTaskListQuery, policy } from "../../utils/locals.js";
+import { getHost, getSession, getTaskListPager, getTaskScheduler, getUser, getUserManager, getVfs, mapScene, parseTaskListQuery, policy } from "../../utils/locals.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { AccessLevel } from "../../auth/UserManager.js";
@@ -148,6 +148,7 @@ routes.get("/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
     scene,
     tasks,
     types,
+    pager: getTaskListPager(req, { limit, offset }, tasks.length),
     params: { type, status, limit, offset },
   });
 });

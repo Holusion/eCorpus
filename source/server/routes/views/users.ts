@@ -1,5 +1,5 @@
 import { Router, Request, RequestHandler } from "express";
-import { getHost, getLocals, getTaskScheduler, getUser, getUserManager, getVfs, notificationLines, numericParam, parseTaskListQuery, policy } from "../../utils/locals.js";
+import { getHost, getLocals, getTaskListPager, getTaskScheduler, getUser, getUserManager, getVfs, notificationLines, numericParam, parseTaskListQuery, policy } from "../../utils/locals.js";
 import { qsToBool, qsToInt, qsToIntArray } from "../../utils/query.js";
 import { isUserAtLeast } from "../../auth/User.js";
 import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
@@ -135,6 +135,7 @@ routes.get("/:uid/tasks", ...userPagePolicy, async (req, res) => {
     title: page.isSelf ? "My Tasks — User" : title("Tasks"),
     tasks,
     types,
+    pager: getTaskListPager(req, { limit, offset }, tasks.length),
     params: { type, status, limit, offset },
   });
 });

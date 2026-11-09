@@ -562,6 +562,21 @@ export function parseTaskListQuery(req: Request) {
 }
 
 /**
+ * Links to the pages around this one in a list of tasks, for the `pager` partial.
+ * Pages are made of trees, as `limit` and `offset` are. There's no pager when it all fits in one.
+ */
+export function getTaskListPager(req: Request, { limit, offset }: { limit: number, offset: number }, count: number) {
+  const pageUrl = (offset: number) => {
+    const url = new URL(req.originalUrl, getHost(req));
+    url.searchParams.set("offset", offset.toString());
+    return url.pathname + url.search;
+  };
+  const next = count === limit ? pageUrl(offset + limit) : undefined;
+  const previous = offset ? pageUrl(Math.max(0, offset - limit)) : undefined;
+  return (next || previous) ? { from: offset, to: offset + count, next, previous } : undefined;
+}
+
+/**
  * Validates if a requested redirect URL would be within the current origin
  * Also make the URL canonical (http://example.com/foo)
  */

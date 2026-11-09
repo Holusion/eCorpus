@@ -102,6 +102,20 @@ test.describe("tasks list", ()=>{
     await expect(page.getByRole("listitem", {name: owner})).toBeVisible();
   });
 
+  test("can be paged through, with its filters", async ({page, request})=>{
+    await userWithTask(request, "test-taskpage");
+    await userWithTask(request, "test-taskpage");
+    await page.goto("/ui/admin/tasks?type=sendEmail&limit=1");
+    await expect(page.getByRole("listitem", {name: /sendEmail/})).toHaveCount(1);
+    await expect(page.getByRole("link", {name: "buttons.previous"})).toHaveCount(0);
+    await page.getByRole("link", {name: "buttons.next"}).click();
+    await expect(page).toHaveURL(/[?&]offset=1(&|$)/);
+    await expect(page).toHaveURL(/[?&]type=sendEmail(&|$)/);
+    await expect(page.getByRole("listitem", {name: /sendEmail/})).toHaveCount(1);
+    await page.getByRole("link", {name: "buttons.previous"}).click();
+    await expect(page).toHaveURL(/[?&]offset=0(&|$)/);
+  });
+
   test("links the owner of each task to their tasks", async ({page, request})=>{
     const owner = await userWithTask(request, "test-taskownerlink");
     await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
