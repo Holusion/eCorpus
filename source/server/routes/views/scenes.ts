@@ -133,7 +133,6 @@ routes.get("/:scene", async (req, res)=>{
 routes.get("/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
   const { scene: scene_name } = req.params;
   const vfs = getVfs(req);
-  const taskScheduler = getTaskScheduler(req);
 
   const scene = mapScene(req, await vfs.getScene(scene_name));
 
@@ -142,7 +141,6 @@ routes.get("/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
@@ -151,14 +149,14 @@ routes.get("/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
     type = rawType;
   }
 
-  const tasks = await taskScheduler.getTasks({ scene_id: scene.id, type, status, rootOnly, limit, offset });
+  const tasks = await getTaskScheduler(req).getTaskTrees({ scene_id: scene.id, type, status, limit, offset });
 
   res.render("scene/tasks", {
     layout: "scene",
     title: `Tasks — ${scene.name}`,
     scene,
     tasks,
-    params: { type, status, rootOnly, limit, offset },
+    params: { type, status, limit, offset },
   });
 });
 

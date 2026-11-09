@@ -86,26 +86,6 @@
   .task-children { margin-top: .25rem; }
 
 
-  /* Tasks list table */
-  .tasks-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .9em;
-  }
-
-  .tasks-table th {
-    text-align: left;
-    padding: .4rem .6rem;
-    border-bottom: 2px solid var(--color-element, #444);
-    white-space: nowrap;
-  }
-
-  .tasks-table td {
-    padding: .3rem .6rem;
-    vertical-align: middle;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
-  }
-
   /* Logs table */
   .logs-table {
     font-family: var(--font-mono, monospace);
@@ -139,7 +119,6 @@
   /* Small responsive helpers */
   @media (max-width: 640px) {
     .task-header { gap: .25rem; }
-    .tasks-table th, .tasks-table td { padding: .25rem .4rem; }
     .logs-table th, .logs-table td { padding: .15rem .4rem; }
   }
 
@@ -152,21 +131,6 @@
 }
 
 
-/* Scene column shrinks first: absorbs surplus width, clips at 100px minimum */
-.tasks-table .col-scene {
-  width: 100%;
-  min-width: 150px;
-  max-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tasks-table .col-type{
-  width: 100%;
-  min-width: 120px;
-  max-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 /* Status badges (preferred definitions from task.hbs)
   Keep these synchronized with other UI components that use the same classes. */
 .task-status {
@@ -188,4 +152,149 @@
   &.status-success   { background: #2a7a4b; color: #fff; }
   &.status-error     { background: #a03030; color: #fff; }
   &.status-aborting  { background: #7a5a20; color: #fff; }
+}
+
+/* A list of tasks, each with what's under it in a tree that starts collapsed.
+   A row has its status on the left, as a line of notifications does (see activity.scss) */
+.task-rows {
+  --task-row-padding: .5rem;
+  --task-row-icon: 1.25rem;
+  --task-row-gap: .6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  //From under the status of the row it hangs from: the status of what's under it is where that row's text starts
+  .task-rows {
+    margin-left: calc(var(--task-row-padding) + var(--task-row-icon) / 2 - 1px);
+    padding-left: calc(var(--task-row-icon) / 2 + var(--task-row-gap) - var(--task-row-padding) - 1px);
+    border-left: 2px solid var(--color-element, #444);
+
+    //Steps of what's above, in the background
+    .task-row {
+      //Not compounded, from one level to the next
+      font-size: .9rem;
+      padding-block: .25rem;
+    }
+  }
+}
+
+.task-row {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  //On the line of its title
+  align-items: flex-start;
+  gap: var(--task-row-gap);
+  padding: .4rem var(--task-row-padding);
+  border-bottom: 2px solid var(--color-element, #444);
+}
+
+//What it is, why it failed if it did, then its ID, owner and date
+.task-row-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+//What it is, then why it failed if it did: its type and scene on one line when they fit,
+//the reason after them, on as many lines as it takes
+.task-row-title {
+  min-width: 0;
+}
+
+//It stays whole, as it's what tells tasks apart, unless it's longer than the whole line
+.task-row-type {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+//On a line of its own when it doesn't fit after the type: its name gives way
+.task-row-scene {
+  display: inline-flex;
+  max-width: 100%;
+  white-space: nowrap;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+//Why it failed, as a notification says it: whole
+.task-row-reason {
+  padding-left: .5ch;
+  overflow-wrap: anywhere;
+}
+
+//On one line, with the date over to the right: the owner's name gives way
+.task-row-details {
+  display: flex;
+  align-items: baseline;
+  gap: 0 .4rem;
+  min-width: 0;
+  opacity: .75;
+  white-space: nowrap;
+
+  //Where a row that has others under it shows whether they are
+  &::before {
+    content: "";
+    flex: 0 0 1.1rem;
+    margin-right: -.4rem;
+    text-align: center;
+    transition: transform .1s;
+  }
+}
+
+.task-row-id {
+  flex: 0 0 auto;
+}
+
+.task-row-owner {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-row-time {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.task-row-status {
+  flex: 0 0 auto;
+  display: flex;
+  margin-top: calc((1lh - var(--task-row-icon)) / 2);
+
+  .ui-icon, cube-loader {
+    margin-top: .1em;
+    width: var(--task-row-icon);
+    height: var(--task-row-icon);
+  }
+}
+
+.task-rows {
+  summary {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    .task-row-details::before {
+      content: "▸";
+    }
+  }
+
+  details[open] > summary .task-row-details::before {
+    transform: rotate(90deg);
+  }
 }

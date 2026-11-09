@@ -95,9 +95,7 @@ labels:
   all: Tous
   success: Succès
   error: Erreur
-  taskTypes: Types de tâches
-  allTasks: Toutes les tâches
-  rootOnly: Premier niveau
+  taskOnScene: "sur"
   noTasks: Aucune tâche trouvée.
   noUnreadNotifications: Aucune notification non lue.
   noNotifications: Aucune notification.

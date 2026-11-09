@@ -42,6 +42,9 @@
  *    {{dateString date "iso"}}       → ISO 8601
  *    {{dateString date "fr-FR"}}     → French locale string
  *
+ *  errorMessage  — why a task failed, from its output, translated (uses context.lang)
+ *    {{errorMessage output}}         → "" when there's no message
+ *
  *  encodeURIComponent  — encode a single URI segment or query value
  *    {{encodeURIComponent value}}
  *
@@ -54,6 +57,7 @@ import { i18nHelper } from "./i18n.js";
 import { join } from "./join.js";
 import { test } from "./test.js";
 import { dateString } from "./dateString.js";
+import { errorMessage } from "./errorMessage.js";
 import { encodeURIComponentHelper, encodeURIHelper } from "./encoding.js";
 import { userLevel, accessLevel } from "./levels.js";
 
@@ -63,6 +67,7 @@ export { join } from "./join.js";
 export { test } from "./test.js";
 export { type TestOperator } from "./test.js";
 export { dateString } from "./dateString.js";
+export { errorMessage } from "./errorMessage.js";
 export { encodeURIComponentHelper, encodeURIHelper } from "./encoding.js";
 export { userLevel, accessLevel } from "./levels.js";
 
@@ -73,6 +78,7 @@ export const staticHelpers = {
   join,
   test,
   dateString,
+  errorMessage,
   encodeURIComponent: encodeURIComponentHelper,
   encodeURI: encodeURIHelper,
   userLevel,

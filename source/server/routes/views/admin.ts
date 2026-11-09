@@ -115,13 +115,11 @@ routes.get("/stats", requireLevel("admin"),  async (req, res)=>{
 });
 
 routes.get("/tasks", requireLevel("admin"), async (req, res) => {
-  const taskScheduler = getTaskScheduler(req);
   const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
   const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
   const allowedStatus = ['all', 'success', 'error'];
   const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
   if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  const rootOnly = qsToBool(req.query.rootOnly) ?? true;
   const limit = qsToInt(req.query.limit) ?? 20;
   const offset = qsToInt(req.query.offset) ?? 0;
   let type: string | undefined;
@@ -129,12 +127,12 @@ routes.get("/tasks", requireLevel("admin"), async (req, res) => {
     if (rawType.length > 200) throw new BadRequestError("type parameter too long");
     type = rawType;
   }
-  const tasks = await taskScheduler.getTasks({ user_id: undefined, type, status, rootOnly, limit, offset });
+  const tasks = await getTaskScheduler(req).getTaskTrees({ user_id: undefined, type, status, limit, offset });
   res.render("admin/tasks", {
     layout: "admin",
     title: "Tasks — Administration",
     tasks,
-    params: { type, status, rootOnly, limit, offset },
+    params: { type, status, limit, offset },
   });
 });
 
