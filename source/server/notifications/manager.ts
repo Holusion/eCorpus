@@ -174,6 +174,20 @@ export class NotificationManager{
   }
 
   /**
+   * Marks some of a user's notifications as read, by id. Ids that aren't theirs, or that don't exist, are ignored.
+   * Only those that weren't read already change, and signal it.
+   * @returns how many were marked
+   */
+  public async markRead(user_id: number, ids: number[]): Promise<number>{
+    if(!ids.length) return 0;
+    const {changes} = await this.#db.run(`
+      UPDATE notifications SET read = true
+       WHERE fk_user_id = $1 AND notification_id = ANY($2::bigint[]) AND NOT read
+    `, [user_id, ids]);
+    return changes ?? 0;
+  }
+
+  /**
    * Starts sending changes to `user_id`'s notifications to `sink`.
    *
    * It resolves once changes are flowing, so anything committed after that is guaranteed to reach

@@ -636,3 +636,95 @@ describe("GET /users/:uid/activity", function(){
     });
   });
 });
+
+
+describe("POST /users/:uid/activity/read", function(){
+  let locals: AppLocals, userManager: UserManager, tasks: TaskScheduler, hub: NotificationManager;
+  let user: User;
+
+  /** A new notification of this user's, unread once its task has settled */
+  async function notificationOf(uid: number){
+    const task = await tasks.create({scene_id: null, user_id: uid, type: "delayTask", data: {}});
+    await hub.notify(task);
+    const {notification_id} = (await tasks.db.get<{notification_id: number}>(`SELECT notification_id FROM notifications WHERE fk_task_id = $1`, [task.task_id]))!;
+    return notification_id;
+  }
+
+  const readOf = async (id: number)=> (await tasks.db.get<{read: boolean}>(`SELECT read FROM notifications WHERE notification_id = $1`, [id]))!.read;
+
+  function post(this: Mocha.Context, uid: number, body: any, token?: string){
+    const r = request(this.server).post(`/users/${uid}/activity/read`).send(body);
+    if(token) r.set("Authorization", token);
+    return r;
+  }
+
+  this.beforeAll(async function(){
+    locals = await createIntegrationContext(this);
+    userManager = locals.userManager;
+    tasks = locals.taskScheduler;
+    hub = locals.notifications;
+  });
+
+  this.beforeEach(async function(){
+    await resetIntegrationContext(this);
+    user = await userManager.addUser("bob", "12345678", "use");
+    await userManager.addUser("charlie", "12345678", "create");
+    await userManager.addUser("alice", "12345678", "admin");
+  });
+
+  it("marks notifications as read", async function(){
+    const ids = [await notificationOf(user.uid), await notificationOf(user.uid)];
+    const other = await notificationOf(user.uid);
+    await post.call(this, user.uid, {ids}, await bearer("bob")).expect(204);
+    expect(await readOf(ids[0])).to.be.true;
+    expect(await readOf(ids[1])).to.be.true;
+    expect(await readOf(other)).to.be.false;
+  });
+
+  it("can be done again", async function(){
+    const id = await notificationOf(user.uid);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("bob")).expect(204);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("bob")).expect(204);
+    expect(await readOf(id)).to.be.true;
+  });
+
+  it("ignores notifications of someone else", async function(){
+    const charlie = (await userManager.getUserByName("charlie")).uid;
+    const id = await notificationOf(charlie);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("bob")).expect(204);
+    expect(await readOf(id)).to.be.false;
+  });
+
+  it("can be done by an admin", async function(){
+    const id = await notificationOf(user.uid);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("alice")).expect(204);
+    expect(await readOf(id)).to.be.true;
+  });
+
+  it("can't be done by other users", async function(){
+    const id = await notificationOf(user.uid);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("charlie")).expect(401);
+    await post.call(this, user.uid, {ids: [id]}).expect(401);
+    expect(await readOf(id)).to.be.false;
+  });
+
+  it("needs account:write on a token", async function(){
+    const id = await notificationOf(user.uid);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("bob", ["tasks:read"])).expect(403);
+    await post.call(this, user.uid, {ids: [id]}, await bearer("bob", ["account:write"])).expect(204);
+  });
+
+  [
+    {},
+    {ids: 1},
+    {ids: ["1"]},
+    {ids: [0]},
+    {ids: [1.5]},
+    {ids: [null]},
+    {ids: Array.from({length: 1001}, (_, i)=> i + 1)},
+  ].forEach((body)=>{
+    it(`rejects ${JSON.stringify(body).slice(0, 40)}`, async function(){
+      await post.call(this, user.uid, body, await bearer("bob")).expect(400);
+    });
+  });
+});

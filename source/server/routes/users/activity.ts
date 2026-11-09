@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 
 import { NotificationManager, NotificationSink } from "../../notifications/manager.js";
 import { NotificationItem } from "../../notifications/types.js";
-import { HTTPError } from "../../utils/errors.js";
+import { BadRequestError, HTTPError } from "../../utils/errors.js";
 import { localize } from "../../utils/i18n.js";
 import { getLocals, getUser } from "../../utils/locals.js";
 import { createLogger } from "../../utils/log/index.js";
@@ -98,6 +98,24 @@ export interface Activity{
 
 async function getActivity(req: Request, user_id: number, limit: number): Promise<Activity>{
   return {notifications: await getLocals(req).notifications.getNotifications(user_id, {limit})};
+}
+
+
+function isId(id: unknown): id is number{
+  return Number.isSafeInteger(id) && 0 < (id as number);
+}
+
+/**
+ * Marks some of a user's notifications as read: `{ids}`, explicitly. There's no "everything up to",
+ * which could swallow a notification the client hasn't displayed yet.
+ * Ids that aren't the user's are ignored. Clients following the activity get the changes from there.
+ */
+export async function markActivityRead(req: Request, res: Response): Promise<void>{
+  const user_id = parseInt(req.params.uid, 10);
+  const {ids} = req.body ?? {};
+  if(!Array.isArray(ids) || 1000 < ids.length || !ids.every(isId)) throw new BadRequestError(`Expected {ids}, a list of notification ids`);
+  await getLocals(req).notifications.markRead(user_id, ids);
+  res.status(204).end();
 }
 
 

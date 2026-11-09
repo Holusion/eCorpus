@@ -136,6 +136,41 @@ describe("NotificationManager", function(){
   });
 
 
+  describe("markRead()", function(){
+    const readOf = async (id: number)=> (await handle.get<{read: boolean}>("SELECT read FROM notifications WHERE notification_id = $1", [id]))?.read;
+    async function notificationOf(user_id: number){
+      const {task_id} = await signal(user_id);
+      return (await handle.get<{notification_id: number}>("SELECT notification_id FROM notifications WHERE fk_task_id = $1", [task_id]))!.notification_id;
+    }
+
+    it("marks a user's notifications as read", async function(){
+      const ids = [await notificationOf(user_id), await notificationOf(user_id)];
+      const untouched = await notificationOf(user_id);
+      expect(await notifications.markRead(user_id, ids)).to.equal(2);
+      expect(await readOf(ids[0])).to.be.true;
+      expect(await readOf(ids[1])).to.be.true;
+      expect(await readOf(untouched)).to.be.false;
+    });
+
+    it("only counts those that change", async function(){
+      const id = await notificationOf(user_id);
+      expect(await notifications.markRead(user_id, [id])).to.equal(1);
+      expect(await notifications.markRead(user_id, [id])).to.equal(0);
+    });
+
+    it("ignores someone else's notifications", async function(){
+      const id = await notificationOf(other_user_id);
+      expect(await notifications.markRead(user_id, [id])).to.equal(0);
+      expect(await readOf(id)).to.be.false;
+    });
+
+    it("ignores ids that don't exist", async function(){
+      expect(await notifications.markRead(user_id, [Number.MAX_SAFE_INTEGER])).to.equal(0);
+      expect(await notifications.markRead(user_id, [])).to.equal(0);
+    });
+  });
+
+
   describe("connection", function(){
     it("doesn't connect until someone subscribes", async function(){
       const hub = hubFor();
