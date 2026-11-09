@@ -20,16 +20,16 @@
     <div id="main-navbar-links" popover="" class="navbar">
       {{#navLink "/ui/tags/"}}{{i18n "nav.tags"}}{{/navLink}}
       {{#if (userLevel user.level "create")}}
-        {{#navLink "/ui/upload/" aria-label="username"}}{{i18n "nav.upload"}}{{/navLink}}
+        {{#navLink "/ui/upload/"}}{{i18n "nav.upload"}}{{/navLink}}
       {{/if}}
       {{#if (userLevel user.level "manage") }}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
       <div class="divider"></div>
       {{#if (test user "==" null)}}
-        {{#navLink (join "/auth/login/?redirect=" (encodeURIComponent location)) 'title="/auth/login/"'}}{{i18n "nav.login"}}{{/navLink}}
+        {{#navLink (join "/auth/login/?redirect=" (encodeURIComponent location)) title="/auth/login/"}}{{i18n "nav.login"}}{{/navLink}}
       {{else if user.username}}
-        {{#navLink "/ui/user/" aria-label="username"}}{{user.username}}{{/navLink}}
+        {{#navLink "/ui/user/"}}{{user.username}}{{/navLink}}
       {{/if}}
     </div>
     <button id="main-navbar-collapse-toggle" class="btn btn-transparent btn-primary"  style="padding: 0 1rem"
