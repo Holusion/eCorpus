@@ -1,9 +1,8 @@
 import { Router } from "express";
-import { getHost, getSession, getTaskScheduler, getUser, getUserManager, getVfs, mapScene, policy } from "../../utils/locals.js";
+import { getHost, getSession, getTaskScheduler, getUser, getUserManager, getVfs, mapScene, parseTaskListQuery, policy } from "../../utils/locals.js";
 import ScenesVfs from "../../vfs/Scenes.js";
 import { qsToBool, qsToInt } from "../../utils/query.js";
 import { AccessLevel } from "../../auth/UserManager.js";
-import { BadRequestError } from "../../utils/errors.js";
 import { aggregateHistory } from "./historyAggregate.js";
 
 /**
@@ -136,26 +135,19 @@ routes.get("/:scene/tasks", policy({ access: "admin" }), async (req, res) => {
 
   const scene = mapScene(req, await vfs.getScene(scene_name));
 
-  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
-  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
-  const allowedStatus = ['all', 'success', 'error'];
-  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
-  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  const limit = qsToInt(req.query.limit) ?? 20;
-  const offset = qsToInt(req.query.offset) ?? 0;
-  let type: string | undefined;
-  if (rawType) {
-    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
-    type = rawType;
-  }
+  const { type, status, limit, offset } = parseTaskListQuery(req);
 
-  const tasks = await getTaskScheduler(req).getTaskTrees({ scene_id: scene.id, type, status, limit, offset });
+  const [tasks, types] = await Promise.all([
+    getTaskScheduler(req).getTaskTrees({ scene_id: scene.id, type, status, limit, offset }),
+    getTaskScheduler(req).getTaskTypes({ scene_id: scene.id }),
+  ]);
 
   res.render("scene/tasks", {
     layout: "scene",
     title: `Tasks — ${scene.name}`,
     scene,
     tasks,
+    types,
     params: { type, status, limit, offset },
   });
 });

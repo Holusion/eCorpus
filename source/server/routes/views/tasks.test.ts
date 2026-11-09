@@ -92,6 +92,57 @@ describe("Lists of tasks in the UI", function(){
       return row!;
     };
 
+    describe("type filter", function(){
+      /** What's in the type's box, and what it suggests */
+      function typeField(text: string){
+        const input = text.match(/<input id="task-list-type" name="type" type="search" list="task-list-types"[^>]* value="([^"]*)"/);
+        expect(input, "type input").not.to.be.null;
+        const datalist = text.match(/<datalist id="task-list-types">(.*?)<\/datalist>/s)?.[1];
+        expect(datalist, "type suggestions").to.be.a("string");
+        return {value: input![1], suggestions: [...datalist!.matchAll(/<option value="([^"]*)">/g)].map(o => o[1])};
+      }
+
+      it("suggests the types of the user's tasks, those under them included", async function(){
+        const root = await task({type: "b"});
+        await task({type: "a", parent: root});
+        await task({type: "c", user_id: other});
+        expect(typeField((await page(this.server, url)).text)).to.deep.equal({value: "", suggestions: ["a", "b"]});
+      });
+
+      it("keeps the one that's asked for in its box", async function(){
+        await task({type: "a"});
+        await task({type: "b"});
+        expect(typeField((await page(this.server, `${url}?type=b`)).text)).to.deep.equal({value: "b", suggestions: ["a", "b"]});
+      });
+
+      it("keeps a type there are no tasks of, without suggesting it", async function(){
+        await task({type: "a"});
+        expect(typeField((await page(this.server, `${url}?type=z`)).text)).to.deep.equal({value: "z", suggestions: ["a"]});
+      });
+
+      it("escapes the types", async function(){
+        await task({type: `"><b>x</b>`});
+        const {text} = await page(this.server, `${url}?type=${encodeURIComponent(`"><i>y</i>`)}`);
+        expect(text).not.to.include("<b>x</b>");
+        expect(text).not.to.include("<i>y</i>");
+      });
+
+      it("suggests the types of a scene's tasks on its page, and everyone's to admins", async function(){
+        const scene_id = await vfs.createScene("foo", owner);
+        await task({type: "inScene", scene_id});
+        await task({type: "mine"});
+        await task({type: "theirs", user_id: other});
+        expect(typeField((await page(this.server, "/ui/scenes/foo/tasks")).text).suggestions).to.deep.equal(["inScene"]);
+        expect(typeField((await page(this.server, "/ui/admin/tasks", {as: "admin"})).text).suggestions).to.deep.equal(["inScene", "mine", "theirs"]);
+      });
+
+      it("suggests the user's types to an admin looking at their list", async function(){
+        await task({type: "mine"});
+        await task({type: "theirs", user_id: other});
+        expect(typeField((await page(this.server, `/ui/users/${other}/tasks`, {as: "admin"})).text).suggestions).to.deep.equal(["theirs"]);
+      });
+    });
+
     describe("rows", function(){
       it("show the type of a task, and how to get to it", async function(){
         const id = await task();

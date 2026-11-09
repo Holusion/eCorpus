@@ -616,6 +616,31 @@ describe("TaskManager", function(){
     });
   });
 
+  describe("getTaskTypes()", function(){
+    it("lists each type once, sorted, children included", async function(){
+      const root = await listener.create({type: "b", data: {}});
+      await listener.create({type: "c", data: {}, parent: root.task_id});
+      await listener.create({type: "a", data: {}});
+      await listener.create({type: "b", data: {}});
+      expect(await listener.getTaskTypes()).to.deep.equal(["a", "b", "c"]);
+    });
+
+    it("is empty when there are no tasks", async function(){
+      expect(await listener.getTaskTypes()).to.deep.equal([]);
+      expect(await listener.getTaskTypes({user_id})).to.deep.equal([]);
+    });
+
+    it("can be limited to a user, a scene, or both", async function(){
+      await listener.create({type: "mine", data: {}, user_id});
+      await listener.create({type: "here", data: {}, scene_id});
+      await listener.create({type: "both", data: {}, user_id, scene_id});
+      await listener.create({type: "elsewhere", data: {}});
+      expect(await listener.getTaskTypes({user_id})).to.deep.equal(["both", "mine"]);
+      expect(await listener.getTaskTypes({scene_id})).to.deep.equal(["both", "here"]);
+      expect(await listener.getTaskTypes({user_id, scene_id})).to.deep.equal(["both"]);
+    });
+  });
+
   describe("getTaskTrees()", function(){
     type Tree = {id: number, children: Tree[]};
     /** Only what makes a tree, to compare it whole */

@@ -88,6 +88,20 @@ test.describe("tasks list", ()=>{
     return username;
   }
 
+  test("can be filtered by a type, from suggestions", async ({page, request})=>{
+    const owner = await userWithTask(request, "test-tasktype");
+    await page.goto("/ui/admin/tasks");
+    const type = page.getByRole("combobox", {name: "fields.type"});
+    //Native suggestions aren't part of the page: what they'd offer is in its list
+    const list = await type.getAttribute("list");
+    await expect(page.locator(`#${list} option[value="sendEmail"]`)).toHaveCount(1);
+    await type.fill("sendEmail");
+    await type.press("Enter");
+    await expect(page).toHaveURL(new RegExp(`[?&]type=sendEmail(&|$)`));
+    await expect(page.getByRole("combobox", {name: "fields.type"})).toHaveValue("sendEmail");
+    await expect(page.getByRole("listitem", {name: owner})).toBeVisible();
+  });
+
   test("links the owner of each task to their tasks", async ({page, request})=>{
     const owner = await userWithTask(request, "test-taskownerlink");
     await page.goto("/ui/admin/tasks?type=sendEmail&status=all");

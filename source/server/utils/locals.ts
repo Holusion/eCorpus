@@ -16,6 +16,7 @@ import { NotificationItem } from "../notifications/types.js";
 import { outcomeOf } from "../notifications/outcomes.js";
 import { sceneLanguages, uiLanguages } from "./languages.js";
 import { i18n, localize } from "./i18n.js";
+import { qsToInt } from "./query.js";
 
 
 export interface AppLocals{
@@ -541,6 +542,23 @@ export async function notificationLines(req: Request, items: NotificationItem[])
   const lng = getLanguage(req);
   const ctx = {tasks: getTaskScheduler(req), vfs: getVfs(req), lng};
   return await Promise.all(items.map(async (item)=> ({...notificationView(item, lng), outcome: await outcomeOf(item, ctx)})));
+}
+
+/** The filters of a list of tasks, from the query */
+export function parseTaskListQuery(req: Request) {
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+  return { type, status, limit, offset };
 }
 
 /**

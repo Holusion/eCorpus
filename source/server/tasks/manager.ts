@@ -415,6 +415,29 @@ export class TaskManager{
   static readonly #MAX_DESCENDANTS = 1000;
 
   /**
+   * The types of tasks there are, sorted: all of them, or those of a user or a scene.
+   * Children are included, as filtering a list by type can show them.
+   *
+   * It skips from one type to the next through an index, rather than reading every task.
+   */
+  public async getTaskTypes({ user_id, scene_id }: { user_id?: number; scene_id?: number } = {}): Promise<string[]> {
+    const params: number[] = [];
+    const scope: string[] = [];
+    if (user_id != null) scope.push(`fk_user_id = $${params.push(user_id)}`);
+    if (scene_id != null) scope.push(`fk_scene_id = $${params.push(scene_id)}`);
+    const where = scope.map(c => `${c} AND `).join("");
+    const rows = await this.db.all<{ type: string }>(`
+      WITH RECURSIVE t AS (
+        SELECT min(type) AS type FROM tasks WHERE ${where}TRUE
+        UNION ALL
+        SELECT (SELECT min(type) FROM tasks WHERE ${where}type > t.type) FROM t WHERE t.type IS NOT NULL
+      )
+      SELECT type FROM t WHERE type IS NOT NULL
+    `, params);
+    return rows.map(r => r.type);
+  }
+
+  /**
    * Retroactively associates a task with a scene.
    * Only works when `fk_scene_id` is currently `NULL` — calling this on a task
    * that already has a scene is an error.

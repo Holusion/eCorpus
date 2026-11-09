@@ -1,13 +1,18 @@
 
 <form class="form-control form-row task-list-filters" method="GET" style="margin-bottom:.75rem; gap:1rem; flex-wrap:wrap; align-items:center; justify-content: end;">
   <div class="form-item">
-    <label style="padding-right:.5rem">{{i18n "fields.type" default="Type"}}</label>
-    <input name="type" type="search" value="{{params.type}}" placeholder="eg. delayTask" />
+    <label for="task-list-type" style="padding-right:.5rem">{{i18n "fields.type"}}</label>
+    <input id="task-list-type" name="type" type="search" list="task-list-types" autocomplete="off" value="{{params.type}}" placeholder="{{i18n "labels.all"}}" />
+    <datalist id="task-list-types">
+      {{#each types}}
+        <option value="{{this}}"></option>
+      {{/each}}
+    </datalist>
   </div>
 
   <div class="form-item">
-    <label style="padding-right:.5rem">{{i18n "fields.status" default="Status"}}</label>
-    <select name="status" onchange="this.form.submit()">
+    <label for="task-list-status" style="padding-right:.5rem">{{i18n "fields.status" default="Status"}}</label>
+    <select id="task-list-status" name="status" onchange="this.form.submit()">
       <option value="all" {{#if (test params.status "==" "all")}}selected{{/if}}>{{i18n "labels.all" default="all"}}</option>
       <option value="success" {{#if (test params.status "==" "success")}}selected{{/if}}>{{i18n "labels.success" default="success"}}</option>
       <option value="error" {{#if (test params.status "==" "error")}}selected{{/if}}>{{i18n "labels.error" default="error"}}</option>

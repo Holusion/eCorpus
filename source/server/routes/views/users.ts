@@ -1,5 +1,5 @@
 import { Router, Request, RequestHandler } from "express";
-import { getHost, getLocals, getTaskScheduler, getUser, getUserManager, getVfs, notificationLines, numericParam, policy } from "../../utils/locals.js";
+import { getHost, getLocals, getTaskScheduler, getUser, getUserManager, getVfs, notificationLines, numericParam, parseTaskListQuery, policy } from "../../utils/locals.js";
 import { qsToBool, qsToInt, qsToIntArray } from "../../utils/query.js";
 import { isUserAtLeast } from "../../auth/User.js";
 import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
@@ -125,23 +125,16 @@ routes.get("/:uid/archives", ...userPagePolicy, async (req, res)=>{
 
 routes.get("/:uid/tasks", ...userPagePolicy, async (req, res) => {
   const {title, ...page} = await userPage(req);
-  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
-  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
-  const allowedStatus = ['all', 'success', 'error'];
-  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
-  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
-  const limit = qsToInt(req.query.limit) ?? 20;
-  const offset = qsToInt(req.query.offset) ?? 0;
-  let type: string | undefined;
-  if (rawType) {
-    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
-    type = rawType;
-  }
-  const tasks = await getTaskScheduler(req).getTaskTrees({ user_id: page.account.uid, type, status, limit, offset });
+  const { type, status, limit, offset } = parseTaskListQuery(req);
+  const [tasks, types] = await Promise.all([
+    getTaskScheduler(req).getTaskTrees({ user_id: page.account.uid, type, status, limit, offset }),
+    getTaskScheduler(req).getTaskTypes({ user_id: page.account.uid }),
+  ]);
   res.render("user/tasks", {
     ...page,
     title: page.isSelf ? "My Tasks — User" : title("Tasks"),
     tasks,
+    types,
     params: { type, status, limit, offset },
   });
 });
