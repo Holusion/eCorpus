@@ -1,6 +1,6 @@
 import type { NotificationLevel, Notification } from "../composants/Notification";
 
-export function notify(message: string, level?: NotificationLevel, timeout?: number) :()=>void{
+export function notify(message: string, level?: NotificationLevel, timeout?: number, link?: string) :()=>void{
   const containers = document.querySelectorAll("notification-stack");
   if(!containers.length){
     console.error("Notification stack not configured. Please mount <notification-stack> in your DOM before calling Notification.show");
@@ -11,6 +11,7 @@ export function notify(message: string, level?: NotificationLevel, timeout?: num
   let line = document.createElement("notification-line") as Notification;
   line.message = message;
   line.level = level;
+  if(link) line.link = link;
   if(typeof timeout !== "undefined") line.timeout =  timeout;
   containers[0].appendChild(line);
   if(0 < timeout) setTimeout(()=>{

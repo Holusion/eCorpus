@@ -63,6 +63,9 @@ main {
     padding: 8px;
     text-overflow: ellipsis;
     overflow: hidden;
+    a {
+      color: inherit;
+    }
   }
 
   .notification-close {

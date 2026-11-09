@@ -35,6 +35,10 @@ export class Notification extends LitElement{
   @property({ type: Number })
   timeout: number;
 
+  /** Where to find out more about it */
+  @property({ type: String })
+  link ?:string;
+
   @property({ type: Boolean })
   fade :boolean = false;
 
@@ -55,7 +59,7 @@ export class Notification extends LitElement{
     return html`
       <div class="notification notification-${this.level}${this.fade?" fade":""}">
         <ui-icon name="${_levelIcons[this.level]}"></ui-icon>
-        <span class="notification-message">${this.message}</span>
+        <span class="notification-message">${this.link ? html`<a href=${this.link}>${this.message}</a>` : this.message}</span>
         <span class="notification-close" @click=${this.remove}>×</span>
       </div>
     `;
