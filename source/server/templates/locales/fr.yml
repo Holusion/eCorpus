@@ -99,6 +99,8 @@ labels:
   allTasks: Toutes les tâches
   rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.
+  noUnreadNotifications: Aucune notification non lue.
+  loading: Chargement…
   noLogs: Aucun journal.
   warnings: Avertissements
   optimizeModel: Optimiser les modèles
@@ -122,6 +124,8 @@ buttons:
   useStandalone: utiliser le mode Standalone
   logout: Déconnecter
   next: "Page Suivante"
+  markAsRead: marquer comme lu
+  markAllAsRead: tout marquer comme lu
   previous: "Page Précédente"
   archive: Archiver
   delete: Supprimer
@@ -184,6 +188,7 @@ nav:
   userGroups: Groupes
   userArchives: Archives
   tasks: tâches
+  notifications: Notifications
   overview: Aperçu
   upload: créer
 
@@ -482,3 +487,25 @@ errors:
   upload:
     notGlb: "{{filename}} ne semble pas être un fichier GLB"
     invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"
+
+notifications:
+  markFailed: Impossible de marquer comme lu. Veuillez réessayer.
+  offline: Impossible d'obtenir les dernières notifications.
+  # Au-dessus de ce qui est nouveau, depuis moins d'une heure
+  justNow: à l'instant
+  # Complétés par le navigateur : {{type}} est laissé tel quel
+  messages:
+    default: Vous avez une nouvelle notification
+    task:
+      default:
+        running: "Tâche {{type}} en cours"
+        success: "Tâche {{type}} terminée"
+        error: "La tâche {{type}} a échoué"
+      createSceneFromFiles:
+        running: Création d'une scène
+        success: Scène créée
+        error: La création de la scène a échoué
+      extractScenesArchives:
+        running: Import d'une archive
+        success: Archive importée
+        error: L'import de l'archive a échoué

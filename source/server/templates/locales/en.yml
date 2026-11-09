@@ -100,6 +100,8 @@ labels:
   allTasks: All tasks
   rootOnly: Root tasks
   noTasks: No tasks found.
+  noUnreadNotifications: No unread notifications.
+  loading: Loading…
   noLogs: No logs.
   warnings: Warnings
   optimizeModel: Optimize models
@@ -120,6 +122,8 @@ buttons:
   useStandalone: use standalone mode
   logout: Disconnect
   next: "Next Page"
+  markAsRead: mark as read
+  markAllAsRead: mark all as read
   previous: "Previous Page"
   archive: Archive
   delete: Delete
@@ -184,6 +188,7 @@ nav:
   userGroups: Groups
   userArchives: Archives
   tasks: tasks
+  notifications: Notifications
   overview: Overview
   upload: upload
 
@@ -466,3 +471,25 @@ errors:
   upload:
     notGlb: "{{filename}} does not look like a GLB file"
     invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"
+
+notifications:
+  markFailed: Couldn't mark as read. Please try again.
+  offline: Couldn't get the latest notifications.
+  # Above what's new, less than an hour old
+  justNow: just now
+  # Filled in by the browser: {{type}} is left as is
+  messages:
+    default: You have a new notification
+    task:
+      default:
+        running: "Task {{type}} is running"
+        success: "Task {{type}} has finished"
+        error: "Task {{type}} has failed"
+      createSceneFromFiles:
+        running: Creating a scene
+        success: Scene created
+        error: Scene creation has failed
+      extractScenesArchives:
+        running: Importing an archive
+        success: Archive imported
+        error: Archive import has failed

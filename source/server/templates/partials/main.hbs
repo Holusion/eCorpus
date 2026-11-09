@@ -10,5 +10,8 @@
     </main>
     {{> footer }}
     <script src="/dist/js/corpus.js?ref={{ config.build_ref }}"></script>
+    {{#if activity}}
+      <script defer src="/dist/js/activity.js?ref={{ config.build_ref }}"></script>
+    {{/if}}
   </body>
 </html>

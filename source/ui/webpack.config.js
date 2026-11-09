@@ -62,6 +62,7 @@ module.exports = function createAppConfig(env, argv={})
             "theme": "source/styles/theme.scss",
             "search": "source/handlers/search.ts",
             "history": "source/handlers/history.ts",
+            "activity": "source/handlers/activity.ts",
         },
 
         output: {

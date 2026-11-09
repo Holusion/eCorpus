@@ -6,6 +6,12 @@
         <img src="/dist/images/logo-full.svg" alt="Site Logo"/>
       </picture>
     </a>
+    {{!-- Only on small screens, where the links collapse --}}
+    <button id="main-navbar-collapse-toggle" class="btn btn-outline btn-icon nav-btn"
+      type="button" popovertarget="main-navbar-links" aria-label="Toggle navigation">
+      <ui-icon class="if-expanded" name="minus"></ui-icon>
+      <ui-icon class="if-collapsed" name="plus"></ui-icon>
+    </button>
     <div class="spacer"></div>
      {{# unless isSearchPage }}
       <form id="nav-search" method="get" action="/ui/scenes/">
@@ -25,17 +31,37 @@
       {{#if (userLevel user.level "manage") }}
         {{#navLink "/ui/admin/"}}{{i18n "nav.administration"}}{{/navLink}}
       {{/if}}
-      <div class="divider"></div>
+    </div>
+    {{!-- Out of the links: what's the user's own stays in sight when those collapse on small screens --}}
+    <div class="nav-account">
+      {{#if activity}}
+        {{!-- Without a data-status (see activity/state.ts), it hasn't started --}}
+        <button id="nav-notifications" class="btn btn-outline btn-icon nav-btn" type="button" popovertarget="nav-notifications-panel" title="{{i18n "nav.notifications"}}" data-activity="{{activity.url}}">
+          <ui-icon name="bell"></ui-icon>
+          <span class="visually-hidden">{{i18n "nav.notifications"}}</span>
+          <span class="nav-badge" role="img" hidden></span>
+        </button>
+        <div id="nav-notifications-panel" popover data-mark-failed="{{i18n "notifications.markFailed"}}" data-mark-read="{{i18n "buttons.markAsRead"}}" data-just-now="{{i18n "notifications.justNow"}}" data-messages="{{activity.messages}}">
+          <div class="nav-notifications-scroll">
+            <div class="nav-notifications-header">
+              <button class="btn btn-transparent nav-notifications-mark-all" type="button" hidden>{{i18n "buttons.markAllAsRead"}} <ui-icon name="check-check"></ui-icon></button>
+            </div>
+            <ul></ul>
+          </div>
+          <p class="nav-notifications-loading" role="status"><ui-icon name="bell"></ui-icon> {{i18n "labels.loading"}}</p>
+          <p class="nav-notifications-empty" hidden>{{i18n "labels.noUnreadNotifications"}}</p>
+          <p class="nav-notifications-offline" role="status" hidden><ui-icon name="warning"></ui-icon> {{i18n "notifications.offline"}}</p>
+        </div>
+      {{/if}}
       {{#if (test user "==" null)}}
-        {{#navLink (join "/auth/login/?redirect=" (encodeURIComponent location)) title="/auth/login/"}}{{i18n "nav.login"}}{{/navLink}}
+        {{#navLink 
+          (join "/auth/login/?redirect=" (encodeURIComponent location))
+          title="/auth/login/"
+          class="btn btn-outline btn-icon nav-btn nav-user"
+        }}<ui-icon name="user"></ui-icon><span class="nav-user-name">{{i18n "nav.login"}}</span>{{/navLink}}
       {{else if user.username}}
-        {{#navLink "/ui/user/"}}{{user.username}}{{/navLink}}
+        {{#navLink "/ui/user/" class="btn btn-outline btn-icon nav-btn nav-user"}}<ui-icon name="user"></ui-icon><span class="nav-user-name">{{user.username}}</span>{{/navLink}}
       {{/if}}
     </div>
-    <button id="main-navbar-collapse-toggle" class="btn btn-transparent btn-primary"  style="padding: 0 1rem"
-      type="button" popovertarget="main-navbar-links" aria-label="Toggle navigation">
-      <ui-icon class="if-expanded" name="minus"></ui-icon>
-      <ui-icon class="if-collapsed" name="plus"></ui-icon>
-    </button>
   </div>
 </nav>
