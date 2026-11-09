@@ -307,40 +307,44 @@ export class TaskManager{
    *
    * Returns tasks ordered by `ctime DESC` (newest first).
    */
-  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
+  public async getTasks(options: { user_id?: number; type?: string; scene_id?: number; topLevelOnly?: boolean; rootOnly?: boolean; status?: 'success'|'error'|'all'; limit?: number; offset?: number } = {}): Promise<import("./types.js").TaskListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
     if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`When provided, limit must be a positive integer`);
     if (limit > 100) throw new BadRequestError(`When provided, limit must be <= 100`);
     if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0) throw new BadRequestError(`When provided, offset must be a non-negative integer`);
 
-    const where: string[] = [];
     const params: any[] = [];
 
-    if (options.user_id != null) {
-      where.push(`fk_user_id = $${params.push(options.user_id)}`);
-    }
-
-    if (options.scene_id != null) {
-      where.push(`fk_scene_id = $${params.push(options.scene_id)}`);
-    }
-
-
-    if (options.type) {
+    /** What the filters ask of a task, under a given alias */
+    const matching = (t: string) => {
+      const conditions: string[] = [];
+      if (options.user_id != null) conditions.push(`${t}.fk_user_id = $${params.push(options.user_id)}`);
+      if (options.scene_id != null) conditions.push(`${t}.fk_scene_id = $${params.push(options.scene_id)}`);
       // Exact match on `type` (previously supported regex). Use equality to
       // avoid surprising regex semantics and to keep behavior predictable.
-      where.push(`type = $${params.push(options.type)}`);
-    }
+      if (options.type) conditions.push(`${t}.type = $${params.push(options.type)}`);
+      // Status filter: 'success' or 'error' or 'all' (no filter)
+      if (options.status && options.status !== 'all') conditions.push(`${t}.status = $${params.push(options.status)}`);
+      return conditions;
+    };
+
+    const where = matching("tasks");
 
     // By default, return only root tasks (no parent). Caller can set `rootOnly: false`
     // to include child tasks as well. This preserves previous summary behaviour.
     if (options.rootOnly !== false) {
-      where.push(`parent IS NULL`);
+      where.push(`tasks.parent IS NULL`);
     }
 
-    // Status filter: 'success' or 'error' or 'all' (no filter)
-    if (options.status && options.status !== 'all') {
-      where.push(`status = $${params.push(options.status)}`);
+    // Whatever starts a tree: a parent that doesn't match would hide what does otherwise.
+    // A parent always matches when nothing is filtered, and that's all there is to it then.
+    // Otherwise, mind that an `OR` here would make it a scan of the whole table.
+    if (options.topLevelOnly) {
+      const parentMatches = matching("p");
+      where.push(parentMatches.length
+        ? `NOT EXISTS (SELECT 1 FROM tasks p WHERE p.task_id = tasks.parent AND ${parentMatches.join(" AND ")})`
+        : `tasks.parent IS NULL`);
     }
 
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -349,16 +353,66 @@ export class TaskManager{
     const limitIdx = params.push(limit);
 
     return this.db.all<import("./types.js").TaskListItem>(`
-      SELECT ${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner
+      SELECT ${TaskManager.#listColumns}
       FROM tasks
-      LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
-      LEFT JOIN users ON users.user_id = tasks.fk_user_id
+      ${TaskManager.#listJoins}
       ${whereClause}
       ORDER BY tasks.task_id DESC
       OFFSET $${offsetIdx}
       LIMIT $${limitIdx}
     `, params);
   }
+
+  /** What's displayed about a task in a list, other than the task itself */
+  static readonly #listColumns = `${TaskManager.#qualifiedTaskColumns}, scenes.scene_name AS scene, users.username AS owner`;
+  static readonly #listJoins = `
+    LEFT JOIN scenes ON scenes.scene_id = tasks.fk_scene_id
+    LEFT JOIN users ON users.user_id = tasks.fk_user_id`;
+
+  /**
+   * Lists tasks as trees: what matches the filters and doesn't have a parent that does too, each with all that's under it.
+   * `limit` and `offset` are about those at the top, as it would otherwise cut through a tree.
+   *
+   * What's under a task isn't filtered: it's part of what happened to it.
+   */
+  public async getTaskTrees(options: Omit<NonNullable<Parameters<TaskManager["getTasks"]>[0]>, "rootOnly" | "topLevelOnly">) {
+    type Item = import("./types.js").TaskListItem & { children: Item[] };
+    const top = await this.getTasks({ ...options, rootOnly: false, topLevelOnly: true }) as Item[];
+    const byId = new Map<number, Item>();
+    for (const task of top) {
+      task.children = [];
+      byId.set(task.task_id, task);
+    }
+
+    // One level at a time, which an index on `parent` makes cheap. A recursive query does the same
+    // in one go, but is misestimated into scanning the whole table at each level.
+    let ids = top.map(t => t.task_id);
+    let total = 0;
+    while (ids.length && total < TaskManager.#MAX_DESCENDANTS) {
+      const level = await this.db.all<Item>(`
+        SELECT ${TaskManager.#listColumns}
+        FROM tasks
+        ${TaskManager.#listJoins}
+        WHERE tasks.parent = ANY($1::bigint[])
+        ORDER BY tasks.task_id ASC
+        LIMIT $2
+      `, [ids, TaskManager.#MAX_DESCENDANTS - total]);
+      total += level.length;
+      ids = [];
+      for (const task of level) {
+        //Something at the top may be under another one: it stays there, with what's under it
+        if (byId.has(task.task_id)) continue;
+        task.children = [];
+        byId.set(task.task_id, task);
+        byId.get(task.parent!)!.children.push(task);
+        ids.push(task.task_id);
+      }
+    }
+    return top;
+  }
+
+  /** A task can have many descendants, and they all end up in one page. Past that, the deepest and newest are left out. */
+  static readonly #MAX_DESCENDANTS = 1000;
 
   /**
    * Retroactively associates a task with a scene.

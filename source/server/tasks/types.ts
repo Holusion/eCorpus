@@ -173,6 +173,7 @@ export interface TaskListItem<TData extends TaskDataPayload = TaskDataPayload, T
   extends TaskDefinition<TData, TReturn> {
   scene: string | null;
   owner: string | null;
+  children?: TaskListItem<TData, TReturn>[];
 }
 
 /**

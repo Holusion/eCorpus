@@ -615,4 +615,106 @@ describe("TaskManager", function(){
       });
     });
   });
+
+  describe("getTaskTrees()", function(){
+    type Tree = {id: number, children: Tree[]};
+    /** Only what makes a tree, to compare it whole */
+    const shape = (items: {task_id: number, children?: any[]}[]): Tree[] => items.map(t => ({id: t.task_id, children: shape(t.children ?? [])}));
+    const task = async (params: {parent?: number, status?: "success"|"error", type?: string, user_id?: number} = {}) =>
+      (await listener.create({type: "testTask", data: {}, status: "success", ...params})).task_id;
+
+    it("nests what's under each root, oldest first", async function(){
+      const root = await task();
+      const a = await task({parent: root});
+      const b = await task({parent: root});
+      const a1 = await task({parent: a});
+      expect(shape(await listener.getTaskTrees({}))).to.deep.equal([
+        {id: root, children: [
+          {id: a, children: [{id: a1, children: []}]},
+          {id: b, children: []},
+        ]},
+      ]);
+    });
+
+    it("has the same columns as a list of tasks", async function(){
+      await listener.create({type: "testTask", data: {}, status: "success", scene_id, user_id});
+      const [{children, ...tree}] = await listener.getTaskTrees({});
+      expect(children).to.deep.equal([]);
+      expect(tree).to.deep.equal((await listener.getTasks({}))[0]);
+    });
+
+    it("shows the newest trees first", async function(){
+      const older = await task();
+      const newer = await task();
+      await task({parent: older});
+      expect(shape(await listener.getTaskTrees({})).map(t => t.id)).to.deep.equal([newer, older]);
+    });
+
+    it("counts trees in `limit` and `offset`, not what's in them", async function(){
+      const older = await task();
+      const newer = await task();
+      const children = [await task({parent: newer}), await task({parent: newer}), await task({parent: newer})];
+      const [first] = shape(await listener.getTaskTrees({limit: 1}));
+      expect(first.id).to.equal(newer);
+      expect(first.children.map(c => c.id)).to.deep.equal(children);
+      expect(shape(await listener.getTaskTrees({limit: 1, offset: 1}))).to.deep.equal([{id: older, children: []}]);
+    });
+
+    it("starts a tree at a task that matches, when its parent doesn't", async function(){
+      const root = await task();
+      const failed = await task({parent: root, status: "error"});
+      const under = await task({parent: failed});
+      expect(shape(await listener.getTaskTrees({status: "error"}))).to.deep.equal([
+        {id: failed, children: [{id: under, children: []}]},
+      ]);
+    });
+
+    it("keeps a task nested, and only there, when its parent matches too", async function(){
+      const root = await task({status: "error"});
+      const child = await task({parent: root, status: "error"});
+      expect(shape(await listener.getTaskTrees({status: "error"}))).to.deep.equal([
+        {id: root, children: [{id: child, children: []}]},
+      ]);
+    });
+
+    it("doesn't filter what's under a task", async function(){
+      const root = await task({status: "error"});
+      const ok = await task({parent: root});
+      expect(shape(await listener.getTaskTrees({status: "error"}))[0].children.map(c => c.id)).to.deep.equal([ok]);
+    });
+
+    it("shows a task once, at the top, when something above its parent matches too", async function(){
+      const root = await task({status: "error"});
+      const child = await task({parent: root});
+      const grandchild = await task({parent: child, status: "error"});
+      const below = await task({parent: grandchild});
+      expect(shape(await listener.getTaskTrees({status: "error"}))).to.deep.equal([
+        {id: grandchild, children: [{id: below, children: []}]},
+        {id: root, children: [{id: child, children: []}]},
+      ]);
+    });
+
+    it("filters by user and type", async function(){
+      const mine = await task({user_id});
+      const theirs = await task();
+      const other = await task({parent: theirs, type: "otherTask"});
+      expect(shape(await listener.getTaskTrees({user_id})).map(t => t.id)).to.deep.equal([mine]);
+      expect(shape(await listener.getTaskTrees({type: "otherTask"})).map(t => t.id)).to.deep.equal([other]);
+    });
+
+    it("validates `limit` and `offset` like a list of tasks", async function(){
+      await expect(listener.getTaskTrees({limit: 101})).to.be.rejectedWith(BadRequestError);
+      await expect(listener.getTaskTrees({offset: -1})).to.be.rejectedWith(BadRequestError);
+    });
+
+    it("stops at 1000 descendants, leaving out the deepest", async function(){
+      const root = await task();
+      const child = await task({parent: root});
+      await handle.run(`INSERT INTO tasks(type, data, status, parent) SELECT 'testTask', '{}', 'success', $1 FROM generate_series(1, 999)`, [root]);
+      await handle.run(`INSERT INTO tasks(type, data, status, parent) SELECT 'testTask', '{}', 'success', $1 FROM generate_series(1, 5)`, [child]);
+      const [tree] = await listener.getTaskTrees({});
+      expect(tree.children).to.have.length(1000);
+      expect(tree.children!.find(c => c.task_id === child)!.children).to.deep.equal([]);
+    });
+  });
 });
