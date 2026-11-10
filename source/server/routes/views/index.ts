@@ -11,7 +11,7 @@ import { BadRequestError } from "../../utils/errors.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
-import { translateErrorMessage } from "../../utils/i18n.js";
+import { i18n, translateErrorMessage } from "../../utils/i18n.js";
 import { NotificationManager } from "../../notifications/manager.js";
 import { messageOf, stateOf } from "../../notifications/messages.js";
 import { NotificationItem } from "../../notifications/types.js";
@@ -90,6 +90,81 @@ routes.get("/", async (req, res)=>{
 
 
 
+/** Tasks that the upload page starts, and follows: it has their notifications until they've been read */
+const UPLOAD_TASKS = ["createSceneFromFiles", "extractScenesArchives"];
+
+type SceneTools = {name: string, editable: boolean};
+
+/**
+ * A line of the upload page: a notification, as in the page of notifications, with what came out of it:
+ * the scenes it made, that can be seen (and edited, for those that can), or why it failed.
+ */
+type UploadLine = ReturnType<typeof notificationView> & {
+  scenes: SceneTools[],
+  detail?: string,
+  /** Where to go for the scene a line is about */
+  tools?: SceneTools,
+  /** What happened to it */
+  action?: string,
+  /** A line that's part of another notification's: see uploadLines() */
+  part?: "scene",
+};
+
+/** It may have gone since */
+async function sceneTools(req: Request, key: string|number): Promise<SceneTools|null>{
+  try{
+    const scene = await getVfs(req).getScene(key);
+    return {name: scene.name, editable: scene.type === "voyager"};
+  }catch(e: any){
+    log.debug({ scene: key, err: e }, "A scene made by an upload is gone");
+    return null;
+  }
+}
+
+/**
+ * The lines of an upload's notification. That's one, except for an archive that was imported:
+ * then each scene gets its own, after the import's, as if it had its own notification. They're all read together.
+ */
+async function uploadLines(req: Request, item: NotificationItem, lng: string): Promise<UploadLine[]>{
+  const view: UploadLine = { ...notificationView(item, lng), scenes: [] };
+  if(item.task_id === null || view.state === "running") return [view];
+  let task: TaskDefinition;
+  try{
+    task = await getTaskScheduler(req).getTask(item.task_id);
+  }catch(e: any){
+    log.warn({ task_id: item.task_id, err: e }, "Can't get the task of an upload's notification");
+    return [view];
+  }
+  if(task.status === "error"){
+    if(typeof task.output?.message === "string") view.detail = translateErrorMessage(task.output, lng);
+    return [view];
+  }
+  if(task.type === "createSceneFromFiles" && typeof task.output === "number"){
+    const tools = await sceneTools(req, task.output);
+    if(tools) view.scenes.push(tools);
+    return [view];
+  }
+  if(task.type !== "extractScenesArchives" || !Array.isArray(task.output)) return [view];
+  const lines = [view];
+  for(const {name, action} of task.output as Array<{name: string, action: "create"|"update"}>){
+    const tools = await sceneTools(req, name);
+    if(!tools) continue;
+    lines.push({
+      ...view,
+      part: "scene",
+      message: tools.name,
+      action: i18n.t(action === "update" ? "notifications.upload.updated" : "notifications.upload.created", {lng}),
+      link: `/ui/scenes/${encodeURIComponent(tools.name)}`,
+      tools,
+    });
+  }
+  return lines;
+}
+
+/**
+ * Where scenes get created, from files that are uploaded first. What that starts is followed as notifications:
+ * those of the upload page are there until they've been read, whether they're running or not, wherever they've been read.
+ */
 routes.get("/upload", async (req, res)=>{
   const {templates}= getLocals(req);
   const requester = getUser(req);
@@ -100,71 +175,13 @@ routes.get("/upload", async (req, res)=>{
       },
     });
   }
-  const taskScheduler = getTaskScheduler(req);
-  const vfs = getVfs(req);
-  const {task} = req.query;
-  //Maybe we shouldn't fail on bad parameters and redirect to a blank page or just ignore them
-  const ids = [task].flat().filter(t=>typeof t === "string").map(t=>parseInt(t as string));
-  if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
-    throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
-  }
-  log.trace({ task_ids: ids }, "Render previous upload tasks");
-  type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
-  type TaskError =  {error: string, action: "error",  task_id: number|null}
-  type TaskLine = TaskScene|TaskError;
-  let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
-    try{
-      return await taskScheduler.getTask(id);
-    }catch(e:any){
-      return {
-        error: e.message,
-        action: "error",
-        task_id: id
-      } satisfies TaskError;
-    }
-  }));
-  let scenes: Array<TaskLine> = [];
-  for(let task of tasks){
-    if("error" in task){
-      scenes.push(task)
-      continue
-    }
-    if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
-      scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error", task_id: null});
-      continue;
-    }
-    if(task.status !== "success"){
-      console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
-      const message = typeof task.output?.message === "string" ? " "+translateErrorMessage(task.output, getLanguage(req)) : "";
-      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${message}`, action: "error", task_id: task.task_id});
-    }else if(task.type === "createSceneFromFiles"){
-      if(typeof task.output !== "number"){
-        console.warn("Unexpected output for %s :", task.type, task.output);
-        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
-        continue;
-      }
-      const scene = await vfs.getScene(task.output);
-      scenes.push({name: scene.name, action: "create", task_id: task.task_id, type: scene.type});
-    }else if(task.type === "extractScenesArchives"){
-      if(!Array.isArray(task.output)){
-        console.warn("Unexpected output for %s :", task.type, task.output);
-        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
-        continue;
-      }
-      for(let {action, name } of task.output){
-        const scene = await vfs.getScene(name);
-        scenes.push({action, name, task_id: task.task_id, type: scene.type});
-      }
-    }else{
-      console.warn("Unsupported task type: %s. not an upload task?", task.type);
-      scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error", task_id: task.task_id});
-      continue;
-    }
-  }
-  
+  const lng = getLanguage(req);
+  const items = await getLocals(req).notifications.getNotifications(requester!.uid, { unreadOnly: true, types: UPLOAD_TASKS });
+  const uploads = (await Promise.all(items.map((item)=> uploadLines(req, item, lng)))).flat();
   res.render("upload", {
     title: "eCorpus: Create new scene",
-    scenes,
+    uploads,
+    uploadTasks: UPLOAD_TASKS.join(" "),
   });
 })
 

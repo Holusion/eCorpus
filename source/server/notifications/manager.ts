@@ -144,17 +144,20 @@ export class NotificationManager{
    * Some of a user's notifications: those whose task hasn't settled first, then newest first (see `mtime`).
    * Changes move them: an offset only holds as long as nothing does, which is good enough to look further.
    * @param unreadOnly leaves out those that have been read
+   * @param types only those of these types
    * @throws {BadRequestError} if `limit` or `offset` aren't integers, or are out of range
    */
   public async getNotifications(user_id: number, {
     limit = 20,
     offset = 0,
     unreadOnly = false,
-  }: {limit?: number, offset?: number, unreadOnly?: boolean} = {}): Promise<NotificationItem[]>{
+    types,
+  }: {limit?: number, offset?: number, unreadOnly?: boolean, types?: string[]} = {}): Promise<NotificationItem[]>{
     if(!Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`limit must be a positive integer`);
     if(!Number.isInteger(offset) || offset < 0) throw new BadRequestError(`offset must be a non-negative integer`);
     const filters = `n.fk_user_id = $1
-      AND (NOT $4 OR NOT n.read)`;
+      AND (NOT $4 OR NOT n.read)
+      AND ($5::text[] IS NULL OR n.type = ANY($5::text[]))`;
     // Each side takes no more than the page needs, so both can follow an index.
     // `notification_item()` is only called on the rows that are returned, not those the offset skips.
     // The unsettled status must be written as in `idx_tasks_unsettled` for it to be used.
@@ -178,7 +181,7 @@ export class NotificationManager{
         LIMIT $2::int OFFSET $3::int
       ) p
       ORDER BY p.settled, p.mtime DESC, p.notification_id DESC
-    `, [user_id, limit, offset, unreadOnly]);
+    `, [user_id, limit, offset, unreadOnly, types ?? null]);
     return rows.map(r=> r.item);
   }
 

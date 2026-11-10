@@ -2,80 +2,16 @@
   <h1>{{#if brand}}{{brand}}{{else}}eCorpus{{/if}}: {{i18n "titles.upload"}}</h1>
 <div class="grid-content">
   
-  {{#if scenes.length }}
-    <section class="container" aria-labelledby="createdScenes-heading">
-      <h3 id="createdScenes-heading">{{i18n "titles.createdScenes" }}</h3>
-      <a href="." class="text-error" style="position: absolute; top:.5rem; right:.5rem; text-decoration: none;" aria-label="close">🗙</a>
-
-      <style>
-        .scenes-container {
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          > .scene-line{
-            display: flex;
-            flex-direction: row;
-            justify-content: stretch;
-            flex-wrap: nowrap;
-            gap: .5rem;
-            padding: .5rem;
-            margin: 0;
-            border-radius: 4px;
-            transition: background-color .2s ease;
-            &:hover{
-              background-color: var(--color-highlight);
-              box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-            }
-            > a{
-              &:first-child{
-                flex: 1 1 auto;
-                text-overflow: ellipsis;
-              }
-              align-content: flex-start;
-              display: flex;
-              font-weight: bolder;
-              text-decoration: none;
-              &.scene-tool:hover{
-                color: var(--color-secondary-light);
-              }
-            }
-          }
-        }
-      </style>
-      <ul class="scenes-container">
-        {{#each scenes}}
-          {{#if error }}
-            <li class="text-error scene-line">
-              <span>{{ error }}</span>
-              {{#if task_id}}<a class="scene-tool tool-link" href="/ui/tasks/"></a>{{/if}}
-            </li>
-          {{else}}
-            <li class="scene-line">
-              <a href="/ui/scenes/{{ encodeURIComponent name }}" class="card-header">
-                <span>&nbsp;{{name}}</span>
-              </a>
-              <a class="scene-tool tool-link" href="/ui/tasks/{{task_id}}">
-                <ui-icon name="list"></ui-icon>
-                <span class="tool-text">{{i18n "titles.logs"}}</span>
-              </a>
-              <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/view" >
-                <ui-icon name="eye"></ui-icon>
-                <span class="tool-text">{{i18n "labels.view"}}</span>
-              </a>
-              {{#if (test type "==" "voyager")}}
-                <a class="scene-tool tool-link" href="/ui/scenes/{{ encodeURIComponent name }}/edit">
-                  <ui-icon name="edit"></ui-icon>
-                  <span class="tool-text">{{i18n "labels.edit"}}</span>
-                </a>
-              {{/if}}
-            </li>
-          {{/if}}
-        {{/each}}
-      </ul>
-    </section>
-
-  {{/if}}
+  {{!-- What's been started from here, until it's been read: drawn by the server, kept up to date by the browser (see activity/page.ts).
+    Always there, so that what's started can show in it: hidden while it's empty. --}}
+  <section class="container notifications-page" aria-labelledby="createdScenes-heading"{{#unless uploads.length}} hidden{{/unless}}>
+    <h3 id="createdScenes-heading">{{i18n "titles.createdScenes" }}</h3>
+    <ul class="notifications-list" data-notifications data-unread-only data-follow="{{uploadTasks}}">
+      {{#each uploads}}
+        {{> notification }}
+      {{/each}}
+    </ul>
+  </section>
   <section class="container">
     <upload-manager class="form-control">
 

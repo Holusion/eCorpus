@@ -1,0 +1,57 @@
+{{!-- A line of a list of notifications, as notificationView() makes it (see routes/views/index.ts).
+  Kept up to date by the browser: see activity/page.ts. The upload page adds what came out of it: why it failed, or its scenes.
+  A line that's part of another one's notification (data-part) is read with it: it has no button of its own. --}}
+{{#*inline "sceneTools"}}
+  <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/view">
+    <ui-icon name="eye"></ui-icon>
+    <span class="tool-text">{{i18n "labels.view"}}</span>
+  </a>
+  {{#if editable}}
+    <a class="tool-link" href="/ui/scenes/{{encodeURIComponent name}}/edit">
+      <ui-icon name="edit"></ui-icon>
+      <span class="tool-text">{{i18n "labels.edit"}}</span>
+    </a>
+  {{/if}}
+{{/inline}}
+<li class="{{state}}" data-notification-id="{{notification_id}}"{{#if part}} data-part="{{part}}"{{/if}}>
+  <ui-icon class="{{iconClass}}" name="{{icon}}"></ui-icon>
+  <div class="notifications-content">
+    {{#if tools}}
+      {{!-- A scene: its name, what happened to it, then where to go to see it. Under it, its date, as in other lines --}}
+      <div class="notifications-heading">
+        <a href="{{link}}">{{message}}</a>
+        {{#if action}}
+          <span class="notifications-action">{{action}}</span>
+        {{/if}}
+        {{#with tools}}
+          <div class="notifications-tools">
+            {{> sceneTools }}
+          </div>
+        {{/with}}
+      </div>
+    {{else if link}}
+      <a href="{{link}}">{{message}}</a>
+    {{else}}
+      <span>{{message}}</span>
+    {{/if}}
+    {{#if detail}}
+      <p class="notifications-detail">{{detail}}</p>
+    {{/if}}
+    {{#if scenes.length}}
+      <ul class="notifications-scenes">
+        {{#each scenes}}
+          <li>
+            <a class="notifications-scene" href="/ui/scenes/{{encodeURIComponent name}}">{{name}}</a>
+            {{> sceneTools }}
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
+    <time datetime="{{dateString mtime "iso"}}">{{dateString mtime}}</time>
+  </div>
+  {{#if (test state "==" "unread")}}
+    {{#unless part}}
+      <button class="btn btn-transparent btn-icon notifications-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
+    {{/unless}}
+  {{/if}}
+</li>

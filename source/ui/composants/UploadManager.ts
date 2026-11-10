@@ -30,6 +30,37 @@ export default class UploadManager extends LitElement{
   }
 
 
+  /**
+   * Starts what's been uploaded for: it's blocking only until the server has accepted it.
+   * From then on, it's followed as a notification, wherever the user goes: a toast tells how it's going,
+   * and the list above this one shows it (see activity/page.ts), until it's been read.
+   * This is ready for something else meanwhile.
+   */
+  private startTask(type: "createSceneFromFiles"|"extractScenesArchives", data: Record<string, unknown>){
+    this.busy = true;
+    this.error = null;
+    fetch("/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Prefer": "respond-async",
+      },
+      body: JSON.stringify({type, data}),
+    }).then(async (res)=>{
+      await HttpError.okOrThrow(res);
+      let task = await res.json();
+      if(typeof task.task_id !== "number") throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
+      //The upload tasks are its own now: they're not removed from the server
+      this.uploader.reset();
+      this.uploadForm?.reset();
+      //For the activity bundle, which has the notifications
+      document.dispatchEvent(new CustomEvent("activity-started", {detail: {task_id: task.task_id, type}}));
+    }).catch((e)=>{
+      console.error(e);
+      this.error = e.message;
+    }).finally(()=> this.busy = false);
+  }
+
   createScene = (ev:MouseEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
@@ -39,38 +70,14 @@ export default class UploadManager extends LitElement{
       toast("Upload form is invalid", "warning", 1500);
       return;
     }
-    const tasks = this.uploader.uploads.map(u=>u.task_id)
-    console.log("Submit, form :", data, tasks);
-    this.busy = true;
-    this.error = null;
-    fetch("/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
-      body: JSON.stringify({
-        type: "createSceneFromFiles",
-        data: {
-          tasks,
-          name: data.get("name"),
-          language: data.get("language")?.toString().toUpperCase(),
-          options: {
-            optimize: data.get("optimize") ?? false
-          }
-        }
-      })
-    }).then(async (res)=>{
-      await HttpError.okOrThrow(res);
-      let task = await res.json();
-      if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
-      const u = new URL(window.location.href);
-      u.searchParams.append("task", task.task_id);
-      //Reload the page
-      window.location.href = u.toString();
-    }).catch((e)=>{
-      console.error(e);
-      this.error = e.message;
-    }).finally(()=> this.busy = false);
+    this.startTask("createSceneFromFiles", {
+      tasks: this.uploader.uploads.map(u=>u.task_id),
+      name: data.get("name"),
+      language: data.get("language")?.toString().toUpperCase(),
+      options: {
+        optimize: data.get("optimize") ?? false
+      }
+    });
     return false;
   }
 
@@ -78,33 +85,9 @@ export default class UploadManager extends LitElement{
   extractArchives = (ev:MouseEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
-    this.busy = true;
-    this.error = null;
-    const tasks = this.uploader.uploads.map(u=>u.task_id);
-    fetch("/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
-      body: JSON.stringify({
-        type: "extractScenesArchives",
-        data: {
-          tasks,
-        }
-      })
-    }).then(async (res)=>{
-      await HttpError.okOrThrow(res);
-      let task = await res.json();
-      if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
-      const u = new URL(window.location.href);
-      //Remove any existing "task" parameters to avoid confusion about what was imported
-      u.searchParams.set("task", task.task_id);
-      //Reload the page
-      window.location.href = u.toString();
-    }).catch((e)=>{
-      console.error(e);
-      this.error = e.message;
-    }).finally(()=> this.busy = false);
+    this.startTask("extractScenesArchives", {
+      tasks: this.uploader.uploads.map(u=>u.task_id),
+    });
   }
 
 

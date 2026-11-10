@@ -8,10 +8,11 @@
  * EventSource does that by itself after a network error, or when the server ends the stream.
  * It gives up on an answer that isn't the stream: then it's tried again from here, later.
  */
+import type { Toast } from "../composants/Toasts";
 import { linkOf, messageOf } from "../activity/panel";
-import { getStatus, itemsIn, setItems, setStatus, updateItem } from "../activity/state";
+import { getStatus, itemsIn, listItems, setItems, setStatus, updateItem } from "../activity/state";
 import { DeletedNotification, NotificationItem, stateOf } from "../state/notifications";
-import { toast } from "../state/toast";
+import { dismissAfter, showToast, toast } from "../state/toast";
 //The page of notifications, when that's the one open
 import "../activity/page";
 
@@ -36,24 +37,59 @@ let hiddenTimer: ReturnType<typeof setTimeout> | undefined;
  * A new page starts with nothing in there: it doesn't toast what was already there.
  */
 let running = new Set<number>();
+/**
+ * Toasts of tasks started from this page, by task, while they run: they become what tells they've settled.
+ * Until then, they stay. Whether the stream has told about them yet or not.
+ */
+const started = new Map<number, Toast>();
 
+
+function levelOf(item: NotificationItem) {
+  return item.status === "error" ? "error" : item.status === "success" ? "success" : "info";
+}
 
 /** Tells about something that has just settled, for those who are looking */
 function toastItem(item: NotificationItem) {
   if (document.hidden) return;
-  const level = item.status === "error" ? "error" : item.status === "success" ? "success" : "info";
-  toast(messageOf(item), level, TOAST_TIMEOUT, linkOf(item) ?? undefined);
+  toast(messageOf(item), levelOf(item), TOAST_TIMEOUT, linkOf(item) ?? undefined);
 }
 
-/** Whether it's become something to tell about: unread, and not before */
-function hasSettled(item: NotificationItem, wasRunning: boolean) {
-  return wasRunning && stateOf(item) === "unread";
+/**
+ * Tells about what has settled: what's been started from this page, whenever it's heard of,
+ * and anything else that's become unread, and wasn't before.
+ */
+function report(item: NotificationItem, wasRunning: boolean) {
+  const state = stateOf(item);
+  if (state === "running") return;
+  const line = item.task_id === null ? undefined : started.get(item.task_id);
+  if (line) {
+    started.delete(item.task_id!);
+    Object.assign(line, { busy: false, level: levelOf(item), message: messageOf(item), link: linkOf(item) ?? undefined });
+    dismissAfter(line, TOAST_TIMEOUT);
+  } else if (wasRunning && state === "unread") {
+    toastItem(item);
+  }
+}
+
+/**
+ * Something this page has started (see UploadManager): it tells how it's going until it's settled.
+ * The stream may have told about it already, or not yet. If it has settled already, it's been told about.
+ */
+function onStarted({ task_id, type }: { task_id: number; type: string }) {
+  const known = listItems().find((n) => n.task_id === task_id);
+  if (started.has(task_id) || (known && stateOf(known) !== "running")) return;
+  //As the stream would have it
+  const item = known ?? { notification_id: 0, task_id, type, status: "pending", read: false, mtime: new Date().toISOString() };
+  const line = showToast(messageOf(item), "info", 0, linkOf(item) ?? undefined);
+  if (!line) return;
+  line.busy = true;
+  started.set(task_id, line);
 }
 
 function onState(items: NotificationItem[]) {
   setItems(items);
   //What settled while disconnected
-  for (const item of items) if (hasSettled(item, running.has(item.notification_id))) toastItem(item);
+  for (const item of items) report(item, running.has(item.notification_id));
   running = new Set(itemsIn("running").map((n) => n.notification_id));
 }
 
@@ -63,7 +99,7 @@ function onChange(change: NotificationItem | DeletedNotification) {
   if ("deleted" in change) return;
   if (stateOf(change) === "running") running.add(change.notification_id);
   //A new one that's settled from the start is news too (it isn't about a task)
-  else if (hasSettled(change, !previous || stateOf(previous) === "running")) toastItem(change);
+  else report(change, !previous || stateOf(previous) === "running");
 }
 
 /**
@@ -129,6 +165,7 @@ function onVisibilityChange() {
 }
 
 if (url) {
+  document.addEventListener("activity-started", (e) => onStarted((e as CustomEvent<{ task_id: number; type: string }>).detail));
   document.addEventListener("visibilitychange", onVisibilityChange);
   //Someone wants to see what's there: no point in waiting to try again
   document.querySelector("#nav-notifications-panel")?.addEventListener("beforetoggle", (e) => {

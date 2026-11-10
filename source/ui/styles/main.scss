@@ -58,6 +58,10 @@ main {
   &.toast-error > .ui-icon {
     color: var(--color-error);
   }
+  // As notifications show a task that's running: see activity.scss
+  & > .ui-icon.notifications-running {
+    color: var(--color-primary);
+  }
   
   .toast-message {
     flex: 1 1 100%;

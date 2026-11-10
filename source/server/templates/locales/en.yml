@@ -480,6 +480,10 @@ notifications:
   offline: Couldn't get the latest notifications.
   # Above what's new, less than an hour old
   justNow: just now
+  # On the upload page: a line for each scene of an imported archive, after the archive's own. What happened to it:
+  upload:
+    created: Created
+    updated: Updated
   # Filled in by the browser: {{type}} is left as is
   messages:
     default: You have a new notification

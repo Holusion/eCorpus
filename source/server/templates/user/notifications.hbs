@@ -12,20 +12,7 @@
     {{!-- Drawn by the server, kept up to date by the browser: see activity/page.ts --}}
     <ul class="notifications-list" data-notifications{{#if params.unreadOnly}} data-unread-only{{/if}}>
       {{#each notifications}}
-        <li class="{{state}}" data-notification-id="{{notification_id}}">
-          <ui-icon class="{{iconClass}}" name="{{icon}}"></ui-icon>
-          <div class="notifications-content">
-            {{#if link}}
-              <a href="{{link}}">{{message}}</a>
-            {{else}}
-              <span>{{message}}</span>
-            {{/if}}
-            <time datetime="{{dateString mtime "iso"}}">{{dateString mtime}}</time>
-          </div>
-          {{#if (test state "==" "unread")}}
-            <button class="btn btn-transparent btn-icon notifications-mark-read" type="button" title="{{i18n "buttons.markAsRead"}}" aria-label="{{i18n "buttons.markAsRead"}}"><ui-icon name="check-check"></ui-icon></button>
-          {{/if}}
-        </li>
+        {{> notification }}
       {{/each}}
     </ul>
   {{else}}

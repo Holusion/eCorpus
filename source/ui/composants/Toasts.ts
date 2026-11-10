@@ -43,6 +43,10 @@ export class Toast extends LitElement{
   @property({ type: Boolean })
   fade :boolean = false;
 
+  /** What it tells about isn't over yet: a task that's running, as notifications show it */
+  @property({ type: Boolean })
+  busy :boolean = false;
+
 
   createRenderRoot() {
     return this;
@@ -59,7 +63,7 @@ export class Toast extends LitElement{
   render(){
     return html`
       <div class="toast toast-${this.level}${this.fade?" fade":""}">
-        <ui-icon name="${_levelIcons[this.level]}"></ui-icon>
+        ${this.busy ? html`<ui-icon class="notifications-running" name="loader"></ui-icon>` : html`<ui-icon name="${_levelIcons[this.level]}"></ui-icon>`}
         <span class="toast-message">${this.link ? html`<a href=${this.link}>${this.message}</a>` : this.message}</span>
         <span class="toast-close" @click=${this.remove}>×</span>
       </div>

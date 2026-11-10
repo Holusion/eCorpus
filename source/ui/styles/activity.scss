@@ -327,6 +327,11 @@ $sync-delay: .6s;
 // Its list runs from one edge of the section to the other, as the other lists of the user's pages do:
 // what's in its lines starts where the rest of the section does.
 .notifications-page {
+  // The upload page's, while there's nothing in it
+  &[hidden] {
+    display: none;
+  }
+
   .notifications-toolbar {
 
     // Its icon over those of the lines: they end as far from the edge
@@ -349,7 +354,8 @@ $sync-delay: .6s;
     list-style: none;
   }
 
-  li {
+  // Lines, and those leaving the list: not the lists they have, such as the upload page's scenes
+  li[data-notification-id] {
     display: flex;
     align-items: center;
     gap: .75rem;
@@ -411,6 +417,8 @@ $sync-delay: .6s;
 
     > time {
       align-self: flex-end;
+      // On its own line, as in other lines: never on two
+      white-space: nowrap;
       font-size: 80%;
       color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
     }
@@ -419,6 +427,95 @@ $sync-delay: .6s;
   .notifications-mark-read {
     --btn-color: var(--color-text);
     flex: 0 0 auto;
+  }
+
+  // Why it failed, as its task tells: under what it's about
+  .notifications-detail {
+    margin: .15rem 0 0;
+    font-size: 90%;
+    color: var(--color-error);
+  }
+
+  // What an upload made, to go and see it: a scene per line, its name, then where to go
+  .notifications-scenes {
+    margin: .25rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    > li {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .notifications-scene {
+      flex: 1 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  // A scene of an imported archive, after the import's line: its name, what happened to it, then where to go to see it, on the right
+  .notifications-heading {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    > a {
+      flex: 0 1 auto;
+      // It's cut before what follows it is, but it's never cut out
+      min-width: min(12ch, 50%);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  // As a tag: it's not what the line says, only about it
+  .notifications-action {
+    flex: 0 0 auto;
+    padding: 0 .4em;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    font-size: 75%;
+    font-weight: normal;
+    white-space: nowrap;
+    color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+  }
+  .notifications-tools {
+    flex: 0 0 auto;
+    display: flex;
+    gap: .5rem;
+    margin-left: auto;
+    // What's new is bold: not where to go
+    font-weight: normal;
+  }
+
+  .tool-link {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    color: inherit;
+    text-decoration: none;
+    &:hover {
+      color: var(--color-secondary-light);
+    }
+    .ui-icon {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  // The icons tell enough where there's no room: their text stays for those who can't see them
+  @media (max-width: 576px) {
+    .tool-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
   // Out of the list already, with only those that are unread: over what has taken its place. See activity/leave.ts

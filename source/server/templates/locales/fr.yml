@@ -496,6 +496,10 @@ notifications:
   offline: Impossible d'obtenir les dernières notifications.
   # Au-dessus de ce qui est nouveau, depuis moins d'une heure
   justNow: à l'instant
+  # Sur la page d'import : une ligne pour chaque scène d'une archive importée, après celle de l'archive. Ce qui lui est arrivé :
+  upload:
+    created: Créée
+    updated: Mise à jour
   # Complétés par le navigateur : {{type}} est laissé tel quel
   messages:
     default: Vous avez une nouvelle notification
