@@ -89,13 +89,13 @@ describe("errorHandler middleware", function(){
         .expect(500)
         .expect("Vary", /Accept-Language/)
         .expect("Content-Language", "en");
-        expect(res.body).to.have.property("message", "Error: [500] foo.glb does not look like a GLB file");
+        expect(res.body).to.have.property("message", "Error: foo.glb does not look like a GLB file");
 
         const fr = await request(localizedApp({ default_language: "fr" }))
         .get("/")
         .expect(500)
         .expect("Content-Language", "fr");
-        expect(fr.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+        expect(fr.body).to.have.property("message", "Error: foo.glb ne semble pas être un fichier GLB");
       });
 
       it("translates to the requested language", async function(){
@@ -103,7 +103,7 @@ describe("errorHandler middleware", function(){
         .set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8")
         .expect(500)
         .expect("Content-Language", "fr");
-        expect(res.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+        expect(res.body).to.have.property("message", "Error: foo.glb ne semble pas être un fichier GLB");
       });
 
       it("translates text/plain responses", async function(){
@@ -111,7 +111,7 @@ describe("errorHandler middleware", function(){
         .set("Accept", "text/plain")
         .set("Accept-Language", "fr")
         .expect(500)
-        .expect("[500] foo.glb ne semble pas être un fichier GLB");
+        .expect("foo.glb ne semble pas être un fichier GLB");
       });
 
       it("uses the default language for unsupported languages", async function(){
@@ -119,7 +119,7 @@ describe("errorHandler middleware", function(){
         .set("Accept-Language", "de")
         .expect(500)
         .expect("Content-Language", "fr");
-        expect(res.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+        expect(res.body).to.have.property("message", "Error: foo.glb ne semble pas être un fichier GLB");
       });
 
       it("prefers the session's language over Accept-Language, like rendered pages", async function(){
@@ -127,7 +127,7 @@ describe("errorHandler middleware", function(){
         .set("Accept-Language", "en-US,en;q=0.9")
         .expect(500)
         .expect("Content-Language", "fr");
-        expect(res.body).to.have.property("message", "Error: [500] foo.glb ne semble pas être un fichier GLB");
+        expect(res.body).to.have.property("message", "Error: foo.glb ne semble pas être un fichier GLB");
       });
 
       it("translates the error page", async function(){
@@ -142,6 +142,27 @@ describe("errorHandler middleware", function(){
         .expect(500)
         .expect(/<html lang="fr">/)
         .expect(/foo.glb ne semble pas être un fichier GLB/);
+      });
+
+      //It's for whoever reads it: the code is the response's status, and the JSON's own property
+      it("sends only the message, without the error's code, in any format and language", async function(){
+        const app = localizedApp();
+        const templates = new Templates({dir: templatesDir, cache: false});
+        app.engine('.hbs', templates.middleware);
+        app.set('view engine', '.hbs');
+        app.set('views', templates.dir);
+        for(const lng of ["en", "fr"]){
+          const json = await request(app).get("/").set("Accept-Language", lng).expect(500);
+          expect(json.body).to.have.property("code", 500);
+          expect(json.body.message).not.to.contain("[500]");
+          const text = await request(app).get("/").set("Accept", "text/plain").set("Accept-Language", lng).expect(500);
+          expect(text.text).not.to.contain("[500]");
+          const page = await request(app).get("/").set("Accept", "text/html").set("Accept-Language", lng).expect(500);
+          //Its trace, out of sight, still has the error as it was thrown
+          const message = /<p class="message">([^<]*)<\/p>/.exec(page.text)?.[1];
+          expect(message).to.match(/^foo.glb (does not look like|ne semble pas être)/);
+          expect(message).not.to.contain("[500]");
+        }
       });
 
       it("ignores Accept-Language for non-localized errors", async function(){

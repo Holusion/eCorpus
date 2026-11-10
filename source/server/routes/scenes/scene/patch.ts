@@ -1,5 +1,6 @@
 
 import { BadRequestError, ConflictError } from "../../../utils/errors.js";
+import { localize } from "../../../utils/i18n.js";
 import { getUserId, getUserManager, getVfs } from "../../../utils/locals.js";
 import { Request, Response } from "express";
 import errors from "../../../vfs/helpers/errors.js";
@@ -33,7 +34,7 @@ export default async function patchScene(req :Request, res :Response){
         await vfs.renameScene(scene.id, name);
       }catch(e:any){
         if(e.code == errors.unique_violation && e.constraint == "scenes_scene_name_key"){
-          throw new ConflictError(`A scene named ${name} already exists`);
+          throw new ConflictError(localize("errors.sceneExists", {name}));
         }else{
           throw e;
         }

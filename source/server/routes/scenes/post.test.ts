@@ -42,7 +42,7 @@ describe("POST /scenes", function(){
         .expect(403)
         .expect("Content-Language", "fr")
         .expect("WWW-Authenticate", 'Bearer error="insufficient_scope", scope="corpus:write scenes:write"');
-      expect(body.message).to.equal("Error: [403] Portée insuffisante : corpus:write scenes:write");
+      expect(body.message).to.equal("Error: Portée insuffisante : corpus:write scenes:write");
     });
     it("can import (as returned from GET /scenes)", async function(){
       //Where scenes are exported from the `GET /scenes` endpoint
@@ -331,8 +331,16 @@ describe("POST /scenes", function(){
         .expect(401);
         expect(res.body).to.deep.equal({
         code: 401,
-        message: `Error: [401] User doesn't have write permissions on scene "foo"`,
+        message: `Error: You don't have write permissions on scene "foo"`,
       });
+      //In the requester's language
+      res = await request(this.server).post("/scenes")
+        .set("Authorization", await bearer("ulysse"))
+        .set("Accept-Language", "fr")
+        .set("Content-Type", "application/zip")
+        .send(zip.body)
+        .expect(401);
+      expect(res.body).to.have.property("message", `Error: Vous n'avez pas les droits d'écriture sur la scène « foo »`);
 
       await expect(vfs.getScene("foo")).to.be.rejectedWith(NotFoundError);
     });

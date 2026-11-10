@@ -129,9 +129,10 @@ test("tells why a scene couldn't be made", async ({ page, uniqueAccount }) => {
   const failed = uploads.getByRole("link", { name: /createSceneFromFiles/ });
   await expect(failed).toBeVisible();
   const line = lineWith(page, /createSceneFromFiles/);
-  //Errors aren't translated in cimode
-  const why = line.getByText(`A scene named ${name} already exists`);
+  //Why, as the task tells it: in the page's language, without the error's code
+  const why = line.getByText("errors.sceneExists", { exact: true });
   await expect(why).toBeVisible();
+  await expect(line).not.toContainText("[409]");
   await expect(line.getByRole("link", { name: "labels.view" })).toHaveCount(0);
 
   //As it is after a reload

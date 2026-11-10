@@ -7,16 +7,19 @@ import User from "../../auth/User.js";
 import UserManager from "../../auth/UserManager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
 import { TaskDefinition } from "../../tasks/types.js";
+import Vfs from "../../vfs/index.js";
+import { Document, NodeIO } from "@gltf-transform/core";
 
 
 describe("POST /tasks", function(){
-  let userManager :UserManager, taskScheduler :TaskScheduler;
+  let userManager :UserManager, taskScheduler :TaskScheduler, vfs :Vfs;
   let user :User, admin :User, other :User;
 
   this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     userManager = locals.userManager;
     taskScheduler = locals.taskScheduler;
+    vfs = locals.vfs;
     user = await userManager.addUser("bob", "12345678", "create");
     admin = await userManager.addUser("alice", "12345678", "admin");
     other = await userManager.addUser("charlie", "12345678", "create");
@@ -302,6 +305,62 @@ describe("POST /tasks", function(){
         .send({type, data: {name: "foo", language: "EN"}})
         .expect(400);
       }
+    });
+  });
+
+  /** What users get to read of how it went: in their language, when it fails and when it's told later from the task */
+  describe("localized outcomes", function(){
+    /** Uploads a file as charlie, returning the id of the upload task */
+    async function upload(ctx: Mocha.Context, filename: string, data: Buffer): Promise<number>{
+      const {body: {task_id}} = await request(ctx.server).post("/tasks")
+      .set("Authorization", await bearer("charlie"))
+      .send({type: "parseUserUpload", data: {filename, size: data.length}})
+      .expect(201);
+      await request(ctx.server).put(`/tasks/${task_id}/artifact`)
+      .set("Authorization", await bearer("charlie"))
+      .send(data)
+      .expect(201);
+      return task_id;
+    }
+
+    /** The latest createSceneFromFiles of charlie's, as it's sent to them */
+    async function latest(ctx: Mocha.Context, lng: string){
+      const {task_id} = (await taskScheduler.db.get<{task_id: number}>(`
+        SELECT task_id FROM tasks WHERE type = 'createSceneFromFiles' AND fk_user_id = $1 ORDER BY task_id DESC LIMIT 1
+      `, [other.uid]))!;
+      const {body} = await request(ctx.server).get(`/tasks/${task_id}`)
+      .set("Authorization", await bearer("charlie"))
+      .set("Accept-Language", lng)
+      .expect(200);
+      return body.task as TaskDefinition;
+    }
+
+    it("tells that a scene's name is taken", async function(){
+      const name = randomBytes(4).toString("hex");
+      await vfs.createScene(name, admin.uid);
+      const source = await upload(this, "foo.bin", randomBytes(16));
+      const res = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("charlie"))
+      .set("Accept-Language", "fr")
+      .send({type: "createSceneFromFiles", data: {tasks: [source], name, language: "EN"}})
+      .expect(409);
+      //Only the message, without its code: that's for those who know it
+      expect(res.body).to.deep.equal({code: 409, message: `Error: Une scène nommée ${name} existe déjà`});
+      expect((await latest(this, "fr")).output).to.have.property("message", `Une scène nommée ${name} existe déjà`);
+      expect((await latest(this, "en")).output).to.have.property("message", `A scene named ${name} already exists`);
+    });
+
+    it("tells that a model couldn't be optimized", async function(){
+      //A model without a scene: there's nothing to optimize
+      const glb = Buffer.from(await new NodeIO().writeBinary(new Document()));
+      const source = await upload(this, "empty.glb", glb);
+      const res = await request(this.server).post("/tasks")
+      .set("Authorization", await bearer("charlie"))
+      .set("Accept-Language", "fr")
+      .send({type: "createSceneFromFiles", data: {tasks: [source], name: randomBytes(4).toString("hex"), language: "EN", options: {optimize: true}}})
+      .expect(500);
+      expect(res.body).to.deep.equal({code: 500, message: `Error: empty.glb n'a pas pu être optimisé : Empty glb (no root scene)`});
+      expect((await latest(this, "fr")).output).to.have.property("message", `empty.glb n'a pas pu être optimisé : Empty glb (no root scene)`);
     });
   });
 });

@@ -5,6 +5,7 @@ import yauzl, { Entry, ZipFile } from "yauzl";
 import path from "node:path";
 import { isUserAtLeast } from "../../auth/User.js";
 import { BadRequestError, HTTPError, InternalError, UnauthorizedError } from "../../utils/errors.js";
+import { localize } from "../../utils/i18n.js";
 import { parseFilepath } from "../../utils/archives.js";
 import { AccessLevel, fromAccessLevel } from "../../auth/UserManager.js";
 import { getMimeType } from "../../utils/filetypes.js";
@@ -69,7 +70,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
             logger.log(`Scene ${scene} will be updated`);
           }else{
             logger.warn(`Scene ${scene} can't be updated: User only has access level "${fromAccessLevel(rights)}"`);
-            result = {name: scene, action: "error", error: new UnauthorizedError(`User doesn't have write permissions on scene "${scene}"`)};
+            result = {name: scene, action: "error", error: new UnauthorizedError(localize("errors.upload.sceneNotWritable", {name: scene}))};
             has_errors = true;
           }
         }catch(e){
@@ -84,7 +85,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
             result = {name: scene, action: "create"};
             logger.log(`Scene ${scene} will be created`);
           }else{
-            result = {name: scene, action: "error", error: new UnauthorizedError(`User doesn't have write permissions on scene "${scene}"`)};
+            result = {name: scene, action: "error", error: new UnauthorizedError(localize("errors.upload.sceneNotWritable", {name: scene}))};
             has_errors = true;
           }
         }
@@ -168,9 +169,7 @@ export async function extractScenesArchive({task: {scene_id: scene_id, user_id: 
       }else {
         let unauthorized = errors.filter(r=>r.error instanceof UnauthorizedError);
         if(unauthorized.length === errors.length){
-          throw new  UnauthorizedError(
-            `Multiple unauthorized scenes : ${errors.map(r=>r.name).join(",")}`
-          );
+          throw new UnauthorizedError(localize("errors.upload.scenesNotWritable", {names: errors.map(r=>r.name).join(", ")}));
         } else {
           throw new InternalError(`Mixed errors : ${errors.map(r=>r.error.message).join(", ")}`)
         }

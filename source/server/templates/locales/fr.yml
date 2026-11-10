@@ -467,6 +467,7 @@ errors:
   methodNotAllowed: Méthode non autorisée
   notAcceptable: Format de réponse non disponible
   conflict: Conflit
+  sceneExists: "Une scène nommée {{name}} existe déjà"
   lengthRequired: Longueur requise
   preconditionFailed: Précondition non satisfaite
   rangeNotSatisfiable: Plage demandée non satisfaisable
@@ -490,6 +491,9 @@ errors:
   upload:
     notGlb: "{{filename}} ne semble pas être un fichier GLB"
     invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"
+    optimizeFailed: "{{filename}} n'a pas pu être optimisé : {{reason}}"
+    sceneNotWritable: "Vous n'avez pas les droits d'écriture sur la scène « {{name}} »"
+    scenesNotWritable: "Vous n'avez pas les droits d'écriture sur les scènes {{names}}"
 
 notifications:
   markFailed: Impossible de marquer comme lu. Veuillez réessayer.

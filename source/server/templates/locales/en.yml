@@ -449,6 +449,7 @@ errors:
   methodNotAllowed: Method Not Allowed
   notAcceptable: Not Acceptable
   conflict: Conflict
+  sceneExists: "A scene named {{name}} already exists"
   lengthRequired: Length Required
   preconditionFailed: Precondition Failed
   rangeNotSatisfiable: Range Not Satisfiable
@@ -474,6 +475,9 @@ errors:
   upload:
     notGlb: "{{filename}} does not look like a GLB file"
     invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"
+    optimizeFailed: "{{filename}} could not be optimized: {{reason}}"
+    sceneNotWritable: "You don't have write permissions on scene \"{{name}}\""
+    scenesNotWritable: "You don't have write permissions on scenes {{names}}"
 
 notifications:
   markFailed: Couldn't mark as read. Please try again.

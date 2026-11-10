@@ -75,11 +75,12 @@ function isLocalizedData(value: unknown): value is LocalizedData {
 
 /**
  * Message of a (possibly serialized) error, translated if it was {@link localize}d.
+ * A translated message is only the message, for whoever reads it: the error's code isn't in there, in any language.
+ * Others are left as they are: an {@link HTTPError}'s own message starts with its code.
  */
 export function translateErrorMessage(error: { code?: unknown, message: string, i18n?: LocalizedData }, lng: string): string {
   if (!isLocalizedData(error.i18n)) return error.message;
-  const message = new Localized(error.i18n.key, error.i18n.params).translate(lng);
-  return typeof error.code === "number" ? `[${error.code}] ${message}` : message;
+  return new Localized(error.i18n.key, error.i18n.params).translate(lng);
 }
 
 /**

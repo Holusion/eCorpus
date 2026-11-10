@@ -87,7 +87,7 @@ describe("GET /tasks/:id", function(){
       .set("Authorization", await bearer("bob"))
       .set("Accept-Language", "fr")
       .expect(200);
-      expect(body.task.output).to.have.property("message", "[400] foo.glb ne semble pas être un fichier GLB");
+      expect(body.task.output).to.have.property("message", "foo.glb ne semble pas être un fichier GLB");
     });
 
     it("leaves other outputs untouched", async function(){
@@ -126,7 +126,7 @@ describe("GET /tasks/:id", function(){
       .set("Accept-Language", "fr")
       .expect(401)
       .expect("Content-Language", "fr");
-      expect(body.message).to.equal("Error: [401] Droits insuffisants : accès read requis");
+      expect(body.message).to.equal("Error: Droits insuffisants : accès read requis");
     });
 
     describe("scene-based access", function(){

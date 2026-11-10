@@ -49,7 +49,7 @@ describe("/auth/login", function(){
       .set("Accept-Language", "fr")
       .expect(403)
       .expect("Content-Language", "fr");
-    expect(body.message).to.equal("Error: [403] Requête provenant d'une autre origine refusée");
+    expect(body.message).to.equal("Error: Requête provenant d'une autre origine refusée");
   });
 
   it("translates rate-limit responses and preserves retry headers", async function(){
@@ -63,7 +63,7 @@ describe("/auth/login", function(){
       .expect("Content-Language", "fr")
       .expect("Retry-After", /^\d+$/)
       .expect("RateLimit", /remaining=0/);
-    expect(body.message).to.equal("Error: [429] Trop de requêtes, veuillez réessayer plus tard.");
+    expect(body.message).to.equal("Error: Trop de requêtes, veuillez réessayer plus tard.");
   });
 
   it("scopes the cookie's Secure flag to the connection (not NODE_ENV)", async function(){
@@ -144,7 +144,7 @@ describe("/auth/login", function(){
     .expect(401)
     .expect({
       code: 401,
-      message: "Error: [401] Session Token expired. Please reauthenticate"
+      message: "Error: Session Token expired. Please reauthenticate"
     });
   });
 

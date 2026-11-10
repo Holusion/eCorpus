@@ -127,6 +127,8 @@ describe("GET /ui/upload", function() {
     await started("createSceneFromFiles", {status: "error", error: new BadRequestError(localize("errors.upload.notGlb", { filename: "foo.glb" }))});
     const text = await page.call(this, "fr");
     expect(text).to.contain("La création de la scène a échoué");
-    expect(text).to.contain("[400] foo.glb ne semble pas être un fichier GLB");
+    expect(text).to.contain(`<p class="notifications-detail">foo.glb ne semble pas être un fichier GLB</p>`);
+    //Only the message
+    expect(text).not.to.contain("[400]");
   });
 });
