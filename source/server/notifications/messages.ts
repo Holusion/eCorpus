@@ -21,3 +21,24 @@ export function messageOf(item: NotificationItem, lng: string): string{
   const key = keys.find(k=> i18n.exists(k, {lng})) ?? keys[keys.length - 1];
   return i18n.t(key, {lng, type: item.type});
 }
+
+/**
+ * How a notification shows in a page: a line of partials/notification.hbs.
+ * The bell's panel draws them the same way: see source/ui/activity/panel.ts
+ */
+export function notificationView(item: NotificationItem, lng: string){
+  const state = stateOf(item);
+  const [icon, iconClass] = state === "running" ? ["loader", "notifications-running"]
+    : item.status === "error" ? ["error", "text-error"]
+    : item.status === "success" ? ["check", "text-success"]
+    : ["info", "text-info"];
+  return {
+    notification_id: item.notification_id,
+    state,
+    message: messageOf(item, lng),
+    link: item.task_id === null ? null : `/ui/tasks/${item.task_id}`,
+    icon,
+    iconClass,
+    mtime: item.mtime,
+  };
+}

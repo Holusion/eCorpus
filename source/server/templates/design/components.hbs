@@ -34,7 +34,7 @@
     top: -.6em;
     left: .5rem;
     padding: 0 .25rem;
-    background: var(--color-section);
+    background: #2c2c2c;
     font-family: var(--font-heading);
     font-size: .75em;
     color: var(--color-highlight2);
@@ -869,6 +869,60 @@
       <button class="btn btn-danger" onclick="document.querySelector('toast-stack').constructor.show('Something broke.', 'error', 0)">error</button>
     </div>
   </div>
+</section>
+
+
+<section>
+  <h3>Notifications</h3>
+  <div class="design-note">
+    What happens to a user's tasks reaches them as notifications: the bell in the navbar (its badge, the ring
+    that turns while something's running, and its panel), toasts as tasks settle, and lists drawn by the server
+    with the <code>notification</code> partial: the page of notifications, and the upload page.
+    A line is <code>running</code>, <code>unread</code> or <code>read</code>; only unread ones can be marked.
+    The upload page adds what came out of it: why it failed, its scenes, or a line per scene of an archive
+    (<code>data-part</code>), which are read along with the import's.
+    The bell and its panel are styled by their ids, so they're only in the navbar: start a task below to see them change.
+    The lists below are made up, and not followed: a list is kept up to date only with <code>data-notifications</code>
+    (see <code>activity/page.ts</code>).
+  </div>
+  <div class="demo-frame" data-label="trigger notifications">
+    <div class="btn-grid">
+      <button class="btn btn-success" type="button" data-demo-task="success" title="A real task (delayTask) of yours, settled in 3 seconds">task that succeeds</button>
+      <button class="btn btn-danger" type="button" data-demo-task="error" title="A real task (delayTask) of yours, failed in 3 seconds">task that fails</button>
+    </div>
+  </div>
+  {{#each demoNotifications}}
+    <div class="demo-frame" data-label="{{label}}">
+      <div class="notifications-page" style="--section-padding: .75rem;">
+        <ul class="notifications-list">
+          {{#each lines}}
+            {{> notification }}
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+  {{/each}}
+  <script type="module">
+    const stack = document.querySelector("toast-stack");
+    /** As the upload page does: the activity bundle takes it from there */
+    for(const button of document.querySelectorAll("[data-demo-task]")){
+      button.addEventListener("click", async ()=>{
+        const data = button.dataset.demoTask === "error" ? {ms: 3000, fail: "Failed on purpose"} : {ms: 3000};
+        try{
+          const res = await fetch("/tasks", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "Prefer": "respond-async"},
+            body: JSON.stringify({type: "delayTask", data}),
+          });
+          if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+          const {task_id} = await res.json();
+          document.dispatchEvent(new CustomEvent("activity-started", {detail: {task_id, type: "delayTask"}}));
+        }catch(e){
+          stack.constructor.show(`Couldn't start a task: ${e.message}`, "error", 5000);
+        }
+      });
+    }
+  </script>
 </section>
 
 
