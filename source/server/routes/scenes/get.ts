@@ -10,7 +10,7 @@ import { getVfs, getUser, getHost, getUserManager, hasScope } from "../../utils/
 import { wrapFormat } from "../../utils/wrapAsync.js";
 import { compressedMime } from "../../utils/filetypes.js";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
-import { qsToBool, qsToInt } from "../../utils/query.js";
+import { qsToBool, qsToInt, qsToIntArray } from "../../utils/query.js";
 import { UserRoles } from "../../auth/User.js";
 
 export default async function getScenes(req :Request, res :Response){
@@ -33,20 +33,7 @@ export default async function getScenes(req :Request, res :Response){
 
   let accessTypes :AccessType = ((Array.isArray(access))?access[0] : access) as any;
 
-  let scenesList = [];
-  if(typeof ids === "string"){
-    ids = [ids];
-  }
-  
-  
-  if(Array.isArray(ids)){
-    for(let id of ids){
-      if(typeof id !== "string") continue;
-      let n = parseInt(id);
-      if(Number.isNaN(n)) continue;
-      scenesList.push(n);
-    }
-  }
+  let scenesList :Array<number|string> = qsToIntArray(ids);
 
   if(Array.isArray(names)){
     for(let name of names){

@@ -161,6 +161,12 @@ describe("GET /scenes", function(){
       .expect("Content-Type", "application/json; charset=utf-8");
       expect(r.body).to.have.property("scenes").to.have.property("length", 2);
     });
+
+    it("rejects ids that aren't integers", async function(){
+      await request(this.server).get(`/scenes?id=${scenes[0]}&id=foo`)
+      .set("Accept", "application/json")
+      .expect(400);
+    });
   });
 
   describe("can search scenes", async function(){

@@ -4,7 +4,7 @@ import { qsToBool, qsToInt } from "../../utils/query.js";
 import { i18n, localize } from "../../utils/i18n.js";
 import { TaskStatus } from "../../tasks/types.js";
 import { notificationView } from "../../notifications/messages.js";
-import type { UploadLine } from "./index.js";
+import { OutcomeLine } from "../../notifications/outcomes.js";
 
 /**
  * Pages to see what the UI is made of: components, embeds and emails, as /ui/design/*
@@ -13,37 +13,27 @@ const routes = Router();
 routes.use(requireLevel("manage"));
 
 /**
- * Lines of notifications as pages draw them, for the design page: made up, not anyone's.
- * Their links go nowhere: their tasks and scenes don't exist.
+ * A line of notifications of each kind, as pages draw them (see partials/notification.hbs).
+ * Made up: their tasks and scenes don't exist, and their links go nowhere.
  */
 function demoNotifications(lng: string){
-  const now = Date.now();
-  const line = (notification_id: number, type: string, status: TaskStatus, {read = false, minutes = 0} = {}, extra: Partial<UploadLine> = {}): UploadLine => ({
-    ...notificationView({notification_id, task_id: notification_id, type, status, read, mtime: new Date(now - minutes * 60_000).toISOString()}, lng),
+  const line = (notification_id: number, status: TaskStatus, {type = "createSceneFromFiles", read = false, minutes = 0} = {}, ...outcome: OutcomeLine[]) => ({
+    ...notificationView({notification_id, task_id: notification_id, type, status, read, mtime: new Date(Date.now() - minutes * 60_000).toISOString()}, lng),
     link: "#",
-    scenes: [],
-    ...extra,
+    outcome: outcome.length ? {first: outcome[0], rest: outcome.slice(1)} : undefined,
   });
-  const part = (name: string, action: "created"|"updated"): Partial<UploadLine> => ({
-    part: "scene",
-    message: name,
-    link: "#",
-    action: i18n.t(`notifications.upload.${action}`, {lng}),
-    tools: {name, editable: true},
-  });
-  //A block for each kind of line
+  const scene = (name: string, action?: "created"|"updated", editable = true): OutcomeLine => ({scene: {name, editable, action: action && i18n.t(`notifications.upload.${action}`, {lng})}});
   return [
-    {label: "running", lines: [line(1, "createSceneFromFiles", "running")]},
-    {label: "success: unread", lines: [line(2, "createSceneFromFiles", "success", {minutes: 5})]},
-    {label: "failed: unread", lines: [line(3, "extractScenesArchives", "error", {minutes: 90})]},
-    {label: "read", lines: [line(4, "createSceneFromFiles", "success", {read: true, minutes: 3 * 24 * 60})]},
-    {label: "upload page: a scene, why it failed, an archive and its scenes", lines: [
-      line(6, "createSceneFromFiles", "success", {minutes: 2}, {scenes: [{name: "my-scene", editable: true}]}),
-      line(7, "createSceneFromFiles", "error", {minutes: 10}, {detail: localize("errors.sceneExists", {name: "my-scene"}).translate(lng)}),
-      line(8, "extractScenesArchives", "success", {minutes: 30}),
-      line(8, "extractScenesArchives", "success", {minutes: 30}, part("seclin-fontaine", "created")),
-      line(8, "extractScenesArchives", "success", {minutes: 30}, part("seclin-voie-romaine", "updated")),
-    ]},
+    {label: "running", line: line(1, "running")},
+    {label: "success: unread, with what it made", line: line(2, "success", {minutes: 5}, scene("my-scene"))},
+    {label: "failed: unread, with why", line: line(3, "error", {minutes: 90}, {text: localize("errors.sceneExists", {name: "my-scene"}).translate(lng), error: true})},
+    {label: "read", line: line(4, "success", {read: true, minutes: 3 * 24 * 60}, scene("my-scene"))},
+    {label: "upload: an archive, its scenes out of sight until asked for", line: line(5, "success", {type: "extractScenesArchives", minutes: 30},
+      {text: i18n.t("notifications.upload.scenesImported", {lng, count: 3})},
+      scene("seclin-fontaine", "created"),
+      scene("seclin-voie-romaine", "updated"),
+      scene("seclin-plan", "created", false),
+    )},
   ];
 }
 

@@ -488,6 +488,8 @@ notifications:
   upload:
     created: Created
     updated: Updated
+    scenesImported_one: "{{count}} scene imported"
+    scenesImported_other: "{{count}} scenes imported"
   # Filled in by the browser: {{type}} is left as is
   messages:
     default: You have a new notification

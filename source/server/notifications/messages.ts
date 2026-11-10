@@ -23,7 +23,7 @@ export function messageOf(item: NotificationItem, lng: string): string{
 }
 
 /**
- * How a notification shows in a page: a line of partials/notification.hbs.
+ * How a notification shows in a page: a line of partials/notification.hbs, without what came out of it (see outcomes.ts).
  * The bell's panel draws them the same way: see source/ui/activity/panel.ts
  */
 export function notificationView(item: NotificationItem, lng: string){

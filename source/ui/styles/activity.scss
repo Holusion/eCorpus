@@ -357,7 +357,8 @@ $sync-delay: .6s;
   // Lines, and those leaving the list: not the lists they have, such as the upload page's scenes
   li[data-notification-id] {
     display: flex;
-    align-items: center;
+    // On the line of what it says: what came out of it can open under it without moving anything
+    align-items: flex-start;
     gap: .75rem;
     margin: 2px 0;
     // Room for the border of what's unread, which leaves everything where it is
@@ -372,6 +373,7 @@ $sync-delay: .6s;
       flex: 0 0 auto;
       width: 1.25rem;
       height: 1.25rem;
+      margin-top: calc((1lh - 1.25rem) / 2);
     }
 
     // What's new stands out from what's been read
@@ -415,55 +417,110 @@ $sync-delay: .6s;
       text-overflow: ellipsis;
     }
 
-    > time {
-      align-self: flex-end;
-      // On its own line, as in other lines: never on two
+    // Under what it says, or at the end of what came out of it: never on two lines
+    time {
+      margin-top: .15rem;
+      height: 22px; //Match detail caret height
       white-space: nowrap;
       font-size: 80%;
       color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+    }
+    > time {
+      align-self: flex-end;
     }
   }
 
   .notifications-mark-read {
     --btn-color: var(--color-text);
     flex: 0 0 auto;
+    // Centered on the line of what it says, which is shorter than it is: as its icon is (2rem: a .btn-icon's height)
+    margin-block: calc((1lh - 2rem) / 2);
   }
 
-  // Why it failed, as its task tells: under what it's about
-  .notifications-detail {
-    margin: .15rem 0 0;
-    font-size: 90%;
-    color: var(--color-error);
-  }
-
-  // What an upload made, to go and see it: a scene per line, its name, then where to go
-  .notifications-scenes {
-    margin: .25rem 0 0;
-    padding: 0;
-    list-style: none;
-
-    > li {
+  // What came out of it, under what it says (see notifications/outcomes.ts): its first line, with the date at its end,
+  // and the rest out of sight until it's asked for. The date stays where it is when it's open.
+  .notifications-outcome {
+    --outcome-marker: .75rem;
+    margin-top: .15rem;
+    > summary, &:not(details) {
       display: flex;
-      align-items: center;
-      gap: .5rem;
+      // A scene that hasn't the room for the date next to it has it under it, rather than over it
+      flex-wrap: nowrap;
+      align-items: baseline;
+      gap: 0 .5rem;
+      > :first-child {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      // Text makes room for it: it's cut, or it goes on more lines
+      > .notifications-text {
+        flex-basis: 0;
+      }
+      > time {
+        flex: 0 0 auto;
+        margin-left: auto;
+      }
     }
-
-    .notifications-scene {
-      flex: 1 1 auto;
-      min-width: 0;
+    // Laid out as a row, it has no marker of its own anymore
+    > summary {
+      cursor: pointer;
+      list-style: none;
+      &::-webkit-details-marker {
+        display: none;
+      }
+      &::before {
+        content: "▸";
+        flex: 0 0 var(--outcome-marker);
+        transition: transform .15s;
+      }
+    }
+    &[open] > summary::before {
+      transform: rotate(90deg);
+    }
+    // Without a marker, its text starts where it does after one
+    &:not(details) {
+      height: 22px; //Match detail caret height
+      padding-left: calc(var(--outcome-marker) + .5rem);
+    }
+    // Closed, its first line is all there is: it's cut before the date. Open, it's whole.
+    &:not([open]) .notifications-text {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    // Where an edit link would be, so that "view" is in line with the others
+    .tool-placeholder {
+      visibility: hidden;
+    }
+    // Nothing in it can be edited: there's nothing to be in line with
+    &:not(:has(.notifications-tools > a + a)) .tool-placeholder {
+      display: none;
+    }
+    // Under the text of its first line, past its marker
+    > ul {
+      margin: .25rem 0 0;
+      padding: 0 0 0 calc(var(--outcome-marker) + .5rem);
+      list-style: none;
+      > li + li {
+        margin-top: .15rem;
+      }
+    }
+  }
+  .notifications-text, .notifications-scene {
+    font-size: 90%;
+  }
+  .notifications-text {
+    overflow-wrap: anywhere;
   }
 
-  // A scene of an imported archive, after the import's line: its name, what happened to it, then where to go to see it, on the right
-  .notifications-heading {
+  // A scene: its name, what happened to it, then where to go to see it, on the right
+  .notifications-scene {
     display: flex;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: .5rem;
+    gap: 0 .5rem;
     > a {
-      flex: 0 1 auto;
+      flex: 1 1 auto;
       // It's cut before what follows it is, but it's never cut out
       min-width: min(12ch, 50%);
       white-space: nowrap;
@@ -477,8 +534,7 @@ $sync-delay: .6s;
     padding: 0 .4em;
     border: 1px solid currentColor;
     border-radius: 3px;
-    font-size: 75%;
-    font-weight: normal;
+    font-size: 80%;
     white-space: nowrap;
     color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
   }
@@ -487,8 +543,6 @@ $sync-delay: .6s;
     display: flex;
     gap: .5rem;
     margin-left: auto;
-    // What's new is bold: not where to go
-    font-weight: normal;
   }
 
   .tool-link {

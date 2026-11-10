@@ -879,8 +879,8 @@
     that turns while something's running, and its panel), toasts as tasks settle, and lists drawn by the server
     with the <code>notification</code> partial: the page of notifications, and the upload page.
     A line is <code>running</code>, <code>unread</code> or <code>read</code>; only unread ones can be marked.
-    The upload page adds what came out of it: why it failed, its scenes, or a line per scene of an archive
-    (<code>data-part</code>), which are read along with the import's.
+    Under what it says, a line of a list has what came out of it (see <code>notifications/outcomes.ts</code>): why it failed,
+    or what it made. Its first line shows; the rest is in a <code>&lt;details&gt;</code>, whose links don't mark it read.
     The bell and its panel are styled by their ids, so they're only in the navbar: start a task below to see them change.
     The lists below are made up, and not followed: a list is kept up to date only with <code>data-notifications</code>
     (see <code>activity/page.ts</code>).
@@ -895,9 +895,7 @@
     <div class="demo-frame" data-label="{{label}}">
       <div class="notifications-page" style="--section-padding: .75rem;">
         <ul class="notifications-list">
-          {{#each lines}}
-            {{> notification }}
-          {{/each}}
+          {{> notification line }}
         </ul>
       </div>
     </div>

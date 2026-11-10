@@ -36,3 +36,13 @@ export function qsToInt(v:QsValue) :number|undefined{
   if(!Number.isInteger(r)) throw new BadRequestError(`Not a valid integer : ${v}`);
   return r;
 }
+
+/**
+ * Parse a list of integers, as `?id=1&id=2`. An absent value is an empty list.
+ * @throws {BadRequestError} if any of them isn't an integer
+ */
+export function qsToIntArray(v:QsValue) :number[]{
+  const ints = [v ?? []].flat().map((i)=> typeof i === "string" && /^-?\d+$/.test(i) ? Number(i) : NaN);
+  if(ints.some((i)=> !Number.isSafeInteger(i))) throw new BadRequestError(`Not a list of integers : ${v}`);
+  return ints;
+}

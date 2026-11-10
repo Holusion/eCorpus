@@ -2,17 +2,21 @@ import request from "supertest";
 
 import { NotificationManager } from "../../notifications/manager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
+import Vfs from "../../vfs/index.js";
+import { BadRequestError } from "../../utils/errors.js";
+import { localize } from "../../utils/i18n.js";
 
 
 /** All of a user's notifications, a page at a time: what small screens get instead of the bell's panel */
 describe("GET /ui/user/notifications", function(){
-  let tasks: TaskScheduler, hub: NotificationManager;
+  let tasks: TaskScheduler, hub: NotificationManager, vfs: Vfs;
   let uid: number, other: number;
 
   this.beforeAll(async function(){
     const locals = await createIntegrationContext(this);
     tasks = locals.taskScheduler;
     hub = locals.notifications;
+    vfs = locals.vfs;
     uid = (await locals.userManager.addUser("bob", "12345678", "use")).uid;
     other = (await locals.userManager.addUser("alice", "12345678", "use")).uid;
   });
@@ -115,9 +119,102 @@ describe("GET /ui/user/notifications", function(){
     expect(text).to.contain("No notifications.");
   });
 
+  /** A notified task of bob's, of that type, settled with that output or that error */
+  async function settled(type: string, outcome: {output: unknown} | {error: Error}){
+    const task = await tasks.create({type, data: {}, user_id: uid});
+    await hub.notify(task);
+    if("error" in outcome) await tasks.errorTask(task.task_id, outcome.error);
+    else await tasks.releaseTask(task.task_id, outcome.output as any);
+    return task.task_id;
+  }
+
+  it("says why a task failed, in the page's language, without its code", async function(){
+    await settled("createSceneFromFiles", {error: new BadRequestError(localize("errors.upload.notGlb", {filename: "foo.glb"}))});
+    const {text} = await request(this.server).get("/ui/user/notifications")
+      .set("Authorization", await bearer("bob"))
+      .set("Accept-Language", "fr")
+      .expect(200);
+    expect(text).to.contain(`class="notifications-text text-error">foo.glb ne semble pas être un fichier GLB</span>`);
+    expect(text).not.to.contain("[400]");
+  });
+
+  it("has what came out of a task: the scene it made, or what it says", async function(){
+    const scene_id = await vfs.createScene("made-for-notifications", uid);
+    await settled("createSceneFromFiles", {output: scene_id});
+    await settled("testTask", {output: {messages: [localize("modelWarnings.recommend-optimize").toData()]}});
+    const text = await page.call(this);
+    expect(text).to.contain(`href="/ui/scenes/made-for-notifications/view"`);
+    expect(text).to.contain(`class="notifications-text">Tick the &quot;Optimize&quot; checkbox before creating the scene.</span>`);
+  });
+
   it("is linked from the bell, its panel, and the user's pages", async function(){
     const text = await page.call(this);
     expect(text).to.match(/<a id="nav-notifications"[^>]* href="\/ui\/user\/notifications"/);
     expect(text.match(/href="\/ui\/user\/notifications"/g)).to.have.length(3);
+  });
+});
+
+
+/** Lines of notifications as pages draw them, for those pages to draw them again, or to add them */
+describe("GET /ui/user/notifications/lines", function(){
+  let tasks: TaskScheduler, hub: NotificationManager;
+  let uid: number, other: number;
+
+  this.beforeAll(async function(){
+    const locals = await createIntegrationContext(this);
+    tasks = locals.taskScheduler;
+    hub = locals.notifications;
+    uid = (await locals.userManager.addUser("bob", "12345678", "use")).uid;
+    other = (await locals.userManager.addUser("alice", "12345678", "use")).uid;
+  });
+
+  async function notified(user_id = uid){
+    const task = await tasks.create({type: "testTask", data: {}, user_id});
+    await hub.notify(task);
+    const [{notification_id}] = await tasks.db.all<{notification_id: number}>(`SELECT notification_id FROM notifications WHERE fk_task_id = $1`, [task.task_id]);
+    return {task_id: task.task_id, notification_id};
+  }
+
+  async function lines(this: Mocha.Context, query: string, status = 200){
+    const {text} = await request(this.server).get(`/ui/user/notifications/lines?${query}`)
+      .set("Authorization", await bearer("bob"))
+      .expect(status);
+    return text;
+  }
+
+  function idsIn(text: string){
+    return [...text.matchAll(/<li class="\w+" data-notification-id="(\d+)">/g)].map(([, id])=> parseInt(id, 10));
+  }
+
+  it("draws them by id, on their own", async function(){
+    const a = await notified(), b = await notified();
+    await notified();
+    const text = await lines.call(this, `id=${a.notification_id}&id=${b.notification_id}`);
+    //Newest first
+    expect(idsIn(text)).to.deep.equal([b.notification_id, a.notification_id]);
+    expect(text).not.to.contain("<html");
+    expect(text.trim()).to.match(/^<li /);
+  });
+
+  it("draws them by the task they're about", async function(){
+    const a = await notified();
+    expect(idsIn(await lines.call(this, `task=${a.task_id}`))).to.deep.equal([a.notification_id]);
+  });
+
+  it("leaves out someone else's", async function(){
+    const theirs = await notified(other);
+    expect(idsIn(await lines.call(this, `id=${theirs.notification_id}&task=${theirs.task_id}`))).to.deep.equal([]);
+  });
+
+  it("has nothing to draw without ids", async function(){
+    expect((await lines.call(this, "")).trim()).to.equal("");
+  });
+
+  it("rejects ids that aren't numbers", async function(){
+    await lines.call(this, "id=foo", 400);
+  });
+
+  it("refuses visitors", async function(){
+    await request(this.server).get("/ui/user/notifications/lines?id=1").expect(401);
   });
 });

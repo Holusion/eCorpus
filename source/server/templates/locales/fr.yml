@@ -504,6 +504,8 @@ notifications:
   upload:
     created: Créée
     updated: Mise à jour
+    scenesImported_one: "{{count}} scène importée"
+    scenesImported_other: "{{count}} scènes importées"
   # Complétés par le navigateur : {{type}} est laissé tel quel
   messages:
     default: Vous avez une nouvelle notification

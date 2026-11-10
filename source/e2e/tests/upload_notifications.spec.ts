@@ -145,7 +145,7 @@ test("tells why a scene couldn't be made", async ({ page, uniqueAccount }) => {
   await expect(uploads).toBeHidden();
 });
 
-test("has a line for each scene of an archive, which are read together", async ({ page, uniqueAccount }) => {
+test("tells how many scenes an archive had, each of them out of sight until it's asked for", async ({ page, uniqueAccount }) => {
   await login(page, await uniqueAccount("create"));
   const names = [randomUUID(), randomUUID()];
   for (const name of names) {
@@ -163,30 +163,41 @@ test("has a line for each scene of an archive, which are read together", async (
   await page.locator('input[type="file"]').setInputFiles({ name: "scenes.zip", mimeType: "application/zip", buffer: body });
   await page.getByRole("button", { name: "buttons.uploadArchive" }).click();
 
+  //One line: it's read as a whole
   const uploads = uploadsOf(page);
-  const created = uploads.getByRole("link", { name: names[0], exact: true });
-  const updated = uploads.getByRole("link", { name: names[1], exact: true });
+  const line = lineWith(page, /extractScenesArchives/);
+  const count = line.getByText("notifications.upload.scenesImported");
+  await expect(count).toBeVisible();
+  await expect(uploads.getByRole("button", { name: "buttons.markAsRead" })).toHaveCount(1);
+  const created = line.getByRole("link", { name: names[0], exact: true });
+  const updated = line.getByRole("link", { name: names[1], exact: true });
+  await expect(created).toBeHidden();
+
+  //Opening it moves neither its date nor its icon
+  const date = await line.locator("time").boundingBox();
+  const icon = await line.locator(":scope > ui-icon").boundingBox();
+  await count.click();
+  await expect(created).toBeVisible();
+  expect(await line.locator("time").boundingBox()).toEqual(date);
+  expect(await line.locator(":scope > ui-icon").boundingBox()).toEqual(icon);
   await expect(created).toHaveAttribute("href", `/ui/scenes/${names[0]}`);
   await expect(updated).toHaveAttribute("href", `/ui/scenes/${names[1]}`);
-  await expect(lineWith(page, names[0]).getByText("notifications.upload.created")).toBeVisible();
-  await expect(lineWith(page, names[1]).getByText("notifications.upload.updated")).toBeVisible();
-  const lines = uploads.getByRole("listitem");
-  await expect(lines).toHaveCount(3);
-  //The import's own first, which is the only one that can be marked
-  await expect(lines.first().getByRole("link", { name: /extractScenesArchives/ })).toBeVisible();
-  await expect(uploads.getByRole("button", { name: "buttons.markAsRead" })).toHaveCount(1);
+  const scenes = line.getByRole("listitem");
+  const sceneOf = (name: string) => scenes.filter({ has: page.getByRole("link", { name, exact: true }) });
+  await expect(sceneOf(names[0]).getByText("notifications.upload.created")).toBeVisible();
+  await expect(sceneOf(names[1]).getByText("notifications.upload.updated")).toBeVisible();
   for (const name of names) {
-    await expect(lineWith(page, name).getByRole("link", { name: "labels.view" })).toHaveAttribute("href", `/ui/scenes/${name}/view`);
+    await expect(scenes.filter({ hasText: name }).getByRole("link", { name: "labels.view" })).toHaveAttribute("href", `/ui/scenes/${name}/view`);
   }
 
-  //Seeing a scene doesn't read the others
+  //Seeing one of them doesn't read the others
   await created.click();
   await expect(page).toHaveURL(`/ui/scenes/${names[0]}`);
   await page.goBack();
-  await expect(lines).toHaveCount(3);
+  await expect(count).toBeVisible();
 
-  await uploads.getByRole("button", { name: "buttons.markAsRead" }).click();
-  await expect(lines).toHaveCount(0);
+  await line.getByRole("button", { name: "buttons.markAsRead" }).click();
+  await expect(count).toHaveCount(0);
   await expect(uploads).toBeHidden();
   await page.reload();
   await expect(uploads).toBeHidden();

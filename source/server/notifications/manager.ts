@@ -145,6 +145,7 @@ export class NotificationManager{
    * Changes move them: an offset only holds as long as nothing does, which is good enough to look further.
    * @param unreadOnly leaves out those that have been read
    * @param types only those of these types
+   * @param ids,task_ids only those with these ids, or about these tasks
    * @throws {BadRequestError} if `limit` or `offset` aren't integers, or are out of range
    */
   public async getNotifications(user_id: number, {
@@ -152,12 +153,15 @@ export class NotificationManager{
     offset = 0,
     unreadOnly = false,
     types,
-  }: {limit?: number, offset?: number, unreadOnly?: boolean, types?: string[]} = {}): Promise<NotificationItem[]>{
+    ids,
+    task_ids,
+  }: {limit?: number, offset?: number, unreadOnly?: boolean, types?: string[], ids?: number[], task_ids?: number[]} = {}): Promise<NotificationItem[]>{
     if(!Number.isInteger(limit) || limit <= 0) throw new BadRequestError(`limit must be a positive integer`);
     if(!Number.isInteger(offset) || offset < 0) throw new BadRequestError(`offset must be a non-negative integer`);
     const filters = `n.fk_user_id = $1
       AND (NOT $4 OR NOT n.read)
-      AND ($5::text[] IS NULL OR n.type = ANY($5::text[]))`;
+      AND ($5::text[] IS NULL OR n.type = ANY($5::text[]))
+      AND (($6::bigint[] IS NULL AND $7::bigint[] IS NULL) OR n.notification_id = ANY($6::bigint[]) OR n.fk_task_id = ANY($7::bigint[]))`;
     // Each side takes no more than the page needs, so both can follow an index.
     // `notification_item()` is only called on the rows that are returned, not those the offset skips.
     // The unsettled status must be written as in `idx_tasks_unsettled` for it to be used.
@@ -181,7 +185,7 @@ export class NotificationManager{
         LIMIT $2::int OFFSET $3::int
       ) p
       ORDER BY p.settled, p.mtime DESC, p.notification_id DESC
-    `, [user_id, limit, offset, unreadOnly, types ?? null]);
+    `, [user_id, limit, offset, unreadOnly, types ?? null, ids ?? null, task_ids ?? null]);
     return rows.map(r=> r.item);
   }
 

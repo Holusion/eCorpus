@@ -3,18 +3,17 @@ import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, 
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
-import { qsToBool, qsToInt } from "../../utils/query.js";
+import { qsToBool, qsToInt, qsToIntArray } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
 import { AccessLevel } from "../../auth/UserManager.js";
-import { BadRequestError } from "../../utils/errors.js";
-import { TaskDefinition } from "../../tasks/types.js";
+import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
-import { i18n, translateErrorMessage } from "../../utils/i18n.js";
 import { NotificationManager } from "../../notifications/manager.js";
 import { notificationView } from "../../notifications/messages.js";
 import { NotificationItem } from "../../notifications/types.js";
+import { outcomeOf } from "../../notifications/outcomes.js";
 import designRoutes from "./design.js";
 
 
@@ -94,72 +93,14 @@ routes.get("/", async (req, res)=>{
 /** Tasks that the upload page starts, and follows: it has their notifications until they've been read */
 const UPLOAD_TASKS = ["createSceneFromFiles", "extractScenesArchives"];
 
-type SceneTools = {name: string, editable: boolean};
-
 /**
- * A line of the upload page: a notification, as in the page of notifications, with what came out of it:
- * the scenes it made, that can be seen (and edited, for those that can), or why it failed.
+ * Lines of pages of notifications (the notification partial): what a notification says, and what came out of it.
+ * The same in all of them: the page of notifications, the upload page, and the lines they draw again.
  */
-export type UploadLine = ReturnType<typeof notificationView> & {
-  scenes: SceneTools[],
-  detail?: string,
-  /** Where to go for the scene a line is about */
-  tools?: SceneTools,
-  /** What happened to it */
-  action?: string,
-  /** A line that's part of another notification's: see uploadLines() */
-  part?: "scene",
-};
-
-/** It may have gone since */
-async function sceneTools(req: Request, key: string|number): Promise<SceneTools|null>{
-  try{
-    const scene = await getVfs(req).getScene(key);
-    return {name: scene.name, editable: scene.type === "voyager"};
-  }catch(e: any){
-    log.debug({ scene: key, err: e }, "A scene made by an upload is gone");
-    return null;
-  }
-}
-
-/**
- * The lines of an upload's notification. That's one, except for an archive that was imported:
- * then each scene gets its own, after the import's, as if it had its own notification. They're all read together.
- */
-async function uploadLines(req: Request, item: NotificationItem, lng: string): Promise<UploadLine[]>{
-  const view: UploadLine = { ...notificationView(item, lng), scenes: [] };
-  if(item.task_id === null || view.state === "running") return [view];
-  let task: TaskDefinition;
-  try{
-    task = await getTaskScheduler(req).getTask(item.task_id);
-  }catch(e: any){
-    log.warn({ task_id: item.task_id, err: e }, "Can't get the task of an upload's notification");
-    return [view];
-  }
-  if(task.status === "error"){
-    if(typeof task.output?.message === "string") view.detail = translateErrorMessage(task.output, lng);
-    return [view];
-  }
-  if(task.type === "createSceneFromFiles" && typeof task.output === "number"){
-    const tools = await sceneTools(req, task.output);
-    if(tools) view.scenes.push(tools);
-    return [view];
-  }
-  if(task.type !== "extractScenesArchives" || !Array.isArray(task.output)) return [view];
-  const lines = [view];
-  for(const {name, action} of task.output as Array<{name: string, action: "create"|"update"}>){
-    const tools = await sceneTools(req, name);
-    if(!tools) continue;
-    lines.push({
-      ...view,
-      part: "scene",
-      message: tools.name,
-      action: i18n.t(action === "update" ? "notifications.upload.updated" : "notifications.upload.created", {lng}),
-      link: `/ui/scenes/${encodeURIComponent(tools.name)}`,
-      tools,
-    });
-  }
-  return lines;
+async function notificationLines(req: Request, items: NotificationItem[]){
+  const lng = getLanguage(req);
+  const ctx = {tasks: getTaskScheduler(req), vfs: getVfs(req), lng};
+  return await Promise.all(items.map(async (item)=> ({...notificationView(item, lng), outcome: await outcomeOf(item, ctx)})));
 }
 
 /**
@@ -176,9 +117,8 @@ routes.get("/upload", async (req, res)=>{
       },
     });
   }
-  const lng = getLanguage(req);
   const items = await getLocals(req).notifications.getNotifications(requester!.uid, { unreadOnly: true, types: UPLOAD_TASKS });
-  const uploads = (await Promise.all(items.map((item)=> uploadLines(req, item, lng)))).flat();
+  const uploads = await notificationLines(req, items);
   res.render("upload", {
     title: "eCorpus: Create new scene",
     uploads,
@@ -838,8 +778,7 @@ routes.get("/user/notifications", async (req, res) => {
   const offset = qsToInt(req.query.offset) ?? 0;
   //One more, to tell whether there's a next page
   const items = await getLocals(req).notifications.getNotifications(user!.uid, { limit: limit + 1, offset, unreadOnly });
-  const lng = getLanguage(req);
-  const notifications = items.slice(0, limit).map((item) => notificationView(item, lng));
+  const notifications = await notificationLines(req, items.slice(0, limit));
 
   const pageUrl = (offset: number) => {
     const url = new URL(req.originalUrl, getHost(req));
@@ -856,6 +795,23 @@ routes.get("/user/notifications", async (req, res) => {
     params: { unreadOnly },
     pager: (next || previous) ? { from: offset, to: offset + notifications.length, next, previous } : undefined,
   });
+});
+
+/**
+ * Lines of some of the user's notifications, as pages draw them: by id, or by the task they're about (`?id=…&task=…`).
+ * For those pages to draw again what has changed, or to add what's new: see source/ui/activity/page.ts.
+ * Those that aren't the user's are left out.
+ */
+routes.get("/user/notifications/lines", async (req, res) => {
+  const user = getUser(req);
+  if (!isUserAtLeast(user, "use")) throw new UnauthorizedError();
+  const ids = qsToIntArray(req.query.id);
+  const task_ids = qsToIntArray(req.query.task);
+  //At most one per id, and one per task
+  const limit = ids.length + task_ids.length;
+  if(100 < limit) throw new BadRequestError(`At most 100 ids and tasks at once`);
+  const items = limit ? await getLocals(req).notifications.getNotifications(user!.uid, { ids, task_ids, limit }) : [];
+  res.render("user/notificationLines", { layout: null, lines: await notificationLines(req, items) });
 });
 
 routes.get("/admin/tasks", requireLevel("admin"), async (req, res) => {

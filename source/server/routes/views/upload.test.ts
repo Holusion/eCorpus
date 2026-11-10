@@ -87,7 +87,7 @@ describe("GET /ui/upload", function() {
     expect(text).to.contain(`href="/ui/scenes/made-from-files/edit"`);
   });
 
-  it("has a line for each scene of an archive, after the import's, leaving out those that are gone", async function() {
+  it("has how many scenes an archive had, then each, leaving out those that are gone", async function() {
     await vfs.createScene("from-archive", uploader);
     const updated = await vfs.createScene("updated-from-archive", uploader);
     await vfs.writeDoc(`{"id":1}`, {scene: updated, user_id: uploader, name: "scene.svx.json", mime: "application/si-dpo-3d.document+json"});
@@ -97,23 +97,18 @@ describe("GET /ui/upload", function() {
       {name: "updated-from-archive", action: "update"},
     ]});
     const text = await page.call(this);
-    const lines = [...text.matchAll(/<li class="(\w+)" data-notification-id="(\d+)"( data-part="scene")?>(.*?)<\/li>\s*(?=<li class|<\/ul>\s*<\/section>)/gs)];
-    //All of them for the same notification, the import's first
-    expect(new Set(lines.map(([, , id])=> id)).size).to.equal(1);
-    expect(lines.map(([, state, , part])=> [state, !!part])).to.deep.equal([
-      ["unread", false],
-      ["unread", true],
-      ["unread", true],
-    ]);
-    const [importLine, created, update] = lines.map(([, , , , content])=> content);
-    expect(importLine).to.contain(`href="/ui/tasks/${task}"`);
-    expect(importLine).to.contain(`Archive imported`);
-    //Only the import's can be marked: they're read together
-    expect(importLine).to.contain(`notifications-mark-read`);
-    expect(created).not.to.contain(`notifications-mark-read`);
+    //One line: they're read together
+    expect(text.match(/data-notification-id=/g)).to.have.length(1);
+    expect(text).to.contain(`href="/ui/tasks/${task}"`);
+    expect(text).to.contain(`Archive imported`);
+    expect(text.match(/notifications-mark-read/g)).to.have.length(1);
+    //How many, then each, out of sight until they're asked for
+    const details = /<details class="notifications-outcome">(.*?)<\/details>/s.exec(text)?.[1] ?? "";
+    //The date at the end of its first line
+    expect(details).to.match(/<summary>\s*<span [^>]*class="notifications-text">2 scenes imported<\/span>\s*<time [^>]*>[^<]+<\/time>\s*<\/summary>/);
+    const [created, update] = [...details.matchAll(/<li>(.*?)<\/li>/gs)].map(([, line])=> line);
     expect(created).to.contain(`>from-archive</a>`);
     expect(created).to.contain(`>Created</span>`);
-    expect(created).to.contain(`href="/ui/scenes/from-archive"`);
     expect(created).to.contain(`href="/ui/scenes/from-archive/view"`);
     //Not a voyager scene
     expect(created).not.to.contain(`/edit"`);
@@ -123,11 +118,19 @@ describe("GET /ui/upload", function() {
     expect(text).not.to.contain(`gone-since`);
   });
 
+  it("tells a single scene of an archive as it is", async function() {
+    await vfs.createScene("alone-in-archive", uploader);
+    await started("extractScenesArchives", {status: "success", output: [{name: "alone-in-archive", action: "create"}]});
+    const text = await page.call(this);
+    expect(text).not.to.contain(`<details`);
+    expect(text).to.match(/<div class="notifications-outcome">\s*<span class="notifications-scene">\s*<span class="notifications-action">Created<\/span>\s*<a [^>]*href="\/ui\/scenes\/alone-in-archive">alone-in-archive<\/a>/);
+  });
+
   it("translates errors of failed upload tasks", async function() {
     await started("createSceneFromFiles", {status: "error", error: new BadRequestError(localize("errors.upload.notGlb", { filename: "foo.glb" }))});
     const text = await page.call(this, "fr");
     expect(text).to.contain("La création de la scène a échoué");
-    expect(text).to.contain(`<p class="notifications-detail">foo.glb ne semble pas être un fichier GLB</p>`);
+    expect(text).to.contain(`class="notifications-text text-error">foo.glb ne semble pas être un fichier GLB</span>`);
     //Only the message
     expect(text).not.to.contain("[400]");
   });

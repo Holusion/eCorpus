@@ -159,6 +159,8 @@ test("uploads a multi-scene zip", async ({page, request})=>{
 
 
   const uploads = page.getByRole("region", {name: "titles.createdScenes"});
+  //Its scenes are out of sight until they're asked for
+  await uploads.getByText("notifications.upload.scenesImported").click();
   for (let name of names){
     await expect(uploads).toBeVisible();
     //Don't check for actual progress bar visibility because that could be too quick to register
