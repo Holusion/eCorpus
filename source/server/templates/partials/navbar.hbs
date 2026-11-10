@@ -39,6 +39,8 @@
           A link to the page of notifications: only a plain click opens the panel instead, see activity/panel.ts --}}
         <a id="nav-notifications" class="btn btn-outline btn-icon nav-btn" href="/ui/user/notifications" title="{{i18n "nav.notifications"}}" data-activity="{{activity.url}}">
           <ui-icon name="bell"></ui-icon>
+          {{!-- In place of the bell while something's running: as in lines of notifications --}}
+          <cube-loader class="nav-running"></cube-loader>
           <span class="visually-hidden">{{i18n "nav.notifications"}}</span>
           <span class="nav-badge" role="img" hidden></span>
         </a>

@@ -63,7 +63,7 @@ export class Toast extends LitElement{
   render(){
     return html`
       <div class="toast toast-${this.level}${this.fade?" fade":""}">
-        ${this.busy ? html`<ui-icon class="notifications-running" name="loader"></ui-icon>` : html`<ui-icon name="${_levelIcons[this.level]}"></ui-icon>`}
+        ${this.busy ? html`<cube-loader></cube-loader>` : html`<ui-icon name="${_levelIcons[this.level]}"></ui-icon>`}
         <span class="toast-message">${this.link ? html`<a href=${this.link}>${this.message}</a>` : this.message}</span>
         <span class="toast-close" @click=${this.remove}>×</span>
       </div>

@@ -103,7 +103,7 @@ function reloadIfEmpty() {
 function update(li: HTMLElement, item: NotificationItem) {
   const state = stateOf(item);
   if (li.className === state) return;
-  li.querySelector("ui-icon")?.replaceWith(statusIcon(item));
+  li.querySelector("ui-icon, cube-loader")?.replaceWith(statusIcon(item));
   const text = li.querySelector(".notifications-content > a, .notifications-content > span");
   if (text) text.textContent = messageOf(item);
   setState(li, state);

@@ -39,6 +39,27 @@
       this.innerHTML = (!name || name === "empty") ? "" : `<svg aria-hidden="true"><use href="/dist/images/icons.svg#icon-${name}"></use></svg>`;
     }
   });
+  //The two loaders. Named with aria-label, they're a progressbar; otherwise, not there for assistive technologies.
+  //Drawn in shadow roots, with their own styles (styles/loaders.scss): the same wherever they are, in Voyager's too (see its Spinner.ts).
+  //What's in them, once those styles are there: not unstyled before.
+  class Loader extends HTMLElement {
+    connectedCallback() {
+      if(this.hasAttribute("aria-label")) { if(!this.hasAttribute("role")) this.setAttribute("role", "progressbar"); }
+      else if(!this.hasAttribute("role")) this.setAttribute("aria-hidden", "true");
+      if(this.shadowRoot) return;
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "/dist/css/loaders.css?ref={{ config.build_ref }}";
+      link.addEventListener("load", () => link.insertAdjacentHTML("afterend", this.constructor.html), { once: true });
+      this.attachShadow({ mode: "open" }).append(link);
+    }
+  }
+  customElements.define("circle-loader", class extends Loader {
+    static html = `<svg class="circle" viewBox="0 0 24 24"><path class="arc" d="M21 12a9 9 0 1 1-6.2-8.6"/><path class="ring" d="M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0"/></svg>`;
+  });
+  customElements.define("cube-loader", class extends Loader {
+    static html = `<span class="cube"><span class="spin"><span class="face"><i></i><b></b></span><span class="face"></span></span></span>`;
+  });
 </script>
 
 <style>

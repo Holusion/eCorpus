@@ -19,7 +19,7 @@
         <td>{{author}}</td>
         <td>
           <submit-fragment encoding="application/json" onsubmit="this.closest('tr')?.remove();">
-            <form class="form-control" style="display:flex; justify-content:end;gap:.6rem;">
+            <form style="display:flex; justify-content:end; gap:.6rem;">
               <input type="hidden" name="archived", value="false"/>
               <button data-formmethod="PATCH"  formaction="/scenes/{{encodeURIComponent name }}" role="submit" class="btn btn-small btn-transparent btn-inline btn-success" title="{{i18n "labels.restore"}}" aria-label="{{i18n "labels.restore"}}" >
                 <ui-icon name="restore"></ui-icon>
@@ -28,7 +28,6 @@
                 <ui-icon name="trash"></ui-icon>
               </button>
             </form>
-            <progress slot="loader" style="position:absolute; inset: 0;backdrop-filter: blur(5px)">request in progress</progress>
           </submit-fragment>
         </td>
       </tr>

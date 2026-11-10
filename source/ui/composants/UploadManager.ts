@@ -206,7 +206,7 @@ export default class UploadManager extends LitElement{
       }
     }
     let state = "pending";
-    let stateText: TemplateResult|string = html`<span class="loader"></span>`;
+    let stateText: TemplateResult|string = html`<cube-loader></cube-loader>`;
     let filetype: TemplateResult|null = null;
     let unit = binaryUnit(u.total ?? 0);
     let progress = `${formatBytes(u.progress, unit)}/${formatBytes(u.total ?? 0)}`;
@@ -268,7 +268,7 @@ export default class UploadManager extends LitElement{
     return html`<slot name="upload-form" ?disabled=${this.uploader.has_pending_uploads|| this.busy}></slot>
       <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
-          if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
+          if(this.uploader.has_pending_uploads|| this.busy) return html`<cube-loader style="font-size: 2rem"></cube-loader>`
           else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
           else if(this.uploader.size && can_submit) return html`<slot name="submit-scenes" @click=${this.createScene} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
           else if(this.uploader.size) return html`<slot name="no-model">Provide at least one model</slot>`
@@ -293,7 +293,7 @@ export default class UploadManager extends LitElement{
       </ul>
        <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
-          if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
+          if(this.uploader.has_pending_uploads|| this.busy) return html`<cube-loader style="font-size: 2rem"></cube-loader>`
           else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
           else if(this.uploader.size && can_submit) return html`<slot name="submit-archives" @click=${this.extractArchives} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
           else return null;
@@ -389,28 +389,6 @@ export default class UploadManager extends LitElement{
     }
 
 
-    @keyframes l1 {
-      0%  {background-size: 20% 100%,20% 100%,20% 100%}
-      33% {background-size: 20% 10% ,20% 100%,20% 100%}
-      50% {background-size: 20% 100%,20% 10% ,20% 100%}
-      66% {background-size: 20% 100%,20% 100%,20% 10% }
-      100%{background-size: 20% 100%,20% 100%,20% 100%}
-    }
-    
-    .loader{
-      display: block;
-      width: 24px;
-      height: 24px;
-      aspect-ratio: 1;
-      --c: no-repeat linear-gradient(var(--color-loader, var(--color-info)) 0 0);
-      background: 
-        var(--c) 0%   50%,
-        var(--c) 50%  50%,
-        var(--c) 100% 50%;
-      background-size: 20% 100%;
-      animation: l1 1s infinite linear;
-    }
-    
     .upload-list{
       max-width: 100%;
       margin: .25rem;

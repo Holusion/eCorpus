@@ -39,7 +39,8 @@ main {
   justify-content: stretch;
   align-items: center;
 
-  .ui-icon {
+  // The cube while what it tells about is running: in the color of the text, whatever its level
+  .ui-icon, cube-loader {
     flex: 0 0 auto;
     height: 2em;
     width: 2em;
@@ -57,10 +58,6 @@ main {
   }
   &.toast-error > .ui-icon {
     color: var(--color-error);
-  }
-  // As notifications show a task that's running: see activity.scss
-  & > .ui-icon.notifications-running {
-    color: var(--color-primary);
   }
   
   .toast-message {
@@ -88,18 +85,17 @@ main {
   }
 }
 
-.ui-icon{
-  flex: 0 0 auto;
-  display: inline-block;
-  height: 1em;
-  width: 1em;
-  > svg{
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    fill: none;
-    width: 100%;
-    height: 100%;
-  }
+@import "./icons.scss";
+
+// The loaders, drawn in their shadow roots (see loaders.scss): their place, before they get there
+@import "./loaders-box";
+circle-loader, cube-loader {
+  @include box;
+}
+cube-loader {
+  @include cube-box;
+}
+// To see the loaders as they'd be with less motion: see the design page
+.ui-reduced-motion {
+  --ui-reduced-motion: 1;
 }

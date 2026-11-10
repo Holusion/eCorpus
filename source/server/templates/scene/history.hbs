@@ -58,7 +58,7 @@
         data-diff-id="{{entry.id}}">
         <summary><span class="if-collapsed">{{i18n "info.showDetails"}}</span><span class="if-expanded">{{i18n "info.hideDetails"}}</span></summary>
         <div class="history-entry-diff-body" data-diff-state="pending">
-          <progress aria-label="loading">…</progress>
+          <cube-loader aria-label="{{i18n "labels.loading"}}"></cube-loader>
         </div>
       </details>
     {{/unless}}
@@ -251,6 +251,11 @@
   .history-entry-diff:not([open]) .if-expanded{display:none}
   .history-entry-diff-body{
     padding: .5rem 0;
+  }
+  .history-entry-diff-body > cube-loader{
+    display: block;
+    margin: auto;
+    font-size: 2rem;
   }
   .history-entry-diff-body pre{
     background: #111;

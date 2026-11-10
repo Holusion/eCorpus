@@ -60,6 +60,8 @@ module.exports = function createAppConfig(env, argv={})
         entry: {
             "corpus": "source/MainView.ts",
             "theme": "source/styles/theme.scss",
+            //In the loaders' shadow roots: see partials/head.hbs
+            "loaders": "source/styles/loaders.scss",
             "search": "source/handlers/search.ts",
             "history": "source/handlers/history.ts",
             "activity": "source/handlers/activity.ts",

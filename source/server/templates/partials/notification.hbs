@@ -37,7 +37,7 @@
   {{/if}}
 {{/inline}}
 <li class="{{state}}" data-notification-id="{{notification_id}}">
-  <ui-icon class="{{iconClass}}" name="{{icon}}"></ui-icon>
+  {{#if (test state "==" "running")}}<cube-loader></cube-loader>{{else}}<ui-icon class="{{iconClass}}" name="{{icon}}"></ui-icon>{{/if}}
   <div class="notifications-content">
     {{#if link}}
       <a href="{{link}}">{{message}}</a>

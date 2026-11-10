@@ -1,11 +1,39 @@
 import { css, html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { styleMap, StyleInfo } from "lit/directives/style-map.js";
 
-import "./Spinner";
 import HttpError from "../state/HttpError";
 
 type SubmitResult = {success:false}|{success:true, data:any};
 
+/** How opaque a computed color is: rgba(…, a), or "/ a" in other notations */
+function alphaOf(color :string) :number{
+  if(!color || color === "transparent") return 0;
+  const m = /\/\s*([\d.]+)(%?)\s*\)$/.exec(color) ?? /^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)()\)$/.exec(color);
+  if(!m) return 1;
+  return parseFloat(m[1]) / (m[2] ? 100 : 1);
+}
+
+/**
+ * What's seen behind an element: its background, over those of its parents, down to the first that's opaque.
+ * As a list of backgrounds, the first on top.
+ */
+function backgroundOf(el :Element|null) :string{
+  const layers :string[] = [];
+  for(; el; el = el.parentElement ?? (el.getRootNode() as ShadowRoot).host ?? null){
+    const color = getComputedStyle(el).backgroundColor;
+    const alpha = alphaOf(color);
+    if(alpha === 0) continue;
+    if(alpha === 1) return [...layers, color].join(", ");
+    layers.push(`linear-gradient(${color}, ${color})`);
+  }
+  return [...layers, "var(--color-background)"].join(", ");
+}
+
+/**
+ * Sends the form in it with fetch, and shows meanwhile that it's being sent: the form is dimmed,
+ * and the spinning circle (<circle-loader>, see styles/loaders.scss) is on what sent it. Then a ✓, or why it failed.
+ */
 @customElement("submit-fragment")
 export default class SubmitFragment extends LitElement{
   /**
@@ -57,7 +85,46 @@ export default class SubmitFragment extends LitElement{
   @state()
   status ?:{type:"status"|"alert", text :string|TemplateResult};
 
+  /** Where the loader shows while it's sent, if not over all of it: see loaderOn() */
+  @state()
+  loaderPlace ?:StyleInfo;
+
   #c?:AbortController;
+  /** What a change has sent, as the submit event doesn't tell */
+  #changed ?:HTMLElement;
+  /** Out of sight while it's sent, as the loader's in its place */
+  #hidden ?:{el :HTMLElement, opacity :string};
+
+  /**
+   * The loader shows on what sent the form: in place of a button (or a checkbox) that's out of sight meanwhile,
+   * or at the end of a field whose change sent it, where a select has its arrow: what's in it can still be read.
+   * Over the whole of it otherwise.
+   */
+  private loaderOn(el ?:HTMLElement|null){
+    this.restore();
+    this.loaderPlace = undefined;
+    //It may be out of it, with a form="…" attribute: it's still where it was sent from
+    if(!el) return;
+    const r = el.getBoundingClientRect(), host = this.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    const top = r.top - host.top, left = r.left - host.left;
+    const isField = el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
+      || (el instanceof HTMLInputElement && !["checkbox", "radio", "submit", "button", "image", "reset"].includes(el.type));
+    if(isField){
+      const size = Math.min(r.height, r.width);
+      this.loaderPlace = { top: `${top}px`, left: `${left + r.width - size}px`, width: `${size}px`, height: `${r.height}px`, background: backgroundOf(el) };
+    }else{
+      this.loaderPlace = { top: `${top}px`, left: `${left}px`, width: `${r.width}px`, height: `${r.height}px` };
+      this.#hidden = { el, opacity: el.style.opacity };
+      el.style.opacity = "0";
+    }
+  }
+
+  private restore(){
+    if(!this.#hidden) return;
+    this.#hidden.el.style.opacity = this.#hidden.opacity;
+    this.#hidden = undefined;
+  }
 
 
   encode(form :HTMLFormElement, encoding:string):BodyInit{
@@ -150,14 +217,18 @@ export default class SubmitFragment extends LitElement{
       await HttpError.okOrThrow(res);
 
       this.active = false;
+      this.restore();
       this.status = {type:"status", text: `✓`};
 
       const t = setTimeout(()=> this.status = undefined, 5000);
       c.signal.addEventListener("abort", ()=>clearTimeout(t));
       return {success:true, data};
     }catch(e: any){
+      //Aborted for another one, which has the loader now
+      if(c !== this.#c) return {success:false};
       console.error("Request failed : ", e);
       this.active = false;
+      this.restore();
       this.status = {type:"alert", text:e.message};
       return {success:false};
     }
@@ -172,6 +243,8 @@ export default class SubmitFragment extends LitElement{
     }
     e.preventDefault();
     e.stopPropagation();
+    this.loaderOn(e.submitter ?? this.#changed);
+    this.#changed = undefined;
     this._do_submit(form, e.submitter).then((result)=>{
       if(result.success) this.dispatchEvent(new CustomEvent("submit", {detail: result.data}));
     });
@@ -185,6 +258,7 @@ export default class SubmitFragment extends LitElement{
     if(!target.form) return console.warn("Changed child has no associated form : ", target);
     e.preventDefault();
     e.stopPropagation();
+    this.#changed = target;
     target.form.requestSubmit();
   }
 
@@ -197,18 +271,27 @@ export default class SubmitFragment extends LitElement{
     return html`
       <slot aria-busy="${this.active?"true":"false"}" @submit=${this.handleSubmit} @change=${this.handleChange}></slot>
       ${this.status? html`<span role="${this.status.type}" class="submit-${this.status.type === "alert"?"error":"success"}">${this.status.text}</span>`: null}
-      ${this.active?html`<slot name="loader"><spin-loader aria-live="assertive" visible></spin-loader></slot>`:null}
+      ${this.active?html`<circle-loader role="progressbar" class=${this.loaderPlace ? "placed" : ""} style=${styleMap(this.loaderPlace ?? {})}></circle-loader>`:null}
     `;
   }
-  static styles = css`
+  static styles = [css`
     :host(*){
       position: relative;
       display: block;
     }
-    spin-loader{
+    /* Over all of it, or on what sent it: see loaderOn() */
+    circle-loader{
       position: absolute;
       inset: 0;
+      width: auto;
+      height: auto;
       z-index: 8;
+    }
+    circle-loader.placed{
+      inset: auto;
+      box-sizing: border-box;
+      padding: 2px;
+      border-radius: 4px;
     }
       
     :host([active]) ::slotted(form){
@@ -225,5 +308,5 @@ export default class SubmitFragment extends LitElement{
     .submit-success{
       color: var(--color-success);
     }
-  `;
+  `];
 }

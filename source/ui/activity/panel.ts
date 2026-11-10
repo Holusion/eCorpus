@@ -63,10 +63,11 @@ export function linkOf(item: NotificationItem): string | null {
 }
 
 /** Tells at a glance how things went, as titles may be cut before they get to it. The server draws the same: see views/index.ts */
-export function statusIcon(item: NotificationItem) {
+export function statusIcon(item: NotificationItem): HTMLElement {
+  //Still running: the cube (see styles/loaders.scss)
+  if (stateOf(item) === "running") return document.createElement("cube-loader");
   const icon = document.createElement("ui-icon");
-  const [name, color] = stateOf(item) === "running" ? ["loader", "notifications-running"]
-    : item.status === "error" ? ["error", "text-error"]
+  const [name, color] = item.status === "error" ? ["error", "text-error"]
     : item.status === "success" ? ["check", "text-success"]
     : ["info", "text-info"];
   icon.className = color;

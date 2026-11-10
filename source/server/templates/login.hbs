@@ -87,8 +87,9 @@
               const username = form.username?.value;
               if(!username) return false;
 
-              const loader = document.createElement("spin-loader");
-              loader.active = true;
+              const loader = document.createElement("cube-loader");
+              loader.setAttribute("aria-label", "{{i18n "labels.loading"}}");
+              loader.style.cssText = "display: block; margin: auto; font-size: 3rem;";
               const parent =  form.parentNode;
               parent.replaceChild(loader, form);
               fetch(`/auth/login/${encodeURIComponent(username)}/link`,{

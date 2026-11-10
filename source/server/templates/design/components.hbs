@@ -873,10 +873,104 @@
 
 
 <section>
+  <h3>Loaders</h3>
+  <div class="design-note">
+    Two loaders, defined inline by <code>partials/head.hbs</code> and styled in <code>styles/loaders.scss</code>.
+    Which one depends on how long it's waited for.
+    <br><strong>Anything that isn't nearly instant</strong>: <code>&lt;cube-loader&gt;</code>. Files being uploaded, a part of a page
+    waiting for what's to be in it, a task that runs in the background (the bell, toasts and lines of notifications, below).
+    <br>They're drawn in their own shadow roots, with their own styles (<code>css/loaders.css</code>): there's nothing to import
+    to have them in a component's shadow root, or in Voyager's.
+  </div>
+  <div class="demo-split">
+    <div>
+      <div class="demo-frame" data-label="cube-loader">
+        <p style="margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span style="font-size: 14px;">Generating thumbnail <cube-loader></cube-loader></span>
+          <span>Uploading <cube-loader></cube-loader></span>
+          <cube-loader style="font-size: 2rem;" aria-label="Loading"></cube-loader>
+          <cube-loader style="font-size: 4rem;" aria-label="Loading"></cube-loader>
+        </p>
+      </div>
+
+      <div class="demo-frame ui-reduced-motion" data-label="reduced motion (prefers-reduced-motion: reduce)">
+        <p style="margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>Cube <cube-loader></cube-loader></span>
+          <cube-loader style="font-size: 2rem;"></cube-loader>
+          <span>Circle <circle-loader></circle-loader></span>
+          <circle-loader style="font-size: 2rem;"></circle-loader>
+        </p>
+      </div>
+    </div>
+
+    <div class="demo-frame" data-label="voyager: sv-spinner, as big">
+      {{!-- Voyager's styles aren't on this page: the same cube, at the size of Voyager's (96px) --}}
+      <cube-loader style="display: block; margin: auto; width: 96px; height: 96px;" aria-label="Voyager's loader"></cube-loader>
+      <small style="position: absolute; right: 0; bottom: 0; text-align: right" class="text-muted">Voyager's styles are not imported here.<br>It may look slightly different in reality</small>
+    </div>
+  </div>
+  <div class="demo-split">
+    <div>
+      <div class="demo-frame" data-label="submit-fragment, sent by a button">
+        <submit-fragment action="/design/hold" method="POST">
+          <form class="form-control">
+            <div class="form-item">
+              <label for="design-loader-name">Name</label>
+              <input type="text" id="design-loader-name" name="name" value="Answered in 3 seconds">
+            </div>
+            <div class="form-group">
+              <button type="submit" class="btn btn-main">Save</button>
+            </div>
+          </form>
+        </submit-fragment>
+      </div>
+      <div class="demo-frame" data-label="submit-fragment, sent by a change">
+        <submit-fragment action="/design/hold" method="POST" submit="level">
+          <form class="form-control">
+            <div class="form-item">
+              <label for="design-loader-level">Level</label>
+              <select id="design-loader-level" name="level">
+                <option>read</option>
+                <option>write</option>
+                <option>admin</option>
+              </select>
+            </div>
+          </form>
+        </submit-fragment>
+      </div>
+    </div>
+
+    <div class="demo-frame" data-label="circle-loader">
+      <p style="margin: 0; display: flex; flex-direction: column; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <span>Saving <circle-loader></circle-loader></span>
+        <circle-loader style="font-size: 2rem;" aria-label="Loading"></circle-loader>
+        <circle-loader style="width: 8rem; height: 3rem;" aria-label="Loading"></circle-loader>
+      </p>
+    </div>
+  </div>
+
+  <div class="design-note">
+    When we expect loading to be a <strong>nearly-instant</strong> transition: use <code>&lt;circle-loader&gt;</code>.
+    In a <code>&lt;submit-fragment&gt;</code>: the form dims and the circle is on what sent it,
+    in place of the button that was pressed, or at the end of the field whose change sent it, so that what's in it can still be read.
+    Anywhere else, the cube would only flash.
+  </div>
+
+  <script type="module">
+    //For the forms above, which have nowhere to go: answered after a while, with nothing
+    const send = window.fetch;
+    window.fetch = (input, init) => String(input).startsWith("/design/hold")
+      ? new Promise((resolve) => setTimeout(() => resolve(new Response(null, { status: 204 })), 3000))
+      : send(input, init);
+  </script>
+</section>
+
+
+<section>
   <h3>Notifications</h3>
   <div class="design-note">
-    What happens to a user's tasks reaches them as notifications: the bell in the navbar (its badge, the ring
-    that turns while something's running, and its panel), toasts as tasks settle, and lists drawn by the server
+    What happens to a user's tasks reaches them as notifications: the bell in the navbar (its badge, the cube
+    in place of the bell while something's running, and its panel), toasts as tasks settle, and lists drawn by the server
     with the <code>notification</code> partial: the page of notifications, and the upload page.
     A line is <code>running</code>, <code>unread</code> or <code>read</code>; only unread ones can be marked.
     Under what it says, a line of a list has what came out of it (see <code>notifications/outcomes.ts</code>): why it failed,

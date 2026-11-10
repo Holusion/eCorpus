@@ -28,7 +28,8 @@ export function messageOf(item: NotificationItem, lng: string): string{
  */
 export function notificationView(item: NotificationItem, lng: string){
   const state = stateOf(item);
-  const [icon, iconClass] = state === "running" ? ["loader", "notifications-running"]
+  //Still running: the cube, see partials/notification.hbs
+  const [icon, iconClass] = state === "running" ? ["", ""]
     : item.status === "error" ? ["error", "text-error"]
     : item.status === "success" ? ["check", "text-success"]
     : ["info", "text-info"];
