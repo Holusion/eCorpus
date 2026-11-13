@@ -1,6 +1,6 @@
 import { ReactiveController, ReactiveControllerHost } from "lit";
 import HttpError from "./HttpError";
-import Notification from "../composants/Notification";
+import { toast } from "./toast";
 
 export type SceneUploadResult = {name: string, action: "create"|"update"|"error"}
 
@@ -188,7 +188,6 @@ export class Uploader implements ReactiveController{
       },
       body: JSON.stringify({
         type: "parseUserUpload",
-        status: "initializing",
         data:{
           filename: task.filename,
           size: task.total,
@@ -231,7 +230,7 @@ export class Uploader implements ReactiveController{
     if(!task) return;
 
     if(!task.file){
-      Notification.show(`Can't upload : No file provided`, "error", 4000);
+      toast(`Can't upload : No file provided`, "error", 4000);
       return;
     }
 

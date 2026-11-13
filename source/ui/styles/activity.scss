@@ -1,0 +1,581 @@
+/* The bell in the navbar, and the panel it opens: a user's activity. Toasts are styled in main.scss */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes activity-pulse {
+  to { opacity: .35; }
+}
+
+@keyframes activity-dim {
+  to { opacity: .5; }
+}
+
+/** Not in sync yet: only once that's lasted long enough to be worth telling, so that a page that connects quickly doesn't flash */
+$sync-delay: .6s;
+
+#main-navbar {
+  #nav-notifications {
+    anchor-name: --nav-notifications;
+
+    // What it shows, by data-status (see activity/state.ts):
+    // - none (not started), or loading (or reconnecting): not in sync. The bell pulses, after a while.
+    //   The same animation carries on from one to the other, without starting again. What was last known (the badge) stays.
+    // - live: the bell.
+    // - offline: a warning instead of the bell. What was last known stays.
+    // While something's running, the cube (see loaders.scss) in place of the bell, but not of the warning.
+    &:not([data-status]), &[data-status="loading"] {
+      > ui-icon {
+        animation: activity-pulse 1s ease-in-out $sync-delay infinite alternate;
+      }
+    }
+
+    &[data-running]:not([data-status="offline"]) > ui-icon,
+    &:not([data-running]) > .nav-running,
+    &[data-status="offline"] > .nav-running {
+      display: none;
+    }
+
+    &[data-status="offline"] > ui-icon {
+      color: var(--color-warning);
+    }
+
+    &:has(+ #nav-notifications-panel:popover-open) {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: var(--color-dark);
+      > .nav-running {
+        color: var(--color-dark);
+        // Its cursor, which is in the primary color, as the button now is
+        --color-primary: var(--color-light);
+      }
+      &[data-status="offline"] > ui-icon {
+        color: inherit;
+      }
+      &::after{
+        content: "✖";
+        color: color-mix(var(--color-light) 80%, transparent);
+        position: absolute;
+        margin: auto;
+        background-color: color-mix(var(--color-primary) 60%, transparent);
+        font-size: 1.5em;
+        line-height: 1em;
+        padding-bottom: 3px;
+      }
+    }
+  }
+
+  // On the corner of its button: it would hide most of the icon otherwise
+  .nav-badge {
+    --badge-size: 15px;
+    --badge-padding: 1.5px;
+    z-index: 1;
+    position: absolute;
+    display: block;
+    top: -5px;
+    right: -5px;
+    box-sizing: content-box;
+    padding: var(--badge-padding);
+    font-size: calc(var(--badge-size) - var(--badge-padding) * 2);
+    width: 1em;
+    height: 1em;
+    line-height: calc(1em - 2px);
+    border-radius: calc(var(--badge-padding) + 1px + 1em / 2);
+
+    color: var(--color-light);
+    background: var(--color-primary);
+    border: 1px solid var(--color-dark);
+
+    font-weight: bold;
+    text-align: center;
+
+    // There's only room for one character. Only the values listed here show as they are:
+    // ellipsis can't do that, as it would keep the beginning of what doesn't fit.
+    &::before {
+      content: "★";
+    }
+    @for $count from 1 through 9 {
+      &[data-count="#{$count}"]::before {
+        content: "#{$count}";
+      }
+    }
+
+    &[data-level="success"] {
+      color: var(--color-dark);
+      background: var(--color-success);
+    }
+
+    &[data-level="error"] {
+      color: var(--color-light);
+      background: var(--color-error);
+    }
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  // A native popover: its button opens it, and it closes by itself from outside or with Esc
+  #nav-notifications-panel {
+    position: fixed;
+    inset: auto;
+    top: var(--nav-height);
+    right: .25rem;
+    margin: 0;
+    box-sizing: border-box;
+    width: 22rem;
+    max-width: calc(100vw - .5rem);
+    padding: 0;
+    overflow: visible;
+
+    color: var(--color-text);
+    background: var(--color-dark);
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 2px 2px rgba(20, 20, 20, 0.3);
+
+    @supports (anchor-name: --a) {
+      position-anchor: --nav-notifications;
+      top: calc(anchor(bottom) + 4px);
+      // Never past the edge of a small screen
+      right: max(.25rem, anchor(right));
+    }
+
+    // The list, and what's under it, which scrolls with it. What tells how it's going stays under that, in sight.
+    .nav-notifications-scroll {
+      max-height: min(350px, calc(100vh - var(--nav-height) - 40px));
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+    }
+
+    // The way to everything else on the left, what can be done here on the right
+    .nav-notifications-header {
+      display: flex;
+      justify-content: space-between;
+      padding: .15rem 0;
+
+      > .btn {
+        --btn-color: var(--color-text);
+        min-width: 0;
+        flex-wrap: nowrap;
+        padding: .25rem .5rem;
+        white-space: nowrap;
+      }
+      > .nav-notifications-mark-all {
+        margin-left: auto;
+        > .ui-icon{
+          margin-left: .35rem;
+        }
+      }
+      // Its text only is underlined: what's set on the link would reach its arrow too, whatever the arrow says
+      > .nav-notifications-all {
+        gap: .35rem;
+        &::before {
+          content: "◂" / "";
+        }
+        > span {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    // Lines share their columns: they all end where the "mark as read" buttons start, even those that have none
+    ul {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li {
+      display: grid;
+      grid-column: 1 / -1;
+      // Each line on its own, where subgrid isn't supported
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: subgrid;
+      align-items: stretch;
+
+      &:hover, &:focus-within {
+        background: var(--color-highlight);
+      }
+
+      &.unread {
+        > a, > div {
+          font-weight: bold;
+        }
+      }
+
+      > a, > div {
+        grid-column: 1;
+        // For its time, which is only there for those who can't see where it is
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        min-width: 0;
+        padding: 4px;
+        color: inherit;
+        text-decoration: none;
+
+        .ui-icon, cube-loader {
+          flex: 0 0 auto;
+          margin-left: 4px;
+          width: 1rem;
+          height: 1rem;
+        }
+
+        > span {
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      > .btn {
+        --btn-color: var(--color-text);
+        grid-column: 2;
+        // The line before it has its own padding already
+        padding: 0 .5rem 0 .15rem;
+      }
+
+      // What follows is older than it says: a line, and that, at the end.
+      // Muted with an opaque color rather than with opacity: a thin line would look lighter than the text next to it.
+      &.nav-notifications-since {
+        display: flex;
+        // The line sits on the text's baseline, and rises to the middle of its lowercase letters
+        align-items: baseline;
+        gap: .5rem;
+        padding: .1rem 8px 0 8px;
+        font-size: 80%;
+        white-space: nowrap;
+        color: color-mix(in oklch, var(--color-light) 70%, var(--color-dark));
+        &::before {
+          content: "";
+          flex: 1 1 auto;
+          height: .5ex;
+          //We lighten the text's color because it renders lighter than its own color due to its small size
+          border-bottom: 1px solid color-mix(currentColor 70%, transparent);
+        }
+        &:hover {
+          background: none;
+        }
+      }
+
+      // Out of the list already: over what has taken its place, which can be clicked through it. See activity/panel.ts
+      &.leaving {
+        position: absolute;
+        z-index: 1;
+        box-sizing: border-box;
+        grid-template-columns: minmax(0, 1fr) auto;
+        background: var(--color-dark);
+        pointer-events: none;
+      }
+    }
+
+    // As the bell shows it: what isn't known yet, as opposed to running tasks
+    .nav-notifications-loading, .nav-notifications-offline {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      .ui-icon {
+        flex: 0 0 auto;
+        width: 1rem;
+        height: 1rem;
+      }
+    }
+    // As the bell shows it, without waiting: the panel is open already
+    .nav-notifications-loading .ui-icon {
+      animation: activity-pulse 1s ease-in-out infinite alternate;
+    }
+    // Under what was received until then, which is still there to see
+    .nav-notifications-offline .ui-icon {
+      color: var(--color-warning);
+    }
+
+    p {
+      margin: 0;
+      padding: .35rem .5rem;
+    }
+
+    [hidden] {
+      display: none;
+    }
+  }
+}
+
+// The page of notifications, that small screens get to from the bell.
+// Its list runs from one edge of the section to the other, as the other lists of the user's pages do:
+// what's in its lines starts where the rest of the section does.
+.notifications-page {
+  // The upload page's, while there's nothing in it
+  &[hidden] {
+    display: none;
+  }
+
+  .notifications-toolbar {
+
+    // Its icon over those of the lines: they end as far from the edge
+    > .notifications-mark-all {
+      --btn-color: var(--color-text);
+      min-width: 0;
+      margin-left: auto;
+      padding-right: .5rem;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      &[hidden] {
+        display: none;
+      }
+    }
+  }
+
+  .notifications-list {
+    margin: 0 calc(-1 * var(--section-padding) + 4px) calc(-1 * var(--section-padding) + 4px);
+    padding: 0;
+    list-style: none;
+  }
+
+  // Lines, and those leaving the list: not the lists they have, such as the upload page's scenes
+  li[data-notification-id] {
+    display: flex;
+    // On the line of what it says: what came out of it can open under it without moving anything
+    align-items: flex-start;
+    gap: .75rem;
+    margin: 2px 0;
+    // Room for the border of what's unread, which leaves everything where it is
+    padding: .25rem calc(var(--section-padding) - 6px);
+    border-width: 0 2px;
+    border-style: solid;
+    border-color: transparent;
+    background-clip: padding-box;
+    background-color: var(--color-dark);
+
+    > .ui-icon, > cube-loader {
+      flex: 0 0 auto;
+      width: 1.25rem;
+      height: 1.25rem;
+      margin-top: calc((1lh - 1.25rem) / 2);
+    }
+
+    // What's new stands out from what's been read
+    &.unread, &.running {
+      background-color: var(--color-highlight);
+      color: var(--color-light);
+    }
+
+    &.unread {
+      border-left-color: var(--color-primary);
+      .notifications-content > :first-child {
+        font-weight: bold;
+      }
+    }
+    &.read{
+      .ui-icon{
+        opacity: .7;
+      }
+      .notifications-content > a {
+        color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+      }
+    }
+  }
+
+  .notifications-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+
+    &:last-child {
+      //additional right padding to leave space for "mark as read" button
+      //override when .unread
+      padding-right: 48px;
+    }
+
+    // On one line, whatever its length: being read makes it lighter, which shouldn't move anything
+    > a, > span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    // Under what it says, or at the end of what came out of it: never on two lines
+    time {
+      margin-top: .15rem;
+      height: 22px; //Match detail caret height
+      white-space: nowrap;
+      font-size: 80%;
+      color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+    }
+    > time {
+      align-self: flex-end;
+    }
+  }
+
+  .notifications-mark-read {
+    --btn-color: var(--color-text);
+    flex: 0 0 auto;
+    // Centered on the line of what it says, which is shorter than it is: as its icon is (2rem: a .btn-icon's height)
+    margin-block: calc((1lh - 2rem) / 2);
+  }
+
+  // What came out of it, under what it says (see notifications/outcomes.ts): its first line, with the date at its end,
+  // and the rest out of sight until it's asked for. The date stays where it is when it's open.
+  .notifications-outcome {
+    --outcome-marker: .75rem;
+    margin-top: .15rem;
+    > summary, &:not(details) {
+      display: flex;
+      // A scene that hasn't the room for the date next to it has it under it, rather than over it
+      flex-wrap: nowrap;
+      align-items: baseline;
+      gap: 0 .5rem;
+      > :first-child {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      // Text makes room for it: it's cut, or it goes on more lines
+      > .notifications-text {
+        flex-basis: 0;
+      }
+      > time {
+        flex: 0 0 auto;
+        margin-left: auto;
+      }
+    }
+    // Laid out as a row, it has no marker of its own anymore
+    > summary {
+      cursor: pointer;
+      list-style: none;
+      &::-webkit-details-marker {
+        display: none;
+      }
+      &::before {
+        content: "▸";
+        flex: 0 0 var(--outcome-marker);
+        transition: transform .15s;
+      }
+    }
+    &[open] > summary::before {
+      transform: rotate(90deg);
+    }
+    // Without a marker, its text starts where it does after one
+    &:not(details) {
+      height: 22px; //Match detail caret height
+      padding-left: calc(var(--outcome-marker) + .5rem);
+    }
+    // Closed, its first line is all there is: it's cut before the date. Open, it's whole.
+    &:not([open]) .notifications-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    // Where an edit link would be, so that "view" is in line with the others
+    .tool-placeholder {
+      visibility: hidden;
+    }
+    // Nothing in it can be edited: there's nothing to be in line with
+    &:not(:has(.notifications-tools > a + a)) .tool-placeholder {
+      display: none;
+    }
+    // Under the text of its first line, past its marker
+    > ul {
+      margin: .25rem 0 0;
+      padding: 0 0 0 calc(var(--outcome-marker) + .5rem);
+      list-style: none;
+      > li + li {
+        margin-top: .15rem;
+      }
+    }
+  }
+  .notifications-text, .notifications-scene {
+    font-size: 90%;
+  }
+  .notifications-text {
+    overflow-wrap: anywhere;
+  }
+
+  // A scene: its name, what happened to it, then where to go to see it, on the right
+  .notifications-scene {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0 .5rem;
+    > a {
+      flex: 1 1 auto;
+      // It's cut before what follows it is, but it's never cut out
+      min-width: min(12ch, 50%);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  // As a tag: it's not what the line says, only about it
+  .notifications-action {
+    flex: 0 0 auto;
+    padding: 0 .4em;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    font-size: 80%;
+    white-space: nowrap;
+    color: color-mix(in oklch, var(--color-text) 70%, var(--color-dark));
+  }
+  .notifications-tools {
+    flex: 0 0 auto;
+    display: flex;
+    gap: .5rem;
+    margin-left: auto;
+  }
+
+  .tool-link {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    color: inherit;
+    text-decoration: none;
+    &:hover {
+      color: var(--color-secondary-light);
+    }
+    .ui-icon {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  // The icons tell enough where there's no room: their text stays for those who can't see them
+  @media (max-width: 576px) {
+    .tool-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  // Out of the list already, with only those that are unread: over what has taken its place. See activity/leave.ts
+  li.leaving {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    margin: 0;
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  // Dimmed instead of pulsing, with the same delay
+  #main-navbar #nav-notifications:is(:not([data-status]), [data-status="loading"]) > ui-icon {
+    animation: activity-dim 0s $sync-delay forwards;
+  }
+  #main-navbar #nav-notifications-panel .nav-notifications-loading .ui-icon {
+    animation: none;
+    opacity: .5;
+  }
+}

@@ -13,3 +13,4 @@ export {
 } from "./cleanup.js";
 
 export {sendEmail} from "./sendEmail.js";
+export {delayTask} from "./delay.js";

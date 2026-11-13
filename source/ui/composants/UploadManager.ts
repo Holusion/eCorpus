@@ -1,7 +1,7 @@
 import { css, html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
-import Notification from "./Notification";
+import { toast } from "../state/toast";
 import { formatBytes, binaryUnit } from "./Size";
 import HttpError from "../state/HttpError";
 import { SceneUploadResult, Uploader, UploadOperation } from "../state/uploader";
@@ -30,47 +30,54 @@ export default class UploadManager extends LitElement{
   }
 
 
+  /**
+   * Starts what's been uploaded for: it's blocking only until the server has accepted it.
+   * From then on, it's followed as a notification, wherever the user goes: a toast tells how it's going,
+   * and the list above this one shows it (see activity/page.ts), until it's been read.
+   * This is ready for something else meanwhile.
+   */
+  private startTask(type: "createSceneFromFiles"|"extractScenesArchives", data: Record<string, unknown>){
+    this.busy = true;
+    this.error = null;
+    fetch("/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Prefer": "respond-async",
+      },
+      body: JSON.stringify({type, data}),
+    }).then(async (res)=>{
+      await HttpError.okOrThrow(res);
+      let task = await res.json();
+      if(typeof task.task_id !== "number") throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
+      //The upload tasks are its own now: they're not removed from the server
+      this.uploader.reset();
+      this.uploadForm?.reset();
+      //For the activity bundle, which has the notifications
+      document.dispatchEvent(new CustomEvent("activity-started", {detail: {task_id: task.task_id, type}}));
+    }).catch((e)=>{
+      console.error(e);
+      this.error = e.message;
+    }).finally(()=> this.busy = false);
+  }
+
   createScene = (ev:MouseEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
     const form = this.uploadForm!;
     const data= new FormData(form);
     if(!form.checkValidity()){
-      Notification.show("Upload form is invalid", "warning", 1500);
+      toast("Upload form is invalid", "warning", 1500);
       return;
     }
-    const tasks = this.uploader.uploads.map(u=>u.task_id)
-    console.log("Submit, form :", data, tasks);
-    this.busy = true;
-    this.error = null;
-    fetch("/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
-      body: JSON.stringify({
-        type: "createSceneFromFiles",
-        data: {
-          tasks,
-          name: data.get("name"),
-          language: data.get("language")?.toString().toUpperCase(),
-          options: {
-            optimize: data.get("optimize") ?? false
-          }
-        }
-      })
-    }).then(async (res)=>{
-      await HttpError.okOrThrow(res);
-      let task = await res.json();
-      if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
-      const u = new URL(window.location.href);
-      u.searchParams.append("task", task.task_id);
-      //Reload the page
-      window.location.href = u.toString();
-    }).catch((e)=>{
-      console.error(e);
-      this.error = e.message;
-    }).finally(()=> this.busy = false);
+    this.startTask("createSceneFromFiles", {
+      tasks: this.uploader.uploads.map(u=>u.task_id),
+      name: data.get("name"),
+      language: data.get("language")?.toString().toUpperCase(),
+      options: {
+        optimize: data.get("optimize") ?? false
+      }
+    });
     return false;
   }
 
@@ -78,33 +85,9 @@ export default class UploadManager extends LitElement{
   extractArchives = (ev:MouseEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
-    this.busy = true;
-    this.error = null;
-    const tasks = this.uploader.uploads.map(u=>u.task_id);
-    fetch("/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
-      body: JSON.stringify({
-        type: "extractScenesArchives",
-        data: {
-          tasks,
-        }
-      })
-    }).then(async (res)=>{
-      await HttpError.okOrThrow(res);
-      let task = await res.json();
-      if(!task.task_id) throw new Error(`Unexpected body shape: ${JSON.stringify(task)}`);
-      const u = new URL(window.location.href);
-      //Remove any existing "task" parameters to avoid confusion about what was imported
-      u.searchParams.set("task", task.task_id);
-      //Reload the page
-      window.location.href = u.toString();
-    }).catch((e)=>{
-      console.error(e);
-      this.error = e.message;
-    }).finally(()=> this.busy = false);
+    this.startTask("extractScenesArchives", {
+      tasks: this.uploader.uploads.map(u=>u.task_id),
+    });
   }
 
 
@@ -213,7 +196,7 @@ export default class UploadManager extends LitElement{
         u.task_id && fetch(`/tasks/${u.task_id}`, {method: "DELETE"})
           .then(res=> HttpError.okOrThrow(res))
           .catch(err=>{
-            Notification.show(`Failed to delete upload task for ${u.filename}. Data may remain on the server`, "warning", 10000);
+            toast(`Failed to delete upload task for ${u.filename}. Data may remain on the server`, "warning", 10000);
             console.warn(err)
           });
         this.uploader.remove(u.id);
@@ -223,7 +206,7 @@ export default class UploadManager extends LitElement{
       }
     }
     let state = "pending";
-    let stateText: TemplateResult|string = html`<span class="loader"></span>`;
+    let stateText: TemplateResult|string = html`<cube-loader></cube-loader>`;
     let filetype: TemplateResult|null = null;
     let unit = binaryUnit(u.total ?? 0);
     let progress = `${formatBytes(u.progress, unit)}/${formatBytes(u.total ?? 0)}`;
@@ -285,7 +268,7 @@ export default class UploadManager extends LitElement{
     return html`<slot name="upload-form" ?disabled=${this.uploader.has_pending_uploads|| this.busy}></slot>
       <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
-          if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
+          if(this.uploader.has_pending_uploads|| this.busy) return html`<cube-loader style="font-size: 2rem"></cube-loader>`
           else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
           else if(this.uploader.size && can_submit) return html`<slot name="submit-scenes" @click=${this.createScene} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
           else if(this.uploader.size) return html`<slot name="no-model">Provide at least one model</slot>`
@@ -310,7 +293,7 @@ export default class UploadManager extends LitElement{
       </ul>
        <div class="submit-container" style="display:flex; justify-content: end; align-items: center; gap: 1rem;">        <div style="color:var(--color-error);">${this.error}</div>
         ${(()=>{
-          if(this.uploader.has_pending_uploads|| this.busy) return html`<span class="loader" style="width: 34px; height: 34px; --color-loader: var(--color-secondary);"></span>`
+          if(this.uploader.has_pending_uploads|| this.busy) return html`<cube-loader style="font-size: 2rem"></cube-loader>`
           else if(this.uploader.has_errors) return html`<slot name="upload-errors">Some uploads have failed</slot>`
           else if(this.uploader.size && can_submit) return html`<slot name="submit-archives" @click=${this.extractArchives} ?disabled=${this.uploader.has_pending_uploads}><button>Submit</button></slot>`
           else return null;
@@ -406,28 +389,6 @@ export default class UploadManager extends LitElement{
     }
 
 
-    @keyframes l1 {
-      0%  {background-size: 20% 100%,20% 100%,20% 100%}
-      33% {background-size: 20% 10% ,20% 100%,20% 100%}
-      50% {background-size: 20% 100%,20% 10% ,20% 100%}
-      66% {background-size: 20% 100%,20% 100%,20% 10% }
-      100%{background-size: 20% 100%,20% 100%,20% 100%}
-    }
-    
-    .loader{
-      display: block;
-      width: 24px;
-      height: 24px;
-      aspect-ratio: 1;
-      --c: no-repeat linear-gradient(var(--color-loader, var(--color-info)) 0 0);
-      background: 
-        var(--c) 0%   50%,
-        var(--c) 50%  50%,
-        var(--c) 100% 50%;
-      background-size: 20% 100%;
-      animation: l1 1s infinite linear;
-    }
-    
     .upload-list{
       max-width: 100%;
       margin: .25rem;

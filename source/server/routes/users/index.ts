@@ -2,7 +2,7 @@
 import express, { NextFunction, Request, Response, Router } from "express";
 
 import UserManager from "../../auth/UserManager.js";
-import { getUserManager, policy } from "../../utils/locals.js";
+import { getUserManager, numericParam, policy } from "../../utils/locals.js";
 import { qsToInt } from "../../utils/query.js";
 
 import postUser from "./post.js";
@@ -10,6 +10,7 @@ import handleDeleteUser from "./uid/delete.js";
 import { handlePatchUser } from "./uid/patch.js";
 import { getUserSessions } from "../auth/sessions.js";
 import { deleteUserToken, getUserTokens } from "../auth/tokens.js";
+import { getUserActivity, markActivityRead } from "./activity.js";
 
 const router = Router();
 
@@ -60,5 +61,9 @@ router.patch("/:uid", policy({ scope: "account:admin", access: "write", on: "use
 router.get("/:uid/sessions", policy({ scope: "users:read", access: null }), getUserSessions);
 router.get("/:uid/tokens", policy({ scope: "users:read", access: null }), getUserTokens);
 router.delete("/:uid/tokens/:id", policy({ scope: "users:write", access: null }), deleteUserToken);
+//A user's activity (for now, their notifications): for that user, or an admin.
+router.get("/:uid/activity", numericParam("uid"), policy({ scope: "tasks:read", access: "write", on: "user" }), getUserActivity);
+//Whether a notification has been seen is about the account, not the task: notifications won't all be about tasks.
+router.post("/:uid/activity/read", numericParam("uid"), policy({ scope: "account:write", access: "write", on: "user" }), express.json(), markActivityRead);
 
 export default router;

@@ -284,6 +284,45 @@ nav, .navbar {
     display: none;
   }
 
+  // The user's own, after the links. It stays when those collapse.
+  .nav-account {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+
+  // Buttons in the bar: the toggle of the links, the bell, the user's own
+  .nav-btn {
+    --btn-color: var(--color-light);
+    --btn-text-color: var(--color-dark);
+    position: relative;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    // Fits within the bar, whatever's next to it
+    height: calc(var(--nav-height) - 14px);
+    margin: auto 0 auto 6px;
+    padding: 0 5px;
+    border-radius: 4px;
+
+    // The page it links to is open: in the primary color, which .btn-outline applies
+    &.active {
+      --btn-color: var(--color-primary);
+      --btn-color-hover: var(--color-primary-light);
+      --btn-text-color: var(--color-dark);
+    }
+
+    &.btn-outline:hover:not([disabled]){
+      background-color: transparent;
+      border-color: var(--color-primary-light);
+      color: var(--color-primary-light);
+    }
+  }
+
+  // Their name, or "login". Only an icon where it's short of room.
+  .nav-user > ui-icon {
+    display: none;
+  }
+
   // Popover state: toggle expand/collapse icons
   &:has(#main-navbar-links:popover-open) .if-collapsed,
   &:has(#main-navbar-links:not(:popover-open)) .if-expanded {
@@ -311,7 +350,10 @@ nav, .navbar {
 
         .nav-link {
           justify-content: center;
-          padding:  .75rem;
+          padding:  .35rem;
+          &:not(:last-child){
+            border-bottom: 1px solid color-mix(in oklch, currentColor 30%, transparent);
+          }
         }
       }
     }
@@ -319,6 +361,21 @@ nav, .navbar {
     #main-navbar-collapse-toggle {
       display: flex;
       min-width: auto;
+    }
+
+    .nav-user {
+      > ui-icon {
+        display: block;
+      }
+      // Still its name, for those who can't see the icon
+      > .nav-user-name {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
     }
   }
 }

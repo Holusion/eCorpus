@@ -46,7 +46,7 @@ export default abstract class ScenesVfs extends BaseVfs{
           if(e.constraint == "scenes_pkey"){
             continue;
           }else if(e.constraint == "scenes_scene_name_key"){
-            throw new ConflictError(`A scene named ${name} already exists`);
+            throw new ConflictError(localize("errors.sceneExists", {name}));
           }else{
             throw e;
           }

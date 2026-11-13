@@ -5,6 +5,7 @@
 @import "./thumbnails.scss";
 @import "./tags.scss";
 @import "./tasks.scss";
+@import "./activity.scss";
 @import "./dialog.scss";
 
 html {
@@ -23,11 +24,11 @@ main {
 
 
 /*
- *  Notifications styles
- * (Notifications are slotted, so externally styled)
+ *  Toasts styles
+ * (Toasts are slotted, so externally styled)
  */
 
- .notification {
+ .toast {
   position: relative;
   left: 0;
   margin: 8px;
@@ -38,34 +39,38 @@ main {
   justify-content: stretch;
   align-items: center;
 
-  .ui-icon {
+  // The cube while what it tells about is running: in the color of the text, whatever its level
+  .ui-icon, cube-loader {
     flex: 0 0 auto;
     height: 2em;
     width: 2em;
     padding: 8px; 
   }
 
-  &.notification-info > .ui-icon {
+  &.toast-info > .ui-icon {
     color: var(--color-info);
   }
-  &.notification-success > .ui-icon {
+  &.toast-success > .ui-icon {
     color: var(--color-success);
   }
-  &.notification-warning > .ui-icon {
+  &.toast-warning > .ui-icon {
     color: var(--color-warning);
   }
-  &.notification-error > .ui-icon {
+  &.toast-error > .ui-icon {
     color: var(--color-error);
   }
   
-  .notification-message {
+  .toast-message {
     flex: 1 1 100%;
     padding: 8px;
     text-overflow: ellipsis;
     overflow: hidden;
+    a {
+      color: inherit;
+    }
   }
 
-  .notification-close {
+  .toast-close {
     flex: 0;
     padding: 4px 6px 6px 6px;
     font-weight: bolder;
@@ -80,18 +85,17 @@ main {
   }
 }
 
-.ui-icon{
-  flex: 0 0 auto;
-  display: inline-block;
-  height: 1em;
-  width: 1em;
-  > svg{
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    fill: none;
-    width: 100%;
-    height: 100%;
-  }
+@import "./icons.scss";
+
+// The loaders, drawn in their shadow roots (see loaders.scss): their place, before they get there
+@import "./loaders-box";
+circle-loader, cube-loader {
+  @include box;
+}
+cube-loader {
+  @include cube-box;
+}
+// To see the loaders as they'd be with less motion: see the design page
+.ui-reduced-motion {
+  --ui-reduced-motion: 1;
 }

@@ -284,6 +284,9 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
           preset: "High",
         },
         handler: optimizeGlb,
+      }).catch((e: Error) => {
+        //What went wrong is gltf-transform's: it's only in english
+        throw new InternalError(localize("errors.upload.optimizeFailed", { filename, reason: e.message }));
       });
       if (typeof output.fileLocation !== "string") logger.warn("Model optimization output is unreadable : ", output);
       else {

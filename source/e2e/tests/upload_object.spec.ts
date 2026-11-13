@@ -108,7 +108,8 @@ test("uploads and rename a glb (force FR)", async ({ page, request }) => {
   const uploads = page.getByRole("region", { name: "titles.createdScenes" });
 
   await expect(f).toBeVisible();
-  await expect(uploads).not.toBeVisible();
+  //What was started before, and hasn't been read, may be there
+  await expect(uploads.getByRole("link", { name: name })).toHaveCount(0);
 
   await f.getByRole("combobox", { name: "labels.setupLocalization" }).selectOption("fr");
   await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);

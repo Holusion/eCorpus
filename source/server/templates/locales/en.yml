@@ -100,6 +100,10 @@ labels:
   allTasks: All tasks
   rootOnly: Root tasks
   noTasks: No tasks found.
+  noUnreadNotifications: No unread notifications.
+  noNotifications: No notifications.
+  unreadOnly: Unread only
+  loading: Loading…
   noLogs: No logs.
   warnings: Warnings
   optimizeModel: Optimize models
@@ -120,6 +124,9 @@ buttons:
   useStandalone: use standalone mode
   logout: Disconnect
   next: "Next Page"
+  markAsRead: mark as read
+  markAllAsRead: mark all as read
+  allNotifications: show all
   previous: "Previous Page"
   archive: Archive
   delete: Delete
@@ -184,6 +191,7 @@ nav:
   userGroups: Groups
   userArchives: Archives
   tasks: tasks
+  notifications: Notifications
   overview: Overview
   upload: upload
 
@@ -439,7 +447,9 @@ errors:
   forbidden: Forbidden
   notFound: Not Found
   methodNotAllowed: Method Not Allowed
+  notAcceptable: Not Acceptable
   conflict: Conflict
+  sceneExists: "A scene named {{name}} already exists"
   lengthRequired: Length Required
   preconditionFailed: Precondition Failed
   rangeNotSatisfiable: Range Not Satisfiable
@@ -454,6 +464,7 @@ errors:
   tokenExpired: Token expired
   crossOrigin: Cross-origin request rejected
   tooManyRequests: Too many requests, please try again later.
+  serviceUnavailable: Service temporarily unavailable, please try again later.
   resourceNotFound: "Can't find the requested resource. It may be private or not exist entirely."
   "Username not provided": Username not provided
   "Password not provided": Password not provided
@@ -464,3 +475,34 @@ errors:
   upload:
     notGlb: "{{filename}} does not look like a GLB file"
     invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"
+    optimizeFailed: "{{filename}} could not be optimized: {{reason}}"
+    sceneNotWritable: "You don't have write permissions on scene \"{{name}}\""
+    scenesNotWritable: "You don't have write permissions on scenes {{names}}"
+
+notifications:
+  markFailed: Couldn't mark as read. Please try again.
+  offline: Couldn't get the latest notifications.
+  # Above what's new, less than an hour old
+  justNow: just now
+  # On the upload page: a line for each scene of an imported archive, after the archive's own. What happened to it:
+  upload:
+    created: Created
+    updated: Updated
+    scenesImported_one: "{{count}} scene imported"
+    scenesImported_other: "{{count}} scenes imported"
+  # Filled in by the browser: {{type}} is left as is
+  messages:
+    default: You have a new notification
+    task:
+      default:
+        running: "Task {{type}} is running"
+        success: "Task {{type}} has finished"
+        error: "Task {{type}} has failed"
+      createSceneFromFiles:
+        running: Creating a scene
+        success: Scene created
+        error: Scene creation has failed
+      extractScenesArchives:
+        running: Importing an archive
+        success: Archive imported
+        error: Archive import has failed

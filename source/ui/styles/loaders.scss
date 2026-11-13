@@ -1,0 +1,263 @@
+@use "sass:list";
+@use "sass:math";
+@use "sass:meta";
+@use "./loaders-box" as *;
+
+/*
+ * The app's two loaders, <circle-loader> and <cube-loader> (see partials/head.hbs). Which to use where: see the design page, "Loaders".
+ * This is in their shadow roots, built on its own as css/loaders.css: they're drawn the same wherever they are,
+ * in other components' shadow roots, and in Voyager's (see its Spinner.ts, in our fork).
+ * The page's styles go over the :host ones: give them a width and a height, or a font-size, a color.
+ */
+
+// Less motion: where the browser asks for it; or under .ui-reduced-motion (see main.scss), to see how it looks on the design page.
+// That one is a style query: in browsers that don't have those, the design page shows them moving.
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) { @content; }
+  @container style(--ui-reduced-motion: 1) { @content; }
+}
+
+:host {
+  @include box;
+  //Its size is its box's, not what's in it: it's drawn from it. 100cqmin is the whole box.
+  container-type: size;
+}
+:host(cube-loader) {
+  @include cube-box;
+}
+:host(circle-loader) {
+  color: var(--color-primary);
+}
+
+/*
+ * <circle-loader>: an arc of a circle, four fifths of it, turning, in the primary color, up to 4rem in the middle of its box.
+ * With less motion, it doesn't turn: the whole circle, so that it doesn't look stuck.
+ * Paths, not a <circle>: Firefox (WebRender) draws those with uneven edges on screen, though not in screenshots.
+ */
+@keyframes circle-loader-spin {
+  to { transform: rotate(360deg); }
+}
+.circle {
+  display: block;
+  width: min(100cqmin, 4rem);
+  height: min(100cqmin, 4rem);
+  margin: calc((100cqh - min(100cqmin, 4rem)) / 2) auto 0;
+  fill: none;
+  stroke: currentColor;
+  //In the size of text, a thin arc gets lost between pixels
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  animation: circle-loader-spin 1s linear infinite;
+  @container (min-width: 2rem) and (min-height: 2rem) {
+    stroke-width: 2;
+  }
+  .ring {
+    display: none;
+  }
+}
+@include reduced-motion {
+  .circle {
+    animation: none;
+    .arc { display: none; }
+    .ring { display: inline; }
+  }
+}
+
+/*
+ * <cube-loader>: anything else that's waited for.
+ * A cursor in the primary color goes round the four tiles of a face, clockwise from the bottom right, and stamps each one
+ * in the color of the text; then that face turns away, and the next one, empty, turns in. Only those two are drawn:
+ * when it's turned, it starts over as it was, the stamps gone.
+ * After "4c Gold Cursor Loader": a stage of 48 units, a cube of 36, perspective of 220.
+ *
+ * Three animations, whatever is drawn, as what costs is how many things are animated, not what's in them:
+ * - the turn;
+ * - the cursor: a box of a step, the tile in its corner, so that it moves by its own size;
+ * - the stamps: a strip of the face as it is after each stamp, side by side, seen one at a time.
+ * Keyframes are in percents of what they move, not in custom properties: those would be computed again for each one.
+ * Their times are below, in Sass: computed once, when it's built.
+ */
+
+// The cube's timeline. Its speed: $cube-cycle. When things happen in it, in percents of it, follow its speed;
+// what's between them, in milliseconds, doesn't: the cursor moves as fast, whatever the cycle. The keyframes are worked out from these.
+$cube-cycle: 2200ms;      // A whole cycle: a face stamped, and turned away
+$cube-filled: 55%;        // When the last stamp fills the face. The stamps are evenly spaced till then, clockwise from the bottom right.
+$cube-move: 200ms;        // The cursor: fading in onto the first tile, going from a tile to the next one, fading out as it turns away
+$cube-turn-delay: 160ms;  // From the last stamp to the turn (ease-in-out): the shorter, the snappier
+$cube-pause: 90ms;        // From the end of the turn to the end of the cycle, before the cursor's back
+
+// A time in the cycle, in milliseconds from its start: from a percent of it, or as it is
+@function cube-ms($t) {
+  @if math.unit($t) == "%" { @return math.div($t, 100%) * $cube-cycle; }
+  @return $t;
+}
+// When the cursor stamps the nth tile: the first one as soon as it's faded in
+@function stamp($n) {
+  @return $cube-move + ($n - 1) * math.div(cube-ms($cube-filled) - $cube-move, 3);
+}
+$cube-turn-start: stamp(4) + $cube-turn-delay;
+$cube-turn-end: $cube-cycle - $cube-pause;
+@if stamp(2) - stamp(1) < $cube-move or $cube-turn-end <= $cube-turn-start {
+  @error "The cube's timeline doesn't fit in its cycle: stamps every #{stamp(2) - stamp(1)}, a turn from #{$cube-turn-start} to #{$cube-turn-end}";
+}
+// The stamps fading out in the turn, gone before their face is only a sliver on the side of the cube, in the slow end of it:
+// with ease-in-out and this perspective, it's out of sight past 86°, 88% of the way through. Then they're cleared, out of sight.
+$cube-stamps-out-start: $cube-turn-start + ($cube-turn-end - $cube-turn-start) * .65;
+$cube-stamps-out-end: $cube-turn-start + ($cube-turn-end - $cube-turn-start) * .88;
+
+// The face after each stamp, as it's seen: (top left, top right), (bottom left, bottom right)
+$cube-states: (
+  (0 0, 0 0), // none
+  (0 0, 0 1), // the bottom right
+  (0 0, 1 1), // the bottom row
+  (1 0, 1 1), // and the top left
+  (1 1, 1 1), // all of them
+);
+
+// The strip of stamps, moved to show the face after the nth stamp: each state is the same share of it
+@function stamped($n) {
+  @if $n == 0 { @return translateX(0); }
+  @return translateX(math.div(-100%, list.length($cube-states)) * $n);
+}
+// n steps, from tile to tile
+@function steps($n) {
+  @if $n == 0 { @return 0; }
+  @if $n == 1 { @return var(--step); }
+  @return calc(#{$n} * var(--step));
+}
+// A keyframe at those times in the cycle, in milliseconds from its start, or in percents of it.
+// Times can be worked out from one another ($cube-turn-start + $cube-move, or calc() of those): Sass does it, there's only a number in the CSS.
+// Not from what's only known in the browser (var(), or units that don't convert): that would be no keyframe at all.
+@mixin at($times...) {
+  $keys: ();
+  @each $t in $times {
+    @if meta.type-of($t) != "number" or not list.index(("ms", "%"), math.unit($t)) {
+      @error "A keyframe's time is in ms or %, as a number Sass can work out: not #{meta.inspect($t)}";
+    }
+    $keys: list.append($keys, math.div(cube-ms($t), $cube-cycle) * 100%, $separator: comma);
+  }
+  #{$keys} { @content; }
+}
+
+.cube {
+  //In whole pixels, and the face, when it's still, on the screen: it's drawn as it is, not through the perspective.
+  //At 48px, as big as the original's: a face of 36, tiles of 17 and a gap of 2.
+  --gap: max(1px, round(4.17cqmin, 1px));
+  --tile: round(down, calc((75cqmin - var(--gap)) / 2), 1px);
+  --step: calc(var(--tile) + var(--gap));
+  --face: calc(var(--step) + var(--tile));
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  //220 of the original's 48 units
+  perspective: calc(100cqmin * 220 / 48);
+
+  > .spin, .face {
+    width: var(--face);
+    height: var(--face);
+    //Turning around the cube's center, behind the face
+    transform-origin: 50% 50% calc(var(--face) / -2);
+  }
+  > .spin {
+    position: absolute;
+    left: round(down, calc((100% - var(--face)) / 2), 1px);
+    //An eighth of the box under it, in whole pixels: as much as the box is lowered by, in a line (see _loaders-box.scss)
+    bottom: round(12.5cqmin, 1px);
+    transform-style: preserve-3d;
+    animation: cube-loader-spin $cube-cycle ease-in-out infinite;
+  }
+  .face {
+    position: absolute;
+    left: 0;
+    top: 0;
+    //The tiles yet to be stamped
+    $e: linear-gradient(color-mix(in srgb, currentColor 15%, transparent), color-mix(in srgb, currentColor 15%, transparent));
+    background:
+      $e 0 0 / var(--tile) var(--tile) no-repeat,
+      $e 100% 0 / var(--tile) var(--tile) no-repeat,
+      $e 0 100% / var(--tile) var(--tile) no-repeat,
+      $e 100% 100% / var(--tile) var(--tile) no-repeat;
+    backface-visibility: hidden;
+    & + .face { transform: rotateY(90deg); }
+
+    > i, > b {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    //The stamps
+    > i {
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        //Two columns of tiles for each state: as wide as the face, and the gap to the next one
+        width: steps(2 * list.length($cube-states));
+        height: 100%;
+        $t: linear-gradient(color-mix(in srgb, currentColor 55%, transparent), color-mix(in srgb, currentColor 55%, transparent));
+        $layers: ();
+        @for $n from 1 through list.length($cube-states) {
+          $rows: list.nth($cube-states, $n);
+          @for $row from 1 through 2 {
+            @for $column from 1 through 2 {
+              @if list.nth(list.nth($rows, $row), $column) == 1 {
+                $x: steps(2 * ($n - 1) + $column - 1);
+                $y: steps($row - 1);
+                $layers: list.append($layers, $t $x $y / var(--tile) var(--tile) no-repeat, comma);
+              }
+            }
+          }
+        }
+        background: $layers;
+        animation: cube-loader-stamps $cube-cycle step-end infinite;
+      }
+    }
+    //The cursor
+    > b {
+      width: var(--step);
+      height: var(--step);
+      background: linear-gradient(var(--color-primary), var(--color-primary)) 0 0 / var(--tile) var(--tile) no-repeat;
+      transform-origin: calc(var(--tile) / 2) calc(var(--tile) / 2);
+      opacity: 0;
+      animation: cube-loader-cursor $cube-cycle linear infinite;
+    }
+  }
+}
+//Less motion: it doesn't turn, and stamps two times slower
+@include reduced-motion {
+  .cube {
+    > .spin { animation: none; }
+    .face > b { animation: none; }
+    .face > i::before { animation-duration: $cube-cycle * 2; }
+  }
+}
+
+@keyframes cube-loader-spin {
+  @include at(0%, $cube-turn-start) { transform: rotateY(0deg); }
+  @include at($cube-turn-end, 100%) { transform: rotateY(-90deg); }
+}
+//Moves onto the next tile in $cube-move, to stamp it
+@keyframes cube-loader-cursor {
+  @include at(0%) { opacity: 0; transform: translate(100%, 100%) scale(.5); }
+  @include at(stamp(1), stamp(2) - $cube-move) { opacity: 1; transform: translate(100%, 100%) scale(1); }
+  @include at(stamp(2), stamp(3) - $cube-move) { transform: translate(0, 100%); }
+  @include at(stamp(3), stamp(4) - $cube-move) { transform: translate(0, 0); }
+  @include at(stamp(4), $cube-turn-start) { opacity: 1; transform: translate(100%, 0) scale(1); }
+  @include at($cube-turn-start + $cube-move, 100%) { opacity: 0; transform: translate(100%, 0) scale(.5); }
+}
+//Cleared a frame or so after they're faded out: whatever the turn does then, that can't be seen
+@keyframes cube-loader-stamps {
+  @include at(0%) { transform: stamped(0); opacity: 1; }
+  @include at(stamp(1)) { transform: stamped(1); }
+  @include at(stamp(2)) { transform: stamped(2); }
+  @include at(stamp(3)) { transform: stamped(3); }
+  @include at(stamp(4)) { transform: stamped(4); }
+  @include at($cube-stamps-out-start) { transform: stamped(4); opacity: 1; animation-timing-function: linear; }
+  @include at($cube-stamps-out-end) { transform: stamped(4); opacity: 0; }
+  @include at($cube-stamps-out-end + 20ms, 100%) { transform: stamped(0); opacity: 1; }
+}

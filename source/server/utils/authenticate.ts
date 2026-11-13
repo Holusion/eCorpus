@@ -6,6 +6,10 @@ import { HTTPError, UnauthorizedError } from "./errors.js";
 import { localize } from "./i18n.js";
 import { getLocals, getSession, getUserManager, setUser } from "./locals.js";
 
+function isEventStream(req: Request): boolean{
+  return /\btext\/event-stream\b/.test(req.get("Accept") ?? "");
+}
+
 /**
  * Resolves the request's identity (read it back with `getUser()`) from, in order:
  *  1. an `Authorization: Bearer ec_…` API token, looked up in the `api_tokens` table;
@@ -46,7 +50,9 @@ export default function authenticate(req: Request, res: Response, next: NextFunc
         await userManager.removeSession(sessionId).catch(() => {});
         throw new UnauthorizedError(localize("errors.sessionExpired"));
       }
-      if (expires.valueOf() < now + sessionMaxAge * 0.66) {
+      //An open tab reconnects its event streams by itself: counting that
+      //as activity would keep a session alive for as long as a tab stays open.
+      if (expires.valueOf() < now + sessionMaxAge * 0.66 && !isEventStream(req)) {
         //Sliding renewal: less than 66% of the session's lifetime remains.
         const newExpires = new Date(now + sessionMaxAge);
         await userManager.renewSession(sessionId, newExpires);

@@ -126,6 +126,15 @@ a{
 
   // --- Size variants ---
 
+  // Fits around its icon. Comes first so that other sizes apply to it too.
+  &.btn-icon {
+    min-width: auto;
+    padding: .5rem;
+    .ui-icon{
+      display: block;
+    }
+  }
+
   &.btn-small {
     padding: 0 4px;
     min-width: auto;
@@ -181,7 +190,7 @@ a{
 
     // Without a color variant, it has no color worth deriving a hover from
     &:not(.btn-main, .btn-primary, .btn-secondary, .btn-danger, .btn-success, .btn-info) {
-      --btn-color-hover: var(--color-primary);
+      --btn-color-hover: var(--color-primary-light);
     }
 
     &:hover:not([disabled]) {

@@ -1,0 +1,13 @@
+// The loaders' boxes, as big as icons: in their shadow roots (see loaders.scss),
+// and on the page (see main.scss), so that they take their place before they're drawn.
+@mixin box {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+}
+
+// In a line, its box would be on the baseline: the face is, as it's an eighth of the box above the bottom of it (see .spin in loaders.scss)
+@mixin cube-box {
+  vertical-align: calc(-1 * round(.125em, 1px));
+}

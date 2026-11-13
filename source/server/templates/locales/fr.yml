@@ -99,6 +99,10 @@ labels:
   allTasks: Toutes les tâches
   rootOnly: Premier niveau
   noTasks: Aucune tâche trouvée.
+  noUnreadNotifications: Aucune notification non lue.
+  noNotifications: Aucune notification.
+  unreadOnly: Non lues uniquement
+  loading: Chargement…
   noLogs: Aucun journal.
   warnings: Avertissements
   optimizeModel: Optimiser les modèles
@@ -122,6 +126,9 @@ buttons:
   useStandalone: utiliser le mode Standalone
   logout: Déconnecter
   next: "Page Suivante"
+  markAsRead: marquer comme lu
+  markAllAsRead: tout marquer comme lu
+  allNotifications: voir tout
   previous: "Page Précédente"
   archive: Archiver
   delete: Supprimer
@@ -184,6 +191,7 @@ nav:
   userGroups: Groupes
   userArchives: Archives
   tasks: tâches
+  notifications: Notifications
   overview: Aperçu
   upload: créer
 
@@ -457,7 +465,9 @@ errors:
   forbidden: Accès interdit
   notFound: Introuvable
   methodNotAllowed: Méthode non autorisée
+  notAcceptable: Format de réponse non disponible
   conflict: Conflit
+  sceneExists: "Une scène nommée {{name}} existe déjà"
   lengthRequired: Longueur requise
   preconditionFailed: Précondition non satisfaite
   rangeNotSatisfiable: Plage demandée non satisfaisable
@@ -472,6 +482,7 @@ errors:
   tokenExpired: Jeton expiré
   crossOrigin: Requête provenant d'une autre origine refusée
   tooManyRequests: Trop de requêtes, veuillez réessayer plus tard.
+  serviceUnavailable: Service temporairement indisponible, veuillez réessayer plus tard.
   resourceNotFound: "La ressource demandée est introuvable. Elle est peut-être privée ou n'existe pas."
   "Username not provided": Nom d'utilisateur non fourni
   "Password not provided": Mot de passe non fourni
@@ -480,3 +491,34 @@ errors:
   upload:
     notGlb: "{{filename}} ne semble pas être un fichier GLB"
     invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"
+    optimizeFailed: "{{filename}} n'a pas pu être optimisé : {{reason}}"
+    sceneNotWritable: "Vous n'avez pas les droits d'écriture sur la scène « {{name}} »"
+    scenesNotWritable: "Vous n'avez pas les droits d'écriture sur les scènes {{names}}"
+
+notifications:
+  markFailed: Impossible de marquer comme lu. Veuillez réessayer.
+  offline: Impossible d'obtenir les dernières notifications.
+  # Au-dessus de ce qui est nouveau, depuis moins d'une heure
+  justNow: à l'instant
+  # Sur la page d'import : une ligne pour chaque scène d'une archive importée, après celle de l'archive. Ce qui lui est arrivé :
+  upload:
+    created: Créée
+    updated: Mise à jour
+    scenesImported_one: "{{count}} scène importée"
+    scenesImported_other: "{{count}} scènes importées"
+  # Complétés par le navigateur : {{type}} est laissé tel quel
+  messages:
+    default: Vous avez une nouvelle notification
+    task:
+      default:
+        running: "Tâche {{type}} en cours"
+        success: "Tâche {{type}} terminée"
+        error: "La tâche {{type}} a échoué"
+      createSceneFromFiles:
+        running: Création d'une scène
+        success: Scène créée
+        error: La création de la scène a échoué
+      extractScenesArchives:
+        running: Import d'une archive
+        success: Archive importée
+        error: L'import de l'archive a échoué

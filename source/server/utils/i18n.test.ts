@@ -68,7 +68,7 @@ describe("translateTaskOutput()", function(){
 
   it("translates serialized errors of failed tasks", function(){
     const output = JSON.parse(serializeTaskError(new BadRequestError(notGlb())));
-    expect(translateTaskOutput("error", output, "fr")).to.have.property("message", "[400] foo.glb ne semble pas être un fichier GLB");
+    expect(translateTaskOutput("error", output, "fr")).to.have.property("message", "foo.glb ne semble pas être un fichier GLB");
     expect(translateTaskOutput("error", { message: "plain" }, "fr")).to.deep.equal({ message: "plain" });
   });
 
@@ -98,7 +98,7 @@ describe("translateTask()", function(){
   it("translates a failed task without changing its stored output", function(){
     const original = task(JSON.parse(serializeTaskError(new BadRequestError(localize("errors.upload.notGlb", { filename: "foo.glb" })))), "error");
     const translated = translateTask(req, res, original);
-    expect(translated.output.message).to.equal("[400] foo.glb ne semble pas être un fichier GLB");
+    expect(translated.output.message).to.equal("foo.glb ne semble pas être un fichier GLB");
     expect(original.output.message).to.equal("[400] foo.glb does not look like a GLB file");
     expect(translated).not.to.have.property("children");
     expect(headers).to.deep.equal({ Vary: "Accept-Language", "Content-Language": "fr" });
@@ -138,8 +138,9 @@ describe("translateErrorMessage()", function(){
     it(`translates the default ${Constructor.name} while keeping its stored message in English`, function(){
       const error = new Constructor();
       expect(error.code).to.equal(code);
-      expect(translateErrorMessage(error, "fr")).to.equal(`[${code}] ${french}`);
-      expect(translateErrorMessage(error, "en")).to.equal(`[${code}] ${english}`);
+      //Only the message: not its code
+      expect(translateErrorMessage(error, "fr")).to.equal(french);
+      expect(translateErrorMessage(error, "en")).to.equal(english);
       expect(error.message).to.equal(`[${code}] ${english}`);
     });
   }
@@ -148,9 +149,10 @@ describe("translateErrorMessage()", function(){
     expect(translateErrorMessage({ message: "[400] foo" }, "fr")).to.equal("[400] foo");
   });
 
-  it("only prefixes a numeric code", function(){
+  it("leaves out the code of a translated message, whatever its language", function(){
     const i18n = { key: "errors.upload.notGlb", params: { filename: "foo.glb" } };
     expect(translateErrorMessage({ message: "", i18n }, "fr")).to.equal("foo.glb ne semble pas être un fichier GLB");
-    expect(translateErrorMessage({ message: "", code: 404, i18n }, "fr")).to.equal("[404] foo.glb ne semble pas être un fichier GLB");
+    expect(translateErrorMessage({ message: "[404] foo.glb does not look like a GLB file", code: 404, i18n }, "fr")).to.equal("foo.glb ne semble pas être un fichier GLB");
+    expect(translateErrorMessage({ message: "[404] foo.glb does not look like a GLB file", code: 404, i18n }, "en")).to.equal("foo.glb does not look like a GLB file");
   });
 });

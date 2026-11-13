@@ -1,4 +1,4 @@
-import { notify } from "./notify";
+import { toast } from "../state/toast";
 
 interface DiffPayload {
   src?: { size?: number; ctime?: string };
@@ -79,7 +79,7 @@ async function onRestore(form: HTMLFormElement) {
 
   if (!confirm(`Restore to ${label}?`)) return;
 
-  const closeNotification = notify(`Restoring to ${label}…`, "info", 0);
+  const closeToast = toast(`Restoring to ${label}…`, "info", 0);
   try {
     const res = await fetch(form.action, {
       method: "POST",
@@ -90,12 +90,12 @@ async function onRestore(form: HTMLFormElement) {
       const text = await res.text();
       throw new Error(`[${res.status}] ${text}`);
     }
-    closeNotification();
-    notify(`Scene restored to ${label}`, "success", 3000);
+    closeToast();
+    toast(`Scene restored to ${label}`, "success", 3000);
     window.location.reload();
   } catch (err: any) {
-    closeNotification();
-    notify(`Failed to restore: ${err.message}`, "error", 5000);
+    closeToast();
+    toast(`Failed to restore: ${err.message}`, "error", 5000);
   }
 }
 

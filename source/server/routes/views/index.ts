@@ -3,15 +3,18 @@ import { policy, getHost, getSession, getVfs, getUser, getUserManager, isEmbed, 
 import path from "path";
 import { Scene, SceneType } from "../../vfs/types.js";
 import ScenesVfs from "../../vfs/Scenes.js";
-import { qsToBool, qsToInt } from "../../utils/query.js";
+import { qsToBool, qsToInt, qsToIntArray } from "../../utils/query.js";
 import { isUserAtLeast, UserRoles } from "../../auth/User.js";
 import { SCOPE_LADDER, TOKEN_SCOPES } from "../../auth/Token.js";
 import { AccessLevel } from "../../auth/UserManager.js";
-import { BadRequestError } from "../../utils/errors.js";
-import { TaskDefinition } from "../../tasks/types.js";
+import { BadRequestError, UnauthorizedError } from "../../utils/errors.js";
 import { aggregateHistory } from "./historyAggregate.js";
 import { createLogger } from "../../utils/log/index.js";
-import { translateErrorMessage } from "../../utils/i18n.js";
+import { NotificationManager } from "../../notifications/manager.js";
+import { notificationView } from "../../notifications/messages.js";
+import { NotificationItem } from "../../notifications/types.js";
+import { outcomeOf } from "../../notifications/outcomes.js";
+import designRoutes from "./design.js";
 
 
 const log = createLogger("http:views");
@@ -87,6 +90,23 @@ routes.get("/", async (req, res)=>{
 
 
 
+/** Tasks that the upload page starts, and follows: it has their notifications until they've been read */
+const UPLOAD_TASKS = ["createSceneFromFiles", "extractScenesArchives"];
+
+/**
+ * Lines of pages of notifications (the notification partial): what a notification says, and what came out of it.
+ * The same in all of them: the page of notifications, the upload page, and the lines they draw again.
+ */
+async function notificationLines(req: Request, items: NotificationItem[]){
+  const lng = getLanguage(req);
+  const ctx = {tasks: getTaskScheduler(req), vfs: getVfs(req), lng};
+  return await Promise.all(items.map(async (item)=> ({...notificationView(item, lng), outcome: await outcomeOf(item, ctx)})));
+}
+
+/**
+ * Where scenes get created, from files that are uploaded first. What that starts is followed as notifications:
+ * those of the upload page are there until they've been read, whether they're running or not, wherever they've been read.
+ */
 routes.get("/upload", async (req, res)=>{
   const {templates}= getLocals(req);
   const requester = getUser(req);
@@ -97,71 +117,12 @@ routes.get("/upload", async (req, res)=>{
       },
     });
   }
-  const taskScheduler = getTaskScheduler(req);
-  const vfs = getVfs(req);
-  const {task} = req.query;
-  //Maybe we shouldn't fail on bad parameters and redirect to a blank page or just ignore them
-  const ids = [task].flat().filter(t=>typeof t === "string").map(t=>parseInt(t as string));
-  if(ids.findIndex(t=>!Number.isInteger(t)) != -1){
-    throw new BadRequestError(`Invalid list of tasks :${ids.join(", ")}`);
-  }
-  log.trace({ task_ids: ids }, "Render previous upload tasks");
-  type TaskScene = {name: string,  action: "create"|"update", task_id: number, type: SceneType}
-  type TaskError =  {error: string, action: "error",  task_id: number|null}
-  type TaskLine = TaskScene|TaskError;
-  let tasks = await Promise.all(ids.map<Promise<TaskDefinition|TaskError>>(async id=>{
-    try{
-      return await taskScheduler.getTask(id);
-    }catch(e:any){
-      return {
-        error: e.message,
-        action: "error",
-        task_id: id
-      } satisfies TaskError;
-    }
-  }));
-  let scenes: Array<TaskLine> = [];
-  for(let task of tasks){
-    if("error" in task){
-      scenes.push(task)
-      continue
-    }
-    if(!requester || task.user_id !== requester.uid && requester.level != "admin"){
-      scenes.push({error: `Can't access results of task ${task.type}#${task.task_id}`, action: "error", task_id: null});
-      continue;
-    }
-    if(task.status !== "success"){
-      console.warn(`Can't report on task ${task.type}#${task.task_id}: status is ${task.status}`);
-      const message = typeof task.output?.message === "string" ? " "+translateErrorMessage(task.output, getLanguage(req)) : "";
-      scenes.push({error: `Task ${task.type}#${task.task_id} [${task.status}]${message}`, action: "error", task_id: task.task_id});
-    }else if(task.type === "createSceneFromFiles"){
-      if(typeof task.output !== "number"){
-        console.warn("Unexpected output for %s :", task.type, task.output);
-        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
-        continue;
-      }
-      const scene = await vfs.getScene(task.output);
-      scenes.push({name: scene.name, action: "create", task_id: task.task_id, type: scene.type});
-    }else if(task.type === "extractScenesArchives"){
-      if(!Array.isArray(task.output)){
-        console.warn("Unexpected output for %s :", task.type, task.output);
-        scenes.push({error: `Unexpected output for ${task.type}`, action: "error", task_id: task.task_id});
-        continue;
-      }
-      for(let {action, name } of task.output){
-        const scene = await vfs.getScene(name);
-        scenes.push({action, name, task_id: task.task_id, type: scene.type});
-      }
-    }else{
-      console.warn("Unsupported task type: %s. not an upload task?", task.type);
-      scenes.push({error: `Unexpected task type: ${task.type} for task #${task.task_id}`, action: "error", task_id: task.task_id});
-      continue;
-    }
-  }
-  
+  const items = await getLocals(req).notifications.getNotifications(requester!.uid, { unreadOnly: true, types: UPLOAD_TASKS });
+  const uploads = await notificationLines(req, items);
   res.render("upload", {
     title: "eCorpus: Create new scene",
-    scenes,
+    uploads,
+    uploadTasks: UPLOAD_TASKS.join(" "),
   });
 })
 
@@ -417,103 +378,7 @@ routes.get("/user/archives", async (req, res)=>{
 
 
 
-routes.use("/design", requireLevel("manage"));
-routes.get("/design", (req, res)=>{
-  res.render("design/components", {
-    layout: "design",
-    title: "UI components",
-  });
-});
-
-routes.get("/design/embeds", async (req, res)=>{
-  const vfs = getVfs(req);
-  const requester = getUser(req);
-  const queryTag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
-  const queryScene = typeof req.query.scene === "string" ? req.query.scene.trim() : "";
-  const match = typeof req.query.match === "string" ? req.query.match.trim() : "";
-  const target = req.query.target === "tags" ? "tags"
-    : req.query.target === "scene" ? "scene"
-    : "tag";
-  const limit = qsToInt(req.query.limit);
-  const offset = qsToInt(req.query.offset);
-  const isTag = target === "tag";
-  const isTags = target === "tags";
-  const isScene = target === "scene";
-  // A scene-mode submit always carries the `scene` field (it's `required`),
-  // so its presence distinguishes an explicit submit from a freshly switched
-  // dropdown — in the latter case we want sensible defaults (both allowed).
-  const sceneSubmitted = isScene && typeof req.query.scene === "string";
-  const fullscreen = sceneSubmitted ? !!qsToBool(req.query.fullscreen) : true;
-  let tag = queryTag;
-  let scene = queryScene;
-  if(isTag && !tag){
-    const [first] = await vfs.getTags({limit: 1});
-    tag = first?.name ?? "";
-  }
-  if(isScene && !scene){
-    const [first] = await vfs.getScenes(requester?.uid, {limit: 1});
-    scene = first?.name ?? "";
-  }
-  let iframePath = "";
-  let allowParts = ["fullscreen", "xr", "xr-spatial-tracking", "accelerometer", "gyroscope"];
-  let showPreview = false;
-  if(isTag){
-    if(tag){
-      iframePath = `ui/tags/${encodeURIComponent(tag)}?embed=1`;
-      showPreview = true;
-    }
-  } else if(isScene){
-    if(scene){
-      iframePath = `ui/scenes/${encodeURIComponent(scene)}/view`;
-      showPreview = true;
-      allowParts = ["xr", "xr-spatial-tracking"];
-      if(fullscreen) allowParts.push("fullscreen");
-    }
-  } else {
-    const params = new URLSearchParams({embed: "1"});
-    if(match) params.set("match", match);
-    if(typeof limit === "number") params.set("limit", String(limit));
-    if(typeof offset === "number") params.set("offset", String(offset));
-    iframePath = `ui/tags?${params.toString()}`;
-    showPreview = true;
-  }
-  res.render("design/embeds", {
-    layout: "design",
-    title: "Embed previews",
-    tag,
-    scene,
-    match,
-    limit,
-    offset,
-    target,
-    isTag,
-    isTags,
-    isScene,
-    iframePath,
-    showPreview,
-    allow: allowParts.join("; "),
-    fullscreen,
-  });
-});
-
-routes.get("/design/emails", async (req, res)=>{
-  const allowedLangs = ["en", "fr"] as const;
-  // Use a dedicated query param (not `lang`) — `lang` is the UI locale
-  // controlled by the footer language switcher, and conflating the two
-  // means changing the previewed template language also flips the
-  // surrounding page's chrome (and vice-versa).
-  const qLang = typeof req.query.mailLang === "string" ? req.query.mailLang : "";
-  const mailLang = (allowedLangs as readonly string[]).includes(qLang) ? qLang : (getSession(req)?.lang ?? "en");
-  const qUser = typeof req.query.username === "string" ? req.query.username.trim() : "";
-  const username = qUser || getUser(req)?.username || "user";
-  res.render("design/emails", {
-    layout: "design",
-    title: "Email template previews",
-    previewLang: mailLang,
-    previewUsername: username,
-    templates: ["connection", "onboarding"],
-  });
-});
+routes.use("/design", designRoutes);
 
 
 routes.use("/admin", requireLevel("manage"));
@@ -897,6 +762,56 @@ routes.get("/user/tasks", async (req, res) => {
     tasks,
     params: { type, status, rootOnly, limit, offset },
   });
+});
+
+/**
+ * All of a user's notifications, read or not, a page at a time. Where small screens get from the bell:
+ * they don't have the room for its panel.
+ */
+routes.get("/user/notifications", async (req, res) => {
+  const user = getUser(req);
+  if (!isUserAtLeast(user, "use")) {
+    return res.redirect(302, `/auth/login?redirect=${encodeURI("/ui/user/notifications")}`);
+  }
+  const unreadOnly = qsToBool(req.query.unread) ?? false;
+  const limit = NotificationManager.notificationsLimit(qsToInt(req.query.limit));
+  const offset = qsToInt(req.query.offset) ?? 0;
+  //One more, to tell whether there's a next page
+  const items = await getLocals(req).notifications.getNotifications(user!.uid, { limit: limit + 1, offset, unreadOnly });
+  const notifications = await notificationLines(req, items.slice(0, limit));
+
+  const pageUrl = (offset: number) => {
+    const url = new URL(req.originalUrl, getHost(req));
+    url.searchParams.set("offset", offset.toString());
+    return url.pathname + url.search;
+  };
+  const next = limit < items.length ? pageUrl(offset + limit) : undefined;
+  const previous = offset ? pageUrl(Math.max(0, offset - limit)) : undefined;
+  res.render("user/notifications", {
+    layout: "user",
+    title: "Notifications — User",
+    notifications,
+    unread: notifications.some((n) => n.state === "unread"),
+    params: { unreadOnly },
+    pager: (next || previous) ? { from: offset, to: offset + notifications.length, next, previous } : undefined,
+  });
+});
+
+/**
+ * Lines of some of the user's notifications, as pages draw them: by id, or by the task they're about (`?id=…&task=…`).
+ * For those pages to draw again what has changed, or to add what's new: see source/ui/activity/page.ts.
+ * Those that aren't the user's are left out.
+ */
+routes.get("/user/notifications/lines", async (req, res) => {
+  const user = getUser(req);
+  if (!isUserAtLeast(user, "use")) throw new UnauthorizedError();
+  const ids = qsToIntArray(req.query.id);
+  const task_ids = qsToIntArray(req.query.task);
+  //At most one per id, and one per task
+  const limit = ids.length + task_ids.length;
+  if(100 < limit) throw new BadRequestError(`At most 100 ids and tasks at once`);
+  const items = limit ? await getLocals(req).notifications.getNotifications(user!.uid, { ids, task_ids, limit }) : [];
+  res.render("user/notificationLines", { layout: null, lines: await notificationLines(req, items) });
 });
 
 routes.get("/admin/tasks", requireLevel("admin"), async (req, res) => {

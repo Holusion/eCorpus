@@ -34,7 +34,7 @@
     top: -.6em;
     left: .5rem;
     padding: 0 .25rem;
-    background: var(--color-section);
+    background: #2c2c2c;
     font-family: var(--font-heading);
     font-size: .75em;
     color: var(--color-highlight2);
@@ -852,23 +852,169 @@
 
 
 <section>
-  <h3>Notifications</h3>
+  <h3>Toasts</h3>
   <div class="design-note">
-    Notifications are emitted via the global <code>notification-stack</code>
-    custom element. Anywhere in client JS:
-    <code>document.querySelector("notification-stack").constructor.show(message, level, timeoutMs)</code>.
+    Toasts are shown in the global <code>toast-stack</code>
+    custom element. From modules, with <code>toast()</code> from <code>state/toast.ts</code>. From inline scripts:
+    <code>document.querySelector("toast-stack").constructor.show(message, level, timeoutMs)</code>.
     Levels are <code>info</code>, <code>success</code>, <code>warning</code>,
     <code>error</code> — <code>error</code> sticks until dismissed
     (timeout&nbsp;0).
   </div>
-  <div class="demo-frame" data-label="trigger notifications">
+  <div class="demo-frame" data-label="trigger toasts">
     <div class="btn-grid">
-      <button class="btn btn-info" onclick="document.querySelector('notification-stack').constructor.show('Heads up.', 'info', 3000)">info</button>
-      <button class="btn btn-success" onclick="document.querySelector('notification-stack').constructor.show('Saved.', 'success', 3000)">success</button>
-      <button class="btn" style="--btn-color: var(--color-warning, #c69026);" onclick="document.querySelector('notification-stack').constructor.show('Watch out.', 'warning', 5000)">warning</button>
-      <button class="btn btn-danger" onclick="document.querySelector('notification-stack').constructor.show('Something broke.', 'error', 0)">error</button>
+      <button class="btn btn-info" onclick="document.querySelector('toast-stack').constructor.show('Heads up.', 'info', 3000)">info</button>
+      <button class="btn btn-success" onclick="document.querySelector('toast-stack').constructor.show('Saved.', 'success', 3000)">success</button>
+      <button class="btn" style="--btn-color: var(--color-warning, #c69026);" onclick="document.querySelector('toast-stack').constructor.show('Watch out.', 'warning', 5000)">warning</button>
+      <button class="btn btn-danger" onclick="document.querySelector('toast-stack').constructor.show('Something broke.', 'error', 0)">error</button>
     </div>
   </div>
+</section>
+
+
+<section>
+  <h3>Loaders</h3>
+  <div class="design-note">
+    Two loaders, defined inline by <code>partials/head.hbs</code> and styled in <code>styles/loaders.scss</code>.
+    Which one depends on how long it's waited for.
+    <br><strong>Anything that isn't nearly instant</strong>: <code>&lt;cube-loader&gt;</code>. Files being uploaded, a part of a page
+    waiting for what's to be in it, a task that runs in the background (the bell, toasts and lines of notifications, below).
+    <br>They're drawn in their own shadow roots, with their own styles (<code>css/loaders.css</code>): there's nothing to import
+    to have them in a component's shadow root, or in Voyager's.
+  </div>
+  <div class="demo-split">
+    <div>
+      <div class="demo-frame" data-label="cube-loader">
+        <p style="margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span style="font-size: 14px;">Generating thumbnail <cube-loader></cube-loader></span>
+          <span>Uploading <cube-loader></cube-loader></span>
+          <cube-loader style="font-size: 2rem;" aria-label="Loading"></cube-loader>
+          <cube-loader style="font-size: 4rem;" aria-label="Loading"></cube-loader>
+        </p>
+      </div>
+
+      <div class="demo-frame ui-reduced-motion" data-label="reduced motion (prefers-reduced-motion: reduce)">
+        <p style="margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>Cube <cube-loader></cube-loader></span>
+          <cube-loader style="font-size: 2rem;"></cube-loader>
+          <span>Circle <circle-loader></circle-loader></span>
+          <circle-loader style="font-size: 2rem;"></circle-loader>
+        </p>
+      </div>
+    </div>
+
+    <div class="demo-frame" data-label="voyager: sv-spinner, as big">
+      {{!-- Voyager's styles aren't on this page: the same cube, at the size of Voyager's (96px) --}}
+      <cube-loader style="display: block; margin: auto; width: 96px; height: 96px;" aria-label="Voyager's loader"></cube-loader>
+      <small style="position: absolute; right: 0; bottom: 0; text-align: right" class="text-muted">Voyager's styles are not imported here.<br>It may look slightly different in reality</small>
+    </div>
+  </div>
+  <div class="demo-split">
+    <div>
+      <div class="demo-frame" data-label="submit-fragment, sent by a button">
+        <submit-fragment action="/design/hold" method="POST">
+          <form class="form-control">
+            <div class="form-item">
+              <label for="design-loader-name">Name</label>
+              <input type="text" id="design-loader-name" name="name" value="Answered in 3 seconds">
+            </div>
+            <div class="form-group">
+              <button type="submit" class="btn btn-main">Save</button>
+            </div>
+          </form>
+        </submit-fragment>
+      </div>
+      <div class="demo-frame" data-label="submit-fragment, sent by a change">
+        <submit-fragment action="/design/hold" method="POST" submit="level">
+          <form class="form-control">
+            <div class="form-item">
+              <label for="design-loader-level">Level</label>
+              <select id="design-loader-level" name="level">
+                <option>read</option>
+                <option>write</option>
+                <option>admin</option>
+              </select>
+            </div>
+          </form>
+        </submit-fragment>
+      </div>
+    </div>
+
+    <div class="demo-frame" data-label="circle-loader">
+      <p style="margin: 0; display: flex; flex-direction: column; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <span>Saving <circle-loader></circle-loader></span>
+        <circle-loader style="font-size: 2rem;" aria-label="Loading"></circle-loader>
+        <circle-loader style="width: 8rem; height: 3rem;" aria-label="Loading"></circle-loader>
+      </p>
+    </div>
+  </div>
+
+  <div class="design-note">
+    When we expect loading to be a <strong>nearly-instant</strong> transition: use <code>&lt;circle-loader&gt;</code>.
+    In a <code>&lt;submit-fragment&gt;</code>: the form dims and the circle is on what sent it,
+    in place of the button that was pressed, or at the end of the field whose change sent it, so that what's in it can still be read.
+    Anywhere else, the cube would only flash.
+  </div>
+
+  <script type="module">
+    //For the forms above, which have nowhere to go: answered after a while, with nothing
+    const send = window.fetch;
+    window.fetch = (input, init) => String(input).startsWith("/design/hold")
+      ? new Promise((resolve) => setTimeout(() => resolve(new Response(null, { status: 204 })), 3000))
+      : send(input, init);
+  </script>
+</section>
+
+
+<section>
+  <h3>Notifications</h3>
+  <div class="design-note">
+    What happens to a user's tasks reaches them as notifications: the bell in the navbar (its badge, the cube
+    in place of the bell while something's running, and its panel), toasts as tasks settle, and lists drawn by the server
+    with the <code>notification</code> partial: the page of notifications, and the upload page.
+    A line is <code>running</code>, <code>unread</code> or <code>read</code>; only unread ones can be marked.
+    Under what it says, a line of a list has what came out of it (see <code>notifications/outcomes.ts</code>): why it failed,
+    or what it made. Its first line shows; the rest is in a <code>&lt;details&gt;</code>, whose links don't mark it read.
+    The bell and its panel are styled by their ids, so they're only in the navbar: start a task below to see them change.
+    The lists below are made up, and not followed: a list is kept up to date only with <code>data-notifications</code>
+    (see <code>activity/page.ts</code>).
+  </div>
+  <div class="demo-frame" data-label="trigger notifications">
+    <div class="btn-grid">
+      <button class="btn btn-success" type="button" data-demo-task="success" title="A real task (delayTask) of yours, settled in 3 seconds">task that succeeds</button>
+      <button class="btn btn-danger" type="button" data-demo-task="error" title="A real task (delayTask) of yours, failed in 3 seconds">task that fails</button>
+    </div>
+  </div>
+  {{#each demoNotifications}}
+    <div class="demo-frame" data-label="{{label}}">
+      <div class="notifications-page" style="--section-padding: .75rem;">
+        <ul class="notifications-list">
+          {{> notification line }}
+        </ul>
+      </div>
+    </div>
+  {{/each}}
+  <script type="module">
+    const stack = document.querySelector("toast-stack");
+    /** As the upload page does: the activity bundle takes it from there */
+    for(const button of document.querySelectorAll("[data-demo-task]")){
+      button.addEventListener("click", async ()=>{
+        const data = button.dataset.demoTask === "error" ? {ms: 3000, fail: "Failed on purpose"} : {ms: 3000};
+        try{
+          const res = await fetch("/tasks", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "Prefer": "respond-async"},
+            body: JSON.stringify({type: "delayTask", data}),
+          });
+          if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+          const {task_id} = await res.json();
+          document.dispatchEvent(new CustomEvent("activity-started", {detail: {task_id, type: "delayTask"}}));
+        }catch(e){
+          stack.constructor.show(`Couldn't start a task: ${e.message}`, "error", 5000);
+        }
+      });
+    }
+  </script>
 </section>
 
 

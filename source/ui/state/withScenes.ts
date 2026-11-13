@@ -1,6 +1,6 @@
 import { LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
-import Notification from "../composants/Notification";
+import { toast } from "./toast";
 
 export interface Scene {
   /**ISO date string */
@@ -132,7 +132,7 @@ export function withScenes<T extends Constructor<LitElement>>(baseClass:T) : T &
           this.error = null;
       }).catch((e)=> {
           if(e.name == "AbortError") return;
-          Notification.show(`Failed to fetch scenes list : ${e.message}`, "error", 4000);
+          toast(`Failed to fetch scenes list : ${e.message}`, "error", 4000);
           this.error = `Failed to fetch scenes list : ${e.message}`;
       }).finally(()=>{
           this.loading--;

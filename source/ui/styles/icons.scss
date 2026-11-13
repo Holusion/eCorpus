@@ -1,0 +1,23 @@
+/*
+ * Icons: <ui-icon name="…">, from assets/images/icons.svg (see partials/head.hbs).
+ * Also in the shadow root of components that show icons: import this file in their styles.
+ * Loaders aren't icons: see loaders.scss.
+ */
+
+.ui-icon{
+  flex: 0 0 auto;
+  display: inline-block;
+  height: 1em;
+  width: 1em;
+  > svg{
+    //Not on a line: it'd leave room for descenders under it
+    display: block;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    width: 100%;
+    height: 100%;
+  }
+}

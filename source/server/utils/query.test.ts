@@ -1,5 +1,5 @@
 import QueryString from "qs";
-import { qsToBool, qsToInt } from "./query.js"
+import { qsToBool, qsToInt, qsToIntArray } from "./query.js"
 import { BadRequestError } from "./errors.js";
 
 
@@ -57,6 +57,23 @@ describe("queryString utilities", function(){
     it("throw on invalid input", function(){
       expect(()=>qsToInt("foo")).to.throw(BadRequestError);
       expect(()=>qsToInt({foo:"1"})).to.throw(BadRequestError);
+    });
+  })
+
+  describe("qsToIntArray()", function(){
+    it("cast one or more values", function(){
+      expect(qsToIntArray("1")).to.deep.equal([1]);
+      expect(qsToIntArray(["1", "-2", "0"])).to.deep.equal([1, -2, 0]);
+    });
+
+    it("is empty when absent", function(){
+      expect(qsToIntArray(undefined)).to.deep.equal([]);
+    });
+
+    it("throw if any isn't an integer", function(){
+      for(const v of ["", " 1", "0x10", "1e3", "foo", "1.5", "12abc", ["1", "foo"], {foo: "1"}, [{foo: "1"}]]){
+        expect(()=>qsToIntArray(v as any), JSON.stringify(v)).to.throw(BadRequestError);
+      }
     });
   })
 })

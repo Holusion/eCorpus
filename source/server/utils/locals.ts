@@ -10,8 +10,9 @@ import Templates, { AcceptedLocales, locales } from "./templates/index.js";
 import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
 import { TaskScheduler } from "../tasks/scheduler.js";
+import { NotificationManager } from "../notifications/manager.js";
 import { sceneLanguages, uiLanguages } from "./languages.js";
-import { localize } from "./i18n.js";
+import { i18n, localize } from "./i18n.js";
 
 
 export interface AppLocals{
@@ -19,6 +20,7 @@ export interface AppLocals{
   userManager: UserManager;
   vfs: Vfs;
   taskScheduler: TaskScheduler;
+  notifications: NotificationManager;
   templates: Templates;
   config: Config;
   /** Length of a session, in milliseconds since epoch */
@@ -589,6 +591,11 @@ export function useTemplateProperties(req: Request, res: Response, next?: NextFu
     root_url: canonical(req, "/").toString(),
     color_primary: config.get("color_primary"),
     color_secondary: config.get("color_secondary"),
+    activity: isUserAtLeast(user, "use") ? {
+      url: `/users/${user!.uid}/activity`,
+      //What notifications say, for the browser to fill in: those it gets aren't in anyone's language
+      messages: JSON.stringify(i18n.t("notifications.messages", { lng: lang, returnObjects: true })),
+    } : null,
   });
   if (next) next();
 }

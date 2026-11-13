@@ -40,7 +40,7 @@ describe("/auth/tokens", function(){
         .expect(401)
         .expect("Content-Language", "fr")
         .expect("WWW-Authenticate", 'Bearer realm="authenticated access"');
-      expect(body.message).to.equal("Error: [401] Non autorisé");
+      expect(body.message).to.equal("Error: Non autorisé");
     });
 
     for(const format of ["application/json", "text/plain", "text/html"]){
@@ -53,7 +53,7 @@ describe("/auth/tokens", function(){
           .expect("Content-Language", "fr")
           .expect("Vary", /Accept-Language/)
           .expect("WWW-Authenticate", 'Bearer error="insufficient_scope", scope="account:admin"');
-        expect(res.text).to.contain("[403] Portée insuffisante : account:admin");
+        expect(res.text).to.contain("Portée insuffisante : account:admin");
       });
     }
 
@@ -63,7 +63,7 @@ describe("/auth/tokens", function(){
         .set("Accept-Language", "fr")
         .expect(401)
         .expect("Content-Language", "fr");
-      expect(body.message).to.equal("Error: [401] Jeton d'autorisation invalide");
+      expect(body.message).to.equal("Error: Jeton d'autorisation invalide");
     });
 
     it("translates an expired authorization token", async function(){
@@ -73,7 +73,7 @@ describe("/auth/tokens", function(){
         .set("Accept-Language", "fr")
         .expect(401)
         .expect("Content-Language", "fr");
-      expect(body.message).to.equal("Error: [401] Jeton expiré");
+      expect(body.message).to.equal("Error: Jeton expiré");
     });
 
     it("translates a session CSRF refusal", async function(){
@@ -83,7 +83,7 @@ describe("/auth/tokens", function(){
         .set("Accept-Language", "fr")
         .expect(403)
         .expect("Content-Language", "fr");
-      expect(body.message).to.equal("Error: [403] Requête provenant d'une autre origine refusée");
+      expect(body.message).to.equal("Error: Requête provenant d'une autre origine refusée");
     });
 
     it("translates an expired session and still clears its cookie", async function(){
@@ -94,7 +94,7 @@ describe("/auth/tokens", function(){
         .expect(401)
         .expect("Content-Language", "fr")
         .expect("Set-Cookie", /session=;/);
-      expect(body.message).to.equal("Error: [401] Session expirée. Veuillez vous reconnecter");
+      expect(body.message).to.equal("Error: Session expirée. Veuillez vous reconnecter");
       expect(await userManager.getSessions(user.uid)).to.have.length(0);
     });
 
@@ -105,7 +105,7 @@ describe("/auth/tokens", function(){
         .set("Accept-Language", "fr")
         .expect(401)
         .expect("Content-Language", "fr");
-      expect(body.message).to.equal("Error: [401] Session invalide");
+      expect(body.message).to.equal("Error: Session invalide");
     });
   });
 

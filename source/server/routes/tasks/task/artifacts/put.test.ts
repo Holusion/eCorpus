@@ -198,18 +198,18 @@ describe("PUT /tasks/:id/artifact", function(){
 
     it("reports a non-GLB file in english by default", async function(){
       const {glbname, res} = await uploadGlb(this, randomBytes(64));
-      expect(res.body).to.have.property("message", `Error: [500] ${glbname} does not look like a GLB file`);
+      expect(res.body).to.have.property("message", `Error: ${glbname} does not look like a GLB file`);
     });
 
     it("reports a non-GLB file in the requested language", async function(){
       const {glbname, res} = await uploadGlb(this, randomBytes(64), "fr");
-      expect(res.body).to.have.property("message", `Error: [500] ${glbname} ne semble pas être un fichier GLB`);
+      expect(res.body).to.have.property("message", `Error: ${glbname} ne semble pas être un fichier GLB`);
     });
 
     it("reports a corrupted GLB file in the requested language", async function(){
       const cube = await fs.readFile(path.join(fixturesDir, "cube.glb"));
       const {glbname, res} = await uploadGlb(this, cube.subarray(0, cube.length / 2), "fr");
-      expect(res.body).to.have.property("message").match(new RegExp(`^Error: \\[500\\] ${glbname} n'a pas pu être lu comme un modèle 3D : .+`));
+      expect(res.body).to.have.property("message").match(new RegExp(`^Error: ${glbname} n'a pas pu être lu comme un modèle 3D : .+`));
     });
   });
 })
