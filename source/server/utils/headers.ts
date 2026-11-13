@@ -12,15 +12,20 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
  * is needed to keep the dev console free of false positives. The production
  * bundle uses external `.map` files and never evals, so production stays
  * strict (no `'unsafe-eval'`).
+ *
+ * `'wasm-unsafe-eval'` is always on: Voyager's model decoders (three's meshopt
+ * and draco) compile WebAssembly. It only permits WebAssembly compilation, not
+ * JS `eval()`.
  */
 function buildCspReportOnly({ dev }: { dev: boolean }): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
-    //Fonts are self-hosted (Noto Serif woff2 under /dist/fonts), so no third party.
+    //Fonts are self-hosted under /dist/fonts (Noto Serif, Voyager's Amiri and
+    //Hind Siliguri), so no third party.
     "font-src 'self' data:",
     "connect-src 'self' blob: data:",
     "worker-src 'self' blob:",

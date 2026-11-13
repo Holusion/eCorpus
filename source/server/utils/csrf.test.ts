@@ -3,6 +3,7 @@ import request from "supertest";
 
 import User from "../auth/User.js";
 import UserManager from "../auth/UserManager.js";
+import securityHeaders from "./headers.js";
 
 
 describe("CSRF protection (origin checks)", function(){
@@ -173,6 +174,17 @@ describe("CSRF protection (origin checks)", function(){
       //Self-hosted: no third-party font/style origins leak into the policy.
       expect(csp, csp).not.to.match(/fonts\.(googleapis|gstatic)\.com/);
       expect(csp, csp).to.match(/font-src 'self' data:/);
+    });
+
+    it("allows WebAssembly compilation but not JS eval in production", function(){
+      //Tests run the app in dev mode: call the middleware with dev: false directly
+      const headers: Record<string, string> = {};
+      const res = { set: (k: string, v: string)=> { headers[k] = v; } } as any;
+      securityHeaders({ hsts: true, dev: false })({} as any, res, ()=>{});
+      const csp = headers["Content-Security-Policy-Report-Only"];
+      const scriptSrc = csp.split(";").map(d=>d.trim()).find(d=>d.startsWith("script-src"))!;
+      expect(scriptSrc.split(" "), csp).to.include("'wasm-unsafe-eval'");
+      expect(scriptSrc.split(" "), csp).not.to.include("'unsafe-eval'");
     });
 
     it("emits X-Content-Type-Options", async function(){
