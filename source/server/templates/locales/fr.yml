@@ -347,6 +347,10 @@ tooltips:
     Le titre ne sera pris en compte que si un seul glb est importé à la fois.
     Pour renommer les scènes importées sous forme de zip, utilisez la page de scène. 
 leads:
+  otherAccount:
+    title: "Ce compte est celui de {{username}}, pas le vôtre"
+    lead: >
+      Ce que vous modifiez ici l'est pour {{username}}
   userTokens: >
     Les jetons d'API permettent à des services tiers de faire des requêtes authentifiées en votre nom, sans votre mot de passe. Ils sont révocables à tout moment
   scopeLadder: >

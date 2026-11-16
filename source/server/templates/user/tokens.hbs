@@ -1,5 +1,8 @@
+{{!-- Users make their own tokens and see the apps they've let in. An admin on someone else's page sees their tokens, to revoke them --}}
 <section class="user-tokens">
   <h3>{{i18n "titles.userTokens"}}</h3>
+  {{> otherAccountWarning}}
+  {{#if isSelf}}
   <p>{{i18n "leads.userTokens"}}</p>
 
   <form id="token-create" class="form-control" autocomplete="off">
@@ -79,6 +82,7 @@
       </div>
     </div>
   </dialog>
+  {{/if}}
 
   <form id="token-filters" method="get" class="token-filters">
     <input type="hidden" name="filter" value="1">
@@ -108,7 +112,7 @@
         </td>
         <td>{{#if clientName}}{{clientName}}{{else}}—{{/if}}</td>
         <td>{{dateString created "date"}}</td>
-        <td><button type="button" class="btn btn-danger" data-token-id="{{id}}">{{i18n "labels.revoke"}}</button></td>
+        <td><button type="button" class="btn btn-danger" data-revoke="{{#if @root.isSelf}}/auth/tokens/{{encodeURIComponent id}}{{else}}/users/{{@root.account.uid}}/tokens/{{encodeURIComponent id}}{{/if}}">{{i18n "labels.revoke"}}</button></td>
       </tr>
       {{else}}
       <tr><td colspan="5" style="text-align: center">{{i18n "leads.noTokens"}}</td></tr>
@@ -118,8 +122,19 @@
   </div>
 
   <script>
+    for(const btn of document.querySelectorAll("#token-list button[data-revoke]")){
+      btn.addEventListener("click", ()=>{
+        fetch(btn.dataset.revoke, {method: "DELETE"}).then((r)=>{
+          if(!r.ok) throw new Error(r.statusText);
+          location.reload();
+        }).catch((e)=>console.error("Failed to revoke token:", e));
+      });
+    }
+  </script>
+
+  {{#if isSelf}}
+  <script>
     (function manageTokens(){
-      const list = document.querySelector("#token-list");
       const form = document.querySelector("#token-create");
       const secretModal = document.querySelector("#token-secret-modal");
       const secretValue = document.querySelector("#token-secret-value");
@@ -183,15 +198,6 @@
         }
       }
 
-      for(const btn of list.querySelectorAll("button[data-token-id]")){
-        btn.addEventListener("click", ()=>{
-          fetch(`/auth/tokens/${encodeURIComponent(btn.dataset.tokenId)}`, {method: "DELETE"}).then((r)=>{
-            if(!r.ok) throw new Error(r.statusText);
-            location.reload();
-          }).catch((e)=>console.error("Failed to revoke token:", e));
-        });
-      }
-
       form.onsubmit = (ev)=>{
         ev.preventDefault();
         //Each track submits only its selected (highest) level. With no
@@ -217,8 +223,10 @@
       };
     })();
   </script>
+  {{/if}}
 </section>
 
+{{#if isSelf}}
 <section class="user-grants" style="margin-top: 2rem;">
   <h3>{{i18n "titles.authorizedApps"}}</h3>
   <p>{{i18n "leads.authorizedApps"}}</p>
@@ -288,3 +296,4 @@
     })();
   </script>
 </section>
+{{/if}}

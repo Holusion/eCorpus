@@ -37,7 +37,7 @@
       {{#if activity}}
         {{!-- Without a data-status (see activity/state.ts), it hasn't started.
           A link to the page of notifications: only a plain click opens the panel instead, see activity/panel.ts --}}
-        <a id="nav-notifications" class="btn btn-outline btn-icon nav-btn" href="/ui/user/notifications" title="{{i18n "nav.notifications"}}" data-activity="{{activity.url}}">
+        <a id="nav-notifications" class="btn btn-outline btn-icon nav-btn" href="/ui/users/{{user.uid}}/notifications" title="{{i18n "nav.notifications"}}" data-activity="{{activity.url}}">
           <ui-icon name="bell"></ui-icon>
           {{!-- In place of the bell while something's running: as in lines of notifications --}}
           <cube-loader class="nav-running"></cube-loader>
@@ -48,7 +48,7 @@
           <div class="nav-notifications-scroll">
             <ul></ul>
             <div class="nav-notifications-header">
-              <a class="btn btn-transparent nav-notifications-all" href="/ui/user/notifications"><span>{{i18n "buttons.allNotifications"}}</span></a>
+              <a class="btn btn-transparent nav-notifications-all" href="/ui/users/{{user.uid}}/notifications"><span>{{i18n "buttons.allNotifications"}}</span></a>
               <button class="btn btn-transparent nav-notifications-mark-all" type="button" hidden>{{i18n "buttons.markAllAsRead"}} <ui-icon name="check-check"></ui-icon></button>
             </div>
           </div>
@@ -64,7 +64,7 @@
           class="btn btn-outline btn-icon nav-btn nav-user"
         }}<ui-icon name="user"></ui-icon><span class="nav-user-name">{{i18n "nav.login"}}</span>{{/navLink}}
       {{else if user.username}}
-        {{#navLink "/ui/user/" class="btn btn-outline btn-icon nav-btn nav-user"}}<ui-icon name="user"></ui-icon><span class="nav-user-name">{{user.username}}</span>{{/navLink}}
+        {{#navLink (join "/ui/users/" user.uid "/") class="btn btn-outline btn-icon nav-btn nav-user"}}<ui-icon name="user"></ui-icon><span class="nav-user-name">{{user.username}}</span>{{/navLink}}
       {{/if}}
     </div>
   </div>

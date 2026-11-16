@@ -31,7 +31,7 @@ test.beforeEach(async ({page, uniqueAccount})=>{
 test("can read user settings page", async function({page}){
   await page.goto("/ui/");
   await page.getByRole("link", {"name": "testUserLogin"}).click();
-  await page.waitForURL("/ui/user/");
+  await page.waitForURL(`/ui/users/${account.uid}/`);
   await expect(page.getByRole("heading", {name: "titles.userSettings"})).toBeVisible();
 });
 
@@ -39,7 +39,7 @@ test("can read user settings page", async function({page}){
 test("can change email", async ({page})=>{
   //Ensure this is unique, otherwise it is rejected
   let new_email = `${account.username}-replacement@example2.com`
-  await page.goto("/ui/user/");
+  await page.goto(`/ui/users/${account.uid}/`);
   const form = page.getByRole("form", {name: "titles.userProfile"});
   await expect(form).toBeVisible();
   const emailField = form.getByRole("textbox", {name:"labels.email"});
@@ -70,7 +70,7 @@ test("can change password", async ({baseURL, page})=>{
 
   expect((await tryLogin(password)).ok).toBeTruthy();
 
-  await page.goto("/ui/user/");
+  await page.goto(`/ui/users/${account.uid}/`);
   const form = page.getByRole("form", {name: "titles.changePassword"});
   await expect(form).toBeVisible();
   await form.getByRole("textbox", {name: "labels.newPassword"}).fill(new_password);
@@ -92,7 +92,7 @@ test("can logout", async ({page})=>{
   expect(res).toBeOK();
   expect(await res.json()).toHaveProperty("level", "create");
 
-  await page.goto("/ui/user/");
+  await page.goto(`/ui/users/${account.uid}/`);
   await page.getByRole("button", {name: "buttons.logout"}).click();
   await page.waitForURL("/ui/");
   await expect(page.getByRole("link",{name: "testUserLogin"})).not.toBeVisible();
@@ -121,7 +121,7 @@ test("can show archived scenes", async ({page})=>{
   const {scenes} = await res.json();
   expect(scenes).toHaveLength(1);
 
-  await page.goto("/ui/user/archives");
+  await page.goto(`/ui/users/${account.uid}/archives`);
 
   await expect(page.getByRole("link", {name})).toBeVisible();
   await page.getByLabel('labels.restore').click();

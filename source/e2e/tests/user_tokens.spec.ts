@@ -3,7 +3,7 @@ import type { BrowserContext, Page } from "@playwright/test";
 import { createHash, randomBytes } from "node:crypto";
 
 // The personal-access-token UI and the "Authorized applications" (OAuth grants)
-// section, both on /ui/user/tokens.
+// section, both on /ui/users/:uid/tokens.
 // Runs unauthenticated by default; each test logs a fresh user in.
 test.use({ storageState: { cookies: [], origins: [] }, cimode: true });
 
@@ -27,7 +27,7 @@ test("creates a personal token shown once, usable as Bearer, then revocable", as
   const account = await loginFreshUser(page, uniqueAccount);
   const tokenName = `e2e-tok-${randomBytes(4).toString("hex")}`;
 
-  await page.goto("/ui/user/tokens");
+  await page.goto(`/ui/users/${account.uid}/tokens`);
   await page.locator("#token-name").fill(tokenName);
   // Defaults are a minimal read-only selection: opt into "all" explicitly.
   await page.locator('#token-scope input[value="all"]').check();
@@ -61,10 +61,10 @@ test("creates a personal token shown once, usable as Bearer, then revocable", as
 });
 
 test("creates a scope-restricted token via the scope picker", async ({page, uniqueAccount})=>{
-  await loginFreshUser(page, uniqueAccount);
+  const account = await loginFreshUser(page, uniqueAccount);
   const tokenName = `e2e-scoped-${randomBytes(4).toString("hex")}`;
 
-  await page.goto("/ui/user/tokens");
+  await page.goto(`/ui/users/${account.uid}/tokens`);
   await page.locator("#token-name").fill(tokenName);
   // The form defaults to corpus:read + scenes:read. Clear corpus via its
   // origin "○" so only scenes:read remains. Level radios are visually hidden
@@ -135,7 +135,7 @@ test("lists an authorized application and revokes its access", async ({page, bas
   const accessToken = (await tokenRes.json()).access_token as string;
 
   // The app appears under "Authorized applications".
-  await page.goto("/ui/user/tokens");
+  await page.goto(`/ui/users/${account.uid}/tokens`);
   const grantRow = page.locator("#grant-list").getByRole("row", {name: new RegExp(clientName)});
   await expect(grantRow).toBeVisible();
 

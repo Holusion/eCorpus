@@ -1,0 +1,10 @@
+{{!-- On an admin's view of someone else's account: what they change there is that user's, not their own --}}
+{{#unless @root.isSelf}}
+<aside class="help-block help-block-warning" role="note">
+  <ui-icon name="warning"></ui-icon>
+  <div class="help-block-content">
+    <h4>{{i18n "leads.otherAccount.title" username=@root.account.username}}</h4>
+    <p>{{i18n "leads.otherAccount.lead" username=@root.account.username}}</p>
+  </div>
+</aside>
+{{/unless}}

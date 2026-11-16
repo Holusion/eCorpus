@@ -139,6 +139,15 @@
   }
 }
 
+/* What can't be undone, or not by whoever reads it: the colors of a warning */
+.help-block.help-block-warning {
+  border-left-color: var(--color-warning);
+
+  > ui-icon {
+    color: var(--color-warning);
+  }
+}
+
 .landing-page {
   display:flex;
   flex-direction: row;
