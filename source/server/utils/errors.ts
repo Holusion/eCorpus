@@ -4,8 +4,11 @@ import { localize, Localized, LocalizedData } from "./i18n.js";
 export class HTTPError extends Error{
   /** Set when the message was {@link localize}d. Kept as plain data so it survives task output serialization */
   i18n?: LocalizedData;
-  constructor(public code :number, message :string|Localized){
-    super(`[${code}] ${message}`);
+  /**
+   * @param options.cause the underlying error. It goes to the logs, not to the client: the error handler only sends the message.
+   */
+  constructor(public code :number, message :string|Localized, options?: ErrorOptions){
+    super(`[${code}] ${message}`, options);
     if(message instanceof Localized) this.i18n = message.toData();
   }
 }

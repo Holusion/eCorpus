@@ -5,10 +5,7 @@ import { NotificationItem } from "../../notifications/types.js";
 import { BadRequestError, HTTPError } from "../../utils/errors.js";
 import { localize } from "../../utils/i18n.js";
 import { getLocals, getUser } from "../../utils/locals.js";
-import { createLogger } from "../../utils/log/index.js";
 import { qsToInt } from "../../utils/query.js";
-
-const log = createLogger("http:activity");
 
 /** Sent along with refusals. Clients are expected to add their own jitter. */
 const RETRY_AFTER_SECONDS = 30;
@@ -146,8 +143,7 @@ async function streamActivity(req: Request, res: Response, user_id: number, limi
   }catch(e){
     res.set("Retry-After", RETRY_AFTER_SECONDS.toString());
     if(e instanceof HTTPError) throw e;
-    log.warn({err: e}, "Can't subscribe to notifications");
-    throw new HTTPError(503, localize("errors.serviceUnavailable"));
+    throw new HTTPError(503, localize("errors.serviceUnavailable"), {cause: e});
   }
   if(closed) return unsubscribe();
 

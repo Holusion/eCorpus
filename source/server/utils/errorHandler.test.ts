@@ -10,7 +10,7 @@ import { expect } from "chai";
 import express, { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 import { errorHandlerMdw, notFoundHandlerMdw } from "./errorHandler.js";
-import { InternalError, UnauthorizedError } from "./errors.js";
+import { HTTPError, InternalError, UnauthorizedError } from "./errors.js";
 import { captureLogs } from "./log/index.js";
 import { localize } from "./i18n.js";
 import Templates from "./templates/index.js";
@@ -277,6 +277,43 @@ describe("errorHandler middleware", function(){
           capture.stop();
         }
       });
+    });
+
+    describe("errors with a cause", function(){
+      const secret = `too many connections for database "some-private-name"`;
+      this.beforeEach(function(){
+        app = express();
+        const templates = new Templates({dir: templatesDir, cache: false});
+        app.engine('.hbs', templates.middleware);
+        app.set('view engine', '.hbs');
+        app.set('views', templates.dir);
+        app.locals.config = mockConfig;
+        app.get("/", ()=>{
+          throw new HTTPError(503, localize("errors.serviceUnavailable"), {cause: new Error(secret)});
+        });
+        app.use(errorHandlerMdw());
+      });
+
+      it("logs the cause", async function(){
+        const capture = captureLogs();
+        try{
+          await request(app).get("/").expect(503);
+          await timers.setImmediate();
+          const errors = capture.records.filter(r=>r.module === "http" && r.level === "error");
+          expect(errors).to.have.length(1);
+          expect(errors[0]).to.have.nested.property("err.message").that.includes(secret);
+          expect(errors[0]).to.have.nested.property("err.stack").that.includes(secret);
+        }finally{
+          capture.stop();
+        }
+      });
+
+      for(const type of ["application/json", "text/plain", "text/html"]){
+        it(`doesn't send the cause to the client (${type})`, async function(){
+          const res = await request(app).get("/").set("Accept", type).expect(503);
+          expect(res.text).not.to.include("some-private-name");
+        });
+      }
     });
 
     it("handles errors (headers sent)", async function(){
