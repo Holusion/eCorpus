@@ -24,8 +24,7 @@ function buildCspReportOnly({ dev }: { dev: boolean }): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
-    //Fonts are self-hosted under /dist/fonts (Noto Serif, Voyager's Amiri and
-    //Hind Siliguri), so no third party.
+    //Fonts are self-hosted under /dist/fonts so no third party.
     "font-src 'self' data:",
     "connect-src 'self' blob: data:",
     "worker-src 'self' blob:",
