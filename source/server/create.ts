@@ -26,9 +26,9 @@ export interface Services{
 }
 
 export default async function createService(env = process.env) :Promise<Services>{
-  const {files_dir, force_migration, database_uri, clean_database} = parse(env); 
+  const {files_dir, force_migration, database_uri, database_pool_size, clean_database} = parse(env);
   await Promise.all([files_dir].map(d=>mkdir(d, {recursive: true})));
-  let db = await openDatabase({uri: database_uri, forceMigration: force_migration});
+  let db = await openDatabase({uri: database_uri, forceMigration: force_migration, poolSize: database_pool_size});
   let uri = new URL(database_uri);
   log.debug({ host: uri.hostname, port: uri.port, database: uri.pathname }, `Connected to database ${uri.hostname}:${uri.port}${uri.pathname}`);
 

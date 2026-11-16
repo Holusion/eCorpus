@@ -20,6 +20,11 @@ const static_values = {
   dist_dir:        [({root_dir}:{root_dir:string})=> path.resolve(root_dir,"dist"),  "path"],
   assets_dir:      [undefined,    "path"],
   database_uri:    [parsePGEnv,   "string"],
+  /**
+   * Connections the pool may open. The server needs one more than this, for notifications:
+   * keep it below the database's connection limit, with some room for maintenance.
+   */
+  database_pool_size: [8,         "number"],
   trust_proxy:     [true,         "boolean"],
   build_ref:       ["dev",        "string"],
   /** Log output format: "json" for structured logs, anything else for human-readable output. */

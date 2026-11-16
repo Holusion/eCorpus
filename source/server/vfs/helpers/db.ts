@@ -12,6 +12,8 @@ const log = createLogger("pg:connect");
 export interface DbOptions {
   uri:string;
   forceMigration ?:boolean;
+  /** Maximum number of connections in the pool. pg's default (10) if not set. */
+  poolSize ?:number;
 }
 
 
@@ -113,10 +115,12 @@ export function toHandle(db:Pool|PoolClient|Client) :Omit<DatabaseHandle, "begin
 
 
 let _id :number = 0;
-export default async function open({uri, forceMigration=true} :DbOptions) :Promise<Database> {
-  log.debug({ uri }, "connect to database");
+export default async function open({uri, forceMigration=true, poolSize} :DbOptions) :Promise<Database> {
+  if(poolSize !== undefined && poolSize < 1) throw new Error(`Invalid database pool size: ${poolSize}. It must be at least 1`);
+  log.debug({ uri, poolSize }, "connect to database");
   let pool = new Pool({
     connectionString: uri,
+    max: poolSize,
     // a connection timeout is a bad thing to have.
     // But we don't want to hang forever if something is very wrong.
     connectionTimeoutMillis: 10000,
