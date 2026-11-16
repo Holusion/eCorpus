@@ -1,0 +1,14 @@
+{{!-- The pages of a task: its overview, its logs, its data (see routes/views/tasks.ts) --}}
+{{#> main }}
+  <h1 class="grid-header">{{i18n "labels.task"}} #{{root.task_id}}</h1>
+  <div class="grid-toolbar">
+    <nav>
+      {{#navLink (join "/ui/tasks/" root.task_id) "exact"}}<ui-icon name="info"></ui-icon> <span>{{i18n "nav.overview"}}</span>{{/navLink}}
+      {{#navLink (join "/ui/tasks/" root.task_id "/logs") "exact"}}<ui-icon name="list"></ui-icon> <span>{{i18n "titles.logs"}}</span>{{/navLink}}
+      {{#navLink (join "/ui/tasks/" root.task_id "/data") "exact"}}<ui-icon name="folder"></ui-icon> <span>{{i18n "nav.taskData"}}</span>{{/navLink}}
+    </nav>
+  </div>
+  <div class="grid-content">
+    {{{body}}}
+  </div>
+{{/main}}

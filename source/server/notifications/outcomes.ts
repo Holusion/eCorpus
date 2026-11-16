@@ -48,7 +48,7 @@ async function sceneOf(vfs: OutcomeContext["vfs"], key: string|number, action?: 
 }
 
 /** What successful tasks of a type tell, beyond their messages */
-const successes: Record<string, (task: TaskDefinition, ctx: OutcomeContext)=> Promise<OutcomeLine[]>> = {
+const successes: Record<string, (task: TaskDefinition, ctx: Omit<OutcomeContext, "tasks">)=> Promise<OutcomeLine[]>> = {
   async createSceneFromFiles(task, {vfs}){
     if(typeof task.output !== "number") return [];
     const scene = await sceneOf(vfs, task.output);
@@ -82,6 +82,19 @@ function messagesOf(task: TaskDefinition, lng: string): OutcomeLine[]{
 }
 
 /**
+ * What came out of a task that's settled, line by line: why it failed, or what it made and what it says.
+ * Nothing while it's running. Pages of notifications and the overview of a task show the same.
+ */
+export async function outcomeLinesOf(task: TaskDefinition, ctx: Omit<OutcomeContext, "tasks">): Promise<OutcomeLine[]>{
+  if(task.status === "error"){
+    return typeof task.output?.message === "string" ? [{text: translateErrorMessage(task.output, ctx.lng), error: true}] : [];
+  }else if(task.status === "success"){
+    return [...await (successes[task.type]?.(task, ctx) ?? Promise.resolve([])), ...messagesOf(task, ctx.lng)];
+  }
+  return [];
+}
+
+/**
  * What came out of a notification's task, if there's anything to tell: why it failed, or what it made.
  * Nothing while it's running, nor for what isn't about a task.
  */
@@ -94,12 +107,6 @@ export async function outcomeOf(item: NotificationItem, ctx: OutcomeContext): Pr
     log.warn({ task_id: item.task_id, err: e }, "Can't get the task of a notification");
     return undefined;
   }
-  let lines: OutcomeLine[] = [];
-  if(task.status === "error"){
-    if(typeof task.output?.message === "string") lines = [{text: translateErrorMessage(task.output, ctx.lng), error: true}];
-  }else if(task.status === "success"){
-    lines = [...await (successes[task.type]?.(task, ctx) ?? Promise.resolve([])), ...messagesOf(task, ctx.lng)];
-  }
-  const [first, ...rest] = lines;
+  const [first, ...rest] = await outcomeLinesOf(task, ctx);
   return first ? {first, rest} : undefined;
 }

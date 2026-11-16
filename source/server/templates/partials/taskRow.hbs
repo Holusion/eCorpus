@@ -1,6 +1,7 @@
 <li aria-labelledby="task-{{task_id}}-title task-{{task_id}}-details task-{{task_id}}-status">
   {{#if children.length}}
-    <details>
+    {{!-- Collapsed, unless the page has them open (see the overview of a task) --}}
+    <details{{#if @root.openTaskRows}} open{{/if}}>
       <summary>{{> taskRowContent }}</summary>
       <ul class="task-rows">
         {{#each children}}

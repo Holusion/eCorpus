@@ -1,9 +1,6 @@
-/* Shared styles for task views (compiled/copied to /dist/css/tasks.css by build)
-   Rules are chosen to prefer the definitions originally in `task.hbs` when conflicts arise.
-*/
+/* Lists of tasks, and the pages of a task */
 .warn-count {
   font-weight: bold;
-  text-decoration: none;
   color: var(--color-warning);
 }
 
@@ -15,124 +12,124 @@
   }
 }
 
-.task-title-bar {
+/* The pages of a task (see layouts/task.hbs): what it is, with how it went in the corner */
+.task-overview-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 2rem;
   align-items: baseline;
   justify-content: space-between;
+  gap: .5rem 1rem;
 
   h2 {
+    min-width: 0;
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .task-status {
+    flex: 0 0 auto;
   }
 }
 
-.task-summary{
+/* Its overview: who made it and when, then why it failed */
+.task-overview-byline {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1rem;
+  opacity: .75;
 
-  .inline-heading { display: inline; }
+  time {
+    margin-left: auto;
+  }
+}
+
+.task-overview-reason {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Its logs: on one line each, between what it was given and what came out of it */
+.logs-header {
+  //The level's field lines up with the bottom of the title, not its own label
+  align-items: end;
+
   .logs-count { font-weight: normal; color: var(--color-secondary); }
-  .no-logs { color: var(--color-secondary); }
+}
 
-  .logs-header,
-  .task-output-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
+.logs-table {
+  font-family: var(--font-mono, monospace);
 
-  .task-output-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: .5rem;
-  }
-
-  .logs-table-wrap { overflow-x: auto; }
-
-  /* Task node/tree */
-  .task-tree {
-    font-family: var(--font-mono, monospace);
-    width: max-content;
-    @media (max-width: 640px) {
-      width: 100%;
-    }
-
-    > .task-node {
-      margin-left: 0;
-      border-left: none;
-    }
-  }
-  .task-node {
-    margin: 0;
-    padding: .25rem 0 .25rem .5rem;
-    border-left: 2px solid var(--color-element, #444);
-    margin-left: .5rem;
-  }
-  .task-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: .5rem;
-    padding: .25rem 0;
-  }
-  .task-id   { color: var(--color-secondary, #aaa); }
-  .task-type { font-weight: bold; flex-grow: 1; }
-  .task-children { margin-top: .25rem; }
-
-
-  /* Logs table */
-  .logs-table {
-    font-family: var(--font-mono, monospace);
-  }
-
-  .logs-table th {
-    text-align: left;
-    padding: .3rem .5rem;
-    border-bottom: 1px solid var(--color-element, #444);
-    color: var(--color-primary, #aaa);
-    font-weight: bold;
-    font-size: 110%;
-  }
-  .logs-table td {
-    padding: .2rem .5rem;
+  td {
     vertical-align: top;
     border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
   }
 
-  .log-task-id  { color: #aaa; white-space: nowrap; width: 1%; }
-  .log-time     { color:  #aaa; white-space: nowrap; width: 1%; }
-  .log-level    { white-space: nowrap; width: 1%; }
-  .log-trace    { color: var(--color-secondary, #888); }
-  .log-debug    { color: var(--color-info, #aaa); }
-  .log-info     { color: var(--color-light, #eee); }
-  .log-warn     { color: #d4a030; }
-  .log-error    { color: #e05050; }
-  .log-fatal    { color: #e05050; font-weight: bold; }
-  .log-message  { white-space: pre-wrap; word-break: break-all; width: 100%; }
+  .log-time, .log-task-id, .log-level { width: 1%; }
+  .log-time, .log-task-id { color: #aaa; }
+  //Its lines wrap, where a list's cells stay on one line
+  .log-message { white-space: pre-wrap; word-break: break-all; width: 100%; }
+  .no-logs { color: var(--color-secondary); }
 
-  /* Small responsive helpers */
-  @media (max-width: 640px) {
-    .task-header { gap: .25rem; }
-    .logs-table th, .logs-table td { padding: .15rem .4rem; }
+  .log-trace { color: var(--color-secondary, #888); }
+  .log-debug { color: var(--color-info, #aaa); }
+  .log-info  { color: var(--color-light, #eee); }
+  .log-warn  { color: var(--color-warning); }
+  .log-error { color: var(--color-error); }
+  .log-fatal { color: var(--color-error); font-weight: bold; }
+
+  //What it was given, and what came out of it: around its logs, set apart from them.
+  //On its cells, as the list's stripes are on its rows
+  .log-data {
+    > td { background: var(--color-highlight); }
+    .log-level { color: var(--color-primary); }
+    a { white-space: nowrap; word-break: normal; }
   }
 
-  .task-data-box{
-    overflow-x: auto;
-    padding: .63rem;
-    margin: 0;
-    background: var(--color-element);
+  @media (max-width: 640px) {
+    //The time is enough to follow a run; the full date stays in the <time> element's datetime
+    .log-date { display: none; }
   }
 }
 
+/* Its data: what it was given, and what came out of it, whole.
+  Each starts with its first lines, and shows the rest when asked */
+.task-data-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1rem 0;
+}
 
-/* Status badges (preferred definitions from task.hbs)
-  Keep these synchronized with other UI components that use the same classes. */
+.task-data-box {
+  overflow-x: auto;
+  padding: .63rem;
+  margin: 0;
+  background: var(--color-element);
+}
+
+.task-data-long:not(:has(.task-data-toggle :checked)) .task-data-box {
+  max-height: calc(8lh + 1.26rem);
+  overflow-y: hidden;
+  mask-image: linear-gradient(to bottom, black 60%, transparent);
+}
+
+.task-data-toggle {
+  display: inline-block;
+  margin-top: .25rem;
+  color: var(--color-secondary-light);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  &:has(:checked) .task-data-show-all,
+  &:not(:has(:checked)) .task-data-show-less {
+    display: none;
+  }
+}
+
+/* Status badges */
 .task-status {
   padding: .1em .45em;
   margin: 2px;

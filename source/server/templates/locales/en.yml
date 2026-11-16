@@ -10,6 +10,20 @@ lang:
   en: English
   es: Spanish
 labels:
+  createdBy: Created by
+  showAll: Show all
+  showLess: Show less
+  task: Task
+  taskStatus:
+    success: Success
+    error: Error
+    running: Running
+    pending: Pending
+    initializing: Initializing
+    aborting: Aborting
+  taskInput: input
+  taskOutput: output
+  seeTaskData: See the data
   authorize: Authorize
   deny: Deny
   revoke: Revoke
@@ -103,7 +117,8 @@ labels:
   unreadOnly: Unread only
   loading: Loading…
   noLogs: No logs.
-  warnings: Warnings
+  warnings_one: "{{count}} warning"
+  warnings_other: "{{count}} warnings"
   optimizeModel: Optimize models
   childOf: Child of
   showStatic: Show locked parameters
@@ -172,6 +187,7 @@ fields:
   status: Status
   minLevel: Min level
 nav:
+  taskData: Data
   tokens: API tokens
   tags: collections
   login: connection
@@ -272,6 +288,7 @@ onboarding:
     link: "About background tasks"
 
 titles:
+  subtasks: Subtasks
   userTokens: API tokens
   tokenCreated: Token created
   authorizedApps: Authorized applications
@@ -340,6 +357,7 @@ leads:
   scopeLadder: >
     Each scope family is a ladder — a level includes every level below it (read < write < admin), so only the highest selected level is recorded
   scopeHint: ○ = no access · fill = granted · click the selected level to remove it
+  noOutput: No output data.
   noTokens: No API token
   authorize: is requesting access to your eCorpus account, as
   authorizedApps: >
