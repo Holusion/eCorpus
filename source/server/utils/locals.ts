@@ -1,6 +1,6 @@
 
 import e, { NextFunction, Request, RequestHandler, Response } from "express";
-import { basename, dirname } from "path";
+import path, { basename, dirname } from "path";
 import User, { isUserAtLeast, SafeUser, UserRole } from "../auth/User.js";
 import { expand, levelScopes, maxFamilyScope, PUBLIC_SCOPES } from "../auth/Token.js";
 import UserManager, { AccessLevel, isAccessType, toAccessLevel } from "../auth/UserManager.js";
@@ -11,8 +11,12 @@ import { Config } from "./config.js";
 import { isEmbeddable } from "../routes/services/oembed.js";
 import { TaskScheduler } from "../tasks/scheduler.js";
 import { NotificationManager } from "../notifications/manager.js";
+import { notificationView } from "../notifications/messages.js";
+import { NotificationItem } from "../notifications/types.js";
+import { outcomeOf } from "../notifications/outcomes.js";
 import { sceneLanguages, uiLanguages } from "./languages.js";
 import { i18n, localize } from "./i18n.js";
+import { qsToInt } from "./query.js";
 
 
 export interface AppLocals{
@@ -422,7 +426,7 @@ export function getCredentialScopes(res: Response): ReadonlySet<string> | null {
 
 /**
  * The effective per-scene access to advertise for display (eg. the scene edit
- * button in `views/index.ts`): the ACL access the user has, capped by their
+ * button in `views/scenes.ts`): the ACL access the user has, capped by their
  * credential's scene scope ({@link accessCap}). This stays *effective* even
  * though the authorization *decision* is now a conjunction of scope + ACL.
  */
@@ -518,6 +522,58 @@ export function getHost(req: Request): URL {
     host = host.substring(0, host.indexOf(",")).trimEnd();
   }
   return new URL(`${req.protocol}://${host}`);
+}
+
+/**
+ * A scene as pages show it: with its thumbnail's URL
+ */
+export function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
+  if(thumb){
+    thumb = new URL(path.join("/scenes/", encodeURIComponent(name), encodeURIComponent(thumb)), getHost(req)).toString();
+  }
+  return {thumb, name, ...s};
+}
+
+/**
+ * Lines of pages of notifications (the notification partial): what a notification says, and what came out of it.
+ * The same in all of them: the page of notifications, the upload page, and the lines they draw again.
+ */
+export async function notificationLines(req: Request, items: NotificationItem[]){
+  const lng = getLanguage(req);
+  const ctx = {tasks: getTaskScheduler(req), vfs: getVfs(req), lng};
+  return await Promise.all(items.map(async (item)=> ({...notificationView(item, lng), outcome: await outcomeOf(item, ctx)})));
+}
+
+/** The filters of a list of tasks, from the query */
+export function parseTaskListQuery(req: Request) {
+  const rawType = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const allowedStatus = ['all', 'success', 'error'];
+  const status = allowedStatus.includes(rawStatus ?? '') ? (rawStatus as 'all'|'success'|'error') : 'all';
+  if (rawStatus && status !== rawStatus) throw new BadRequestError(`Invalid status requested : ${rawStatus}`);
+  const limit = qsToInt(req.query.limit) ?? 20;
+  const offset = qsToInt(req.query.offset) ?? 0;
+  let type: string | undefined;
+  if (rawType) {
+    if (rawType.length > 200) throw new BadRequestError("type parameter too long");
+    type = rawType;
+  }
+  return { type, status, limit, offset };
+}
+
+/**
+ * Links to the pages around this one in a list of tasks, for the `pager` partial.
+ * Pages are made of trees, as `limit` and `offset` are. There's no pager when it all fits in one.
+ */
+export function getTaskListPager(req: Request, { limit, offset }: { limit: number, offset: number }, count: number) {
+  const pageUrl = (offset: number) => {
+    const url = new URL(req.originalUrl, getHost(req));
+    url.searchParams.set("offset", offset.toString());
+    return url.pathname + url.search;
+  };
+  const next = count === limit ? pageUrl(offset + limit) : undefined;
+  const previous = offset ? pageUrl(Math.max(0, offset - limit)) : undefined;
+  return (next || previous) ? { from: offset, to: offset + count, next, previous } : undefined;
 }
 
 /**

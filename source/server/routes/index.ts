@@ -111,6 +111,7 @@ Disallow: /auth/
 Disallow: /admin/
 Disallow: /ui/admin/
 Disallow: /ui/user/
+Disallow: /ui/users/
 Disallow: /ui/groups/
 Disallow: /ui/upload
 Disallow: /ui/standalone

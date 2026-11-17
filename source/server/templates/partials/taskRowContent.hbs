@@ -1,0 +1,44 @@
+{{!-- A task's status shows as a notification's does (see partials/notification.hbs): an icon on the left, the cube while it hasn't settled.
+  Its name is there for those who can't see it.
+  Then what it is, why it failed if it did, and its ID, owner and date. --}}
+<div class="task-row">
+  <span class="task-row-status" id="task-{{task_id}}-status" title="{{status}}">
+    {{#if (test status "==" "success")}}
+      <ui-icon class="text-success" name="check"></ui-icon>
+    {{else if (test status "==" "error")}}
+      <ui-icon class="text-error" name="error"></ui-icon>
+    {{else if (test status "==" "aborting")}}
+      <ui-icon class="text-warning" name="warning"></ui-icon>
+    {{else}}
+      <cube-loader></cube-loader>
+    {{/if}}
+    <span class="visually-hidden">{{status}}</span>
+  </span>
+  <div class="task-row-content">
+    <span class="task-row-title" id="task-{{task_id}}-title">
+      <a class="task-row-type" href="/ui/tasks/{{task_id}}">{{type}}</a>
+      {{#if scene}}
+        <span class="task-row-scene">{{i18n "labels.taskOnScene"}} ‹<a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a>›</span>
+      {{/if}}
+      {{!-- Why it failed, as its notification says it: whole --}}
+      {{#if (test status "==" "error")}}
+        <span class="task-row-reason text-error">{{errorMessage output}}</span>
+      {{/if}}
+    </span>
+    <small class="task-row-details" id="task-{{task_id}}-details">
+      <a class="task-row-id" href="/ui/tasks/{{task_id}}">#{{task_id}}</a>
+      {{#if user_id}}
+        &mdash;
+        {{!-- To their tasks, for whoever can see them: themselves and admins. Not on that list itself --}}
+        {{#if @root.account}}
+          <span class="task-row-owner">{{owner}}</span>
+        {{else if (test (userLevel @root.user.level "admin") "||" (test user_id "==" @root.user.uid))}}
+          <a class="task-row-owner" href="/ui/users/{{user_id}}/tasks{{#if @root.params.type}}?type={{encodeURIComponent @root.params.type}}{{#if (test @root.params.status "&&" (test @root.params.status "!=" "all"))}}&amp;status={{@root.params.status}}{{/if}}{{else if (test @root.params.status "&&" (test @root.params.status "!=" "all"))}}?status={{@root.params.status}}{{/if}}">{{owner}}</a>
+        {{else}}
+          <span class="task-row-owner">{{owner}}</span>
+        {{/if}}
+      {{/if}}
+      <time class="task-row-time" datetime="{{dateString ctime "iso"}}">{{dateString ctime}}</time>
+    </small>
+  </div>
+</div>

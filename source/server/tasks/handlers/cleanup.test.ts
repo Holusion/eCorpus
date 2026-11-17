@@ -246,6 +246,61 @@ describe("cleanup handlers", function () {
       await scheduler.run({ handler: runCleanup, data: {} });
       await expectAllPhasesSucceed();
     });
+
+    describe("when phases fail", function () {
+      const moved = (dir: string) => `${dir}.moved`;
+      //cleanLooseObjects can't list objects that aren't there, cleanTaskArtifacts can't list what isn't a directory
+      async function breakPhases({ objects = true, artifacts = false } = {}) {
+        if (objects) await fs.rename(vfs.objectsDir, moved(vfs.objectsDir));
+        if (artifacts) {
+          await fs.rename(vfs.artifactsDir, moved(vfs.artifactsDir)).catch((e: any) => { if (e.code !== "ENOENT") throw e; });
+          await fs.writeFile(vfs.artifactsDir, "not a directory");
+        }
+      }
+      this.afterEach(async function () {
+        if (await fs.access(moved(vfs.objectsDir)).then(() => true, () => false)) {
+          await fs.rename(moved(vfs.objectsDir), vfs.objectsDir);
+        }
+        const artifacts = await fs.stat(vfs.artifactsDir).catch(() => null);
+        if (artifacts?.isFile()) {
+          await fs.rm(vfs.artifactsDir);
+          await fs.rename(moved(vfs.artifactsDir), vfs.artifactsDir).catch((e: any) => { if (e.code !== "ENOENT") throw e; });
+        }
+      });
+
+      const statuses = async () => Object.fromEntries((await handle.all<{ type: string; status: string }>(`
+        SELECT type, status FROM tasks WHERE type = ANY($1::text[])
+      `, [[...expectedPhases, "runCleanup"]])).map(r => [r.type, r.status]));
+
+      it("still runs every phase, then fails with an AggregateError", async function () {
+        await breakPhases();
+        const err = await expect(scheduler.run({ handler: runCleanup, data: {} })).to.be.rejectedWith(AggregateError);
+        expect(err.errors).to.have.length(1);
+        expect(err.errors[0].code).to.equal("ENOENT");
+        expect(await statuses()).to.deep.equal({
+          runCleanup: "error",
+          cleanLooseObjects: "error",
+          checkForMissingObjects: "success",
+          cleanTaskArtifacts: "success",
+          cleanOldTasks: "success",
+          optimize: "success",
+        });
+      });
+
+      it("collects every failure, and names them in its message", async function () {
+        await breakPhases({ objects: true, artifacts: true });
+        const err = await expect(scheduler.run({ handler: runCleanup, data: {} })).to.be.rejectedWith(AggregateError);
+        expect(err.errors).to.have.length(2);
+        expect(err.message).to.match(/^2 cleanup phases failed: cleanLooseObjects \(ENOENT[^)]*\), cleanTaskArtifacts \(ENOTDIR[^)]*\)$/);
+      });
+
+      it("keeps that message in the output of its task", async function () {
+        await breakPhases();
+        await expect(scheduler.run({ handler: runCleanup, data: {} })).to.be.rejected;
+        const [{ output }] = await handle.all<{ output: { message: string } }>(`SELECT output FROM tasks WHERE type = 'runCleanup'`);
+        expect(output.message).to.match(/^1 cleanup phase failed: cleanLooseObjects \(ENOENT/);
+      });
+    });
   });
 
   describe("reapOrphans", function () {

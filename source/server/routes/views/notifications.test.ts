@@ -8,7 +8,7 @@ import { localize } from "../../utils/i18n.js";
 
 
 /** All of a user's notifications, a page at a time: what small screens get instead of the bell's panel */
-describe("GET /ui/user/notifications", function(){
+describe("GET /ui/users/:uid/notifications", function(){
   let tasks: TaskScheduler, hub: NotificationManager, vfs: Vfs;
   let uid: number, other: number;
 
@@ -19,6 +19,7 @@ describe("GET /ui/user/notifications", function(){
     vfs = locals.vfs;
     uid = (await locals.userManager.addUser("bob", "12345678", "use")).uid;
     other = (await locals.userManager.addUser("alice", "12345678", "use")).uid;
+    await locals.userManager.addUser("admin", "12345678", "admin");
   });
 
   this.beforeEach(async function(){
@@ -37,7 +38,7 @@ describe("GET /ui/user/notifications", function(){
   }
 
   async function page(this: Mocha.Context, query = ""){
-    const {text} = await request(this.server).get(`/ui/user/notifications${query}`)
+    const {text} = await request(this.server).get(`/ui/users/${uid}/notifications${query}`)
       .set("Authorization", await bearer("bob"))
       .expect(200);
     return text;
@@ -54,7 +55,7 @@ describe("GET /ui/user/notifications", function(){
   }
 
   it("sends visitors to the login page", async function(){
-    await request(this.server).get("/ui/user/notifications")
+    await request(this.server).get(`/ui/users/${uid}/notifications`)
       .expect(302)
       .expect("Location", /^\/auth\/login/);
   });
@@ -76,7 +77,7 @@ describe("GET /ui/user/notifications", function(){
 
   it("says what they're about in the page's language", async function(){
     await notified(uid, {status: "error"});
-    const {text} = await request(this.server).get("/ui/user/notifications")
+    const {text} = await request(this.server).get(`/ui/users/${uid}/notifications`)
       .set("Authorization", await bearer("bob"))
       .set("Accept-Language", "fr")
       .expect(200);
@@ -98,11 +99,11 @@ describe("GET /ui/user/notifications", function(){
     for(let i = 0; i < 25; i++) ids.push(await notified());
     const first = await page.call(this);
     expect(linesOf(first).map(l=> l.task)).to.deep.equal(ids.slice(-20).reverse());
-    expect(first).to.contain(`href="/ui/user/notifications?offset&#x3D;20"`);
+    expect(first).to.contain(`href="/ui/users/${uid}/notifications?offset&#x3D;20"`);
 
     const second = await page.call(this, "?offset=20");
     expect(linesOf(second).map(l=> l.task)).to.deep.equal(ids.slice(0, 5).reverse());
-    expect(second).to.contain(`href="/ui/user/notifications?offset&#x3D;0"`);
+    expect(second).to.contain(`href="/ui/users/${uid}/notifications?offset&#x3D;0"`);
     expect(second).not.to.contain(`offset&#x3D;40`);
   });
 
@@ -130,7 +131,7 @@ describe("GET /ui/user/notifications", function(){
 
   it("says why a task failed, in the page's language, without its code", async function(){
     await settled("createSceneFromFiles", {error: new BadRequestError(localize("errors.upload.notGlb", {filename: "foo.glb"}))});
-    const {text} = await request(this.server).get("/ui/user/notifications")
+    const {text} = await request(this.server).get(`/ui/users/${uid}/notifications`)
       .set("Authorization", await bearer("bob"))
       .set("Accept-Language", "fr")
       .expect(200);
@@ -149,8 +150,26 @@ describe("GET /ui/user/notifications", function(){
 
   it("is linked from the bell, its panel, and the user's pages", async function(){
     const text = await page.call(this);
-    expect(text).to.match(/<a id="nav-notifications"[^>]* href="\/ui\/user\/notifications"/);
-    expect(text.match(/href="\/ui\/user\/notifications"/g)).to.have.length(3);
+    expect(text).to.match(new RegExp(`<a id="nav-notifications"[^>]* href="/ui/users/${uid}/notifications"`));
+    expect(text.match(new RegExp(`href="/ui/users/${uid}/notifications"`, "g"))).to.have.length(3);
+  });
+
+  it("is the user's only, even for an admin", async function(){
+    await notified(uid);
+    await request(this.server).get(`/ui/users/${uid}/notifications`)
+      .set("Authorization", await bearer("alice"))
+      .expect(401);
+    const {text} = await request(this.server).get(`/ui/users/${uid}/notifications`)
+      .set("Authorization", await bearer("admin"))
+      .expect(401);
+    expect(text).not.to.contain("testTask");
+  });
+
+  it("is where /ui/user/notifications goes", async function(){
+    await request(this.server).get("/ui/user/notifications?unread=true")
+      .set("Authorization", await bearer("bob"))
+      .expect(302)
+      .expect("Location", `/ui/users/${uid}/notifications?unread=true`);
   });
 });
 

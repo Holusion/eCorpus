@@ -1,0 +1,49 @@
+{{!-- What a task was given, and what came out of it, whole: what its logs show on one line each.
+  Each starts with its first lines, and shows the rest when asked (see tasks.scss). --}}
+{{#*inline "dataBlock"}}
+  <div class="task-data-block{{#if long}} task-data-long{{/if}}">
+    <pre class="task-data-box">{{text}}</pre>
+    {{#if long}}
+      <label class="task-data-toggle">
+        <input type="checkbox" class="visually-hidden">
+        <span class="task-data-show-all">{{i18n "labels.showAll"}}</span>
+        <span class="task-data-show-less">{{i18n "labels.showLess"}}</span>
+      </label>
+    {{/if}}
+  </div>
+{{/inline}}
+
+<header class="task-overview-header">
+  <h2>
+    {{root.type}}
+    {{#if scene}}{{i18n "labels.taskOnScene"}} <a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a>{{/if}}
+  </h2>
+  <span class="task-status task-status-large status-{{root.status}}">{{i18n (join "labels.taskStatus." root.status) root.status}}</span>
+</header>
+
+<section class="task-data-actions">
+  <a class="btn btn-outline btn-secondary" href="/tasks/{{root.task_id}}/artifact" download="task-{{root.task_id}}.zip">
+    {{i18n "buttons.getTaskArtifacts"}}
+  </a>
+</section>
+
+<section id="input" aria-labelledby="task-input-heading">
+  <h3 id="task-input-heading">{{i18n "titles.taskData"}}</h3>
+  {{> dataBlock input }}
+</section>
+
+<section id="output" aria-labelledby="task-output-heading">
+  {{#if (test outputType "==" "undefined")}}
+    <h3 id="task-output-heading">{{i18n "titles.taskOutput"}}</h3>
+    <p>{{i18n "leads.noOutput"}}</p>
+  {{else if (test outputType "==" "error") }}
+    <h3 id="task-output-heading" class="text-error">{{#if root.output.name}}{{root.output.name}}{{else}}Error{{/if}}</h3>
+    {{> dataBlock output }}
+  {{else}}
+    <div class="title-flex">
+      <h3 id="task-output-heading">{{i18n "titles.taskOutput"}}</h3>
+      <span class="task-status status-outline">{{outputType}}</span>
+    </div>
+    {{> dataBlock output }}
+  {{/if}}
+</section>

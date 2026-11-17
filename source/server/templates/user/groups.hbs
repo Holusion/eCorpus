@@ -1,6 +1,6 @@
 
 <section style="flex-grow: 1;">
-  <h3>{{i18n "titles.myGroups"}}</h3>
+  <h3>{{#if isSelf}}{{i18n "titles.myGroups"}}{{else}}{{i18n "nav.userGroups"}}{{/if}}</h3>
   <div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: .5rem;justify-content:center;">
     {{#each groups}}
       <a class="btn" style="overflow: hidden; text-overflow:ellipsis" href="/ui/groups/{{encodeURIComponent groupName}}">

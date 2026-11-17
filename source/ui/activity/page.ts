@@ -1,5 +1,5 @@
 /**
- * Lists of notifications that the server draws: the page of a user's notifications (/ui/user/notifications),
+ * Lists of notifications that the server draws: the page of a user's notifications (/ui/users/:uid/notifications),
  * read or not, a page at a time, and what the upload page has started.
  * What the stream tells about them shows there too: a line whose state changes is drawn again by the server,
  * which knows what came out of it (see notifications/outcomes.ts). One request at a time: the last one has the last word.

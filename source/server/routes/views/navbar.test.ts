@@ -10,16 +10,17 @@ describe("The main navbar", function(){
     return tag!;
   };
 
+  let uid: number;
   this.beforeAll(async function(){
     const {userManager} = await createIntegrationContext(this);
-    await userManager.addUser("bob", "12345678", "create");
+    uid = (await userManager.addUser("bob", "12345678", "create")).uid;
   });
 
   it("doesn't name links after something else than what they show", async function(){
     const {text} = await request(this.server).get("/ui/tags").set("Authorization", await bearer("bob")).expect(200);
     //An aria-label takes over the content of a link for those who rely on it
     expect(linkTo(text, "/ui/upload/")).not.to.include("aria-label");
-    expect(linkTo(text, "/ui/user/")).not.to.include("aria-label");
+    expect(linkTo(text, `/ui/users/${uid}/`)).not.to.include("aria-label");
   });
 
   it("says where the login link goes", async function(){

@@ -55,7 +55,7 @@ test("schedules an onboarding email when send_onboarding is checked", async ({pa
   // After form submit the page reloads on the users list. Now check the
   // tasks list to confirm an onboarding sendEmail task was created.
   await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
-  const row = page.getByRole("row", {name: new RegExp(name)});
+  const row = page.getByRole("listitem", {name});
   await expect(row).toBeVisible();
   await expect(row).toContainText("sendEmail");
 });
@@ -74,7 +74,57 @@ test("does not schedule an onboarding email when the checkbox is not ticked", as
   await expect(res).toBeOK();
 
   await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
-  await expect(page.getByRole("row", {name: new RegExp(name)})).toHaveCount(0);
+  await expect(page.getByRole("listitem", {name})).toHaveCount(0);
+});
+
+test.describe("tasks list", ()=>{
+  /** Creates a user that has a task of its own: its onboarding email */
+  async function userWithTask(request: import("@playwright/test").APIRequestContext, prefix: string){
+    const username = `${prefix}-${randomBytes(6).toString("base64url")}`;
+    const res = await request.post("/users", {
+      data: {username, email: `${username}@example.com`, password: randomUUID(), level: "use", send_onboarding: true},
+    });
+    await expect(res).toBeOK();
+    return username;
+  }
+
+  test("can be filtered by a type, from suggestions", async ({page, request})=>{
+    const owner = await userWithTask(request, "test-tasktype");
+    await page.goto("/ui/admin/tasks");
+    const type = page.getByRole("combobox", {name: "fields.type"});
+    //Native suggestions aren't part of the page: what they'd offer is in its list
+    const list = await type.getAttribute("list");
+    await expect(page.locator(`#${list} option[value="sendEmail"]`)).toHaveCount(1);
+    await type.fill("sendEmail");
+    await type.press("Enter");
+    await expect(page).toHaveURL(new RegExp(`[?&]type=sendEmail(&|$)`));
+    await expect(page.getByRole("combobox", {name: "fields.type"})).toHaveValue("sendEmail");
+    await expect(page.getByRole("listitem", {name: owner})).toBeVisible();
+  });
+
+  test("can be paged through, with its filters", async ({page, request})=>{
+    await userWithTask(request, "test-taskpage");
+    await userWithTask(request, "test-taskpage");
+    await page.goto("/ui/admin/tasks?type=sendEmail&limit=1");
+    await expect(page.getByRole("listitem", {name: /sendEmail/})).toHaveCount(1);
+    await expect(page.getByRole("link", {name: "buttons.previous"})).toHaveCount(0);
+    await page.getByRole("link", {name: "buttons.next"}).click();
+    await expect(page).toHaveURL(/[?&]offset=1(&|$)/);
+    await expect(page).toHaveURL(/[?&]type=sendEmail(&|$)/);
+    await expect(page.getByRole("listitem", {name: /sendEmail/})).toHaveCount(1);
+    await page.getByRole("link", {name: "buttons.previous"}).click();
+    await expect(page).toHaveURL(/[?&]offset=0(&|$)/);
+  });
+
+  test("links the owner of each task to their tasks", async ({page, request})=>{
+    const owner = await userWithTask(request, "test-taskownerlink");
+    await page.goto("/ui/admin/tasks?type=sendEmail&status=all");
+    await page.getByRole("listitem", {name: owner}).getByRole("link", {name: owner, exact: true}).click();
+    //The user's own list of tasks, as they see it
+    await expect(page).toHaveURL(/\/ui\/users\/\d+\/tasks\?type=sendEmail$/);
+    await expect(page.getByRole("heading", {name: new RegExp(`titles.userSettings — ${owner}`)})).toBeVisible();
+    await expect(page.getByRole("link", {name: /sendEmail/})).toBeVisible();
+  });
 });
 
 test("can delete a non-admin user", async ({page, request})=>{

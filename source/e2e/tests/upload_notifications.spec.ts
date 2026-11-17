@@ -86,7 +86,8 @@ test("shows a scene being made, from the toast to the upload page, without reloa
 });
 
 test("keeps what's been made on the upload page until it's read", async ({ page, uniqueAccount }) => {
-  await login(page, await uniqueAccount("create"));
+  const account = await uniqueAccount("create");
+  await login(page, account);
   await page.goto("/ui/upload");
   const name = randomUUID();
   await createScene(page, name);
@@ -110,7 +111,7 @@ test("keeps what's been made on the upload page until it's read", async ({ page,
   await page.reload();
   await expect(uploads).toBeHidden();
   //It's still in the page of notifications
-  await page.goto("/ui/user/notifications");
+  await page.goto(`/ui/users/${account.uid}/notifications`);
   await expect(page.getByRole("listitem").filter({ has: page.locator("time") })).toHaveCount(1);
 });
 

@@ -160,6 +160,10 @@ export async function optimize({ context: { logger } }: TaskHandlerParams<{}>): 
  * Orchestrates routine maintenance: runs each cleanup phase as its own child
  * task so failures are isolated and individually visible in the tasks UI.
  *
+ * A failing phase doesn't stop the next ones, but it does fail the cleanup
+ * once they're all done, with an `AggregateError` of what failed: otherwise
+ * it would only show from the phase's own task, under a successful one.
+ *
  * Invoked both at startup (once) and on a recurring 24h interval; the
  * optional `trigger` parameter is used purely for log clarity.
  */
@@ -170,11 +174,20 @@ export interface RunCleanupParams {
 export async function runCleanup({ task: { data: { trigger = "scheduled" } }, context: { tasks, logger } }: TaskHandlerParams<RunCleanupParams>): Promise<void> {
   logger.log(`Running cleanup (trigger=${trigger})`);
   const phases: Array<TaskHandler<{}>> = [cleanLooseObjects, checkForMissingObjects, cleanTaskArtifacts, cleanOldTasks, optimize];
+  const failures: Array<{ phase: string, error: Error }> = [];
   for (const handler of phases) {
     try {
       await tasks.run({ handler, data: {} });
     } catch (e: any) {
       logger.error(`Phase ${handler.name} failed: ${e?.message ?? e}`);
+      failures.push({ phase: handler.name, error: e instanceof Error ? e : new Error(String(e)) });
     }
+  }
+  if (failures.length) {
+    //The errors themselves don't survive serialization into the task's output: the message has to tell it all
+    throw new AggregateError(
+      failures.map(f => f.error),
+      `${failures.length} cleanup phase${1 < failures.length ? "s" : ""} failed: ${failures.map(f => `${f.phase} (${f.error.message})`).join(", ")}`,
+    );
   }
 }

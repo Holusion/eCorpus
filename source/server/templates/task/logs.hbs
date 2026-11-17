@@ -1,0 +1,56 @@
+{{!-- What a task and those under it logged, between what it was given and what came out of it: on one line each,
+  whole in its data page --}}
+<div class="title-flex logs-header">
+  <h2>{{i18n "titles.logs"}} <small class="logs-count">({{logs.length}})</small></h2>
+  <form class="form-item" method="GET">
+    <label for="task-logs-level" style="white-space: nowrap;">{{i18n "fields.minLevel"}}</label>
+    <select id="task-logs-level" name="level" autocomplete="off" onchange="this.form.submit()">
+      <option value="trace" {{#if (test level "==" "trace" )}}selected{{/if}}>trace</option>
+      <option value="debug" {{#if (test level "==" "debug" )}}selected{{/if}}>debug</option>
+      <option value="info"  {{#if (test level "==" "info"  )}}selected{{/if}}>info</option>
+      <option value="warn"  {{#if (test level "==" "warn"  )}}selected{{/if}}>warn</option>
+      <option value="error" {{#if (test level "==" "error" )}}selected{{/if}}>error</option>
+      <option value="fatal" {{#if (test level "==" "fatal" )}}selected{{/if}}>fatal</option>
+    </select>
+  </form>
+</div>
+<div class="list-table-wrap">
+  <table class="list-table compact logs-table">
+    <thead>
+      <tr>
+        <th>time</th>
+        <th>task</th>
+        <th>level</th>
+        <th>message</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="log-data log-input">
+        <td class="log-time"><time datetime="{{dateString root.ctime "iso"}}"><span class="log-date">{{dateString root.ctime "date"}}</span> {{dateString root.ctime "time"}}</time></td>
+        <td class="log-task-id">#{{root.task_id}}</td>
+        <td class="log-level">{{i18n "labels.taskInput"}}</td>
+        <td class="log-message"><span class="log-data-line">{{input}}</span> <a href="/ui/tasks/{{root.task_id}}/data#input">{{i18n "labels.seeTaskData"}}</a></td>
+      </tr>
+      {{#each logs}}
+        <tr id="log-{{log_id}}" class="log-{{severity}}">
+          <td class="log-time"><time datetime="{{dateString timestamp "iso"}}"><span class="log-date">{{dateString timestamp "date"}}</span> {{dateString timestamp "time"}}</time></td>
+          <td class="log-task-id">#{{task_id}}</td>
+          <td class="log-level log-{{severity}}">{{severity}}</td>
+          <td class="log-message">{{message}}</td>
+        </tr>
+      {{else}}
+        <tr>
+          <td colspan="4" class="no-logs">{{i18n "labels.noLogs"}}</td>
+        </tr>
+      {{/each}}
+      {{#if output}}
+        <tr class="log-data log-output{{#if (test root.status "==" "error")}} log-error{{/if}}">
+          <td class="log-time"></td>
+          <td class="log-task-id">#{{root.task_id}}</td>
+          <td class="log-level">{{i18n "labels.taskOutput"}}</td>
+          <td class="log-message"><span class="log-data-line">{{output}}</span> <a href="/ui/tasks/{{root.task_id}}/data#output">{{i18n "labels.seeTaskData"}}</a></td>
+        </tr>
+      {{/if}}
+    </tbody>
+  </table>
+</div>

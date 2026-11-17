@@ -49,7 +49,8 @@
       {{#each users}}
         <tr aria-labelledby="user-row-{{uid}}">
           <td class="compact" style="font-family:monospace;">{{uid}}</td>
-          <td class="col-name" id="user-row-{{uid}}">{{username}}</td>
+          {{!-- Their pages, as they see them: an admin's to see, not a manager's --}}
+          <td class="col-name" id="user-row-{{uid}}">{{#if (userLevel @root.user.level "admin")}}<a href="/ui/users/{{uid}}/">{{username}}</a>{{else}}{{username}}{{/if}}</td>
           <td class="col-email">{{#if email}}<a href="mailto:{{email}}">{{email}}</a>{{else}}&mdash;{{/if}}</td>
           <td class="col-level">
             {{#if (test @root.user.level "==" "admin")}}

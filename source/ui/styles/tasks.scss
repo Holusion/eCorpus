@@ -1,166 +1,135 @@
-/* Shared styles for task views (compiled/copied to /dist/css/tasks.css by build)
-   Rules are chosen to prefer the definitions originally in `task.hbs` when conflicts arise.
-*/
+/* Lists of tasks, and the pages of a task */
 .warn-count {
   font-weight: bold;
-  text-decoration: none;
   color: var(--color-warning);
 }
 
-.task-title-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 2rem;
-  align-items: baseline;
-  justify-content: space-between;
-
-  h2 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: normal;
+/* Filters over a list of tasks */
+.task-list-filters {
+  //Without any help text to make room for, its button lines up with its fields
+  .form-item {
+    padding-bottom: 0;
   }
 }
 
-.task-summary{
+/* The pages of a task (see layouts/task.hbs): what it is, with how it went in the corner */
+.task-overview-header {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem 1rem;
 
-  .inline-heading { display: inline; }
-  .logs-count { font-weight: normal; color: var(--color-secondary); }
-  .no-logs { color: var(--color-secondary); }
-
-  .logs-header,
-  .task-output-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .task-output-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: .5rem;
-  }
-
-  .logs-table-wrap { overflow-x: auto; }
-
-  /* Task node/tree */
-  .task-tree {
-    font-family: var(--font-mono, monospace);
-    width: max-content;
-    @media (max-width: 640px) {
-      width: 100%;
-    }
-
-    > .task-node {
-      margin-left: 0;
-      border-left: none;
-    }
-  }
-  .task-node {
+  h2 {
+    min-width: 0;
     margin: 0;
-    padding: .25rem 0 .25rem .5rem;
-    border-left: 2px solid var(--color-element, #444);
-    margin-left: .5rem;
-  }
-  .task-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: .5rem;
-    padding: .25rem 0;
-  }
-  .task-id   { color: var(--color-secondary, #aaa); }
-  .task-type { font-weight: bold; flex-grow: 1; }
-  .task-children { margin-top: .25rem; }
-
-
-  /* Tasks list table */
-  .tasks-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .9em;
+    overflow-wrap: anywhere;
   }
 
-  .tasks-table th {
-    text-align: left;
-    padding: .4rem .6rem;
-    border-bottom: 2px solid var(--color-element, #444);
-    white-space: nowrap;
+  .task-status {
+    flex: 0 0 auto;
   }
+}
 
-  .tasks-table td {
-    padding: .3rem .6rem;
-    vertical-align: middle;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
-  }
+/* Its overview: who made it and when, then why it failed */
+.task-overview-byline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1rem;
+  opacity: .75;
 
-  /* Logs table */
-  .logs-table {
-    font-family: var(--font-mono, monospace);
+  time {
+    margin-left: auto;
   }
+}
 
-  .logs-table th {
-    text-align: left;
-    padding: .3rem .5rem;
-    border-bottom: 1px solid var(--color-element, #444);
-    color: var(--color-primary, #aaa);
-    font-weight: bold;
-    font-size: 110%;
-  }
-  .logs-table td {
-    padding: .2rem .5rem;
+.task-overview-reason {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Its logs: on one line each, between what it was given and what came out of it */
+.logs-header {
+  //The level's field lines up with the bottom of the title, not its own label
+  align-items: end;
+
+  .logs-count { font-weight: normal; color: var(--color-secondary); }
+}
+
+.logs-table {
+  font-family: var(--font-mono, monospace);
+
+  td {
     vertical-align: top;
     border-bottom: 1px solid color-mix(in srgb, var(--color-element, #444) 40%, transparent);
   }
 
-  .log-task-id  { color: #aaa; white-space: nowrap; width: 1%; }
-  .log-time     { color:  #aaa; white-space: nowrap; width: 1%; }
-  .log-level    { white-space: nowrap; width: 1%; }
-  .log-trace    { color: var(--color-secondary, #888); }
-  .log-debug    { color: var(--color-info, #aaa); }
-  .log-info     { color: var(--color-light, #eee); }
-  .log-warn     { color: #d4a030; }
-  .log-error    { color: #e05050; }
-  .log-fatal    { color: #e05050; font-weight: bold; }
-  .log-message  { white-space: pre-wrap; word-break: break-all; width: 100%; }
+  .log-time, .log-task-id, .log-level { width: 1%; }
+  .log-time, .log-task-id { color: #aaa; }
+  //Its lines wrap, where a list's cells stay on one line
+  .log-message { white-space: pre-wrap; word-break: break-all; width: 100%; }
+  .no-logs { color: var(--color-secondary); }
 
-  /* Small responsive helpers */
+  .log-trace { color: var(--color-secondary, #888); }
+  .log-debug { color: var(--color-info, #aaa); }
+  .log-info  { color: var(--color-light, #eee); }
+  .log-warn  { color: var(--color-warning); }
+  .log-error { color: var(--color-error); }
+  .log-fatal { color: var(--color-error); font-weight: bold; }
+
+  //What it was given, and what came out of it: around its logs, set apart from them.
+  //On its cells, as the list's stripes are on its rows
+  .log-data {
+    > td { background: var(--color-highlight); }
+    .log-level { color: var(--color-primary); }
+    a { white-space: nowrap; word-break: normal; }
+  }
+
   @media (max-width: 640px) {
-    .task-header { gap: .25rem; }
-    .tasks-table th, .tasks-table td { padding: .25rem .4rem; }
-    .logs-table th, .logs-table td { padding: .15rem .4rem; }
-  }
-
-  .task-data-box{
-    overflow-x: auto;
-    padding: .63rem;
-    margin: 0;
-    background: var(--color-element);
+    //The time is enough to follow a run; the full date stays in the <time> element's datetime
+    .log-date { display: none; }
   }
 }
 
+/* Its data: what it was given, and what came out of it, whole.
+  Each starts with its first lines, and shows the rest when asked */
+.task-data-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1rem 0;
+}
 
-/* Scene column shrinks first: absorbs surplus width, clips at 100px minimum */
-.tasks-table .col-scene {
-  width: 100%;
-  min-width: 150px;
-  max-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.task-data-box {
+  overflow-x: auto;
+  padding: .63rem;
+  margin: 0;
+  background: var(--color-element);
 }
-.tasks-table .col-type{
-  width: 100%;
-  min-width: 120px;
-  max-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+
+.task-data-long:not(:has(.task-data-toggle :checked)) .task-data-box {
+  max-height: calc(8lh + 1.26rem);
+  overflow-y: hidden;
+  mask-image: linear-gradient(to bottom, black 60%, transparent);
 }
-/* Status badges (preferred definitions from task.hbs)
-  Keep these synchronized with other UI components that use the same classes. */
+
+.task-data-toggle {
+  display: inline-block;
+  margin-top: .25rem;
+  color: var(--color-secondary-light);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  &:has(:checked) .task-data-show-all,
+  &:not(:has(:checked)) .task-data-show-less {
+    display: none;
+  }
+}
+
+/* Status badges */
 .task-status {
   padding: .1em .45em;
   margin: 2px;
@@ -180,4 +149,149 @@
   &.status-success   { background: #2a7a4b; color: #fff; }
   &.status-error     { background: #a03030; color: #fff; }
   &.status-aborting  { background: #7a5a20; color: #fff; }
+}
+
+/* A list of tasks, each with what's under it in a tree that starts collapsed.
+   A row has its status on the left, as a line of notifications does (see activity.scss) */
+.task-rows {
+  --task-row-padding: .5rem;
+  --task-row-icon: 1.25rem;
+  --task-row-gap: .6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  //From under the status of the row it hangs from: the status of what's under it is where that row's text starts
+  .task-rows {
+    margin-left: calc(var(--task-row-padding) + var(--task-row-icon) / 2 - 1px);
+    padding-left: calc(var(--task-row-icon) / 2 + var(--task-row-gap) - var(--task-row-padding) - 1px);
+    border-left: 2px solid var(--color-element, #444);
+
+    //Steps of what's above, in the background
+    .task-row {
+      //Not compounded, from one level to the next
+      font-size: .9rem;
+      padding-block: .25rem;
+    }
+  }
+}
+
+.task-row {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  //On the line of its title
+  align-items: flex-start;
+  gap: var(--task-row-gap);
+  padding: .4rem var(--task-row-padding);
+  border-bottom: 2px solid var(--color-element, #444);
+}
+
+//What it is, why it failed if it did, then its ID, owner and date
+.task-row-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+//What it is, then why it failed if it did: its type and scene on one line when they fit,
+//the reason after them, on as many lines as it takes
+.task-row-title {
+  min-width: 0;
+}
+
+//It stays whole, as it's what tells tasks apart, unless it's longer than the whole line
+.task-row-type {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+//On a line of its own when it doesn't fit after the type: its name gives way
+.task-row-scene {
+  display: inline-flex;
+  max-width: 100%;
+  white-space: nowrap;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+//Why it failed, as a notification says it: whole
+.task-row-reason {
+  padding-left: .5ch;
+  overflow-wrap: anywhere;
+}
+
+//On one line, with the date over to the right: the owner's name gives way
+.task-row-details {
+  display: flex;
+  align-items: baseline;
+  gap: 0 .4rem;
+  min-width: 0;
+  opacity: .75;
+  white-space: nowrap;
+
+  //Where a row that has others under it shows whether they are
+  &::before {
+    content: "";
+    flex: 0 0 1.1rem;
+    margin-right: -.4rem;
+    text-align: center;
+    transition: transform .1s;
+  }
+}
+
+.task-row-id {
+  flex: 0 0 auto;
+}
+
+.task-row-owner {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-row-time {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.task-row-status {
+  flex: 0 0 auto;
+  display: flex;
+  margin-top: calc((1lh - var(--task-row-icon)) / 2);
+
+  .ui-icon, cube-loader {
+    margin-top: .1em;
+    width: var(--task-row-icon);
+    height: var(--task-row-icon);
+  }
+}
+
+.task-rows {
+  summary {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    .task-row-details::before {
+      content: "▸";
+    }
+  }
+
+  details[open] > summary .task-row-details::before {
+    transform: rotate(90deg);
+  }
 }

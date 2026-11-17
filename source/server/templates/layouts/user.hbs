@@ -1,15 +1,17 @@
+{{!-- The pages of a user's account: the requester's own, or someone else's for an admin, who sees them as that user does.
+  Then the title says whose they are. Notifications are the user's only. --}}
 {{#> main }}
-  <h1 class="grid-header">{{i18n "titles.userSettings"}}</h1>
+  <h1 class="grid-header">{{i18n "titles.userSettings"}}{{#unless isSelf}} — {{account.username}}{{/unless}}</h1>
 
   <div class="grid-toolbar">
     <nav id="user-profile-select">
-      {{#navLink "/ui/user/" "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.settings"}}{{/navLink}}
-      {{#navLink "/ui/user/groups" "exact"}}<ui-icon name="groups"></ui-icon> {{i18n "nav.userGroups"}}{{/navLink}}
-      {{#navLink "/ui/user/tokens" "exact"}}<ui-icon name="key"></ui-icon> {{i18n "nav.tokens"}}{{/navLink}}
-      {{#navLink "/ui/user/archives" "exact"}}<ui-icon name="folder" style="display:flex"></ui-icon> {{i18n "nav.userArchives"}}{{/navLink}}
-      {{#navLink "/ui/user/tasks" "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
-      {{#if activity}}
-        {{#navLink "/ui/user/notifications" "exact"}}<ui-icon name="bell"></ui-icon> {{i18n "nav.notifications"}}{{/navLink}}
+      {{#navLink (join "/ui/users/" account.uid "/") "exact"}}<ui-icon name="users"></ui-icon> {{i18n "nav.settings"}}{{/navLink}}
+      {{#navLink (join "/ui/users/" account.uid "/groups") "exact"}}<ui-icon name="groups"></ui-icon> {{i18n "nav.userGroups"}}{{/navLink}}
+      {{#navLink (join "/ui/users/" account.uid "/tokens") "exact"}}<ui-icon name="key"></ui-icon> {{i18n "nav.tokens"}}{{/navLink}}
+      {{#navLink (join "/ui/users/" account.uid "/archives") "exact"}}<ui-icon name="folder" style="display:flex"></ui-icon> {{i18n "nav.userArchives"}}{{/navLink}}
+      {{#navLink (join "/ui/users/" account.uid "/tasks") "exact"}}<ui-icon name="tools"></ui-icon> {{i18n "nav.tasks"}}{{/navLink}}
+      {{#if (test activity "&&" isSelf)}}
+        {{#navLink (join "/ui/users/" account.uid "/notifications") "exact"}}<ui-icon name="bell"></ui-icon> {{i18n "nav.notifications"}}{{/navLink}}
       {{/if}}
     </nav>
   </div> 

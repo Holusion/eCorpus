@@ -18,6 +18,11 @@ describe("dateString helper", function () {
     expect(dateString.call({}, d, "date", { data: { root: { lang: "en-US" } } })).to.equal(d.toLocaleDateString("en-US"));
   });
 
+  it("returns time-only locale string for format 'time'", function () {
+    expect(dateString.call({ lang: "fr-FR" }, d, "time", {})).to.equal(d.toLocaleTimeString("fr-FR"));
+    expect(dateString.call({}, d, "TIME", { data: { root: { lang: "en-US" } } })).to.equal(d.toLocaleTimeString("en-US"));
+  });
+
   it("uses a provided BCP 47 locale tag", function () {
     expect(dateString.call({}, d, "fr-FR", {})).to.equal(d.toLocaleString("fr-FR"));
     expect(dateString.call({}, d, "en-US", {})).to.equal(d.toLocaleString("en-US"));

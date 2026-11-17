@@ -10,6 +10,20 @@ lang:
   en: Anglais
   es: Espagnol
 labels:
+  createdBy: Créée par
+  showAll: Tout afficher
+  showLess: Réduire
+  task: Tâche
+  taskStatus:
+    success: Succès
+    error: Erreur
+    running: En cours
+    pending: En attente
+    initializing: Initialisation
+    aborting: Annulation
+  taskInput: entrée
+  taskOutput: sortie
+  seeTaskData: Voir les données
   authorize: Autoriser
   deny: Refuser
   revoke: Révoquer
@@ -95,16 +109,15 @@ labels:
   all: Tous
   success: Succès
   error: Erreur
-  taskTypes: Types de tâches
-  allTasks: Toutes les tâches
-  rootOnly: Premier niveau
+  taskOnScene: "sur"
   noTasks: Aucune tâche trouvée.
   noUnreadNotifications: Aucune notification non lue.
   noNotifications: Aucune notification.
   unreadOnly: Non lues uniquement
   loading: Chargement…
   noLogs: Aucun journal.
-  warnings: Avertissements
+  warnings_one: "{{count}} avertissement"
+  warnings_other: "{{count}} avertissements"
   optimizeModel: Optimiser les modèles
   childOf: Dépends de
   showStatic: Montrer les éléments verouillés
@@ -174,6 +187,7 @@ fields:
   status: Statut
   minLevel: Niveau min
 nav:
+  taskData: Données
   tokens: Jetons d'API
   tags: collections
   login: connexion
@@ -282,6 +296,7 @@ onboarding:
     link: "À propos des tâches"
 
 titles:
+  subtasks: Sous-tâches
   userTokens: Jetons d'API
   tokenCreated: Jeton créé
   authorizedApps: Applications autorisées
@@ -321,6 +336,7 @@ titles:
   buildRef: Version actuelle
   uiGuidelines: Charte graphique
   myTasks: Mes tâches
+  createdScenes: Scènes créées
   taskTree: Arbre des tâches
   logs: Journaux
   config: Paramètres
@@ -347,11 +363,16 @@ tooltips:
     Le titre ne sera pris en compte que si un seul glb est importé à la fois.
     Pour renommer les scènes importées sous forme de zip, utilisez la page de scène. 
 leads:
+  otherAccount:
+    title: "Ce compte est celui de {{username}}, pas le vôtre"
+    lead: >
+      Ce que vous modifiez ici l'est pour {{username}}
   userTokens: >
     Les jetons d'API permettent à des services tiers de faire des requêtes authentifiées en votre nom, sans votre mot de passe. Ils sont révocables à tout moment
   scopeLadder: >
     Chaque famille est une échelle — un niveau inclut tous les niveaux inférieurs (read < write < admin).
   scopeHint: ○ = aucun accès · rempli = accordé · cliquer le niveau sélectionné le retire
+  noOutput: Aucune donnée de sortie.
   noTokens: Aucun jeton d'API
   authorize: demande l'accès à votre compte eCorpus, en tant que
   authorizedApps: >

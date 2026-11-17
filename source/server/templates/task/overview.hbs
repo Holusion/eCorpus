@@ -1,0 +1,74 @@
+
+<header class="task-overview-header">
+  <h2>
+    {{root.type}}
+    {{#if scene}}{{i18n "labels.taskOnScene"}} <a href="/ui/scenes/{{encodeURIComponent scene}}">{{scene}}</a>{{/if}}
+  </h2>
+  <span class="task-status task-status-large status-{{root.status}}">{{i18n (join "labels.taskStatus." root.status) root.status}}</span>
+</header>
+<p class="task-overview-byline">
+  <span>
+    {{#if root.parent}}
+      <span>{{i18n "labels.childOf"}} <a href="/ui/tasks/{{root.parent}}">#{{root.parent}}</a>.</span>
+    {{/if}}
+    {{!-- The owner links to their tasks for whoever can see them: themselves and admins --}}
+    {{#if root.owner}}<span>{{i18n "labels.createdBy"}}
+      {{#if (test (userLevel @root.user.level "admin") "||" (test root.user_id "==" @root.user.uid))}}<a href="/ui/users/{{root.user_id}}/tasks">{{root.owner}}</a>{{else}}{{root.owner}}{{/if}}</span>{{/if}}
+  </span>
+  <time datetime="{{dateString root.ctime "iso"}}">{{dateString root.ctime}}</time>
+</p>
+
+
+{{#if scenes.length}}
+  <section aria-labelledby="task-scenes-heading">
+    <h3 id="task-scenes-heading">{{i18n "titles.createdScenes"}}</h3>
+    {{!-- As search results show them --}}
+    <div class="list-items">
+      {{#each scenes}}
+        {{> sceneCard }}
+      {{/each}}
+    </div>
+  </section>
+{{/if}}
+
+{{#if (test reason "||" warnCount)}}
+  <section>
+    {{#if reason}}
+      <h3>{{i18n "labels.error"}}</h3>
+      <p class="task-overview-reason text-error">{{reason.text}}</p>
+    {{/if}}
+    {{#if warnCount}}
+      <div class="title-flex">
+        <h3>{{i18n "titles.logs"}}:</h3>
+        <a class="warn-count" href="/ui/tasks/{{root.task_id}}/logs">{{i18n "labels.warnings" count=warnCount}}</a>
+      </div>
+    {{/if}}
+  </section>
+{{/if}}
+
+
+{{#if messages }}
+  <section>
+    {{#each messages}}
+      <p class="task-overview-message">{{text}}</p>
+    {{/each}}
+  </section>
+{{/if}}
+
+{{#if (test root.status "==" "error")}}
+  <p style="text-align: right; margin-top: .5rem;">
+    <a class="btn btn-transparent btn-primary btn-inline" href="/ui/tasks/{{root.task_id}}/data#output">{{i18n "labels.seeTaskData"}} →</a>
+  </p>
+{{/if}}
+
+
+{{#if root.children.length}}
+  <section aria-labelledby="task-subtasks-heading">
+    <h3 id="task-subtasks-heading">{{i18n "titles.subtasks"}}</h3>
+    <ul class="task-rows">
+      {{#each root.children}}
+        {{> taskRow }}
+      {{/each}}
+    </ul>
+  </section>
+{{/if}}
