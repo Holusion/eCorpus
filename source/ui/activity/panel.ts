@@ -62,7 +62,7 @@ export function linkOf(item: NotificationItem): string | null {
   return item.task_id === null ? null : `/ui/tasks/${item.task_id}`;
 }
 
-/** Tells at a glance how things went, as titles may be cut before they get to it. The server draws the same: see views/index.ts */
+/** Tells at a glance how things went, as titles may be cut before they get to it. The server draws the same: see partials/notification.hbs */
 export function statusIcon(item: NotificationItem): HTMLElement {
   //Still running: the cube (see styles/loaders.scss)
   if (stateOf(item) === "running") return document.createElement("cube-loader");
