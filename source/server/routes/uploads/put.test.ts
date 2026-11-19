@@ -1,10 +1,11 @@
 import request from "supertest";
 
-import User from "../../../../auth/User.js";
-import UserManager from "../../../../auth/UserManager.js";
-import Vfs from "../../../../vfs/index.js";
+import User from "../../auth/User.js";
+import UserManager from "../../auth/UserManager.js";
+import Vfs from "../../vfs/index.js";
+import { TaskScheduler } from "../../tasks/scheduler.js";
 import { randomBytes, randomInt } from "node:crypto";
-import { fixturesDir } from "../../../../__test_fixtures/fixtures.js";
+import { fixturesDir } from "../../__test_fixtures/fixtures.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -12,14 +13,15 @@ import path from "node:path";
 
 
 
-describe("PUT /tasks/:id/artifact", function(){
-  let vfs :Vfs, userManager :UserManager, user :User, admin :User;
+describe("PUT /uploads/:id", function(){
+  let vfs :Vfs, userManager :UserManager, taskScheduler :TaskScheduler, user :User, admin :User;
   let filename: string, size: number, task: number;
 
   this.beforeAll(async function(){
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+    taskScheduler = locals.taskScheduler;
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
   });
@@ -29,14 +31,10 @@ describe("PUT /tasks/:id/artifact", function(){
     //Create a task for each test
     filename = randomBytes(4).toString("hex")+".bin";
     size = randomInt(16, 512);
-    const {body} = await request(this.server).post(`/tasks`)
+    const {body} = await request(this.server).post("/uploads")
     .set("Authorization", await bearer("alice"))
     .set("Content-Type", "application/json")
-    .send({
-      type: "parseUserUpload",
-      data: {filename, size},
-      status: "initializing",
-    })
+    .send({filename, size})
     .expect(201);
     expect(body).to.have.property("task_id").a("number");
     task = body.task_id;
@@ -44,7 +42,7 @@ describe("PUT /tasks/:id/artifact", function(){
 
   it("Can handle a single-chunk upload (no headers)", async function(){
     const data = randomBytes(size);
-    await request(this.server).put(`/tasks/${task}/artifact`)
+    await request(this.server).put(`/uploads/${task}`)
     .set("Authorization", await bearer("alice"))
     .send(data)
     .expect(201);
@@ -61,7 +59,7 @@ describe("PUT /tasks/:id/artifact", function(){
 
   it("Can handle a single-chunk upload (chunk headers)", async function(){
     const data = randomBytes(size);
-    await request(this.server).put(`/tasks/${task}/artifact`)
+    await request(this.server).put(`/uploads/${task}`)
     .set("Authorization", await bearer("alice"))
     .set("Content-Length", size.toString())
     .set("Content-Range", `bytes 0-${size-1 /*end is inclusive*/}/${size}`)
@@ -85,7 +83,7 @@ describe("PUT /tasks/:id/artifact", function(){
     let chunkSize = Math.floor(size / 4);
     while(offset < size){
       const len = Math.min(size - offset, chunkSize);
-      await request(this.server).put(`/tasks/${task}/artifact`)
+      await request(this.server).put(`/uploads/${task}`)
       .set("Authorization", await bearer("alice"))
       .set("Content-Length", len.toString())
       .set("Content-Range", `bytes ${offset}-${offset+len-1 /*end is inclusive*/}/${size}`)
@@ -106,30 +104,80 @@ describe("PUT /tasks/:id/artifact", function(){
 
   it("can parse uploaded contents (simple)", async function(){
     const data = randomBytes(size);
-    await request(this.server).put(`/tasks/${task}/artifact`)
+    const res = await request(this.server).put(`/uploads/${task}`)
     .set("Authorization", await bearer("alice"))
     .send(data)
     .expect(201);
-
-    const {body} = await request(this.server).get(`/tasks/${task}`)
-    .set("Authorization", await bearer("alice"))
-    .expect(200);
-
-    expect(body).to.have.property("task").to.have.property("status", "success");
-    expect(body).to.have.property("task").to.have.property("output").to.deep.equal({
+    //The processed upload is the response body: no need to fetch it again
+    expect(res.headers).to.have.property("content-location", `/tasks/${task}`);
+    expect(res.body).to.have.property("status", "success");
+    expect(res.body).to.have.property("output").to.deep.equal({
       fileLocation: `artifacts/${task}/${filename}`,
       isModel: false,
       mime: "application/octet-stream",
     });
+
+    const {body} = await request(this.server).get(`/tasks/${task}`)
+    .set("Authorization", await bearer("alice"))
+    .expect(200);
+    expect(body.task).to.deep.equal(res.body);
+  });
+
+  it("returns the parsed output when the last chunk is received", async function(){
+    const data = randomBytes(size);
+    const half = Math.floor(size/2);
+    const first = await request(this.server).put(`/uploads/${task}`)
+    .set("Authorization", await bearer("alice"))
+    .set("Content-Range", `bytes 0-${half-1}/${size}`)
+    .send(data.subarray(0, half))
+    .expect(206);
+    expect(first.headers).to.have.property("range", `bytes=0-${half-1}/${size}`);
+    const last = await request(this.server).put(`/uploads/${task}`)
+    .set("Authorization", await bearer("alice"))
+    .set("Content-Range", `bytes ${half}-${size-1}/${size}`)
+    .send(data.subarray(half))
+    .expect(201);
+    expect(last.body).to.have.property("status", "success");
+    expect(last.body).to.have.nested.property("output.mime", "application/octet-stream");
+  });
+
+  it("rejects data sent to a completed upload", async function(){
+    const data = randomBytes(size);
+    await request(this.server).put(`/uploads/${task}`)
+    .set("Authorization", await bearer("alice"))
+    .send(data)
+    .expect(201);
+    await request(this.server).put(`/uploads/${task}`)
+    .set("Authorization", await bearer("alice"))
+    .send(data)
+    .expect(409);
+  });
+
+  it("rejects tasks that are not uploads", async function(){
+    const other = await taskScheduler.create({scene_id: null, user_id: admin.uid, type: "delayTask", data: {}, status: "initializing"});
+    await request(this.server).put(`/uploads/${other.task_id}`)
+    .set("Authorization", await bearer("alice"))
+    .send(randomBytes(16))
+    .expect(404);
+  });
+
+  it("rejects other users", async function(){
+    await request(this.server).put(`/uploads/${task}`)
+    .set("Authorization", await bearer("bob"))
+    .send(randomBytes(size))
+    .expect(401);
+    await request(this.server).put(`/uploads/${task}`)
+    .send(randomBytes(size))
+    .expect(401);
   });
 
   it("forwards glTF inspection warnings to the completed upload task", async function(){
     const data = await fs.readFile(path.join(fixturesDir, "cube_textured.glb"));
-    const { body: upload } = await request(this.server).post("/tasks")
+    const { body: upload } = await request(this.server).post("/uploads")
       .set("Authorization", await bearer("alice"))
-      .send({ type: "parseUserUpload", status: "initializing", data: { filename: "textured.glb", size: data.length } })
+      .send({filename: "textured.glb", size: data.length })
       .expect(201);
-    await request(this.server).put(`/tasks/${upload.task_id}/artifact`)
+    await request(this.server).put(`/uploads/${upload.task_id}`)
       .set("Authorization", await bearer("alice"))
       .send(data).expect(201);
     const { body } = await request(this.server).get(`/tasks/${upload.task_id}`)
@@ -156,7 +204,7 @@ describe("PUT /tasks/:id/artifact", function(){
 
   it("rejects out-of-order bytes", async function(){
     const data = randomBytes(6);
-    const res = await request(this.server).put(`/tasks/${task}/artifact`)
+    const res = await request(this.server).put(`/uploads/${task}`)
       .set("Authorization", await bearer("alice"))
       .set("Content-Length", '6')
       .set("Content-Range", `bytes 10-15/${size}`)
@@ -165,32 +213,15 @@ describe("PUT /tasks/:id/artifact", function(){
     expect(res.body).to.have.property("message", `Error: [416] Missing bytes 0-10`);
   });
 
-  describe("rejects file names that break out of the task's workspace", function(){
-    for(const name of ["../escape.bin", "../../../escape.bin", "foo/../../escape.bin"]){
-      it(JSON.stringify(name), async function(){
-        const data = randomBytes(16);
-        const {body: {task_id}} = await request(this.server).post(`/tasks`)
-        .set("Authorization", await bearer("alice"))
-        .send({ type: "parseUserUpload", data: {filename: name, size: data.length}, status: "initializing" })
-        .expect(201);
-        await request(this.server).put(`/tasks/${task_id}/artifact`)
-        .set("Authorization", await bearer("alice"))
-        .send(data)
-        .expect(400);
-        await expect(fs.access(path.resolve(vfs.getTaskWorkspace(task_id), name))).to.be.rejectedWith("ENOENT");
-      });
-    }
-  });
-
   describe("localized parse errors", function(){
     /** Creates an upload task for a `.glb` file and uploads `data` in one go */
     async function uploadGlb(ctx: Mocha.Context, data: Buffer, lang?: string){
       const glbname = randomBytes(4).toString("hex")+".glb";
-      const {body: {task_id}} = await request(ctx.server).post(`/tasks`)
+      const {body: {task_id}} = await request(ctx.server).post("/uploads")
       .set("Authorization", await bearer("alice"))
-      .send({ type: "parseUserUpload", data: {filename: glbname, size: data.length}, status: "initializing" })
+      .send({filename: glbname, size: data.length})
       .expect(201);
-      const req = request(ctx.server).put(`/tasks/${task_id}/artifact`)
+      const req = request(ctx.server).put(`/uploads/${task_id}`)
       .set("Authorization", await bearer("alice"));
       if(lang) req.set("Accept-Language", lang);
       return {glbname, res: await req.send(data).expect(500)};

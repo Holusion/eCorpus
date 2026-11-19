@@ -180,18 +180,15 @@ export class Uploader implements ReactiveController{
   async initUpload(task: UploadOperation) :Promise<number>{
     console.debug("Initializing upload task for %s", task.filename);
 
-    const res = await fetch(`/tasks`, {
+    const res = await fetch(`/uploads`, {
       method: "POST",
       signal: task.signal,
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        type: "parseUserUpload",
-        data:{
-          filename: task.filename,
-          size: task.total,
-        }
+        filename: task.filename,
+        size: task.total,
       }),
     });
     await HttpError.okOrThrow(res);
@@ -204,19 +201,22 @@ export class Uploader implements ReactiveController{
   }
 
 
-  async finalizeUpload(task: UploadOperation) :Promise<ParsedUploadTaskOutput>{
-    const res = await fetch(`/tasks/${task.task_id}`, {
-      method: "GET",
-      headers:{"Content-Type": "application/json"},
-    });
-    await HttpError.okOrThrow(res);
-    const body = await res.json();
-    if(!body?.task?.output || typeof body.task.output !== "object" || !body.task.output.mime){
-      console.warn("Unexpected format for scene output:", body);
+  /**
+   * Read the processed upload from the response to its last chunk
+   */
+  parseUploadResult(xhr: XMLHttpRequest) :ParsedUploadTaskOutput{
+    let body: any;
+    try{
+      body = JSON.parse(xhr.responseText);
+    }catch(e){
+      console.warn("Unreadable upload response:", xhr.responseText);
       throw new Error("Invalid response body");
     }
-
-    return body.task.output;
+    if(!body?.output || typeof body.output !== "object" || !body.output.mime){
+      console.warn("Unexpected format for upload output:", body);
+      throw new Error("Invalid response body");
+    }
+    return body.output;
   }
 
   
@@ -268,10 +268,13 @@ export class Uploader implements ReactiveController{
         console.error("Upload Request failed :", message);
         setError({code: xhr.status, message});
       }else if(xhr.status === 201){
-        this.finalizeUpload(task).then((output)=>{
+        try{
+          const output = this.parseUploadResult(xhr);
           console.debug("Finalized upload task. Parsed content :", output);
           update({active: false, progress: task.total, done: true, ...output});
-        }, setError);
+        }catch(e: any){
+          setError(e);
+        }
       }else{
         console.debug("Chunk uploaded. Set progress to :", end_offset);
         update({active: false, progress: end_offset});
@@ -296,10 +299,11 @@ export class Uploader implements ReactiveController{
       setError({ code: 20, name: "AbortError", message: "Upload was aborted"});
     }
 
-    let url = new URL(`/tasks/${task.task_id}/artifact`, window.location.href);
+    let url = new URL(`/uploads/${task.task_id}`, window.location.href);
 
 
     xhr.open('PUT', url);
+    xhr.setRequestHeader("Accept", "application/json");
     xhr.setRequestHeader("Content-Range", `bytes ${starting_offset}-${end_offset-1}/${task.total}`);
     xhr.send(chunk);
   }

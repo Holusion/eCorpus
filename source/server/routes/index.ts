@@ -23,6 +23,7 @@ import tagsRoutes from "./tags/index.js";
 import groupsRoutes from "./groups/index.js";
 import servicesRoutes from "./services/index.js";
 import tasksRoutes from "./tasks/index.js";
+import uploadsRoutes from "./uploads/index.js";
 
 
 export default async function createServer(locals:AppParameters) :Promise<express.Application>{
@@ -119,6 +120,7 @@ Disallow: /ui/design/
 Disallow: /users/
 Disallow: /groups/
 Disallow: /tasks/
+Disallow: /uploads/
 Disallow: /history/
 Disallow: /ui/scenes/*/edit
 Disallow: /ui/scenes/*/history
@@ -237,6 +239,7 @@ Sitemap: ${sitemap}
   app.use("/groups", groupsRoutes);
   app.use("/services", servicesRoutes);
   app.use("/tasks", tasksRoutes);
+  app.use("/uploads", uploadsRoutes);
 
   // error handling
   //404: Not Found handler This should be last as it will match everything
