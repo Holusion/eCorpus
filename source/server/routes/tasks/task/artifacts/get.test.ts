@@ -112,10 +112,10 @@ describe("GET /tasks/:id/artifact", function () {
       filename = randomBytes(4).toString("hex") + ".bin";
       size = randomInt(16, 512);
       const { body } = await request(this.server)
-        .post("/tasks")
+        .post("/uploads")
         .set("Authorization", await bearer("bob"))
         .set("Content-Type", "application/json")
-        .send({ type: "parseUserUpload", data: { filename, size }, status: "initializing" })
+        .send({filename, size })
         .expect(201);
       task = body.task_id;
     });
@@ -126,7 +126,7 @@ describe("GET /tasks/:id/artifact", function () {
       bobToken = await bearer("bob");
       data = randomBytes(size);
       await request(this.server)
-        .put(`/tasks/${task}/artifact`)
+        .put(`/uploads/${task}`)
         .set("Authorization", bobToken)
         .send(data)
         .expect(201);

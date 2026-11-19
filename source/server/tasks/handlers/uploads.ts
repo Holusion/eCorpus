@@ -16,6 +16,10 @@ import { inspectGlb } from "./inspectGlb.js";
 import { BoundingBox } from "../../utils/gltf/inspect.js";
 import { createDocumentFromFiles, DocumentModel } from "./createDocumentFromFiles.js";
 import { isSceneLanguage } from "../../utils/languages.js";
+import { TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
+import { RootRelativePath } from "../../vfs/Base.js";
+
+type HandlerContext = TaskHandlerParams["context"];
 
 
 
@@ -197,6 +201,44 @@ export async function parseUserUpload({ task: { task_id, user_id, data: { filena
 
 
 /**
+ * A GLB made from an uploaded model: the upload itself if it already is one, else its conversion.
+ * @throws {BadRequestError} if the upload is not a model
+ */
+async function toSourceGlb({ tasks, logger }: HandlerContext, source: ParsedUserUpload): Promise<UploadedBinaryModel> {
+  if (isUploadedBinaryModel(source)) return source;
+  if (!(source as UploadedSource).isModel) {
+    throw new BadRequestError(localize("errors.upload.notAModel", { filename: path.basename(source.fileLocation) }));
+  }
+  logger.log("Convert source model %s to GLB", source.fileLocation);
+  const dest = await tasks.run({
+    data: { fileLocation: source.fileLocation },
+    handler: toGlb,
+  });
+  const meta = await tasks.run({
+    handler: parseUploadedModel,
+    data: { fileLocation: dest.fileLocation },
+  });
+  logger.debug("Parsed converted file :", meta);
+  return meta;
+}
+
+/**
+ * Optimize a GLB with a quality preset
+ * @returns the optimized file's location
+ */
+async function optimizeModel({ tasks }: HandlerContext, fileLocation: RootRelativePath, preset: TDerivativeQuality): Promise<RootRelativePath> {
+  const output = await tasks.run({
+    data: { fileLocation, preset },
+    handler: optimizeGlb,
+  }).catch((e: Error) => {
+    //What went wrong is gltf-transform's: it's only in english
+    throw new InternalError(localize("errors.upload.optimizeFailed", { filename: path.basename(fileLocation), reason: e.message }));
+  });
+  if (typeof output?.fileLocation !== "string") throw new InternalError(`Model optimization output is unreadable: ${JSON.stringify(output)}`);
+  return output.fileLocation;
+}
+
+/**
  * Fetch the upload tasks a task was given as sources.
  * Source ids are user-provided: they must all be tasks owned by the same user.
  */
@@ -226,7 +268,8 @@ export interface ProcessUploadedFilesParams {
  * Process file(s) that have been uploaded through `userUploads` task(s).
  * The file(s) are expected to come from previous tasks
  */
-export async function createSceneFromFiles({ context: { tasks, vfs, logger }, task: { user_id, task_id, data: { tasks: source_ids, name, language, options } } }: TaskHandlerParams<ProcessUploadedFilesParams>): Promise<number> {
+export async function createSceneFromFiles({ context, task: { user_id, task_id, data: { tasks: source_ids, name, language, options } } }: TaskHandlerParams<ProcessUploadedFilesParams>): Promise<number> {
+  const { tasks, vfs, logger } = context;
   if (!user_id) throw new InternalError(`Can't create an anonymous scene. Provide a user`);
   if (!name) throw new BadRequestError(`Can't create a scene without a name`);
   if (!language) throw new BadRequestError(`Default language is required for scene creation`);
@@ -278,23 +321,11 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
     let filename = path.basename(filepath);
     let mime = source.mime;
     if (options.optimize) {
-      const output = await tasks.run({
-        data: {
-          fileLocation: source.fileLocation,
-          preset: "High",
-        },
-        handler: optimizeGlb,
-      }).catch((e: Error) => {
-        //What went wrong is gltf-transform's: it's only in english
-        throw new InternalError(localize("errors.upload.optimizeFailed", { filename, reason: e.message }));
-      });
-      if (typeof output.fileLocation !== "string") logger.warn("Model optimization output is unreadable : ", output);
-      else {
-        filepath = vfs.absolute(output.fileLocation);
-        filename = path.basename(output.fileLocation);
-        mime = "model/gltf-binary";
-        logger.debug("Optimized model %s to %s", source.fileLocation, output.fileLocation);
-      }
+      const fileLocation = await optimizeModel(context, source.fileLocation, "High");
+      filepath = vfs.absolute(fileLocation);
+      filename = path.basename(fileLocation);
+      mime = "model/gltf-binary";
+      logger.debug("Optimized model %s to %s", source.fileLocation, fileLocation);
     }
     logger.debug("Copy %s to %s", filepath, filename);
     await vfs.copyFile(filepath, { scene: scene_id, name: filename, user_id, mime });
@@ -324,24 +355,8 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
     if (source.mime === "application/zip") {
       logger.warn("in-scene Zip extraction is not yet implemented. Skipped.");
       continue;
-    } else if (isUploadedBinaryModel(source)) {
-      await moveModel(source);
-    } else if ((source as UploadedSource).isModel) {
-      logger.log("Convert source model %s to GLB", source.fileLocation);
-      const dest = await tasks.run({
-        data: { fileLocation: vfs.relative(filepath) },
-        handler: toGlb,
-      });
-      logger.debug("Copy Converted source file to %s", dest.fileLocation);
-
-      const meta = await tasks.run({
-        handler: parseUploadedModel,
-        data: {
-          fileLocation: dest.fileLocation,
-        }
-      });
-      logger.debug("Parsed converted file :", meta);
-      await moveModel(meta);
+    } else if (isUploadedBinaryModel(source) || (source as UploadedSource).isModel) {
+      await moveModel(await toSourceGlb(context, source));
     } else {
       logger.debug("Copy source file %s (%s)", filepath, source.mime);
       const file = await vfs.copyFile(filepath, { scene: scene_id, name: filename, user_id, mime: source.mime });
@@ -359,4 +374,75 @@ export async function createSceneFromFiles({ context: { tasks, vfs, logger }, ta
   logger.debug(`Scene ${scene_id} initialized`);
   //TODO cleanup: unlink tasks artifacts
   return scene_id;
+}
+
+
+
+export interface UploadDerivativeParams {
+  /** Id of the upload the derivative is made from */
+  upload: number;
+  usage: TDerivativeUsage;
+  quality: TDerivativeQuality;
+}
+
+export interface UploadDerivative {
+  /** Name of the derivative's file, in the scene */
+  uri: string;
+  usage: TDerivativeUsage;
+  quality: TDerivativeQuality;
+  mime: "model/gltf-binary";
+  byteSize: number;
+  numFaces: number;
+  imageSize: number;
+  bounds: BoundingBox | null;
+}
+
+/**
+ * Name of the scene file holding an upload's derivative.
+ * It is deterministic: making the same derivative again writes a new version of the same file.
+ * @param filename the upload's file name
+ */
+export function derivativeName(filename: string, quality: TDerivativeQuality): string {
+  const base = path.basename(filename).replace(/\.[^.]*$/, "") || "model";
+  return `${base}-${quality.toLowerCase()}.glb`;
+}
+
+/**
+ * Make a derivative of an uploaded model, in the task's scene:
+ * convert it to GLB if needed, optimize it with the quality's preset, and write it to the scene.
+ * Only Web3D derivatives are supported for now.
+ */
+export async function createUploadDerivative({ context, task: { scene_id, user_id, data: { upload, usage, quality } } }: TaskHandlerParams<UploadDerivativeParams>): Promise<UploadDerivative> {
+  const { tasks, vfs, logger } = context;
+  if (!scene_id) throw new InternalError(`A derivative must be made in a scene. No scene_id provided`);
+  if (typeof user_id !== "number") throw new InternalError(`A derivative requires an owner. No user_id provided`);
+  if (usage !== "Web3D") throw new BadRequestError(`Unsupported derivative usage: ${usage}`);
+
+  const [source_task] = await getSourceUploads(tasks, [upload], user_id);
+  if (source_task.status !== "success" || !isUploadedFile(source_task.output)) {
+    throw new BadRequestError(`Upload #${upload} has not completed successfully`);
+  }
+
+  const glb = await toSourceGlb(context, source_task.output);
+  const fileLocation = await optimizeModel(context, glb.fileLocation, quality);
+  const meta = await tasks.run({
+    handler: inspectGlb,
+    data: { fileLocation },
+  });
+
+  const uri = derivativeName(source_task.data.filename, quality);
+  logger.debug("Copy %s to %s", fileLocation, uri);
+  const filepath = vfs.absolute(fileLocation);
+  await vfs.copyFile(filepath, { scene: scene_id, name: uri, user_id, mime: "model/gltf-binary" });
+  const { size: byteSize } = await fs.stat(filepath);
+  return {
+    uri,
+    usage,
+    quality,
+    mime: "model/gltf-binary",
+    byteSize,
+    numFaces: meta.numFaces,
+    imageSize: meta.imageSize,
+    bounds: meta.bounds,
+  };
 }

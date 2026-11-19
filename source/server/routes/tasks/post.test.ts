@@ -26,29 +26,14 @@ describe("POST /tasks", function(){
   });
 
   describe("initial status", function(){
-    it("creates an upload task waiting for its data", async function(){
-      const res = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("bob"))
-      .send({type: "parseUserUpload", data: {filename: "foo.glb", size: 1}})
-      .expect(201);
-      expect(res.body).to.have.property("task_id").a("number");
-      expect(res.body).to.have.property("status", "initializing");
-      expect(res.headers).to.have.property("location", `/tasks/${res.body.task_id}`);
-    });
-
-    it("accepts a status matching the type's", async function(){
-      const {body} = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("bob"))
-      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
-      .expect(201);
-      expect(body).to.have.property("status", "initializing");
+    it("accepts a pending status", async function(){
       await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
       .send({type: "delayTask", status: "pending", data: {}})
       .expect(200);
     });
 
-    for(const [type, status] of [["delayTask", "initializing"], ["parseUserUpload", "pending"], ["delayTask", "running"], ["delayTask", "success"]]){
+    for(const [type, status] of [["delayTask", "initializing"], ["delayTask", "running"], ["delayTask", "success"]]){
       it(`rejects ${type} created ${status}`, async function(){
         const count = async ()=> (await taskScheduler.getTasks({type, user_id: user.uid, limit: 100})).length;
         const before = await count();
@@ -62,7 +47,7 @@ describe("POST /tasks", function(){
   });
 
   describe("rejects internal task types", function(){
-    for(const type of ["sendEmail", "cleanOldTasks", "runCleanup", "optimize"]){
+    for(const type of ["sendEmail", "cleanOldTasks", "runCleanup", "optimize", "parseUserUpload"]){
       for(const username of ["bob", "alice"]){
         it(`${type} (as ${username})`, async function(){
           await request(this.server).post("/tasks")
@@ -204,16 +189,6 @@ describe("POST /tasks", function(){
       expect(await signalsOf(task_id, 1, 100)).to.deep.equal([]);
     });
 
-    it("is ignored for an initializing task", async function(){
-      const res = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("bob"))
-      .set("Prefer", "respond-async")
-      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
-      .expect(201);
-      expect(res.headers).not.to.have.property("preference-applied");
-      expect(await notificationsOf(res.body.task_id)).to.deep.equal([]);
-    });
-
     it("still answers validation errors synchronously", async function(){
       await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
@@ -227,11 +202,11 @@ describe("POST /tasks", function(){
     /** Upload a file as `username`, returning the id of the (successful) upload task */
     async function upload(ctx: Mocha.Context, username: string): Promise<number>{
       const data = randomBytes(16);
-      const {body: {task_id}} = await request(ctx.server).post("/tasks")
+      const {body: {task_id}} = await request(ctx.server).post("/uploads")
       .set("Authorization", await bearer(username))
-      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.bin", size: data.length}})
+      .send({filename: "foo.bin", size: data.length})
       .expect(201);
-      await request(ctx.server).put(`/tasks/${task_id}/artifact`)
+      await request(ctx.server).put(`/uploads/${task_id}`)
       .set("Authorization", await bearer(username))
       .send(data)
       .expect(201);
@@ -312,11 +287,11 @@ describe("POST /tasks", function(){
   describe("localized outcomes", function(){
     /** Uploads a file as charlie, returning the id of the upload task */
     async function upload(ctx: Mocha.Context, filename: string, data: Buffer): Promise<number>{
-      const {body: {task_id}} = await request(ctx.server).post("/tasks")
+      const {body: {task_id}} = await request(ctx.server).post("/uploads")
       .set("Authorization", await bearer("charlie"))
-      .send({type: "parseUserUpload", data: {filename, size: data.length}})
+      .send({filename, size: data.length})
       .expect(201);
-      await request(ctx.server).put(`/tasks/${task_id}/artifact`)
+      await request(ctx.server).put(`/uploads/${task_id}`)
       .set("Authorization", await bearer("charlie"))
       .send(data)
       .expect(201);

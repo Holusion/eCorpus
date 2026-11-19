@@ -309,6 +309,24 @@ function _access(on: PolicyTarget, min: Exclude<PolicyAccess, null>, req: Reques
   }, next);
 }
 
+/**
+ * The `policy({access: min, on: "scene"})` check, for a scene the route doesn't name in its `:scene`
+ * param (eg. one given in the request body, or stored on a task).
+ * Throws where the policy would call `next(err)`, with the same errors.
+ * It doesn't publish `res.locals.access`, which belongs to the route's own policy.
+ */
+export async function assertSceneAccess(req: Request, res: Response, scene: string | number, min: Exclude<PolicyAccess, null>): Promise<void> {
+  const err = insufficientScope(res, requiredScope("scene", min)!);
+  if (err) throw err;
+  const requester = getUser(req);
+  const resolved = requester?.level === "admin" ? AccessLevel.Admin
+    : await getUserManager(req).getAccessRights(scene, requester?.uid ?? null);
+  const access = Math.min(resolved, accessCap("scene", res));
+  if (toAccessLevel(min) <= access) return;
+  if (access <= AccessLevel.None) throw new NotFoundError(localize("errors.resourceNotFound"));
+  throw new UnauthorizedError(localize("errors.insufficientRights", { access: min }));
+}
+
 /** Resource-ACL level a {@link policy} enforces, or `null` for none. */
 export type PolicyAccess = "read" | "write" | "admin" | null;
 
