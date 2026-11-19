@@ -65,6 +65,8 @@ module.exports = function createAppConfig(env, argv={})
             "search": "source/handlers/search.ts",
             "history": "source/handlers/history.ts",
             "activity": "source/handlers/activity.ts",
+            //Voyager Story's model uploader: see templates/scene/story.hbs
+            "story": "source/handlers/story.ts",
         },
 
         output: {
