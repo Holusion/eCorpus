@@ -99,8 +99,7 @@ describe("PUT /uploads/:id/derivatives/:usage/:quality", function(){
   });
 
   it("converts other model formats", async function(){
-    //obj2gltf runs with `secure: true`: the .mtl isn't needed to convert the geometry
-    const obj = await fs.readFile(path.join(fixturesDir, "cube.obj"));
+    const obj = Buffer.from((await fs.readFile(path.join(fixturesDir, "cube.obj"), "utf-8")).replace(/^mtllib .*$/m, ""));
     const id = await upload(this, {filename: "cube.obj", data: obj});
     const res = await request(this.server).put(`/uploads/${id}/derivatives/Web3D/Medium`)
     .set("Authorization", await bearer("bob"))

@@ -33,6 +33,21 @@ describe("Task: toGlb", function () {
       expect(meta).to.have.property("numFaces", 1);
     });
 
+    it("logs mesh2gltf's messages at their own level", async function () {
+      const name = `${randomBytes(2).toString("hex")}-dummy`;
+      const fileLocation = vfs.relative(name + ".obj");
+      await fs.writeFile(vfs.absolute(fileLocation), `v 0 0 0\nv 1 0 0\nv 0 1 0\ncurv 0 1 1 2\nf 1 2 3\n`);
+      await taskScheduler.run({ handler: toGlb, data: { fileLocation } });
+      const logs = await vfs._db.all<{severity: string, message: string}>(`
+        SELECT severity, message FROM tasks_logs
+        INNER JOIN tasks ON fk_task_id = task_id
+        WHERE type = 'meshToGlb' AND data->>'fileLocation' = $1
+        ORDER BY log_id
+      `, [fileLocation]);
+      expect(logs).to.deep.include({severity: "warn", message: "unsupported OBJ records omitted: 1, for example curv"});
+      expect(logs).to.deep.include({severity: "info", message: `Wrote ${name}.glb (1 triangles, 1 meshes, 80 bytes of geometry)`});
+    });
+
     it.skip("fails on missing mtl file", async function () {
       const name = `${randomBytes(2).toString("hex")}-dummy`;
       const fileLocation = vfs.relative(name + ".obj");

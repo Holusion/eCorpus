@@ -182,25 +182,3 @@ export async function taskRun(cmd: string, args: string[], { logger, ...opts }: 
 export interface RunCommandOpts extends SpawnOptions {
   logger: ITaskLogger;
 }
-
-/**
- * spawn the ktx utility to get its version string and parse it
- */
-export async function getKtxVersion(): Promise<string> {
-  let output = "";
-  for await (const { line } of run('ktx', ['--version'])) {
-    output ||= line.trim();
-  }
-
-  const version = output
-    .replace(/ktx version:\s+/, '')
-    .replace(/~\d+/, '')
-    .trim();
-
-  if (!version) {
-    throw new Error(
-      `Unable to find "ktx" version. Confirm KTX-Software is installed.`
-    );
-  }
-  return version;
-}

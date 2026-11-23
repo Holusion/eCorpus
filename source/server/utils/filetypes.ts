@@ -118,6 +118,9 @@ export function parseMagicBytes(src: Buffer | Uint8Array): string {
   return "application/octet-stream";
 }
 
+/**
+ * Whether a file is a model the server can convert to GLB (see the toGlb task)
+ */
 export function isModelType(filename: string): boolean {
-  return /\.(?:obj|stl|ply|gltf|blend)$/i.test(filename);
+  return /\.(?:obj|ply|wrl|vrml|gltf)$/i.test(filename);
 }

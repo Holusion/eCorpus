@@ -497,6 +497,7 @@ errors:
     invalidGlb: "{{filename}} could not be read as a 3D model: {{reason}}"
     notAModel: "{{filename}} is not a 3D model"
     optimizeFailed: "{{filename}} could not be optimized: {{reason}}"
+    convertFailed: "{{filename}} could not be converted to a 3D model: {{reason}}"
     sceneNotWritable: "You don't have write permissions on scene \"{{name}}\""
     scenesNotWritable: "You don't have write permissions on scenes {{names}}"
 

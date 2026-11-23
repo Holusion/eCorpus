@@ -8,7 +8,11 @@ import UserManager from "../../auth/UserManager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import Vfs from "../../vfs/index.js";
-import { Document, NodeIO } from "@gltf-transform/core";
+import { fixturesDir } from "../../__test_fixtures/fixtures.js";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { run } from "../../utils/exec.js";
 
 
 describe("POST /tasks", function(){
@@ -326,16 +330,34 @@ describe("POST /tasks", function(){
     });
 
     it("tells that a model couldn't be optimized", async function(){
-      //A model without a scene: there's nothing to optimize
-      const glb = Buffer.from(await new NodeIO().writeBinary(new Document()));
-      const source = await upload(this, "empty.glb", glb);
-      const res = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("charlie"))
-      .set("Accept-Language", "fr")
-      .send({type: "createSceneFromFiles", data: {tasks: [source], name: randomBytes(4).toString("hex"), language: "EN", options: {optimize: true}}})
-      .expect(500);
-      expect(res.body).to.deep.equal({code: 500, message: `Error: empty.glb n'a pas pu être optimisé : Empty glb (no root scene)`});
-      expect((await latest(this, "fr")).output).to.have.property("message", `empty.glb n'a pas pu être optimisé : Empty glb (no root scene)`);
+      //A meshtinker that rejects every model it's asked to optimize
+      let real = "";
+      for await (const {fd, line} of run("sh", ["-c", "command -v meshtinker"])) if(fd === "stdout") real ||= line.trim();
+      expect(real, "meshtinker is on PATH").to.be.ok;
+      const bin = await fs.mkdtemp(path.join(os.tmpdir(), "meshtinker-"));
+      await fs.writeFile(path.join(bin, "meshtinker"), [
+        `#!/bin/sh`,
+        `if [ "$1" = optimize ]; then`,
+        `  echo '{"format": 1, "error": {"code": "invalid-gltf", "exitCode": 1, "message": "the model is broken"}, "diagnostics": []}'`,
+        `  exit 1`,
+        `fi`,
+        `exec "${real}" "$@"`,
+      ].join("\n"), {mode: 0o755});
+      const PATH = process.env.PATH;
+      process.env.PATH = `${bin}${path.delimiter}${PATH}`;
+      try{
+        const source = await upload(this, "cube.glb", await fs.readFile(path.join(fixturesDir, "cube.glb")));
+        const res = await request(this.server).post("/tasks")
+        .set("Authorization", await bearer("charlie"))
+        .set("Accept-Language", "fr")
+        .send({type: "createSceneFromFiles", data: {tasks: [source], name: randomBytes(4).toString("hex"), language: "EN", options: {optimize: true}}})
+        .expect(500);
+        expect(res.body).to.deep.equal({code: 500, message: `Error: cube.glb n'a pas pu être optimisé : the model is broken`});
+        expect((await latest(this, "fr")).output).to.have.property("message", `cube.glb n'a pas pu être optimisé : the model is broken`);
+      }finally{
+        process.env.PATH = PATH;
+        await fs.rm(bin, {recursive: true, force: true});
+      }
     });
   });
 });
