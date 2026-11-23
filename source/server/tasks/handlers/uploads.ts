@@ -17,7 +17,7 @@ import { BoundingBox } from "../../utils/gltf/inspect.js";
 import { createDocumentFromFiles, DocumentModel } from "./createDocumentFromFiles.js";
 import { isSceneLanguage } from "../../utils/languages.js";
 import { TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
-import { RootRelativePath } from "../../vfs/Base.js";
+import { resolveInside, RootRelativePath } from "../../vfs/Base.js";
 
 type HandlerContext = TaskHandlerParams["context"];
 
@@ -30,8 +30,59 @@ export interface ImportSceneResult {
 }
 
 export interface UploadHandlerParams {
-  filename: string;
-  size: number;
+  /**
+   * Path of the upload's entry point, relative to its root.
+   * Set when the upload is processed: an upload receiving its files has none yet.
+   */
+  main?: string;
+}
+
+/**
+ * Where an upload stages its files, in its task's workspace:
+ * - `incomplete`: files still being received
+ * - `files`: complete files, with the folder structure they were sent with
+ *
+ * A file is moved from the first to the second once its last byte is received.
+ */
+export function getUploadStaging(vfs: { getTaskWorkspace(id: number): string }, id: number) {
+  const workspace = vfs.getTaskWorkspace(id);
+  return {
+    incomplete: path.join(workspace, ".incomplete"),
+    files: path.join(workspace, "files"),
+  };
+}
+
+/**
+ * Resolve a user-provided path of a file of an upload, while it's received and once it's complete.
+ * `path` is the file's normalized path, relative to the upload's root, with `/` separators.
+ * @throws {BadRequestError} if the path is outside of the upload
+ */
+export function getUploadFilePaths(vfs: { getTaskWorkspace(id: number): string }, id: number, filepath: string) {
+  const staging = getUploadStaging(vfs, id);
+  const complete = resolveInside(staging.files, filepath, "the upload");
+  const rel = path.relative(staging.files, complete);
+  return {
+    path: rel.split(path.sep).join("/"),
+    incomplete: path.join(staging.incomplete, rel),
+    complete,
+  };
+}
+
+/**
+ * Paths of an upload's files that are still being received, relative to the upload's root.
+ */
+export async function listIncompleteUploadFiles(vfs: { getTaskWorkspace(id: number): string }, id: number): Promise<string[]> {
+  const { incomplete } = getUploadStaging(vfs, id);
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await fs.readdir(incomplete, { recursive: true, withFileTypes: true });
+  } catch (e: any) {
+    if (e.code === "ENOENT") return [];
+    throw e;
+  }
+  return entries.filter(e => !e.isDirectory())
+    .map(e => path.relative(incomplete, path.join(e.parentPath, e.name)).split(path.sep).join("/"))
+    .sort();
 }
 
 export interface UploadedFile extends FileArtifact {
@@ -151,28 +202,22 @@ async function parseUploadedModel({ task: { data: { fileLocation } }, context: {
 }
 
 /**
- * Inspect a user-uploaded file to detect its contents
- * @param param0 
- * @returns 
+ * Inspect an upload's main file to detect its contents.
+ * Its other files are beside it, in the upload's staging.
  */
-export async function parseUserUpload({ task: { task_id, user_id, data: { filename, size } }, context: { vfs, tasks, userManager, logger } }: TaskHandlerParams<UploadHandlerParams>): Promise<ParsedUserUpload> {
-  const fileLocation = vfs.relative(vfs.getTaskFilePath(task_id, filename));
+export async function parseUserUpload({ task: { task_id, data: { main } }, context: { vfs, tasks, logger } }: TaskHandlerParams<UploadHandlerParams>): Promise<ParsedUserUpload> {
+  if (typeof main !== "string" || !main) throw new BadRequestError(`Upload #${task_id} has no main file`);
+  const { complete, path: filename } = getUploadFilePaths(vfs, task_id, main);
+  const fileLocation = vfs.relative(complete);
 
-  logger.debug(`Checking size of uploaded file ${fileLocation}`);
-  let diskSize: number;
-  try {
-    const stats = await fs.stat(vfs.absolute(fileLocation));
-    diskSize = stats.size;
-  } catch (e: any) {
-    if (e.code === "ENOENT") {
-      logger.error(`File ${fileLocation} does not exist. Maybe it wasn't uploaded properly?`);
-    }
-    throw e;
+  logger.debug(`Checking uploaded file ${fileLocation}`);
+  const stats = await fs.stat(complete).catch((e) => {
+    if (e.code !== "ENOENT") throw e;
+    return null;
+  });
+  if (!stats?.isFile()) {
+    throw new BadRequestError(`${filename} is not a complete file of upload #${task_id}`);
   }
-  if (diskSize != size) {
-    throw new Error(`Expected a file of size ${size}, found ${diskSize}`);
-  }
-
 
   const mime = getMimeType(filename);
 
@@ -285,27 +330,50 @@ export async function createSceneFromFiles({ context, task: { user_id, task_id, 
     }
     throw new BadRequestError(`Source task${1 < invalid_outputs.length ? "s" : ""} ${invalid_outputs.map(t => `${t.type}#${t.task_id}`).join(", ")} did not output a file`);
   }
-  //If some source models are present, copy all files to the task's workspace
-  //So they are locally available for references
+  //If some source models are present, link all files to the task's workspace
+  //So they are locally available for references, in the folders they were uploaded with.
+  //Files of different uploads are side by side: a model can refer to a file that was uploaded on its own.
   let sources: Array<ParsedUserUpload>;
   if (source_tasks.some(t => (t.output as UploadedSource).isModel)) {
     const dir = await vfs.createTaskWorkspace(task_id, true);
     logger.debug(`Import source file${1 < source_tasks.length?"s":""} from ${source_tasks.length} source${1 < source_tasks.length?"s":""}`);
 
-    let _files = await fs.readdir(dir);
-    if(_files.length) logger.warn(`Task workspace  ${dir} contains : `, _files);
+    const link = async (src: string, rel: string) => {
+      const dest = resolveInside(dir, rel, "the task's workspace");
+      await fs.mkdir(path.dirname(dest), { recursive: true });
+      await fs.link(src, dest);
+      return dest;
+    };
 
-    sources = []
-    for(let {output} of source_tasks){
-      const srcFile = vfs.absolute(output.fileLocation);
-      const dest = path.join(dir, path.basename(srcFile));
-      logger.debug(`hard-link source model ${srcFile} to task workspace`);
-      await fs.link(srcFile, dest);
-      logger.debug(`hard-linked source model ${srcFile} to task workspace`);
+    //Main files first: they must not collide
+    sources = [];
+    for (const { task_id: source_id, data: { main }, output } of source_tasks) {
+      const rel = main ?? path.basename(output.fileLocation);
+      const dest = await link(vfs.absolute(output.fileLocation), rel).catch((e) => {
+        if (e.code === "EEXIST" || e.code === "ENOTDIR") throw new BadRequestError(`Upload #${source_id}: another upload has a file named ${rel}`);
+        throw e;
+      });
+      logger.debug(`hard-linked source ${rel} to task workspace`);
       sources.push({
         ...output,
         fileLocation: vfs.relative(dest)
       } satisfies ParsedUserUpload);
+    }
+    //Then the files they may refer to. The first one of a name wins.
+    for (const { task_id: source_id, data: { main } } of source_tasks) {
+      if (!main) continue;
+      const { files } = getUploadStaging(vfs, source_id);
+      const entries = await fs.readdir(files, { recursive: true, withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) continue;
+        const src = path.join(entry.parentPath, entry.name);
+        const rel = path.relative(files, src);
+        if (rel.split(path.sep).join("/") === main) continue;
+        await link(src, rel).catch((e) => {
+          if (e.code !== "EEXIST" && e.code !== "ENOTDIR") throw e;
+          logger.warn(`Upload #${source_id}: ${rel} is already provided by another upload`);
+        });
+      }
     }
   }else{
     sources = source_tasks.map(t => t.output);
@@ -430,7 +498,7 @@ export async function createUploadDerivative({ context, task: { scene_id, user_i
     data: { fileLocation },
   });
 
-  const uri = derivativeName(source_task.data.filename, quality);
+  const uri = derivativeName(source_task.data.main ?? path.basename(source_task.output.fileLocation), quality);
   logger.debug("Copy %s to %s", fileLocation, uri);
   const filepath = vfs.absolute(fileLocation);
   await vfs.copyFile(filepath, { scene: scene_id, name: uri, user_id, mime: "model/gltf-binary" });

@@ -16,11 +16,17 @@ test.describe("model upload in Story", function(){
     await expect(userPage.locator("sv-node-tree").getByText("Cube", {exact: true})).toBeVisible();
   });
 
+  /** The model, with the files it refers to */
+  const objFiles = ["cube.obj", "cube.mtl", "Diffuse.jpg"].map(f=>path.join(fixtures, f));
+
   test("converts and optimizes a dropped model", async ({userPage})=>{
     // See add_model.spec.ts: the dropzone's hidden input stands in for a drop
-    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.obj"));
+    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
     const importMenu = userPage.locator("sv-import-menu");
     await expect(importMenu).toBeVisible();
+    //The other files go with the model: they're not imported on their own
+    await expect(importMenu).toContainText("cube.obj (+2)");
+    await expect(userPage.locator("sv-img-import-menu")).toHaveCount(0);
     await importMenu.getByText("Medium", {exact: true}).click();
     await importMenu.filter({hasText: "Add New Model:"}).getByRole("textbox").fill("Cube2");
     await importMenu.getByRole("button", {name: "Import Model"}).click();
@@ -34,6 +40,20 @@ test.describe("model upload in Story", function(){
     const res = await userPage.request.get(`/scenes/${encodeURIComponent(name)}/cube-medium.glb`);
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toBe("model/gltf-binary");
+    // The files it refers to were used to make it, they're not in the scene
+    for(const file of ["cube.obj", "cube.mtl", "Diffuse.jpg", "articles/Diffuse.jpg"]){
+      expect((await userPage.request.get(`/scenes/${encodeURIComponent(name)}/${file}`)).status(), file).toBe(404);
+    }
+  });
+
+  test("tells which file a model is missing", async ({userPage})=>{
+    //No .mtl
+    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.obj"));
+    const importMenu = userPage.locator("sv-import-menu");
+    await importMenu.getByText("Low", {exact: true}).click();
+    await importMenu.getByRole("button", {name: "Import Model"}).click();
+    //The message names cube.mtl, but the server answers in cimode here
+    await expect(importMenu).toContainText("errors.upload.convertFailed");
   });
 
   test("shows the server's error in the menu", async ({userPage})=>{
@@ -42,7 +62,7 @@ test.describe("model upload in Story", function(){
       contentType: "application/json",
       body: JSON.stringify({code: 400, message: "Some conversion error"}),
     }));
-    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.obj"));
+    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
     const importMenu = userPage.locator("sv-import-menu");
     await importMenu.getByText("Low", {exact: true}).click();
     await importMenu.getByRole("button", {name: "Import Model"}).click();
@@ -59,8 +79,8 @@ test.describe("model upload in Story", function(){
 
   test("closing the menu abandons the upload", async ({userPage})=>{
     //The data never arrives
-    await userPage.route(/\/uploads\/\d+$/, ()=>{});
-    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.obj"));
+    await userPage.route(/\/uploads\/\d+\/files\//, ()=>{});
+    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
     const importMenu = userPage.locator("sv-import-menu");
     await importMenu.getByText("High", {exact: true}).click();
     await importMenu.getByRole("button", {name: "Import Model"}).click();

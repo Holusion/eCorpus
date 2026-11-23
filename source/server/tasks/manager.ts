@@ -1,4 +1,4 @@
-import { BadRequestError, HTTPError, NotFoundError } from "../utils/errors.js";
+import { BadRequestError, ConflictError, HTTPError, NotFoundError } from "../utils/errors.js";
 import { DatabaseHandle } from "../vfs/helpers/db.js";
 import { serializeTaskError } from "./errors.js";
 import { TaskStatus, TaskDataPayload, TaskDefinition, CreateTaskParams, TaskNode, TaskLogEntry, TaskTreeResult, LogSeverity } from "./types.js";
@@ -53,6 +53,27 @@ export class TaskManager{
       const t = await this.getTask(id); //will throw NotFoundError if task doesn't exist
       throw new BadRequestError(`Can't take task #${id} with status ${t.status}`);
     }
+  }
+
+  /**
+   * Make an `initializing` task ready to run: switch it to `pending`, merging `data` into its data.
+   * Only one caller can do it for a given task.
+   * @returns the updated task definition
+   * @throws {NotFoundError} if task doesn't exist
+   * @throws {ConflictError} if task status isn't 'initializing'
+   */
+  public async readyTask<TData extends TaskDataPayload = any>(id: number, data: Partial<NonNullable<TData>> = {}): Promise<TaskDefinition<TData>>{
+    log_status.debug({ task_id: id }, `Ready task #${id}`);
+    const rows = await this.db.all<TaskDefinition<TData>>(`
+      UPDATE tasks SET status = 'pending', data = data || $2::jsonb
+      WHERE task_id = $1 AND status = 'initializing'
+      RETURNING ${TaskManager.#taskColumns}
+    `, [id, JSON.stringify(data)]);
+    if(!rows.length){
+      const t = await this.getTask(id); //will throw NotFoundError if task doesn't exist
+      throw new ConflictError(`Task #${id} is in state ${t.status}: it can't be made ready again`);
+    }
+    return rows[0];
   }
 
   /**

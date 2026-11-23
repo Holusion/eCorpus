@@ -1,5 +1,5 @@
 import HttpError from "../state/HttpError";
-import { uploadFile } from "../state/uploads";
+import { uploadFiles, UploadEntry } from "../state/uploads";
 
 /**
  * Voyager Story's model uploader: model files dropped in the editor go through `/uploads`,
@@ -17,6 +17,8 @@ interface ModelUploadProgress{
 }
 interface ModelUploadRequest{
   file: File;
+  /** Files the model may refer to, by path relative to its folder. Only those it refers to are sent. */
+  resources: Map<string, File>;
   quality: string;
   path: string;
   signal: AbortSignal;
@@ -29,20 +31,24 @@ interface ModelUploader{
 
 
 /** Formats the server converts to glb, on top of glb itself (see isModelType in the server's filetypes.ts). */
-//.gltf comes with other files (.bin, textures): Voyager uploads those as-is.
-const accept = ["obj", "stl", "ply", "blend"];
+const accept = ["obj", "ply", "wrl", "vrml", "gltf"];
 
 export function createModelUploader(scene: string): ModelUploader{
   return {
     accept,
-    async upload({file, quality, signal, onProgress}){
-      const upload = await uploadFile(file, {
+    async upload({file, resources, quality, signal, onProgress}){
+      const candidates: UploadEntry[] = Array.from(resources ?? [], ([path, file])=>({path, file}));
+      //Only the files the model refers to are sent
+      const {task, unused, missing} = await uploadFiles({path: file.name, file}, candidates, {
         scene,
         signal,
         onProgress: (loaded, total)=>onProgress({phase: "upload", loaded, total}),
       });
+      if(unused.length) console.info("%s doesn't refer to %s: not sent", file.name, unused.map(e=>e.path).join(", "));
+      //The conversion fails with a message that names them
+      if(missing.length) console.warn("%s refers to files that weren't given:", file.name, missing.map(paths=>paths[0]));
       onProgress({phase: "process"});
-      const res = await fetch(`/uploads/${upload.task_id}/derivatives/Web3D/${encodeURIComponent(quality)}`, {
+      const res = await fetch(`/uploads/${task.task_id}/derivatives/Web3D/${encodeURIComponent(quality)}`, {
         method: "PUT",
         signal,
         headers: {"Accept": "application/json"},

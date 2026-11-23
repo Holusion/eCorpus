@@ -6,29 +6,21 @@ import { parseUserUpload, UploadHandlerParams } from "../../tasks/handlers/uploa
 
 
 /**
- * Create an upload: it waits for its data, sent through `PUT /uploads/:id`.
+ * Create an empty upload. Its files are sent through `PUT /uploads/:id/files/*path`,
+ * then it is processed with `POST /uploads/:id/process`.
  * Answers `201 Created` with the upload's (still `initializing`) task.
  *
  * An upload may target a `scene` the requester can write to:
  * derivatives can then be made from it, into that scene (`PUT /uploads/:id/derivatives/:usage/:quality`).
  *
  * An upload is backed by a `parseUserUpload` task: the task id is the upload id,
- * and the task's workspace is where the data is staged.
+ * and the task's workspace is where the files are staged.
  */
 export async function postUpload(req: Request, res: Response){
   const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
   const requester = getUser(req)!;
-  const {filename, size, scene} = req.body ?? {};
-
-  if(typeof filename !== "string" || !filename){
-    throw new BadRequestError(`A file name is required`);
-  }
-  if(!Number.isSafeInteger(size) || size <= 0){
-    throw new BadRequestError(`A file size is required, as a positive integer. Got ${JSON.stringify(size)}`);
-  }
-  //Validate the file name before anything gets created: it must stay inside the upload's workspace
-  vfs.getTaskFilePath(0, filename);
+  const {scene} = req.body ?? {};
 
   let scene_id: number | null = null;
   if(typeof scene !== "undefined" && scene !== null){
@@ -43,7 +35,7 @@ export async function postUpload(req: Request, res: Response){
     scene_id,
     user_id: requester.uid,
     type: parseUserUpload.name,
-    data: {filename, size},
+    data: {},
     status: "initializing",
   });
   await vfs.createTaskWorkspace(task.task_id);

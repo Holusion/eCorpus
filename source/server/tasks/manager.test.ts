@@ -11,7 +11,7 @@ import { randomBytes } from "node:crypto";
 import { TaskManager } from "./manager.js";
 import Vfs from "../vfs/index.js";
 import UserManager from "../auth/UserManager.js";
-import { BadRequestError, NotFoundError } from "../utils/errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors.js";
 
 describe("TaskManager", function(){
   let db_uri: string, scene_id: number, user_id: number, handle: Database;
@@ -191,6 +191,49 @@ describe("TaskManager", function(){
     // Child should be cascaded deleted
     const rows = await handle.all("SELECT * FROM tasks");
     expect(rows).to.have.length(0);
+  });
+
+  it("readyTask makes an initializing task pending, merging its data", async function(){
+    const task = await listener.create({
+      scene_id: null,
+      user_id: null,
+      type: "test",
+      data: {a: 1, b: 2},
+      status: "initializing",
+    });
+    const ready = await listener.readyTask(task.task_id, {b: 3, c: 4});
+    expect(ready).to.have.property("status", "pending");
+    expect(ready).to.have.property("data").deep.equal({a: 1, b: 3, c: 4});
+    expect(await listener.getTask(task.task_id)).to.deep.equal(ready);
+  });
+
+  it("readyTask only works once", async function(){
+    const task = await listener.create({
+      scene_id: null,
+      user_id: null,
+      type: "test",
+      data: {},
+      status: "initializing",
+    });
+    const results = await Promise.allSettled([
+      listener.readyTask(task.task_id, {n: 1}),
+      listener.readyTask(task.task_id, {n: 2}),
+    ]);
+    expect(results.filter(r => r.status === "fulfilled")).to.have.length(1);
+    const [rejected] = results.filter(r => r.status === "rejected") as PromiseRejectedResult[];
+    expect(rejected.reason).to.be.instanceOf(ConflictError);
+  });
+
+  it("readyTask rejects tasks that are not initializing", async function(){
+    const task = await listener.create({
+      scene_id: null,
+      user_id: null,
+      type: "test",
+      data: {},
+      status: "pending",
+    });
+    await expect(listener.readyTask(task.task_id)).to.be.rejectedWith(ConflictError);
+    await expect(listener.readyTask(99999)).to.be.rejectedWith(NotFoundError);
   });
 
   it("takeTask only transitions from pending or initializing status", async function(){

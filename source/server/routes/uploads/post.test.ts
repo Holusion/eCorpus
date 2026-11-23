@@ -1,6 +1,5 @@
 import request from "supertest";
 import fs from "node:fs/promises";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
 
 import UserManager from "../../auth/UserManager.js";
@@ -25,25 +24,32 @@ describe("POST /uploads", function(){
     return (await taskScheduler.getTasks({type: "parseUserUpload", limit: 100})).length;
   }
 
-  it("creates an upload waiting for its data", async function(){
+  it("creates an upload waiting for its files", async function(){
     const res = await request(this.server).post("/uploads")
     .set("Authorization", await bearer("bob"))
-    .send({filename: "foo.glb", size: 1})
+    .send({})
     .expect(201);
     expect(res.body).to.have.property("task_id").a("number");
     expect(res.body).to.have.property("type", "parseUserUpload");
     expect(res.body).to.have.property("status", "initializing");
-    expect(res.body).to.have.property("data").deep.equal({filename: "foo.glb", size: 1});
+    expect(res.body).to.have.property("data").deep.equal({});
     expect(res.headers).to.have.property("location", `/uploads/${res.body.task_id}`);
     //Its workspace is ready to receive data
     await expect(fs.stat(vfs.getTaskWorkspace(res.body.task_id))).to.be.fulfilled;
+  });
+
+  it("needs no body", async function(){
+    const res = await request(this.server).post("/uploads")
+    .set("Authorization", await bearer("bob"))
+    .expect(201);
+    expect(res.body).to.have.property("status", "initializing");
   });
 
   it("ignores Prefer: respond-async", async function(){
     const res = await request(this.server).post("/uploads")
     .set("Authorization", await bearer("bob"))
     .set("Prefer", "respond-async")
-    .send({filename: "foo.glb", size: 1})
+    .send({})
     .expect(201);
     expect(res.headers).not.to.have.property("preference-applied");
   });
@@ -51,7 +57,7 @@ describe("POST /uploads", function(){
   it("requires to be logged in", async function(){
     const before = await count();
     await request(this.server).post("/uploads")
-    .send({filename: "foo.glb", size: 1})
+    .send({})
     .expect(401);
     expect(await count()).to.equal(before);
   });
@@ -60,7 +66,7 @@ describe("POST /uploads", function(){
     const before = await count();
     await request(this.server).post("/uploads")
     .set("Authorization", await bearer("uma"))
-    .send({filename: "foo.glb", size: 1})
+    .send({})
     .expect(401);
     expect(await count()).to.equal(before);
   });
@@ -76,11 +82,10 @@ describe("POST /uploads", function(){
     it("attaches the upload to the scene", async function(){
       const {body} = await request(this.server).post("/uploads")
       .set("Authorization", await bearer("bob"))
-      .send({filename: "foo.glb", size: 1, scene})
+      .send({scene})
       .expect(201);
       expect(body).to.have.property("scene_id", scene_id);
-      //Data and parameters are unchanged
-      expect(body).to.have.property("data").deep.equal({filename: "foo.glb", size: 1});
+      expect(body).to.have.property("data").deep.equal({});
     });
 
     it("requires write access to the scene", async function(){
@@ -89,7 +94,7 @@ describe("POST /uploads", function(){
       const before = await count();
       await request(this.server).post("/uploads")
       .set("Authorization", await bearer(`dave-${scene}`))
-      .send({filename: "foo.glb", size: 1, scene})
+      .send({scene})
       .expect(401);
       expect(await count()).to.equal(before);
     });
@@ -100,14 +105,14 @@ describe("POST /uploads", function(){
       await userManager.setDefaultAccess(scene, "none");
       await request(this.server).post("/uploads")
       .set("Authorization", await bearer(`erin-${scene}`))
-      .send({filename: "foo.glb", size: 1, scene})
+      .send({scene})
       .expect(404);
     });
 
     it("rejects a missing scene", async function(){
       await request(this.server).post("/uploads")
       .set("Authorization", await bearer("bob"))
-      .send({filename: "foo.glb", size: 1, scene: `missing-${scene}`})
+      .send({scene: `missing-${scene}`})
       .expect(404);
     });
 
@@ -115,47 +120,9 @@ describe("POST /uploads", function(){
       for(const name of ["", 12, {}]){
         await request(this.server).post("/uploads")
         .set("Authorization", await bearer("bob"))
-        .send({filename: "foo.glb", size: 1, scene: name})
+        .send({scene: name})
         .expect(400);
       }
     });
-  });
-
-  describe("rejects invalid data", function(){
-    const cases: Array<[string, any]> = [
-      ["no body", undefined],
-      ["no filename", {size: 1}],
-      ["empty filename", {filename: "", size: 1}],
-      ["non-string filename", {filename: 12, size: 1}],
-      ["no size", {filename: "foo.glb"}],
-      ["string size", {filename: "foo.glb", size: "1"}],
-      ["zero size", {filename: "foo.glb", size: 0}],
-      ["negative size", {filename: "foo.glb", size: -1}],
-      ["fractional size", {filename: "foo.glb", size: 1.5}],
-    ];
-    for(const [name, body] of cases){
-      it(name, async function(){
-        const before = await count();
-        await request(this.server).post("/uploads")
-        .set("Authorization", await bearer("bob"))
-        .send(body)
-        .expect(400);
-        expect(await count()).to.equal(before);
-      });
-    }
-  });
-
-  describe("rejects file names that break out of the upload's workspace", function(){
-    for(const name of ["../escape.bin", "../../../escape.bin", "foo/../../escape.bin", "/tmp/escape.bin"]){
-      it(JSON.stringify(name), async function(){
-        const before = await count();
-        await request(this.server).post("/uploads")
-        .set("Authorization", await bearer("bob"))
-        .send({filename: name, size: 16})
-        .expect(400);
-        expect(await count()).to.equal(before);
-        await expect(fs.access(path.resolve(vfs.artifactsDir, name))).to.be.rejectedWith("ENOENT");
-      });
-    }
   });
 });

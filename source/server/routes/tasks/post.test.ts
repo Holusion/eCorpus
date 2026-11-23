@@ -8,6 +8,7 @@ import UserManager from "../../auth/UserManager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import Vfs from "../../vfs/index.js";
+import { sendUpload } from "../../__test_fixtures/uploads.js";
 import { fixturesDir } from "../../__test_fixtures/fixtures.js";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -205,15 +206,8 @@ describe("POST /tasks", function(){
   describe("source tasks", function(){
     /** Upload a file as `username`, returning the id of the (successful) upload task */
     async function upload(ctx: Mocha.Context, username: string): Promise<number>{
-      const data = randomBytes(16);
-      const {body: {task_id}} = await request(ctx.server).post("/uploads")
-      .set("Authorization", await bearer(username))
-      .send({filename: "foo.bin", size: data.length})
-      .expect(201);
-      await request(ctx.server).put(`/uploads/${task_id}`)
-      .set("Authorization", await bearer(username))
-      .send(data)
-      .expect(201);
+      const {task_id, res} = await sendUpload(ctx.server, await bearer(username), {files: {"foo.bin": randomBytes(16)}});
+      expect(res.status, res.text).to.equal(200);
       expect(await taskScheduler.getTask(task_id)).to.have.property("status", "success");
       return task_id;
     }
@@ -277,6 +271,64 @@ describe("POST /tasks", function(){
       expect(res.body.message).to.match(/did not output a zip file/);
     });
 
+    describe("createSceneFromFiles with models that refer to other files", function(){
+      let obj: Buffer, mtl: Buffer, png: Buffer;
+      this.beforeAll(async function(){
+        obj = await fs.readFile(path.join(fixturesDir, "cube.obj"));
+        mtl = Buffer.concat([await fs.readFile(path.join(fixturesDir, "cube.mtl")), Buffer.from("map_Kd tex/diffuse.png\n")]);
+        //1x1 PNG
+        png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+      });
+
+      /** Create a scene from uploads of charlie's, returning its model's asset */
+      async function createScene(ctx: Mocha.Context, tasks: number[]){
+        const name = randomBytes(4).toString("hex");
+        const created = await request(ctx.server).post("/tasks")
+        .set("Authorization", await bearer("charlie"))
+        .send({type: "createSceneFromFiles", data: {tasks, name, language: "EN", options: {}}});
+        expect(created.status, created.text).to.equal(200);
+        const {body: doc} = await request(ctx.server).get(`/scenes/${name}/scene.svx.json`)
+        .set("Authorization", await bearer("charlie"))
+        .expect(200);
+        expect(doc.models).to.have.length(1);
+        return doc.models[0].derivatives[0].assets[0];
+      }
+
+      async function uploadSet(ctx: Mocha.Context, main: string, files: Record<string, Buffer>){
+        const {task_id, res} = await sendUpload(ctx.server, await bearer("charlie"), {main, files});
+        expect(res.status, res.text).to.equal(200);
+        return task_id;
+      }
+
+      it("finds them in the model's upload, in their folders", async function(){
+        const id = await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png});
+        const asset = await createScene(this, [id]);
+        expect(asset).to.have.property("uri", "cube.glb");
+        expect(asset).to.have.property("imageSize").above(0);
+      });
+
+      it("finds them in other uploads", async function(){
+        const ids = [
+          await uploadSet(this, "cube.obj", {"cube.obj": obj}),
+          await uploadSet(this, "cube.mtl", {"cube.mtl": mtl, "tex/diffuse.png": png}),
+        ];
+        const asset = await createScene(this, ids);
+        expect(asset).to.have.property("imageSize").above(0);
+      });
+
+      it("rejects two models of the same name", async function(){
+        const ids = [
+          await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png}),
+          await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png}),
+        ];
+        const res = await request(this.server).post("/tasks")
+        .set("Authorization", await bearer("charlie"))
+        .send({type: "createSceneFromFiles", data: {tasks: ids, name: randomBytes(4).toString("hex"), language: "EN", options: {}}})
+        .expect(400);
+        expect(res.body.message).to.match(/cube\.obj/);
+      });
+    });
+
     it("rejects missing source ids", async function(){
       for(const type of ["createSceneFromFiles", "extractScenesArchives"]){
         await request(this.server).post("/tasks")
@@ -291,14 +343,8 @@ describe("POST /tasks", function(){
   describe("localized outcomes", function(){
     /** Uploads a file as charlie, returning the id of the upload task */
     async function upload(ctx: Mocha.Context, filename: string, data: Buffer): Promise<number>{
-      const {body: {task_id}} = await request(ctx.server).post("/uploads")
-      .set("Authorization", await bearer("charlie"))
-      .send({filename, size: data.length})
-      .expect(201);
-      await request(ctx.server).put(`/uploads/${task_id}`)
-      .set("Authorization", await bearer("charlie"))
-      .send(data)
-      .expect(201);
+      const {task_id, res} = await sendUpload(ctx.server, await bearer("charlie"), {files: {[filename]: data}});
+      expect(res.status, res.text).to.equal(200);
       return task_id;
     }
 
