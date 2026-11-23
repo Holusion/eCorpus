@@ -247,6 +247,10 @@ export default {
     },
   },
   info:{
+    missingUploadFile:{
+      fr: "{path} est manquant : {file} y fait référence",
+      en: "{path} is missing: {file} refers to it",
+    },
     noData:{
       fr:"Aucune donnée trouvée pour {item}",
       en:"No data available for {item}"

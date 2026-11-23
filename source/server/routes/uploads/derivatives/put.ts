@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 
 import { assertSceneAccess, getLocals, getUser } from "../../../utils/locals.js";
-import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from "../../../utils/errors.js";
+import { BadRequestError, ConflictError } from "../../../utils/errors.js";
 import { localize, translateTask } from "../../../utils/i18n.js";
 import { TDerivativeQuality, TDerivativeUsage } from "../../../utils/schema/model.js";
 import { createUploadDerivative, UploadDerivative, UploadDerivativeParams } from "../../../tasks/handlers/uploads.js";
-import { isUploadTask } from "../put.js";
+import { getOwnUpload } from "../common.js";
 
 
 /** Derivative usages that can be made from an upload. Others may come later */
@@ -35,16 +35,10 @@ function isQuality(q: string): q is TDerivativeQuality {
 export async function putUploadDerivative(req: Request, res: Response){
   const { taskScheduler, vfs } = getLocals(req);
   const requester = getUser(req)!;
-  const id = parseInt(req.params.id);
   const { usage, quality } = req.params;
 
-  const upload = await taskScheduler.getTask(id);
-  if(!isUploadTask(upload)){
-    throw new NotFoundError(`No upload with id ${id}`);
-  }
-  if(upload.user_id !== requester.uid){
-    throw new UnauthorizedError(`This upload does not belong to this user`);
-  }
+  const upload = await getOwnUpload(req);
+  const id = upload.task_id;
   if(!isUsage(usage)){
     throw new BadRequestError(`Unsupported derivative usage: ${usage}. Supported usages: ${usages.join(", ")}`);
   }
@@ -58,7 +52,7 @@ export async function putUploadDerivative(req: Request, res: Response){
     throw new BadRequestError(`Upload ${id} has no target scene: create it with a scene to make derivatives from it`);
   }
   if(!(upload.output as {isModel?: boolean}).isModel){
-    throw new BadRequestError(localize("errors.upload.notAModel", { filename: upload.data.filename }));
+    throw new BadRequestError(localize("errors.upload.notAModel", { filename: upload.data.main }));
   }
   //Access to the scene might have changed since the upload was created
   await assertSceneAccess(req, res, upload.scene_id, "write");

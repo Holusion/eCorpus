@@ -114,8 +114,7 @@ describe("GET /tasks/:id/artifact", function () {
       const { body } = await request(this.server)
         .post("/uploads")
         .set("Authorization", await bearer("bob"))
-        .set("Content-Type", "application/json")
-        .send({filename, size })
+        .send({})
         .expect(201);
       task = body.task_id;
     });
@@ -126,10 +125,15 @@ describe("GET /tasks/:id/artifact", function () {
       bobToken = await bearer("bob");
       data = randomBytes(size);
       await request(this.server)
-        .put(`/uploads/${task}`)
+        .put(`/uploads/${task}/files/${filename}`)
         .set("Authorization", bobToken)
         .send(data)
         .expect(201);
+      await request(this.server)
+        .post(`/uploads/${task}/process`)
+        .set("Authorization", bobToken)
+        .send({main: filename})
+        .expect(200);
     });
 
     function getArtifact(server: any) {
@@ -170,7 +174,7 @@ describe("GET /tasks/:id/artifact", function () {
     it("returns a zip containing the uploaded file", async function () {
       const res = await getArtifact(this.server).expect(200);
       const entries = await getZipEntries(res.body as Buffer);
-      expect(entries.map((e) => e.fileName)).to.include(filename);
+      expect(entries.map((e) => e.fileName)).to.include(`files/${filename}`);
     });
 
     it("zip entry content matches the uploaded data", async function () {
@@ -182,7 +186,7 @@ describe("GET /tasks/:id/artifact", function () {
       zip.on("entry", (e) => entries.push(e));
       await once(zip, "end");
 
-      const target = entries.find((e) => e.fileName === filename);
+      const target = entries.find((e) => e.fileName === `files/${filename}`);
       expect(target, `entry "${filename}" not found in zip`).to.exist;
       const content = await readZipEntry(zip, target!);
       expect(content.toString("hex")).to.equal(data.toString("hex"));
@@ -209,14 +213,14 @@ describe("GET /tasks/:id/artifact", function () {
 
       it("files array contains an entry for the uploaded file", async function () {
         const { body } = await getArtifactJson(this.server).expect(200);
-        const entry = (body.files as any[]).find((f) => f.path === filename);
+        const entry = (body.files as any[]).find((f) => f.path === `files/${filename}`);
         expect(entry, `entry "${filename}" not found in files list`).to.exist;
       });
 
       it("each file entry has path, size, ctime and mtime", async function () {
         const { body } = await getArtifactJson(this.server).expect(200);
-        const entry = (body.files as any[]).find((f) => f.path === filename);
-        expect(entry).to.have.property("path", filename);
+        const entry = (body.files as any[]).find((f) => f.path === `files/${filename}`);
+        expect(entry).to.have.property("path", `files/${filename}`);
         expect(entry).to.have.property("size", size);
         expect(entry).to.have.property("ctime").that.is.a("string");
         expect(entry).to.have.property("mtime").that.is.a("string");
