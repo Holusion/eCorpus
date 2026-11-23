@@ -3,7 +3,7 @@ import { uploadFiles, UploadEntry } from "../state/uploads";
 
 /**
  * Voyager Story's model uploader: model files dropped in the editor go through `/uploads`,
- * then the server makes a derivative of each chosen quality into the scene, one after the other.
+ * then the server makes a derivative of each chosen quality into the scene.
  *
  * Loaded after voyager-story.js, with the scene's name as `data-scene`.
  */
@@ -22,6 +22,8 @@ interface ModelUploadRequest{
   resources: Map<string, File>;
   /** From lowest to highest */
   qualities: string[];
+  /** When false, the highest quality is the model as sent. The others are always optimized */
+  optimize: boolean;
   path: string;
   signal: AbortSignal;
   onProgress(progress: ModelUploadProgress): void;
@@ -38,7 +40,7 @@ const accept = ["obj", "ply", "wrl", "vrml", "gltf"];
 export function createModelUploader(scene: string): ModelUploader{
   return {
     accept,
-    async upload({file, resources, qualities, signal, onProgress}){
+    async upload({file, resources, qualities, optimize, signal, onProgress}){
       const candidates: UploadEntry[] = Array.from(resources ?? [], ([path, file])=>({path, file}));
       //Only the files the model refers to are sent
       const {task, unused, missing} = await uploadFiles({path: file.name, file}, candidates, {
@@ -49,24 +51,22 @@ export function createModelUploader(scene: string): ModelUploader{
       if(unused.length) console.info("%s doesn't refer to %s: not sent", file.name, unused.map(e=>e.path).join(", "));
       //The conversion fails with a message that names them
       if(missing.length) console.warn("%s refers to files that weren't given:", file.name, missing.map(paths=>paths[0]));
-      //One at a time, lowest first: each one is a full optimization
-      const derivatives: Array<{quality: string, uri: string}> = [];
-      for(const quality of qualities){
-        onProgress({phase: "process", quality});
-        const res = await fetch(`/uploads/${task.task_id}/derivatives/Web3D/${encodeURIComponent(quality)}`, {
-          method: "PUT",
-          signal,
-          headers: {"Accept": "application/json"},
-        });
-        await HttpError.okOrThrow(res);
-        const {output} = await res.json();
-        if(typeof output?.uri !== "string"){
-          console.warn("Unexpected derivative output:", output);
-          throw new Error("Invalid response body");
-        }
-        derivatives.push({quality, uri: output.uri});
+      onProgress({phase: "process"});
+      //All at once: the model is converted only once
+      const res = await fetch(`/uploads/${task.task_id}/derivatives`, {
+        method: "POST",
+        signal,
+        headers: {"Accept": "application/json", "Content-Type": "application/json"},
+        body: JSON.stringify({usage: "Web3D", qualities, optimize}),
+      });
+      await HttpError.okOrThrow(res);
+      const {output} = await res.json();
+      const derivatives = output?.derivatives;
+      if(!Array.isArray(derivatives) || !derivatives.every(d=>typeof d?.uri === "string" && typeof d?.quality === "string")){
+        console.warn("Unexpected derivatives output:", output);
+        throw new Error("Invalid response body");
       }
-      return {derivatives};
+      return {derivatives: derivatives.map(({quality, uri}: {quality: string, uri: string})=>({quality, uri}))};
     },
   };
 }
