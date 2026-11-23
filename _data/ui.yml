@@ -1,0 +1,8 @@
+# Libellés d'interface, hors navigation.
+# Les clés de _data/nav.yml génèrent un lien /<langue>/<clé> : n'y mettre
+# que des pages qui existent réellement.
+
+# Bouton d'appel à l'action de l'en-tête (pointe vers /<langue>/doc/tutorials)
+tutorialCta:
+  fr: Tutoriel eCorpus
+  en: Learn eCorpus
