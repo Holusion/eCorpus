@@ -22,6 +22,10 @@ const useURLEncoded = express.urlencoded({
 })
 const router = Router();
 
+//`npm run watch` sets NODE_ENV=development explicitly: rate limits only get in the way there.
+//Not the config's node_env, which defaults to "development" (tests rely on the limits being on).
+const skipRateLimit = ()=> process.env["NODE_ENV"] === "development";
+
 /** Configure cache behaviour for the whole API
  * Settings can be changed individually further down the line
  */
@@ -55,6 +59,7 @@ router.post("/login",
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     validate: {trustProxy: false},
+    skip: skipRateLimit,
     handler: (_req, _res, next) => next(new HTTPError(429, localize("errors.tooManyRequests"))),
   }),
   useJSON,
@@ -79,6 +84,7 @@ router.post("/login/:username/link", either(policy({ scope: "users:write" }), ra
 	standardHeaders: 'draft-7',
 	legacyHeaders: false,
   validate: {trustProxy: false},
+  skip: skipRateLimit,
   handler: (_req, _res, next) => next(new HTTPError(429, localize("errors.tooManyRequests"))),
 })), sendLoginLink);
 
