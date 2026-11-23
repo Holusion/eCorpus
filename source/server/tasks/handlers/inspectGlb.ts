@@ -1,27 +1,15 @@
-
 import type { FileArtifact, TaskHandlerParams } from '../types.js';
+import { meshtinker, type InspectReport } from '../../utils/meshtinker.js';
+import { describeModel } from '../../utils/gltf/inspect.js';
 import { getModelWarnings, localizeModelWarnings } from '../../utils/gltf/warnings.js';
 
 
-
 /**
- * Parse a glb file to gather its main attributes
- * @param param0 
- * @returns 
+ * Inspect a glTF or GLB model to gather its main attributes, with `meshtinker inspect`.
+ * Unknown required extensions don't prevent it: the model may still be usable by the viewer.
+ * @throws {MeshtinkerError} if the model is rejected (`rejected`), or meshtinker failed
  */
-export async function inspectGlb({context: {vfs, logger}, task: {data: {fileLocation}}}:TaskHandlerParams<FileArtifact>){
-  const {io} = await import("../../utils/gltf/io.js");
-  const {inspectDocument} = await import("../../utils/gltf/inspect.js");
-  const filepath = vfs.absolute(fileLocation);
-  const document = await io.read(filepath).catch(async (e) => {
-    if (!/Missing required extension/.test(e?.message)) throw e;
-    //The model might still be usable by the viewer: ignore unsupported extensions' data and inspect what's left
-    //Supported extensions are enabled from extensionsUsed so it's safe to clear extensionsRequired
-    logger.warn(`${e.message} Model data that depends on it will be ignored`);
-    const jsonDoc = await io.readAsJSON(filepath);
-    delete jsonDoc.json.extensionsRequired;
-    return await io.readJSON(jsonDoc);
-  }); // → Document
-  return { ...inspectDocument(document), ...localizeModelWarnings(getModelWarnings(document)) };
+export async function inspectGlb({context: {vfs, logger, signal}, task: {data: {fileLocation}}}:TaskHandlerParams<FileArtifact>){
+  const report = await meshtinker<InspectReport>("inspect", [vfs.absolute(fileLocation)], {signal, logger});
+  return { ...describeModel(report), ...localizeModelWarnings(getModelWarnings(report)) };
 }
-

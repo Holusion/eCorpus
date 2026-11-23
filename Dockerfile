@@ -30,15 +30,19 @@ FROM node:22-slim AS utilities
 
 #Install dependencies
 RUN apt-get -qqy update && apt-get -qqy install  --no-install-recommends \
-  xz-utils lbzip2 \
   ca-certificates \
   curl \
   && rm -rf /var/lib/apt/lists/* /var/tmp/*
 
-#Install ktx
-RUN curl -fsSL -o "/tmp/KTX-Software-Linux-x86_64.tar.bz2" "https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.tar.bz2"\
-  && tar -xf "/tmp/KTX-Software-Linux-x86_64.tar.bz2" -C /usr/local/ --strip-components=1 \
-  && rm -rf /tmp/*
+#Install mesh2gltf
+ARG MESH2GLTF_VERSION=v0.2.0
+RUN curl -fsSL "https://github.com/Holusion/mesh2gltf/releases/download/${MESH2GLTF_VERSION}/mesh2gltf-${MESH2GLTF_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+  | tar -xz -C /usr/local/bin --strip-components=1 "mesh2gltf-${MESH2GLTF_VERSION}-x86_64-unknown-linux-gnu/mesh2gltf"
+
+#Install meshtinker (its subcommands are executables next to it)
+ARG MESHTINKER_VERSION=v0.1.0
+RUN curl -fsSL "https://github.com/Holusion/meshtinker/releases/download/${MESHTINKER_VERSION}/meshtinker-linux-x86_64.tar.gz" \
+  | tar -xz -C /usr/local --strip-components=1
 
 FROM node:22-slim
 # Build the distributed container
@@ -58,14 +62,8 @@ ENV BUILD_REF=${BUILD_REF}
 
 ENV NODE_ENV=production
 
-#Install additional runtime dependencies
-RUN apt-get -qqy update && apt-get -qqy install  --no-install-recommends \
-  ocl-icd-libopencl1 \
-  && ln -s libOpenCL.so.1 /usr/lib/x86_64-linux-gnu/libOpenCL.so\
-  && rm -rf /var/lib/apt/lists/* /var/tmp/*
-
-COPY --from=utilities /usr/local/lib /usr/local/lib
 COPY --from=utilities /usr/local/bin /usr/local/bin
+COPY --from=utilities /usr/local/share/doc/meshtinker /usr/local/share/doc/meshtinker
 
 
 WORKDIR /app

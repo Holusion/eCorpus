@@ -514,6 +514,7 @@ errors:
     invalidGlb: "{{filename}} n'a pas pu être lu comme un modèle 3D : {{reason}}"
     notAModel: "{{filename}} n'est pas un modèle 3D"
     optimizeFailed: "{{filename}} n'a pas pu être optimisé : {{reason}}"
+    convertFailed: "{{filename}} n'a pas pu être converti en modèle 3D : {{reason}}"
     sceneNotWritable: "Vous n'avez pas les droits d'écriture sur la scène « {{name}} »"
     scenesNotWritable: "Vous n'avez pas les droits d'écriture sur les scènes {{names}}"
 

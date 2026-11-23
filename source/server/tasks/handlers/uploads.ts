@@ -231,7 +231,7 @@ async function optimizeModel({ tasks }: HandlerContext, fileLocation: RootRelati
     data: { fileLocation, preset },
     handler: optimizeGlb,
   }).catch((e: Error) => {
-    //What went wrong is gltf-transform's: it's only in english
+    //What went wrong is meshtinker's: it's only in english
     throw new InternalError(localize("errors.upload.optimizeFailed", { filename: path.basename(fileLocation), reason: e.message }));
   });
   if (typeof output?.fileLocation !== "string") throw new InternalError(`Model optimization output is unreadable: ${JSON.stringify(output)}`);

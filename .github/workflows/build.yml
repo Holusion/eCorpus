@@ -122,6 +122,17 @@ jobs:
           cache: 'npm'
       - name: install
         run: npm ci && (cd source/server && npm ci)
+      - name: install mesh2gltf and meshtinker
+        env:
+          MESH2GLTF_VERSION: v0.2.0
+          MESHTINKER_VERSION: v0.1.0
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/Holusion/mesh2gltf/releases/download/${MESH2GLTF_VERSION}/mesh2gltf-${MESH2GLTF_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" --strip-components=1 "mesh2gltf-${MESH2GLTF_VERSION}-x86_64-unknown-linux-gnu/mesh2gltf"
+          curl -fsSL "https://github.com/Holusion/meshtinker/releases/download/${MESHTINKER_VERSION}/meshtinker-linux-x86_64.tar.gz" \
+            | tar -xz -C "$HOME/.local" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: test
         run: (cd source/server && npm test)
       - name: build
