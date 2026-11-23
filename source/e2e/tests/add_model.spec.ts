@@ -35,7 +35,9 @@ test("uses expected units", async ({userPage, createScene})=>{
   const importMenu = userPage.locator("sv-import-menu");
   await expect(importMenu).toBeVisible();
   //Thumb and High are chosen by default
-  await importMenu.filter({hasText: "Add New Model:"}).getByRole("textbox").fill("Cube2");
+  await importMenu.getByRole("region", { name: "Target" }).getByRole("button", { expanded: false }).click();
+  await importMenu.getByRole("textbox", { name: "New model" }).fill("Cube2");
+  await importMenu.getByRole("textbox", { name: "New model" }).press("Enter");
   await importMenu.getByRole('button', { name: 'Import Model' }).click();
 
   await expect(importMenu).not.toBeVisible();
