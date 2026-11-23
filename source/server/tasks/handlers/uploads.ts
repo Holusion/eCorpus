@@ -510,33 +510,89 @@ export function derivativeName(filename: string, quality: TDerivativeQuality): s
   return `${base}-${quality.toLowerCase()}.glb`;
 }
 
+/** Qualities from lowest to highest, as Voyager ranks them when it picks a derivative */
+const qualityRanks: readonly TDerivativeQuality[] = ["Thumb", "AR", "Low", "Medium", "High", "Highest"];
+
 /**
- * Make a derivative of an uploaded model, in the task's scene:
- * convert it to GLB if needed, optimize it with the quality's preset, and write it to the scene.
- * Only Web3D derivatives are supported for now.
+ * Make derivatives of an uploaded model, in a scene: convert it to GLB if needed,
+ * then optimize it with each quality's preset and write the results to the scene.
+ * @param optimize when false, the highest quality is the model as it was uploaded (as GLB). The others are always optimized.
  */
-export async function createUploadDerivative({ context, task: { scene_id, user_id, data: { upload, usage, quality } } }: TaskHandlerParams<UploadDerivativeParams>): Promise<UploadDerivative> {
+async function makeUploadDerivatives(context: HandlerContext, { scene_id, user_id, upload, usage, qualities, optimize }: {
+  scene_id: number | null | undefined,
+  user_id: number | null | undefined,
+  upload: number,
+  usage: TDerivativeUsage,
+  qualities: TDerivativeQuality[],
+  optimize: boolean,
+}): Promise<UploadDerivative[]> {
   const { tasks, vfs, logger } = context;
   if (!scene_id) throw new InternalError(`A derivative must be made in a scene. No scene_id provided`);
   if (typeof user_id !== "number") throw new InternalError(`A derivative requires an owner. No user_id provided`);
   if (usage !== "Web3D") throw new BadRequestError(`Unsupported derivative usage: ${usage}`);
+  if (!qualities.length) throw new BadRequestError(`At least one derivative quality is required`);
+  const unknown = qualities.filter(q => !qualityRanks.includes(q));
+  if (unknown.length) throw new BadRequestError(`Unsupported derivative qualit${1 < unknown.length ? "ies" : "y"}: ${unknown.join(", ")}`);
 
   const [source_task] = await getSourceUploads(tasks, [upload], user_id);
   if (source_task.status !== "success" || !isUploadedFile(source_task.output)) {
     throw new BadRequestError(`Upload #${upload} has not completed successfully`);
   }
 
+  //Converted once for all of them
   const glb = await toSourceGlb(context, source_task.output);
-  const { fileLocation, ...meta } = await makeDerivativeFile(context, glb.fileLocation, quality);
+  const filename = source_task.data.main ?? path.basename(source_task.output.fileLocation);
+  const sorted = [...new Set(qualities)].sort((a, b) => qualityRanks.indexOf(a) - qualityRanks.indexOf(b));
+  const highest = sorted[sorted.length - 1];
 
-  const uri = derivativeName(source_task.data.main ?? path.basename(source_task.output.fileLocation), quality);
-  logger.debug("Copy %s to %s", fileLocation, uri);
-  await vfs.copyFile(vfs.absolute(fileLocation), { scene: scene_id, name: uri, user_id, mime: "model/gltf-binary" });
-  return {
-    uri,
-    usage,
-    quality,
-    mime: "model/gltf-binary",
-    ...meta,
-  };
+  const derivatives: UploadDerivative[] = [];
+  for (const quality of sorted) {
+    const { fileLocation, ...meta } = (optimize || quality !== highest)
+      ? await makeDerivativeFile(context, glb.fileLocation, quality)
+      : glb;
+    const uri = derivativeName(filename, quality);
+    logger.debug("Copy %s to %s", fileLocation, uri);
+    await vfs.copyFile(vfs.absolute(fileLocation), { scene: scene_id, name: uri, user_id, mime: "model/gltf-binary" });
+    derivatives.push({
+      uri,
+      usage,
+      quality,
+      mime: "model/gltf-binary",
+      byteSize: meta.byteSize,
+      numFaces: meta.numFaces,
+      imageSize: meta.imageSize,
+      bounds: meta.bounds,
+    });
+  }
+  return derivatives;
+}
+
+/**
+ * Make a derivative of an uploaded model, in the task's scene:
+ * convert it to GLB if needed, optimize it with the quality's preset, and write it to the scene.
+ * Only Web3D derivatives are supported for now.
+ */
+export async function createUploadDerivative({ context, task: { scene_id, user_id, data: { upload, usage, quality } } }: TaskHandlerParams<UploadDerivativeParams>): Promise<UploadDerivative> {
+  const [derivative] = await makeUploadDerivatives(context, { scene_id, user_id, upload, usage, qualities: [quality], optimize: true });
+  return derivative;
+}
+
+export interface UploadDerivativesParams {
+  /** Id of the upload the derivatives are made from */
+  upload: number;
+  usage: TDerivativeUsage;
+  qualities: TDerivativeQuality[];
+  /** When false, the highest quality is the model as it was uploaded. The others are always optimized. Defaults to true */
+  optimize?: boolean;
+}
+
+/**
+ * Make several derivatives of an uploaded model, in the task's scene, converting it only once.
+ * With `optimize: false`, the highest quality is the model as uploaded: one can send a model that's ready,
+ * or a Thumb one made oneself, and have it used as is.
+ * @returns the derivatives, from lowest to highest quality
+ */
+export async function createUploadDerivatives({ context, task: { scene_id, user_id, data: { upload, usage, qualities, optimize = true } } }: TaskHandlerParams<UploadDerivativesParams>): Promise<{ derivatives: UploadDerivative[] }> {
+  if (!Array.isArray(qualities)) throw new BadRequestError(`qualities must be a list of derivative qualities`);
+  return { derivatives: await makeUploadDerivatives(context, { scene_id, user_id, upload, usage, qualities, optimize: optimize !== false }) };
 }
