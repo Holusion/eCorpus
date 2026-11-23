@@ -45,6 +45,7 @@ jobs:
         run: bundle exec jekyll build
         env:
           JEKYLL_ENV: production
+      # Checks internes (liens relatifs, ancres, images, alt) : bloquants et déterministes.
       - name: test HTML validity
         run: >
           bundle exec htmlproofer _site/
@@ -53,7 +54,30 @@ jobs:
           --swap-urls "^https?\:\/\/ecorpus\.eu:"
           --ignore-status-codes "403,412,429"
           --ignore-urls "/fonts\.googleapis\.com/,/fonts\.gstatic\.com/,/^https?:\/\/localhost/,/threejs\.org\/docs/,/expressjs\.com/"
+          --disable-external
           --log-level :debug
+      # Liens externes : dépendants du réseau des runners (blocages, timeouts), donc
+      # non bloquants. Le détail part dans le résumé du job, lisible sans les logs.
+      - name: check external links (non-blocking)
+        continue-on-error: true
+        run: |
+          set +e
+          bundle exec htmlproofer _site/ \
+            --no-enforce-https \
+            --allow-missing-href \
+            --swap-urls "^https?\:\/\/ecorpus\.eu:" \
+            --ignore-status-codes "403,412,429" \
+            --ignore-urls "/fonts\.googleapis\.com/,/fonts\.gstatic\.com/,/^https?:\/\/localhost/,/threejs\.org\/docs/,/expressjs\.com/" \
+            --typhoeus '{"timeout":60,"connecttimeout":20}' \
+            --log-level :info > external-links.log 2>&1
+          status=$?
+          echo "htmlproofer exit code: ${status}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E "check, the following failures|^\* At|External link|failed" external-links.log | head -40 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
       - name: Upload artifact
         if: ${{ github.ref == 'refs/heads/gh_pages' }}
         uses: actions/upload-pages-artifact@v5
