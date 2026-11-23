@@ -7,6 +7,7 @@ import { headUploadFile } from "./files/head.js";
 import { putUploadFile } from "./files/put.js";
 import { postUploadProcess } from "./process.js";
 import { putUploadDerivative } from "./derivatives/put.js";
+import { postUploadDerivatives } from "./derivatives/post.js";
 
 const jsonParser = express.json();
 
@@ -20,6 +21,7 @@ router.head("/:id/files/*path", numericParam("id"), policy({ access: "read", on:
 router.put("/:id/files/*path", numericParam("id"), policy({ access: "admin", on: "task" }), putUploadFile);
 router.post("/:id/process", numericParam("id"), policy({ access: "admin", on: "task" }), jsonParser, postUploadProcess);
 //Making a derivative also writes to the upload's scene: the handler checks that.
+router.post("/:id/derivatives", numericParam("id"), policy({ access: "admin", on: "task" }), jsonParser, postUploadDerivatives);
 router.put("/:id/derivatives/:usage/:quality", numericParam("id"), policy({ access: "admin", on: "task" }), putUploadDerivative);
 
 export default router;
