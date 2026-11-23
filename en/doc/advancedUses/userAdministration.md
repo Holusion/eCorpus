@@ -36,7 +36,7 @@ The effective rights of a user is the highest among :
 * Individual user rights on a scene,
 * Group rights on a scene, if the user is a member of a group.
   
-See the scene page and the [scene permissions](../tutorials/import#manage-scene-permissions) documentation to edit those rights.
+See the scene page and the [scene privacy](../explainers/permissions.html) documentation to edit those rights.
 
 ### Summary tables
 #### Permissions on scenes
