@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import type { Locator } from "@playwright/test";
 import { test, expect } from '../fixtures.js';
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
@@ -19,6 +20,9 @@ test.describe("model upload in Story", function(){
   /** The model, with the files it refers to */
   const objFiles = ["cube.obj", "cube.mtl", "Diffuse.jpg"].map(f=>path.join(fixtures, f));
 
+  /** A quality's entry in the import menu */
+  const quality = (importMenu: Locator, name: string)=>importMenu.getByRole("checkbox", {name, exact: true});
+
   test("converts and optimizes a dropped model", async ({userPage})=>{
     // See add_model.spec.ts: the dropzone's hidden input stands in for a drop
     await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
@@ -27,30 +31,61 @@ test.describe("model upload in Story", function(){
     //The other files go with the model: they're not imported on their own
     await expect(importMenu).toContainText("cube.obj (+2)");
     await expect(userPage.locator("sv-img-import-menu")).toHaveCount(0);
-    await importMenu.getByText("Medium", {exact: true}).click();
+    //A Thumb and a High quality model by default
+    for(const name of ["Thumb", "High"]) await expect(quality(importMenu, name)).toBeChecked();
+    for(const name of ["Low", "Medium", "Highest", "AR"]) await expect(quality(importMenu, name)).not.toBeChecked();
     await importMenu.filter({hasText: "Add New Model:"}).getByRole("textbox").fill("Cube2");
     await importMenu.getByRole("button", {name: "Import Model"}).click();
-    await expect(importMenu).not.toBeVisible();
+    await expect(importMenu).not.toBeVisible({timeout: 30000});
 
     await userPage.locator("sv-node-tree").getByText("Cube2", {exact: true}).click();
     await userPage.getByRole("button", {name: "Derivatives"}).click();
-    await expect(userPage.locator("sv-derivatives-task-view")).toContainText("Web3D - Medium");
+    const derivatives = userPage.locator("sv-derivatives-task-view");
+    await expect(derivatives).toContainText("Web3D - Thumb");
+    await expect(derivatives).toContainText("Web3D - High");
 
-    // The server chose the name of the derivative it made
-    const res = await userPage.request.get(`/scenes/${encodeURIComponent(name)}/cube-medium.glb`);
-    expect(res.status()).toBe(200);
-    expect(res.headers()["content-type"]).toBe("model/gltf-binary");
+    // The server chose the names of the derivatives it made
+    for(const file of ["cube-thumb.glb", "cube-high.glb"]){
+      const res = await userPage.request.get(`/scenes/${encodeURIComponent(name)}/${file}`);
+      expect(res.status(), file).toBe(200);
+      expect(res.headers()["content-type"]).toBe("model/gltf-binary");
+    }
     // The files it refers to were used to make it, they're not in the scene
     for(const file of ["cube.obj", "cube.mtl", "Diffuse.jpg", "articles/Diffuse.jpg"]){
       expect((await userPage.request.get(`/scenes/${encodeURIComponent(name)}/${file}`)).status(), file).toBe(404);
     }
   });
 
+  test("makes the qualities that are chosen", async ({userPage})=>{
+    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
+    const importMenu = userPage.locator("sv-import-menu");
+    await quality(importMenu, "Thumb").click();
+    await quality(importMenu, "High").click();
+    await quality(importMenu, "Medium").click();
+    for(const name of ["Thumb", "High"]) await expect(quality(importMenu, name)).not.toBeChecked();
+    await expect(quality(importMenu, "Medium")).toBeChecked();
+    await importMenu.getByRole("button", {name: "Import Model"}).click();
+    await expect(importMenu).not.toBeVisible();
+    expect((await userPage.request.get(`/scenes/${encodeURIComponent(name)}/cube-medium.glb`)).status()).toBe(200);
+    for(const file of ["cube-thumb.glb", "cube-high.glb"]){
+      expect((await userPage.request.get(`/scenes/${encodeURIComponent(name)}/${file}`)).status(), file).toBe(404);
+    }
+  });
+
+  test("asks for a quality", async ({userPage})=>{
+    await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
+    const importMenu = userPage.locator("sv-import-menu");
+    await quality(importMenu, "Thumb").click();
+    await quality(importMenu, "High").click();
+    await importMenu.getByRole("button", {name: "Import Model"}).click();
+    await expect(importMenu).toContainText("Please select derivative quality.");
+    await expect(importMenu.getByRole("status")).toHaveCount(0);
+  });
+
   test("tells which file a model is missing", async ({userPage})=>{
     //No .mtl
     await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.obj"));
     const importMenu = userPage.locator("sv-import-menu");
-    await importMenu.getByText("Low", {exact: true}).click();
     await importMenu.getByRole("button", {name: "Import Model"}).click();
     //The message names cube.mtl, but the server answers in cimode here
     await expect(importMenu).toContainText("errors.upload.convertFailed");
@@ -64,7 +99,10 @@ test.describe("model upload in Story", function(){
     }));
     await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
     const importMenu = userPage.locator("sv-import-menu");
-    await importMenu.getByText("Low", {exact: true}).click();
+    //Only Low
+    await quality(importMenu, "Thumb").click();
+    await quality(importMenu, "High").click();
+    await quality(importMenu, "Low").click();
     await importMenu.getByRole("button", {name: "Import Model"}).click();
     await expect(importMenu).toContainText("Some conversion error");
     //Back to the choices: importing again retries
@@ -82,7 +120,6 @@ test.describe("model upload in Story", function(){
     await userPage.route(/\/uploads\/\d+\/files\//, ()=>{});
     await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(objFiles);
     const importMenu = userPage.locator("sv-import-menu");
-    await importMenu.getByText("High", {exact: true}).click();
     await importMenu.getByRole("button", {name: "Import Model"}).click();
     await expect(importMenu.getByRole("status")).toContainText("Uploading...");
 
