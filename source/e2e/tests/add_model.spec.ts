@@ -34,7 +34,7 @@ test("uses expected units", async ({userPage, createScene})=>{
   await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.glb"));
   const importMenu = userPage.locator("sv-import-menu");
   await expect(importMenu).toBeVisible();
-  await importMenu.getByText("High", {exact: true}).click();
+  //Thumb and High are chosen by default
   await importMenu.filter({hasText: "Add New Model:"}).getByRole("textbox").fill("Cube2");
   await importMenu.getByRole('button', { name: 'Import Model' }).click();
 
