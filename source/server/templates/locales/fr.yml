@@ -3,7 +3,7 @@ modelWarnings:
   png-images: Cet objet contient des images PNG
   large-textures: Cet objet contient de grandes textures
   large-combined-diffuse-maps: Cet objet contient plusieurs textures diffuses dont la taille cumulée dépasse 4096×4096 pixels
-  recommend-optimize: Cochez la case « Optimiser » avant de créer la scène.
+  recommend-optimize: Laissez la case « Optimiser » cochée pour créer la scène.
   recommend-reexport: Réexportez le modèle avec moins de textures diffuses ou des textures plus petites pour que leur taille cumulée ne dépasse pas 4096×4096 pixels.
 lang:
   fr: Français
@@ -235,10 +235,10 @@ onboarding:
     optimize:
       title: "Conversion et optimisation"
       lead: >
-        Activez <i>Optimiser les modèles</i> pour compresser la géométrie et les textures.
-        Recommandé pour les fichiers de plus de quelques méga-octets :
-        l'import s'exécute alors comme une tâche d'arrière-plan et la scène obtenue se
-        charge bien plus rapidement dans les visualisateurs.
+        Chaque modèle est accompagné d'une version allégée, chargée en premier pour que la scène s'affiche rapidement.
+        <i>Optimiser les modèles</i>, coché par défaut, compresse aussi la géométrie et les textures du modèle principal :
+        la scène obtenue se charge bien plus rapidement dans les visualisateurs.
+        Décochez-le pour garder le modèle tel qu'il a été envoyé.
     zip:
       title: "Archive ZIP"
       lead: >
@@ -446,7 +446,7 @@ leads:
     Ce nom sera utilisé dans l'URL de la scène créée.
     Il est indépendant de la langue utilisée.
   uploadLanguage: La langue principale de la scène.
-  uploadOptimize: Optimiser les modèles pour une meilleure performance. Cela peut prendre un peu plus de temps.
+  uploadOptimize: Optimiser les modèles pour une meilleure performance. Une version allégée de chaque modèle est créée dans tous les cas.
   uploadErrors: >
     Des erreurs sont survenues pendant le transfert des fichiers.
     Veuillez vérifier les messages ci-dessus et corriger les problèmes avant de continuer.

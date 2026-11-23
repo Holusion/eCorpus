@@ -14,7 +14,7 @@ import { getMimeType, isModelType, readMagicBytes } from "../../utils/filetypes.
 import { optimizeGlb } from "./optimizeGlb.js";
 import { inspectGlb } from "./inspectGlb.js";
 import { BoundingBox } from "../../utils/gltf/inspect.js";
-import { createDocumentFromFiles, DocumentModel } from "./createDocumentFromFiles.js";
+import { createDocumentFromFiles, DocumentDerivative, DocumentModel } from "./createDocumentFromFiles.js";
 import { isSceneLanguage } from "../../utils/languages.js";
 import { TDerivativeQuality, TDerivativeUsage } from "../../utils/schema/model.js";
 import { resolveInside, RootRelativePath } from "../../vfs/Base.js";
@@ -304,8 +304,38 @@ export interface ProcessUploadedFilesParams {
   name: string;
   language: string;
   options: {
+    /** Optimize the High quality model. Otherwise it is the uploaded model, as GLB. A Thumb is always made */
     optimize?: boolean;
   }
+}
+
+/** A model optimized with a quality's preset, ready to be copied into a scene */
+interface OptimizedModel {
+  fileLocation: RootRelativePath;
+  byteSize: number;
+  numFaces: number;
+  imageSize: number;
+  bounds: BoundingBox | null;
+}
+
+/**
+ * Optimize a GLB with a quality's preset, and describe the result
+ */
+async function makeDerivativeFile(context: HandlerContext, glb: RootRelativePath, quality: TDerivativeQuality): Promise<OptimizedModel> {
+  const { tasks, vfs } = context;
+  const fileLocation = await optimizeModel(context, glb, quality);
+  const meta = await tasks.run({
+    handler: inspectGlb,
+    data: { fileLocation },
+  });
+  const { size: byteSize } = await fs.stat(vfs.absolute(fileLocation));
+  return {
+    fileLocation,
+    byteSize,
+    numFaces: meta.numFaces,
+    imageSize: meta.imageSize,
+    bounds: meta.bounds,
+  };
 }
 
 
@@ -382,27 +412,32 @@ export async function createSceneFromFiles({ context, task: { user_id, task_id, 
   const scene_id = await vfs.createScene(name, user_id);
 
   /**
-   * Optimize the model if requested and perform the final move to its destination path
+   * Write a model's derivatives to the scene:
+   * - High: the model, optimized if requested
+   * - Thumb: always optimized, for the scene to show quickly
    */
   async function moveModel(source: UploadedBinaryModel) {
-    let filepath = vfs.absolute(source.fileLocation);
-    let filename = path.basename(filepath);
-    let mime = source.mime;
+    const filename = path.basename(source.fileLocation);
+    const derivatives: DocumentDerivative[] = [];
+    const write = async (file: RootRelativePath, uri: string, mime: string) => {
+      logger.debug("Copy %s to %s", file, uri);
+      await vfs.copyFile(vfs.absolute(file), { scene: scene_id, name: uri, user_id, mime });
+    };
+
+    let high: Omit<OptimizedModel, "bounds"> = source;
     if (options.optimize) {
-      const fileLocation = await optimizeModel(context, source.fileLocation, "High");
-      filepath = vfs.absolute(fileLocation);
-      filename = path.basename(fileLocation);
-      mime = "model/gltf-binary";
-      logger.debug("Optimized model %s to %s", source.fileLocation, fileLocation);
+      high = await makeDerivativeFile(context, source.fileLocation, "High");
+      logger.debug("Optimized model %s to %s", source.fileLocation, high.fileLocation);
     }
-    logger.debug("Copy %s to %s", filepath, filename);
-    await vfs.copyFile(filepath, { scene: scene_id, name: filename, user_id, mime });
-    models.push({
-      ...(source as UploadedBinaryModel),
-      uri: filename,
-      quality: "High",
-      usage: "Web3D"
-    });
+    await write(high.fileLocation, filename, "model/gltf-binary");
+    derivatives.push({ uri: filename, usage: "Web3D", quality: "High", byteSize: high.byteSize, numFaces: high.numFaces, imageSize: high.imageSize });
+
+    const thumb = await makeDerivativeFile(context, source.fileLocation, "Thumb");
+    const thumbName = derivativeName(filename, "Thumb");
+    await write(thumb.fileLocation, thumbName, "model/gltf-binary");
+    derivatives.push({ uri: thumbName, usage: "Web3D", quality: "Thumb", byteSize: thumb.byteSize, numFaces: thumb.numFaces, imageSize: thumb.imageSize });
+
+    models.push({ name: source.name, bounds: source.bounds, derivatives });
   }
 
   await tasks.setTaskScene(task_id, scene_id);
@@ -492,25 +527,16 @@ export async function createUploadDerivative({ context, task: { scene_id, user_i
   }
 
   const glb = await toSourceGlb(context, source_task.output);
-  const fileLocation = await optimizeModel(context, glb.fileLocation, quality);
-  const meta = await tasks.run({
-    handler: inspectGlb,
-    data: { fileLocation },
-  });
+  const { fileLocation, ...meta } = await makeDerivativeFile(context, glb.fileLocation, quality);
 
   const uri = derivativeName(source_task.data.main ?? path.basename(source_task.output.fileLocation), quality);
   logger.debug("Copy %s to %s", fileLocation, uri);
-  const filepath = vfs.absolute(fileLocation);
-  await vfs.copyFile(filepath, { scene: scene_id, name: uri, user_id, mime: "model/gltf-binary" });
-  const { size: byteSize } = await fs.stat(filepath);
+  await vfs.copyFile(vfs.absolute(fileLocation), { scene: scene_id, name: uri, user_id, mime: "model/gltf-binary" });
   return {
     uri,
     usage,
     quality,
     mime: "model/gltf-binary",
-    byteSize,
-    numFaces: meta.numFaces,
-    imageSize: meta.imageSize,
-    bounds: meta.bounds,
+    ...meta,
   };
 }

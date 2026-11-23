@@ -280,18 +280,42 @@ describe("POST /tasks", function(){
         png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
       });
 
-      /** Create a scene from uploads of charlie's, returning its model's asset */
-      async function createScene(ctx: Mocha.Context, tasks: number[]){
+      /** Create a scene from uploads of charlie's, returning its model */
+      async function createSceneModel(ctx: Mocha.Context, tasks: number[], options: {optimize?: boolean} = {}){
         const name = randomBytes(4).toString("hex");
         const created = await request(ctx.server).post("/tasks")
         .set("Authorization", await bearer("charlie"))
-        .send({type: "createSceneFromFiles", data: {tasks, name, language: "EN", options: {}}});
+        .send({type: "createSceneFromFiles", data: {tasks, name, language: "EN", options}});
         expect(created.status, created.text).to.equal(200);
         const {body: doc} = await request(ctx.server).get(`/scenes/${name}/scene.svx.json`)
         .set("Authorization", await bearer("charlie"))
         .expect(200);
         expect(doc.models).to.have.length(1);
-        return doc.models[0].derivatives[0].assets[0];
+        return {name, model: doc.models[0]};
+      }
+      /** Create a scene from uploads of charlie's, returning its High model's asset */
+      async function createScene(ctx: Mocha.Context, tasks: number[]){
+        const {model} = await createSceneModel(ctx, tasks);
+        return model.derivatives.find((d: any)=>d.quality === "High").assets[0];
+      }
+
+      for(const optimize of [false, true]){
+        it(`makes a Thumb along with the High model${optimize ? ", optimized" : ""}`, async function(){
+          const id = await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png});
+          const {name, model} = await createSceneModel(this, [id], {optimize});
+          expect(model.derivatives.map((d: any)=>[d.usage, d.quality, d.assets[0].uri])).to.deep.equal([
+            ["Web3D", "High", "cube.glb"],
+            ["Web3D", "Thumb", "cube-thumb.glb"],
+          ]);
+          for(const {assets: [asset]} of model.derivatives){
+            expect(asset).to.have.property("numFaces").above(0);
+            await request(this.server).get(`/scenes/${name}/${asset.uri}`)
+            .set("Authorization", await bearer("charlie"))
+            .expect(200)
+            .expect("Content-Type", "model/gltf-binary")
+            .expect("Content-Length", asset.byteSize.toString());
+          }
+        });
       }
 
       async function uploadSet(ctx: Mocha.Context, main: string, files: Record<string, Buffer>){

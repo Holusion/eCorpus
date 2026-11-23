@@ -77,6 +77,8 @@ test("uploads and rename a glb", async ({ page, request }) => {
   await expect(f).toBeVisible();
   await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
   await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
+  //Kept as it was sent
+  await f.getByRole("checkbox", { name: "labels.optimizeModel", exact: false }).uncheck();
   await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
   const uploads = page.getByRole("region", { name: "titles.createdScenes" });
@@ -93,6 +95,13 @@ test("uploads and rename a glb", async ({ page, request }) => {
   expect(doc).toHaveProperty("setups");
   expect(doc.setups).toHaveLength(1);
   expect(doc.setups[0]).toHaveProperty("language", { language: "EN" });
+  //A Thumb is made along with the High quality model
+  expect(doc.models).toHaveLength(1);
+  expect(doc.models[0].derivatives.map((d: any) => [d.quality, d.assets[0].uri])).toEqual([
+    ["High", "cube.glb"],
+    ["Thumb", "cube-thumb.glb"],
+  ]);
+  await expect(await request.get(`/scenes/${name}/cube-thumb.glb`)).toBeOK();
 
 
   res = await request.get(`/scenes/${name}/cube.glb`);
@@ -137,7 +146,6 @@ test("uploads and rename a glb (force FR)", async ({ page, request }) => {
 
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
-  expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });
 
 
@@ -205,7 +213,6 @@ test("upload many glb", async ({ page, request }) => {
   for (let file of files) {
     res = await request.get(`/scenes/${name}/${file.name}`);
     await expect(res).toBeOK();
-    expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
   }
 
 });
@@ -318,18 +325,20 @@ test("uploads an obj with mtl and texture", async ({ page, request }) => {
   expect(doc).toHaveProperty("models");
   expect(doc.models).toHaveLength(1);
   expect(doc.models[0]).toHaveProperty("derivatives");
-  expect(doc.models[0].derivatives).toEqual([{
+  //A Thumb is made along with the High quality model
+  expect(doc.models[0].derivatives).toEqual(["High", "Thumb"].map(quality => ({
     "assets": [{
       "byteSize": expect.any(Number),
       //The texture was found
       "imageSize": 96,
       "numFaces": 12,
       "type": "Model",
-      "uri": "cube.glb"
+      "uri": quality === "High" ? "cube.glb" : "cube-thumb.glb",
     }],
-    "quality": "High",
+    "quality": quality,
     "usage": "Web3D"
-  }]);
+  })));
+  await expect(await request.get(`/scenes/${name}/cube-thumb.glb`)).toBeOK();
 
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
@@ -464,7 +473,8 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   await expect(f).toBeVisible();
   await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
   await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
-  await page.getByRole("checkbox", { name: "labels.optimizeModel", exact: false }).click();
+  //Optimized by default
+  await expect(page.getByRole("checkbox", { name: "labels.optimizeModel", exact: false })).toBeChecked();
 
   await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
@@ -482,6 +492,13 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   expect(doc).toHaveProperty("setups");
   expect(doc.setups).toHaveLength(1);
   expect(doc.setups[0]).toHaveProperty("language", { language: "EN" });
+  //A Thumb is made along with the High quality model
+  expect(doc.models).toHaveLength(1);
+  expect(doc.models[0].derivatives.map((d: any) => [d.quality, d.assets[0].uri])).toEqual([
+    ["High", "cube.glb"],
+    ["Thumb", "cube-thumb.glb"],
+  ]);
+  await expect(await request.get(`/scenes/${name}/cube-thumb.glb`)).toBeOK();
 
 
   res = await request.get(`/scenes/${name}/cube.glb`);
@@ -489,5 +506,5 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   const headers = res.headers();
   //We check the etag is different from what we'd have if we didn't request optimization
   expect(headers).toHaveProperty("etag");
-  expect(headers).not.toEqual('"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
+  expect(headers.etag).not.toEqual('"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });

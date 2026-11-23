@@ -94,7 +94,7 @@ describe("POST /uploads/:id/process", function(){
       { key: "modelWarnings.png-images", params: {}, message: "Cet objet contient des images PNG" },
     ]);
     expect(body.task.output.messages).to.deep.equal([
-      { key: "modelWarnings.recommend-optimize", params: {}, message: "Cochez la case « Optimiser » avant de créer la scène." },
+      { key: "modelWarnings.recommend-optimize", params: {}, message: "Laissez la case « Optimiser » cochée pour créer la scène." },
     ]);
     const { body: tree } = await request(this.server).get(`/tasks/${task}/tree`)
       .set("Authorization", this.authorization)
