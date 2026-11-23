@@ -103,5 +103,8 @@
 
 
 <link rel="stylesheet" href="/dist/fonts/fonts.css">
+{{!-- eCorpus UI styles: left out of Voyager pages (bare), which bring their own and would clash with them --}}
+{{#unless bare}}
 <link rel="stylesheet" href="/dist/css/theme.css?ref={{ config.build_ref }}">
 <link rel="stylesheet" href="/dist/css/corpus.css?ref={{ config.build_ref }}">
+{{/unless}}
