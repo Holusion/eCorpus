@@ -37,7 +37,7 @@ Les droits effectifs correspondent au niveau le plus élevé parmi :
 * les droits individuels définis sur la scène,
 * les droits de groupe définis sur la scène, si l’utilisateur est membre d'un groupe.
   
-Aller voir la page de scène et la documentation sur les [permissions](../tutorials/import#administrer-sa-scène) pour modifier ces droits.
+Aller voir la page de scène et la documentation sur la [confidentialité des scènes](../explainers/permissions.html) pour modifier ces droits.
 
 ### Tableaux récapitulatifs
 #### Permissions sur les scènes

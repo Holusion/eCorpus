@@ -86,6 +86,9 @@ Il sert à **éditer** votre scène 3D pour y changer et ajouter du contenu. Dan
 #### Administrer sa scène
 
 
+> **Attention : cette section décrit une ancienne version de l'interface.** Les libellés et les captures ci-dessous ne correspondent plus tout à fait à l'écran actuel. Le fonctionnement à jour, avec les trois niveaux de visibilité (publique, réservée aux utilisateurs connectés, privée) et l'usage des groupes, est expliqué pas à pas dans [Confidentialité des scènes](../explainers/permissions.html).
+
+
 <img src="/assets/img/doc/SceneCreation_05.jpg" width ="200" alt="illustration importation" />
 
 

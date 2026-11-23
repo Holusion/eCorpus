@@ -76,6 +76,8 @@ This opens the scene in **edit mode**, allowing you to add or modify content. In
 
 #### Manage Scene Permissions
 
+> **Note: this section describes an older version of the interface.** The labels and screenshots below no longer match the current screen exactly. The up-to-date behaviour, with the three levels of visibility (public, restricted to connected users, private) and the use of groups, is explained step by step in [Scene privacy](../explainers/permissions.html).
+
 <img src="/assets/img/doc/SceneCreation_05.jpg" width="200" alt="scene management illustration" />
 
 To manage permissions, click on the **scene name**. Under "**Access Rights**", you’ll find a list of users and their permissions.
