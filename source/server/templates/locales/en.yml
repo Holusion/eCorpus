@@ -3,7 +3,7 @@ modelWarnings:
   png-images: This object has PNG images
   large-textures: This object has large textures
   large-combined-diffuse-maps: This object has multiple diffuse maps with a combined size above 4096×4096 pixels
-  recommend-optimize: Tick the "Optimize" checkbox before creating the scene.
+  recommend-optimize: Keep the "Optimize" checkbox ticked when creating the scene.
   recommend-reexport: Re-export the model with fewer or smaller diffuse maps so their combined size is at most 4096×4096 pixels.
 lang:
   fr: French
@@ -235,8 +235,9 @@ onboarding:
     optimize:
       title: "Conversion &amp; optimization"
       lead: >
-        Enable <i>Optimize models</i> to compress geometry and textures. Recommended for files over a few megabytes: the upload runs as a
-        background task and the resulting scene loads much faster in viewers.
+        Every model comes with a lightweight version, loaded first so the scene shows quickly.
+        <i>Optimize models</i>, ticked by default, also compresses the main model's geometry and textures:
+        the resulting scene loads much faster in viewers. Untick it to keep the model as it was sent.
     zip:
       title: "Archive upload"
       lead: >
@@ -431,7 +432,7 @@ leads:
     This will be the URL name of the created scene.
     It is language-independent.
   uploadLanguage: The scene's default language
-  uploadOptimize: Optimize 3D models for better performance. This may take a bit more time.
+  uploadOptimize: Optimize 3D models for better performance. A lightweight version of each model is made either way.
   uploadErrors: >
     Some errors were encountered while processing the uploaded files. Please check errors above.
   envLocked: "{{what}} can't be changed because its value comes from the environment"
