@@ -237,3 +237,103 @@ describe("GET /ui/user/notifications/lines", function(){
     await request(this.server).get("/ui/user/notifications/lines?id=1").expect(401);
   });
 });
+
+
+/** Notifications about a scene or a group: what pages tell of them from their data, and where they lead */
+describe("Notifications without a task", function(){
+  let hub: NotificationManager, vfs: Vfs, userManager: import("../../auth/UserManager.js").default, db: TaskScheduler["db"];
+  let uid: number, other: number;
+  let scene_id: number, scene_name: string;
+  let _id = 0;
+
+  this.beforeAll(async function(){
+    const locals = await createIntegrationContext(this);
+    hub = locals.notifications;
+    vfs = locals.vfs;
+    userManager = locals.userManager;
+    db = locals.taskScheduler.db;
+    uid = (await userManager.addUser("bob", "12345678", "use")).uid;
+    other = (await userManager.addUser("alice", "12345678", "use")).uid;
+  });
+
+  this.beforeEach(async function(){
+    await db.run(`DELETE FROM notifications`);
+    scene_name = `shared-scene-${++_id}`;
+    scene_id = await vfs.createScene(scene_name, other);
+    //Only what's granted gives access to it
+    await db.run(`UPDATE scenes SET default_access = 0, public_access = 0 WHERE scene_id = $1`, [scene_id]);
+  });
+
+  async function only(user_id = uid){
+    const [item] = await hub.getNotifications(user_id);
+    expect(item, "a notification").to.be.ok;
+    return item.notification_id;
+  }
+
+  async function follow(this: Mocha.Context, id: number|string, username = "bob"){
+    const res = await request(this.server).get(`/ui/user/notifications/${id}`)
+      .set("Authorization", await bearer(username))
+      .expect(302);
+    return res.headers.location;
+  }
+
+  it("say who gave what access to which scene in the user's pages", async function(){
+    await userManager.grant(scene_name, uid, "write", {by: other});
+    const id = await only();
+    const {text} = await request(this.server).get(`/ui/users/${uid}/notifications`)
+      .set("Authorization", await bearer("bob"))
+      .expect(200);
+    expect(text).to.contain(`<a href="/ui/user/notifications/${id}">alice gave you write access to ${scene_name}</a>`);
+    const line = await request(this.server).get(`/ui/user/notifications/lines?id=${id}`)
+      .set("Authorization", await bearer("bob"))
+      .set("Accept-Language", "fr")
+      .expect(200);
+    expect(line.text).to.contain(`alice vous a donné accès en écriture à ${scene_name}`);
+  });
+
+  it("lead to their scene", async function(){
+    await userManager.grant(scene_name, uid, "read", {by: other});
+    expect(await follow.call(this, await only())).to.equal(`/ui/scenes/${scene_name}`);
+  });
+
+  it("lead to their scene once it's renamed", async function(){
+    await userManager.grant(scene_name, uid, "read", {by: other});
+    await db.run(`UPDATE scenes SET scene_name = $2 WHERE scene_id = $1`, [scene_id, `${scene_name}-renamed`]);
+    expect(await follow.call(this, await only())).to.equal(`/ui/scenes/${scene_name}-renamed`);
+  });
+
+  it("don't tell what the scene was renamed to once its access is gone", async function(){
+    await userManager.grant(scene_name, uid, "read", {by: other});
+    await userManager.grant(scene_name, uid, null);
+    await db.run(`UPDATE scenes SET scene_name = $2 WHERE scene_id = $1`, [scene_id, `${scene_name}-secret`]);
+    expect(await follow.call(this, await only())).to.equal(`/ui/scenes/${scene_name}`);
+  });
+
+  it("lead to where the scene was once it's gone", async function(){
+    await userManager.grant(scene_name, uid, "read", {by: other});
+    await db.run(`DELETE FROM scenes WHERE scene_id = $1`, [scene_id]);
+    expect(await follow.call(this, await only())).to.equal(`/ui/scenes/${scene_name}`);
+  });
+
+  it("lead to their group", async function(){
+    await userManager.addGroup(`Group ${_id}`);
+    await userManager.addMemberToGroup(uid, `Group ${_id}`, {by: other});
+    expect(await follow.call(this, await only())).to.equal(`/ui/groups/Group%20${_id}`);
+  });
+
+  it("lead to the user's notifications when there's nowhere else to go", async function(){
+    const carol = (await userManager.addUser(`carol-${_id}`, "12345678", "use")).uid;
+    await userManager.grant(scene_name, carol, "read", {by: other});
+    //Someone else's
+    expect(await follow.call(this, await only(carol))).to.equal(`/ui/users/${uid}/notifications`);
+    await db.run(`INSERT INTO notifications(fk_user_id, type) VALUES ($1, 'somethingElse')`, [uid]);
+    expect(await follow.call(this, await only())).to.equal(`/ui/users/${uid}/notifications`);
+    expect(await follow.call(this, "foo")).to.equal(`/ui/users/${uid}/notifications`);
+  });
+
+  it("send visitors to the login page", async function(){
+    await request(this.server).get(`/ui/user/notifications/1`)
+      .expect(302)
+      .expect("Location", /^\/auth\/login/);
+  });
+});

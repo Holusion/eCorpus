@@ -26,6 +26,16 @@ describe("PUT /groups/:group/:member", function () {
         expect(group.members).to.have.members([member.username]);
     });
 
+    it("notifies the new member", async function () {
+        let manage = await userManager.addUser("maelle", "12345678", "manage", "maelle@example.com");
+        await request(this.server).put(`/groups/My Group/` + member.username)
+            .set("Authorization", await bearer(manage.username))
+            .expect(200);
+        const items = await this.server.locals.notifications.getNotifications(member.uid);
+        const data = await this.server.locals.notifications.getData(items.map((i: any) => i.notification_id));
+        expect(items.map((i: any) => [i.type, data.get(i.notification_id)?.by, data.get(i.notification_id)?.group_name])).to.deep.equal([["addedToGroup", "maelle", "My Group"]]);
+    });
+
     it("can put a member of a group as admin", async function () {
         let admin = await userManager.addUser("alice", "12345678", "admin");
         await request(this.server).put(`/groups/My Group/` + member.username)

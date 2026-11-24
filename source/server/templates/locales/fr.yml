@@ -527,9 +527,18 @@ notifications:
     updated: Mise à jour
     scenesImported_one: "{{count}} scène importée"
     scenesImported_other: "{{count}} scènes importées"
-  # Complétés par le navigateur : {{type}} est laissé tel quel
+  # Ce que les pages disent des notifications sans tâche, d'après leurs données, par type
+  details:
+    addedToScene:
+      read: "{{by}} vous a donné accès en lecture à {{scene_name}}"
+      write: "{{by}} vous a donné accès en écriture à {{scene_name}}"
+      admin: "{{by}} vous a donné les droits d'administration sur {{scene_name}}"
+    addedToGroup: "{{by}} vous a fait rejoindre le groupe {{group_name}}"
+  # Complétés par le navigateur : {{type}} est laissé tel quel. Sans tâche, par type
   messages:
     default: Vous avez une nouvelle notification
+    addedToScene: Vous avez maintenant accès à une scène
+    addedToGroup: Vous faites maintenant partie d'un groupe
     task:
       default:
         running: "Tâche {{type}} en cours"

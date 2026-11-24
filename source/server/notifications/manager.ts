@@ -190,6 +190,22 @@ export class NotificationManager{
   }
 
   /**
+   * What some notifications have to tell beyond their item, by id: the `data` of those without a task
+   * (eg. `AccessNotificationData`). Not in items, so they stay small and don't change shape with each type.
+   * Pages read it as they draw their lines, as they read what came out of a task (see outcomes.ts).
+   * @param user_id only those of this user
+   * @returns those that aren't empty
+   */
+  public async getData(ids: number[], {user_id}: {user_id?: number} = {}): Promise<Map<number, Record<string, unknown>>>{
+    if(!ids.length) return new Map();
+    const rows = await this.#db.all<{notification_id: number, data: Record<string, unknown>}>(`
+      SELECT notification_id, data FROM notifications
+       WHERE notification_id = ANY($1::bigint[]) AND ($2::bigint IS NULL OR fk_user_id = $2) AND data <> '{}'::jsonb
+    `, [ids, user_id ?? null]);
+    return new Map(rows.map(r=> [r.notification_id, r.data]));
+  }
+
+  /**
    * Marks some of a user's notifications as read, by id. Ids that aren't theirs, or that don't exist, are ignored.
    * Only those that weren't read already change, and signal it.
    * @returns how many were marked
