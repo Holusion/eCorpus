@@ -75,7 +75,7 @@ routes.get("/embeds", async (req, res)=>{
     scene = first?.name ?? "";
   }
   let iframePath = "";
-  let allowParts = ["fullscreen", "xr", "xr-spatial-tracking", "accelerometer", "gyroscope"];
+  let allowParts = ["fullscreen", "xr-spatial-tracking", "accelerometer", "gyroscope"];
   let showPreview = false;
   if(isTag){
     if(tag){
@@ -86,7 +86,7 @@ routes.get("/embeds", async (req, res)=>{
     if(scene){
       iframePath = `ui/scenes/${encodeURIComponent(scene)}/view`;
       showPreview = true;
-      allowParts = ["xr", "xr-spatial-tracking"];
+      allowParts = ["xr-spatial-tracking"];
       if(fullscreen) allowParts.push("fullscreen");
     }
   } else {
@@ -111,7 +111,7 @@ routes.get("/embeds", async (req, res)=>{
     isScene,
     iframePath,
     showPreview,
-    allow: allowParts.join("; "),
+    allow: allowParts.map(feature=>(feature === "fullscreen" || feature === "xr-spatial-tracking")? `${feature} *`: feature).join("; "), //Same as oembed.ts
     fullscreen,
   });
 });
