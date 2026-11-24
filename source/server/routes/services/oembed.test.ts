@@ -9,6 +9,39 @@ function makeURL(target:string, format :"json"|"xml" ="json"){
   return `/services/oembed?format=${format}&url=${encodeURIComponent(target)}`
 }
 
+/**
+ * Parses an iframe `allow` attribute the way browsers do (Permissions Policy, "parse policy directive")
+ * and throws on any token a browser would drop. A dropped allowlist token isn't harmless:
+ * `fullscreen (src)` leaves fullscreen with an empty allowlist, which disables it.
+ * @returns the declared feature names
+ */
+function parseAllowAttribute(allow: string): string[]{
+  const features :string[] = [];
+  for(const directive of allow.split(";")){
+    const [feature, ...allowlist] = directive.trim().split(/\s+/).filter(Boolean);
+    if(!feature) continue; //Empty directives (e.g. a trailing ";") are ignored by browsers
+    if(!/^[a-z][a-z0-9-]*$/.test(feature)) throw new Error(`Invalid feature identifier "${feature}" in "${allow}"`);
+    for(const token of allowlist){
+      if(["*", "'self'", "'src'", "'none'"].includes(token)) continue;
+      let origin :string|undefined;
+      try{ origin = new URL(token).origin; }catch(e){ /* not an origin */ }
+      if(origin !== token) throw new Error(`Invalid allowlist token "${token}" for ${feature} in "${allow}"`);
+    }
+    features.push(feature);
+  }
+  return features;
+}
+
+describe("parseAllowAttribute()", function(){
+  it("accepts valid directives", function(){
+    expect(parseAllowAttribute("fullscreen; xr 'src' https://example.com;")).to.deep.equal(["fullscreen", "xr"]);
+  });
+  it("rejects header syntax", function(){
+    expect(()=>parseAllowAttribute("fullscreen (src); xr")).to.throw("(src)");
+    expect(()=>parseAllowAttribute("fullscreen=(self)")).to.throw("fullscreen=(self)");
+  });
+});
+
 
 
 describe("isEmbeddable()", function(){
@@ -69,6 +102,14 @@ describe("GET /services/oembed", function(){
       .expect(200)
       .expect("Content-Type", "application/json; charset=utf-8");
       expect(res.body).to.have.property("version", "1.0");
+    });
+
+    it("embed code delegates fullscreen with a valid allow attribute", async function(){
+      let res = await request(this.server).get(makeURL("http://localhost/ui/scenes/public-scene/view", "json"))
+      .expect(200);
+      const allow = /<iframe [^>]*allow="([^"]*)"/.exec(res.body.html)?.[1];
+      expect(allow, `no allow attribute in ${res.body.html}`).to.be.a("string");
+      expect(parseAllowAttribute(allow!)).to.include.members(["fullscreen", "xr", "xr-spatial-tracking"]);
     });
 
     it("sends XML oembed document", async function(){

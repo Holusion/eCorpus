@@ -39,7 +39,7 @@ const asIframe = ({url, title, width, height}:EmbedParams)=>{
     src: url,
     width,
     height,
-    allow: "fullscreen (src); autoplay; xr; xr-spatial-tracking;",
+    allow: "fullscreen; autoplay; xr; xr-spatial-tracking",
     //allowfullscreen: true, //"allow" directive alone _should_ be picked up by all browsers
   }
 
