@@ -13,10 +13,10 @@ function makeURL(target:string, format :"json"|"xml" ="json"){
  * Parses an iframe `allow` attribute the way browsers do (Permissions Policy, "parse policy directive")
  * and throws on any token a browser would drop. A dropped allowlist token isn't harmless:
  * `fullscreen (src)` leaves fullscreen with an empty allowlist, which disables it.
- * @returns the declared feature names
+ * @returns each declared feature's allowlist (an empty allowlist means the default, `'src'`)
  */
-function parseAllowAttribute(allow: string): string[]{
-  const features :string[] = [];
+function parseAllowAttribute(allow: string): Record<string, string[]>{
+  const features :Record<string, string[]> = {};
   for(const directive of allow.split(";")){
     const [feature, ...allowlist] = directive.trim().split(/\s+/).filter(Boolean);
     if(!feature) continue; //Empty directives (e.g. a trailing ";") are ignored by browsers
@@ -27,14 +27,18 @@ function parseAllowAttribute(allow: string): string[]{
       try{ origin = new URL(token).origin; }catch(e){ /* not an origin */ }
       if(origin !== token) throw new Error(`Invalid allowlist token "${token}" for ${feature} in "${allow}"`);
     }
-    features.push(feature);
+    features[feature] = allowlist;
   }
   return features;
 }
 
 describe("parseAllowAttribute()", function(){
   it("accepts valid directives", function(){
-    expect(parseAllowAttribute("fullscreen; xr 'src' https://example.com;")).to.deep.equal(["fullscreen", "xr"]);
+    expect(parseAllowAttribute("fullscreen; xr 'src' https://example.com; autoplay *;")).to.deep.equal({
+      fullscreen: [],
+      xr: ["'src'", "https://example.com"],
+      autoplay: ["*"],
+    });
   });
   it("rejects header syntax", function(){
     expect(()=>parseAllowAttribute("fullscreen (src); xr")).to.throw("(src)");
@@ -109,7 +113,11 @@ describe("GET /services/oembed", function(){
       .expect(200);
       const allow = /<iframe [^>]*allow="([^"]*)"/.exec(res.body.html)?.[1];
       expect(allow, `no allow attribute in ${res.body.html}`).to.be.a("string");
-      expect(parseAllowAttribute(allow!)).to.include.members(["fullscreen", "xr", "xr-spatial-tracking"]);
+      const features = parseAllowAttribute(allow!);
+      //Delegated to any origin: lazy-loaders that never set `src` would otherwise defeat the default 'src' allowlist
+      for(const feature of ["fullscreen", "xr-spatial-tracking"]){
+        expect(features, `${feature} in "${allow}"`).to.have.property(feature).that.deep.equals(["*"]);
+      }
     });
 
     it("sends XML oembed document", async function(){

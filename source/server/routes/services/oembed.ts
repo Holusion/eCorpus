@@ -39,8 +39,11 @@ const asIframe = ({url, title, width, height}:EmbedParams)=>{
     src: url,
     width,
     height,
-    allow: "fullscreen; autoplay; xr; xr-spatial-tracking",
-    //allowfullscreen: true, //"allow" directive alone _should_ be picked up by all browsers
+    //`*` rather than the implicit 'src' for the features Voyager can't work without: embedding sites
+    //often lazy-load iframes by navigating a src-less frame (lazysizes' `data-src`),
+    //and 'src' then resolves to the embedding page's own origin.
+    //(`xr` is the obsolete name of `xr-spatial-tracking`: browsers ignore it)
+    allow: "fullscreen *; autoplay; xr-spatial-tracking *",
   }
 
   const strAttrs = Object.entries(attrs).map(([attr, value])=>{
