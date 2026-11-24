@@ -312,6 +312,189 @@ export default {
       en: "View scene at this point",
     }
   },
+  //Voyager Story's import menu: see composants/StoryImportMenu.ts
+  storyImport:{
+    title: {
+      fr: "Importer un fichier",
+      en: "Import File",
+    },
+    noFiles: {
+      fr: "Déposez des fichiers n'importe où dans la page, ou ajoutez-les.",
+      en: "Drop files anywhere in the page, or add them.",
+    },
+    image: {
+      fr: "Image",
+      en: "Image",
+    },
+    checking: {
+      fr: "Vérification des fichiers...",
+      en: "Checking the files...",
+    },
+    whatToDo: {
+      fr: "Qu'en faire ?",
+      en: "What to do with it?",
+    },
+    environment: {
+      fr: "Carte d'environnement",
+      en: "Environment map",
+    },
+    overlay: {
+      fr: "Carte de superposition",
+      en: "Overlay map",
+    },
+    plane: {
+      fr: "Plan image",
+      en: "Image plane",
+    },
+    sceneFile: {
+      fr: "Fichier de la scène",
+      en: "Scene file",
+    },
+    sceneFileHint: {
+      fr: "Ajouté tel quel aux fichiers de la scène : pour les articles, l'audio, les sous-titres...",
+      en: "Added to the scene's files as it is: for articles, audio, captions...",
+    },
+    filesHint: {
+      fr: "Ils seront ajoutés tels quels aux fichiers de la scène : pour les articles, l'audio, les sous-titres...",
+      en: "They'll be added to the scene's files as they are: for articles, audio, captions...",
+    },
+    severalImages: {
+      fr: "Plusieurs images ne peuvent qu'être ajoutées aux fichiers de la scène : importez-les une à une pour en faire une carte d'environnement, une carte de superposition ou un plan image.",
+      en: "Several images can only be added to the scene's files: import one at a time to use it as an environment map, an overlay map or an image plane.",
+    },
+    hdrHint: {
+      fr: "Une image HDR ne peut être qu'une carte d'environnement, ou un fichier de la scène.",
+      en: "An HDR image can only be an environment map, or a scene file.",
+    },
+    selectChoice: {
+      fr: "Choisissez quoi en faire.",
+      en: "Please choose what to do with it.",
+    },
+    importFiles: {
+      fr: "Importer",
+      en: "Import",
+    },
+    newModel: {
+      fr: "Nouveau modèle",
+      en: "New model",
+    },
+    existingModel: {
+      fr: "Ajouter à un modèle existant",
+      en: "Add to existing model",
+    },
+    close: {
+      fr: "Fermer",
+      en: "Close",
+    },
+    name: {
+      fr: "Nom",
+      en: "Name",
+    },
+    selectModel: {
+      fr: "Choisissez un modèle.",
+      en: "Please select a model.",
+    },
+    files: {
+      fr: "Fichiers",
+      en: "Files",
+    },
+    model: {
+      fr: "Modèle",
+      en: "Model",
+    },
+    remove: {
+      fr: "Retirer {path}",
+      en: "Remove {path}",
+    },
+    addFiles: {
+      fr: "Ajouter des fichiers",
+      en: "Add files",
+    },
+    dropHint: {
+      fr: "ou déposez-les n'importe où",
+      en: "or drop them anywhere",
+    },
+    sending: {
+      fr: "Envoi {percent} %",
+      en: "Sending {percent}%",
+    },
+    sent: {
+      fr: "Envoyé",
+      en: "Sent",
+    },
+    waiting: {
+      fr: "En attente",
+      en: "Waiting",
+    },
+    missing: {
+      fr: "Manquant",
+      en: "Missing",
+    },
+    missingHint: {
+      fr: "Le modèle fait référence à ces fichiers : ajoutez-les pour l'importer.",
+      en: "The model refers to these files: add them to import it.",
+    },
+    unused: {
+      fr: "Inutile ?",
+      en: "Unused?",
+    },
+    unusedHint: {
+      fr: "Le modèle ne semble pas y faire référence. Il est envoyé quand même : retirez-le s'il n'est pas utile.",
+      en: "The model doesn't seem to refer to it. It's sent anyway: remove it if it's not needed.",
+    },
+    otherModel: {
+      fr: "Autre modèle",
+      en: "Another model",
+    },
+    otherModelHint: {
+      fr: "Un seul modèle est importé à la fois : celui-ci ne le sera pas. Déposez-le seul pour l'importer.",
+      en: "Only one model is imported at a time: this one won't be. Drop it on its own to import it.",
+    },
+    outside: {
+      fr: "Hors du dossier du modèle",
+      en: "Out of the model's folder",
+    },
+    outsideHint: {
+      fr: "Le modèle ne peut faire référence qu'aux fichiers de son dossier ou en dessous : celui-ci ne sera pas envoyé.",
+      en: "The model can only refer to files in its folder or below: this one won't be sent.",
+    },
+    qualities: {
+      fr: "Qualités",
+      en: "Qualities",
+    },
+    present: {
+      fr: "Déjà dans le modèle : elle sera remplacée",
+      en: "Already in the model: it will be replaced",
+    },
+    selectQuality: {
+      fr: "Choisissez au moins une qualité.",
+      en: "Please select derivative quality.",
+    },
+    optimize: {
+      fr: "Optimiser",
+      en: "Optimize",
+    },
+    notOptimizedHint: {
+      fr: "La qualité la plus haute est le fichier tel quel",
+      en: "The highest quality is the file as it is",
+    },
+    import: {
+      fr: "Importer le modèle",
+      en: "Import Model",
+    },
+    uploading: {
+      fr: "Envoi en cours...",
+      en: "Uploading...",
+    },
+    processing: {
+      fr: "Traitement en cours...",
+      en: "Processing...",
+    },
+    uploadFailed: {
+      fr: "Échec de l'envoi",
+      en: "Upload failed",
+    },
+  },
   errors:{
     '404':{
       fr: "Non trouvé",
