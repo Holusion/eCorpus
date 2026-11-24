@@ -541,7 +541,11 @@ export function mapScene(req :Request, {thumb, name, ...s}:Scene):Scene{
 export async function notificationLines(req: Request, items: NotificationItem[]){
   const lng = getLanguage(req);
   const ctx = {tasks: getTaskScheduler(req), vfs: getVfs(req), lng};
-  return await Promise.all(items.map(async (item)=> ({...notificationView(item, lng), outcome: await outcomeOf(item, ctx)})));
+  const data = await getLocals(req).notifications.getData(items.filter(i=> i.task_id === null).map(i=> i.notification_id));
+  return await Promise.all(items.map(async (item)=> ({
+    ...notificationView(item, lng, data.get(item.notification_id)),
+    outcome: await outcomeOf(item, ctx),
+  })));
 }
 
 /** The filters of a list of tasks, from the query */

@@ -4,6 +4,7 @@ import User, { UserLevels } from "../../../auth/User.js";
 import UserManager, { AccessLevel } from "../../../auth/UserManager.js";
 import Vfs from "../../../vfs/index.js";
 import Group from "../../../auth/Group.js";
+import { NotificationManager } from "../../../notifications/manager.js";
 
 
 
@@ -12,13 +13,14 @@ import Group from "../../../auth/Group.js";
  */
 
 describe("PATCH /auth/access/:scene", function () {
-  let vfs: Vfs, userManager: UserManager, user: User, admin: User, opponent: User, group: Group;
+  let vfs: Vfs, userManager: UserManager, notifications: NotificationManager, user: User, admin: User, opponent: User, group: Group;
 
   let titleSlug: string, scene_id: number;
   this.beforeAll(async function () {
     let locals = await createIntegrationContext(this);
     vfs = locals.vfs;
     userManager = locals.userManager;
+    notifications = locals.notifications;
     user = await userManager.addUser("bob", "12345678");
     admin = await userManager.addUser("alice", "12345678", "admin");
     opponent = await userManager.addUser("oscar", "12345678");
@@ -42,6 +44,17 @@ describe("PATCH /auth/access/:scene", function () {
         { "uid": user.uid, "username": "bob", "access": "admin" },
         { "uid": opponent.uid, "username": "oscar", "access": "write" }
       ]);
+    });
+
+    it("notifies the user they gave access to", async function () {
+      await request(this.server).patch(`/auth/access/${titleSlug}`)
+        .set("Authorization", await bearer(user.username))
+        .set("Content-Type", "application/json")
+        .send({ username: opponent.username, access: "write" })
+        .expect(204);
+      const items = await notifications.getNotifications(opponent.uid, { types: ["addedToScene"] });
+      const data = await notifications.getData(items.map(i => i.notification_id));
+      expect([...data.values()].filter(d => d.scene_id === scene_id)).to.deep.equal([{ by: user.username, access: "write", scene_id, scene_name: titleSlug }]);
     });
 
     it("can use user ids", async function () {

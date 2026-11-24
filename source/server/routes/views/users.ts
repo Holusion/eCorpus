@@ -192,6 +192,26 @@ requesterRoutes.get("/notifications/lines", async (req, res) => {
 });
 
 /**
+ * Where one of the user's notifications without a task leads: what its `data` is about (see `AccessNotificationData`).
+ * Links to it are made from its item alone, which doesn't say (see notifications/messages.ts).
+ * A scene is found by id, should it have been renamed, if the user still has access to it. Otherwise by the name it had:
+ * like a bookmark, that may be stale. With nothing to go to, it's the page of their notifications.
+ */
+requesterRoutes.get("/notifications/:id", async (req, res) => {
+  const user = getUser(req);
+  if (!isUserAtLeast(user, "use")) return res.redirect(302, `/auth/login?redirect=${encodeURIComponent(req.originalUrl)}`);
+  const id = parseInt(req.params.id, 10);
+  const data = Number.isSafeInteger(id) ? (await getLocals(req).notifications.getData([id], { user_id: user!.uid })).get(id) : undefined;
+  let scene = typeof data?.scene_name === "string" ? data.scene_name : undefined;
+  if (typeof data?.scene_id === "number") {
+    scene = await getVfs(req).getScene(data.scene_id, user!.uid).then((s) => s.name, () => scene);
+  }
+  if (scene) return res.redirect(302, `/ui/scenes/${encodeURIComponent(scene)}`);
+  if (typeof data?.group_name === "string") return res.redirect(302, `/ui/groups/${encodeURIComponent(data.group_name)}`);
+  res.redirect(302, `/ui/users/${user!.uid}/notifications`);
+});
+
+/**
  * Where a user's own pages used to be: `/ui/user/…` is `/ui/users/<their uid>/…`, for links and bookmarks made before
  */
 requesterRoutes.get(/.*/, (req, res)=>{

@@ -12,6 +12,8 @@ import { wipeAway } from "./leave";
 type Messages = {
   default?: string;
   task?: Record<string, Partial<Record<"running" | "success" | "error", string>>>;
+  /** Those without a task, by type */
+  [type: string]: string | Record<string, any> | undefined;
 };
 
 //What's shorter than the last of those is "now"
@@ -49,17 +51,26 @@ try {
   console.warn("Invalid notification messages:", e);
 }
 
-/** In the page's language, which the server has rendered them in. The type of a task shows when there's nothing more specific. */
+/**
+ * In the page's language, which the server has rendered them in. The type of a task shows when there's nothing more specific.
+ * Without a task, its type's message: pages tell more, from its data (see notifications/messages.ts), as they tell what came out of a task.
+ */
 export function messageOf(item: NotificationItem): string {
-  if (item.task_id === null) return messages.default ?? item.type;
+  if (item.task_id === null) {
+    const message = messages[item.type];
+    return typeof message === "string" ? message : messages.default ?? item.type;
+  }
   const state = stateOf(item) === "running" ? "running" : item.status as "success" | "error";
   const message = messages.task?.[item.type]?.[state] ?? messages.task?.default?.[state] ?? `${item.type}: ${item.status}`;
   return message.replace(/\{\{\s*type\s*\}\}/g, item.type);
 }
 
-/** Where a notification leads to, if anywhere */
-export function linkOf(item: NotificationItem): string | null {
-  return item.task_id === null ? null : `/ui/tasks/${item.task_id}`;
+/**
+ * Where a notification leads to: its task, or wherever the server finds it's about when it's followed.
+ * The server's is the same: see notifications/messages.ts
+ */
+export function linkOf(item: NotificationItem): string {
+  return item.task_id === null ? `/ui/user/notifications/${item.notification_id}` : `/ui/tasks/${item.task_id}`;
 }
 
 /** Tells at a glance how things went, as titles may be cut before they get to it. The server draws the same: see partials/notification.hbs */

@@ -110,3 +110,20 @@ test("reads them from the panel, one at a time or all at once", async ({ page, u
   await expect(panelOf(page).getByText("labels.noUnreadNotifications")).toBeVisible();
   await expect(badgeOf(page)).toBeHidden();
 });
+
+test("tells someone they were given access to a scene, and leads to it", async ({ page, uniqueAccount, createScene }) => {
+  const account = await uniqueAccount("use");
+  //Shared by the fixture's own user
+  const name = await createScene({ permissions: { [account.username]: "write" } });
+  await login(page, account);
+  await page.goto("/ui/");
+  await expect(badgeOf(page)).toHaveAccessibleName("1");
+  await bellOf(page).click();
+  //No message in cimode: the line tells the notification's type
+  const line = panelOf(page).getByRole("list").getByRole("listitem")
+    .filter({ has: page.getByRole("link", { name: /^addedToScene/ }) });
+  await expect(line).toHaveCount(1);
+  await line.getByRole("link").click();
+  await expect(page).toHaveURL(`/ui/scenes/${encodeURIComponent(name)}`);
+  await expect(badgeOf(page)).toBeHidden();
+});

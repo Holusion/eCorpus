@@ -1,6 +1,6 @@
 
 import { Request, Response } from "express";
-import { getUserManager } from "../../../utils/locals.js";
+import { getUserId, getUserManager } from "../../../utils/locals.js";
 
 
 
@@ -9,6 +9,7 @@ export default async function patchSceneAccess(req :Request, res :Response){
   let userManager = getUserManager(req);
   let {scene} = req.params;
   let patch = Array.isArray(req.body)? req.body: [req.body];
+  const by = getUserId(req);
   await userManager.isolate(async userManager =>{
     for(let {username, uid, groupName, groupUid, access} of patch){
       if(!access || access == "none"){
@@ -16,7 +17,7 @@ export default async function patchSceneAccess(req :Request, res :Response){
         access = null;
       }
       if (username || uid) {
-        await userManager.grant(scene, uid || username, access);
+        await userManager.grant(scene, uid || username, access, {by});
       } else if (groupName || groupUid){
         await userManager.grantGroup(scene, groupUid || groupName, access);
       }

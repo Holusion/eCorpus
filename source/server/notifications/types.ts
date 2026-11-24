@@ -15,3 +15,21 @@ export interface NotificationItem{
   /** When what it tells last changed: its creation, or its task's latest change of status. Not its being read. ISO 8601 */
   mtime: string;
 }
+
+/** Someone gave a user access to a scene, or added them to a group */
+export type AccessNotificationType = "addedToScene" | "addedToGroup";
+
+/**
+ * The `data` of notifications of an `AccessNotificationType`: not part of their item, it's read when they're drawn.
+ * Names are as they were then. Ids are there to find it again, should it have been renamed.
+ */
+export interface AccessNotificationData{
+  /** The username of whoever did it */
+  by: string;
+  /** For a scene: the access level they were given */
+  access?: "read"|"write"|"admin";
+  scene_id?: number;
+  scene_name?: string;
+  group_id?: number;
+  group_name?: string;
+}

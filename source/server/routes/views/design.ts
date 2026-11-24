@@ -22,6 +22,11 @@ function demoNotifications(lng: string){
     link: "#",
     outcome: outcome.length ? {first: outcome[0], rest: outcome.slice(1)} : undefined,
   });
+  //Without a task: as pages tell it, from its data
+  const access = (notification_id: number, type: string, data: Record<string, unknown>, minutes = 0) => ({
+    ...notificationView({notification_id, task_id: null, type, status: null, read: false, mtime: new Date(Date.now() - minutes * 60_000).toISOString()}, lng, data),
+    link: "#",
+  });
   const scene = (name: string, action?: "created"|"updated", editable = true): OutcomeLine => ({scene: {name, editable, action: action && i18n.t(`notifications.upload.${action}`, {lng})}});
   return [
     {label: "running", line: line(1, "running")},
@@ -34,6 +39,8 @@ function demoNotifications(lng: string){
       scene("seclin-voie-romaine", "updated"),
       scene("seclin-plan", "created", false),
     )},
+    {label: "access: given to a scene", line: access(6, "addedToScene", {by: "alice", access: "write", scene_name: "my-scene"}, 45)},
+    {label: "access: added to a group", line: access(7, "addedToGroup", {by: "alice", group_name: "My Group"}, 120)},
   ];
 }
 

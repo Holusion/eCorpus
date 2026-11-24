@@ -486,22 +486,39 @@ export default class UserManager extends DbController {
    * @param scene scene name or id
    * @param user username or user_id to grant access to
    * @param role 
+   * @param options.by user_id of whoever does it. If given, the user gets notified when they had no access of their own before,
+   * unless they did it themselves. Changes of level aren't notified.
    */
-  async grant(scene :string|number, user :string|number, role :AccessType|null){
+  async grant(scene :string|number, user :string|number, role :AccessType|null, {by}: {by?: number|null} = {}){
     if(!isAccessType(role)) throw new BadRequestError(`Bad access type requested : ${role}`);
     let scene_id = `(${(typeof scene === "number")?`SELECT $1::bigint AS scene_id`:`SELECT scene_id FROM scenes WHERE scene_name = $1`})`
     let user_id =  `(${(typeof user === "number")?`SELECT $2::bigint AS user_id`:`SELECT user_id FROM users WHERE username = $2`})`;
     let level = toAccessLevel(role);
     if(0 < level){
       try{
+        //Statements of a WITH all see the table as it was before: what isn't there is what this adds.
         await this.db.run(`
-          INSERT INTO users_acl (fk_user_id, fk_scene_id, access_level)
-          SELECT ${user_id}, ${scene_id}, $3
-          ON CONFLICT (fk_user_id, fk_scene_id) DO UPDATE SET access_level = EXCLUDED.access_level
+          WITH granted AS (
+            INSERT INTO users_acl (fk_user_id, fk_scene_id, access_level)
+            SELECT ${user_id}, ${scene_id}, $3
+            ON CONFLICT (fk_user_id, fk_scene_id) DO UPDATE SET access_level = EXCLUDED.access_level
+            RETURNING fk_user_id, fk_scene_id
+          )
+          INSERT INTO notifications (fk_user_id, type, data)
+          SELECT g.fk_user_id, 'addedToScene', jsonb_build_object(
+              'by', u.username, 'access', $4::text, 'scene_id', s.scene_id, 'scene_name', s.scene_name
+            )
+            FROM granted g
+            JOIN users u ON u.user_id = $5::bigint
+            JOIN scenes s ON s.scene_id = g.fk_scene_id
+           WHERE g.fk_user_id <> $5::bigint
+             AND NOT EXISTS (SELECT 1 FROM users_acl a WHERE a.fk_user_id = g.fk_user_id AND a.fk_scene_id = g.fk_scene_id)
         `, [
           scene,
           user,
-          level
+          level,
+          role,
+          by ?? null,
         ]);
       }catch(e:any){
         if(e.code === errors.not_null_violation && e.table === "users_acl" && e.column === "fk_user_id"){
@@ -1127,15 +1144,31 @@ export default class UserManager extends DbController {
       `,[user_id])).map(group => new Group(group)));
   }
 
-  async addMemberToGroup(user: number | string, group: number | string) {
+  /**
+   * Adds a user to a group. Does nothing if they're a member already.
+   * @param options.by user_id of whoever does it. If given, the user gets notified, unless they did it themselves.
+   */
+  async addMemberToGroup(user: number | string, group: number | string, {by}: {by?: number|null} = {}) {
     let group_id = `(${(typeof group === "number") ? `SELECT $1::bigint AS group_id` : `SELECT group_id FROM groups WHERE group_name = $1`})`;
     let user_id = `(${(typeof user === "number") ? `SELECT $2::bigint AS user_id` : `SELECT user_id FROM users WHERE username = $2`})`;
     try {
-      let r = await this.db.run(` 
-        INSERT INTO groups_membership (fk_group_id, fk_user_id)
-        SELECT ${group_id}, ${user_id}`,
-        [group, user]);
-      if (!r || !r.changes) throw new NotFoundError(`No user ${user} to add `);
+      //Not a unique violation for those who are members already: it would abort the transaction this may be part of.
+      await this.db.run(`
+        WITH added AS (
+          INSERT INTO groups_membership (fk_group_id, fk_user_id)
+          SELECT ${group_id}, ${user_id}
+          ON CONFLICT (fk_group_id, fk_user_id) DO NOTHING
+          RETURNING fk_group_id, fk_user_id
+        )
+        INSERT INTO notifications (fk_user_id, type, data)
+        SELECT a.fk_user_id, 'addedToGroup', jsonb_build_object(
+            'by', u.username, 'group_id', g.group_id, 'group_name', g.group_name
+          )
+          FROM added a
+          JOIN users u ON u.user_id = $3::bigint
+          JOIN groups g ON g.group_id = a.fk_group_id
+         WHERE a.fk_user_id <> $3::bigint`,
+        [group, user, by ?? null]);
     }
     catch (e: any) {
       if (e.code == errors.not_null_violation && ((e.column == "fk_group_id") || (e.column == "fk_user_id"))) {
@@ -1144,10 +1177,12 @@ export default class UserManager extends DbController {
         } else {
           throw new NotFoundError("Group " + group.toString() + " not found")
         }
+      }else if(e.code === errors.foreign_key_violation && e.constraint === "groups_membership_fk_user_id_fkey"){
+        throw new NotFoundError(`User ${user} not found`);
+      }else if(e.code === errors.foreign_key_violation && e.constraint === "groups_membership_fk_group_id_fkey"){
+        throw new NotFoundError(`Group ${group} not found`);
       }
-      else if (e.code != errors.unique_violation) {
-        throw e
-      }
+      throw e;
     }
   }
 

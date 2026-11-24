@@ -59,7 +59,7 @@ export default async function patchScene(req :Request, res :Response){
       let userManager = getUserManager(req);
       let {scene} = req.params;
       for(let key in permissions){
-        await userManager.grant(scene, key, permissions[key]);
+        await userManager.grant(scene, key, permissions[key], {by: user_id});
       }
     }
 

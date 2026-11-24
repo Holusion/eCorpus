@@ -510,9 +510,19 @@ notifications:
     updated: Updated
     scenesImported_one: "{{count}} scene imported"
     scenesImported_other: "{{count}} scenes imported"
-  # Filled in by the browser: {{type}} is left as is
+  # What pages tell of notifications without a task, from their data, by type. See `AccessNotificationData`
+  details:
+    # Someone gave you access to a scene, by access level
+    addedToScene:
+      read: "{{by}} gave you read access to {{scene_name}}"
+      write: "{{by}} gave you write access to {{scene_name}}"
+      admin: "{{by}} made you an administrator of {{scene_name}}"
+    addedToGroup: "{{by}} added you to the group {{group_name}}"
+  # Filled in by the browser: {{type}} is left as is. Without a task, by type
   messages:
     default: You have a new notification
+    addedToScene: You were given access to a scene
+    addedToGroup: You were added to a group
     task:
       default:
         running: "Task {{type}} is running"
