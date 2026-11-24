@@ -2,7 +2,7 @@ import HttpError from "./HttpError";
 
 /**
  * Requests of the `/uploads` API, shared by the uploads dashboard (see uploader.ts)
- * and Voyager Story's model uploader (see handlers/story.ts).
+ * and Voyager Story's import menu (see modelUpload.ts).
  *
  * An upload is a set of files with one entry point, its `main` file:
  * a model and the files it refers to, in their folders.
@@ -312,59 +312,49 @@ export async function processUpload(id: number, main: string, {signal}: {signal?
   return await res.json();
 }
 
-/** Remove an upload's data from the server, once it won't be used */
-export function deleteUpload(id: number){
-  fetch(`/tasks/${id}`, {method: "DELETE"}).catch(err=>console.warn("Failed to remove upload %d:", id, err));
+/**
+ * Remove a file of an upload that's not processed yet: the conversion would find it otherwise.
+ * One that isn't there is fine.
+ */
+export async function deleteUploadFile(id: number, path: string, {signal}: {signal?: AbortSignal} = {}): Promise<void>{
+  const res = await fetch(fileUrl(id, path), {method: "DELETE", signal, headers: {"Accept": "application/json"}});
+  if(res.status === 404) return;
+  await okOrThrow(res);
 }
 
-
-export interface UploadFilesOptions{
-  /** Target scene of the upload */
-  scene?: string;
-  signal?: AbortSignal;
-  /** Bytes sent so far, out of the size of the files to send. It grows as the files that are needed are known */
-  onProgress?: (loaded: number, total: number)=>void;
-}
-
-export interface UploadFilesResult{
-  /** The processed upload's task */
-  task: any;
-  /** Files that were sent, the main file first */
-  sent: UploadEntry[];
-  /** Candidates that no file needed: they weren't sent */
-  unused: UploadEntry[];
-  /** Requirements no file met, as the paths they'd be found at */
-  missing: string[][];
+/** A derivative an upload made into its scene */
+export interface UploadDerivative{
+  usage: string;
+  quality: string;
+  /** Relative to the scene's root */
+  uri: string;
 }
 
 /**
- * Upload a model in one go: create the upload, send its main file, then the files it needs among `candidates`
- * (see {@link followInspection}), then process it.
- * Rejects on the first error, which may be that the model can't be converted.
+ * Make derivatives of a processed upload's model into its scene, all at once: it's converted only once.
+ * When `optimize` is false, the highest quality is the model as it was sent. The others are always optimized.
+ * Resolves with the derivatives, lowest first.
  */
-export async function uploadFiles(main: UploadEntry, candidates: readonly UploadEntry[], {scene, signal, onProgress}: UploadFilesOptions = {}): Promise<UploadFilesResult>{
-  const pool = [...candidates];
-  const sent: UploadEntry[] = [main];
-  const missing: string[][] = [];
-  const id = await createUpload({scene}, {signal});
-  try{
-    let loaded = 0;
-    for(let i = 0; i < sent.length; i++){
-      const entry = sent[i];
-      const total = ()=>sent.reduce((sum, {file})=>sum + file.size, 0);
-      const {inspection} = await sendFile(id, entry, {signal, onProgress: (l)=>onProgress?.(loaded + l, total())});
-      loaded += entry.file.size;
-      const next = followInspection(inspection, {isMain: i === 0, sent, candidates: pool});
-      sent.push(...next.found);
-      missing.push(...next.missing);
-    }
-  }catch(e){
-    //Don't keep the staged data of an upload that won't be processed
-    deleteUpload(id);
-    throw e;
+export async function makeUploadDerivatives(id: number, {usage = "Web3D", qualities, optimize}: {usage?: string, qualities: string[], optimize: boolean}, {signal}: {signal?: AbortSignal} = {}): Promise<UploadDerivative[]>{
+  const res = await fetch(`/uploads/${id}/derivatives`, {
+    method: "POST",
+    signal,
+    headers: {"Accept": "application/json", "Content-Type": "application/json"},
+    body: JSON.stringify({usage, qualities, optimize}),
+  });
+  await okOrThrow(res);
+  const {output} = await res.json();
+  const derivatives = output?.derivatives;
+  if(!Array.isArray(derivatives) || !derivatives.every(d=>typeof d?.uri === "string" && typeof d?.quality === "string")){
+    console.warn("Unexpected derivatives output:", output);
+    throw new UploadError(500, "Invalid response body");
   }
-  const task = await processUpload(id, main.path, {signal});
-  return {task, sent, unused: pool, missing};
+  return derivatives;
+}
+
+/** Remove an upload's data from the server, once it won't be used */
+export function deleteUpload(id: number){
+  fetch(`/tasks/${id}`, {method: "DELETE"}).catch(err=>console.warn("Failed to remove upload %d:", id, err));
 }
 
 
