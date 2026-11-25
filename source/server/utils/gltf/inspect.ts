@@ -1,6 +1,4 @@
-import { getBounds, getPrimitiveVertexCount, VertexCountMethod } from '@gltf-transform/functions';
-
-import { Document, ImageUtils, PropertyType } from '@gltf-transform/core';
+import type { InspectReport } from "../meshtinker.js";
 
 /**
  * Model boundaries. Copied from DPO-Voyager's `IBoundingBox` definition
@@ -21,64 +19,32 @@ export interface SceneDescription {
   extensions: string[],
 }
 
-export function inspectDocument(document: Document): SceneDescription {
-  const root = document.getRoot();
-  const scene = root.getDefaultScene();
-  const name = scene?.listChildren().map((node => node.getName())).find(n => !!n) ?? scene?.getName() ?? '';
-  const extensions = root.listExtensionsUsed().map(e => e.extensionName);
-  const rawBounds = scene ? getBounds(scene) : null;
-  //We don't expect the possibility of a bounding box where only _some_ coordinates are finite so we test just one.
-  const bounds = Number.isFinite(rawBounds?.min[0]) ? rawBounds : null;
-  let numFaces = 0;
-  for (const mesh of root.listMeshes()) {
-    for (let primitive of mesh.listPrimitives()) {
-      const mode = primitive.getMode();
-      if (mode < 4) continue; // POINTS and LINES* have no faces
-      if (!primitive.getAttribute("POSITION")) continue; // no geometry data
-      numFaces += Math.floor(getPrimitiveVertexCount(primitive, VertexCountMethod.RENDER) / 3);
-      if (4 < mode) numFaces -= 2; //TRIANGLES_STRIP and TRIANGLE_FAN have two shared vertices
-    }
-  }
-
-  let imageSize = getMaxDiffuseSize(document);
-
+/**
+ * What eCorpus keeps of a model's `meshtinker inspect` report
+ * (see the "Mapping from eCorpus" table of meshtinker's docs/inspect-report.md)
+ */
+export function describeModel(report: InspectReport): SceneDescription {
   return {
-    name,
-    bounds,
-    imageSize,
-    numFaces,
-    extensions,
-  }
+    name: report.scene?.firstNamedRootNode ?? report.scene?.name ?? "",
+    bounds: report.scene?.bounds ?? null,
+    imageSize: getMaxDiffuseSize(report),
+    numFaces: report.geometry.faces,
+    extensions: report.extensions.used,
+  };
 }
 
+/** Images a base color uses */
+export function listDiffuseImages(report: Pick<InspectReport, "images">) {
+  return report.images.filter(image => image.uses.some(use => use.slot === "baseColorTexture"));
+}
 
 /**
- * Get the largest diffuse size in the document
- * @param document 
- * @returns 
+ * Largest side of the images a base color uses
  */
-export function getMaxDiffuseSize(document: Document): number {
-  const root = document.getRoot();
-  let imageSize = 0
-  for (const texture of root.listTextures()) {
-    const slots = document
-      .getGraph()
-      .listParentEdges(texture)
-      .filter((edge) => edge.getParent().propertyType !== PropertyType.ROOT)
-      .map((edge) => edge.getName());
-
-    if (slots.indexOf("baseColorTexture") === -1) continue; //Ignore textures not used as baseColor
-
-    const resolution = ImageUtils.getSize(texture.getImage()!, texture.getMimeType());
-    if (resolution) {
-      imageSize = Math.max(imageSize, ...resolution);
-    }
+export function getMaxDiffuseSize(report: Pick<InspectReport, "images">): number {
+  let imageSize = 0;
+  for (const { width, height } of listDiffuseImages(report)) {
+    imageSize = Math.max(imageSize, width ?? 0, height ?? 0);
   }
   return imageSize;
-}
-
-export function getBaseTextureSizeMultiplier(originalMaxSize: number) {
-  //How much should we scale down to have High be a 8k texture?
-  const baseDivider = Math.max(1, originalMaxSize / 8192);
-  return 1 / baseDivider;
 }

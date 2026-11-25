@@ -8,7 +8,12 @@ import UserManager from "../../auth/UserManager.js";
 import { TaskScheduler } from "../../tasks/scheduler.js";
 import { TaskDefinition } from "../../tasks/types.js";
 import Vfs from "../../vfs/index.js";
-import { Document, NodeIO } from "@gltf-transform/core";
+import { sendUpload } from "../../__test_fixtures/uploads.js";
+import { fixturesDir } from "../../__test_fixtures/fixtures.js";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { run } from "../../utils/exec.js";
 
 
 describe("POST /tasks", function(){
@@ -26,29 +31,14 @@ describe("POST /tasks", function(){
   });
 
   describe("initial status", function(){
-    it("creates an upload task waiting for its data", async function(){
-      const res = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("bob"))
-      .send({type: "parseUserUpload", data: {filename: "foo.glb", size: 1}})
-      .expect(201);
-      expect(res.body).to.have.property("task_id").a("number");
-      expect(res.body).to.have.property("status", "initializing");
-      expect(res.headers).to.have.property("location", `/tasks/${res.body.task_id}`);
-    });
-
-    it("accepts a status matching the type's", async function(){
-      const {body} = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("bob"))
-      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
-      .expect(201);
-      expect(body).to.have.property("status", "initializing");
+    it("accepts a pending status", async function(){
       await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
       .send({type: "delayTask", status: "pending", data: {}})
       .expect(200);
     });
 
-    for(const [type, status] of [["delayTask", "initializing"], ["parseUserUpload", "pending"], ["delayTask", "running"], ["delayTask", "success"]]){
+    for(const [type, status] of [["delayTask", "initializing"], ["delayTask", "running"], ["delayTask", "success"]]){
       it(`rejects ${type} created ${status}`, async function(){
         const count = async ()=> (await taskScheduler.getTasks({type, user_id: user.uid, limit: 100})).length;
         const before = await count();
@@ -62,7 +52,7 @@ describe("POST /tasks", function(){
   });
 
   describe("rejects internal task types", function(){
-    for(const type of ["sendEmail", "cleanOldTasks", "runCleanup", "optimize"]){
+    for(const type of ["sendEmail", "cleanOldTasks", "runCleanup", "optimize", "parseUserUpload"]){
       for(const username of ["bob", "alice"]){
         it(`${type} (as ${username})`, async function(){
           await request(this.server).post("/tasks")
@@ -204,16 +194,6 @@ describe("POST /tasks", function(){
       expect(await signalsOf(task_id, 1, 100)).to.deep.equal([]);
     });
 
-    it("is ignored for an initializing task", async function(){
-      const res = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("bob"))
-      .set("Prefer", "respond-async")
-      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.glb", size: 1}})
-      .expect(201);
-      expect(res.headers).not.to.have.property("preference-applied");
-      expect(await notificationsOf(res.body.task_id)).to.deep.equal([]);
-    });
-
     it("still answers validation errors synchronously", async function(){
       await request(this.server).post("/tasks")
       .set("Authorization", await bearer("bob"))
@@ -226,15 +206,8 @@ describe("POST /tasks", function(){
   describe("source tasks", function(){
     /** Upload a file as `username`, returning the id of the (successful) upload task */
     async function upload(ctx: Mocha.Context, username: string): Promise<number>{
-      const data = randomBytes(16);
-      const {body: {task_id}} = await request(ctx.server).post("/tasks")
-      .set("Authorization", await bearer(username))
-      .send({type: "parseUserUpload", status: "initializing", data: {filename: "foo.bin", size: data.length}})
-      .expect(201);
-      await request(ctx.server).put(`/tasks/${task_id}/artifact`)
-      .set("Authorization", await bearer(username))
-      .send(data)
-      .expect(201);
+      const {task_id, res} = await sendUpload(ctx.server, await bearer(username), {files: {"foo.bin": randomBytes(16)}});
+      expect(res.status, res.text).to.equal(200);
       expect(await taskScheduler.getTask(task_id)).to.have.property("status", "success");
       return task_id;
     }
@@ -298,6 +271,88 @@ describe("POST /tasks", function(){
       expect(res.body.message).to.match(/did not output a zip file/);
     });
 
+    describe("createSceneFromFiles with models that refer to other files", function(){
+      let obj: Buffer, mtl: Buffer, png: Buffer;
+      this.beforeAll(async function(){
+        obj = await fs.readFile(path.join(fixturesDir, "cube.obj"));
+        mtl = Buffer.concat([await fs.readFile(path.join(fixturesDir, "cube.mtl")), Buffer.from("map_Kd tex/diffuse.png\n")]);
+        //1x1 PNG
+        png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+      });
+
+      /** Create a scene from uploads of charlie's, returning its model */
+      async function createSceneModel(ctx: Mocha.Context, tasks: number[], options: {optimize?: boolean} = {}){
+        const name = randomBytes(4).toString("hex");
+        const created = await request(ctx.server).post("/tasks")
+        .set("Authorization", await bearer("charlie"))
+        .send({type: "createSceneFromFiles", data: {tasks, name, language: "EN", options}});
+        expect(created.status, created.text).to.equal(200);
+        const {body: doc} = await request(ctx.server).get(`/scenes/${name}/scene.svx.json`)
+        .set("Authorization", await bearer("charlie"))
+        .expect(200);
+        expect(doc.models).to.have.length(1);
+        return {name, model: doc.models[0]};
+      }
+      /** Create a scene from uploads of charlie's, returning its High model's asset */
+      async function createScene(ctx: Mocha.Context, tasks: number[]){
+        const {model} = await createSceneModel(ctx, tasks);
+        return model.derivatives.find((d: any)=>d.quality === "High").assets[0];
+      }
+
+      for(const optimize of [false, true]){
+        it(`makes a Thumb along with the High model${optimize ? ", optimized" : ""}`, async function(){
+          const id = await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png});
+          const {name, model} = await createSceneModel(this, [id], {optimize});
+          expect(model.derivatives.map((d: any)=>[d.usage, d.quality, d.assets[0].uri])).to.deep.equal([
+            ["Web3D", "High", "cube.glb"],
+            ["Web3D", "Thumb", "cube-thumb.glb"],
+          ]);
+          for(const {assets: [asset]} of model.derivatives){
+            expect(asset).to.have.property("numFaces").above(0);
+            await request(this.server).get(`/scenes/${name}/${asset.uri}`)
+            .set("Authorization", await bearer("charlie"))
+            .expect(200)
+            .expect("Content-Type", "model/gltf-binary")
+            .expect("Content-Length", asset.byteSize.toString());
+          }
+        });
+      }
+
+      async function uploadSet(ctx: Mocha.Context, main: string, files: Record<string, Buffer>){
+        const {task_id, res} = await sendUpload(ctx.server, await bearer("charlie"), {main, files});
+        expect(res.status, res.text).to.equal(200);
+        return task_id;
+      }
+
+      it("finds them in the model's upload, in their folders", async function(){
+        const id = await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png});
+        const asset = await createScene(this, [id]);
+        expect(asset).to.have.property("uri", "cube.glb");
+        expect(asset).to.have.property("imageSize").above(0);
+      });
+
+      it("finds them in other uploads", async function(){
+        const ids = [
+          await uploadSet(this, "cube.obj", {"cube.obj": obj}),
+          await uploadSet(this, "cube.mtl", {"cube.mtl": mtl, "tex/diffuse.png": png}),
+        ];
+        const asset = await createScene(this, ids);
+        expect(asset).to.have.property("imageSize").above(0);
+      });
+
+      it("rejects two models of the same name", async function(){
+        const ids = [
+          await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png}),
+          await uploadSet(this, "cube.obj", {"cube.obj": obj, "cube.mtl": mtl, "tex/diffuse.png": png}),
+        ];
+        const res = await request(this.server).post("/tasks")
+        .set("Authorization", await bearer("charlie"))
+        .send({type: "createSceneFromFiles", data: {tasks: ids, name: randomBytes(4).toString("hex"), language: "EN", options: {}}})
+        .expect(400);
+        expect(res.body.message).to.match(/cube\.obj/);
+      });
+    });
+
     it("rejects missing source ids", async function(){
       for(const type of ["createSceneFromFiles", "extractScenesArchives"]){
         await request(this.server).post("/tasks")
@@ -312,14 +367,8 @@ describe("POST /tasks", function(){
   describe("localized outcomes", function(){
     /** Uploads a file as charlie, returning the id of the upload task */
     async function upload(ctx: Mocha.Context, filename: string, data: Buffer): Promise<number>{
-      const {body: {task_id}} = await request(ctx.server).post("/tasks")
-      .set("Authorization", await bearer("charlie"))
-      .send({type: "parseUserUpload", data: {filename, size: data.length}})
-      .expect(201);
-      await request(ctx.server).put(`/tasks/${task_id}/artifact`)
-      .set("Authorization", await bearer("charlie"))
-      .send(data)
-      .expect(201);
+      const {task_id, res} = await sendUpload(ctx.server, await bearer("charlie"), {files: {[filename]: data}});
+      expect(res.status, res.text).to.equal(200);
       return task_id;
     }
 
@@ -351,16 +400,33 @@ describe("POST /tasks", function(){
     });
 
     it("tells that a model couldn't be optimized", async function(){
-      //A model without a scene: there's nothing to optimize
-      const glb = Buffer.from(await new NodeIO().writeBinary(new Document()));
-      const source = await upload(this, "empty.glb", glb);
-      const res = await request(this.server).post("/tasks")
-      .set("Authorization", await bearer("charlie"))
-      .set("Accept-Language", "fr")
-      .send({type: "createSceneFromFiles", data: {tasks: [source], name: randomBytes(4).toString("hex"), language: "EN", options: {optimize: true}}})
-      .expect(500);
-      expect(res.body).to.deep.equal({code: 500, message: `Error: empty.glb n'a pas pu être optimisé : Empty glb (no root scene)`});
-      expect((await latest(this, "fr")).output).to.have.property("message", `empty.glb n'a pas pu être optimisé : Empty glb (no root scene)`);
+      //A meshtinker that rejects every model it's asked to optimize
+      const real = (await run("sh", ["-c", "command -v meshtinker"])).stdout.trim();
+      expect(real, "meshtinker is on PATH").to.be.ok;
+      const bin = await fs.mkdtemp(path.join(os.tmpdir(), "meshtinker-"));
+      await fs.writeFile(path.join(bin, "meshtinker"), [
+        `#!/bin/sh`,
+        `if [ "$1" = optimize ]; then`,
+        `  echo '{"format": 1, "error": {"code": "invalid-gltf", "exitCode": 1, "message": "the model is broken"}, "diagnostics": []}'`,
+        `  exit 1`,
+        `fi`,
+        `exec "${real}" "$@"`,
+      ].join("\n"), {mode: 0o755});
+      const PATH = process.env.PATH;
+      process.env.PATH = `${bin}${path.delimiter}${PATH}`;
+      try{
+        const source = await upload(this, "cube.glb", await fs.readFile(path.join(fixturesDir, "cube.glb")));
+        const res = await request(this.server).post("/tasks")
+        .set("Authorization", await bearer("charlie"))
+        .set("Accept-Language", "fr")
+        .send({type: "createSceneFromFiles", data: {tasks: [source], name: randomBytes(4).toString("hex"), language: "EN", options: {optimize: true}}})
+        .expect(500);
+        expect(res.body).to.deep.equal({code: 500, message: `Error: cube.glb n'a pas pu être optimisé : the model is broken`});
+        expect((await latest(this, "fr")).output).to.have.property("message", `cube.glb n'a pas pu être optimisé : the model is broken`);
+      }finally{
+        process.env.PATH = PATH;
+        await fs.rm(bin, {recursive: true, force: true});
+      }
     });
   });
 });

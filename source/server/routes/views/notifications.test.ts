@@ -145,7 +145,7 @@ describe("GET /ui/users/:uid/notifications", function(){
     await settled("testTask", {output: {messages: [localize("modelWarnings.recommend-optimize").toData()]}});
     const text = await page.call(this);
     expect(text).to.contain(`href="/ui/scenes/made-for-notifications/view"`);
-    expect(text).to.contain(`class="notifications-text">Tick the &quot;Optimize&quot; checkbox before creating the scene.</span>`);
+    expect(text).to.contain(`class="notifications-text">Keep the &quot;Optimize&quot; checkbox ticked when creating the scene.</span>`);
   });
 
   it("is linked from the bell, its panel, and the user's pages", async function(){

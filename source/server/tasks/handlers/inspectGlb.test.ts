@@ -6,7 +6,7 @@ import { TaskScheduler } from "../scheduler.js";
 import Vfs from "../../vfs/index.js";
 import type { RootRelativePath } from "../../vfs/Base.js";
 import { fixturesDir } from "../../__test_fixtures/fixtures.js";
-import { io } from "../../utils/gltf/io.js";
+import { glbToGltf } from "../../__test_fixtures/gltf.js";
 import { inspectGlb } from "./inspectGlb.js";
 
 
@@ -24,13 +24,14 @@ describe("Task: inspectGlb", function () {
    */
   async function writeCube(extensions: string[]): Promise<RootRelativePath> {
     const name = `${randomBytes(2).toString("hex")}-cube`;
-    const jsonDoc = await io.binaryToJSON(await fs.readFile(path.join(fixturesDir, "cube.glb")));
-    jsonDoc.json.extensionsUsed = [...(jsonDoc.json.extensionsUsed ?? []), ...extensions];
-    jsonDoc.json.extensionsRequired = [...(jsonDoc.json.extensionsRequired ?? []), ...extensions];
-    jsonDoc.json.buffers![0].uri = `${name}.bin`;
-    await fs.writeFile(vfs.absolute(`${name}.bin`), jsonDoc.resources["@glb.bin"]);
+    const {json, files} = await glbToGltf(path.join(fixturesDir, "cube.glb"));
+    json.extensionsUsed = [...(json.extensionsUsed ?? []), ...extensions];
+    json.extensionsRequired = [...(json.extensionsRequired ?? []), ...extensions];
+    const [bin] = Object.keys(files);
+    json.buffers[0].uri = `${name}.bin`;
+    await fs.writeFile(vfs.absolute(`${name}.bin`), files[bin]);
     const fileLocation = vfs.relative(`${name}.gltf`);
-    await fs.writeFile(vfs.absolute(fileLocation), JSON.stringify(jsonDoc.json));
+    await fs.writeFile(vfs.absolute(fileLocation), JSON.stringify(json));
     return fileLocation;
   }
 
@@ -43,7 +44,6 @@ describe("Task: inspectGlb", function () {
 
   it("inspects files requiring an unsupported extension", async function () {
     const fileLocation = await writeCube(["FOO_unknown_extension"]);
-    await expect(io.read(vfs.absolute(fileLocation))).to.be.rejectedWith("Missing required extension");
     const meta = await taskScheduler.run({ handler: inspectGlb, data: { fileLocation } });
     expect(meta).to.have.property("numFaces", 12);
     expect(meta.bounds).to.deep.equal({

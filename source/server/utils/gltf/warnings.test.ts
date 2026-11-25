@@ -1,73 +1,70 @@
-import { Document } from "@gltf-transform/core";
-import sharp from "sharp";
+import type { MeshtinkerImage } from "../meshtinker.js";
 import { getModelWarnings, LARGE_TEXTURE_SIZE, localizeModelWarnings, ModelWarning } from "./warnings.js";
 import { Localized } from "../i18n.js";
 
 describe("getModelWarnings()", function() {
-  async function addTexture(document: Document, format: "png" | "jpeg", width: number, height = 1) {
-    const image = await sharp({ create: { width, height, channels: 3, background: "white" } })
-      .toFormat(format).toBuffer();
-    return document.createTexture().setMimeType(`image/${format}`).setImage(image);
+  /** Images of a `meshtinker inspect` report */
+  function report(...images: Array<Partial<MeshtinkerImage>>): {images: MeshtinkerImage[]} {
+    return {
+      images: images.map((image, index) => ({
+        index, name: null, file: null, mimeType: "image/jpeg", width: 1, height: 1, byteSize: 1, uses: [], occupancy: null,
+        ...image,
+      })),
+    };
   }
+  /** Uses of an image as the base color of materials */
+  const diffuse = (...materials: number[]) => materials.map(material => ({ material, slot: "baseColorTexture", texture: material }));
 
-  it("reports PNGs and oversized textures once each, including non-diffuse textures", async function() {
-    const document = new Document();
-    await addTexture(document, "png", LARGE_TEXTURE_SIZE + 1);
-    await addTexture(document, "png", 1);
-    const warnings = getModelWarnings(document);
+  it("reports PNGs and oversized textures once each, including non-diffuse textures", function() {
+    const warnings = getModelWarnings(report(
+      { mimeType: "image/png", width: LARGE_TEXTURE_SIZE + 1 },
+      { mimeType: "image/png" },
+    ));
     expect(warnings).to.deep.equal(["png-images", "large-textures"]);
   });
 
-  it("reports oversized JPEG textures without a PNG warning", async function() {
-    const document = new Document();
-    await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE + 1);
-    expect(getModelWarnings(document)).to.deep.equal(["large-textures"]);
+  it("reports oversized JPEG textures without a PNG warning", function() {
+    expect(getModelWarnings(report({ width: LARGE_TEXTURE_SIZE + 1 }))).to.deep.equal(["large-textures"]);
   });
 
-  it("accepts textures at the optimization limit and models without textures", async function() {
-    const document = new Document();
-    expect(getModelWarnings(document)).to.deep.equal([]);
-    await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE);
-    expect(getModelWarnings(document)).to.deep.equal([]);
+  it("accepts textures at the optimization limit and models without textures", function() {
+    expect(getModelWarnings(report())).to.deep.equal([]);
+    expect(getModelWarnings(report({ width: LARGE_TEXTURE_SIZE }))).to.deep.equal([]);
+  });
+
+  it("ignores sizes that couldn't be read", function() {
+    expect(getModelWarnings(report({ mimeType: null, width: null, height: null }))).to.deep.equal([]);
   });
 
   for (const height of [2047, 2048, 2049]) {
-    it(`checks the combined diffuse pixel area for two 4096×${height} maps`, async function() {
-      const document = new Document();
-      for (let i = 0; i < 2; i++) {
-        const texture = await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE, height);
-        document.createMaterial().setBaseColorTexture(texture);
-      }
-      const warnings = getModelWarnings(document);
+    it(`checks the combined diffuse pixel area for two 4096×${height} maps`, function() {
+      const warnings = getModelWarnings(report(
+        { width: LARGE_TEXTURE_SIZE, height, uses: diffuse(0) },
+        { width: LARGE_TEXTURE_SIZE, height, uses: diffuse(1) },
+      ));
       expect(warnings).to.deep.equal(height > 2048 ? ["large-combined-diffuse-maps"] : []);
     });
   }
 
-  it("counts a diffuse map shared by multiple materials only once", async function() {
-    const document = new Document();
-    const shared = await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE, 2049);
-    document.createMaterial().setBaseColorTexture(shared);
-    document.createMaterial().setBaseColorTexture(shared);
-    const small = await addTexture(document, "jpeg", 1);
-    document.createMaterial().setBaseColorTexture(small);
-    expect(getModelWarnings(document)).to.deep.equal([]);
+  it("counts a diffuse map shared by multiple materials only once", function() {
+    expect(getModelWarnings(report(
+      { width: LARGE_TEXTURE_SIZE, height: 2049, uses: diffuse(0, 1) },
+      { uses: diffuse(2) },
+    ))).to.deep.equal([]);
   });
 
-  it("excludes normal maps from the combined diffuse area", async function() {
-    const document = new Document();
-    const diffuse = await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE, LARGE_TEXTURE_SIZE / 2);
-    const secondDiffuse = await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE, LARGE_TEXTURE_SIZE / 2);
-    const normal = await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE, 1);
-    document.createMaterial().setBaseColorTexture(diffuse).setNormalTexture(normal);
-    document.createMaterial().setBaseColorTexture(secondDiffuse);
-    expect(getModelWarnings(document)).to.deep.equal([]);
+  it("excludes normal maps from the combined diffuse area", function() {
+    expect(getModelWarnings(report(
+      { width: LARGE_TEXTURE_SIZE, height: LARGE_TEXTURE_SIZE / 2, uses: diffuse(0) },
+      { width: LARGE_TEXTURE_SIZE, height: LARGE_TEXTURE_SIZE / 2, uses: diffuse(1) },
+      { width: LARGE_TEXTURE_SIZE, height: 1, uses: [{ material: 0, slot: "normalTexture", texture: 2 }] },
+    ))).to.deep.equal([]);
   });
 
-  it("requires more than one diffuse map even when a single map exceeds the area limit", async function() {
-    const document = new Document();
-    const texture = await addTexture(document, "jpeg", LARGE_TEXTURE_SIZE + 1, LARGE_TEXTURE_SIZE);
-    document.createMaterial().setBaseColorTexture(texture);
-    expect(getModelWarnings(document)).to.deep.equal(["large-textures"]);
+  it("requires more than one diffuse map even when a single map exceeds the area limit", function() {
+    expect(getModelWarnings(report(
+      { width: LARGE_TEXTURE_SIZE + 1, height: LARGE_TEXTURE_SIZE, uses: diffuse(0) },
+    ))).to.deep.equal(["large-textures"]);
   });
 });
 

@@ -1,6 +1,6 @@
 import { ReactiveController, ReactiveControllerHost } from "lit";
-import HttpError from "./HttpError";
-import { toast } from "./toast";
+import { CHUNK_SIZE, createUpload, followInspection, groupUploads, processUpload, sendChunk, UploadEntry } from "./uploads";
+import { Localization } from "./translate";
 
 export type SceneUploadResult = {name: string, action: "create"|"update"|"error"}
 
@@ -12,17 +12,47 @@ export interface UploadMessage{
 }
 
 
-// That's still way above nginx's 1mb default
-const CHUNK_SIZE = 25_000_000;
+/**
+ * Files that may be models, which may refer to other files.
+ * The server tells what they actually are once they're processed (`isModel`).
+ */
+export function isModelPath(path: string): boolean{
+  return /\.(?:glb|gltf|obj|ply|wrl|vrml)$/i.test(path);
+}
 
+/**
+ * An upload of a set of files: a main file, and the files it refers to.
+ * Files are sent one after the other, then the upload is processed.
+ * The main file is sent first: the server tells which files it refers to, and those are taken from `candidates`.
+ * Then the files they refer to, and so on.
+ */
 export interface UploadOperation{
-  //Unique ID of the upload. Might be different from "name" when we upload a scene zip
+  /** Unique ID of the upload: path of its main file, among the files that were given */
   id: string;
+  /** Name of the main file */
   filename: string;
+  /** Path of the main file in the upload */
+  main: string;
+  /** Where the upload's root was among the files that were given, eg. `scan/`, or an empty string */
+  root: string;
+  /** Files to send, the main file first. Files it needs are added as they're known */
+  entries: UploadEntry[];
+  /**
+   * Files that may be needed, not sent yet. Those that are still there once every file is sent
+   * are given back: they make uploads of their own, if no other upload needs them.
+   */
+  candidates: UploadEntry[];
+  /**
+   * Files that a file of the upload refers to, and that none of its files meet.
+   * Another upload may bring them: see {@link Uploader.missingFiles}.
+   */
+  missing: MissingFile[];
+  /** Number of `entries` completely sent */
+  sentFiles: number;
+  /** Bytes of the file being sent that the server has received */
+  offset: number;
   mime?: string;
   isModel?: boolean;
-  /** The file to upload. Should be required? */
-  file?: File;
   /** When the file is an archive we will store the list of files it contains here */
   files?:string[];
   scenes?: SceneUploadResult[];
@@ -37,6 +67,14 @@ export interface UploadOperation{
   progress :number;
   signal: AbortSignal;
   abort: ()=>void;
+}
+
+/** A file that a file of an upload refers to */
+export interface MissingFile{
+  /** Where it would be found, in order, relative to the upload's root */
+  paths: string[];
+  /** Path of the file that refers to it, in the upload */
+  from: string;
 }
 
 export interface ParsedUploadTaskOutput{
@@ -138,85 +176,99 @@ export class Uploader implements ReactiveController{
   }
 
     /**
-   * Handles a list of files that was submitted through dragdrop or the file input
-   * @param files 
+   * Handles a list of files that was submitted through dragdrop or the file input.
+   * Each model makes one upload, with the files of its folder (see {@link groupUploads}).
+   * @param files Files, or files with their path among what was dropped (eg. `scan/tex/diffuse.jpg`)
    */
-  public handleFiles(files: Iterable<File>): void{
+  public handleFiles(files: Iterable<File|UploadEntry>): void{
+    const entries = Array.from(files, (f)=> f instanceof File ? {path: f.webkitRelativePath || f.name, file: f} : f);
     const uploads = new Map<string, UploadOperation>(this.uploads.map(u=>([u.id, u])));
-    for(let file of files){
-      console.log("Handle file : ", file);
-      const prev = uploads.get(file.name);
+    for(const group of groupUploads(entries, isModelPath)){
+      const prev = uploads.get(group.source);
       if(prev){
         if(!prev.done && ! prev.error) prev.abort();
         // @fixme remove from server?
-        uploads.delete(file.name);
+        uploads.delete(group.source);
       }
-
-      uploads.set(file.name, this.createUploadOperation(file));
+      const main = group.entries.find(e=>e.path === group.main)!;
+      const root = group.source.slice(0, group.source.length - group.main.length);
+      uploads.set(group.source, this.createUploadOperation(group.source, main, group.entries.filter(e=>e !== main), root));
     }
     this.uploads = Array.from(uploads.values());
   }
 
-  protected createUploadOperation(file: File) :UploadOperation{
+  protected createUploadOperation(id: string, main: UploadEntry, candidates: UploadEntry[], root: string) :UploadOperation{
     const c = new AbortController();
     const task :UploadOperation = {
-      id: file.name,
-      filename: file.name,
-      file,
+      id,
+      filename: main.file.name,
+      main: main.path,
+      root,
+      entries: [main],
+      candidates,
+      missing: [],
+      sentFiles: 0,
+      offset: 0,
       done: false,
       active: false,
       progress: 0,
-      total: file.size,
+      total: main.file.size,
       signal: c.signal,
       abort: ()=> {
         c.abort();
-        this.splice(file.name, {error: {name: "AbortError", message: "Upload was aborted"}});
+        this.splice(id, {error: {name: "AbortError", message: "Upload was aborted"}});
       }
     };
     return task;
   }
 
 
-  async initUpload(task: UploadOperation) :Promise<number>{
-    console.debug("Initializing upload task for %s", task.filename);
-
-    const res = await fetch(`/tasks`, {
-      method: "POST",
-      signal: task.signal,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "parseUserUpload",
-        data:{
-          filename: task.filename,
-          size: task.total,
-        }
-      }),
-    });
-    await HttpError.okOrThrow(res);
-    const body = await res.json()
-    if(typeof body.task_id !== "number"){
-      console.warn("Can't use body:", body);
-      throw new HttpError(500,  "Server answered with an unreadable task identifier");
+  /**
+   * Give back the candidates of an upload that no file of it needed.
+   * Those no other upload has, or may still need, make uploads of their own.
+   */
+  private releaseCandidates(id: string){
+    const op = this.uploads.find(u=>u.id === id);
+    if(!op) return;
+    const uploads = this.uploads.map(u=> u.id === id ? {...u, candidates: []} : u);
+    for(const {path, file} of op.candidates){
+      const source = op.root + path;
+      if(uploads.some(u=>u.id === source || u.entries.some(e=>e.file === file) || u.candidates.some(e=>e.file === file))) continue;
+      const [group] = groupUploads([{path: source, file}], isModelPath);
+      uploads.push(this.createUploadOperation(group.source, group.entries[0], [], source.slice(0, source.length - group.main.length)));
     }
-    return body.task_id;
+    this.uploads = uploads;
   }
 
+  /**
+   * Files that an upload's files refer to, and that no upload brings.
+   * A scene is made from all uploads, side by side (`createSceneFromFiles`):
+   * a file of another upload, at the same path, is found by the conversion.
+   * Uploads that failed don't make it into the scene.
+   */
+  public missingFiles(op: UploadOperation): MissingFile[]{
+    if(!op.missing.length) return [];
+    const others = this.uploads.filter(u=>u !== op && !u.error);
+    return op.missing.filter(({paths})=>!others.some(u=>u.entries.some(e=>paths.includes(e.path))));
+  }
 
-  async finalizeUpload(task: UploadOperation) :Promise<ParsedUploadTaskOutput>{
-    const res = await fetch(`/tasks/${task.task_id}`, {
-      method: "GET",
-      headers:{"Content-Type": "application/json"},
+  /** Warnings for the files an upload misses (see {@link missingFiles}) */
+  public missingFileWarnings(op: UploadOperation): UploadMessage[]{
+    return this.missingFiles(op).map(({paths, from})=>{
+      const params = {path: paths[0], file: from.split("/").pop()};
+      return {key: "missingUploadFile", params, message: Localization.Instance.getString("info.missingUploadFile", params)};
     });
-    await HttpError.okOrThrow(res);
-    const body = await res.json();
-    if(!body?.task?.output || typeof body.task.output !== "object" || !body.task.output.mime){
-      console.warn("Unexpected format for scene output:", body);
+  }
+
+  /**
+   * Read the processed upload from the response to its last chunk
+   */
+  parseUploadResult(body: any) :ParsedUploadTaskOutput{
+    if(!body?.output || typeof body.output !== "object" || !body.output.mime){
+      console.warn("Unexpected format for upload output:", body);
       throw new Error("Invalid response body");
     }
-
-    return body.task.output;
+    return body.output;
   }
 
   
@@ -229,78 +281,69 @@ export class Uploader implements ReactiveController{
     const task = this.uploads.find(u=>!u.active && !u.done && !u.error);
     if(!task) return;
 
-    if(!task.file){
-      toast(`Can't upload : No file provided`, "error", 4000);
-      return;
+    //Every file is sent: what wasn't needed is given back. It triggers another call.
+    if(typeof task.task_id !== "undefined" && task.entries.length <= task.sentFiles && task.candidates.length){
+      return this.releaseCandidates(task.id);
     }
-
-    const starting_offset = task.progress;
-    const end_offset = Math.min(task.progress+CHUNK_SIZE, task.total ?? 0)
-    const chunk = task.file.slice(task.progress, end_offset);
 
     const update :((changes :Partial<UploadOperation>)=>void) = this.splice.bind(this, task.id);
     const setError = (err: Error|{code: number, message: string})=>{
       console.error("Upload request failed :", err);
-      update({active: false, progress: starting_offset, error: err});
+      update({active: false, error: err});
     }
     update({active: true});
     //Initialize upload
     if(typeof task.task_id === "undefined"){
-      this.initUpload(task).then(
-        (id)=> update({active: false, task_id: id}), 
+      createUpload({}, {signal: task.signal}).then(
+        (id)=> update({active: false, task_id: id}),
         setError,
       );
       return;
     }
 
-    let xhr = new XMLHttpRequest();
-    task.signal.addEventListener("abort", xhr.abort.bind(xhr))
-    xhr.onload = ()=>{
-      if (299 < xhr.status) {
-        let message = xhr.statusText;
-        const contentType = xhr.getResponseHeader("Content-Type") || "";
-        if (contentType.includes("application/json")) {
-          const fail_response = JSON.parse(xhr.responseText) as { message?: string };
-          if (fail_response.message) message = fail_response.message;
-        } else if (xhr.responseText) {
-          message = xhr.responseText.slice(0, 300);
-        }
-        console.error("Upload Request failed :", message);
-        setError({code: xhr.status, message});
-      }else if(xhr.status === 201){
-        this.finalizeUpload(task).then((output)=>{
-          console.debug("Finalized upload task. Parsed content :", output);
-          update({active: false, progress: task.total, done: true, ...output});
-        }, setError);
-      }else{
-        console.debug("Chunk uploaded. Set progress to :", end_offset);
-        update({active: false, progress: end_offset});
-      }
+    //All files are sent: process the upload
+    if(task.entries.length <= task.sentFiles){
+      processUpload(task.task_id, task.main, {signal: task.signal}).then((body)=>{
+        const output = this.parseUploadResult(body);
+        console.debug("Processed upload. Parsed content :", output);
+        update({active: false, done: true, ...output});
+      }).catch(setError);
+      return;
     }
 
-    xhr.upload.onprogress = (evt)=>{
-        if(evt.lengthComputable){
-          console.debug("Progress event : %d (%d)", starting_offset + evt.loaded, evt.loaded);
-          update({progress: starting_offset + evt.loaded});
-        }
-    }
-    xhr.ontimeout = function(ev){
-      console.log("XHR Timeout", ev);
-    }
-    xhr.onerror = function onUploadError(ev){
-      console.log("XHR Error", ev);
-      setError({ code: xhr.status ||DOMException.NETWORK_ERR, message: xhr.response.message || xhr.statusText || (navigator.onLine? "Server is unreachable": "Disconnected") });
-    }
-
-    xhr.onabort = function onUploadAbort(){
-      setError({ code: 20, name: "AbortError", message: "Upload was aborted"});
-    }
-
-    let url = new URL(`/tasks/${task.task_id}/artifact`, window.location.href);
-
-
-    xhr.open('PUT', url);
-    xhr.setRequestHeader("Content-Range", `bytes ${starting_offset}-${end_offset-1}/${task.total}`);
-    xhr.send(chunk);
+    //Send the next chunk of the current file
+    const {path, file} = task.entries[task.sentFiles];
+    const sentBytes = task.entries.slice(0, task.sentFiles).reduce((sum, e)=>sum + e.file.size, 0);
+    const start = task.offset;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    sendChunk({
+      id: task.task_id,
+      path,
+      file,
+      start,
+      end,
+      signal: task.signal,
+      onProgress: (loaded)=> update({progress: sentBytes + loaded}),
+    }).then((res)=>{
+      if(!res.complete) return update({active: false, offset: end, progress: sentBytes + end});
+      //The files the complete file needs are to be sent too
+      const candidates = [...task.candidates];
+      const {found, missing} = followInspection(res.body.inspection, {isMain: task.sentFiles === 0, sent: task.entries, candidates});
+      const entries = [...task.entries, ...found];
+      update({
+        active: false,
+        sentFiles: task.sentFiles + 1,
+        offset: 0,
+        progress: sentBytes + file.size,
+        entries,
+        candidates,
+        total: entries.reduce((sum, e)=>sum + e.file.size, 0),
+        missing: [...task.missing, ...missing.map(paths=>({paths, from: path}))],
+      });
+    }).catch((err)=>{
+      //Resume from what the server has confirmed
+      update({progress: sentBytes + start});
+      setError(err);
+    });
   }
 }

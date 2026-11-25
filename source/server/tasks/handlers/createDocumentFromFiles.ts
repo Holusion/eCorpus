@@ -8,8 +8,8 @@ import { SceneLanguage } from "../../utils/languages.js";
 
 
 
-export interface DocumentModel {
-  name?: string;
+/** One of a model's derivatives: a file of the scene */
+export interface DocumentDerivative {
   /**
    * Uri is slightly misleading as it's "relative to scene root"
    * `uri` **WILL** be urlencoded by {@link createDocumentFromFiles} so it should be given in clear text
@@ -18,9 +18,15 @@ export interface DocumentModel {
   byteSize: number;
   numFaces: number;
   imageSize: number;
-  bounds: BoundingBox | null;
   quality: TDerivativeQuality;
   usage: TDerivativeUsage;
+}
+
+export interface DocumentModel {
+  name?: string;
+  bounds: BoundingBox | null;
+  /** The model's derivatives, one per usage and quality */
+  derivatives: Array<DocumentDerivative>;
 };
 
 
@@ -47,22 +53,24 @@ export async function createDocumentFromFiles(
   //dumb inefficient Deep copy because we want to mutate the doc in-place
   document.models ??= [];
   for (let model of models) {
-    const asset: IAsset = {
-      "uri": encodeURIComponent(model.uri),
-      "type": "Model",
-    };
-    for (const k of ["byteSize", "numFaces", "imageSize"] as const) {
-      //Ignore values that does not match schema for those properties
-      if (!Number.isInteger(model[k]) || model[k] < 1) continue;
-      asset[k] = model[k];
-    }
     const _m: IModel = {
       "units": "m", //glTF specification says it's always meters. It's what blender do.
-      "derivatives": [{
-        "usage": model.usage,
-        "quality": model.quality,
-        "assets": [asset]
-      }],
+      "derivatives": model.derivatives.map(derivative => {
+        const asset: IAsset = {
+          "uri": encodeURIComponent(derivative.uri),
+          "type": "Model",
+        };
+        for (const k of ["byteSize", "numFaces", "imageSize"] as const) {
+          //Ignore values that does not match schema for those properties
+          if (!Number.isInteger(derivative[k]) || derivative[k] < 1) continue;
+          asset[k] = derivative[k];
+        }
+        return {
+          "usage": derivative.usage,
+          "quality": derivative.quality,
+          "assets": [asset]
+        };
+      }),
       "annotations": [],
     };
     if (model.bounds

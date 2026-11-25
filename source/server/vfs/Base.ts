@@ -13,6 +13,26 @@ export type Isolate<that, T> = (this: that, vfs :that)=> Promise<T>;
  */
 export type RootRelativePath = string & {_brand: "RootRelativePath"};
 
+/**
+ * Resolve a user-provided path inside a directory.
+ * Nested paths (eg. `textures/diffuse.jpg`) are allowed, as long as they stay within the directory.
+ * @param dir the directory, as an absolute path
+ * @param filepath a path relative to `dir`
+ * @param what how to call `dir` in error messages
+ * @throws {BadRequestError} if filepath is not a relative path to something inside `dir`
+ */
+export function resolveInside(dir: string, filepath: string, what: string = "its folder"): string{
+  if(typeof filepath !== "string" || !filepath || filepath.includes("\0") || path.isAbsolute(filepath)){
+    throw new BadRequestError(`Invalid file path: ${JSON.stringify(filepath)}`);
+  }
+  const resolved = path.resolve(dir, filepath);
+  const rel = path.relative(dir, resolved);
+  if(!rel || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)){
+    throw new BadRequestError(`File path ${JSON.stringify(filepath)} is outside of ${what}`);
+  }
+  return resolved;
+}
+
 export default abstract class BaseVfs extends DbController{
 
   constructor(protected rootDir :string, db :Database){
@@ -98,16 +118,7 @@ export default abstract class BaseVfs extends DbController{
    * @throws {BadRequestError} if filepath is not a relative path to something inside the workspace
    */
   public getTaskFilePath(id: number, filepath: string): string{
-    const dir = this.getTaskWorkspace(id);
-    if(typeof filepath !== "string" || !filepath || filepath.includes("\0") || path.isAbsolute(filepath)){
-      throw new BadRequestError(`Invalid task file path: ${JSON.stringify(filepath)}`);
-    }
-    const resolved = path.resolve(dir, filepath);
-    const rel = path.relative(dir, resolved);
-    if(!rel || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)){
-      throw new BadRequestError(`Task file path ${JSON.stringify(filepath)} is outside of the task's workspace`);
-    }
-    return resolved;
+    return resolveInside(this.getTaskWorkspace(id), filepath, "the task's workspace");
   }
 
   abstract close() :Promise<any>;

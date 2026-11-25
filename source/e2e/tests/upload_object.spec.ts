@@ -2,7 +2,11 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { test, expect } from '../fixtures.js';
-import { readFile } from "node:fs/promises";
+import type { Page } from "@playwright/test";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 const fixtures = path.resolve(import.meta.dirname, "../__test_fixtures");
 
@@ -73,6 +77,8 @@ test("uploads and rename a glb", async ({ page, request }) => {
   await expect(f).toBeVisible();
   await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
   await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
+  //Kept as it was sent
+  await f.getByRole("checkbox", { name: "labels.optimizeModel", exact: false }).uncheck();
   await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
   const uploads = page.getByRole("region", { name: "titles.createdScenes" });
@@ -89,6 +95,13 @@ test("uploads and rename a glb", async ({ page, request }) => {
   expect(doc).toHaveProperty("setups");
   expect(doc.setups).toHaveLength(1);
   expect(doc.setups[0]).toHaveProperty("language", { language: "EN" });
+  //A Thumb is made along with the High quality model
+  expect(doc.models).toHaveLength(1);
+  expect(doc.models[0].derivatives.map((d: any) => [d.quality, d.assets[0].uri])).toEqual([
+    ["High", "cube.glb"],
+    ["Thumb", "cube-thumb.glb"],
+  ]);
+  await expect(await request.get(`/scenes/${name}/cube-thumb.glb`)).toBeOK();
 
 
   res = await request.get(`/scenes/${name}/cube.glb`);
@@ -133,7 +146,6 @@ test("uploads and rename a glb (force FR)", async ({ page, request }) => {
 
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
-  expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });
 
 
@@ -201,9 +213,77 @@ test("upload many glb", async ({ page, request }) => {
   for (let file of files) {
     res = await request.get(`/scenes/${name}/${file.name}`);
     await expect(res).toBeOK();
-    expect(res.headers()).toHaveProperty("etag", '"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
   }
 
+});
+
+/** Upload an obj with the files it refers to: one upload line, with "+2" files */
+async function uploadObjSet(page: Page) {
+  await page.goto("/ui/upload");
+  await page.locator("input[type=\"file\"]").setInputFiles([
+    path.join(fixtures, "cube.obj"),
+    path.join(fixtures, "cube.mtl"),
+    path.join(fixtures, "Diffuse.jpg"),
+  ]);
+  const line = page.locator(".upload-line").filter({ hasText: "cube.obj" });
+  const toggle = line.getByRole("button", { name: "+2" });
+  //The files that come with it are known once the server has inspected the OBJ and the MTL
+  await expect(toggle).toBeVisible();
+  return {
+    name: line.getByText("cube.obj", { exact: true }),
+    toggle,
+    list: line.getByRole("list"),
+  };
+}
+
+test("lists the files that come with a model while its name is hovered", async ({ page }) => {
+  const { name, toggle, list } = await uploadObjSet(page);
+  await expect(list).toBeHidden();
+
+  await name.hover();
+  await expect(list).toBeVisible();
+  await expect(list.getByRole("listitem")).toHaveText(["cube.mtl", "Diffuse.jpg"]);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  //The pointer can go over the list
+  await list.getByRole("listitem").last().hover();
+  await expect(list).toBeVisible();
+  //Clicking keeps it open
+  await name.click();
+  await expect(list).toBeVisible();
+  await list.getByRole("listitem").first().click();
+  await expect(list).toBeVisible();
+
+  await page.getByRole("heading", { level: 1 }).hover();
+  await expect(list).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+  //From the keyboard
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(list).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(list).toBeHidden();
+  await page.keyboard.press("Enter");
+  await expect(list).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(list).toBeHidden();
+});
+
+test.describe("on touch screens", () => {
+  test.use({ hasTouch: true });
+
+  test("lists the files that come with a model when its name is tapped", async ({ page }) => {
+    const { name, list } = await uploadObjSet(page);
+    await name.tap();
+    await expect(list).toBeVisible();
+    await name.tap();
+    await expect(list).toBeHidden();
+    await name.tap();
+    await expect(list).toBeVisible();
+    //Tapping elsewhere closes it
+    await page.getByRole("heading", { level: 1 }).tap();
+    await expect(list).toBeHidden();
+  });
 });
 
 test("uploads an obj with mtl and texture", async ({ page, request }) => {
@@ -216,7 +296,9 @@ test("uploads an obj with mtl and texture", async ({ page, request }) => {
     path.join(fixtures, "Diffuse.jpg"),
   ]);
 
-  await expect(page.getByRole("listitem").getByText("✓")).toHaveCount(3);
+  //One upload: the model, with the files it refers to
+  await expect(page.getByRole("listitem").getByText("✓")).toHaveCount(1);
+  await expect(page.locator(".upload-line").filter({ hasText: "cube.obj" })).toContainText("+2");
 
   const f = page.getByRole("form", { name: "titles.createOrUpdateScene" });
   await expect(f).toBeVisible();
@@ -243,25 +325,140 @@ test("uploads an obj with mtl and texture", async ({ page, request }) => {
   expect(doc).toHaveProperty("models");
   expect(doc.models).toHaveLength(1);
   expect(doc.models[0]).toHaveProperty("derivatives");
-  expect(doc.models[0].derivatives).toEqual([{
+  //A Thumb is made along with the High quality model
+  expect(doc.models[0].derivatives).toEqual(["High", "Thumb"].map(quality => ({
     "assets": [{
-      "byteSize": 3884,
+      "byteSize": expect.any(Number),
+      //The texture was found
       "imageSize": 96,
       "numFaces": 12,
       "type": "Model",
-      "uri": "cube.glb"
+      "uri": quality === "High" ? "cube.glb" : "cube-thumb.glb",
     }],
-    "quality": "High",
+    "quality": quality,
     "usage": "Web3D"
-  }]);
-
+  })));
+  await expect(await request.get(`/scenes/${name}/cube-thumb.glb`)).toBeOK();
 
   res = await request.get(`/scenes/${name}/cube.glb`);
   await expect(res).toBeOK();
-  // It may change without it being a problem. Check the actual file if necessary.
-  expect(res.headers()).toHaveProperty("etag", '"yhH03TGHdkBQgKlzJcPpDFD9XdQk9Wq_vBxCzThegYY"');
+  //The files it refers to were used to make it, they're not in the scene
+  for (const file of ["cube.obj", "cube.mtl", "Diffuse.jpg"]) {
+    expect((await request.get(`/scenes/${name}/${file}`)).status(), file).toBe(404);
+  }
 });
 
+
+test("sends files a model doesn't refer to on their own", async ({ page }) => {
+  await page.goto("/ui/upload");
+  //Playwright can't mix file paths and buffers
+  const files = await Promise.all(["cube.obj", "cube.mtl", "Diffuse.jpg"].map(async (name) => ({
+    name, mimeType: "application/octet-stream", buffer: await readFile(path.join(fixtures, name)),
+  })));
+  await page.locator("input[type=\"file\"]").setInputFiles([
+    ...files,
+    { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("Scanned on a sunny day") },
+  ]);
+  const model = page.locator(".upload-line").filter({ hasText: "cube.obj" });
+  const notes = page.locator(".upload-line").filter({ hasText: "notes.txt" });
+  await expect(page.getByRole("listitem").getByText("✓")).toHaveCount(2);
+  await expect(model.getByRole("button", { name: "+2" })).toBeVisible();
+  //No "+N": it comes alone
+  await expect(notes.getByRole("button")).toHaveCount(0);
+  await expect(model.getByRole("status")).toHaveCount(0);
+});
+
+test("sends what a glTF refers to along with it", async ({ page }) => {
+  //A glTF with its .bin and texture beside it
+  const dir = await mkdtemp(path.join(tmpdir(), "gltf-"));
+  try {
+    await promisify(execFile)("meshtinker", ["import", path.join(fixtures, "cube_textured.glb"), path.join(dir, "cube.gltf")]);
+    const files = await Promise.all((await readdir(dir)).map(async (name) => ({
+      name, mimeType: "application/octet-stream", buffer: await readFile(path.join(dir, name)),
+    })));
+    expect(files.length).toBeGreaterThan(2);
+    await page.goto("/ui/upload");
+    await page.locator("input[type=\"file\"]").setInputFiles([
+      ...files,
+      { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("Scanned on a sunny day") },
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  const model = page.locator(".upload-line").filter({ hasText: "cube.gltf" });
+  await expect(page.getByRole("listitem").getByText("✓")).toHaveCount(2);
+  await expect(model.getByRole("button", { name: "+2" })).toBeVisible();
+  await expect(page.locator(".upload-line").filter({ hasText: "notes.txt" }).getByText("✓")).toBeVisible();
+  await expect(model.getByRole("status")).toHaveCount(0);
+});
+
+test("warns about a file a model refers to that wasn't given", async ({ page }) => {
+  await page.goto("/ui/upload");
+  await page.locator("input[type=\"file\"]").setInputFiles([
+    path.join(fixtures, "cube.obj"),
+    path.join(fixtures, "Diffuse.jpg"),
+  ]);
+  const model = page.locator(".upload-line").filter({ hasText: "cube.obj" });
+  //Only the MTL refers to the texture
+  await expect(page.locator(".upload-line").filter({ hasText: "Diffuse.jpg" }).getByText("✓")).toBeVisible();
+  await expect(model.getByText("✓")).toBeVisible();
+  await expect(model.getByRole("status").getByRole("listitem")).toHaveText(["info.missingUploadFile"]);
+  await expect(model.getByRole("button", { name: /^\+/ })).toHaveCount(0);
+});
+
+test("warns about the files a glTF refers to that weren't given", async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), "gltf-"));
+  let gltf: Buffer;
+  try {
+    await promisify(execFile)("meshtinker", ["import", path.join(fixtures, "cube_textured.glb"), path.join(dir, "cube.gltf")]);
+    gltf = await readFile(path.join(dir, "cube.gltf"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  await page.goto("/ui/upload");
+  await page.locator("input[type=\"file\"]").setInputFiles({ name: "cube.gltf", mimeType: "model/gltf+json", buffer: gltf });
+  const model = page.locator(".upload-line").filter({ hasText: "cube.gltf" });
+  await expect(model.getByText("✓")).toBeVisible();
+  //Its .bin and its texture
+  await expect(model.getByRole("status").getByRole("listitem")).toHaveText(["info.missingUploadFile", "info.missingUploadFile"]);
+});
+
+test("a file given later meets what an earlier upload misses", async ({ page }) => {
+  await page.goto("/ui/upload");
+  const input = page.locator("input[type=\"file\"]");
+  const model = page.locator(".upload-line").filter({ hasText: "cube.obj" });
+  const mtl = page.locator(".upload-line").filter({ hasText: "cube.mtl" });
+  const texture = page.locator(".upload-line").filter({ hasText: "Diffuse.jpg" });
+
+  await input.setInputFiles(path.join(fixtures, "cube.obj"));
+  await expect(model.getByText("✓")).toBeVisible();
+  await expect(model.getByRole("status").getByRole("listitem")).toHaveText(["info.missingUploadFile"]);
+
+  //Uploads are side by side in the scene: the model finds it
+  await input.setInputFiles(path.join(fixtures, "cube.mtl"));
+  await expect(mtl.getByText("✓")).toBeVisible();
+  await expect(model.getByRole("status")).toHaveCount(0);
+  await expect(mtl.getByRole("status").getByRole("listitem")).toHaveText(["info.missingUploadFile"]);
+
+  await input.setInputFiles(path.join(fixtures, "Diffuse.jpg"));
+  await expect(texture.getByText("✓")).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0);
+
+  //It's missing again once removed
+  await texture.getByTitle("remove upload").click();
+  await expect(texture).toHaveCount(0);
+  await expect(mtl.getByRole("status").getByRole("listitem")).toHaveText(["info.missingUploadFile"]);
+});
+
+test("tells a model can't be converted as soon as it's sent", async ({ page }) => {
+  await page.goto("/ui/upload");
+  await page.locator("input[type=\"file\"]").setInputFiles([
+    { name: "remote.obj", mimeType: "model/obj", buffer: Buffer.from("mtllib http://example.com/remote.mtl\nv 0 0 0\n") },
+  ]);
+  const model = page.locator(".upload-line").filter({ hasText: "remote.obj" });
+  await expect(model.getByText("⚠")).toBeVisible();
+  await expect(model).toContainText("errors.upload.convertFailed");
+});
 
 test("uploads and optimize a glb", async ({ page, request }) => {
   test.setTimeout(60000);
@@ -276,7 +473,8 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   await expect(f).toBeVisible();
   await expect(f.getByRole("combobox", { name: "labels.setupLocalization" })).toHaveValue("en");
   await f.getByRole("textbox", { name: "labels.sceneName" }).fill(name);
-  await page.getByRole("checkbox", { name: "labels.optimizeModel", exact: false }).click();
+  //Optimized by default
+  await expect(page.getByRole("checkbox", { name: "labels.optimizeModel", exact: false })).toBeChecked();
 
   await page.getByRole("button", { name: "buttons.uploadScene" }).click();
 
@@ -294,6 +492,13 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   expect(doc).toHaveProperty("setups");
   expect(doc.setups).toHaveLength(1);
   expect(doc.setups[0]).toHaveProperty("language", { language: "EN" });
+  //A Thumb is made along with the High quality model
+  expect(doc.models).toHaveLength(1);
+  expect(doc.models[0].derivatives.map((d: any) => [d.quality, d.assets[0].uri])).toEqual([
+    ["High", "cube.glb"],
+    ["Thumb", "cube-thumb.glb"],
+  ]);
+  await expect(await request.get(`/scenes/${name}/cube-thumb.glb`)).toBeOK();
 
 
   res = await request.get(`/scenes/${name}/cube.glb`);
@@ -301,5 +506,5 @@ test("uploads and optimize a glb", async ({ page, request }) => {
   const headers = res.headers();
   //We check the etag is different from what we'd have if we didn't request optimization
   expect(headers).toHaveProperty("etag");
-  expect(headers).not.toEqual('"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
+  expect(headers.etag).not.toEqual('"4diz3Hx67bxWyU9b_iCJD864pVJ6OGYCPh9sU40QyLs"');
 });

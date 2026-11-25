@@ -32,10 +32,11 @@ test("uses expected units", async ({userPage, createScene})=>{
   // null for synthesized DataTransfer objects — so we drive the hidden
   // <input id="fileInput"> that the same dropzone listens on for change.
   await userPage.locator("sv-explorer-panel #fileInput").setInputFiles(path.join(fixtures, "cube.glb"));
-  const importMenu = userPage.locator("sv-import-menu");
+  const importMenu = userPage.getByRole("dialog", { name: "Import File" });
   await expect(importMenu).toBeVisible();
-  await importMenu.getByText("High", {exact: true}).click();
-  await importMenu.filter({hasText: "Add New Model:"}).getByRole("textbox").fill("Cube2");
+  //Thumb and High are chosen by default
+  await importMenu.getByRole("tab", { name: "New model", exact: true }).click();
+  await importMenu.getByRole("textbox", { name: "Name" }).fill("Cube2");
   await importMenu.getByRole('button', { name: 'Import Model' }).click();
 
   await expect(importMenu).not.toBeVisible();

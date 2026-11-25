@@ -1,87 +1,65 @@
 import { expect } from "chai";
 import path from "path";
-import { Document } from "@gltf-transform/core";
-import type { Primitive } from "@gltf-transform/core";
 
 import { fixturesDir } from "../../__test_fixtures/fixtures.js";
-import { io } from "./io.js";
-import { inspectDocument } from "./inspect.js";
+import { meshtinker, type InspectReport } from "../meshtinker.js";
+import { describeModel } from "./inspect.js";
 
-describe("inspectDocument()", function(){
+describe("describeModel()", function(){
 
-  it("parse etc1s texture size", async function(){
-    const document = await io.read(path.join(fixturesDir, "cube_etc1s.glb"));
-    const desc = inspectDocument(document);
-    expect(desc).to.be.an("object");
-    expect(desc.name).to.equal("Cube");
-    expect(desc.numFaces).to.equal(12);
-    expect(desc.imageSize).to.equal(16);
-    expect(desc.extensions).to.be.an("array");
-    expect(desc.bounds).to.deep.equal({
-      min: [-1, -1, -1],
-      max: [1, 1, 1],
+  for(const fixture of ["cube_etc1s.glb", "cube_webp.glb"]){
+    it(`describes ${fixture}`, async function(){
+      const report = await meshtinker<InspectReport>("inspect", [path.join(fixturesDir, fixture)]);
+      expect(describeModel(report)).to.deep.equal({
+        name: "Cube",
+        numFaces: 12,
+        imageSize: 16,
+        extensions: report.extensions.used,
+        bounds: {
+          min: [-1, -1, -1],
+          max: [1, 1, 1],
+        },
+      });
+    });
+  }
+
+  /** A report of a model without geometry nor images */
+  function emptyReport(scene: InspectReport["scene"]): InspectReport{
+    return {
+      format: 1,
+      tool: {name: "meshtinker-inspect", version: "0.1.0"},
+      input: {byteSize: 48, files: []},
+      extensions: {used: [], required: []},
+      scene,
+      geometry: {meshes: 0, primitives: 0, vertices: 0, faces: 0},
+      images: [],
+      diagnostics: [],
+    };
+  }
+
+  it("describes a model without a scene", function(){
+    expect(describeModel(emptyReport(null))).to.deep.equal({
+      name: "",
+      bounds: null,
+      imageSize: 0,
+      numFaces: 0,
+      extensions: [],
     });
   });
 
-  it("parse webp texture size", async function(){
-    const document = await io.read(path.join(fixturesDir, "cube_webp.glb"));
-    const desc = inspectDocument(document);
-    expect(desc).to.be.an("object");
-    expect(desc.name).to.equal("Cube");
-    expect(desc.numFaces).to.equal(12);
-    expect(desc.imageSize).to.equal(16);
-    expect(desc.extensions).to.be.an("array");
-    expect(desc.bounds).to.deep.equal({
-      min: [-1, -1, -1],
-      max: [1, 1, 1],
-    });
+  it("names a model after its scene when no root node has a name", function(){
+    const desc = describeModel(emptyReport({index: 0, name: "Scene", firstNamedRootNode: null, bounds: null}));
+    expect(desc).to.have.property("name", "Scene");
+    expect(desc).to.have.property("bounds", null);
   });
 
-  it("returns no bounds=null for empty models", async function(){
-    const document = new Document();
-    const desc = inspectDocument(document);
-    expect(desc).to.be.an("object");
-    expect(desc.name).to.equal("");
-    expect(desc.numFaces).to.equal(0);
-    expect(desc.imageSize).to.equal(0);
-    expect(desc.bounds).to.be.null;
+  it("only measures images a base color uses", function(){
+    const report = emptyReport(null);
+    const image = {index: 0, name: null, file: null, mimeType: "image/jpeg", byteSize: 1, occupancy: null};
+    report.images = [
+      {...image, width: 64, height: 32, uses: [{material: 0, slot: "baseColorTexture", texture: 0}]},
+      {...image, index: 1, width: 128, height: 128, uses: [{material: 0, slot: "normalTexture", texture: 1}]},
+    ];
+    expect(describeModel(report)).to.have.property("imageSize", 64);
   });
-
-  it("handles a scene with a mesh that has empty geometry", async function(){
-    const document = new Document();
-    const scene = document.createScene("Scene");
-    scene.setName("Scene");
-    document.getRoot().setDefaultScene(scene);
-    const node = document.createNode("Node");
-    scene.addChild(node);
-    const mesh = document.createMesh("Mesh");
-    // no primitives added — mesh with empty geometry
-    node.setMesh(mesh);
-
-    const desc = inspectDocument(document);
-    expect(desc.numFaces).to.equal(0);
-    expect(desc.bounds, `${JSON.stringify(desc.bounds)}`).to.be.null;
-  });
-
-  it("handles a scene with a single point", async function(){
-    const document = new Document();
-    const scene = document.createScene("Scene");
-    scene.setName("Scene");
-    document.getRoot().setDefaultScene(scene);
-    const node = document.createNode("Node");
-    scene.addChild(node);
-    const mesh = document.createMesh("Mesh");
-    const primitive = document.createPrimitive();
-    primitive.setMode(0 as Parameters<Primitive["setMode"]>[0]); // POINTS
-    const accessor = document.createAccessor().setType("VEC3").setArray(new Float32Array([1, 2, 3]));
-    primitive.setAttribute("POSITION", accessor);
-    mesh.addPrimitive(primitive);
-    node.setMesh(mesh);
-
-    const desc = inspectDocument(document);
-    // POINTS mode (0) has no faces
-    expect(desc.numFaces).to.equal(0);
-    expect(desc.bounds).to.deep.equal({ min: [1, 2, 3], max: [1, 2, 3] });
-  });
-
 });

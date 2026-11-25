@@ -505,7 +505,7 @@ describe("/auth/tokens", function(){
 
     it("task deletion needs tasks:admin, not just tasks:write", async function(){
       //The tasks family follows the standard read<write<admin ladder: deleting
-      //(or overwriting the artifact of) a task is its admin rung.
+      //(or writing the data of an upload to) a task is its admin rung.
       const task = await taskScheduler.create({scene_id: null, user_id: user.uid, type: "test", data: {}});
       await request(this.server).delete(`/tasks/${task.task_id}`)
         .set("Authorization", await scopedBearer(this.server, user, ["tasks:write"]))

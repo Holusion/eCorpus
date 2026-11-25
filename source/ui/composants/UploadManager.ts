@@ -5,6 +5,7 @@ import { toast } from "../state/toast";
 import { formatBytes, binaryUnit } from "./Size";
 import HttpError from "../state/HttpError";
 import { SceneUploadResult, Uploader, UploadOperation } from "../state/uploader";
+import { readDroppedFiles } from "../state/uploads";
 
 
 
@@ -93,16 +94,22 @@ export default class UploadManager extends LitElement{
 
 
   /**
-   * Handles files being dropped onto the upload zone
+   * Handles files being dropped onto the upload zone.
+   * Dropped folders are walked: their structure is kept in uploads.
    */
   public handleDrop = (ev: DragEvent)=>{
     ev.preventDefault();
     ev.stopPropagation();
     this.dragCounter = 0;
     this.classList.remove("drag-active");
-    
-    console.log("Drop :", ev, ev.dataTransfer?.files);
-    this.uploader.handleFiles(ev.dataTransfer?.files!);
+    if(!ev.dataTransfer) return;
+    readDroppedFiles(ev.dataTransfer).then(
+      (files)=>this.uploader.handleFiles(files),
+      (e)=>{
+        console.error("Failed to read dropped files:", e);
+        toast(`Failed to read dropped files: ${e.message}`, "error", 4000);
+      },
+    );
   }
 
   public handleDragover = (ev: DragEvent)=>{
@@ -176,13 +183,99 @@ export default class UploadManager extends LitElement{
    * Renders the warnings and messages returned for an upload, if any
    */
   private renderReport(u: UploadOperation){
-    const warnings = u.warnings ?? [];
+    //Files it misses come first. They're checked against every upload: a later one may bring them.
+    const warnings = [...this.uploader.missingFileWarnings(u), ...(u.warnings ?? [])];
     const messages = u.messages ?? [];
     if(!warnings.length && !messages.length) return null;
     return html`<div class="upload-warnings" role="status">
       ${warnings.length? html`<ul>${warnings.map(w=>html`<li>${w.message}</li>`)}</ul>`: null}
       ${messages.map(m=>html`<p>${m.message}</p>`)}
     </div>`;
+  }
+
+  /*
+   * The list of an upload's other files is a popover anchored to its file name.
+   * - Pointers that can hover (mouse, pen) show it while over the file name, or over the list itself.
+   *   Clicking keeps it open: it's already there.
+   * - Touch toggles it on tap.
+   * - From the keyboard, the "+N" button toggles it.
+   */
+
+  /**
+   * Whether the list was open when the pointer went down on the file name, and with which pointer.
+   * Light dismiss closes it on pointer up, before the click: the click must not open it again.
+   */
+  private companionsWereOpen = false;
+  private companionsPointerType = "";
+  /** Hiding is delayed: the pointer may be on its way from the file name to the list */
+  private companionsHideTimer: ReturnType<typeof setTimeout>|undefined;
+
+  private getCompanions(source: EventTarget|null){
+    return (source as HTMLElement|null)?.querySelector<HTMLElement>(".upload-companions-list") ?? null;
+  }
+
+  private showCompanions(source: HTMLElement){
+    clearTimeout(this.companionsHideTimer);
+    const popover = this.getCompanions(source);
+    if(!popover || popover.matches(":popover-open")) return;
+    //`source` anchors it to the file name (lib.dom doesn't know the option yet)
+    (popover as HTMLElement & {showPopover(options?: {source?: HTMLElement}): void}).showPopover({source});
+  }
+
+  private hideCompanions(source: HTMLElement){
+    clearTimeout(this.companionsHideTimer);
+    const popover = this.getCompanions(source);
+    if(popover?.matches(":popover-open")) popover.hidePopover();
+  }
+
+  private onCompanionsPointerenter = (ev: PointerEvent)=>{
+    if(ev.pointerType === "touch") return;
+    this.showCompanions(ev.currentTarget as HTMLElement);
+  }
+
+  private onCompanionsPointerleave = (ev: PointerEvent)=>{
+    if(ev.pointerType === "touch") return;
+    const source = ev.currentTarget as HTMLElement;
+    clearTimeout(this.companionsHideTimer);
+    this.companionsHideTimer = setTimeout(()=>this.hideCompanions(source), 150);
+  }
+
+  private onCompanionsPointerdown = (ev: PointerEvent)=>{
+    this.companionsPointerType = ev.pointerType;
+    this.companionsWereOpen = !!this.getCompanions(ev.currentTarget)?.matches(":popover-open");
+  }
+
+  private onCompanionsClick = (ev: MouseEvent)=>{
+    const source = ev.currentTarget as HTMLElement;
+    const popover = this.getCompanions(source);
+    //Clicks in the list itself, or in the upload's report, don't close it
+    if(!popover || popover.contains(ev.target as Node) || (ev.target as Element).closest?.(".upload-warnings")) return;
+    //A keyboard click has no pointer down: what's open now is what was open
+    const keyboard = ev.detail === 0;
+    const wasOpen = keyboard ? popover.matches(":popover-open") : this.companionsWereOpen;
+    const touch = !keyboard && this.companionsPointerType === "touch";
+    this.companionsWereOpen = false;
+    if(wasOpen && (keyboard || touch)) this.hideCompanions(source);
+    else this.showCompanions(source);
+  }
+
+  /** Keep the toggle button's state in sync, however the list was opened or closed (eg. light dismiss) */
+  private onCompanionsToggle = (ev: Event)=>{
+    const popover = ev.target as HTMLElement;
+    const open = (ev as Event & {newState?: string}).newState === "open";
+    popover.parentElement?.querySelector(".upload-companions")?.setAttribute("aria-expanded", String(open));
+  }
+
+  /**
+   * Renders the files an upload carries along with its main file, as a "+N" that lists them when clicked
+   */
+  private renderCompanions(u: UploadOperation){
+    const companions = u.entries.slice(1);
+    if(!companions.length) return null;
+    return html`<button type="button" class="upload-companions" aria-expanded="false">+${companions.length}</button>
+      <ul popover class="upload-companions-list" @toggle=${this.onCompanionsToggle}>
+        ${companions.map(e=>html`<li>${e.path}</li>`)}
+      </ul>`;
   }
 
   /**
@@ -247,9 +340,14 @@ export default class UploadManager extends LitElement{
     return html`
     <li id="upload-${u.filename.replace(/[^-_a-z0-9]/g,"_")}" class="upload-line upload-${state}">
       <span class="upload-state">${stateText}</span>
-      <div class="upload-filename">
+      <div class="upload-filename${1 < u.entries.length? " has-companions": ""}" 
+        @pointerenter=${1 < u.entries.length? this.onCompanionsPointerenter: null}
+        @pointerleave=${1 < u.entries.length? this.onCompanionsPointerleave: null}
+        @pointerdown=${1 < u.entries.length? this.onCompanionsPointerdown: null}
+        @click=${1 < u.entries.length? this.onCompanionsClick: null}>
         ${filetype}
-        ${u.filename}
+        <span class="upload-name">${u.filename}</span>
+        ${this.renderCompanions(u)}
         ${this.renderReport(u)}
       </div>
       <span class="upload-progress">${progress}</span>
@@ -420,6 +518,48 @@ export default class UploadManager extends LitElement{
 
         .upload-filename{
           flex-grow: 1;
+        }
+
+        .upload-filename.has-companions{
+          cursor: help;
+        }
+
+        .upload-companions{
+          font: inherit;
+          font-size: .85em;
+          color: inherit;
+          opacity: .7;
+          background: none;
+          border: none;
+          padding: 0 .25rem;
+          cursor: help;
+          &:hover, &[aria-expanded="true"]{
+            opacity: 1;
+          }
+        }
+
+        /* Anchored below the file name that opened it (its popover source).
+         * Without anchor positioning, auto insets leave it where it is in the line */
+        .upload-companions-list{
+          position-area: bottom span-right;
+          position-try-fallbacks: flip-block;
+          inset: auto;
+          margin: 2px 0;
+          max-height: 50vh;
+          max-width: min(40rem, 90vw);
+          overflow: auto;
+          padding: .5rem .75rem .5rem 1.75rem;
+          border: 1px solid #99999988;
+          border-radius: 2px;
+          background: color-mix(var(--color-element, Canvas), #2c2c2c);
+          color: var(--color-text, CanvasText);
+          box-shadow: 0 2px 6px #00000033;
+          font-family: monospace;
+          font-size: .9rem;
+          cursor: auto;
+          li{
+            white-space: nowrap;
+          }
         }
 
         .upload-state{

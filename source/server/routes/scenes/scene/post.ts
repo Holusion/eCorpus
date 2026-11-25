@@ -58,11 +58,16 @@ export default async function postScene(req: Request, res: Response) {
           scene: scene,
           language: language,
           models: [{
-            uri: f.name,
-            quality: "High",
-            usage: "Web3D",
-            byteSize: f.size,
-            ...meta,
+            name: meta.name,
+            bounds: meta.bounds,
+            derivatives: [{
+              uri: f.name,
+              quality: "High",
+              usage: "Web3D",
+              byteSize: f.size,
+              numFaces: meta.numFaces,
+              imageSize: meta.imageSize,
+            }],
           }],
         }
       });

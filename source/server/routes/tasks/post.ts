@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { getLocals, getTaskScheduler, getUser, getVfs } from "../../utils/locals.js";
+import { getLocals, getTaskScheduler, getUser } from "../../utils/locals.js";
 import { BadRequestError } from "../../utils/errors.js";
 import { TaskHandler } from "../../tasks/types.js";
 import { prefers } from "../../utils/prefer.js";
 
 
-import { createSceneFromFiles, delayTask, extractScenesArchives, parseUserUpload } from "../../tasks/handlers/index.js";
+import { createSceneFromFiles, delayTask, extractScenesArchives } from "../../tasks/handlers/index.js";
 import { createLogger } from "../../utils/log/index.js";
 
 const log = createLogger("http:tasks");
@@ -18,7 +18,6 @@ const log = createLogger("http:tasks");
 const userTasks = {
   createSceneFromFiles,
   extractScenesArchives,
-  parseUserUpload,
   delayTask,
 } as const;
 
@@ -29,22 +28,14 @@ function isUserTaskType(t: unknown): t is UserTaskType{
 }
 
 /**
- * Task types created `initializing`: they wait for the client's data.
- * The last `PUT /tasks/:id/artifact` starts them.
- */
-const initializeTasks: ReadonlySet<UserTaskType> = new Set(["parseUserUpload"]);
-
-
-/**
- * Create a task.
- * - an upload task waits for its data and returns `201 Created` immediately.
- * - any other task starts at once and answers one of:
+ * Create a task. It starts at once and answers one of:
  *   - `202 Accepted` after creation if `Prefer: respond-async` was specified
  *   - `200 OK` after completion in all other cases
- * Clients don't choose the initial status. A `status` matching the type's is accepted for compatibility.
+ * Clients don't choose the initial status. `status: "pending"` is accepted for compatibility.
+ *
+ * Uploads are not created here: see `POST /uploads`.
  */
 export async function createUserTask(req: Request, res: Response){
-  const vfs = getVfs(req);
   const taskScheduler = getTaskScheduler(req);
   const requester = getUser(req)!;
   const {type, data, status: requestedStatus} = req.body;
@@ -56,9 +47,9 @@ export async function createUserTask(req: Request, res: Response){
 
   const handler = userTasks[type] as TaskHandler;
 
-  const status = initializeTasks.has(type)? "initializing": "pending";
+  const status = "pending";
   if(typeof requestedStatus !== "undefined" && requestedStatus !== status){
-    throw new BadRequestError(`${type} tasks are created with status ${status}, not ${requestedStatus}. Status can be omitted.`);
+    throw new BadRequestError(`Tasks are created with status ${status}, not ${requestedStatus}. Status can be omitted.`);
   }
 
   //We perform **NO** data validation here, which might be a security hole
@@ -73,11 +64,7 @@ export async function createUserTask(req: Request, res: Response){
 
   const location = `/tasks/${task.task_id}`;
 
-  if(status === "initializing"){
-    await vfs.createTaskWorkspace(task.task_id);
-    res.set("Location", location);
-    res.status(201).send(task);
-  }else if(prefers(req, "respond-async")){
+  if(prefers(req, "respond-async")){
     //Before it starts: the task can't settle unnoticed
     await getLocals(req).notifications.notify(task);
     //The outcome is recorded on the task and reaches the requester as a notification
