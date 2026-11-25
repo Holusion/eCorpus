@@ -15,6 +15,11 @@ export interface GetTagsParams{
   offset?: number;
   /** Limit result set */
   limit?: number;
+  /**
+   * Only count scenes this user can read: `null` for anonymous users.
+   * Leave it out to count all scenes, regardless of permissions.
+   */
+  user_id?: number|null;
 }
 
 export default abstract class TagsVfs extends BaseVfs{
@@ -81,11 +86,32 @@ export default abstract class TagsVfs extends BaseVfs{
     return !!r.changes;
   }
 
-  async getTags({like, offset, limit}: GetTagsParams ={}):Promise<Tag[]>{
+  async getTags({like, offset, limit, user_id}: GetTagsParams ={}):Promise<Tag[]>{
     let args :any[]= [];
-    let fragments = {like: "", offset: "", limit: ""};
+    let fragments = {like: "", access: "", offset: "", limit: ""};
     if(like){
       fragments.like = `AND tag_name ~* $${args.push(like)}::text COLLATE "default"`
+    }
+    if(typeof user_id === "number"){
+      const idx = args.push(user_id);
+      // The user's readable scenes are looked up once (hashed subqueries) rather than per scene:
+      // per-scene lookups made the full list (tag suggestions on every scene page) 3 to 6 times slower.
+      // Semi-joins also never count a scene twice when several ACLs match.
+      fragments.access = `AND (
+        (SELECT level FROM users WHERE user_id = $${idx}) = ${UserLevels.ADMIN}
+        OR GREATEST(scenes.default_access, scenes.public_access) >= ${toAccessLevel("read")}
+        OR scene_id IN (
+          SELECT fk_scene_id FROM users_acl
+          WHERE fk_user_id = $${idx} AND access_level >= ${toAccessLevel("read")}
+        )
+        OR scene_id IN (
+          SELECT fk_scene_id FROM groups_acl
+          INNER JOIN groups_membership USING(fk_group_id)
+          WHERE groups_membership.fk_user_id = $${idx} AND access_level >= ${toAccessLevel("read")}
+        )
+      )`;
+    }else if(user_id === null){
+      fragments.access = `AND scenes.public_access >= ${toAccessLevel("read")}`;
     }
     if(typeof limit === "number"){
       fragments.limit = `LIMIT $${args.push(limit)}`;
@@ -104,6 +130,7 @@ export default abstract class TagsVfs extends BaseVfs{
           INNER JOIN scenes ON fk_scene_id = scene_id
         WHERE scenes.archived IS NULL
           ${fragments.like}
+          ${fragments.access}
         GROUP BY name
         ORDER BY name ASC
         ${fragments.limit}
@@ -112,6 +139,7 @@ export default abstract class TagsVfs extends BaseVfs{
       args
     );
   }
+
 
   /** 
    * Get all scenes that have this tag, regardless of permissions

@@ -74,7 +74,7 @@ routes.get("/embeds", async (req, res)=>{
   let tag = queryTag;
   let scene = queryScene;
   if(isTag && !tag){
-    const [first] = await vfs.getTags({limit: 1});
+    const [first] = await vfs.getTags({limit: 1, user_id: requester?.uid ?? null});
     tag = first?.name ?? "";
   }
   if(isScene && !scene){

@@ -40,5 +40,19 @@ describe("GET /tags", function(){
       let ref = await vfs.getScene(s1, user.uid);
       expect(body).to.deep.equal([{name: "a", size: 1}, {name: "b", size: 1}]);
     });
+
+    it("doesn't list or count scenes the user can't read", async function(){
+      await vfs.createScene("foo", user.uid);
+      await vfs.addTag("foo", "a");
+      for(const name of ["private-1", "private-2"]){
+        await vfs.createScene(name);
+        await userManager.setPublicAccess(name, "none");
+        await userManager.setDefaultAccess(name, "none");
+        await vfs.addTag(name, "a");
+      }
+      await vfs.addTag("private-1", "hidden");
+      let {body} = await this.agent.get("/tags").expect(200);
+      expect(body).to.deep.equal([{name: "a", size: 1}]);
+    });
   });
 });

@@ -44,7 +44,7 @@ routes.get("/", async (req, res)=>{
   
   let [scenes, serverTags] =  await Promise.all([
     (await vfs.getScenes(u? u.uid:undefined, sceneParams)).map(mapScene.bind(null, req)),
-    vfs.getTags(),
+    vfs.getTags({user_id: u?.uid ?? null}),
   ]);
 
   let pager = {
@@ -91,7 +91,7 @@ routes.get("/:scene", async (req, res)=>{
   let [permissions, meta, serverTags] = await Promise.all([
     um.getAcl(scene.id),
     vfs.getSceneMeta(scene_name),
-    vfs.getTags(),
+    vfs.getTags({user_id: requester?.uid ?? null}),
   ]);
 
   const groupPermissions = permissions.filter((permission)=>("groupName" in permission));
@@ -270,7 +270,7 @@ routes.get("/:scene/settings", policy({ access: "admin" }), async (req, res) => 
 
   const [permissions, serverTags] = await Promise.all([
     um.getAcl(scene.id),
-    vfs.getTags(),
+    vfs.getTags({user_id: requester?.uid ?? null}),
   ]);
 
   const groupPermissions = permissions.filter(p => "groupName" in p);
