@@ -236,6 +236,16 @@ function registerBatchTag({tagName, addTag, removeTag}:BatchTagElements, selecti
     }
   });
 
+  // Enter in the tag field adds the tag, like the "+" button.
+  // Without this, the browser would submit the selection form.
+  tagName.addEventListener("keydown", function onKeyDown(ev: KeyboardEvent){
+    if(ev.key !== "Enter" || ev.isComposing) return;
+    ev.preventDefault();
+    if (tagName.value.length > 0) {
+      act("create");
+    }
+  });
+
   removeTag.addEventListener("click", function onRemove(ev: MouseEvent){
     ev.preventDefault();
     if (tagName.value.length > 0) {
@@ -259,7 +269,8 @@ function registerBatchTag({tagName, addTag, removeTag}:BatchTagElements, selecti
   const form = document.querySelector("#scenes-selection");
   if(!form && scenes) throw new Error("No form matching #scenes-selection found on this page");
   if(!(form instanceof HTMLFormElement)) throw new Error("Matched element is not a form");
-  //registerForm(form, selection);
+  // This form only groups the selection inputs: it is never meant to be submitted.
+  form.addEventListener("submit", (ev)=> ev.preventDefault());
 
   for(const card of scenes){
     registerSceneCard(card, selection);
