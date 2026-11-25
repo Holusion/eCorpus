@@ -258,7 +258,7 @@
         <div class="form-item" style="display:flex;flex-direction:row;align-items:center; gap:.5rem;">
           <label><span class="hidden">{{@index}}</span></label>
           <span class="form-input">
-            <a href="/ui/tags/{{.}}" style="flex-grow:1;">{{.}}</a>
+            <a href="/ui/tags/{{encodeURIComponent .}}" style="flex-grow:1;">{{.}}</a>
             <label class="btn btn-danger" style="align-self: end" title="{{i18n "labels.delete"}}">
               <input type="checkbox" name="tags" checked value="{{.}}" aria-label="{{.}}" style="position:absolute;width:1px;height:1px;opacity:0;"/>
               <ui-icon name="trash"></ui-icon>
