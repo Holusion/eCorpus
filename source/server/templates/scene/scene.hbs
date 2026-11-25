@@ -18,7 +18,7 @@
     <div id="show-tags">
       <div class="tags-list">
         {{#each scene.tags}}
-            <a class="btn btn-main btn-small" href="/ui/tags/{{.}}">{{.}}</a>
+            <a class="btn btn-main btn-small" href="/ui/tags/{{encodeURIComponent .}}">{{.}}</a>
         {{/each}}
         {{#unless scene.tags}}
           {{#if (accessLevel access "admin")}}

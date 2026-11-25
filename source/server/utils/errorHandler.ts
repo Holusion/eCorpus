@@ -36,10 +36,21 @@ function localizedMessage(error:HTTPError|Error, req:Request, res:Response):stri
   return translateErrorMessage(error, lng);
 }
 
+/**
+ * Status code of an error that is not one of our {@link HTTPError}s.
+ * Express and its middlewares (router, body-parser…) flag client errors with a `status` or `statusCode`,
+ * e.g. a 400 for a path param that isn't valid UTF-8. Anything outside the 4xx range stays a server fault.
+ */
+function foreignErrorCode(error:Error):number{
+  const status = (error as {status?:unknown}).status ?? (error as {statusCode?:unknown}).statusCode;
+  if(typeof status === "number" && Number.isInteger(status) && 400 <= status && status < 500) return status;
+  return 500;
+}
+
 export function errorHandlerMdw(){
   return function errorHandler(error:HTTPError|Error, req:Request, res:Response, next:NextFunction){
 
-    const code = (error instanceof HTTPError )? error.code : 500;
+    const code = (error instanceof HTTPError )? error.code : foreignErrorCode(error);
 
     if (isClientDisconnect(req, res)) {
       // Checked before `res.headersSent`, which is still false when an upload is
