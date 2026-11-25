@@ -190,6 +190,31 @@ describe("errorHandler middleware", function(){
       expect(res.headers).to.have.property("www-authenticate").match(/^Bearer /);
     });
 
+    describe("errors from other libraries", function(){
+      it("answers 400 to a path param that isn't valid UTF-8", async function(){
+        //Express flags its own decoding failure with `status = 400`
+        let app :Express = express();
+        app.get("/tags/:tag", (req, res)=>{ res.send(req.params.tag) });
+        app.use(errorHandlerMdw());
+
+        const res = await request(app).get("/tags/%E0trier")
+        .set("Accept", "application/json")
+        .expect(400);
+        expect(res.body).to.have.property("code", 400);
+        expect(res.body.message).to.match(/Failed to decode param/);
+      });
+
+      it("ignores a status outside of the client error range", async function(){
+        let app :Express = express();
+        app.get("/", ()=>{ throw Object.assign(new Error("upstream"), {status: 302, statusCode: 302}) });
+        app.get("/bad", ()=>{ throw Object.assign(new Error("upstream"), {status: "404"}) });
+        app.use(errorHandlerMdw());
+
+        await request(app).get("/").set("Accept", "application/json").expect(500);
+        await request(app).get("/bad").set("Accept", "application/json").expect(500);
+      });
+    });
+
     describe("client disconnects", function(){
       /**
        * Drives a real socket against `app` so the client can hang up mid-request,
