@@ -1,65 +1,149 @@
-import { spawn, SpawnOptionsWithoutStdio } from "child_process";
-import { once } from "events";
+import * as child_process from "child_process";
+import { createInterface } from "readline";
 import { ITaskLogger } from "../tasks/types.js";
+
+
+export interface OutputLine {
+  /** Which stream the line was read from */
+  fd: "stdout" | "stderr";
+  /** Line content, without its trailing line break */
+  line: string;
+}
+
+export interface SpawnOptions extends child_process.SpawnOptionsWithoutStdio {
+  /**
+   * Maximum number of lines buffered while the consumer is busy.
+   * Child's output streams will be paused beyond this, which in turn blocks the child on write.
+   * @default 1000
+   */
+  highWaterMark?: number;
+}
+
+/**
+ * Error thrown when a command exits with a non-zero code or is killed by a signal
+ */
+export class ExecError extends Error {
+  constructor(
+    public readonly cmd: string,
+    public readonly code: number | null,
+    public readonly signal: NodeJS.Signals | null,
+  ) {
+    super(typeof code === "number"
+      ? `Command ${cmd} exited with non-zero error code: ${code}`
+      : `Command ${cmd} was interrupted by signal ${signal}`
+    );
+    this.name = "ExecError";
+  }
+}
+
+
+/**
+ * Spawns a command and yields its output **line by line, as it arrives**.
+ * stdout and stderr lines are interleaved in the order they were received.
+ *
+ * Resolves (ends the iteration) when the process exits with code 0 and all its output has been consumed.
+ * Throws an {@link ExecError} if the process exits with a non-zero code or is killed by a signal.
+ * Throws the spawn error if the process could not be started (eg. `ENOENT`) or if `opts.signal` was aborted.
+ *
+ * If the consumer stops iterating early (`break`, `return` or a thrown error),
+ * the child process is killed.
+ *
+ * @example
+ * for await (const {fd, line} of run("ktx", ["--version"])){
+ *   console.log(`[${fd}] ${line}`);
+ * }
+ */
+export async function* run(cmd: string, args: string[], { highWaterMark = 1000, ...opts }: SpawnOptions = {}): AsyncGenerator<OutputLine, void, undefined> {
+  const child = child_process.spawn(cmd, args, opts);
+
+  const queue: OutputLine[] = [];
+  let error: Error | null = null;
+  let closed = false;
+  // Wakes up the generator when something happens
+  let notify: (() => void) | null = null;
+  const wake = () => {
+    const n = notify;
+    notify = null;
+    n?.();
+  };
+
+  // Readline interfaces throw (since node 24) if paused/resumed after they are closed
+  // so we keep track of their state explicitly
+  const readers = (["stdout", "stderr"] as const).map(fd => {
+    const reader = {
+      rl: createInterface({ input: child[fd], crlfDelay: Infinity }),
+      paused: false,
+      closed: false,
+    };
+    reader.rl.on("line", (line) => {
+      queue.push({ fd, line });
+      if (highWaterMark <= queue.length && !reader.paused && !reader.closed) {
+        reader.paused = true;
+        reader.rl.pause();
+      }
+      wake();
+    });
+    reader.rl.on("close", () => reader.closed = true);
+    return reader;
+  });
+
+  child.on("error", (e) => {
+    // A failed spawn won't necessarily emit "close"
+    error ??= e;
+    wake();
+  });
+  // "close" is emitted after the stdio streams have ended, so all lines have been queued by then.
+  child.on("close", (code, signal) => {
+    closed = true;
+    if (!error && code !== 0) error = new ExecError(cmd, code, signal);
+    wake();
+  });
+
+  try {
+    while (true) {
+      if (queue.length) {
+        const item = queue.shift()!;
+        if (queue.length < highWaterMark / 2) {
+          for (const reader of readers) {
+            if (!reader.paused || reader.closed) continue;
+            reader.paused = false;
+            reader.rl.resume();
+          }
+        }
+        yield item;
+      } else if (error) {
+        throw error;
+      } else if (closed) {
+        return;
+      } else {
+        await new Promise<void>(resolve => notify = resolve);
+      }
+    }
+  } finally {
+    for (const reader of readers) {
+      if (!reader.closed) reader.rl.close();
+    }
+    if (child.exitCode === null && child.signalCode === null) {
+      // Consumer stopped early, or spawn failed after the process was created
+      child.kill();
+    }
+  }
+}
 
 
 /**
  * Run a command with a {@link ITaskLogger} instrumentation
- * stdout will be piped to `logger.debug` and stderr to `logger.warn`
+ * stdout will be piped to `logger.debug` and stderr to `logger.warn`, line by line.
  * The promise will then be rejected only if exit code != 0
  */
-
 export async function taskRun(cmd: string, args: string[], { logger, ...opts }: RunCommandOpts): Promise<void> {
-  let child = spawn(cmd, args, opts);
-
-  child.stdout.setEncoding("utf-8");
-  child.stdout.on("data", (chunk) => logger.debug(chunk));
-  child.stderr.setEncoding("utf-8");
-  child.stderr.on("data", (chunk) => logger.warn(chunk));
-
-  try {
-    let [code, signal] = await once(child, "close");
-    if (typeof code !== "number") {
-      let e: any = new Error(`Command ${cmd} was interrupted by signal ${signal}`);
-      throw e;
-    } else if (code != 0) {
-      throw new Error(`Command ${cmd} exitted with non-zero error code: ${code}`);
-    }
-  } finally {
-    child.stdout.removeAllListeners();
-    child.stderr.removeAllListeners();
+  for await (const { fd, line } of run(cmd, args, opts)) {
+    if (fd === "stdout") logger.debug(line);
+    else logger.warn(line);
   }
 }
 
-
-/**
- * Wrapper around `spawn` that gathers stdout/stderr to a string
- */
-export async function run(cmd: string, args: string[], opts?: SpawnOptionsWithoutStdio): Promise<{ code: number; stdout: string; stderr: string; }> {
-  let child = spawn(cmd, args, opts);
-
-  let stdout: string = "";
-  let stderr: string = "";
-  child.stdout.setEncoding("utf-8");
-  child.stdout.on("data", (chunk) => stdout += chunk);
-  child.stderr.setEncoding("utf-8");
-  child.stderr.on("data", (chunk) => stderr += chunk);
-
-  try {
-    let [code, signal] = await once(child, "close");
-    if (typeof code !== "number") {
-      let e: any = new Error(`Command ${cmd} was interrupted by signal ${signal}`);
-      e.stdout = stdout;
-      e.stderr = stderr;
-      throw e;
-    }
-    return { code, stdout, stderr };
-  } finally {
-    child.stdout.removeAllListeners();
-    child.stderr.removeAllListeners();
-  }
-}
-export interface RunCommandOpts extends SpawnOptionsWithoutStdio {
+export interface RunCommandOpts extends SpawnOptions {
   logger: ITaskLogger;
 }
 
@@ -67,10 +151,12 @@ export interface RunCommandOpts extends SpawnOptionsWithoutStdio {
  * spawn the ktx utility to get its version string and parse it
  */
 export async function getKtxVersion(): Promise<string> {
+  let output = "";
+  for await (const { line } of run('ktx', ['--version'])) {
+    output ||= line.trim();
+  }
 
-  const { stdout, stderr } = await run('ktx', ['--version']);
-
-  const version = ((stdout || stderr) as string)
+  const version = output
     .replace(/ktx version:\s+/, '')
     .replace(/~\d+/, '')
     .trim();

@@ -21,8 +21,7 @@ import os from 'os';
 import path, { join } from 'path';
 import sharp from 'sharp';
 
-import { run } from "../exec.js";
-import { getKtxVersion } from "../exec.js";
+import { run, ExecError, getKtxVersion } from "../exec.js";
 import { formatBytes } from '../format.js';
 
 const NUM_CPUS = os.cpus().length || 1;
@@ -170,16 +169,19 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
       logger.debug(`${prefix}: Spawning → ktx ${params.join(' ')}`);
 
       // COMPRESS: Run `ktx create` CLI tool.
-      const { code, stdout, stderr} = await  run('ktx', params as string[]);
-
-      if (code !== 0) {
-        logger.error(`${prefix}: Failed with code [${code}]:\n\n${stderr.toString()}`);
-      } else {
+      try{
+        for await (const {fd, line} of run('ktx', params as string[])){
+          if(fd === "stdout") logger.debug(`${prefix}: ${line}`);
+          else logger.warn(`${prefix}: ${line}`);
+        }
         // PACK: Replace image data in the glTF asset.
         texture.setImage(await fs.readFile(dstPath) as any).setMimeType('image/ktx2');
         if (texture.getURI()) {
           texture.setURI(FileUtils.basename(texture.getURI()) + '.ktx2');
         }
+      }catch(e){
+        if(!(e instanceof ExecError)) throw e;
+        logger.error(`${prefix}: ${e.message}`);
       }
 
       const dstBytes = texture.getImage()!.byteLength;
