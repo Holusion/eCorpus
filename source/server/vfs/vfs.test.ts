@@ -1130,6 +1130,75 @@ describe("Vfs", function(){
             await vfs.archiveScene(scene_id);
             expect(await vfs.getTags()).to.deep.equal([]);
           });
+
+          describe("with a user_id", function(){
+            let userManager :UserManager, alice :User, bob :User;
+            this.beforeEach(async function(){
+              userManager = new UserManager(vfs._db);
+              alice = await userManager.addUser("alice", "12345678", "admin");
+              bob = await userManager.addUser("bob", "12345678", "create");
+              //scene_id is public. Add a private scene sharing its tag, and one with a tag of its own
+              await vfs.addTag(scene_id, "shared");
+              for(const name of ["private-1", "private-2"]){
+                await vfs.createScene(name, alice.uid);
+                await userManager.setPublicAccess(name, "none");
+                await userManager.setDefaultAccess(name, "none");
+                await vfs.addTag(name, "shared");
+              }
+              await vfs.addTag("private-1", "hidden");
+            });
+
+            it("only counts scenes readable by anonymous users", async function(){
+              expect(await vfs.getTags({user_id: null})).to.deep.equal([
+                {name: "shared", size: 1},
+              ]);
+            });
+
+            it("only counts scenes readable by the user", async function(){
+              expect(await vfs.getTags({user_id: bob.uid})).to.deep.equal([
+                {name: "shared", size: 1},
+              ]);
+              await userManager.grant("private-1", bob.uid, "read");
+              expect(await vfs.getTags({user_id: bob.uid})).to.deep.equal([
+                {name: "hidden", size: 1},
+                {name: "shared", size: 2},
+              ]);
+            });
+
+            it("counts scenes readable through a group", async function(){
+              const group = await userManager.addGroup("collection-group");
+              await userManager.addMemberToGroup(bob.uid, group.groupUid);
+              await userManager.grantGroup("private-2", group.groupUid, "read");
+              expect(await vfs.getTags({user_id: bob.uid})).to.deep.equal([
+                {name: "shared", size: 2},
+              ]);
+            });
+
+            it("counts scenes readable by default by authenticated users", async function(){
+              await userManager.setDefaultAccess("private-2", "read");
+              expect(await vfs.getTags({user_id: bob.uid})).to.deep.equal([
+                {name: "shared", size: 2},
+              ]);
+              expect(await vfs.getTags({user_id: null})).to.deep.equal([
+                {name: "shared", size: 1},
+              ]);
+            });
+
+            it("counts all scenes for admins", async function(){
+              expect(await vfs.getTags({user_id: alice.uid})).to.deep.equal([
+                {name: "hidden", size: 1},
+                {name: "shared", size: 3},
+              ]);
+            });
+
+            it("paginates over readable tags", async function(){
+              //"hidden" sorts first: it must not use up the page
+              expect(await vfs.getTags({user_id: bob.uid, limit: 1})).to.deep.equal([
+                {name: "shared", size: 1},
+              ]);
+              expect(await vfs.getTags({user_id: bob.uid, limit: 1, offset: 1})).to.deep.equal([]);
+            });
+          });
         });
 
         describe("getTag()", function(){

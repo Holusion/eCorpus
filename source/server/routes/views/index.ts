@@ -37,7 +37,7 @@ routes.get("/", async (req, res)=>{
       orderDirection: "desc",
       archived: false,
     }),
-    vfs.getTags({limit: 4}),
+    vfs.getTags({limit: 4, user_id: uid ?? null}),
     (user && user.level !== "none") ? vfs.getScenes(uid, {
       limit: 10,
       orderBy: "mtime",

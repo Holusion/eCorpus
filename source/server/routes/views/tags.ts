@@ -23,7 +23,10 @@ routes.get("/", async (req, res)=>{
 
 
 
-  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string, type: SceneType | "more"}[]}> = await vfs.getTags({like: match, limit, offset});
+  //Query one more tag than we show, to know whether there is a next page
+  let tags: Array<{name: string, size: number, scenes?: {name: string, thumb:string|null|undefined, uri:string, type: SceneType | "more"}[]}> = await vfs.getTags({like: match, limit: limit + 1, offset, user_id: requester?.uid ?? null});
+  const hasNext = limit < tags.length;
+  tags = tags.slice(0, limit);
   for(let tag of tags){
     let scene_ids = await vfs.getTag(tag.name, requester?.uid ?? null);
     tag.scenes ??= [];
@@ -44,7 +47,7 @@ routes.get("/", async (req, res)=>{
     next: undefined as any,
     previous: undefined as any
   };
-  if(limit === tags.length){
+  if(hasNext){
     const nextUrl = new URL(req.originalUrl, host);
     nextUrl.searchParams.set("offset", (offset+limit).toString());
     pager.next = nextUrl.pathname+nextUrl.search;
@@ -60,7 +63,7 @@ routes.get("/", async (req, res)=>{
     layout: embedded? "embed": "main",
     embedded,
     title: "Tags",
-    tags: tags.filter(t=>t.scenes?.length),
+    tags,
     match,
     pager,
   });
