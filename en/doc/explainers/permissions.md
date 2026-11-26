@@ -30,13 +30,13 @@ The settings described here are available to anyone holding the **administration
 
 The settings live on the scene **Settings** page.
 
-<img src="/assets/img/doc/Confidentialite_01_en.png" width="100%" alt="Settings page of a scene, access rights section" />
+<img src="/assets/img/doc/Confidentialite_01_en.jpg" width="100%" alt="Settings page of a scene, access rights section" />
 
 1. Open the scene from your list of scenes.
 2. Click **Settings** in the scene toolbar, or click the scene name. The page address ends with `/settings`.
 3. Look for the **Access rights** section: it is the table shown below.
 
-<img src="/assets/img/doc/Confidentialite_02_en.png" width="100%" alt="Access rights table: public access, default access, groups, users" />
+<img src="/assets/img/doc/Confidentialite_02_en.jpg" width="100%" alt="Access rights table: public access, default access, groups, users" />
 
 The table reads from top to bottom:
 
@@ -68,7 +68,7 @@ The scene can then also be embedded in a web page through the [oEmbed](../tutori
 
 Public access can never go beyond read: anonymous visitors cannot be allowed to modify a scene.
 
-<img src="/assets/img/doc/Confidentialite_03_en.png" width="450" alt="Public badge and open padlock on a scene open to everyone" />
+<img src="/assets/img/doc/Confidentialite_03_en.jpg" width="450" alt="Public badge and open padlock on a scene open to everyone" />
 
 The **Public** badge means public access is open: the scene is visible without an account. The **open** padlock means connected users can at least view it.
 
@@ -82,7 +82,7 @@ This is the right setting for internal databases, for teaching projects where ev
 
 It is also the right choice when a server is dedicated to one team and there is no confidentiality issue between the collaborators.
 
-<img src="/assets/img/doc/Confidentialite_04_en.png" width="450" alt="Private badge and open padlock on a scene restricted to connected users" />
+<img src="/assets/img/doc/Confidentialite_04_en.jpg" width="450" alt="Private badge and open padlock on a scene restricted to connected users" />
 
 Here the **Private** badge means public access is closed: a visitor who is not signed in sees nothing. The padlock stays **open** because connected users can view the scene. This is the "restricted to connected users" case.
 
@@ -94,7 +94,7 @@ Nobody can see the scene, except the users and groups you have granted a specifi
 
 This is the right setting for a scene being prepared, and the only one that guarantees a scene stays invisible until you decide otherwise, even for the other users of the server.
 
-<img src="/assets/img/doc/Confidentialite_05_en.png" width="450" alt="Private badge and closed padlock on a fully private scene" />
+<img src="/assets/img/doc/Confidentialite_05_en.jpg" width="450" alt="Private badge and closed padlock on a fully private scene" />
 
 The **closed** padlock means that even connected users have no default right: only specific rights open the scene. This is the truly private case.
 
@@ -160,7 +160,7 @@ A group therefore ties two things together: **members** (accounts) and **scenes*
 
 ### Creating a group
 
-<img src="/assets/img/doc/Confidentialite_06_en.png" width="100%" alt="Group management in the administration interface" />
+<img src="/assets/img/doc/Confidentialite_06_en.jpg" width="100%" alt="Group management in the administration interface" />
 
 1. Open **Administration**, then **Groups**.
 2. Type the new group's name in the field at the top right, next to the **+** button.
@@ -170,7 +170,7 @@ To delete a group, use the bin icon on its row. Deleting removes the group and i
 
 ### Adding members to the group
 
-<img src="/assets/img/doc/Confidentialite_07_en.png" width="100%" alt="A group page: members and authorised scenes" />
+<img src="/assets/img/doc/Confidentialite_07_en.jpg" width="100%" alt="A group page: members and authorised scenes" />
 
 1. Click the group name in the list.
 2. In the **Group Members** section, type the username in the field, then click **+**.
