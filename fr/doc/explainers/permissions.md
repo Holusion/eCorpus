@@ -30,13 +30,13 @@ Les réglages décrits ici sont accessibles à toute personne qui dispose du dro
 
 Les réglages se trouvent dans la page **Paramètres** de la scène.
 
-<img src="/assets/img/doc/Confidentialite_01.png" width="100%" alt="Page de paramètres d'une scène, section Droits d'accès" />
+<img src="/assets/img/doc/Confidentialite_01.jpg" width="100%" alt="Page de paramètres d'une scène, section Droits d'accès" />
 
 1. Ouvrez la scène depuis la liste de vos scènes.
 2. Cliquez sur **Paramètres** dans la barre d'outils de la scène, ou sur son nom. L'adresse de la page se termine par `/settings`.
 3. Cherchez la section **Droits d'accès** : c'est le tableau reproduit ci-dessous.
 
-<img src="/assets/img/doc/Confidentialite_02.png" width="100%" alt="Tableau des droits d'accès : accès public, accès par défaut, groupes, utilisateurs" />
+<img src="/assets/img/doc/Confidentialite_02.jpg" width="100%" alt="Tableau des droits d'accès : accès public, accès par défaut, groupes, utilisateurs" />
 
 Le tableau se lit de haut en bas :
 
@@ -68,7 +68,7 @@ La scène peut alors également être intégrée sur une page web via le protoco
 
 L'accès public ne peut jamais aller au-delà de la lecture : on ne peut pas autoriser des visiteurs anonymes à modifier une scène.
 
-<img src="/assets/img/doc/Confidentialite_03.png" width="450" alt="Badge Publique et cadenas ouvert sur une scène accessible à tous" />
+<img src="/assets/img/doc/Confidentialite_03.jpg" width="450" alt="Badge Publique et cadenas ouvert sur une scène accessible à tous" />
 
 Le badge **Publique** indique que l'accès public est ouvert : la scène est visible sans compte. Le cadenas **ouvert** indique que les personnes connectées peuvent au moins la consulter.
 
@@ -82,7 +82,7 @@ C'est le réglage adapté aux bases internes, aux projets d'enseignement où tou
 
 C'est aussi le bon choix quand un serveur est dédié à une équipe et qu'il n'y a pas de problème de confidentialité entre les collaborateurs.
 
-<img src="/assets/img/doc/Confidentialite_04.png" width="450" alt="Badge Privée et cadenas ouvert sur une scène réservée aux utilisateurs connectés" />
+<img src="/assets/img/doc/Confidentialite_04.jpg" width="450" alt="Badge Privée et cadenas ouvert sur une scène réservée aux utilisateurs connectés" />
 
 Ici le badge **Privée** signifie que l'accès public est fermé : un visiteur non connecté ne voit rien. Le cadenas reste **ouvert** car les personnes connectées, elles, peuvent consulter la scène. C'est le cas « réservé aux utilisateurs connectés ».
 
@@ -95,7 +95,7 @@ Personne ne peut voir la scène, sauf les utilisateurs et les groupes auxquels v
 C'est le réglage adapté pour une scène en cours de préparation, et le seul qui garantisse qu'une scène reste invisible tant que vous n'en avez pas décidé autrement, même pour les autres usagers du serveur.
 
 
-<img src="/assets/img/doc/Confidentialite_05.png" width="450" alt="Badge Privée et cadenas fermé sur une scène entièrement privée" />
+<img src="/assets/img/doc/Confidentialite_05.jpg" width="450" alt="Badge Privée et cadenas fermé sur une scène entièrement privée" />
 
 Le cadenas **fermé** indique que même les personnes connectées n'ont aucun droit par défaut : seuls les droits spécifiques ouvrent la scène. C'est le cas réellement privé.
 
@@ -162,7 +162,7 @@ Un groupe associe donc deux choses : des **membres** (des comptes) et des **scè
 
 ### Créer un groupe
 
-<img src="/assets/img/doc/Confidentialite_06.png" width="100%" alt="Gestion des groupes dans l'interface d'administration" />
+<img src="/assets/img/doc/Confidentialite_06.jpg" width="100%" alt="Gestion des groupes dans l'interface d'administration" />
 
 1. Ouvrez **Administration**, puis **Groupes**.
 2. Saisissez le nom du nouveau groupe dans le champ en haut à droite, à côté du bouton **+**.
@@ -172,7 +172,7 @@ Pour supprimer un groupe, utilisez la corbeille de sa ligne. La suppression reti
 
 ### Ajouter des membres au groupe
 
-<img src="/assets/img/doc/Confidentialite_07.png" width="100%" alt="Page d'un groupe : membres et scènes autorisées" />
+<img src="/assets/img/doc/Confidentialite_07.jpg" width="100%" alt="Page d'un groupe : membres et scènes autorisées" />
 
 1. Cliquez sur le nom du groupe dans la liste.
 2. Dans la section **Membres du groupe**, saisissez le nom d'utilisateur dans le champ, puis cliquez sur **+**.

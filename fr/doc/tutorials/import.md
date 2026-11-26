@@ -39,108 +39,133 @@ eCorpus est un **logiciel libre** permettant de conserver, annoter et diffuser d
 ### Créer une scène eCorpus
 
 #### Comment générer et mettre en ligne votre modèle 3D
+Pour **charger un modèle 3D** sur votre compte eCorpus, il vous suffit de vous rendre la page principal de votre base de donnée. Vous pouvez notamment vous y rendre en cliquant sur le logo affiché en haut à gauche de la page.
 
-Pour **charger un modèle 3D** sur votre compte eCorpus, rendez-vous sur la page d'accueil de votre base de données. Le logo affiché en haut à gauche de la page y ramène à tout moment.
+<img src="/assets/img/doc/SceneCreation_01.jpg" width ="800" alt="illustration connexion" />
 
-<img src="/assets/img/doc/SceneCreation_01.png" width="800" alt="page d'accueil d'une base eCorpus" />
+Vous trouverez un onglet "**Tools**" en haut à gauche dans lequel s'imbrique 3 boutons. Cliquez sur le bouton "**Créer une scène**". La page changera pour afficher les paramètres de création de scènes eCorpus.
 
-Dans la barre de navigation, cliquez sur "**créer**". La page de téléversement s'ouvre : elle sert à créer une nouvelle scène comme à mettre à jour une scène existante.
+<img src="/assets/img/doc/SceneCreation_06.jpg" width ="100%" alt="paramètre création de scène" />
 
-<img src="/assets/img/doc/SceneCreation_06.png" width="100%" alt="page de téléversement d'une scène" />
+Une fois rendu, cliquez sur le bouton "**Choisir un fichier**". Un pop-up apparaîtra vous demandant de sélectionnier dans vos documents le fichiers à téléverser sur la base de données.
 
-Déposez vos fichiers dans la zone prévue, ou cliquez dans cette zone pour parcourir vos documents. Il reste ensuite à renseigner trois éléments :
+* *Vous pouvez également glisser déposer le fichier à téléverser directement sur l'onglet*
 
-* le **nom de la scène**. Ce nom apparaît dans l'URL de la scène : évitez les caractères spéciaux ;
-* la **langue par défaut** de la scène ;
-* l'option "**Optimiser les modèles**", à laisser activée pour les fichiers volumineux. La conversion s'exécute alors en tâche d'arrière-plan et la scène se charge plus vite dans les visualisateurs.
+Enfin, nommez votre scène (ce nom sera directement visible dans l'URL, par conséquent, veuillez éviter les caractères spéciaux), sélectionner la langue par défaut de votre, et cliquer sur le bouton "**créer une scène**" pour lancer l'import de votre modèle 3D dans la base de données.
 
-Cliquez enfin sur "**créer une scène**" pour lancer l'import du modèle.
 
-* Les formats **.glb** et **.gltf** sont utilisés par l'éditeur eCorpus, ainsi que **.obj** accompagné de ses matériaux (.mtl et textures associées). Pour apprendre à exporter un modèle en .glb, reportez-vous à [Préparer son modèle 3D](../advancedUses/models/model.html).
-* Si vous êtes administrateur de la base de données, vous pouvez aussi déposer une **archive .zip** contenant une ou plusieurs scènes eCorpus complètes (modèles, articles, annotations, vignettes). Le bouton "**extraire**" reconstruit alors les scènes telles qu'elles ont été exportées. Pour obtenir une telle archive, reportez-vous à [Télécharger la scène](#télécharger-la-scène).
+* Seule l'extension .glb est utilisable sur l'editeur eCorpus. Pour apprendre à exporter un modèle en .glb, veuillez vous réferrer [au point suivant](#découvrir-les-options-de-gestion-de-scène).
+* Si vous êtes administrateur sur votre base de données eCorpus, il vous est possible d'importer des scènes eCorpus (préalablement téléchargement d'une autre base de données eCorpus, par exemple) directement sous format .zip. Pous savoir comment télécharger une scène sous format .zip, veuillez vous rendre sur [ce point](#télécharger-la-scène).
 
 ### Découvrir les options de gestion de scène
 
-Après avoir chargé votre modèle 3D, vous pouvez préparer vos collaborateurs d'édition, la langue de votre projet, la licence et les informations clés comme l'auteur, le site où l'œuvre est conservée ou la date de réalisation.
+Après avoir chargé votre modèle 3D, préparer vos collaborateurs d'édition, la langue de votre projet, la licence et les informations clés comme l'auteur, le site où l'oeuvre est conservée, la date de réalisation...
 
-Le modèle apparaît dans "**mes scènes**" une fois l'importation terminée. Par défaut, la scène affiche une miniature représentant un cube en fil de fer, en attendant que vous en définissiez une depuis l'éditeur.
+<img src="/assets/img/doc/SceneCreation_01.jpg" width ="800" alt="illustration importation" />
 
-Chaque carte de scène propose deux actions.
 
-#### Le bouton "Voir"
+Le modèle apparait directement dans l'onglet "**Mes Scènes**" une fois son importation terminée. Par défaut, votre scène arborera une miniature représentant un cube en fil de fer. 
+Vous remarquerez **2 boutons cliquables** en dessous de votre scène. 
 
-<img src="/assets/img/doc/SceneCreation_03.png" width="138" alt="bouton Voir sur une carte de scène" />
+#### Le bouton "Voir" 
+<img src="/assets/img/doc/SceneCreation_03.jpg" alt="illustration importation" width ="200" />
 
-Il sert uniquement à **visualiser** votre scène 3D dans le visualisateur DPO-Voyager.
 
-#### Le bouton "Editer"
+Il sert uniquement à **visualiser** votre scène 3D.
 
-<img src="/assets/img/doc/SceneCreation_04.png" width="138" alt="bouton Editer sur une carte de scène" />
 
-Il sert à **éditer** votre scène 3D pour y changer et ajouter du contenu. Dans l'éditeur, la fenêtre du milieu, dite "Explorer", affiche le modèle importé : avec votre souris, vous pouvez changer votre vue sur l'objet. Pour en savoir plus sur les options d'édition, reportez-vous à [ce point](#les-bases-pour-bien-paramètrer-sa-scène-rapidement).
+#### Le bouton "Editer" 
 
-<a id="manage-scene-permissions"></a>
+
+<img src="/assets/img/doc/SceneCreation_04.jpg" alt="illustration importation" width ="200" />
+
+
+Il sert à **éditer** votre scène 3D pour y changer et ajouter du contenu. Dans l'éditeur, vous remarquerez d'abord la fenêtre du milieu, dite "Explorer". Dans celle-ci se trouve le modèle 3D que vous avez importé. Avec votre souris, vous pouvez changer votre vue sur l'objet. Pour en savoir plus sur les options d'édition, [veuillez vous rendre sur ce point](#les-bases-pour-bien-paramètrer-sa-scène-rapidement).
+
+
 #### Administrer sa scène
 
-<img src="/assets/img/doc/SceneCreation_05.png" width="319" alt="nom d'une scène dans sa carte" />
 
-Pour administrer une scène, cliquez sur son **nom** dans la liste, ou ouvrez son "**Aperçu**". Vous arrivez sur la fiche de la scène, qui récapitule sa vignette, ses métadonnées et ses tags.
+> **Attention : cette section décrit une ancienne version de l'interface.** Les libellés et les captures ci-dessous ne correspondent plus tout à fait à l'écran actuel. Le fonctionnement à jour, avec les trois niveaux de visibilité (publique, réservée aux utilisateurs connectés, privée) et l'usage des groupes, est expliqué pas à pas dans [Confidentialité des scènes](../explainers/permissions.html).
 
-<img src="/assets/img/doc/AdminSettings_01.png" width="100%" alt="fiche d'une scène dans l'interface d'administration" />
 
-Le menu de gauche de cette fiche donne accès à toutes les opérations : "**Aperçu**", "**Voir**", "**Editer**", "**Historique**", "**tâches**" et "**Paramètres**".
+<img src="/assets/img/doc/SceneCreation_05.jpg" width ="200" alt="illustration importation" />
 
-Les droits d'accès, les tags, le renommage et l'archivage se trouvent dans "**Paramètres**". La page réunit trois blocs :
 
-* "**Droits d'accès**" : le niveau d'accès public, le niveau par défaut des utilisateurs connectés, puis les droits accordés à des groupes ou à des utilisateurs nommés ;
-* "**Modifier les tags**" : les collections auxquelles la scène appartient ;
-* en bas de page, "**Renommer**", "**Archiver**" et "**Télécharger la scène**".
+Pour gérer l'administration de votre scène, cliquez directement sur le nom de cette-dernière. Dans la catégorie "**Droit d'accès**", à droite, vous trouverez une liste de différents utilisateurs ainsi que leurs droits attribués.
 
-Le détail des niveaux de visibilité, de l'accès public, de l'accès par défaut et des groupes est expliqué pas à pas dans [Confidentialité des scènes](../explainers/permissions.html).
+Voyons d'abord les différents status de droit que vous pouvez attribuer à chacun des utilisateurs.
+<img src="/assets/img/doc/AdminSettings_01.jpg" width ="100%" alt="illustration importation" />
 
-Voyons d'abord les différents niveaux de droit que vous pouvez attribuer à un utilisateur.
 
-* **aucun** : la scène n'est pas accessible ;
-* **lecture** : l'utilisateur voit la scène dans le visualisateur, sans pouvoir la modifier ;
-* **écriture** : l'utilisateur voit et édite la scène 3D ;
-* **administration** : l'utilisateur voit, édite et modifie les droits d'accès de cette scène. Ce niveau n'existe que pour un utilisateur nommé.
+* **Aucun**: Un utilisateur ayant ce droit ne pourra pas accèder à votre scène.
 
-Deux règles générales s'appliquent à toute la scène :
+* **Lecture**: Un utilisateur ayant ce droit aura accès au visualisateur de votre scène, mais ne pourra pas la modifier.
 
-* "**Accès public**" concerne tous les visiteurs, y compris les personnes non identifiées. Deux valeurs seulement : "aucun" ou "lecture". Pour qu'un lien de scène soit visible par tous, réglez-le sur "**lecture**" ;
-* "**Accès par défaut**" concerne tous les membres ayant un compte sur la base de données : "aucun", "lecture" ou "écriture". Il ne peut pas être plus restrictif que l'accès public.
+* **Ecriture**: Un utilisateur ayant ce droit pourra voir et éditer votre scène 3D.
 
-Pour donner des droits spécifiques à une personne, écrivez son nom d'utilisateur exact, choisissez le niveau, puis cliquez sur "**+**". Le bouton "**Ajouter un groupe**" fonctionne de la même façon avec un nom de groupe.
+* **Admin**: Un utilisateur ayant ce droit pourra voir, éditer, et changer les droit d'administrateur de cette scène.
 
-<img src="/assets/img/doc/AdminSettings_03.png" width="100%" alt="ajout d'un utilisateur dans les droits d'accès d'une scène" />
 
-##### Historique
 
-L'entrée "**Historique**" affiche chaque changement effectué sur la scène depuis sa création. Si une mauvaise version a été enregistrée, survolez une étape et cliquez sur "**restaurer**" pour revenir à cet état.
+Maintenant, concentrons nous sur les différents utilisateurs listés:
 
-<img src="/assets/img/doc/AdminSettings_02.png" width="90%" alt="historique d'édition d'une scène" />
+* **Accès Public**: Concerne tous les visiteurs du lien, y compris les personnes non identifiées sur la base de donnée.
 
-**Attention, cliquer sur "restaurer" ne supprime pas les changements : de nouvelles entrées sont ajoutées à la date présente pour remettre la scène dans l'état où elle était à la date indiquée.**
+_Si votre scène est visible en public, nous vous conseillons de lui attribuer un droit "Lecture"_
+
+* **Utilisateur Authentifié**: Concerne tous les membres ayant un compte sur votre base de donnée
+
+Vous pouvez ajouter un nom d'utilisateur pour lui donner des droits spécifiques. Il suffit d'écrire son nom d'utilisateur exacte et de cliquer sur "**+**".
+
+
+<img src="/assets/img/doc/AdminSettings_03.jpg" width ="100%" alt="illustration importation" />
+
+
+Enfin, vous remarquerez la présence de **4 boutons** à gauche.
+
+##### Editer
+
+Il permet d'**éditer** votre scène eCorpus. Pour en savoir plus sur l'édition de scène, [veuillez vous rendre sur ce point](#les-bases-pour-bien-paramètrer-sa-scène-rapidement).
+
+##### Voir
+
+Il permet de **visualiser** votre scène eCorpus. 
 
 ##### Télécharger la scène
 
-Le bouton "**Télécharger la scène**", en bas de la page "**Paramètres**", exporte la scène dans une archive .zip contenant la scène au format .json, les modèles .glb et les informations d'articles, d'annotations et de visites guidées présentes au moment du téléchargement.
+Il permet de télécharger la scène sous format de dossier compressé (.zip), contenant notamment votre scène eCorpus sous format .json, les modèles 3D .glb ainsi que les informations d'articles, d'annotations et de visite guidés présents au moment du téléchargement.
 
-Télécharger une scène eCorpus permet, par exemple :
+Télécharger votre scène eCorpus permet, par exemple:
 
-* de récupérer les modèles de votre base de données pour un autre usage (impression 3D, édition du modèle, etc.) ;
-* de copier votre scène sur une autre base de données eCorpus, en déposant l'archive sur la page de téléversement.
+* de récupérer les modèles de votre base de donnée pour une utilisation quelquonque (impression 3D, édition du modèle, etc...);
+* de copier votre scène sur une autre base de données eCorpus;
+
+##### Historique
+
+Il permet d'avoir accès à l'historique d'édition de la scène. 
+
+Il témoigne de chaque changement effectué sur la scène depuis sa création. 
+Si vous avez sauvegardé une mauvaise version de votre scène, vous pouvez restaurer une version précédente à cette modification en survolant une étape de l'historique et en cliquant sur "restaurer".
+
+
+
+
+<img src="/assets/img/doc/AdminSettings_02.jpg" width ="90%" alt="illustration importation" />
+
+**Attention, cliquer sur "restaurer à" ne supprimera pas les changements: de nouvelles entrées seront ajoutées à la date présente pour restaurer la scène dans l'état ou elle était à la date indiquée**
 
 ##### Ajouter sa scène dans une collection précise
 
-Il est possible de créer et de gérer des collections de scènes eCorpus grâce aux **tags**.
+Il est tout à fait possible de créer et de gérer des collections de scènes eCorpus en fonction des besoins, grâce à la création et à la gestion de **Tags**. 
 
-Dans la page "**Paramètres**", le bloc "**Modifier les tags**" liste les tags actuels, et le champ "**Ajouter un tag**" permet d'en créer un nouveau.
 
-<img src="/assets/img/doc/AdminSettings_04.png" width="90%" alt="modification des tags d'une scène" />
+En haut à droite de la fenêtre de gestion des Droits d'accès ([comme illustré dans ce point](#administrer-sa-scène)) se trouve le lien cliquable **"Modifier les tags"**. Il vous suffit de cliquer dessus pour y faire apparaître un bouton vous permettant de modifier les tags associés à cette scène.
 
-* Pour rattacher la scène à **une collection existante**, commencez à saisir son nom : les tags déjà utilisés sont proposés au fur et à mesure ;
-* Pour créer **une collection qui n'existe pas encore**, saisissez son nom en entier puis cliquez sur "**+**" : le tag est créé et associé immédiatement à la scène.
+<img src="/assets/img/doc/AdminSettings_04.jpg" width ="90%" alt="illustration création tag" />
+
+* Si vous souhaitez inclure la scène dans **une collection déjà existante**, cliquez sur la flêche du menu déroulant et sélectionnez le nom correspondant au tag que vous souhaitez associer.
+* Si vous souhaitez inclure la scène dans une **collection qui n'existe pas encore**, cliquez directement dans la barre du menu déroulant pour y entrer le nom souhaité pour votre collection. Une fois le nom entré, cliquer sur l'icône **+** juste à droite pour créer la collection et y associé d'emblé la scène.
 
 ### Les bases pour bien paramètrer sa scène rapidement
 
@@ -259,7 +284,7 @@ Une fois votre scène créée et paramétrée selon votre souhait, il vous ait p
 
 La première solution est également la plus simple: il s'agit de se rendre sur le visualisateur de la scène eCorpus (bouton **"Voir"**) et de copier coller le lien pour le partager ensuite sur des publications de réseau sociaux (type LinkedIn).
 
-**Attention : pour que la scène soit visible par le public non identifié, réglez "Accès public" sur "lecture" dans les "Paramètres" de la scène.**
+**Attention: afin que la scène soit visible au public non identifié, veuillez à bien indiquer "Lecture" dans les droits d'accès intitulé "Accès Public" de la scène en question**
 
 #### Permettre l'affichage de la scène sur une page Web
 
@@ -268,11 +293,11 @@ Cette solution permet l'affichage d'une scène eCorpus dans une page Web. Chaque
 
 Il suffit donc de récupérer de copier coller ce colle dans le code de votre page, à l'endroit souhaité.
 
-**Attention : pour que la scène soit visible par le public non identifié, réglez "Accès public" sur "lecture" dans les "Paramètres" de la scène.**
+**Attention: afin que la scène soit visible au public non identifié, veuillez à bien indiquer "Lecture" dans les droits d'accès intitulé "Accès Public" de la scène en question**
 
 #### Partager la scène à ses collègues vient les droits d'administration
 
-Si vos collègues possèdent un compte sur votre base de données eCorpus, vous pouvez partager votre scène avec eux en lecture seule. Il suffit d'ajouter le nom d'utilisateur de la personne dans les **droits d'accès** de la scène, avec le niveau "lecture", comme [montré dans ce point](#administrer-sa-scène). Les groupes y remplacent avantageusement les ajouts individuels quand plusieurs personnes doivent recevoir les mêmes droits.
+Si ils possèdent un compte sur votre base de données eCorpus, il est tout à fait possible de partager votre scène à vos collègue pour une lecture seule. Il vous suffit simplement de changer les **droits d'accès** de votre scène en y ajoutant le nom d'utilisateur de la personne souhaité, comme [montré dans ce point](#administrer-sa-scène).
 
 La scène s'affichera alors dans la liste de cet utilisateur.
 
