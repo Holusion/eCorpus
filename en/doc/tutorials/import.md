@@ -37,107 +37,110 @@ eCorpus is **open-source software** designed to preserve, annotate, and share 3D
 
 #### How to Generate and Upload Your 3D Model
 
-To **upload a 3D model** to your eCorpus account, go to the main page of your database. The logo in the top-left corner brings you back there at any time.
+To **upload a 3D model** to your eCorpus account, go to the main page of your database, accessible by clicking the logo in the top-left corner.
 
-<img src="/assets/img/doc/SceneCreation_01_en.png" width="800" alt="eCorpus database home page" />
+<img src="/assets/img/doc/SceneCreation_01.jpg" width="800" alt="homepage illustration" />
 
-In the navigation bar, click "**upload**". The page opens: it is used both to create a new scene and to update an existing one.
+At the top-left, open the "**Tools**" tab, which contains 3 buttons. Click "**Create a Scene**" to open the eCorpus scene creation settings.
 
-<img src="/assets/img/doc/SceneCreation_06_en.png" width="100%" alt="scene upload page" />
+<img src="/assets/img/doc/SceneCreation_06.jpg" width="100%" alt="scene creation settings" />
 
-Drop your files into the area, or click inside it to browse your computer. Three fields then need filling in:
+Click "**Choose a File**" to open a pop-up and select the file to upload from your computer.
 
-* the **scene name**. It appears in the scene URL, so avoid special characters;
-* the scene **default language**;
-* the "**Optimize models**" option, which is best left enabled for large files. The conversion then runs as a background task and the scene loads much faster in the viewers.
+* *You can also drag and drop your file directly into the tab.*
 
-Click "**create a scene**" to start the import.
+Next, name your scene (avoid special characters as the name appears in the URL), select the default language, and click "**Create Scene**" to begin uploading your 3D model.
 
-* The eCorpus editor uses **.glb** and **.gltf** files, as well as **.obj** files with their materials (.mtl and associated textures). To learn how to export a model as .glb, see [Preparing your 3D model](../advancedUses/models/model.html).
-* Database administrators can also drop a **.zip archive** holding one or more complete eCorpus scenes (models, articles, annotations, thumbnails). The "**extract**" button then rebuilds the scenes as they were exported. To produce such an archive, see [Download the scene](#download-the-scene).
+* Only `.glb` files are supported in the eCorpus editor. To learn how to export a model in `.glb`, refer to [this section](#manage-scene-options).
+* If you are an administrator, you can also import eCorpus scenes in `.zip` format from another eCorpus instance. To learn how to export a scene as a `.zip` file, see [this section](#download-the-scene).
 
 ### Manage Scene Options
 
-After uploading your 3D model, you can prepare your editing collaborators, your project language, the licence and key metadata such as the author, the place where the work is kept or the creation date.
+After uploading your 3D model, prepare your scene by setting editing collaborators, language, license, and key metadata (author, location, creation date, etc.).
 
-Once the import is complete, the model appears under "**my scenes**". By default the scene shows a wireframe cube thumbnail until you capture one from the editor.
+<img src="/assets/img/doc/SceneCreation_01.jpg" width="800" alt="scene import illustration" />
 
-Each scene card offers two actions.
+Once uploaded, your scene appears under "**My Scenes**" with a default wireframe cube thumbnail and **two clickable buttons** below it.
 
 #### The View Button
 
-<img src="/assets/img/doc/SceneCreation_03_en.png" width="138" alt="View button on a scene card" />
+<img src="/assets/img/doc/SceneCreation_03.jpg" width="200" alt="view button illustration" />
 
-It only **displays** your 3D scene in the DPO-Voyager viewer.
+This opens your 3D scene in **view-only** mode.
 
 #### The Edit Button
 
-<img src="/assets/img/doc/SceneCreation_04_en.png" width="138" alt="Edit button on a scene card" />
+<img src="/assets/img/doc/SceneCreation_04.jpg" width="200" alt="edit button illustration" />
 
-It **edits** your 3D scene, to change and add content. In the editor, the central window called "Explorer" shows the imported model: with your mouse, you can change your view of the object. For more on editing options, see [this section](#scene-setup-essentials).
+This opens the scene in **edit mode**, allowing you to add or modify content. In the editor, you'll first see the central "Explorer" window with your imported model. Use your mouse to change the viewing angle. For more details, see [Scene Setup Essentials](#scene-setup-essentials).
 
-<a id="manage-scene-permissions"></a>
 #### Manage Scene Permissions
 
-<img src="/assets/img/doc/SceneCreation_05_en.png" width="319" alt="scene name inside its card" />
+> **Note: this section describes an older version of the interface.** The labels and screenshots below no longer match the current screen exactly. The up-to-date behaviour, with the three levels of visibility (public, restricted to connected users, private) and the use of groups, is explained step by step in [Scene privacy](../explainers/permissions.html).
 
-To manage a scene, click its **name** in the list, or open its "**Overview**". You land on the scene sheet, which summarises its thumbnail, metadata and tags.
+<img src="/assets/img/doc/SceneCreation_05.jpg" width="200" alt="scene management illustration" />
 
-<img src="/assets/img/doc/AdminSettings_01_en.png" width="100%" alt="scene sheet in the administration interface" />
+To manage permissions, click on the **scene name**. Under "**Access Rights**", you’ll find a list of users and their permissions.
 
-The left menu of that sheet gives access to every operation: "**Overview**", "**View**", "**Edit**", "**Scene History**", "**tasks**" and "**Settings**".
+<img src="/assets/img/doc/AdminSettings_01.jpg" width="100%" alt="access rights illustration" />
 
-Access rights, tags, renaming and archiving live under "**Settings**". The page holds three blocks:
+Permission levels:
 
-* "**Access rights**": the public access level, the default level for signed-in users, then the rights granted to groups or named users;
-* "**Edit tags**": the collections the scene belongs to;
-* at the bottom of the page, "**Rename**", "**Archive**" and "**Download this scene**".
+* **None**: Cannot access the scene.
+* **Read**: Can view the scene but not edit it.
+* **Write**: Can view and edit the scene.
+* **Admin**: Can edit and manage permissions for the scene.
 
-The details of the visibility levels, public access, default access and groups are explained step by step in [Scene privacy](../explainers/permissions.html).
+Users:
 
-Permission levels you can grant to a user:
+* **Public Access**: Applies to anyone with the link, even if not logged in.
+* **Authenticated User**: Applies to anyone with an account on your database.
 
-* **none**: the scene cannot be accessed;
-* **read**: the user sees the scene in the viewer but cannot change it;
-* **write**: the user sees and edits the 3D scene;
-* **administration**: the user sees, edits and changes the access rights of that scene. This level only exists for a named user.
+To assign rights to a specific user, enter their exact username and click "**+**".
 
-Two general rules apply to the whole scene:
+<img src="/assets/img/doc/AdminSettings_03.jpg" width="100%" alt="user rights illustration" />
 
-* "**Public access**" applies to every visitor, including people who are not signed in. Only two values: "none" or "read". For a scene link to be visible to anyone, set it to "**read**";
-* "**Default access**" applies to every member with an account on the database: "none", "read" or "write". It cannot be more restrictive than public access.
+You’ll also see **four buttons** on the left:
 
-To give specific rights to a person, type their exact username, pick the level, then click "**+**". The "**Add group**" button works the same way with a group name.
+##### Edit
 
-<img src="/assets/img/doc/AdminSettings_03_en.png" width="100%" alt="adding a user to a scene access rights" />
+Opens the editor. See [Scene Setup Essentials](#scene-setup-essentials).
 
-##### Scene History
+##### View
 
-The "**Scene History**" entry lists every change made to the scene since its creation. If a wrong version was saved, hover over a step and click "**restore**" to go back to that state.
+Opens the scene in viewer mode.
 
-<img src="/assets/img/doc/AdminSettings_02_en.png" width="90%" alt="scene editing history" />
+##### Download the Scene
 
-**Careful: clicking "restore" does not delete changes. New entries are added at the present date to put the scene back in the state it was in at the stated date.**
+Downloads a `.zip` containing:
 
-##### Download the scene
+* The `.json` eCorpus scene file
+* The `.glb` model
+* Annotations, articles, and guided tours data
 
-The "**Download this scene**" button, at the bottom of the "**Settings**" page, exports the scene as a .zip archive holding the scene in .json format, the .glb models and the articles, annotations and guided tours present at the time of download.
+Useful for:
 
-Downloading an eCorpus scene is useful, for example:
+* Exporting models for external use (e.g., 3D printing)
+* Migrating scenes to another eCorpus instance
 
-* to get the models of your database for another use (3D printing, model editing, etc.);
-* to copy your scene to another eCorpus database, by dropping the archive on the upload page.
+##### History
+
+Shows the full edit history. You can **restore** a previous version by hovering over a step and clicking "Restore".
+
+<img src="/assets/img/doc/AdminSettings_02.jpg" width="90%" alt="history illustration" />
+
+**Note:** Restoring does not delete changes; it adds new entries to revert the scene to its previous state.
 
 ##### Add Scene to a Collection
 
-Collections of eCorpus scenes are created and managed with **tags**.
+You can organize scenes into collections using **Tags**.
 
-On the "**Settings**" page, the "**Edit tags**" block lists the current tags, and the "**Add a tag**" field creates a new one.
+At the top right of the Access Rights panel, click **"Edit Tags"** to assign or create tags.
 
-<img src="/assets/img/doc/AdminSettings_04_en.png" width="90%" alt="editing the tags of a scene" />
+<img src="/assets/img/doc/AdminSettings_04.jpg" width="90%" alt="tag creation illustration" />
 
-* To attach the scene to **an existing collection**, start typing its name: tags already in use are suggested as you type;
-* To create **a collection that does not exist yet**, type its full name then click "**+**": the tag is created and attached to the scene straight away.
+* To use an existing collection, select it from the dropdown menu.
+* To create a new one, type its name and click the **+** icon.
 
 ### Scene Setup Essentials
 
@@ -257,7 +260,7 @@ Once your scene has been created and configured to your liking, you can share it
 
 The first solution is also the simplest: go to the viewer of your eCorpus scene (the **"View"** button) and copy the link, to share it afterwards on social media posts (such as LinkedIn).
 
-**Careful: for the scene to be visible to unidentified members of the public, set "Public access" to "read" in the scene "Settings".**
+**Be careful: for the scene to be visible to unidentified members of the public, make sure to set "Read" in the access rights labelled "Public Access" of the scene in question**
 
 #### Displaying the Scene on a Web Page
 
@@ -266,7 +269,7 @@ This solution allows an eCorpus scene to be displayed on a web page. Every eCorp
 
 Simply copy this code and paste it into your page's code, at the desired location.
 
-**Careful: for the scene to be visible to unidentified members of the public, set "Public access" to "read" in the scene "Settings".**
+**Be careful: for the scene to be visible to unidentified members of the public, make sure to set "Read" in the access rights labelled "Public Access" of the scene in question**
 
 #### Sharing the Scene with Your Colleagues with Administration Rights
 
