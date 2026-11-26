@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 
-import { run, ExecError, OutputLine } from "./exec.js";
+import { run, ExecError, OutputLine, parseLogLine } from "./exec.js";
 
 
 async function collect(it: AsyncIterable<OutputLine>): Promise<OutputLine[]> {
@@ -86,5 +86,36 @@ describe("run()", function(){
 
   it("throws if command doesn't exist", async function(){
     await expect(collect(run("this-command-does-not-exist", []))).to.be.rejectedWith("ENOENT");
+  });
+});
+
+describe("parseLogLine()", function(){
+  it("reads a JSON log record", function(){
+    expect(parseLogLine(`{"level":"info","message":"Running simplify"}`)).to.deep.equal({level: "info", message: "Running simplify"});
+  });
+
+  it("keeps the code and fields it doesn't know", function(){
+    expect(parseLogLine(`{"level":"info","message":"Converted (40%)","progress":0.4,"stage":"write"}`)).to.deep.equal({
+      level: "info", message: "Converted (40%)", progress: 0.4, stage: "write",
+    });
+    expect(parseLogLine(`{"level":"error","message":"cannot open 'scan.glb'","code":"file-unreadable"}`)).to.deep.equal({
+      level: "error", message: "cannot open 'scan.glb'", code: "file-unreadable",
+    });
+  });
+
+  it("reads a text line as a message at the fallback level", function(){
+    const line = "meshtinker: 'nope' is not a meshtinker command. See 'meshtinker --help'.";
+    expect(parseLogLine(line)).to.deep.equal({level: "warn", message: line});
+    expect(parseLogLine(line, "error")).to.deep.equal({level: "error", message: line});
+  });
+
+  it("reads a line that isn't a log record as text", function(){
+    for(const line of [`{"level":"info"`, `{"level":"info"}`, `{"message": 12}`, `{}`, `null`, `[]`]){
+      expect(parseLogLine(line), line).to.deep.equal({level: "warn", message: line});
+    }
+  });
+
+  it("gives the fallback level to a level it doesn't know", function(){
+    expect(parseLogLine(`{"level":"notice","message":"hello"}`, "info")).to.deep.equal({level: "info", message: "hello"});
   });
 });

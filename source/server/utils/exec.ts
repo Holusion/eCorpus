@@ -1,6 +1,6 @@
 import * as child_process from "child_process";
 import { createInterface } from "readline";
-import { ITaskLogger } from "../tasks/types.js";
+import { ITaskLogger, LogSeverity } from "../tasks/types.js";
 
 
 export interface OutputLine {
@@ -34,6 +34,42 @@ export class ExecError extends Error {
     );
     this.name = "ExecError";
   }
+}
+
+
+/**
+ * A message of a command run with `--log-format json`, as meshtinker and mesh2gltf write them on stderr:
+ * one JSON object per line. Their levels are the task logger's, so a record can be passed on as is.
+ */
+export interface LogRecord {
+  level: LogSeverity;
+  /** The message alone, without the program's name, the severity or the code */
+  message: string;
+  /** Stable code of a diagnostic or a failure, that callers can map to a localized message */
+  code?: string;
+  /** Fields that may come later, such as mesh2gltf's `progress` and `stage` */
+  [field: string]: unknown;
+}
+
+const logLevels: ReadonlySet<string> = new Set<LogSeverity>(["trace", "debug", "info", "warn", "error", "fatal"]);
+
+/**
+ * Read one stderr line of a command run with `--log-format json`.
+ * Not every line is JSON: a wrapper's own errors, a crash or a library writing to stderr are text.
+ * Such a line, or a record with a level we don't know, gets the `fallback` level.
+ */
+export function parseLogLine(line: string, fallback: LogSeverity = "warn"): LogRecord {
+  if (line.startsWith("{")) {
+    try {
+      const record = JSON.parse(line);
+      if (record && typeof record === "object" && typeof record.message === "string") {
+        return { ...record, level: logLevels.has(record.level) ? record.level : fallback };
+      }
+    } catch {
+      //Not JSON: a plain message
+    }
+  }
+  return { level: fallback, message: line };
 }
 
 
