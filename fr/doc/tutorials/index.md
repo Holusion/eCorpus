@@ -36,6 +36,8 @@ Pour se faire, glisser simplement votre modèle en GLB dans la scène ci-dessus.
 
 ## Tutoriels
 
+ * **Découvrir une scène**
+  * [Naviguer dans une scène 3D](navigation)
  * **Créer et améliorer votre scène**
   * [Connexion à votre compte eCorpus](compte)
   * [Importer un modèle 3D ](import)

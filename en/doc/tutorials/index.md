@@ -37,6 +37,7 @@ To do this, simply drag your GLB model into the scene above. The object will app
 ## Tutorials
 
 * [Log in to your eCorpus Account](compte)
+* [Navigate a 3D scene](navigation)
 * [Import a 3D model ](import)
 * [Add annotations](annotation)
 * [Create articles](article)

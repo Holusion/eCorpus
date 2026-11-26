@@ -1,0 +1,15 @@
+{%comment %}
+Short silent demo video (screen capture), started by the reader.
+Usage :
+  include demo-video.html src="/assets/video/doc/clip.mp4" poster="/assets/img/doc/clip.webp" title="What the video shows"
+
+  Only the poster loads with the page; the video loads when the reader plays it.
+{%endcomment%}
+<div class="media ratio ratio-16x9">
+  <video controls muted loop playsinline preload="none"
+    poster="{{ include.poster | relative_url }}"
+    aria-label="{{ include.title | escape }}">
+    <source src="{{ include.src | relative_url }}" type="video/mp4">
+    <a href="{{ include.src | relative_url }}">{{ include.title }}</a>
+  </video>
+</div>
